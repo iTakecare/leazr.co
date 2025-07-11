@@ -116,8 +116,14 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
       return;
     }
     
-    // Add new attribute with initial value if provided
-    const values = newAttributeValue.trim() ? [newAttributeValue.trim()] : [];
+    // Add new attribute with initial value if provided, splitting by commas
+    let values: string[] = [];
+    if (newAttributeValue.trim()) {
+      values = newAttributeValue
+        .split(',')
+        .map(value => value.trim())
+        .filter(value => value.length > 0);
+    }
     
     setAttributes(prev => ({
       ...prev,
@@ -137,22 +143,40 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
       return;
     }
     
-    // Check if value already exists for this attribute
-    if (attributes[attributeName]?.includes(valueToAdd.trim())) {
-      toast.error("Cette valeur existe déjà pour cet attribut");
+    // Séparer les valeurs par des virgules et nettoyer les espaces
+    const valuesToAdd = valueToAdd
+      .split(',')
+      .map(value => value.trim())
+      .filter(value => value.length > 0);
+    
+    if (valuesToAdd.length === 0) {
+      toast.error("La valeur de l'attribut est requise");
       return;
     }
     
-    // Add value to attribute
+    // Vérifier les doublons
+    const existingValues = attributes[attributeName] || [];
+    const newValues = valuesToAdd.filter(value => !existingValues.includes(value));
+    
+    if (newValues.length === 0) {
+      toast.error("Toutes ces valeurs existent déjà pour cet attribut");
+      return;
+    }
+    
+    // Add values to attribute
     setAttributes(prev => ({
       ...prev,
-      [attributeName]: [...(prev[attributeName] || []), valueToAdd.trim()]
+      [attributeName]: [...existingValues, ...newValues]
     }));
     
     setAttributeToAddValueTo(null);
     setValueToAdd("");
     
-    toast.success(`Valeur "${valueToAdd}" ajoutée à l'attribut "${attributeName}"`);
+    if (newValues.length === 1) {
+      toast.success(`Valeur "${newValues[0]}" ajoutée à l'attribut "${attributeName}"`);
+    } else {
+      toast.success(`${newValues.length} valeurs ajoutées à l'attribut "${attributeName}": ${newValues.join(', ')}`);
+    }
   };
   
   const handleRemoveValue = (attributeName: string, valueIndex: number) => {
@@ -256,33 +280,38 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
                     ))}
                   </div>
                   
-                  {attributeToAddValueTo === attributeName ? (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Input
-                        placeholder="Nouvelle valeur"
-                        value={valueToAdd}
-                        onChange={(e) => setValueToAdd(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleAddValueToAttribute(attributeName)}
-                        type="button"
-                      >
-                        Ajouter
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => {
-                          setAttributeToAddValueTo(null);
-                          setValueToAdd("");
-                        }}
-                        type="button"
-                      >
-                        Annuler
-                      </Button>
-                    </div>
+                   {attributeToAddValueTo === attributeName ? (
+                     <div className="space-y-2">
+                       <div className="flex items-center gap-2">
+                         <Input
+                           placeholder="Nouvelle valeur (ex: 64Go, 128Go)"
+                           value={valueToAdd}
+                           onChange={(e) => setValueToAdd(e.target.value)}
+                           className="flex-1"
+                         />
+                         <Button 
+                           size="sm" 
+                           onClick={() => handleAddValueToAttribute(attributeName)}
+                           type="button"
+                         >
+                           Ajouter
+                         </Button>
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           onClick={() => {
+                             setAttributeToAddValueTo(null);
+                             setValueToAdd("");
+                           }}
+                           type="button"
+                         >
+                           Annuler
+                         </Button>
+                       </div>
+                       <p className="text-xs text-muted-foreground">
+                         💡 Vous pouvez séparer plusieurs valeurs par des virgules
+                       </p>
+                     </div>
                   ) : (
                     <Button 
                       variant="outline" 
@@ -346,10 +375,13 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
               <div className="space-y-2">
                 <label className="text-sm">Première valeur (optionnelle)</label>
                 <Input
-                  placeholder="Ex: Rouge, XL, etc."
+                  placeholder="Ex: Rouge, Bleu, Vert ou 16Go, 32Go (séparez par des virgules)"
                   value={newAttributeValue}
                   onChange={(e) => setNewAttributeValue(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  💡 Séparez plusieurs valeurs par des virgules pour les créer d'un coup
+                </p>
               </div>
               
               <Button onClick={handleAddAttribute} className="self-start" type="button">
