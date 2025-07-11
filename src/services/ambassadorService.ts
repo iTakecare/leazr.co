@@ -176,24 +176,14 @@ export const getAmbassadors = async (): Promise<Ambassador[]> => {
   try {
     console.log("Récupération des ambassadeurs avec isolation par entreprise via RPC sécurisée");
     
-    // Récupérer le company_id de l'utilisateur actuel
-    const { getCurrentUserCompanyId } = await import('./multiTenantService');
-    const companyId = await getCurrentUserCompanyId();
-    
-    if (!companyId) {
-      console.warn("Aucun company_id trouvé pour l'utilisateur actuel");
-      return [];
-    }
-    
-    const { data, error } = await supabase.rpc('get_company_ambassadors_secure', { 
-      p_company_id: companyId 
-    });
+    const { data, error } = await supabase.rpc('get_company_ambassadors_secure');
 
     if (error) {
       console.error('Erreur lors de la récupération des ambassadeurs via RPC:', error);
       return [];
     }
 
+    console.log(`Loaded ambassadors: ${data?.length || 0}`, data);
     return data || [];
   } catch (error) {
     console.error('Error in getAmbassadors:', error);

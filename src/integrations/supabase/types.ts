@@ -3887,6 +3887,35 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_company_ambassadors_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          phone: string
+          region: string
+          status: string
+          notes: string
+          address: string
+          city: string
+          postal_code: string
+          country: string
+          company: string
+          vat_number: string
+          has_user_account: boolean
+          user_id: string
+          user_account_created_at: string
+          updated_at: string
+          created_at: string
+          last_commission: number
+          commissions_total: number
+          clients_count: number
+          commission_level_id: string
+          company_id: string
+          pdf_template_id: string
+        }[]
+      }
       get_company_dashboard_metrics: {
         Args: Record<PropertyKey, never>
         Returns: {
