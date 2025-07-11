@@ -3866,27 +3866,28 @@ export type Database = {
         }[]
       }
       get_company_dashboard_metrics: {
-        Args: { p_company_id: string; time_filter?: string }
+        Args:
+          | Record<PropertyKey, never>
+          | { p_company_id: string; time_filter?: string }
         Returns: {
-          total_revenue: number
           total_clients: number
           total_offers: number
           total_contracts: number
+          total_revenue: number
           pending_offers: number
           active_contracts: number
-          monthly_growth_revenue: number
-          monthly_growth_clients: number
+          recent_signups: number
         }[]
       }
       get_company_recent_activity: {
-        Args: { p_company_id: string; p_limit?: number }
+        Args:
+          | Record<PropertyKey, never>
+          | { p_company_id: string; p_limit?: number }
         Returns: {
           activity_type: string
           activity_description: string
-          entity_id: string
-          entity_name: string
           created_at: string
-          user_name: string
+          entity_id: string
         }[]
       }
       get_company_users: {
