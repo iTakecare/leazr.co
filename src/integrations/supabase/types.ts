@@ -915,6 +915,47 @@ export type Database = {
           },
         ]
       }
+      company_domains: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          domain: string
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          subdomain: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          domain: string
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          subdomain?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          domain?: string
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          subdomain?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_email_confirmations: {
         Row: {
           company_id: string
@@ -1369,6 +1410,50 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_auth_tokens: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          metadata: Json | null
+          token: string
+          token_type: string
+          used_at: string | null
+          user_email: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          metadata?: Json | null
+          token: string
+          token_type: string
+          used_at?: string | null
+          user_email: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          metadata?: Json | null
+          token?: string
+          token_type?: string
+          used_at?: string | null
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_auth_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -3617,6 +3702,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      cleanup_expired_auth_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_expired_prospects: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -3740,6 +3829,10 @@ export type Database = {
       delete_brand: {
         Args: { brand_name: string }
         Returns: boolean
+      }
+      detect_company_from_domain: {
+        Args: { request_origin: string }
+        Returns: string
       }
       diagnose_ambassador_isolation: {
         Args: Record<PropertyKey, never>
@@ -4318,6 +4411,10 @@ export type Database = {
       refresh_admin_pending_requests: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      render_email_template: {
+        Args: { template_content: string; variables: Json }
+        Returns: string
       }
       sign_offer_public: {
         Args: {
