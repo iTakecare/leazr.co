@@ -3866,9 +3866,7 @@ export type Database = {
         }[]
       }
       get_company_dashboard_metrics: {
-        Args:
-          | Record<PropertyKey, never>
-          | { p_company_id: string; time_filter?: string }
+        Args: Record<PropertyKey, never>
         Returns: {
           total_clients: number
           total_offers: number
@@ -3880,9 +3878,7 @@ export type Database = {
         }[]
       }
       get_company_recent_activity: {
-        Args:
-          | Record<PropertyKey, never>
-          | { p_company_id: string; p_limit?: number }
+        Args: Record<PropertyKey, never>
         Returns: {
           activity_type: string
           activity_description: string
