@@ -18,7 +18,7 @@ import OfferTypeTag from "@/components/offers/OfferTypeTag";
 // Import des composants améliorés
 import InteractiveWorkflowStepper from "@/components/offers/detail/InteractiveWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
-
+import NewEquipmentSection from "@/components/offers/detail/NewEquipmentSection";
 import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
@@ -343,6 +343,7 @@ const AdminOfferDetail = () => {
                   
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
+                    <NewEquipmentSection offer={offer} />
                   </TabsContent>
                   
                   <TabsContent value="financial" className="mt-4 overflow-visible">
