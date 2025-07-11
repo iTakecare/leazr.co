@@ -18,7 +18,7 @@ import OfferTypeTag from "@/components/offers/OfferTypeTag";
 // Import des composants améliorés
 import InteractiveWorkflowStepper from "@/components/offers/detail/InteractiveWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
-import CompactEquipmentSection from "@/components/offers/detail/CompactEquipmentSection";
+
 import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
@@ -334,9 +334,8 @@ const AdminOfferDetail = () => {
               {/* Contenu principal - permettre le débordement */}
               <div className="lg:col-span-3 min-h-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">Vue d'ensemble</TabsTrigger>
-                    <TabsTrigger value="equipment" className="text-xs sm:text-sm">Équipements</TabsTrigger>
                     <TabsTrigger value="financial" className="text-xs sm:text-sm">Financier</TabsTrigger>
                     <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
                     <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
@@ -344,11 +343,6 @@ const AdminOfferDetail = () => {
                   
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
-                    <CompactEquipmentSection offer={offer} hideFinancialColumns={false} />
-                  </TabsContent>
-                  
-                  <TabsContent value="equipment" className="mt-4 overflow-visible">
-                    <CompactEquipmentSection offer={offer} hideFinancialColumns={false} />
                   </TabsContent>
                   
                   <TabsContent value="financial" className="mt-4 overflow-visible">
