@@ -176,11 +176,37 @@ serve(async (req) => {
     const uploadUrl = `${appUrl.replace(/\/$/, '')}/offer/documents/upload/${uploadToken}`;
     console.log("URL d'upload générée:", uploadUrl);
     
-    // Récupérer les paramètres email depuis la base de données
-    console.log("Récupération de la configuration email depuis la base de données...");
+    // Récupérer l'offre pour obtenir le company_id
+    console.log("Récupération de l'offre pour obtenir le company_id...");
+    const { data: offer, error: offerError } = await supabase
+      .from('offers')
+      .select('company_id')
+      .eq('id', offerId)
+      .single();
+      
+    if (offerError || !offer) {
+      console.error("Erreur lors de la récupération de l'offre:", offerError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Offre non trouvée",
+          details: offerError,
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    console.log("Company ID de l'offre:", offer.company_id);
+    
+    // Récupérer les paramètres email spécifiques à l'entreprise de l'offre
+    console.log("Récupération de la configuration email pour company_id:", offer.company_id);
     const { data: emailConfig, error: emailError } = await supabase
       .from('smtp_settings')
       .select('*')
+      .eq('company_id', offer.company_id)
       .eq('enabled', true)
       .single();
       

@@ -10,6 +10,45 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Fonction helper pour récupérer le company_id depuis le JWT
+async function getUserCompanyId(supabase: any, authHeader: string | null): Promise<string | null> {
+  if (!authHeader) {
+    console.error("Header d'autorisation manquant");
+    return null;
+  }
+
+  try {
+    // Extraire le token du header
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Récupérer l'utilisateur depuis le token
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      console.error("Erreur lors de la récupération de l'utilisateur:", error);
+      return null;
+    }
+
+    // Récupérer le profil utilisateur pour obtenir le company_id
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Erreur lors de la récupération du profil:", profileError);
+      return null;
+    }
+
+    console.log("Company ID récupéré avec succès:", profile.company_id);
+    return profile.company_id;
+  } catch (error) {
+    console.error("Erreur lors de l'extraction du company_id:", error);
+    return null;
+  }
+}
+
 interface EmailRequest {
   to: string;
   subject: string;
@@ -59,11 +98,23 @@ serve(async (req) => {
       auth: { persistSession: false } // Important: désactive la persistance de session
     });
     
-    // Récupérer les paramètres SMTP depuis la base de données
+    // Récupérer le company_id de l'utilisateur authentifié
+    const authHeader = req.headers.get('authorization');
+    const companyId = await getUserCompanyId(supabase, authHeader);
+    
+    if (!companyId) {
+      console.error("Impossible de récupérer le company_id de l'utilisateur");
+      throw new Error("Utilisateur non authentifié ou company_id manquant");
+    }
+    
+    console.log("Récupération des paramètres SMTP pour company_id:", companyId);
+    
+    // Récupérer les paramètres SMTP spécifiques à l'entreprise de l'utilisateur
     const { data: smtpSettings, error: settingsError } = await supabase
       .from('smtp_settings')
-      .select('resend_api_key, from_email, from_name')
-      .eq('id', 1)
+      .select('resend_api_key, from_email, from_name, company_id')
+      .eq('company_id', companyId)
+      .eq('enabled', true)
       .single();
     
     if (settingsError) {
