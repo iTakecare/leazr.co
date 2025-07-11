@@ -152,10 +152,15 @@ export const getAmbassadorClients = async (userId?: string) => {
       .from('ambassadors')
       .select('id')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
-    if (error || !ambassadorData) {
-      console.error("❌ Ambassadeur non trouvé pour user_id:", userId, error);
+    if (error) {
+      console.error("❌ Erreur lors de la recherche d'ambassadeur pour user_id:", userId, error);
+      return [];
+    }
+    
+    if (!ambassadorData) {
+      console.log("⚠️ Utilisateur n'est pas un ambassadeur:", userId);
       return [];
     }
     

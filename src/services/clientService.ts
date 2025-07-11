@@ -48,9 +48,7 @@ export const getAllClients = async (): Promise<Client[]> => {
       return [];
     }
     
-    const { data, error } = await supabase.rpc('get_all_clients_secure', { 
-      p_company_id: companyId 
-    });
+    const { data, error } = await supabase.rpc('get_all_clients_secure');
 
     if (error) {
       console.error("Erreur lors de la récupération des clients via RPC:", error);
