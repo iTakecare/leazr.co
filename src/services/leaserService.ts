@@ -98,6 +98,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       .select(`
         id, 
         name,
+        company_name,
         logo_url,
         address,
         city,
@@ -128,6 +129,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
     return {
       id: data.id,
       name: data.name,
+      company_name: data.company_name,
       logo_url: data.logo_url,
       address: data.address,
       city: data.city,
@@ -174,6 +176,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       .from('leasers')
       .insert({
         name: leaser.name,
+        company_name: leaser.company_name || null,
         logo_url: leaser.logo_url || null,
         address: leaser.address || null,
         city: leaser.city || null,
@@ -240,6 +243,7 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
       .from('leasers')
       .update({
         name: leaser.name,
+        company_name: leaser.company_name || null,
         logo_url: leaser.logo_url || null,
         address: leaser.address || null,
         city: leaser.city || null,
