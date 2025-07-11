@@ -29,23 +29,48 @@ serve(async (req) => {
     const data = await req.json();
     console.log("Données reçues par la fonction Edge:", data);
     
-    // CORRECTION: Détecter automatiquement le company_id correct pour les demandes publiques
-    // Ne pas utiliser le company_id de l'admin connecté pour les demandes publiques
-    let targetCompanyId = data.company_id;
+    // CORRECTION: Détecter automatiquement le company_id basé sur le domaine
+    let targetCompanyId = null;
     
-    // Si aucun company_id n'est fourni ou si c'est iTakecare (admin connecté), 
-    // utiliser la logique de détection basée sur le domaine ou défaut
-    if (!targetCompanyId || targetCompanyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0') {
-      console.log("Détection automatique du company_id pour demande publique...");
-      
-      // Essayer de détecter à partir du domaine de referer
-      const referer = req.headers.get('referer') || '';
-      console.log("Referer URL:", referer);
-      
-      // Pour l'instant, utiliser iTakecare comme défaut pour les demandes publiques
-      // TODO: Implémenter la détection basée sur le domaine personnalisé
-      targetCompanyId = 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0';
-      console.log("Company_id défini pour demande publique:", targetCompanyId);
+    // Récupérer l'URL de referer pour détecter le domaine
+    const referer = req.headers.get('referer') || '';
+    console.log("Referer URL:", referer);
+    
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        const hostname = refererUrl.hostname;
+        console.log("Hostname détecté:", hostname);
+        
+        // Vérifier si c'est un sous-domaine de leazr.co
+        if (hostname.includes('.leazr.co')) {
+          const subdomain = hostname.split('.')[0];
+          console.log("Sous-domaine détecté:", subdomain);
+          
+          // Chercher le company_id correspondant dans company_domains
+          const { data: domainData, error: domainError } = await supabaseAdmin
+            .from('company_domains')
+            .select('company_id')
+            .eq('subdomain', subdomain)
+            .eq('is_active', true)
+            .single();
+          
+          if (domainError) {
+            console.log("Erreur lors de la recherche du domaine:", domainError);
+          } else if (domainData) {
+            targetCompanyId = domainData.company_id;
+            console.log("Company_id trouvé via domaine:", targetCompanyId);
+          }
+        }
+      } catch (urlError) {
+        console.log("Erreur lors du parsing de l'URL:", urlError);
+      }
+    }
+    
+    // Fallback : utiliser le company_id fourni dans les données ou iTakecare par défaut
+    if (!targetCompanyId) {
+      targetCompanyId = data.company_id || 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0';
+      console.log("Utilisation du company_id par défaut:", targetCompanyId);
     }
 
     // Créer un client Supabase avec la clé de service admin
