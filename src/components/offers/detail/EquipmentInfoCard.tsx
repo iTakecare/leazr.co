@@ -110,6 +110,30 @@ const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
                 {/* Afficher les attributs comme des badges */}
                 {renderAttributeBadges(item)}
                 
+                {/* Informations financières */}
+                {!hideFinancialInfo && (
+                  <div className="mt-3 space-y-2">
+                    {item.purchasePrice && (
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium text-muted-foreground">Prix d'achat:</span>
+                        <span className="font-medium">{Number(item.purchasePrice).toFixed(2)} €</span>
+                      </div>
+                    )}
+                    {item.monthlyPayment && (
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium text-muted-foreground">Paiement mensuel:</span>
+                        <span className="font-medium text-green-600">{Number(item.monthlyPayment).toFixed(2)} €</span>
+                      </div>
+                    )}
+                    {item.margin && (
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium text-muted-foreground">Marge:</span>
+                        <span className="font-medium text-blue-600">{Number(item.margin).toFixed(2)} €</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {item.serialNumber && (
                   <div className="mt-2 text-sm text-muted-foreground">
                     <span className="font-medium">N° de série:</span> {item.serialNumber}

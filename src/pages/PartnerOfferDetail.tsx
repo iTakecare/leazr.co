@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOfferDetail } from "@/hooks/offers/useOfferDetail";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { ArrowLeft, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
@@ -21,51 +22,26 @@ const PartnerOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [offer, setOffer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { offer, loading, error } = useOfferDetail(id || '');
   const [shareUrl, setShareUrl] = useState<string>("");
   const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
   const [isPrintingPdf, setIsPrintingPdf] = useState(false);
 
-  const fetchOfferDetails = async () => {
-    try {
-      setLoading(true);
-      if (!user || !id) return;
-
-      const { data, error } = await supabase
-        .from('offers')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      
-      if (!data) {
-        toast.error("Offre non trouvée ou vous n'avez pas les droits d'accès");
-        navigate('/partner/dashboard');
-        return;
-      }
-
-      setOffer(data);
-      
+  useEffect(() => {
+    if (offer) {
       const baseUrl = window.location.origin;
-      setShareUrl(`${baseUrl}/client/offers/${data.id}`);
-      setSignatureUrl(`${baseUrl}/client/offer/${data.id}/sign`);
-    } catch (error) {
-      console.error("Error fetching offer details:", error);
-      toast.error("Erreur lors du chargement des détails de l'offre");
-      setLoadError("Une erreur s'est produite");
-      navigate('/partner/dashboard');
-    } finally {
-      setLoading(false);
+      setShareUrl(`${baseUrl}/client/offers/${offer.id}`);
+      setSignatureUrl(`${baseUrl}/client/offer/${offer.id}/sign`);
     }
-  };
+  }, [offer]);
 
   useEffect(() => {
-    fetchOfferDetails();
-  }, [id, user]);
+    if (error) {
+      toast.error("Erreur lors du chargement des détails de l'offre");
+      navigate('/partner/dashboard');
+    }
+  }, [error, navigate]);
 
   const handleSendToClient = async () => {
     if (!offer) return;
@@ -96,8 +72,6 @@ const PartnerOfferDetail = () => {
           toast.error("Erreur lors de la mise à jour du statut de l'offre");
           return;
         }
-        
-        setOffer({ ...offer, workflow_status: 'sent' });
       }
       
       // Formater la description de l'équipement
@@ -178,7 +152,7 @@ const PartnerOfferDetail = () => {
     );
   }
   
-  if (loadError || !offer) {
+  if (error || !offer) {
     return (
       <PageTransition>
         <Container>
@@ -222,7 +196,7 @@ const PartnerOfferDetail = () => {
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={fetchOfferDetails}>
+            <Button variant="outline" onClick={() => window.location.reload()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualiser
             </Button>
@@ -252,6 +226,7 @@ const PartnerOfferDetail = () => {
               
               <EquipmentInfoCard 
                 equipmentDescription={offer.equipment_description}
+                equipmentItems={offer.equipmentItems}
               />
               
               <FinancialSummaryCard 
