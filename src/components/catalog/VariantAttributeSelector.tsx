@@ -162,14 +162,44 @@ const VariantAttributeSelector: React.FC<VariantAttributeSelectorProps> = ({
     }));
   };
   
-  const handleRemoveAttribute = (attributeName: string) => {
-    setAttributes(prev => {
-      const newAttributes = { ...prev };
-      delete newAttributes[attributeName];
-      return newAttributes;
-    });
-    
-    toast.success(`Attribut "${attributeName}" supprimé`);
+  const handleRemoveAttribute = async (attributeName: string) => {
+    try {
+      // Supprimer l'attribut de l'état local
+      setAttributes(prev => {
+        const newAttributes = { ...prev };
+        delete newAttributes[attributeName];
+        return newAttributes;
+      });
+      
+      // Sauvegarder immédiatement les changements
+      const cleanedAttributes: ProductVariationAttributes = {};
+      Object.entries(attributes).forEach(([key, values]) => {
+        if (key !== attributeName && Array.isArray(values) && values.length > 0) {
+          cleanedAttributes[key] = values;
+        }
+      });
+      
+      console.log("Saving attributes after deletion:", cleanedAttributes);
+      await updateProductVariationAttributes(productId.toString(), cleanedAttributes);
+      
+      // Invalider le cache
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      
+      if (onAttributesUpdated) {
+        onAttributesUpdated();
+      }
+      
+      toast.success(`Attribut "${attributeName}" supprimé et sauvegardé`);
+    } catch (error) {
+      console.error("Error removing attribute:", error);
+      toast.error("Erreur lors de la suppression de l'attribut");
+      
+      // Restaurer l'attribut en cas d'erreur
+      setAttributes(prev => ({
+        ...prev,
+        [attributeName]: attributes[attributeName]
+      }));
+    }
   };
   
   const handleSaveAttributes = async () => {

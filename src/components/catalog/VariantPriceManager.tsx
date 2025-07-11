@@ -234,11 +234,30 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
   };
   
   // Génère toutes les combinaisons possibles des attributs
-  const generateAllCombinations = () => {
-    if (!product.variation_attributes || Object.keys(product.variation_attributes).length === 0) {
-      toast.error("Aucun attribut de variation n'est défini pour ce produit.");
-      return;
-    }
+  const generateAllCombinations = async () => {
+    try {
+      // Refetch the latest product data to ensure we have current attributes
+      await queryClient.invalidateQueries({ queryKey: ["product", product.id] });
+      
+      // Get the fresh product data
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: freshProduct, error } = await supabase
+        .from('products')
+        .select('variation_attributes')
+        .eq('id', product.id)
+        .single();
+      
+      if (error) {
+        toast.error("Erreur lors de la récupération des attributs du produit.");
+        return;
+      }
+      
+      const currentAttributes = freshProduct?.variation_attributes || {};
+      
+      if (!currentAttributes || Object.keys(currentAttributes).length === 0) {
+        toast.error("Aucun attribut de variation n'est défini pour ce produit.");
+        return;
+      }
     
     setIsGeneratingCombinations(true);
     
@@ -268,7 +287,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     };
     
     const combinations: Record<string, string>[] = [];
-    generateCombinations(product.variation_attributes, 0, {}, combinations);
+    generateCombinations(currentAttributes, 0, {}, combinations);
     
     // Filtrer les combinaisons qui existent déjà
     const existingCombinations = variantPrices?.map(variant => 
@@ -319,6 +338,11 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
     };
     
     processBatchCreation();
+    } catch (error) {
+      console.error("Error generating combinations:", error);
+      toast.error("Erreur lors de la génération des combinaisons");
+      setIsGeneratingCombinations(false);
+    }
   };
 
   if (isLoading) {
@@ -389,7 +413,7 @@ const VariantPriceManager: React.FC<VariantPriceManagerProps> = ({
                         disabled={isEditing}
                       >
                         <option value="">Sélectionnez une valeur</option>
-                        {attributeValues.map((value) => (
+                        {Array.isArray(attributeValues) && attributeValues.map((value) => (
                           <option key={value} value={value}>{value}</option>
                         ))}
                       </select>
