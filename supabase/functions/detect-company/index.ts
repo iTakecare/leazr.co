@@ -11,6 +11,8 @@ interface DetectCompanyRequest {
   origin?: string;
   email?: string;
   companyId?: string;
+  companyParam?: string;
+  companySlug?: string;
 }
 
 serve(async (req: Request) => {
@@ -41,7 +43,40 @@ serve(async (req: Request) => {
       detectedCompanyId = requestData.companyId;
     }
 
-    // Method 2: Detect from origin/domain
+    // Method 2: Detect from URL parameters (company name/slug)
+    if (!detectedCompanyId && (requestData.companyParam || requestData.companySlug)) {
+      const identifier = requestData.companyParam || requestData.companySlug;
+      console.log("Trying to detect company from URL param:", identifier);
+      
+      // Try to find company by subdomain first
+      const { data: domainRecord, error: domainError } = await supabase
+        .from('company_domains')
+        .select('company_id, companies(id, name, primary_color, secondary_color, accent_color, logo_url)')
+        .eq('subdomain', identifier)
+        .eq('is_active', true)
+        .single();
+
+      if (!domainError && domainRecord) {
+        detectedCompanyId = domainRecord.company_id;
+        companyInfo = domainRecord.companies;
+        console.log("Company found via subdomain parameter:", companyInfo);
+      } else {
+        // Fallback: try to find by company name
+        const { data: companyRecord, error: companyError } = await supabase
+          .from('companies')
+          .select('id, name, primary_color, secondary_color, accent_color, logo_url')
+          .ilike('name', `%${identifier}%`)
+          .single();
+        
+        if (!companyError && companyRecord) {
+          detectedCompanyId = companyRecord.id;
+          companyInfo = companyRecord;
+          console.log("Company found via name parameter:", companyInfo);
+        }
+      }
+    }
+
+    // Method 3: Detect from origin/domain
     if (!detectedCompanyId) {
       const origin = requestData.origin || req.headers.get('origin') || req.headers.get('referer') || '';
       console.log("Origin for company detection:", origin);

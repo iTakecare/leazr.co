@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,16 +15,76 @@ import { useCart } from "@/context/CartContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
 import { PublicChatWidget } from "@/components/catalog/public/PublicChatWidget";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 const PublicCatalogAnonymous = () => {
-  const { companyId } = useParams<{ companyId: string }>();
+  const { companyId: urlCompanyId } = useParams<{ companyId: string }>();
+  const [searchParams] = useSearchParams();
+  const { detectCompany } = useCustomAuth();
   const navigate = useNavigate();
   const { cartCount } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
 
+  // Company detection logic with URL params support
+  const companyParam = searchParams.get('company');
+  const companySlug = searchParams.get('slug');
+  
+  const resolveCompanyId = async (): Promise<string | null> => {
+    // 1. Direct company ID from URL params
+    if (urlCompanyId) return urlCompanyId;
+    
+    // 2. Company name/slug from query params
+    if (companyParam || companySlug) {
+      const identifier = companyParam || companySlug;
+      
+      // Try to find company by subdomain first
+      const { data: domainData } = await supabase
+        .from('company_domains')
+        .select('company_id')
+        .eq('subdomain', identifier)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (domainData?.company_id) return domainData.company_id;
+      
+      // Fallback: try to find by company name
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .ilike('name', `%${identifier}%`)
+        .maybeSingle();
+      
+      if (companyData?.id) return companyData.id;
+    }
+    
+    // 3. Detect from domain/origin using edge function
+    try {
+      const companyInfo = await detectCompany({ 
+        origin: window.location.origin,
+        companyParam: companyParam || undefined,
+        companySlug: companySlug || undefined
+      });
+      if (companyInfo?.success && companyInfo.companyId) {
+        return companyInfo.companyId;
+      }
+    } catch (error) {
+      console.error('Error detecting company from domain:', error);
+    }
+    
+    return null;
+  };
+
+  const { data: companyId, isLoading: isLoadingCompanyId } = useQuery({
+    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, window.location.origin],
+    queryFn: resolveCompanyId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   const handleCartClick = () => {
-    navigate(`/public/${companyId}/panier`);
+    if (companyId) {
+      navigate(`/public/${companyId}/panier`);
+    }
   };
 
   // Fetch company info with branding

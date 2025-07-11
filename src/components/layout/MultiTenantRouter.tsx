@@ -112,6 +112,9 @@ const MultiTenantRouter = () => {
       <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
       <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
       
+      {/* Routes de catalogue avec détection automatique d'entreprise */}
+      <Route path="/catalog" element={<PublicCatalogAnonymous />} />
+      
       {/* Routage intelligent basé sur le rôle */}
       <Route path="/*" element={<RoleBasedRoutes />} />
     </Routes>

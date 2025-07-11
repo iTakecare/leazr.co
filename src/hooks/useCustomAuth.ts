@@ -42,7 +42,9 @@ export const useCustomAuth = () => {
   const detectCompany = async (data?: { 
     origin?: string; 
     email?: string; 
-    companyId?: string; 
+    companyId?: string;
+    companyParam?: string;
+    companySlug?: string;
   }): Promise<DetectCompanyResponse | null> => {
     try {
       setLoading(true);
@@ -52,7 +54,9 @@ export const useCustomAuth = () => {
         body: {
           origin: data?.origin || window.location.origin,
           email: data?.email,
-          companyId: data?.companyId
+          companyId: data?.companyId,
+          companyParam: data?.companyParam,
+          companySlug: data?.companySlug
         }
       });
 
