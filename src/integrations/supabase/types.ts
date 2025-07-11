@@ -3863,6 +3863,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string[]
       }
+      generate_company_subdomain: {
+        Args: { company_name: string }
+        Returns: string
+      }
       get_all_clients_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
