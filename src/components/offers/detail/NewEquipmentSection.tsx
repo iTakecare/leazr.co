@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import { calculateOfferMargin } from "@/utils/marginCalculations";
 import {
   Table,
   TableBody,
@@ -15,6 +16,9 @@ import {
 interface NewEquipmentSectionProps {
   offer: {
     id: string;
+    amount?: number;
+    financed_amount?: number;
+    equipment_description?: string;
   };
 }
 
@@ -34,17 +38,23 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   };
 
   const calculateTotals = () => {
-    return equipment.reduce(
-      (acc, item) => {
-        const totalPrice = item.purchase_price * item.quantity;
-        const totalMargin = item.margin * item.quantity;
-        return {
-          totalPrice: acc.totalPrice + totalPrice,
-          totalMargin: acc.totalMargin + totalMargin,
-        };
-      },
-      { totalPrice: 0, totalMargin: 0 }
-    );
+    const totalPrice = equipment.reduce((acc, item) => {
+      return acc + (item.purchase_price * item.quantity);
+    }, 0);
+
+    // Calculer la marge totale en utilisant la même logique que l'onglet financier
+    const totalMargin = calculateOfferMargin(offer, equipment) || 0;
+
+    return { totalPrice, totalMargin };
+  };
+
+  const calculateEquipmentMargin = (item: any, totalPurchasePrice: number, totalMargin: number) => {
+    // Calculer la proportion de cet équipement dans le total
+    const equipmentTotal = item.purchase_price * item.quantity;
+    const proportion = totalPurchasePrice > 0 ? equipmentTotal / totalPurchasePrice : 0;
+    
+    // Répartir la marge totale proportionnellement
+    return totalMargin * proportion;
   };
 
   if (loading) {
@@ -118,7 +128,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
             <TableBody>
               {equipment.map((item) => {
                 const totalPrice = item.purchase_price * item.quantity;
-                const totalMargin = item.margin * item.quantity;
+                const equipmentMargin = calculateEquipmentMargin(item, totals.totalPrice, totals.totalMargin);
                 const attributes = formatAttributes(item.attributes);
 
                 return (
@@ -148,7 +158,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                       {formatPrice(totalPrice)}
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium text-primary">
-                      {formatPrice(totalMargin)}
+                      {formatPrice(equipmentMargin)}
                     </TableCell>
                   </TableRow>
                 );
