@@ -227,6 +227,7 @@ const PartnerOfferDetail = () => {
               <EquipmentInfoCard 
                 equipmentDescription={offer.equipment_description}
                 equipmentItems={offer.equipmentItems}
+                offer={offer}
               />
               
               <FinancialSummaryCard 

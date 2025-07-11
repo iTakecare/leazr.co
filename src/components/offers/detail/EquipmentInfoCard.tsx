@@ -2,17 +2,21 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Hash } from "lucide-react";
+import { calculateOfferMargin, calculateEquipmentTotals } from "@/utils/marginCalculations";
+import { Separator } from "@/components/ui/separator";
 
 interface EquipmentInfoCardProps {
   equipmentDescription: string;
   equipmentItems?: any[];
   hideFinancialInfo?: boolean;
+  offer?: any; // Pour calculer la marge totale
 }
 
 const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
   equipmentDescription,
   equipmentItems = [],
-  hideFinancialInfo = false
+  hideFinancialInfo = false,
+  offer
 }) => {
   // Essayer de parser l'equipment_description si c'est du JSON
   let parsedEquipment = equipmentItems;
@@ -165,6 +169,41 @@ const EquipmentInfoCard: React.FC<EquipmentInfoCardProps> = ({
                 )}
               </div>
             ))}
+            
+            {/* Résumé financier global */}
+            {!hideFinancialInfo && offer && (
+              <>
+                <Separator className="my-4" />
+                <div className="bg-primary/5 rounded-lg p-4">
+                  <h4 className="font-semibold text-sm text-muted-foreground mb-3">Résumé financier</h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      const totals = calculateEquipmentTotals(offer, parsedEquipment);
+                      const totalMargin = calculateOfferMargin(offer, parsedEquipment);
+                      
+                      return (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-muted-foreground">Total prix d'achat:</span>
+                            <span className="font-medium">{totals.totalPurchasePrice.toFixed(2)} €</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-muted-foreground">Total mensualités:</span>
+                            <span className="font-medium text-green-600">{totals.totalMonthlyPayment.toFixed(2)} €</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-muted-foreground">Marge totale:</span>
+                            <span className="font-semibold text-blue-600 text-base">
+                              {totalMargin !== null ? `${totalMargin.toFixed(2)} €` : 'N/A'}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="text-muted-foreground whitespace-pre-wrap">
