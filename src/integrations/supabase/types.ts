@@ -3928,6 +3928,29 @@ export type Database = {
           recent_signups: number
         }[]
       }
+      get_company_partners_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          contact_name: string
+          email: string
+          phone: string
+          type: string
+          status: string
+          notes: string
+          created_at: string
+          updated_at: string
+          clients_count: number
+          revenue_total: number
+          last_transaction: number
+          commission_level_id: string
+          has_user_account: boolean
+          user_account_created_at: string
+          user_id: string
+          company_id: string
+        }[]
+      }
       get_company_recent_activity: {
         Args: Record<PropertyKey, never>
         Returns: {
