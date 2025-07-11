@@ -48,16 +48,24 @@ serve(async (req) => {
       console.log("Company_id défini pour demande publique:", targetCompanyId);
     }
 
-    // Créer un client Supabase avec la clé de service
+    // Créer un client Supabase avec la clé de service admin
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
       {
         auth: {
+          autoRefreshToken: false,
           persistSession: false,
+        },
+        db: {
+          schema: 'public',
         },
       }
     );
+
+    // Log pour vérifier les variables d'environnement
+    console.log('SUPABASE_URL configuré:', !!Deno.env.get('SUPABASE_URL'));
+    console.log('SUPABASE_SERVICE_ROLE_KEY configuré:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
     // Générer des identifiants uniques pour le client et la demande
     const clientId = crypto.randomUUID();
