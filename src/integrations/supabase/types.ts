@@ -657,6 +657,50 @@ export type Database = {
           },
         ]
       }
+      cloudflare_subdomain_logs: {
+        Row: {
+          cloudflare_record_id: string | null
+          company_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          retry_count: number | null
+          status: string
+          subdomain: string
+          updated_at: string | null
+        }
+        Insert: {
+          cloudflare_record_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          retry_count?: number | null
+          status?: string
+          subdomain: string
+          updated_at?: string | null
+        }
+        Update: {
+          cloudflare_record_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          retry_count?: number | null
+          status?: string
+          subdomain?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloudflare_subdomain_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           client_id: string

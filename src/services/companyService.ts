@@ -180,7 +180,21 @@ export const createCompanyWithAdmin = async (params: CreateCompanyParams) => {
       // Ne pas faire échouer le processus si la mise à jour du profil échoue
     }
 
-    // Étape 5: Envoyer l'email de bienvenue
+    // Étape 5: Créer le sous-domaine Cloudflare
+    try {
+      await supabase.functions.invoke('create-cloudflare-subdomain', {
+        body: {
+          companyId: companyData.id,
+          companyName: params.companyName
+        }
+      });
+      console.log('Sous-domaine Cloudflare créé avec succès');
+    } catch (subdomainError) {
+      console.warn('Erreur lors de la création du sous-domaine:', subdomainError);
+      // Ne pas faire échouer le processus si la création du sous-domaine échoue
+    }
+
+    // Étape 6: Envoyer l'email de bienvenue
     try {
       await supabase.functions.invoke('send-trial-welcome-email', {
         body: {
