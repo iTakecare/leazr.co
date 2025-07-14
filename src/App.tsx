@@ -82,6 +82,7 @@ import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
 import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
 import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
 import CloudflareDomainPage from "@/pages/CloudflareDomainPage";
+import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
 import FleetGenerator from "@/pages/FleetGenerator";
 import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
 import AdminChatPage from "@/pages/AdminChatPage";
@@ -487,6 +488,13 @@ function App() {
                     <PrivateRoute>
                       <Layout>
                         <CloudflareDomainPage />
+                      </Layout>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin/leazr-saas-domains" element={
+                    <PrivateRoute>
+                      <Layout>
+                        <LeazrSaasDomains />
                       </Layout>
                     </PrivateRoute>
                   } />

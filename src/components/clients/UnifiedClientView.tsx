@@ -12,7 +12,7 @@ import { Client } from "@/types/client";
 import { updateClient } from "@/services/clientService";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
-  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package
+  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "./CollaboratorForm";
 import CollaboratorsList from "./CollaboratorsList";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
+import ClientSubdomainManager from "./ClientSubdomainManager";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -281,7 +282,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -289,6 +290,10 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="collaborators" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Collaborateurs
+          </TabsTrigger>
+          <TabsTrigger value="subdomain" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            Domaine
           </TabsTrigger>
         </TabsList>
 
@@ -439,6 +444,12 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           </Card>
         </TabsContent>
 
+        <TabsContent value="subdomain">
+          <ClientSubdomainManager 
+            clientId={client.id}
+            companyName={client.company || client.name}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
