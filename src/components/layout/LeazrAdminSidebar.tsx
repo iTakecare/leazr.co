@@ -12,6 +12,7 @@ import {
   Package,
   LifeBuoy,
   Settings,
+  Globe,
 } from "lucide-react";
 
 interface LeazrAdminSidebarProps {
@@ -29,6 +30,7 @@ const LeazrAdminSidebar = ({ className }: LeazrAdminSidebarProps) => {
     { icon: Users, label: "Clients", href: "/admin/leazr-saas-clients" },
     { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions" },
     { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans" },
+    { icon: Globe, label: "Gestion domaines", href: "/admin/cloudflare-domains" },
     { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
     { icon: Settings, label: "Paramètres", href: "/admin/leazr-saas-settings" },
   ];
