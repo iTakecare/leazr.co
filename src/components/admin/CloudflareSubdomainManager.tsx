@@ -279,7 +279,7 @@ export const CloudflareSubdomainManager = () => {
         <div className="flex gap-2">
           <Button onClick={testCloudflareAuth} variant="outline" size="sm" disabled={testingAuth}>
             <TestTube className="w-4 h-4 mr-2" />
-            {testingAuth ? 'Test en cours...' : 'Tester Config'}
+            {testingAuth ? 'Test des permissions...' : 'Tester Permissions Cloudflare'}
           </Button>
           <Button onClick={loadData} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />

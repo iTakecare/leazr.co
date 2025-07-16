@@ -169,8 +169,8 @@ serve(async (req) => {
 
     // Test authentication if requested
     if (testAuth) {
-      console.log('🔐 Step 3: Testing Cloudflare authentication...')
-      const authTestResult = await testCloudflareAuth(baseUrl, zoneId, cleanedToken)
+      console.log('🔐 Step 3: Testing Cloudflare authentication and permissions...')
+      const authTestResult = await testCloudflareAuthAndPermissions(baseUrl, zoneId, cleanedToken)
       
       return new Response(
         JSON.stringify({
@@ -178,7 +178,7 @@ serve(async (req) => {
           message: authTestResult.message,
           details: {
             ...authTestResult.details,
-            steps_completed: authTestResult.success ? ['secret_check', 'format_validation', 'cloudflare_auth'] : ['secret_check', 'format_validation'],
+            steps_completed: authTestResult.success ? ['secret_check', 'format_validation', 'cloudflare_auth', 'dns_permissions'] : ['secret_check', 'format_validation'],
             token_info: {
               length: cleanedToken.length,
               format_valid: true,
@@ -201,12 +201,12 @@ serve(async (req) => {
 
     console.log('📝 Generated subdomain:', finalSubdomain)
 
-    // Step 3: Test authentication before proceeding
-    console.log('🔐 Step 3: Pre-testing Cloudflare authentication...')
-    const authTest = await testCloudflareAuth(baseUrl, zoneId, cleanedToken)
+    // Step 3: Test authentication and permissions before proceeding
+    console.log('🔐 Step 3: Pre-testing Cloudflare authentication and permissions...')
+    const authTest = await testCloudflareAuthAndPermissions(baseUrl, zoneId, cleanedToken)
     if (!authTest.success) {
-      const errorMessage = `Authentication failed: ${authTest.message}`
-      console.error('❌ Step 3 failed - Auth test failed:', authTest)
+      const errorMessage = `Authentication/Permissions failed: ${authTest.message}`
+      console.error('❌ Step 3 failed - Auth/Permissions test failed:', authTest)
       await supabase.from('cloudflare_subdomain_logs').insert({
         company_id: companyId,
         subdomain: finalSubdomain,
@@ -216,7 +216,7 @@ serve(async (req) => {
       })
       throw new Error(errorMessage)
     }
-    console.log('✅ Step 3: Authentication test successful')
+    console.log('✅ Step 3: Authentication and permissions test successful')
 
     // Log the attempt
     await supabase.from('cloudflare_subdomain_logs').insert({
@@ -400,7 +400,7 @@ async function generateUniqueSubdomain(baseUrl: string, zoneId: string, token: s
   return finalSubdomain
 }
 
-async function testCloudflareAuth(baseUrl: string, zoneId: string, token: string): Promise<{
+async function testCloudflareAuthAndPermissions(baseUrl: string, zoneId: string, token: string): Promise<{
   success: boolean
   message: string
   details?: any
@@ -412,8 +412,9 @@ async function testCloudflareAuth(baseUrl: string, zoneId: string, token: string
       zone_id: zoneId
     })
 
-    // Test with zone verification endpoint
-    const response = await fetch(`${baseUrl}/zones/${zoneId}`, {
+    // Step 1: Test Zone:Read permission
+    console.log('🔐 Step 4a: Testing Zone:Read permission...')
+    const zoneResponse = await fetch(`${baseUrl}/zones/${zoneId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -421,20 +422,20 @@ async function testCloudflareAuth(baseUrl: string, zoneId: string, token: string
       }
     })
 
-    const result = await response.json()
+    const zoneResult = await zoneResponse.json()
     
-    console.log('🔍 Auth test response:', {
-      status: response.status,
-      ok: response.ok,
-      result: result
+    console.log('🔍 Zone auth test response:', {
+      status: zoneResponse.status,
+      ok: zoneResponse.ok,
+      result: zoneResult
     })
 
-    if (!response.ok) {
-      let errorMessage = 'Authentication failed'
-      if (result.errors && result.errors.length > 0) {
-        errorMessage = result.errors[0].message
-        if (result.errors[0].code) {
-          errorMessage += ` (Code: ${result.errors[0].code})`
+    if (!zoneResponse.ok) {
+      let errorMessage = 'Zone authentication failed'
+      if (zoneResult.errors && zoneResult.errors.length > 0) {
+        errorMessage = zoneResult.errors[0].message
+        if (zoneResult.errors[0].code) {
+          errorMessage += ` (Code: ${zoneResult.errors[0].code})`
         }
       }
       
@@ -442,34 +443,119 @@ async function testCloudflareAuth(baseUrl: string, zoneId: string, token: string
         success: false,
         message: errorMessage,
         details: {
-          status: response.status,
-          errors: result.errors || [],
-          token_preview: token.substring(0, 5) + '...'
+          step: 'zone_read_test',
+          status: zoneResponse.status,
+          errors: zoneResult.errors || [],
+          token_preview: token.substring(0, 5) + '...',
+          required_permissions: ['Zone:Read', 'Zone:Edit', 'DNS Records:Read', 'DNS Records:Edit']
         }
       }
     }
 
     // Verify zone details
-    if (result.result && result.result.name !== 'leazr.co') {
+    if (zoneResult.result && zoneResult.result.name !== 'leazr.co') {
       return {
         success: false,
-        message: `Zone mismatch: expected 'leazr.co', got '${result.result.name}'`,
-        details: result.result
+        message: `Zone mismatch: expected 'leazr.co', got '${zoneResult.result.name}'`,
+        details: { step: 'zone_verification', zone_result: zoneResult.result }
       }
+    }
+
+    console.log('✅ Step 4a: Zone:Read permission confirmed')
+
+    // Step 2: Test DNS Records:Read permission
+    console.log('🔐 Step 4b: Testing DNS Records:Read permission...')
+    const dnsListResponse = await fetch(`${baseUrl}/zones/${zoneId}/dns_records?type=TXT&name=_test-permission-check`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!dnsListResponse.ok) {
+      const dnsError = await dnsListResponse.json()
+      console.error('❌ DNS Records read permission test failed:', dnsError)
+      return {
+        success: false,
+        message: 'Missing DNS Records:Read permission',
+        details: {
+          step: 'dns_read_permission_test',
+          status: dnsListResponse.status,
+          errors: dnsError.errors || [],
+          required_permissions: ['Zone:Read', 'Zone:Edit', 'DNS Records:Read', 'DNS Records:Edit']
+        }
+      }
+    }
+
+    console.log('✅ Step 4b: DNS Records:Read permission confirmed')
+
+    // Step 3: Test DNS Records:Edit permission with a temporary TXT record
+    console.log('🔐 Step 4c: Testing DNS Records:Edit permission...')
+    const testRecordName = `_test-permission-${Date.now()}`
+    const createTestResponse = await fetch(`${baseUrl}/zones/${zoneId}/dns_records`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'TXT',
+        name: testRecordName,
+        content: 'permission-test',
+        ttl: 1, // Automatic TTL
+      }),
+    })
+
+    if (!createTestResponse.ok) {
+      const createError = await createTestResponse.json()
+      console.error('❌ DNS Records create permission test failed:', createError)
+      return {
+        success: false,
+        message: 'Missing DNS Records:Edit permission - Cannot create DNS records',
+        details: {
+          step: 'dns_create_permission_test',
+          status: createTestResponse.status,
+          errors: createError.errors || [],
+          required_permissions: ['Zone:Read', 'Zone:Edit', 'DNS Records:Read', 'DNS Records:Edit'],
+          solution: 'The API token needs DNS Records:Edit permission to create subdomains'
+        }
+      }
+    }
+
+    const createTestResult = await createTestResponse.json()
+    console.log('✅ Step 4c: DNS Records:Edit permission confirmed')
+
+    // Step 4: Clean up the test record and verify delete permission
+    console.log('🔐 Step 4d: Testing DNS Records:Delete permission (cleanup)...')
+    const testRecordId = createTestResult.result.id
+    const deleteTestResponse = await fetch(`${baseUrl}/zones/${zoneId}/dns_records/${testRecordId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (deleteTestResponse.ok) {
+      console.log('✅ Step 4d: Test record cleaned up successfully')
+    } else {
+      console.log('⚠️  Step 4d: Test record cleanup failed (not critical for subdomain creation)')
     }
 
     return {
       success: true,
-      message: 'Authentication successful',
+      message: 'Authentication and all required permissions confirmed',
       details: {
-        zone_name: result.result?.name,
-        zone_status: result.result?.status,
-        permissions_verified: true
+        zone_name: zoneResult.result?.name,
+        zone_status: zoneResult.result?.status,
+        permissions_confirmed: ['Zone:Read', 'DNS Records:Read', 'DNS Records:Edit'],
+        test_record_created: true,
+        test_record_cleaned: deleteTestResponse.ok
       }
     }
 
   } catch (error) {
-    console.error('🔍 Auth test error:', error)
+    console.error('🔍 Auth/Permission test error:', error)
     return {
       success: false,
       message: `Network error: ${error.message}`,
