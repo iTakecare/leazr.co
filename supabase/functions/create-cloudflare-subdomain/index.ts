@@ -38,11 +38,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get Cloudflare API token from secrets
+    // Step 1: Check if CLOUDFLARE_API_TOKEN secret exists
+    console.log('🔍 Step 1: Checking if CLOUDFLARE_API_TOKEN secret exists...')
     const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN')
+    
     if (!cloudflareToken) {
-      console.error('❌ CLOUDFLARE_API_TOKEN not configured')
-      const errorMessage = 'CLOUDFLARE_API_TOKEN not configured'
+      console.error('❌ CLOUDFLARE_API_TOKEN not found in environment')
+      const errorMessage = 'CLOUDFLARE_API_TOKEN secret not configured in Supabase'
+      
+      if (testAuth) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: errorMessage,
+            details: {
+              step: 'secret_check',
+              error: 'Secret not found',
+              solution: 'Add CLOUDFLARE_API_TOKEN secret in Supabase dashboard'
+            }
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        )
+      }
+      
       if (!testAuth) {
         await supabase.from('cloudflare_subdomain_logs').insert({
           company_id: companyId,
@@ -54,45 +75,116 @@ serve(async (req) => {
       }
       throw new Error(errorMessage)
     }
+    
+    console.log('✅ Step 1: CLOUDFLARE_API_TOKEN secret found')
 
-    // Validate token format
-    if (cloudflareToken.length !== 40 || !/^[a-zA-Z0-9_-]+$/.test(cloudflareToken)) {
-      console.error('❌ Invalid CLOUDFLARE_API_TOKEN format:', {
-        length: cloudflareToken.length,
-        starts_with: cloudflareToken.substring(0, 5) + '...',
-        has_special_chars: !/^[a-zA-Z0-9_-]+$/.test(cloudflareToken)
-      })
-      const errorMessage = `Invalid token format (length: ${cloudflareToken.length}, expected: 40)`
-      if (!testAuth) {
-        await supabase.from('cloudflare_subdomain_logs').insert({
-          company_id: companyId,
-          subdomain: subdomain || 'unknown',
-          status: 'failed',
-          error_message: errorMessage,
-          retry_count: 0
-        })
-      }
-      throw new Error(errorMessage)
-    }
-
-    console.log('✅ Token format validation passed:', {
-      length: cloudflareToken.length,
-      starts_with: cloudflareToken.substring(0, 5) + '...'
+    // Step 2: Validate token format
+    console.log('🔍 Step 2: Validating token format...')
+    const cleanedToken = cloudflareToken.trim().replace(/[\r\n\t]/g, '')
+    
+    console.log('📊 Token analysis:', {
+      original_length: cloudflareToken.length,
+      cleaned_length: cleanedToken.length,
+      starts_with: cleanedToken.substring(0, 5) + '...',
+      ends_with: '...' + cleanedToken.slice(-5),
+      has_whitespace: cloudflareToken !== cleanedToken,
+      first_char_code: cloudflareToken.charCodeAt(0),
+      last_char_code: cloudflareToken.charCodeAt(cloudflareToken.length - 1)
     })
+    
+    if (cleanedToken.length !== 40) {
+      const errorMessage = `Invalid token length: ${cleanedToken.length} characters (expected: 40)`
+      console.error('❌ ' + errorMessage)
+      
+      if (testAuth) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: errorMessage,
+            details: {
+              step: 'format_validation',
+              actual_length: cleanedToken.length,
+              expected_length: 40,
+              has_whitespace: cloudflareToken !== cleanedToken,
+              solution: 'Verify token is exactly 40 characters and has no extra spaces'
+            }
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        )
+      }
+      
+      if (!testAuth) {
+        await supabase.from('cloudflare_subdomain_logs').insert({
+          company_id: companyId,
+          subdomain: subdomain || 'unknown',
+          status: 'failed',
+          error_message: errorMessage,
+          retry_count: 0
+        })
+      }
+      throw new Error(errorMessage)
+    }
+    
+    if (!/^[a-zA-Z0-9_-]+$/.test(cleanedToken)) {
+      const errorMessage = 'Token contains invalid characters (only letters, numbers, underscore, and dash allowed)'
+      console.error('❌ ' + errorMessage)
+      
+      if (testAuth) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: errorMessage,
+            details: {
+              step: 'format_validation',
+              invalid_chars: true,
+              solution: 'Token should only contain letters, numbers, underscore, and dash'
+            }
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        )
+      }
+      
+      if (!testAuth) {
+        await supabase.from('cloudflare_subdomain_logs').insert({
+          company_id: companyId,
+          subdomain: subdomain || 'unknown',
+          status: 'failed',
+          error_message: errorMessage,
+          retry_count: 0
+        })
+      }
+      throw new Error(errorMessage)
+    }
+
+    console.log('✅ Step 2: Token format validation passed')
 
     const zoneId = '03b2aa50169401a2a015e17c1b68ee39'
     const baseUrl = 'https://api.cloudflare.com/client/v4'
 
     // Test authentication if requested
     if (testAuth) {
-      console.log('🔐 Testing Cloudflare authentication...')
-      const authTestResult = await testCloudflareAuth(baseUrl, zoneId, cloudflareToken)
+      console.log('🔐 Step 3: Testing Cloudflare authentication...')
+      const authTestResult = await testCloudflareAuth(baseUrl, zoneId, cleanedToken)
       
       return new Response(
         JSON.stringify({
           success: authTestResult.success,
           message: authTestResult.message,
-          details: authTestResult.details
+          details: {
+            ...authTestResult.details,
+            steps_completed: authTestResult.success ? ['secret_check', 'format_validation', 'cloudflare_auth'] : ['secret_check', 'format_validation'],
+            token_info: {
+              length: cleanedToken.length,
+              format_valid: true,
+              preview: cleanedToken.substring(0, 5) + '...' + cleanedToken.slice(-5)
+            }
+          }
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -109,12 +201,12 @@ serve(async (req) => {
 
     console.log('📝 Generated subdomain:', finalSubdomain)
 
-    // Test authentication before proceeding
-    console.log('🔐 Pre-testing Cloudflare authentication...')
-    const authTest = await testCloudflareAuth(baseUrl, zoneId, cloudflareToken)
+    // Step 3: Test authentication before proceeding
+    console.log('🔐 Step 3: Pre-testing Cloudflare authentication...')
+    const authTest = await testCloudflareAuth(baseUrl, zoneId, cleanedToken)
     if (!authTest.success) {
       const errorMessage = `Authentication failed: ${authTest.message}`
-      console.error('❌ Auth test failed:', authTest)
+      console.error('❌ Step 3 failed - Auth test failed:', authTest)
       await supabase.from('cloudflare_subdomain_logs').insert({
         company_id: companyId,
         subdomain: finalSubdomain,
@@ -124,7 +216,7 @@ serve(async (req) => {
       })
       throw new Error(errorMessage)
     }
-    console.log('✅ Authentication test successful')
+    console.log('✅ Step 3: Authentication test successful')
 
     // Log the attempt
     await supabase.from('cloudflare_subdomain_logs').insert({
@@ -136,10 +228,10 @@ serve(async (req) => {
     })
 
     // Check if subdomain already exists in Cloudflare
-    const existingRecord = await checkExistingRecord(baseUrl, zoneId, cloudflareToken, finalSubdomain)
+    const existingRecord = await checkExistingRecord(baseUrl, zoneId, cleanedToken, finalSubdomain)
     if (existingRecord) {
       console.log('⚠️ Subdomain already exists, generating alternative')
-      finalSubdomain = await generateUniqueSubdomain(baseUrl, zoneId, cloudflareToken, companyName)
+      finalSubdomain = await generateUniqueSubdomain(baseUrl, zoneId, cleanedToken, companyName)
     }
 
     // Create DNS record
@@ -156,7 +248,7 @@ serve(async (req) => {
     const createResponse = await fetch(`${baseUrl}/zones/${zoneId}/dns_records`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${cloudflareToken}`,
+        'Authorization': `Bearer ${cleanedToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(dnsRecord)
