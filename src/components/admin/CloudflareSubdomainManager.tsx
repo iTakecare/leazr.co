@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ExternalLink, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { ExternalLink, Plus, RefreshCw, AlertCircle, TestTube, CheckCircle, XCircle } from 'lucide-react';
 
 interface SubdomainLog {
   id: string;
@@ -43,6 +43,8 @@ export const CloudflareSubdomainManager = () => {
   const [newSubdomain, setNewSubdomain] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [companies, setCompanies] = useState<any[]>([]);
+  const [testingAuth, setTestingAuth] = useState(false);
+  const [authTestResult, setAuthTestResult] = useState<any>(null);
 
   const loadData = async () => {
     try {
@@ -211,6 +213,44 @@ export const CloudflareSubdomainManager = () => {
     }
   };
 
+  const testCloudflareAuth = async () => {
+    try {
+      setTestingAuth(true);
+      setAuthTestResult(null);
+
+      const { data, error } = await supabase.functions.invoke('create-cloudflare-subdomain', {
+        body: {
+          companyId: 'test',
+          companyName: 'Test',
+          testAuth: true
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setAuthTestResult(data);
+      
+      if (data.success) {
+        toast.success('Test d\'authentification réussi');
+      } else {
+        toast.error(`Test d\'authentification échoué: ${data.message}`);
+      }
+
+    } catch (error) {
+      console.error('Error testing auth:', error);
+      setAuthTestResult({
+        success: false,
+        message: error.message || 'Erreur lors du test',
+        details: error
+      });
+      toast.error('Erreur lors du test d\'authentification');
+    } finally {
+      setTestingAuth(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
@@ -233,14 +273,51 @@ export const CloudflareSubdomainManager = () => {
   }
 
   return (
-    <div className="space-y-6">
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Gestion des sous-domaines Cloudflare</h1>
-        <Button onClick={loadData} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Actualiser
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={testCloudflareAuth} variant="outline" size="sm" disabled={testingAuth}>
+            <TestTube className="w-4 h-4 mr-2" />
+            {testingAuth ? 'Test en cours...' : 'Tester Config'}
+          </Button>
+          <Button onClick={loadData} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Actualiser
+          </Button>
+        </div>
       </div>
+
+      {/* Auth test result */}
+      {authTestResult && (
+        <Card className={authTestResult.success ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}>
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              {authTestResult.success ? (
+                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <div className="font-medium text-sm">
+                  {authTestResult.success ? 'Configuration Cloudflare OK' : 'Erreur de configuration Cloudflare'}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {authTestResult.message}
+                </div>
+                {authTestResult.details && (
+                  <details className="mt-2">
+                    <summary className="text-xs cursor-pointer hover:underline">Détails techniques</summary>
+                    <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-auto">
+                      {JSON.stringify(authTestResult.details, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Create new subdomain */}
       <Card>
