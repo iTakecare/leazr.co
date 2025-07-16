@@ -29,6 +29,7 @@ interface CompanyDomain {
   subdomain: string;
   is_active: boolean;
   is_primary: boolean;
+  cloudflare_status?: 'exists' | 'missing' | 'unknown';
   companies?: {
     name: string;
   };
@@ -57,7 +58,7 @@ export const CloudflareSubdomainManager = () => {
         setCompanies(companiesData);
       }
 
-      // Load domains
+      // Load domains with Cloudflare status check
       const { data: domainsData } = await supabase
         .from('company_domains')
         .select(`
@@ -67,7 +68,14 @@ export const CloudflareSubdomainManager = () => {
         .order('created_at', { ascending: false });
 
       if (domainsData) {
-        setDomains(domainsData);
+        // Check Cloudflare status for each domain
+        const domainsWithStatus = await Promise.all(
+          domainsData.map(async (domain) => {
+            const cloudflareStatus = await checkCloudflareStatus(domain.subdomain);
+            return { ...domain, cloudflare_status: cloudflareStatus };
+          })
+        );
+        setDomains(domainsWithStatus);
       }
 
       // Load logs
@@ -89,6 +97,48 @@ export const CloudflareSubdomainManager = () => {
       toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkCloudflareStatus = async (subdomain: string): Promise<'exists' | 'missing' | 'unknown'> => {
+    try {
+      const response = await fetch(`https://${subdomain}.leazr.co`, { 
+        method: 'HEAD',
+        mode: 'no-cors'
+      });
+      return 'exists';
+    } catch (error) {
+      // If we get a network error, it likely means the subdomain doesn't exist in Cloudflare
+      return 'missing';
+    }
+  };
+
+  const createInCloudflare = async (domain: CompanyDomain) => {
+    try {
+      const company = companies.find(c => c.id === domain.company_id);
+      if (!company) {
+        toast.error('Entreprise non trouvée');
+        return;
+      }
+
+      const { error } = await supabase.functions.invoke('create-cloudflare-subdomain', {
+        body: {
+          companyId: domain.company_id,
+          companyName: company.name,
+          subdomain: domain.subdomain
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Sous-domaine créé dans Cloudflare avec succès');
+      loadData(); // Refresh to update status
+
+    } catch (error) {
+      console.error('Error creating in Cloudflare:', error);
+      toast.error('Erreur lors de la création dans Cloudflare');
     }
   };
 
@@ -256,6 +306,23 @@ export const CloudflareSubdomainManager = () => {
                   {domain.is_primary && (
                     <Badge variant="outline">Principal</Badge>
                   )}
+                  {domain.cloudflare_status === 'missing' ? (
+                    <Badge variant="destructive">DNS manquant</Badge>
+                  ) : domain.cloudflare_status === 'exists' ? (
+                    <Badge variant="default" className="bg-green-500">DNS OK</Badge>
+                  ) : (
+                    <Badge variant="secondary">DNS inconnu</Badge>
+                  )}
+                  {domain.cloudflare_status === 'missing' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => createInCloudflare(domain)}
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    >
+                      Créer DNS
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -299,14 +366,14 @@ export const CloudflareSubdomainManager = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(log.status)}
-                  {log.status === 'failed' && (
+                  {(log.status === 'failed' || log.status === 'pending') && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => retrySubdomain(log)}
                     >
                       <RefreshCw className="w-4 h-4 mr-1" />
-                      Réessayer
+                      {log.status === 'pending' ? 'Forcer' : 'Réessayer'}
                     </Button>
                   )}
                 </div>

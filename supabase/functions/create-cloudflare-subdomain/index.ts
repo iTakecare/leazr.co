@@ -30,9 +30,24 @@ serve(async (req) => {
 
     console.log('🚀 Creating Cloudflare subdomain for company:', { companyId, companyName, subdomain })
 
+    // Initialize Supabase client for logging
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     // Get Cloudflare API token from secrets
     const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN')
     if (!cloudflareToken) {
+      // Log the error
+      await supabase.from('cloudflare_subdomain_logs').insert({
+        company_id: companyId,
+        subdomain: subdomain || 'unknown',
+        status: 'failed',
+        error_message: 'CLOUDFLARE_API_TOKEN not configured',
+        retry_count: 0
+      })
       throw new Error('CLOUDFLARE_API_TOKEN not configured')
     }
 
@@ -46,6 +61,15 @@ serve(async (req) => {
     }
 
     console.log('📝 Generated subdomain:', finalSubdomain)
+
+    // Log the attempt
+    await supabase.from('cloudflare_subdomain_logs').insert({
+      company_id: companyId,
+      subdomain: finalSubdomain,
+      status: 'pending',
+      error_message: null,
+      retry_count: 0
+    })
 
     // Check if subdomain already exists in Cloudflare
     const existingRecord = await checkExistingRecord(baseUrl, zoneId, cloudflareToken, finalSubdomain)
@@ -78,18 +102,20 @@ serve(async (req) => {
 
     if (!createResponse.ok) {
       console.error('❌ Cloudflare API error:', createResult)
+      // Log the failure
+      await supabase.from('cloudflare_subdomain_logs').insert({
+        company_id: companyId,
+        subdomain: finalSubdomain,
+        status: 'failed',
+        error_message: `Cloudflare API error: ${createResult.errors?.[0]?.message || 'Unknown error'}`,
+        retry_count: 0
+      })
       throw new Error(`Cloudflare API error: ${createResult.errors?.[0]?.message || 'Unknown error'}`)
     }
 
     console.log('✅ DNS record created successfully:', createResult.result)
 
     // Update company_domains table
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     const { error: dbError } = await supabase
       .from('company_domains')
       .upsert({
@@ -108,6 +134,16 @@ serve(async (req) => {
     } else {
       console.log('✅ Database updated successfully')
     }
+
+    // Log success
+    await supabase.from('cloudflare_subdomain_logs').insert({
+      company_id: companyId,
+      subdomain: finalSubdomain,
+      status: 'success',
+      cloudflare_record_id: createResult.result.id,
+      error_message: null,
+      retry_count: 0
+    })
 
     return new Response(
       JSON.stringify({
