@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { SubdomainDetector } from "./SubdomainDetector";
 import Layout from "./Layout";
 import ClientRoutes from "./ClientRoutes";
 import AmbassadorLayout from "./AmbassadorLayout";
@@ -76,7 +77,8 @@ const MultiTenantRouter = () => {
   }
 
   return (
-    <Routes>
+    <SubdomainDetector>
+      <Routes>
       {/* Page d'accueil - Landing Page */}
       <Route path="/" element={<LandingPage />} />
       
@@ -120,7 +122,8 @@ const MultiTenantRouter = () => {
       
       {/* Routage intelligent basé sur le rôle */}
       <Route path="/*" element={<RoleBasedRoutes />} />
-    </Routes>
+      </Routes>
+    </SubdomainDetector>
   );
 };
 

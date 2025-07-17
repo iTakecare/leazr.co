@@ -366,50 +366,73 @@ export const CloudflareSubdomainManager = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {domains.map((domain) => (
-              <div key={domain.id} className="flex justify-between items-center p-4 border rounded-lg">
-                <div>
-                  <div className="font-medium">
-                    {domain.subdomain}.{domain.domain}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {domain.companies?.name}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={domain.is_active ? "default" : "secondary"}>
-                    {domain.is_active ? 'Actif' : 'Inactif'}
-                  </Badge>
-                  {domain.is_primary && (
-                    <Badge variant="outline">Principal</Badge>
-                  )}
-                  {domain.cloudflare_status === 'missing' ? (
-                    <Badge variant="destructive">DNS manquant</Badge>
-                  ) : domain.cloudflare_status === 'exists' ? (
-                    <Badge variant="default" className="bg-green-500">DNS OK</Badge>
-                  ) : (
-                    <Badge variant="secondary">DNS inconnu</Badge>
-                  )}
-                  {domain.cloudflare_status === 'missing' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => createInCloudflare(domain)}
-                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                    >
-                      Créer DNS
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`https://${domain.subdomain}.${domain.domain}`, '_blank')}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </div>
+            {domains.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucun domaine configuré
               </div>
-            ))}
+            ) : (
+              domains.map((domain) => (
+                <div key={domain.id} className="flex justify-between items-start p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium text-lg">
+                      {domain.subdomain}.{domain.domain}
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      {domain.companies?.name}
+                    </div>
+                    
+                    {/* DNS Information */}
+                    <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded mt-2">
+                      <div><strong>DNS:</strong> CNAME {domain.subdomain}.{domain.domain} → {domain.domain}</div>
+                      <div><strong>ID:</strong> {domain.id}</div>
+                      <div><strong>Entreprise:</strong> {domain.company_id}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-2 ml-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={domain.is_active ? "default" : "secondary"}>
+                        {domain.is_active ? 'Actif' : 'Inactif'}
+                      </Badge>
+                      {domain.is_primary && (
+                        <Badge variant="outline">Principal</Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {domain.cloudflare_status === 'missing' ? (
+                        <Badge variant="destructive">DNS manquant</Badge>
+                      ) : domain.cloudflare_status === 'exists' ? (
+                        <Badge variant="default" className="bg-green-500">DNS OK</Badge>
+                      ) : (
+                        <Badge variant="secondary">DNS vérifié</Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      {domain.cloudflare_status === 'missing' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => createInCloudflare(domain)}
+                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                          Créer DNS
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`https://${domain.subdomain}.${domain.domain}`, '_blank')}
+                        title="Ouvrir le sous-domaine"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
