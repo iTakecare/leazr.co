@@ -46,26 +46,38 @@ const UnifiedClientSetup = () => {
     }
 
     try {
-      // Créer une vraie entreprise dans la base de données
-      const { data: company, error } = await supabase
-        .from('companies')
-        .insert({
-          name: formData.companyName,
-          plan: 'starter'
-        })
-        .select()
-        .single();
+      // Utiliser la fonction edge pour créer l'entreprise avec admin
+      console.log("Création d'entreprise avec admin:", {
+        companyName: formData.companyName,
+        adminEmail: formData.adminEmail
+      });
+
+      const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
+        body: {
+          companyName: formData.companyName,
+          adminEmail: formData.adminEmail,
+          adminPassword: 'TempPassword123!', // Mot de passe temporaire
+          adminFirstName: 'Admin',
+          adminLastName: 'User',
+          planType: 'starter'
+        }
+      });
 
       if (error) {
-        console.error("Erreur création entreprise:", error);
-        toast.error("Erreur lors de la création de l'entreprise");
+        console.error("Erreur fonction edge:", error);
+        toast.error(`Erreur lors de la création de l'entreprise: ${error.message}`);
         return null;
       }
 
-      console.log("Entreprise créée:", company);
-      toast.success("Entreprise créée avec succès");
-      
-      return company.id;
+      if (data?.success) {
+        console.log("Entreprise créée:", data);
+        toast.success("Entreprise créée avec succès");
+        return data.companyId;
+      } else {
+        console.error("Échec création entreprise:", data);
+        toast.error(`Échec de la création: ${data?.error || 'Erreur inconnue'}`);
+        return null;
+      }
     } catch (error) {
       console.error("Erreur création entreprise:", error);
       toast.error("Erreur lors de la création de l'entreprise");
