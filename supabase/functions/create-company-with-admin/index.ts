@@ -90,12 +90,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Étape 2: Utiliser la fonction sécurisée pour créer l'entreprise complète
     const { data: companyResult, error: companyError } = await supabaseAdmin
-      .rpc('create_company_with_admin_complete', {
-        p_company_name: companyName,
-        p_admin_email: adminEmail,
-        p_admin_first_name: adminFirstName,
-        p_admin_last_name: adminLastName,
-        p_plan: plan
+      .rpc('create_company_with_admin', {
+        company_name: companyName,
+        admin_email: adminEmail,
+        admin_password: adminPassword,
+        admin_first_name: adminFirstName,
+        admin_last_name: adminLastName,
+        plan_type: plan
       });
 
     if (companyError) {
@@ -111,8 +112,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Erreur lors de la création de l\'entreprise: aucun résultat');
     }
 
-    const { company_id: companyId, user_id: userId } = companyResult[0];
-    console.log('Entreprise et profil créés avec succès:', { companyId, userId });
+    const companyId = companyResult;
+    console.log('Entreprise et profil créés avec succès:', { companyId, userId: authData.user.id });
 
     // Vérifier que l'isolation fonctionne - l'utilisateur ne doit voir que sa propre entreprise
     const { data: isolationCheck, error: isolationError } = await supabaseAdmin
@@ -179,7 +180,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         companyId: companyId,
-        userId: userId,
+        userId: authData.user.id,
         message: 'Entreprise et utilisateur créés avec succès'
       }),
       {
