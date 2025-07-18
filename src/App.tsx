@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
+import { SubdomainProvider } from "@/context/SubdomainContext";
 import { PrivateRoute } from "@/components/PrivateRoute";
 import Layout from "@/components/layout/Layout";
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
@@ -134,8 +135,12 @@ function App() {
                   <Route path="/hub" element={<HubPage />} />
                   <Route path="/home" element={<HomePage />} />
                   
-                    {/* Public Authentication Routes */}
-                    <Route path="/login" element={<Login />} />
+                  {/* Public Authentication Routes */}
+                    <Route path="/login" element={
+                      <SubdomainProvider>
+                        <Login />
+                      </SubdomainProvider>
+                    } />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/activate" element={<ActivatePage />} />
                    <Route path="/trial/confirm-email" element={<EmailConfirmationPage />} />
