@@ -77,7 +77,7 @@ import ProductEditPage from "@/pages/ProductEditPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
 import PartnerDetail from "@/pages/PartnerDetail";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
-import LeazrSaaSClients from "@/pages/LeazrSaaSClients";
+import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
 import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
 import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
@@ -458,7 +458,7 @@ function App() {
                   <Route path="/admin/leazr-saas-clients" element={
                     <PrivateRoute>
                       <Layout>
-                        <LeazrSaaSClients />
+                        <LeazrSaasClients />
                       </Layout>
                     </PrivateRoute>
                   } />
