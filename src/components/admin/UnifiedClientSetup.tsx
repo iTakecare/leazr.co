@@ -46,12 +46,26 @@ const UnifiedClientSetup = () => {
     }
 
     try {
-      // Simuler la création d'entreprise pour l'instant
-      console.log("Création d'entreprise:", formData);
+      // Créer une vraie entreprise dans la base de données
+      const { data: company, error } = await supabase
+        .from('companies')
+        .insert({
+          name: formData.companyName,
+          plan: 'starter'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erreur création entreprise:", error);
+        toast.error("Erreur lors de la création de l'entreprise");
+        return null;
+      }
+
+      console.log("Entreprise créée:", company);
       toast.success("Entreprise créée avec succès");
       
-      // Retourner un ID d'entreprise simulé (dans un vrai cas, ça viendrait de la DB)
-      return "company-" + Date.now();
+      return company.id;
     } catch (error) {
       console.error("Erreur création entreprise:", error);
       toast.error("Erreur lors de la création de l'entreprise");
