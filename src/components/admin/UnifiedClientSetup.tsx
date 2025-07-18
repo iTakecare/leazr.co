@@ -1,65 +1,74 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Building2, Globe, Code, Users, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNetlifyConfig } from "@/hooks/useNetlifyConfig";
-import { 
-  Building2, 
-  Globe, 
-  Rocket, 
-  CheckCircle2, 
-  AlertCircle,
-  ExternalLink,
-  Settings,
-  Database,
-  Cloud
-} from "lucide-react";
+
+interface CompanyFormData {
+  companyName: string;
+  repositoryUrl: string;
+  siteName: string;
+  description: string;
+  plan: string;
+  adminEmail: string;
+}
 
 const UnifiedClientSetup = () => {
-  const { config: netlifyConfig, isConfigured } = useNetlifyConfig();
-  const [formData, setFormData] = useState({
-    companyName: "",
-    adminEmail: "",
-    customDomain: "",
-    repositoryUrl: "",
-    siteName: "",
-    environmentVariables: ""
+  const [formData, setFormData] = useState<CompanyFormData>({
+    companyName: '',
+    repositoryUrl: 'https://github.com/iTakecare/leazr.co',
+    siteName: '',
+    description: '',
+    plan: 'starter',
+    adminEmail: ''
   });
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentResult, setDeploymentResult] = useState<any>(null);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  // Fonction pour générer un email unique basé sur le nom de l'entreprise
+  const generateUniqueEmail = (companyName: string): string => {
+    const timestamp = Date.now();
+    const cleanCompanyName = companyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .substring(0, 10); // Limiter à 10 caractères
+    
+    return `admin-${cleanCompanyName}-${timestamp}@temp.leazr.co`;
   };
 
-  const createCompany = async () => {
-    if (!formData.companyName || !formData.adminEmail) {
-      toast.error("Nom de l'entreprise et email administrateur requis");
+  // Fonction pour créer une entreprise
+  const createCompany = async (): Promise<string | null> => {
+    if (!formData.companyName.trim()) {
+      toast.error("Le nom de l'entreprise est requis");
       return null;
     }
 
     try {
-      // Utiliser la fonction edge pour créer l'entreprise avec admin
+      // Générer un email unique automatiquement
+      const uniqueEmail = generateUniqueEmail(formData.companyName);
+      
       console.log("Création d'entreprise avec admin:", {
         companyName: formData.companyName,
-        adminEmail: formData.adminEmail
+        adminEmail: uniqueEmail
       });
 
       const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
         body: {
           companyName: formData.companyName,
-          adminEmail: formData.adminEmail,
+          adminEmail: uniqueEmail,
           adminPassword: 'TempPassword123!', // Mot de passe temporaire
           adminFirstName: 'Admin',
           adminLastName: 'User',
-          planType: 'starter'
+          plan: formData.plan || 'starter',
+          selectedModules: ['calculator', 'catalog'] // Modules par défaut
         }
       });
 
@@ -71,7 +80,11 @@ const UnifiedClientSetup = () => {
 
       if (data?.success) {
         console.log("Entreprise créée:", data);
-        toast.success("Entreprise créée avec succès");
+        toast.success(`Entreprise créée avec succès. Email admin: ${uniqueEmail}`);
+        
+        // Mettre à jour le formulaire avec l'email généré pour information
+        setFormData(prev => ({ ...prev, adminEmail: uniqueEmail }));
+        
         return data.companyId;
       } else {
         console.error("Échec création entreprise:", data);
@@ -85,367 +98,235 @@ const UnifiedClientSetup = () => {
     }
   };
 
-  const deployToNetlify = async (companyId: string) => {
-    if (!formData.repositoryUrl) {
-      toast.error("URL du repository requis pour le déploiement");
-      return null;
-    }
-
-    if (!isConfigured()) {
-      toast.error("Configuration Netlify manquante. Configurez Netlify d'abord.");
-      return null;
-    }
-
+  // Fonction pour déployer sur Netlify
+  const deployToNetlify = async (companyId: string): Promise<boolean> => {
     try {
-      setIsDeploying(true);
-      console.log("Démarrage du déploiement Netlify pour:", companyId);
+      console.log("Déploiement Netlify pour l'entreprise:", companyId);
 
-      // Préparer les variables d'environnement
-      let envVars = {};
-      if (formData.environmentVariables) {
-        try {
-          envVars = JSON.parse(formData.environmentVariables);
-        } catch (e) {
-          // Si ce n'est pas du JSON, traiter comme des paires clé=valeur séparées par des nouvelles lignes
-          const lines = formData.environmentVariables.split('\n');
-          lines.forEach(line => {
-            const [key, ...valueParts] = line.split('=');
-            if (key && valueParts.length > 0) {
-              envVars[key.trim()] = valueParts.join('=').trim();
-            }
-          });
-        }
-      }
-
-      const deploymentRequest = {
-        companyId: companyId,
-        repositoryUrl: formData.repositoryUrl,
-        siteName: formData.siteName || null,
-        customDomain: formData.customDomain || null,
-        autoDeploy: true,
-        buildCommand: "npm run build",
-        publishDirectory: "dist",
-        environmentVariables: envVars
-      };
-
-      console.log("Données de déploiement:", deploymentRequest);
-
-      // Appeler la vraie fonction edge deploy-to-netlify
       const { data, error } = await supabase.functions.invoke('deploy-to-netlify', {
-        body: deploymentRequest
+        body: {
+          companyId: companyId,
+          repositoryUrl: formData.repositoryUrl,
+          siteName: formData.siteName || undefined
+        }
       });
 
       if (error) {
-        console.error("Erreur fonction edge:", error);
-        toast.error(`Erreur de déploiement: ${error.message}`);
-        return null;
+        console.error("Erreur déploiement Netlify:", error);
+        toast.error(`Erreur lors du déploiement: ${error.message}`);
+        return false;
       }
 
-      console.log("Résultat déploiement:", data);
-
       if (data?.success) {
-        toast.success("Déploiement Netlify lancé avec succès!");
-        setDeploymentResult(data);
-        return data;
+        console.log("Déploiement réussi:", data);
+        toast.success(`Déploiement réussi! Site URL: ${data.siteUrl}`);
+        return true;
       } else {
+        console.error("Échec déploiement:", data);
         toast.error(`Échec du déploiement: ${data?.error || 'Erreur inconnue'}`);
-        return null;
+        return false;
       }
     } catch (error) {
       console.error("Erreur déploiement:", error);
-      toast.error("Erreur lors du déploiement Netlify");
-      return null;
-    } finally {
-      setIsDeploying(false);
+      toast.error("Erreur lors du déploiement");
+      return false;
     }
   };
 
-  const handleFullDeployment = async () => {
+  // Fonction principale de soumission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
     try {
       // Étape 1: Créer l'entreprise
-      toast.info("Création de l'entreprise...");
       const companyId = await createCompany();
-      if (!companyId) return;
+      if (!companyId) {
+        return;
+      }
 
       // Étape 2: Déployer sur Netlify
-      toast.info("Déploiement sur Netlify...");
-      const deploymentData = await deployToNetlify(companyId);
-      if (!deploymentData) return;
+      const deploymentSuccess = await deployToNetlify(companyId);
+      
+      if (deploymentSuccess) {
+        toast.success("Configuration complète terminée avec succès!");
+        // Réinitialiser le formulaire
+        setFormData({
+          companyName: '',
+          repositoryUrl: 'https://github.com/iTakecare/leazr.co',
+          siteName: '',
+          description: '',
+          plan: 'starter',
+          adminEmail: ''
+        });
+      }
 
-      toast.success("Configuration client complète avec succès!");
     } catch (error) {
-      console.error("Erreur déploiement complet:", error);
+      console.error("Erreur lors de la configuration:", error);
       toast.error("Erreur lors de la configuration complète");
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      companyName: "",
-      adminEmail: "",
-      customDomain: "",
-      repositoryUrl: "",
-      siteName: "",
-      environmentVariables: ""
-    });
-    setDeploymentResult(null);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          Configuration Unifiée Client SaaS
-        </h2>
-        <p className="text-muted-foreground">
-          Créez et déployez un nouveau client en une seule opération
-        </p>
-      </div>
-
-      {/* Configuration Netlify Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Statut Configuration Netlify
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            {isConfigured() ? (
-              <>
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <Badge variant="default" className="bg-green-100 text-green-800">
-                  Configuré
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Netlify est configuré et prêt pour les déploiements
-                </span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-                <Badge variant="destructive">Non configuré</Badge>
-                <span className="text-sm text-muted-foreground">
-                  Configurez Netlify dans les paramètres d'abord
-                </span>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Formulaire de configuration */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Informations Client
+            Configuration Client Unifiée
           </CardTitle>
           <CardDescription>
-            Définissez les paramètres de base pour le nouveau client
+            Créez une nouvelle entreprise et déployez automatiquement son application Leazr
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="companyName">Nom de l'entreprise *</Label>
-              <Input
-                id="companyName"
-                value={formData.companyName}
-                onChange={(e) => handleInputChange("companyName", e.target.value)}
-                placeholder="Ex: Entreprise ABC"
-              />
-            </div>
-            <div>
-              <Label htmlFor="adminEmail">Email administrateur *</Label>
-              <Input
-                id="adminEmail"
-                type="email"
-                value={formData.adminEmail}
-                onChange={(e) => handleInputChange("adminEmail", e.target.value)}
-                placeholder="admin@entreprise.com"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="customDomain">Domaine personnalisé (optionnel)</Label>
-            <Input
-              id="customDomain"
-              value={formData.customDomain}
-              onChange={(e) => handleInputChange("customDomain", e.target.value)}
-              placeholder="monentreprise.com"
-            />
-          </div>
-        </CardContent>
-      </Card>
+        
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Configuration Entreprise */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Building2 className="h-4 w-4" />
+                <h3 className="text-sm font-medium">Informations Entreprise</h3>
+              </div>
 
-      {/* Configuration Netlify */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
-            Configuration Netlify
-          </CardTitle>
-          <CardDescription>
-            Paramètres pour le déploiement automatisé
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="repositoryUrl">URL du Repository Git *</Label>
-            <Input
-              id="repositoryUrl"
-              value={formData.repositoryUrl}
-              onChange={(e) => handleInputChange("repositoryUrl", e.target.value)}
-              placeholder="https://github.com/username/repo.git"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Repository GitHub/GitLab contenant le code de l'application
-            </p>
-          </div>
-          
-          <div>
-            <Label htmlFor="siteName">Nom du site Netlify (optionnel)</Label>
-            <Input
-              id="siteName"
-              value={formData.siteName}
-              onChange={(e) => handleInputChange("siteName", e.target.value)}
-              placeholder="mon-site-client"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Si vide, un nom sera généré automatiquement
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="environmentVariables">Variables d'environnement (optionnel)</Label>
-            <Textarea
-              id="environmentVariables"
-              value={formData.environmentVariables}
-              onChange={(e) => handleInputChange("environmentVariables", e.target.value)}
-              placeholder={`VITE_API_URL=https://api.exemple.com\nVITE_APP_NAME=Mon App\n\nOu format JSON:\n{"VITE_API_URL": "https://api.exemple.com"}`}
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Format: clé=valeur (une par ligne) ou JSON
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Résultat du déploiement */}
-      {deploymentResult && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              Déploiement Réussi
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {deploymentResult.siteUrl && (
-                <div>
-                  <Label className="text-sm font-medium">URL du site:</Label>
-                  <div className="flex items-center gap-2">
-                    <Input value={deploymentResult.siteUrl} readOnly />
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => window.open(deploymentResult.siteUrl, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Nom de l'entreprise *</Label>
+                  <Input
+                    id="companyName"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    placeholder="Ex: MonEntreprise"
+                    required
+                  />
                 </div>
-              )}
-              
-              {deploymentResult.adminUrl && (
-                <div>
-                  <Label className="text-sm font-medium">Admin Netlify:</Label>
-                  <div className="flex items-center gap-2">
-                    <Input value={deploymentResult.adminUrl} readOnly />
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => window.open(deploymentResult.adminUrl, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="plan">Plan</Label>
+                  <Select value={formData.plan} onValueChange={(value) => setFormData({...formData, plan: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="starter">Starter (49€/mois)</SelectItem>
+                      <SelectItem value="pro">Pro (149€/mois)</SelectItem>
+                      <SelectItem value="business">Business (299€/mois)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (optionnel)</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Description de l'entreprise..."
+                  rows={3}
+                />
+              </div>
             </div>
-            
-            {deploymentResult.siteId && (
-              <div>
-                <Label className="text-sm font-medium">Site ID:</Label>
-                <Input value={deploymentResult.siteId} readOnly />
+
+            <Separator />
+
+            {/* Configuration Déploiement */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="h-4 w-4" />
+                <h3 className="text-sm font-medium">Configuration Déploiement</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="repositoryUrl">URL du Repository</Label>
+                  <Input
+                    id="repositoryUrl"
+                    value={formData.repositoryUrl}
+                    onChange={(e) => setFormData({...formData, repositoryUrl: e.target.value})}
+                    placeholder="https://github.com/username/repo"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="siteName">Nom du site (optionnel)</Label>
+                  <Input
+                    id="siteName"
+                    value={formData.siteName}
+                    onChange={(e) => setFormData({...formData, siteName: e.target.value})}
+                    placeholder="Auto-généré si vide"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Affichage de l'email généré */}
+            {formData.adminEmail && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Email admin généré:</span>
+                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {formData.adminEmail}
+                </Badge>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Actions */}
-      <div className="flex justify-center gap-4">
-        <Button
-          onClick={handleFullDeployment}
-          disabled={!formData.companyName || !formData.adminEmail || !formData.repositoryUrl || isDeploying}
-          size="lg"
-          className="min-w-[200px]"
-        >
-          {isDeploying ? (
-            <>
-              <Database className="mr-2 h-4 w-4 animate-spin" />
-              Déploiement...
-            </>
-          ) : (
-            <>
-              <Rocket className="mr-2 h-4 w-4" />
-              Déployer l'Application
-            </>
-          )}
-        </Button>
-        
-        <Button
-          onClick={resetForm}
-          variant="outline"
-          size="lg"
-        >
-          Réinitialiser
-        </Button>
-      </div>
+            <Separator />
 
-      {/* Liens utiles */}
+            {/* Actions */}
+            <div className="flex justify-end space-x-4">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !formData.companyName.trim()}
+                className="min-w-[200px]"
+              >
+                {isSubmitting ? (
+                  "Configuration en cours..."
+                ) : (
+                  <>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Créer et Déployer
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Informations sur le processus */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ExternalLink className="h-5 w-5" />
-            Liens Utiles
-          </CardTitle>
+          <CardTitle className="text-sm">Processus de Configuration</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open('https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/functions/deploy-to-netlify/logs', '_blank')}
-            >
-              <ExternalLink className="mr-2 h-3 w-3" />
-              Logs Fonction Edge
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open('https://app.netlify.com/teams', '_blank')}
-            >
-              <ExternalLink className="mr-2 h-3 w-3" />
-              Dashboard Netlify
-            </Button>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-xs font-medium">1</span>
+            </div>
+            <span>Création de l'entreprise dans la base de données</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-xs font-medium">2</span>
+            </div>
+            <span>Génération automatique d'un email admin unique</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-xs font-medium">3</span>
+            </div>
+            <span>Déploiement automatique sur Netlify</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-xs font-medium">4</span>
+            </div>
+            <span>Configuration du sous-domaine Cloudflare</span>
           </div>
         </CardContent>
       </Card>
