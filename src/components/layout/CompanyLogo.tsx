@@ -27,8 +27,22 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
     "2xl": "w-48 h-48"
   };
 
-  // Si on charge encore ou qu'il n'y a pas de logo d'entreprise, utiliser le logo par défaut
-  if (loading || !settings?.logo_url) {
+  // Si on charge encore, ne rien afficher pour éviter le flash du logo par défaut
+  if (loading) {
+    return (
+      <div className={cn("flex items-center gap-2", className)}>
+        <div className={cn("relative flex-shrink-0 bg-gray-100 rounded", sizeClasses[logoSize])}>
+          {/* Placeholder transparent pendant le chargement */}
+        </div>
+        {showText && (
+          <span className="font-semibold text-lg text-gray-400">Chargement...</span>
+        )}
+      </div>
+    );
+  }
+
+  // Si il n'y a pas de logo d'entreprise, utiliser le logo par défaut
+  if (!settings?.logo_url) {
     return <Logo className={className} showText={showText} logoSize={logoSize} variant={variant} />;
   }
 
