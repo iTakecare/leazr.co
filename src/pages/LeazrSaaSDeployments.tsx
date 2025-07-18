@@ -112,16 +112,23 @@ const LeazrSaaSDeployments = () => {
         throw new Error(`Erreur lors du chargement des entreprises: ${companiesError.message}`);
       }
 
-      // Récupérer les déploiements
+      // Récupérer les déploiements avec gestion d'erreur améliorée
+      console.log('🔍 Fetching deployments with new RLS policies...');
       const { data: deploymentsData, error: deploymentsError } = await supabase
         .from('netlify_deployments')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (deploymentsError) {
-        console.error('Deployments fetch error:', deploymentsError);
+        console.error('❌ Deployments fetch error:', {
+          message: deploymentsError.message,
+          details: deploymentsError.details,
+          hint: deploymentsError.hint,
+          code: deploymentsError.code
+        });
         throw new Error(`Erreur lors du chargement des déploiements: ${deploymentsError.message}`);
       }
+      console.log('✅ Deployments loaded:', deploymentsData?.length || 0, 'records');
 
       // Récupérer les configurations
       const { data: configurationsData, error: configurationsError } = await supabase

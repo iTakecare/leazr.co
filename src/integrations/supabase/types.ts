@@ -4555,6 +4555,10 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: boolean
       }
+      is_saas_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_same_company: {
         Args: { target_company_id: string }
         Returns: boolean
