@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
+import { SubdomainProvider } from './context/SubdomainContext';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Settings from './pages/Settings';
@@ -18,7 +19,8 @@ function App() {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+        <SubdomainProvider>
+          <AuthProvider>
           <Routes>
             {/* Default redirect to dashboard */}
             <Route path="/" element={<Login />} />
@@ -81,6 +83,7 @@ function App() {
           </Routes>
           <Toaster richColors />
         </AuthProvider>
+        </SubdomainProvider>
       </QueryClientProvider>
     </BrowserRouter>
   );
