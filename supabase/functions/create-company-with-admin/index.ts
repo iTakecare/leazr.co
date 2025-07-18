@@ -88,31 +88,44 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Utilisateur créé avec succès:', authData.user.id);
 
-    // Étape 2: Utiliser la fonction sécurisée pour créer l'entreprise complète
-    const { data: companyResult, error: companyError } = await supabaseAdmin
-      .rpc('create_company_with_admin', {
-        company_name: companyName,
-        admin_email: adminEmail,
-        admin_password: adminPassword,
-        admin_first_name: adminFirstName,
-        admin_last_name: adminLastName,
-        plan_type: plan
-      });
+    // Étape 2: Créer l'entreprise directement
+    const { data: company, error: companyError } = await supabaseAdmin
+      .from('companies')
+      .insert({
+        name: companyName,
+        plan: plan,
+        is_active: true,
+        trial_starts_at: new Date().toISOString(),
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 14 jours
+      })
+      .select('id')
+      .single();
 
     if (companyError) {
-      console.error('Erreur lors de la création de l\'entreprise complète:', companyError);
-      // Nettoyer l'utilisateur créé en cas d'erreur
+      console.error('Erreur lors de la création de l\'entreprise:', companyError);
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
     }
 
-    if (!companyResult || companyResult.length === 0) {
-      console.error('Aucun résultat retourné par la fonction de création d\'entreprise');
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      throw new Error('Erreur lors de la création de l\'entreprise: aucun résultat');
-    }
+    const companyId = company.id;
 
-    const companyId = companyResult;
+    // Étape 3: Créer le profil utilisateur
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        first_name: adminFirstName,
+        last_name: adminLastName,
+        role: 'admin',
+        company_id: companyId
+      });
+
+    if (profileError) {
+      console.error('Erreur lors de la création du profil:', profileError);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      await supabaseAdmin.from('companies').delete().eq('id', companyId);
+      throw new Error(`Erreur lors de la création du profil: ${profileError.message}`);
+    }
     console.log('Entreprise et profil créés avec succès:', { companyId, userId: authData.user.id });
 
     // Vérifier que l'isolation fonctionne - l'utilisateur ne doit voir que sa propre entreprise
