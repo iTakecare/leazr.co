@@ -13,7 +13,8 @@ interface DeploymentCheck {
 }
 
 export const DeploymentStatus = () => {
-  const { detection, loading, error, isCompanyDetected } = useSubdomain();
+  const { detection, loading, error, isSubdomainDetected } = useSubdomain();
+  const isCompanyDetected = detection.detectionMethod !== 'default';
   const [checks, setChecks] = useState<DeploymentCheck[]>([]);
   const [isChecking, setIsChecking] = useState(false);
 

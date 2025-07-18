@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { SubdomainProvider } from "@/context/SubdomainContext";
+import { SubdomainProvider, useSubdomain } from "@/context/SubdomainContext";
 import { SubdomainDetector } from "./SubdomainDetector";
 import Layout from "./Layout";
 import ClientRoutes from "./ClientRoutes";
@@ -135,7 +135,8 @@ const MultiTenantRouter = () => {
 
 // Composant intelligent pour la page d'accueil
 const SmartLandingPage = () => {
-  const { detection, isCompanyDetected } = useSubdomain();
+  const { detection, isSubdomainDetected } = useSubdomain();
+  const isCompanyDetected = detection.detectionMethod !== 'default';
   
   // Si une entreprise est détectée (sous-domaine ou paramètre), afficher sa landing page
   if (isCompanyDetected && detection.company) {

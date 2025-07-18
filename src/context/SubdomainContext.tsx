@@ -13,7 +13,7 @@ interface CompanyInfo {
 interface DetectionResult {
   companyId: string | null;
   company: CompanyInfo | null;
-  detectionMethod: 'subdomain' | 'default' | 'provided';
+  detectionMethod: 'subdomain' | 'param' | 'default';
 }
 
 interface SubdomainContextType {
@@ -21,6 +21,7 @@ interface SubdomainContextType {
   loading: boolean;
   error: string | null;
   isSubdomainDetected: boolean;
+  isCompanyDetected: boolean;
   refetch: () => void;
 }
 
