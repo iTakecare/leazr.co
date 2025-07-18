@@ -1,70 +1,56 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Settings from './pages/Settings';
-import PublicPage from './pages/PublicPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
-import LeazrClients from './pages/LeazrClients';
 import LeazrSaaSConfiguration from "@/pages/LeazrSaaSConfiguration";
-import MainLayout from './components/layout/MainLayout';
-import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/layout/Layout';
+import { PrivateRoute } from './components/PrivateRoute';
 import LeazrSaaSClients from './pages/LeazrSaaSClients';
-import LeazrSaaSAdminDashboard from './pages/LeazrSaaSAdminDashboard';
 import { Toaster } from "sonner";
 
 function App() {
+  const queryClient = new QueryClient();
+
   return (
     <BrowserRouter>
-      <QueryClient>
+      <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Routes>
-            <Route path="/public" element={<PublicPage />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             
             {/* Routes protégées */}
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
-                  <MainLayout>
+                <PrivateRoute>
+                  <Layout>
                     <Dashboard />
-                  </MainLayout>
-                </ProtectedRoute>
+                  </Layout>
+                </PrivateRoute>
               }
             />
             <Route
               path="/settings"
               element={
-                <ProtectedRoute>
-                  <MainLayout>
+                <PrivateRoute>
+                  <Layout>
                     <Settings />
-                  </MainLayout>
-                </ProtectedRoute>
+                  </Layout>
+                </PrivateRoute>
               }
             />
             <Route
               path="/company-settings"
               element={
-                <ProtectedRoute>
-                  <MainLayout>
+                <PrivateRoute>
+                  <Layout>
                     <CompanySettingsPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-             <Route
-              path="/admin/leazr-clients"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <LeazrClients />
-                  </MainLayout>
-                </ProtectedRoute>
+                  </Layout>
+                </PrivateRoute>
               }
             />
             
@@ -72,21 +58,11 @@ function App() {
             <Route 
               path="/admin/leazr-saas-clients" 
               element={
-                <ProtectedRoute>
-                  <MainLayout>
+                <PrivateRoute>
+                  <Layout>
                     <LeazrSaaSClients />
-                  </MainLayout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/leazr-saas-dashboard" 
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <LeazrSaaSAdminDashboard />
-                  </MainLayout>
-                </ProtectedRoute>
+                  </Layout>
+                </PrivateRoute>
               } 
             />
           
@@ -94,16 +70,16 @@ function App() {
           <Route 
             path="/admin/leazr-saas-configuration" 
             element={
-              <MainLayout>
+              <Layout>
                 <LeazrSaaSConfiguration />
-              </MainLayout>
+              </Layout>
             } 
           />
           
           </Routes>
           <Toaster richColors />
         </AuthProvider>
-      </QueryClient>
+      </QueryClientProvider>
     </BrowserRouter>
   );
 }
