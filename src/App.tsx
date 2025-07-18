@@ -20,6 +20,8 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Routes>
+            {/* Default redirect to dashboard */}
+            <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             
             {/* Routes protégées */}
