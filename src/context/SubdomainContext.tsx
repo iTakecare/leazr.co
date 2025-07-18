@@ -38,22 +38,8 @@ export const useSubdomain = () => {
 export const SubdomainProvider = ({ children }: { children: ReactNode }) => {
   const detectionData = useSubdomainDetection();
 
-  // Provide a fallback value in case the hook fails
-  const contextValue: SubdomainContextType = {
-    detection: detectionData?.detection || {
-      companyId: null,
-      company: null,
-      detectionMethod: 'default'
-    },
-    loading: detectionData?.loading || false,
-    error: detectionData?.error || null,
-    isSubdomainDetected: detectionData?.isSubdomainDetected || false,
-    isCompanyDetected: detectionData?.isCompanyDetected || false,
-    refetch: detectionData?.refetch || (() => {})
-  };
-
   return (
-    <SubdomainContext.Provider value={contextValue}>
+    <SubdomainContext.Provider value={detectionData}>
       {children}
     </SubdomainContext.Provider>
   );
