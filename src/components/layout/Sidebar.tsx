@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { useMultiTenant } from "@/context/MultiTenantContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useLocation, Link } from "react-router-dom";
 import { 
   BarChart3, 
@@ -133,7 +133,7 @@ const Sidebar = ({ className }: SidebarProps) => {
 
       {/* User Section */}
       <div className="border-t border-gray-200/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50">
-        <SidebarUserSection collapsed={isCollapsed} />
+        <SidebarUserSection />
       </div>
     </div>
   );
