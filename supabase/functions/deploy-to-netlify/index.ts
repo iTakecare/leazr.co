@@ -115,15 +115,32 @@ serve(async (req) => {
       );
     }
 
-    console.log('[DEPLOY-TO-NETLIFY] Creating deployment record');
+    // Créer l'enregistrement de déploiement avec validation UUID
+    console.log('[DEPLOY-TO-NETLIFY] Validating companyId:', {
+      companyId: deployRequest.companyId,
+      type: typeof deployRequest.companyId,
+      length: deployRequest.companyId?.length
+    });
 
-    // Créer l'enregistrement de déploiement avec created_by au lieu de initiated_by
+    // Valider que companyId est un UUID valide
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!deployRequest.companyId || !uuidRegex.test(deployRequest.companyId)) {
+      console.error('[DEPLOY-TO-NETLIFY] Invalid companyId format:', deployRequest.companyId);
+      return new Response(
+        JSON.stringify({ 
+          error: 'companyId must be a valid UUID format',
+          received: deployRequest.companyId 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { data: deployment, error: deploymentError } = await supabase
       .from('netlify_deployments')
       .insert({
         company_id: deployRequest.companyId,
         status: 'pending',
-        created_by: user.id // Utiliser created_by qui existe dans le schéma
+        created_by: user.id
       })
       .select()
       .single();

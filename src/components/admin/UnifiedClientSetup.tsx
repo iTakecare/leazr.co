@@ -108,8 +108,8 @@ const UnifiedClientSetup = () => {
       const deploymentRequest = {
         companyId: companyId,
         repositoryUrl: formData.repositoryUrl,
-        siteName: formData.siteName || undefined,
-        customDomain: formData.customDomain || undefined,
+        siteName: formData.siteName || null,
+        customDomain: formData.customDomain || null,
         autoDeploy: true,
         buildCommand: "npm run build",
         publishDirectory: "dist",
