@@ -18,7 +18,7 @@ const LeazrSaaSClients = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Gestion Clients SaaS</h1>
           <p className="text-muted-foreground mt-2">
-            Configuration automatisée et unifiée pour tous vos clients
+            Interface unifiée pour la création, configuration et déploiement de vos clients
           </p>
         </div>
         

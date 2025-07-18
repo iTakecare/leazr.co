@@ -8,12 +8,8 @@ import { useLocation } from "react-router-dom";
 import {
   BarChart3,
   Users,
-  CreditCard,
-  LifeBuoy,
   Settings,
-  Package,
-  Globe,
-  Rocket,
+  LifeBuoy,
 } from "lucide-react";
 
 interface LeazrSaaSSidebarProps {
@@ -31,13 +27,9 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
 
   const menuItems = [
     { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard" },
-    { icon: Users, label: "Clients SaaS", href: "/admin/leazr-saas-clients" },
-    { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions" },
-    { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans" },
-    { icon: Globe, label: "Gestion domaines", href: "/admin/leazr-saas-domains" },
-    { icon: Rocket, label: "Déploiements", href: "/admin/leazr-saas-deployments" },
-    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
+    { icon: Users, label: "Gestion Clients", href: "/admin/leazr-saas-clients" },
     { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings" },
+    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
   ];
 
   const isActive = (href: string) => {
@@ -53,7 +45,7 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
           </div>
           <div>
             <h1 className="text-lg font-bold text-gray-900">Leazr SaaS</h1>
-            <p className="text-xs text-gray-500">Gestion des clients SaaS</p>
+            <p className="text-xs text-gray-500">Administration simplifiée</p>
           </div>
         </div>
       </div>
