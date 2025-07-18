@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,12 @@ import {
   AlertCircle, 
   Users,
   Settings,
-  Activity
+  Activity,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface Client {
   id: string;
@@ -29,11 +32,20 @@ interface Client {
   lastDeployment?: string;
 }
 
+interface NetlifyConfig {
+  repository_url: string;
+  build_command: string;
+  publish_directory: string;
+}
+
 const UnifiedClientSetup = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("create");
   const [isCreating, setIsCreating] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployProgress, setDeployProgress] = useState(0);
+  const [isNetlifyConfigured, setIsNetlifyConfigured] = useState(false);
+  const [netlifyConfig, setNetlifyConfig] = useState<NetlifyConfig | null>(null);
   
   // Form state
   const [clientName, setClientName] = useState("");
@@ -57,6 +69,30 @@ const UnifiedClientSetup = () => {
       domainConfigured: false
     }
   ]);
+
+  useEffect(() => {
+    checkNetlifyConfiguration();
+  }, []);
+
+  const checkNetlifyConfiguration = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('netlify_configurations')
+        .select('repository_url, build_command, publish_directory')
+        .limit(1)
+        .single();
+
+      if (data && !error) {
+        setIsNetlifyConfigured(true);
+        setNetlifyConfig(data);
+      } else {
+        setIsNetlifyConfigured(false);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification de la configuration Netlify:', error);
+      setIsNetlifyConfigured(false);
+    }
+  };
 
   const handleCreateClient = async () => {
     if (!clientName || !subdomain) {
@@ -113,16 +149,56 @@ const UnifiedClientSetup = () => {
   };
 
   const handleGlobalDeploy = async () => {
+    if (!isNetlifyConfigured) {
+      toast.error("Configuration Netlify requise", {
+        description: "Veuillez d'abord configurer Netlify dans les paramètres",
+        action: {
+          label: "Configurer",
+          onClick: () => navigate("/admin/leazr-saas-configuration")
+        }
+      });
+      return;
+    }
+
     setIsDeploying(true);
     setDeployProgress(0);
 
     try {
-      // Simulate deployment progress
+      // Appeler l'edge function deploy-to-netlify pour chaque client
+      const deploymentPromises = clients.map(async (client) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Session non trouvée');
+
+        const { data, error } = await supabase.functions.invoke('deploy-to-netlify', {
+          body: {
+            companyId: client.id,
+            repositoryUrl: netlifyConfig?.repository_url,
+            siteName: `leazr-${client.subdomain}`,
+            buildCommand: netlifyConfig?.build_command || 'npm run build',
+            publishDirectory: netlifyConfig?.publish_directory || 'dist',
+            autoDeploy: true,
+            environmentVariables: {
+              VITE_COMPANY_SUBDOMAIN: client.subdomain
+            }
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (error) throw error;
+        return data;
+      });
+
+      // Simuler le progrès du déploiement
       const intervals = [20, 40, 60, 80, 100];
       for (let i = 0; i < intervals.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         setDeployProgress(intervals[i]);
       }
+
+      // Attendre tous les déploiements
+      await Promise.all(deploymentPromises);
       
       // Update all clients' last deployment
       const now = new Date().toISOString();
@@ -133,7 +209,10 @@ const UnifiedClientSetup = () => {
       
       toast.success("Application déployée pour tous les clients");
     } catch (error) {
-      toast.error("Erreur lors du déploiement");
+      console.error('Erreur de déploiement:', error);
+      toast.error("Erreur lors du déploiement", {
+        description: error.message || "Vérifiez la configuration Netlify"
+      });
     } finally {
       setIsDeploying(false);
       setDeployProgress(0);
@@ -160,15 +239,34 @@ const UnifiedClientSetup = () => {
           <p className="text-sm text-gray-600">
             Déployez l'application mise à jour pour tous vos clients
           </p>
+          {!isNetlifyConfigured && (
+            <div className="flex items-center gap-2 mt-2">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span className="text-sm text-amber-600">Configuration Netlify requise</span>
+            </div>
+          )}
         </div>
-        <Button 
-          onClick={handleGlobalDeploy}
-          disabled={isDeploying}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-        >
-          <Rocket className="h-4 w-4 mr-2" />
-          {isDeploying ? "Déploiement..." : "Déployer l'Application"}
-        </Button>
+        <div className="flex flex-col gap-2">
+          {!isNetlifyConfigured && (
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/admin/leazr-saas-configuration")}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Configurer Netlify
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          )}
+          <Button 
+            onClick={handleGlobalDeploy}
+            disabled={isDeploying || !isNetlifyConfigured}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
+          >
+            <Rocket className="h-4 w-4 mr-2" />
+            {isDeploying ? "Déploiement..." : "Déployer l'Application"}
+          </Button>
+        </div>
       </div>
 
       {/* Deployment Progress */}
@@ -177,7 +275,7 @@ const UnifiedClientSetup = () => {
           <Activity className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-2">
-              <p>Déploiement en cours...</p>
+              <p>Déploiement en cours sur Netlify...</p>
               <Progress value={deployProgress} className="w-full" />
               <p className="text-xs text-gray-500">{deployProgress}% terminé</p>
             </div>
@@ -291,9 +389,11 @@ const UnifiedClientSetup = () => {
                           Configurer
                         </Button>
                       )}
-                      <Button size="sm" variant="outline">
-                        <Globe className="h-4 w-4 mr-1" />
-                        Voir le site
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={`https://${client.subdomain}.leazr.co`} target="_blank" rel="noopener noreferrer">
+                          <Globe className="h-4 w-4 mr-1" />
+                          Voir le site
+                        </a>
                       </Button>
                     </div>
                   </div>
