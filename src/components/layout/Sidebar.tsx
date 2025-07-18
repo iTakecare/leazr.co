@@ -41,12 +41,11 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const menuItems = [
     { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "text-blue-600" },
-    { icon: UserCheck, label: "Clients", href: "/admin/clients", color: "text-orange-600" },
+    { icon: UserCheck, label: "CRM", href: "/admin/clients", color: "text-orange-600" },
     { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "text-red-600" },
     { icon: ClipboardList, label: "Devis", href: "/admin/offers", color: "text-indigo-600" },
     { icon: Calculator, label: "Factures", href: "/admin/invoicing", color: "text-pink-600" },
     { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "text-emerald-600" },
-    { icon: Users, label: "Ambassadeurs", href: "/ambassadors", color: "text-green-600" },
     { icon: Mail, label: "Chat Admin", href: "/admin/chat", color: "text-violet-600" },
     { icon: Settings, label: "Paramètres", href: "/admin/settings", color: "text-gray-600" },
   ];
