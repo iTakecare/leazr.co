@@ -144,18 +144,29 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         </Button>
         
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-center p-4 border-b">
-                <CompanyLogo showText={false} logoSize="md" />
-                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full ml-auto">
-                  <X className="h-5 w-5" />
+          <SheetContent side="left" className="p-0 w-[280px] border-0 bg-card/95 backdrop-blur-xl">
+            <div className="flex flex-col h-full relative">
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-background/50 to-accent/[0.02] pointer-events-none" />
+              
+              <div className="flex items-center justify-between p-4 border-b border-border/20 relative z-10">
+                <div className="flex items-center gap-3">
+                  <CompanyLogo showText={false} logoSize="md" />
+                  <div className="flex flex-col">
+                    <h2 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                      Leazr
+                    </h2>
+                    <p className="text-xs text-muted-foreground">Administration</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full h-8 w-8">
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
               
-              <nav className="flex-1 px-2 py-4">
-                <ul className="space-y-1">
-                  {mainSidebarItems.map((item) => (
+              <nav className="flex-1 px-3 py-4 relative z-10">
+                <ul className="space-y-2">
+                  {mainSidebarItems.map((item, index) => (
                     <li key={item.href}>
                       <Link
                         to={item.href}
@@ -164,26 +175,54 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                           setMobileOpen(false);
                         }}
                         className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300 relative",
+                          "group flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
                           isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                            ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/25 scale-105"
+                            : "hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] hover:shadow-md"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <div className="relative">
-                          <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                          {item.hasNotification && (
-                            <SidebarNotificationBadge />
-                          )}
+                        {/* Active indicator */}
+                        {isActive(item.href) && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground rounded-r-full" />
+                        )}
+                        
+                        <div className="relative flex items-center">
+                          <div className={cn(
+                            "relative flex items-center justify-center rounded-lg transition-all duration-300 w-8 h-8 mr-3",
+                            isActive(item.href) 
+                              ? "bg-primary-foreground/20" 
+                              : "group-hover:bg-primary/20"
+                          )}>
+                            <item.icon 
+                              className={cn(
+                                "h-5 w-5 transition-all duration-300",
+                                isActive(item.href) && "stroke-[2.5px] scale-110"
+                              )} 
+                            />
+                            {item.hasNotification && (
+                              <SidebarNotificationBadge />
+                            )}
+                          </div>
                         </div>
-                        <span className="flex-1">{item.label}</span>
+                        <span className={cn(
+                          "flex-1 text-left font-medium transition-all duration-300",
+                          isActive(item.href) ? "text-primary-foreground font-semibold" : "text-foreground group-hover:text-primary"
+                        )}>
+                          {item.label}
+                        </span>
                       </Link>
                     </li>
                   ))}
 
+                  {/* Separator */}
+                  <li className="my-4">
+                    <div className="mx-4 border-t border-border/40" />
+                  </li>
+
                   {/* Bottom Items */}
-                  {bottomItems.map((item) => (
+                  {bottomItems.map((item, index) => (
                     <li key={item.href}>
                       <Link
                         to={item.href}
@@ -192,20 +231,40 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                           setMobileOpen(false);
                         }}
                         className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300 relative",
+                          "group flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden",
                           isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                            ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/25 scale-105"
+                            : "hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] hover:shadow-md"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
+                        style={{ animationDelay: `${(mainSidebarItems.length + index) * 50}ms` }}
                       >
-                        <div className="relative">
-                          <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                          {item.hasNotification && (
-                            <SidebarNotificationBadge />
-                          )}
+                        {/* Active indicator */}
+                        {isActive(item.href) && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground rounded-r-full" />
+                        )}
+                        
+                        <div className="relative flex items-center">
+                          <div className={cn(
+                            "relative flex items-center justify-center rounded-lg transition-all duration-300 w-8 h-8 mr-3",
+                            isActive(item.href) 
+                              ? "bg-primary-foreground/20" 
+                              : "group-hover:bg-primary/20"
+                          )}>
+                            <item.icon 
+                              className={cn(
+                                "h-5 w-5 transition-all duration-300",
+                                isActive(item.href) && "stroke-[2.5px] scale-110"
+                              )} 
+                            />
+                          </div>
                         </div>
-                        <span className="flex-1">{item.label}</span>
+                        <span className={cn(
+                          "flex-1 text-left font-medium transition-all duration-300",
+                          isActive(item.href) ? "text-primary-foreground font-semibold" : "text-foreground group-hover:text-primary"
+                        )}>
+                          {item.label}
+                        </span>
                       </Link>
                     </li>
                   ))}
@@ -213,33 +272,41 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
               </nav>
               
               {user && (
-                <div className="p-4 border-t mt-auto">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Avatar>
-                      <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                      <AvatarFallback className="bg-primary/20 text-primary">
-                        {user.email?.substring(0, 2).toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="overflow-hidden">
-                      <p className="text-sm font-medium truncate">
-                        {user.first_name && user.last_name 
-                          ? `${user.first_name} ${user.last_name}` 
-                          : user.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Admin</p>
+                <div className="p-4 mx-3 mb-3 mt-auto relative z-10">
+                  <div className="bg-gradient-to-r from-card/50 to-card/30 backdrop-blur-sm border border-border/40 rounded-xl p-4 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="relative">
+                        <Avatar className="ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                          <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold">
+                            {user.email?.substring(0, 2).toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                      </div>
+                      <div className="overflow-hidden flex-1">
+                        <p className="text-sm font-semibold truncate">
+                          {user.first_name && user.last_name 
+                            ? `${user.first_name} ${user.last_name}` 
+                            : user.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="w-2 h-2 bg-primary rounded-full" />
+                          Administrateur
+                        </p>
+                      </div>
                     </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50 hover:shadow-md transition-all duration-300 rounded-lg"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Déconnexion
+                    </Button>
                   </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Déconnexion
-                  </Button>
                 </div>
               )}
             </div>
@@ -252,68 +319,100 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
   return (
     <aside
       className={cn(
-        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
-        collapsed ? "w-[80px]" : "w-[280px]",
+        "h-screen sticky top-0 transition-all duration-500 border-r border-border/40 shadow-2xl bg-card/95 backdrop-blur-xl",
+        collapsed ? "w-[72px]" : "w-[280px]",
         className
       )}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full relative">
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-background/50 to-accent/[0.02] pointer-events-none" />
+        
         <div className={cn(
-          "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-start"
+          "flex items-center p-4 mb-6 transition-all duration-300 relative z-10 border-b border-border/20",
+          collapsed ? "justify-center px-3" : "px-6 justify-between"
         )}>
-          <CompanyLogo showText={false} logoSize="md" />
+          <div className="flex items-center gap-3">
+            <CompanyLogo showText={false} logoSize="md" />
+            {!collapsed && (
+              <div className="flex flex-col">
+                <h2 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Leazr
+                </h2>
+                <p className="text-xs text-muted-foreground">Administration</p>
+              </div>
+            )}
+          </div>
           
           {!collapsed && (
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10 ml-auto"
+              className="rounded-full hover:bg-primary/10 h-8 w-8 shrink-0"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </Button>
           )}
         </div>
         
-        <nav className="flex-1 px-2 py-4">
+        <nav className="flex-1 px-3 py-2 relative z-10">
           <TooltipProvider delayDuration={200}>
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {/* Main Items */}
-              {mainSidebarItems.map((item) => (
+              {mainSidebarItems.map((item, index) => (
                 <li key={item.href}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => handleNavigation(item.href)}
                         className={cn(
-                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative",
-                          collapsed ? "justify-center px-2" : "px-3",
+                          "group w-full flex items-center transition-all duration-300 relative overflow-hidden",
+                          collapsed ? "justify-center px-3 py-3 rounded-lg" : "px-4 py-3 rounded-xl",
                           isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                            ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/25 scale-105" 
+                            : "hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] hover:shadow-md"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <div className="relative">
-                          <item.icon 
-                            className={cn(
-                              "h-5 w-5 flex-shrink-0", 
-                              collapsed ? "relative" : "mr-3",
-                              isActive(item.href) && "stroke-[2.5px]"
-                            )} 
-                          />
-                          {item.hasNotification && (
-                            <SidebarNotificationBadge />
-                          )}
+                        {/* Active indicator */}
+                        {isActive(item.href) && !collapsed && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground rounded-r-full" />
+                        )}
+                        
+                        <div className="relative flex items-center">
+                          <div className={cn(
+                            "relative flex items-center justify-center rounded-lg transition-all duration-300",
+                            collapsed ? "w-6 h-6" : "w-8 h-8 mr-3",
+                            isActive(item.href) 
+                              ? "bg-primary-foreground/20" 
+                              : "group-hover:bg-primary/20"
+                          )}>
+                            <item.icon 
+                              className={cn(
+                                "transition-all duration-300", 
+                                collapsed ? "h-4 w-4" : "h-5 w-5",
+                                isActive(item.href) && "stroke-[2.5px] scale-110"
+                              )} 
+                            />
+                            {item.hasNotification && (
+                              <SidebarNotificationBadge />
+                            )}
+                          </div>
                         </div>
                         {!collapsed && (
-                          <span className="flex-1 text-left">{item.label}</span>
+                          <span className={cn(
+                            "flex-1 text-left font-medium transition-all duration-300",
+                            isActive(item.href) ? "text-primary-foreground font-semibold" : "text-foreground group-hover:text-primary"
+                          )}>
+                            {item.label}
+                          </span>
                         )}
                       </button>
                     </TooltipTrigger>
                     {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
+                      <TooltipContent side="right" className="font-medium bg-popover border shadow-lg">
                         <p>{item.label}</p>
                       </TooltipContent>
                     )}
@@ -321,36 +420,65 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                 </li>
               ))}
               
+              {/* Separator */}
+              <li className="my-4">
+                <div className={cn(
+                  "transition-all duration-300",
+                  collapsed ? "mx-2 border-t border-border/40" : "mx-4 border-t border-border/40"
+                )} />
+              </li>
+              
               {/* Bottom Items */}
-              {bottomItems.map((item) => (
+              {bottomItems.map((item, index) => (
                 <li key={item.href}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => handleNavigation(item.href)}
                         className={cn(
-                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                          collapsed ? "justify-center px-2" : "px-3",
+                          "group w-full flex items-center transition-all duration-300 relative overflow-hidden",
+                          collapsed ? "justify-center px-3 py-3 rounded-lg" : "px-4 py-3 rounded-xl",
                           isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
+                            ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/25 scale-105" 
+                            : "hover:bg-gradient-to-r hover:from-primary/5 hover:to-primary/10 hover:scale-[1.02] hover:shadow-md"
                         )}
                         aria-current={isActive(item.href) ? "page" : undefined}
+                        style={{ animationDelay: `${(mainSidebarItems.length + index) * 50}ms` }}
                       >
-                        <item.icon 
-                          className={cn(
-                            "h-5 w-5 flex-shrink-0", 
-                            collapsed ? "relative" : "mr-3",
-                            isActive(item.href) && "stroke-[2.5px]"
-                          )} 
-                        />
+                        {/* Active indicator */}
+                        {isActive(item.href) && !collapsed && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground rounded-r-full" />
+                        )}
+                        
+                        <div className="relative flex items-center">
+                          <div className={cn(
+                            "relative flex items-center justify-center rounded-lg transition-all duration-300",
+                            collapsed ? "w-6 h-6" : "w-8 h-8 mr-3",
+                            isActive(item.href) 
+                              ? "bg-primary-foreground/20" 
+                              : "group-hover:bg-primary/20"
+                          )}>
+                            <item.icon 
+                              className={cn(
+                                "transition-all duration-300", 
+                                collapsed ? "h-4 w-4" : "h-5 w-5",
+                                isActive(item.href) && "stroke-[2.5px] scale-110"
+                              )} 
+                            />
+                          </div>
+                        </div>
                         {!collapsed && (
-                          <span className="flex-1 text-left">{item.label}</span>
+                          <span className={cn(
+                            "flex-1 text-left font-medium transition-all duration-300",
+                            isActive(item.href) ? "text-primary-foreground font-semibold" : "text-foreground group-hover:text-primary"
+                          )}>
+                            {item.label}
+                          </span>
                         )}
                       </button>
                     </TooltipTrigger>
                     {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
+                      <TooltipContent side="right" className="font-medium bg-popover border shadow-lg">
                         <p>{item.label}</p>
                       </TooltipContent>
                     )}
@@ -363,25 +491,31 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
         
         {user && (
           <div className={cn(
-            "transition-all duration-300 mt-auto border-t border-t-primary/10 pt-4",
-            collapsed ? "p-2" : "p-4 mx-2 mb-2"
+            "transition-all duration-300 mt-auto relative z-10",
+            collapsed ? "p-2" : "p-4 mx-3 mb-3"
           )}>
             {!collapsed ? (
-              <>
+              <div className="bg-gradient-to-r from-card/50 to-card/30 backdrop-blur-sm border border-border/40 rounded-xl p-4 shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
-                  <Avatar>
-                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                      {user.email?.substring(0, 2).toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="overflow-hidden">
-                    <p className="text-sm font-medium truncate">
+                  <div className="relative">
+                    <Avatar className="ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                      <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold">
+                        {user.email?.substring(0, 2).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                  </div>
+                  <div className="overflow-hidden flex-1">
+                    <p className="text-sm font-semibold truncate">
                       {user.first_name && user.last_name 
                         ? `${user.first_name} ${user.last_name}` 
                         : user.email}
                     </p>
-                    <p className="text-xs text-muted-foreground">Admin</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                      Administrateur
+                    </p>
                   </div>
                 </div>
                 
@@ -389,30 +523,51 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
                   variant="outline" 
                   size="sm" 
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
+                  className="w-full flex items-center gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50 hover:shadow-md transition-all duration-300 rounded-lg"
                 >
                   <LogOut className="h-4 w-4" />
                   Déconnexion
                 </Button>
-              </>
+              </div>
             ) : (
               <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={handleLogout}
-                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      <span className="sr-only">Déconnexion</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>Déconnexion</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div className="flex flex-col items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <Avatar className="ring-2 ring-primary/20 ring-offset-2 ring-offset-background w-8 h-8">
+                          <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold text-xs">
+                            {user.email?.substring(0, 2).toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-background" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium bg-popover border shadow-lg">
+                      <p>{user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}` 
+                        : user.email}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={handleLogout}
+                        className="w-8 h-8 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-all duration-300"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span className="sr-only">Déconnexion</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium bg-popover border shadow-lg">
+                      <p>Déconnexion</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </TooltipProvider>
             )}
           </div>
