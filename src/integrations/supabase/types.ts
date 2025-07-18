@@ -2132,6 +2132,121 @@ export type Database = {
         }
         Relationships: []
       }
+      netlify_configurations: {
+        Row: {
+          auto_deploy: boolean | null
+          build_command: string | null
+          company_id: string | null
+          created_at: string | null
+          custom_domain: string | null
+          environment_variables: Json | null
+          id: string
+          publish_directory: string | null
+          site_id: string | null
+          site_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_deploy?: boolean | null
+          build_command?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          custom_domain?: string | null
+          environment_variables?: Json | null
+          id?: string
+          publish_directory?: string | null
+          site_id?: string | null
+          site_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_deploy?: boolean | null
+          build_command?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          custom_domain?: string | null
+          environment_variables?: Json | null
+          id?: string
+          publish_directory?: string | null
+          site_id?: string | null
+          site_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "netlify_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      netlify_deployments: {
+        Row: {
+          admin_url: string | null
+          branch: string | null
+          commit_ref: string | null
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          deploy_id: string | null
+          deploy_time: number | null
+          deploy_url: string | null
+          error_message: string | null
+          id: string
+          site_id: string | null
+          site_name: string | null
+          site_url: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_url?: string | null
+          branch?: string | null
+          commit_ref?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deploy_id?: string | null
+          deploy_time?: number | null
+          deploy_url?: string | null
+          error_message?: string | null
+          id?: string
+          site_id?: string | null
+          site_name?: string | null
+          site_url?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_url?: string | null
+          branch?: string | null
+          commit_ref?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deploy_id?: string | null
+          deploy_time?: number | null
+          deploy_url?: string | null
+          error_message?: string | null
+          id?: string
+          site_id?: string | null
+          site_name?: string | null
+          site_url?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "netlify_deployments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_documents: {
         Row: {
           admin_notes: string | null

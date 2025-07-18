@@ -1,61 +1,78 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { PageTransition } from "@/components/ui/page-transition";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Rocket, 
+  Globe, 
   Settings, 
-  Activity, 
-  ExternalLink, 
-  Clock, 
+  AlertCircle, 
   CheckCircle, 
-  XCircle,
-  AlertCircle,
-  Globe,
+  Clock,
+  ExternalLink,
+  Monitor,
   RefreshCw
 } from "lucide-react";
+import { PageTransition } from "@/components/ui/page-transition";
 
-interface DeploymentLog {
+interface NetlifyDeployment {
   id: string;
+  company_id: string;
+  site_id: string;
   site_name: string;
+  deploy_id: string;
   status: string;
-  deploy_url: string | null;
-  error_message: string | null;
+  deploy_url: string;
+  admin_url: string;
+  site_url: string;
+  error_message: string;
   created_at: string;
-  completed_at: string | null;
+  updated_at: string;
 }
 
-interface NetlifyConfig {
+interface NetlifyConfiguration {
   id: string;
+  company_id: string;
+  site_id: string;
   site_name: string;
-  site_id: string | null;
-  repository_url: string;
+  custom_domain: string;
+  auto_deploy: boolean;
   build_command: string;
   publish_directory: string;
-  is_active: boolean;
+  environment_variables: Record<string, string>;
 }
 
-export default function LeazrSaaSDeployments() {
+interface Company {
+  id: string;
+  name: string;
+  custom_domain: string;
+}
+
+const LeazrSaaSDeployments = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [deployments, setDeployments] = useState<DeploymentLog[]>([]);
-  const [config, setConfig] = useState<NetlifyConfig | null>(null);
+  
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [deployments, setDeployments] = useState<NetlifyDeployment[]>([]);
+  const [configurations, setConfigurations] = useState<NetlifyConfiguration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deploying, setDeploying] = useState(false);
-  const [configForm, setConfigForm] = useState({
-    site_name: "",
-    repository_url: "",
-    build_command: "npm run build",
-    publish_directory: "dist"
-  });
+  const [deploying, setDeploying] = useState<string | null>(null);
+  
+  // Formulaire de déploiement
+  const [selectedCompany, setSelectedCompany] = useState("");
+  const [repositoryUrl, setRepositoryUrl] = useState("https://github.com/your-repo/leazr-app");
+  const [siteName, setSiteName] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
+  const [autoDeploy, setAutoDeploy] = useState(false);
+  const [buildCommand, setBuildCommand] = useState("npm run build");
+  const [publishDirectory, setPublishDirectory] = useState("dist");
 
   // Vérifier si l'utilisateur est l'admin SaaS Leazr
   const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
@@ -72,107 +89,105 @@ export default function LeazrSaaSDeployments() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Récupérer la configuration
-      const { data: configData } = await supabase
-        .from("netlify_configurations")
-        .select("*")
-        .eq("is_active", true)
-        .single();
-      
-      if (configData) {
-        setConfig(configData);
-        setConfigForm({
-          site_name: configData.site_name,
-          repository_url: configData.repository_url,
-          build_command: configData.build_command,
-          publish_directory: configData.publish_directory
-        });
-      }
+
+      // Récupérer les entreprises
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('companies')
+        .select('id, name, custom_domain')
+        .order('name');
+
+      if (companiesError) throw companiesError;
 
       // Récupérer les déploiements
-      const { data: deploymentsData } = await supabase
-        .from("netlify_deployments")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
+      const { data: deploymentsData, error: deploymentsError } = await supabase
+        .from('netlify_deployments')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (deploymentsData) {
-        setDeployments(deploymentsData);
-      }
+      if (deploymentsError) throw deploymentsError;
+
+      // Récupérer les configurations
+      const { data: configurationsData, error: configurationsError } = await supabase
+        .from('netlify_configurations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (configurationsError) throw configurationsError;
+
+      setCompanies(companiesData || []);
+      setDeployments(deploymentsData || []);
+      setConfigurations(configurationsData || []);
+
     } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erreur lors du chargement des données");
+      console.error('Error fetching data:', error);
+      toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
-  const saveConfiguration = async () => {
-    try {
-      const { error } = await supabase
-        .from("netlify_configurations")
-        .upsert({
-          site_name: configForm.site_name,
-          repository_url: configForm.repository_url,
-          build_command: configForm.build_command,
-          publish_directory: configForm.publish_directory,
-          is_active: true
-        });
-
-      if (error) throw error;
-
-      toast.success("Configuration sauvegardée avec succès");
-      await fetchData();
-    } catch (error) {
-      console.error("Error saving configuration:", error);
-      toast.error("Erreur lors de la sauvegarde");
-    }
-  };
-
-  const startDeployment = async () => {
-    if (!config) {
-      toast.error("Veuillez d'abord configurer Netlify");
+  const handleDeploy = async () => {
+    if (!selectedCompany || !repositoryUrl) {
+      toast.error('Veuillez sélectionner une entreprise et saisir l\'URL du repository');
       return;
     }
 
     try {
-      setDeploying(true);
-      
-      const { data, error } = await supabase.functions.invoke("deploy-to-netlify", {
+      setDeploying(selectedCompany);
+
+      const { data, error } = await supabase.functions.invoke('deploy-to-netlify', {
         body: {
-          site_name: config.site_name,
-          repository_url: config.repository_url,
-          build_command: config.build_command,
-          publish_directory: config.publish_directory
+          companyId: selectedCompany,
+          repositoryUrl,
+          siteName: siteName || undefined,
+          customDomain: customDomain || undefined,
+          autoDeploy,
+          buildCommand,
+          publishDirectory,
+          environmentVariables: {}
         }
       });
 
       if (error) throw error;
 
-      toast.success("Déploiement lancé avec succès");
-      await fetchData();
+      if (data.success) {
+        toast.success('Déploiement lancé avec succès!');
+        fetchData(); // Rafraîchir les données
+        
+        // Réinitialiser le formulaire
+        setSelectedCompany("");
+        setSiteName("");
+        setCustomDomain("");
+        setAutoDeploy(false);
+      } else {
+        throw new Error(data.error || 'Erreur lors du déploiement');
+      }
+
     } catch (error) {
-      console.error("Error starting deployment:", error);
-      toast.error("Erreur lors du lancement du déploiement");
+      console.error('Deployment error:', error);
+      toast.error(`Erreur: ${error.message}`);
     } finally {
-      setDeploying(false);
+      setDeploying(null);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />En attente</Badge>;
-      case "building":
-        return <Badge variant="secondary"><RefreshCw className="w-3 h-3 mr-1 animate-spin" />En cours</Badge>;
-      case "deployed":
-        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Déployé</Badge>;
-      case "failed":
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Échec</Badge>;
-      default:
-        return <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" />Inconnu</Badge>;
-    }
+    const statusConfig = {
+      pending: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
+      building: { color: "bg-blue-100 text-blue-800", icon: RefreshCw },
+      ready: { color: "bg-green-100 text-green-800", icon: CheckCircle },
+      failed: { color: "bg-red-100 text-red-800", icon: AlertCircle },
+    };
+
+    const config = statusConfig[status] || statusConfig.pending;
+    const IconComponent = config.icon;
+
+    return (
+      <Badge className={config.color}>
+        <IconComponent className="w-3 h-3 mr-1" />
+        {status}
+      </Badge>
+    );
   };
 
   if (!user || !isLeazrSaaSAdmin) return null;
@@ -181,8 +196,8 @@ export default function LeazrSaaSDeployments() {
     return (
       <PageTransition>
         <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 animate-spin" />
+          <div className="flex items-center justify-center min-h-[400px]">
+            <RefreshCw className="w-8 h-8 animate-spin text-primary" />
           </div>
         </div>
       </PageTransition>
@@ -193,189 +208,248 @@ export default function LeazrSaaSDeployments() {
     <PageTransition>
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
+          {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Déploiements Netlify</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Déploiements Netlify</h1>
               <p className="text-muted-foreground">
-                Gestion des déploiements automatisés sur Netlify
+                Gérez les déploiements automatisés des applications clients sur Netlify
               </p>
             </div>
-            <Badge variant="secondary" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-              Admin SaaS
-            </Badge>
+            <Button onClick={fetchData} variant="outline" size="icon">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
           </div>
 
-          <Tabs defaultValue="deployments" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="deployments">
-                <Activity className="w-4 h-4 mr-2" />
-                Déploiements
-              </TabsTrigger>
-              <TabsTrigger value="configuration">
-                <Settings className="w-4 h-4 mr-2" />
-                Configuration
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Formulaire de déploiement */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Rocket className="w-5 h-5" />
+                  Nouveau déploiement
+                </CardTitle>
+                <CardDescription>
+                  Déployez une application pour un client spécifique
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="company">Entreprise cliente</Label>
+                  <select
+                    id="company"
+                    value={selectedCompany}
+                    onChange={(e) => setSelectedCompany(e.target.value)}
+                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Sélectionner une entreprise</option>
+                    {companies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <TabsContent value="deployments" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Déploiement rapide</CardTitle>
-                      <CardDescription>
-                        Lancez un nouveau déploiement vers Netlify
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      onClick={startDeployment} 
-                      disabled={!config || deploying}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600"
-                    >
-                      {deploying ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Déploiement...
-                        </>
-                      ) : (
-                        <>
-                          <Rocket className="w-4 h-4 mr-2" />
-                          Déployer maintenant
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardHeader>
-                {config && (
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">Site:</span> {config.site_name}
-                      </div>
-                      <div>
-                        <span className="font-medium">Repository:</span> {config.repository_url}
-                      </div>
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
+                <div>
+                  <Label htmlFor="repositoryUrl">URL du repository</Label>
+                  <Input
+                    id="repositoryUrl"
+                    value={repositoryUrl}
+                    onChange={(e) => setRepositoryUrl(e.target.value)}
+                    placeholder="https://github.com/your-org/repo"
+                  />
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Historique des déploiements</CardTitle>
-                    <Button variant="outline" onClick={fetchData}>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Actualiser
-                    </Button>
+                <div>
+                  <Label htmlFor="siteName">Nom du site (optionnel)</Label>
+                  <Input
+                    id="siteName"
+                    value={siteName}
+                    onChange={(e) => setSiteName(e.target.value)}
+                    placeholder="Laissez vide pour génération automatique"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="customDomain">Domaine personnalisé (optionnel)</Label>
+                  <Input
+                    id="customDomain"
+                    value={customDomain}
+                    onChange={(e) => setCustomDomain(e.target.value)}
+                    placeholder="example.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="buildCommand">Commande de build</Label>
+                    <Input
+                      id="buildCommand"
+                      value={buildCommand}
+                      onChange={(e) => setBuildCommand(e.target.value)}
+                    />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {deployments.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        Aucun déploiement trouvé
-                      </p>
-                    ) : (
-                      deployments.map((deployment) => (
-                        <div
-                          key={deployment.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                              <h4 className="font-medium">{deployment.site_name}</h4>
-                              {getStatusBadge(deployment.status)}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Démarré le {new Date(deployment.created_at).toLocaleString("fr-FR")}
-                              {deployment.completed_at && (
-                                <> • Terminé le {new Date(deployment.completed_at).toLocaleString("fr-FR")}</>
-                              )}
-                            </p>
-                            {deployment.error_message && (
-                              <p className="text-sm text-destructive">
-                                Erreur: {deployment.error_message}
-                              </p>
+                  <div>
+                    <Label htmlFor="publishDirectory">Dossier de publication</Label>
+                    <Input
+                      id="publishDirectory"
+                      value={publishDirectory}
+                      onChange={(e) => setPublishDirectory(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="autoDeploy"
+                    checked={autoDeploy}
+                    onCheckedChange={setAutoDeploy}
+                  />
+                  <Label htmlFor="autoDeploy">Déploiement automatique</Label>
+                </div>
+
+                <Button 
+                  onClick={handleDeploy}
+                  disabled={!selectedCompany || !repositoryUrl || !!deploying}
+                  className="w-full"
+                >
+                  {deploying ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Déploiement en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4 mr-2" />
+                      Lancer le déploiement
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Statistiques */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Monitor className="w-5 h-5" />
+                  Statistiques
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {deployments.length}
+                    </div>
+                    <div className="text-sm text-blue-600">Total déploiements</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {deployments.filter(d => d.status === 'ready').length}
+                    </div>
+                    <div className="text-sm text-green-600">Déploiements actifs</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {deployments.filter(d => d.status === 'building').length}
+                    </div>
+                    <div className="text-sm text-yellow-600">En cours</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">
+                      {deployments.filter(d => d.status === 'failed').length}
+                    </div>
+                    <div className="text-sm text-red-600">Échecs</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Liste des déploiements */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                Historique des déploiements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {deployments.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Aucun déploiement trouvé
+                  </div>
+                ) : (
+                  deployments.map((deployment) => {
+                    const company = companies.find(c => c.id === deployment.company_id);
+                    
+                    return (
+                      <div key={deployment.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold">
+                              {company?.name || 'Entreprise inconnue'}
+                            </h3>
+                            {getStatusBadge(deployment.status)}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {deployment.site_url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(deployment.site_url, '_blank')}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                Voir le site
+                              </Button>
+                            )}
+                            {deployment.admin_url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(deployment.admin_url, '_blank')}
+                              >
+                                <Settings className="w-4 h-4 mr-1" />
+                                Admin Netlify
+                              </Button>
                             )}
                           </div>
-                          {deployment.deploy_url && (
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={deployment.deploy_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                Voir le site
-                              </a>
-                            </Button>
-                          )}
                         </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                          <div>
+                            <span className="font-medium">Site:</span> {deployment.site_name || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-medium">Déploiement:</span> {deployment.deploy_id || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-medium">Créé:</span> {new Date(deployment.created_at).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Mis à jour:</span> {new Date(deployment.updated_at).toLocaleDateString()}
+                          </div>
+                        </div>
 
-            <TabsContent value="configuration" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuration Netlify</CardTitle>
-                  <CardDescription>
-                    Paramètres pour les déploiements automatisés
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="site_name">Nom du site</Label>
-                      <Input
-                        id="site_name"
-                        value={configForm.site_name}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, site_name: e.target.value }))}
-                        placeholder="mon-site-leazr"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="repository_url">URL du repository</Label>
-                      <Input
-                        id="repository_url"
-                        value={configForm.repository_url}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, repository_url: e.target.value }))}
-                        placeholder="https://github.com/user/repo"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="build_command">Commande de build</Label>
-                      <Input
-                        id="build_command"
-                        value={configForm.build_command}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, build_command: e.target.value }))}
-                        placeholder="npm run build"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="publish_directory">Dossier de publication</Label>
-                      <Input
-                        id="publish_directory"
-                        value={configForm.publish_directory}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, publish_directory: e.target.value }))}
-                        placeholder="dist"
-                      />
-                    </div>
-                  </div>
-
-                  <Button onClick={saveConfiguration} className="w-full">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Sauvegarder la configuration
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                        {deployment.error_message && (
+                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                            <span className="font-medium">Erreur:</span> {deployment.error_message}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </PageTransition>
   );
-}
+};
+
+export default LeazrSaaSDeployments;
