@@ -1,386 +1,428 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useNetlifyConfig } from "@/hooks/useNetlifyConfig";
 import { 
-  Plus, 
+  Building2, 
   Globe, 
   Rocket, 
-  CheckCircle, 
-  AlertCircle, 
-  Users,
+  CheckCircle2, 
+  AlertCircle,
+  ExternalLink,
   Settings,
-  Activity,
-  ExternalLink
+  Database,
+  Cloud
 } from "lucide-react";
-import { toast } from "sonner";
-import { useNetlifyConfig } from "@/hooks/useNetlifyConfig";
-
-interface Client {
-  id: string;
-  name: string;
-  subdomain: string;
-  status: 'active' | 'pending' | 'error';
-  domainConfigured: boolean;
-  lastDeployment?: string;
-  netlifyUrl?: string;
-}
 
 const UnifiedClientSetup = () => {
-  const [activeTab, setActiveTab] = useState("create");
-  const [isCreating, setIsCreating] = useState(false);
+  const { config: netlifyConfig, isConfigured } = useNetlifyConfig();
+  const [formData, setFormData] = useState({
+    companyName: "",
+    adminEmail: "",
+    customDomain: "",
+    repositoryUrl: "",
+    siteName: "",
+    environmentVariables: ""
+  });
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployProgress, setDeployProgress] = useState(0);
-  const { config: netlifyConfig, isConfigured: isNetlifyConfigured } = useNetlifyConfig();
-  
-  // Form state
-  const [clientName, setClientName] = useState("");
-  const [subdomain, setSubdomain] = useState("");
-  
-  // Mock data - in reality this would come from your database
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: "1",
-      name: "ITakeCare Demo",
-      subdomain: "itakecare",
-      status: 'active',
-      domainConfigured: true,
-      lastDeployment: "2024-01-15T10:30:00Z",
-      netlifyUrl: "https://itakecare.netlify.app"
-    },
-    {
-      id: "2", 
-      name: "TechCorp Solutions",
-      subdomain: "techcorp",
-      status: 'pending',
-      domainConfigured: false
-    }
-  ]);
+  const [deploymentResult, setDeploymentResult] = useState<any>(null);
 
-  const handleCreateClient = async () => {
-    if (!clientName || !subdomain) {
-      toast.error("Veuillez remplir tous les champs requis");
-      return;
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const createCompany = async () => {
+    if (!formData.companyName || !formData.adminEmail) {
+      toast.error("Nom de l'entreprise et email administrateur requis");
+      return null;
     }
 
-    setIsCreating(true);
-    
     try {
-      // Simulate API call to create client
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simuler la création d'entreprise pour l'instant
+      console.log("Création d'entreprise:", formData);
+      toast.success("Entreprise créée avec succès");
       
-      // Add new client to the list
-      const newClient: Client = {
-        id: Date.now().toString(),
-        name: clientName,
-        subdomain: subdomain,
-        status: 'pending',
-        domainConfigured: false
-      };
-      
-      setClients([...clients, newClient]);
-      setClientName("");
-      setSubdomain("");
-      
-      toast.success(`Client ${clientName} créé avec succès`);
-      
-      // Auto-configure domain after creation
-      await handleConfigureDomain(newClient.id);
-      
+      // Retourner un ID d'entreprise simulé (dans un vrai cas, ça viendrait de la DB)
+      return "company-" + Date.now();
     } catch (error) {
-      toast.error("Erreur lors de la création du client");
-    } finally {
-      setIsCreating(false);
+      console.error("Erreur création entreprise:", error);
+      toast.error("Erreur lors de la création de l'entreprise");
+      return null;
     }
   };
 
-  const handleConfigureDomain = async (clientId: string) => {
-    try {
-      // Simulate domain configuration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setClients(prev => prev.map(client => 
-        client.id === clientId 
-          ? { ...client, domainConfigured: true, status: 'active' as const }
-          : client
-      ));
-      
-      toast.success("Domaine configuré automatiquement");
-    } catch (error) {
-      toast.error("Erreur lors de la configuration du domaine");
+  const deployToNetlify = async (companyId: string) => {
+    if (!formData.repositoryUrl) {
+      toast.error("URL du repository requis pour le déploiement");
+      return null;
     }
-  };
 
-  const handleGlobalDeploy = async () => {
-    if (!isNetlifyConfigured()) {
-      toast.error("Configuration Netlify requise", {
-        description: "Veuillez configurer Netlify dans les paramètres avant de déployer.",
-        action: {
-          label: "Configurer",
-          onClick: () => window.open('/admin/leazr-saas-settings', '_blank')
+    if (!isConfigured()) {
+      toast.error("Configuration Netlify manquante. Configurez Netlify d'abord.");
+      return null;
+    }
+
+    try {
+      setIsDeploying(true);
+      console.log("Démarrage du déploiement Netlify pour:", companyId);
+
+      // Préparer les variables d'environnement
+      let envVars = {};
+      if (formData.environmentVariables) {
+        try {
+          envVars = JSON.parse(formData.environmentVariables);
+        } catch (e) {
+          // Si ce n'est pas du JSON, traiter comme des paires clé=valeur séparées par des nouvelles lignes
+          const lines = formData.environmentVariables.split('\n');
+          lines.forEach(line => {
+            const [key, ...valueParts] = line.split('=');
+            if (key && valueParts.length > 0) {
+              envVars[key.trim()] = valueParts.join('=').trim();
+            }
+          });
         }
-      });
-      return;
-    }
-
-    setIsDeploying(true);
-    setDeployProgress(0);
-
-    try {
-      // Simulate deployment progress using Netlify config
-      const intervals = [20, 40, 60, 80, 100];
-      
-      toast.info("Déploiement en cours...", {
-        description: `Utilisation de la configuration Netlify: ${netlifyConfig?.team_slug || 'compte personnel'}`,
-      });
-
-      for (let i = 0; i < intervals.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setDeployProgress(intervals[i]);
       }
-      
-      // Update all clients' last deployment
-      const now = new Date().toISOString();
-      setClients(prev => prev.map(client => ({
-        ...client,
-        lastDeployment: now,
-        netlifyUrl: client.netlifyUrl || `https://${client.subdomain}.netlify.app`
-      })));
-      
-      toast.success("Application déployée pour tous les clients", {
-        description: `Build: ${netlifyConfig?.default_build_command}, Output: ${netlifyConfig?.default_publish_directory}`,
+
+      const deploymentRequest = {
+        companyId: companyId,
+        repositoryUrl: formData.repositoryUrl,
+        siteName: formData.siteName || undefined,
+        customDomain: formData.customDomain || undefined,
+        autoDeploy: true,
+        buildCommand: "npm run build",
+        publishDirectory: "dist",
+        environmentVariables: envVars
+      };
+
+      console.log("Données de déploiement:", deploymentRequest);
+
+      // Appeler la vraie fonction edge deploy-to-netlify
+      const { data, error } = await supabase.functions.invoke('deploy-to-netlify', {
+        body: deploymentRequest
       });
+
+      if (error) {
+        console.error("Erreur fonction edge:", error);
+        toast.error(`Erreur de déploiement: ${error.message}`);
+        return null;
+      }
+
+      console.log("Résultat déploiement:", data);
+
+      if (data?.success) {
+        toast.success("Déploiement Netlify lancé avec succès!");
+        setDeploymentResult(data);
+        return data;
+      } else {
+        toast.error(`Échec du déploiement: ${data?.error || 'Erreur inconnue'}`);
+        return null;
+      }
     } catch (error) {
-      toast.error("Erreur lors du déploiement");
+      console.error("Erreur déploiement:", error);
+      toast.error("Erreur lors du déploiement Netlify");
+      return null;
     } finally {
       setIsDeploying(false);
-      setDeployProgress(0);
     }
   };
 
-  const getStatusBadge = (status: Client['status']) => {
-    switch(status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Actif</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">En cours</Badge>;
-      case 'error':
-        return <Badge className="bg-red-100 text-red-800">Erreur</Badge>;
+  const handleFullDeployment = async () => {
+    try {
+      // Étape 1: Créer l'entreprise
+      toast.info("Création de l'entreprise...");
+      const companyId = await createCompany();
+      if (!companyId) return;
+
+      // Étape 2: Déployer sur Netlify
+      toast.info("Déploiement sur Netlify...");
+      const deploymentData = await deployToNetlify(companyId);
+      if (!deploymentData) return;
+
+      toast.success("Configuration client complète avec succès!");
+    } catch (error) {
+      console.error("Erreur déploiement complet:", error);
+      toast.error("Erreur lors de la configuration complète");
     }
   };
 
-  const getNetlifyStatusBadge = () => {
-    if (isNetlifyConfigured()) {
-      return (
-        <Badge className="bg-green-100 text-green-800">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Netlify configuré
-        </Badge>
-      );
-    }
-    return (
-      <Badge className="bg-orange-100 text-orange-800">
-        <AlertCircle className="h-3 w-3 mr-1" />
-        Configuration requise
-      </Badge>
-    );
+  const resetForm = () => {
+    setFormData({
+      companyName: "",
+      adminEmail: "",
+      customDomain: "",
+      repositoryUrl: "",
+      siteName: "",
+      environmentVariables: ""
+    });
+    setDeploymentResult(null);
   };
 
   return (
     <div className="space-y-6">
-      {/* Global Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-semibold text-gray-900">Actions Globales</h3>
-            {getNetlifyStatusBadge()}
-          </div>
-          <p className="text-sm text-gray-600">
-            Déployez l'application mise à jour pour tous vos clients
-          </p>
-          {isNetlifyConfigured() && (
-            <p className="text-xs text-gray-500 mt-1">
-              Build: {netlifyConfig?.default_build_command} | Output: {netlifyConfig?.default_publish_directory}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {!isNetlifyConfigured() && (
-            <Button 
-              variant="outline"
-              onClick={() => window.open('/admin/leazr-saas-settings', '_blank')}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configurer Netlify
-            </Button>
-          )}
-          <Button 
-            onClick={handleGlobalDeploy}
-            disabled={isDeploying || !isNetlifyConfigured()}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-          >
-            <Rocket className="h-4 w-4 mr-2" />
-            {isDeploying ? "Déploiement..." : "Déployer l'Application"}
-          </Button>
-        </div>
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
+          Configuration Unifiée Client SaaS
+        </h2>
+        <p className="text-muted-foreground">
+          Créez et déployez un nouveau client en une seule opération
+        </p>
       </div>
 
-      {/* Deployment Progress */}
-      {isDeploying && (
-        <Alert>
-          <Activity className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-2">
-              <p>Déploiement en cours via Netlify...</p>
-              <Progress value={deployProgress} className="w-full" />
-              <p className="text-xs text-gray-500">{deployProgress}% terminé</p>
+      {/* Configuration Netlify Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Statut Configuration Netlify
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            {isConfigured() ? (
+              <>
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  Configuré
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Netlify est configuré et prêt pour les déploiements
+                </span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+                <Badge variant="destructive">Non configuré</Badge>
+                <span className="text-sm text-muted-foreground">
+                  Configurez Netlify dans les paramètres d'abord
+                </span>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Formulaire de configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Informations Client
+          </CardTitle>
+          <CardDescription>
+            Définissez les paramètres de base pour le nouveau client
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="companyName">Nom de l'entreprise *</Label>
+              <Input
+                id="companyName"
+                value={formData.companyName}
+                onChange={(e) => handleInputChange("companyName", e.target.value)}
+                placeholder="Ex: Entreprise ABC"
+              />
             </div>
-          </AlertDescription>
-        </Alert>
+            <div>
+              <Label htmlFor="adminEmail">Email administrateur *</Label>
+              <Input
+                id="adminEmail"
+                type="email"
+                value={formData.adminEmail}
+                onChange={(e) => handleInputChange("adminEmail", e.target.value)}
+                placeholder="admin@entreprise.com"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="customDomain">Domaine personnalisé (optionnel)</Label>
+            <Input
+              id="customDomain"
+              value={formData.customDomain}
+              onChange={(e) => handleInputChange("customDomain", e.target.value)}
+              placeholder="monentreprise.com"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Configuration Netlify */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cloud className="h-5 w-5" />
+            Configuration Netlify
+          </CardTitle>
+          <CardDescription>
+            Paramètres pour le déploiement automatisé
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="repositoryUrl">URL du Repository Git *</Label>
+            <Input
+              id="repositoryUrl"
+              value={formData.repositoryUrl}
+              onChange={(e) => handleInputChange("repositoryUrl", e.target.value)}
+              placeholder="https://github.com/username/repo.git"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Repository GitHub/GitLab contenant le code de l'application
+            </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="siteName">Nom du site Netlify (optionnel)</Label>
+            <Input
+              id="siteName"
+              value={formData.siteName}
+              onChange={(e) => handleInputChange("siteName", e.target.value)}
+              placeholder="mon-site-client"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Si vide, un nom sera généré automatiquement
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="environmentVariables">Variables d'environnement (optionnel)</Label>
+            <Textarea
+              id="environmentVariables"
+              value={formData.environmentVariables}
+              onChange={(e) => handleInputChange("environmentVariables", e.target.value)}
+              placeholder={`VITE_API_URL=https://api.exemple.com\nVITE_APP_NAME=Mon App\n\nOu format JSON:\n{"VITE_API_URL": "https://api.exemple.com"}`}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Format: clé=valeur (une par ligne) ou JSON
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Résultat du déploiement */}
+      {deploymentResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              Déploiement Réussi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {deploymentResult.siteUrl && (
+                <div>
+                  <Label className="text-sm font-medium">URL du site:</Label>
+                  <div className="flex items-center gap-2">
+                    <Input value={deploymentResult.siteUrl} readOnly />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => window.open(deploymentResult.siteUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {deploymentResult.adminUrl && (
+                <div>
+                  <Label className="text-sm font-medium">Admin Netlify:</Label>
+                  <div className="flex items-center gap-2">
+                    <Input value={deploymentResult.adminUrl} readOnly />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => window.open(deploymentResult.adminUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {deploymentResult.siteId && (
+              <div>
+                <Label className="text-sm font-medium">Site ID:</Label>
+                <Input value={deploymentResult.siteId} readOnly />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="create">Nouveau Client</TabsTrigger>
-          <TabsTrigger value="manage">Gestion Clients</TabsTrigger>
-        </TabsList>
+      {/* Actions */}
+      <div className="flex justify-center gap-4">
+        <Button
+          onClick={handleFullDeployment}
+          disabled={!formData.companyName || !formData.adminEmail || !formData.repositoryUrl || isDeploying}
+          size="lg"
+          className="min-w-[200px]"
+        >
+          {isDeploying ? (
+            <>
+              <Database className="mr-2 h-4 w-4 animate-spin" />
+              Déploiement...
+            </>
+          ) : (
+            <>
+              <Rocket className="mr-2 h-4 w-4" />
+              Déployer l'Application
+            </>
+          )}
+        </Button>
+        
+        <Button
+          onClick={resetForm}
+          variant="outline"
+          size="lg"
+        >
+          Réinitialiser
+        </Button>
+      </div>
 
-        <TabsContent value="create" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Créer un Nouveau Client
-              </CardTitle>
-              <CardDescription>
-                Configuration automatisée : création du client + configuration du domaine + déploiement Netlify
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clientName">Nom du Client</Label>
-                  <Input
-                    id="clientName"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Ex: ITakeCare Solutions"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subdomain">Sous-domaine</Label>
-                  <div className="flex">
-                    <Input
-                      id="subdomain"
-                      value={subdomain}
-                      onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                      placeholder="Ex: itakecare"
-                      className="rounded-r-none"
-                    />
-                    <div className="bg-gray-50 border border-l-0 rounded-r-md px-3 py-2 text-sm text-gray-500">
-                      .leazr.co
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <Button 
-                onClick={handleCreateClient}
-                disabled={isCreating || !clientName || !subdomain}
-                className="w-full"
-              >
-                {isCreating ? "Création en cours..." : "Créer et Configurer"}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="manage" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Clients Existants
-              </CardTitle>
-              <CardDescription>
-                Gérez vos clients et leurs configurations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {clients.map((client) => (
-                  <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium">{client.name}</h3>
-                        {getStatusBadge(client.status)}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Globe className="h-4 w-4" />
-                          <span>{client.subdomain}.leazr.co</span>
-                        </div>
-                        {client.domainConfigured && (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="h-4 w-4" />
-                            <span>Domaine configuré</span>
-                          </div>
-                        )}
-                        {client.lastDeployment && (
-                          <div className="flex items-center gap-1">
-                            <Rocket className="h-4 w-4" />
-                            <span>Déployé le {new Date(client.lastDeployment).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!client.domainConfigured && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleConfigureDomain(client.id)}
-                        >
-                          <Settings className="h-4 w-4 mr-1" />
-                          Configurer
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline">
-                        <Globe className="h-4 w-4 mr-1" />
-                        Voir le site
-                      </Button>
-                      {client.netlifyUrl && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => window.open(client.netlifyUrl, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          Netlify
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                
-                {clients.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Aucun client configuré</p>
-                    <p className="text-sm">Créez votre premier client dans l'onglet "Nouveau Client"</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Liens utiles */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ExternalLink className="h-5 w-5" />
+            Liens Utiles
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/functions/deploy-to-netlify/logs', '_blank')}
+            >
+              <ExternalLink className="mr-2 h-3 w-3" />
+              Logs Fonction Edge
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://app.netlify.com/teams', '_blank')}
+            >
+              <ExternalLink className="mr-2 h-3 w-3" />
+              Dashboard Netlify
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

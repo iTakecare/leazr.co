@@ -21,6 +21,8 @@ export const useNetlifyConfig = () => {
   const loadConfig = async () => {
     try {
       setLoading(true);
+      console.log("🔄 Chargement de la configuration Netlify...");
+      
       const { data, error } = await supabase
         .from('company_integrations')
         .select('*')
@@ -32,6 +34,12 @@ export const useNetlifyConfig = () => {
       }
 
       if (data) {
+        console.log("✅ Configuration Netlify trouvée:", {
+          hasApiCredentials: !!data.api_credentials,
+          isEnabled: data.is_enabled,
+          settings: data.settings
+        });
+        
         setConfig({
           api_token: data.api_credentials?.api_token,
           team_slug: data.settings?.team_slug,
@@ -42,6 +50,7 @@ export const useNetlifyConfig = () => {
           is_enabled: data.is_enabled
         });
       } else {
+        console.log("⚠️ Aucune configuration Netlify trouvée, configuration par défaut");
         // No configuration found, set defaults
         setConfig({
           default_build_command: 'npm run build',
@@ -53,7 +62,7 @@ export const useNetlifyConfig = () => {
       }
       setError(null);
     } catch (err: any) {
-      console.error('Error loading Netlify config:', err);
+      console.error('❌ Erreur lors du chargement de la configuration Netlify:', err);
       setError(err.message);
       toast.error("Erreur lors du chargement de la configuration Netlify");
     } finally {
@@ -62,13 +71,22 @@ export const useNetlifyConfig = () => {
   };
 
   const isConfigured = () => {
-    return config?.api_token && config?.is_enabled;
+    const configured = !!(config?.api_token && config?.is_enabled);
+    console.log("🔍 Vérification configuration Netlify:", {
+      hasApiToken: !!config?.api_token,
+      isEnabled: config?.is_enabled,
+      isConfigured: configured
+    });
+    return configured;
   };
 
   const getDeploymentConfig = () => {
     if (!isConfigured()) {
-      throw new Error("Configuration Netlify incomplète. Veuillez configurer Netlify dans les paramètres.");
+      const error = "Configuration Netlify incomplète. Veuillez configurer Netlify dans les paramètres.";
+      console.error("❌", error);
+      throw new Error(error);
     }
+    console.log("✅ Configuration de déploiement récupérée");
     return config;
   };
 
