@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 import SidebarUserSection from "./SidebarUserSection";
+import SidebarMenuItem from "./SidebarMenuItem";
 
 interface SidebarProps {
   className?: string;
@@ -86,20 +87,15 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       {/* Navigation */}
       <nav className="flex-1 p-3 overflow-y-auto">
         <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            
-            return (
-              <SidebarMenuItem
-                key={item.href}
-                item={item}
-                isActive={active}
-                isCollapsed={isCollapsed}
-                Icon={Icon}
-              />
-            );
-          })}
+          {menuItems.map((item) => (
+            <SidebarMenuItem
+              key={item.href}
+              item={item}
+              isActive={isActive}
+              collapsed={isCollapsed}
+              onLinkClick={closeMobile}
+            />
+          ))}
         </ul>
       </nav>
 
@@ -156,52 +152,6 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   );
 });
 
-// Composant pour les éléments de menu mémorisé
-const SidebarMenuItem = memo(({ item, isActive, isCollapsed, Icon }: {
-  item: any;
-  isActive: boolean;
-  isCollapsed: boolean;
-  Icon: any;
-}) => (
-  <li>
-    <a
-      href={item.href}
-      className={cn(
-        "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden",
-        isActive 
-          ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-700 shadow-sm border border-blue-200/50" 
-          : "text-gray-600 hover:bg-gray-50/80 hover:text-gray-900",
-        isCollapsed ? "justify-center px-2" : ""
-      )}
-    >
-      {isActive && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />
-      )}
-      
-      <Icon className={cn(
-        "h-5 w-5 flex-shrink-0 transition-colors duration-200",
-        isActive ? item.color : "text-gray-500 group-hover:text-gray-700"
-      )} />
-      
-      {!isCollapsed && (
-        <>
-          <span className="truncate flex-1">{item.label}</span>
-          {isActive && (
-            <ChevronRight className="h-4 w-4 text-blue-500 opacity-60" />
-          )}
-        </>
-      )}
-      
-      {isCollapsed && (
-        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-          {item.label}
-        </div>
-      )}
-    </a>
-  </li>
-));
-
 Sidebar.displayName = 'Sidebar';
-SidebarMenuItem.displayName = 'SidebarMenuItem';
 
 export default Sidebar;
