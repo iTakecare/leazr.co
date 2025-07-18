@@ -16,9 +16,11 @@ import {
   AlertCircle, 
   Users,
   Settings,
-  Activity
+  Activity,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNetlifyConfig } from "@/hooks/useNetlifyConfig";
 
 interface Client {
   id: string;
@@ -27,6 +29,7 @@ interface Client {
   status: 'active' | 'pending' | 'error';
   domainConfigured: boolean;
   lastDeployment?: string;
+  netlifyUrl?: string;
 }
 
 const UnifiedClientSetup = () => {
@@ -34,6 +37,7 @@ const UnifiedClientSetup = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployProgress, setDeployProgress] = useState(0);
+  const { config: netlifyConfig, isConfigured: isNetlifyConfigured } = useNetlifyConfig();
   
   // Form state
   const [clientName, setClientName] = useState("");
@@ -47,7 +51,8 @@ const UnifiedClientSetup = () => {
       subdomain: "itakecare",
       status: 'active',
       domainConfigured: true,
-      lastDeployment: "2024-01-15T10:30:00Z"
+      lastDeployment: "2024-01-15T10:30:00Z",
+      netlifyUrl: "https://itakecare.netlify.app"
     },
     {
       id: "2", 
@@ -113,12 +118,28 @@ const UnifiedClientSetup = () => {
   };
 
   const handleGlobalDeploy = async () => {
+    if (!isNetlifyConfigured()) {
+      toast.error("Configuration Netlify requise", {
+        description: "Veuillez configurer Netlify dans les paramètres avant de déployer.",
+        action: {
+          label: "Configurer",
+          onClick: () => window.open('/admin/leazr-saas-settings', '_blank')
+        }
+      });
+      return;
+    }
+
     setIsDeploying(true);
     setDeployProgress(0);
 
     try {
-      // Simulate deployment progress
+      // Simulate deployment progress using Netlify config
       const intervals = [20, 40, 60, 80, 100];
+      
+      toast.info("Déploiement en cours...", {
+        description: `Utilisation de la configuration Netlify: ${netlifyConfig?.team_slug || 'compte personnel'}`,
+      });
+
       for (let i = 0; i < intervals.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 800));
         setDeployProgress(intervals[i]);
@@ -128,10 +149,13 @@ const UnifiedClientSetup = () => {
       const now = new Date().toISOString();
       setClients(prev => prev.map(client => ({
         ...client,
-        lastDeployment: now
+        lastDeployment: now,
+        netlifyUrl: client.netlifyUrl || `https://${client.subdomain}.netlify.app`
       })));
       
-      toast.success("Application déployée pour tous les clients");
+      toast.success("Application déployée pour tous les clients", {
+        description: `Build: ${netlifyConfig?.default_build_command}, Output: ${netlifyConfig?.default_publish_directory}`,
+      });
     } catch (error) {
       toast.error("Erreur lors du déploiement");
     } finally {
@@ -151,24 +175,60 @@ const UnifiedClientSetup = () => {
     }
   };
 
+  const getNetlifyStatusBadge = () => {
+    if (isNetlifyConfigured()) {
+      return (
+        <Badge className="bg-green-100 text-green-800">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Netlify configuré
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-orange-100 text-orange-800">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        Configuration requise
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Global Actions */}
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">Actions Globales</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold text-gray-900">Actions Globales</h3>
+            {getNetlifyStatusBadge()}
+          </div>
           <p className="text-sm text-gray-600">
             Déployez l'application mise à jour pour tous vos clients
           </p>
+          {isNetlifyConfigured() && (
+            <p className="text-xs text-gray-500 mt-1">
+              Build: {netlifyConfig?.default_build_command} | Output: {netlifyConfig?.default_publish_directory}
+            </p>
+          )}
         </div>
-        <Button 
-          onClick={handleGlobalDeploy}
-          disabled={isDeploying}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-        >
-          <Rocket className="h-4 w-4 mr-2" />
-          {isDeploying ? "Déploiement..." : "Déployer l'Application"}
-        </Button>
+        <div className="flex gap-2">
+          {!isNetlifyConfigured() && (
+            <Button 
+              variant="outline"
+              onClick={() => window.open('/admin/leazr-saas-settings', '_blank')}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Configurer Netlify
+            </Button>
+          )}
+          <Button 
+            onClick={handleGlobalDeploy}
+            disabled={isDeploying || !isNetlifyConfigured()}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          >
+            <Rocket className="h-4 w-4 mr-2" />
+            {isDeploying ? "Déploiement..." : "Déployer l'Application"}
+          </Button>
+        </div>
       </div>
 
       {/* Deployment Progress */}
@@ -177,7 +237,7 @@ const UnifiedClientSetup = () => {
           <Activity className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-2">
-              <p>Déploiement en cours...</p>
+              <p>Déploiement en cours via Netlify...</p>
               <Progress value={deployProgress} className="w-full" />
               <p className="text-xs text-gray-500">{deployProgress}% terminé</p>
             </div>
@@ -199,7 +259,7 @@ const UnifiedClientSetup = () => {
                 Créer un Nouveau Client
               </CardTitle>
               <CardDescription>
-                Configuration automatisée : création du client + configuration du domaine
+                Configuration automatisée : création du client + configuration du domaine + déploiement Netlify
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -295,6 +355,16 @@ const UnifiedClientSetup = () => {
                         <Globe className="h-4 w-4 mr-1" />
                         Voir le site
                       </Button>
+                      {client.netlifyUrl && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => window.open(client.netlifyUrl, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Netlify
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
