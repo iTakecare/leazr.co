@@ -1,9 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { 
   BarChart3, 
   Users, 
@@ -30,16 +30,15 @@ interface SidebarProps {
   className?: string;
 }
 
-const Sidebar = ({ className }: SidebarProps) => {
+const Sidebar = memo(({ className }: SidebarProps) => {
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  if (!user || !companyId) return null;
-
-  const menuItems = [
+  // Mémoriser les éléments de menu pour éviter les re-renders
+  const menuItems = useMemo(() => [
     { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "text-blue-600" },
     { icon: UserCheck, label: "CRM", href: "/admin/clients", color: "text-orange-600" },
     { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "text-red-600" },
@@ -48,11 +47,19 @@ const Sidebar = ({ className }: SidebarProps) => {
     { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "text-emerald-600" },
     { icon: Mail, label: "Chat Admin", href: "/admin/chat", color: "text-violet-600" },
     { icon: Settings, label: "Paramètres", href: "/admin/settings", color: "text-gray-600" },
-  ];
+  ], []);
 
-  const isActive = (href: string) => location.pathname === href;
+  // Mémoriser la fonction isActive
+  const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
 
-  const SidebarContent = () => (
+  // Mémoriser les handlers
+  const toggleCollapsed = useCallback(() => setIsCollapsed(prev => !prev), []);
+  const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), []);
+  const closeMobile = useCallback(() => setIsMobileOpen(false), []);
+
+  if (!user || !companyId) return null;
+
+  const SidebarContent = memo(() => (
     <div className="flex flex-col h-full bg-white/80 backdrop-blur-xl border-r border-gray-200/50 shadow-xl">
       {/* Header avec logo */}
       <div className={cn(
@@ -84,42 +91,13 @@ const Sidebar = ({ className }: SidebarProps) => {
             const active = isActive(item.href);
             
             return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden",
-                    active 
-                      ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-700 shadow-sm border border-blue-200/50" 
-                      : "text-gray-600 hover:bg-gray-50/80 hover:text-gray-900",
-                    isCollapsed ? "justify-center px-2" : ""
-                  )}
-                >
-                  {active && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />
-                  )}
-                  
-                  <Icon className={cn(
-                    "h-5 w-5 flex-shrink-0 transition-colors duration-200",
-                    active ? item.color : "text-gray-500 group-hover:text-gray-700"
-                  )} />
-                  
-                  {!isCollapsed && (
-                    <>
-                      <span className="truncate flex-1">{item.label}</span>
-                      {active && (
-                        <ChevronRight className="h-4 w-4 text-blue-500 opacity-60" />
-                      )}
-                    </>
-                  )}
-                  
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                      {item.label}
-                    </div>
-                  )}
-                </Link>
-              </li>
+              <SidebarMenuItem
+                key={item.href}
+                item={item}
+                isActive={active}
+                isCollapsed={isCollapsed}
+                Icon={Icon}
+              />
             );
           })}
         </ul>
@@ -130,13 +108,13 @@ const Sidebar = ({ className }: SidebarProps) => {
         <SidebarUserSection />
       </div>
     </div>
-  );
+  ));
 
   return (
     <>
       {/* Mobile Toggle Button */}
       <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        onClick={toggleMobile}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50"
       >
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -150,7 +128,7 @@ const Sidebar = ({ className }: SidebarProps) => {
       )}>
         {/* Collapse Toggle */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleCollapsed}
           className="absolute -right-3 top-8 z-10 p-1.5 bg-white border border-gray-200 rounded-full shadow-md hover:shadow-lg transition-all duration-200"
         >
           <ChevronRight className={cn(
@@ -167,7 +145,7 @@ const Sidebar = ({ className }: SidebarProps) => {
         <div className="lg:hidden fixed inset-0 z-40">
           <div 
             className="absolute inset-0 bg-black/20 backdrop-blur-sm"
-            onClick={() => setIsMobileOpen(false)}
+            onClick={closeMobile}
           />
           <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
             <SidebarContent />
@@ -176,6 +154,54 @@ const Sidebar = ({ className }: SidebarProps) => {
       )}
     </>
   );
-};
+});
+
+// Composant pour les éléments de menu mémorisé
+const SidebarMenuItem = memo(({ item, isActive, isCollapsed, Icon }: {
+  item: any;
+  isActive: boolean;
+  isCollapsed: boolean;
+  Icon: any;
+}) => (
+  <li>
+    <a
+      href={item.href}
+      className={cn(
+        "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden",
+        isActive 
+          ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-700 shadow-sm border border-blue-200/50" 
+          : "text-gray-600 hover:bg-gray-50/80 hover:text-gray-900",
+        isCollapsed ? "justify-center px-2" : ""
+      )}
+    >
+      {isActive && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />
+      )}
+      
+      <Icon className={cn(
+        "h-5 w-5 flex-shrink-0 transition-colors duration-200",
+        isActive ? item.color : "text-gray-500 group-hover:text-gray-700"
+      )} />
+      
+      {!isCollapsed && (
+        <>
+          <span className="truncate flex-1">{item.label}</span>
+          {isActive && (
+            <ChevronRight className="h-4 w-4 text-blue-500 opacity-60" />
+          )}
+        </>
+      )}
+      
+      {isCollapsed && (
+        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+          {item.label}
+        </div>
+      )}
+    </a>
+  </li>
+));
+
+Sidebar.displayName = 'Sidebar';
+SidebarMenuItem.displayName = 'SidebarMenuItem';
 
 export default Sidebar;

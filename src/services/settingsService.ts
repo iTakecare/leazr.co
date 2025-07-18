@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invalidateSettingsCache } from '@/hooks/useSiteSettings';
 
 export interface SiteSettings {
   id?: string;
@@ -93,6 +94,9 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promi
       toast.error("Erreur lors de la mise à jour des paramètres");
       return false;
     }
+    
+    // Invalider le cache après une mise à jour réussie
+    invalidateSettingsCache();
     
     toast.success("Paramètres mis à jour avec succès");
     return true;
