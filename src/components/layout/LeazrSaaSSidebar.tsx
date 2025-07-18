@@ -7,9 +7,10 @@ import SidebarUserSection from "./SidebarUserSection";
 import { useLocation } from "react-router-dom";
 import {
   BarChart3,
-  Users,
+  Zap,
   Settings,
   LifeBuoy,
+  Globe,
 } from "lucide-react";
 
 interface LeazrSaaSSidebarProps {
@@ -27,7 +28,8 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
 
   const menuItems = [
     { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard" },
-    { icon: Users, label: "Gestion Clients", href: "/admin/leazr-saas-clients" },
+    { icon: Zap, label: "Gestion Applications", href: "/admin/leazr-saas-clients" },
+    { icon: Globe, label: "Gestion Domaines", href: "/admin/leazr-saas-domains" },
     { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings" },
     { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
   ];

@@ -14,7 +14,7 @@ import {
   Package
 } from "lucide-react";
 import SaaSPlansManager from "./SaaSPlansManager";
-import NetlifyConfigurationTab from "../admin/NetlifyConfigurationTab";
+import NetlifyDeploymentTab from "./NetlifyDeploymentTab";
 
 const SaaSSettingsManager = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -80,7 +80,7 @@ const SaaSSettingsManager = () => {
         </TabsContent>
 
         <TabsContent value="netlify" className="space-y-6">
-          <NetlifyConfigurationTab />
+          <NetlifyDeploymentTab />
         </TabsContent>
 
         <TabsContent value="plans" className="space-y-6">
