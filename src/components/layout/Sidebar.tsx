@@ -41,18 +41,10 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const menuItems = [
     { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "text-blue-600" },
-    { icon: Building2, label: "Entreprise", href: "/admin/company", color: "text-purple-600" },
-    { icon: Users, label: "Employés", href: "/admin/employees", color: "text-green-600" },
     { icon: UserCheck, label: "Clients", href: "/admin/clients", color: "text-orange-600" },
     { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "text-red-600" },
-    { icon: ClipboardList, label: "Devis", href: "/admin/quotes", color: "text-indigo-600" },
-    { icon: Calculator, label: "Factures", href: "/admin/invoices", color: "text-pink-600" },
-    { icon: Calendar, label: "Calendrier", href: "/admin/calendar", color: "text-cyan-600" },
-    { icon: Package, label: "Produits", href: "/admin/products", color: "text-emerald-600" },
-    { icon: TrendingUp, label: "Rapports", href: "/admin/reports", color: "text-amber-600" },
-    { icon: CreditCard, label: "Paiements", href: "/admin/payments", color: "text-teal-600" },
-    { icon: Mail, label: "Communications", href: "/admin/communications", color: "text-violet-600" },
-    { icon: HelpCircle, label: "Support", href: "/admin/support", color: "text-rose-600" },
+    { icon: ClipboardList, label: "Devis", href: "/admin/offers", color: "text-indigo-600" },
+    { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "text-emerald-600" },
     { icon: Settings, label: "Paramètres", href: "/admin/settings", color: "text-gray-600" },
   ];
 
