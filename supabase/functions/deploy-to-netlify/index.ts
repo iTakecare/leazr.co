@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -38,6 +39,7 @@ serve(async (req) => {
   try {
     // Vérifier la méthode HTTP
     if (req.method !== 'POST') {
+      console.log('[DEPLOY-TO-NETLIFY] Invalid method:', req.method);
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),
         { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -47,11 +49,14 @@ serve(async (req) => {
     // Initialiser Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    console.log('[DEPLOY-TO-NETLIFY] Initializing Supabase client');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Récupérer le token d'autorisation
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.log('[DEPLOY-TO-NETLIFY] No authorization header');
       return new Response(
         JSON.stringify({ error: 'Authorization header required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -59,6 +64,7 @@ serve(async (req) => {
     }
 
     // Vérifier l'utilisateur
+    console.log('[DEPLOY-TO-NETLIFY] Verifying user authentication');
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
@@ -73,6 +79,7 @@ serve(async (req) => {
 
     // Vérifier que l'utilisateur est l'admin SaaS
     if (user.email !== 'ecommerce@itakecare.be') {
+      console.log('[DEPLOY-TO-NETLIFY] Access denied for user:', user.email);
       return new Response(
         JSON.stringify({ error: 'Access denied' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -82,33 +89,57 @@ serve(async (req) => {
     console.log('[DEPLOY-TO-NETLIFY] User authenticated:', user.email);
 
     // Parser la requête
-    const deployRequest: NetlifyDeployRequest = await req.json();
-    console.log('[DEPLOY-TO-NETLIFY] Deploy request:', deployRequest);
+    let deployRequest: NetlifyDeployRequest;
+    try {
+      deployRequest = await req.json();
+      console.log('[DEPLOY-TO-NETLIFY] Deploy request parsed:', {
+        companyId: deployRequest.companyId,
+        repositoryUrl: deployRequest.repositoryUrl,
+        siteName: deployRequest.siteName
+      });
+    } catch (error) {
+      console.error('[DEPLOY-TO-NETLIFY] Error parsing request:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Récupérer le token Netlify depuis les secrets
     const netlifyToken = Deno.env.get('NETLIFY_ACCESS_TOKEN');
     if (!netlifyToken) {
+      console.error('[DEPLOY-TO-NETLIFY] Netlify token not configured');
       return new Response(
         JSON.stringify({ error: 'Netlify access token not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Créer l'enregistrement de déploiement
+    console.log('[DEPLOY-TO-NETLIFY] Creating deployment record');
+
+    // Créer l'enregistrement de déploiement avec created_by au lieu de initiated_by
     const { data: deployment, error: deploymentError } = await supabase
       .from('netlify_deployments')
       .insert({
         company_id: deployRequest.companyId,
         status: 'pending',
-        created_by: user.id
+        created_by: user.id // Utiliser created_by qui existe dans le schéma
       })
       .select()
       .single();
 
     if (deploymentError) {
-      console.error('[DEPLOY-TO-NETLIFY] Error creating deployment record:', deploymentError);
+      console.error('[DEPLOY-TO-NETLIFY] Error creating deployment record:', {
+        error: deploymentError,
+        code: deploymentError.code,
+        message: deploymentError.message,
+        details: deploymentError.details
+      });
       return new Response(
-        JSON.stringify({ error: 'Failed to create deployment record' }),
+        JSON.stringify({ 
+          error: 'Failed to create deployment record',
+          details: deploymentError.message 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -117,6 +148,7 @@ serve(async (req) => {
 
     try {
       // Vérifier si un site existe déjà pour cette entreprise
+      console.log('[DEPLOY-TO-NETLIFY] Checking existing configuration');
       const { data: existingConfig } = await supabase
         .from('netlify_configurations')
         .select('*')
@@ -191,7 +223,7 @@ serve(async (req) => {
       }
 
       // Déclencher un déploiement
-      console.log('[DEPLOY-TO-NETLIFY] Triggering deployment');
+      console.log('[DEPLOY-TO-NETLIFY] Triggering deployment for site:', siteId);
       
       const deployResponse = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
         method: 'POST',
@@ -215,7 +247,7 @@ serve(async (req) => {
       console.log('[DEPLOY-TO-NETLIFY] Deployment triggered:', deployData.id);
 
       // Mettre à jour l'enregistrement de déploiement
-      await supabase
+      const { error: updateError } = await supabase
         .from('netlify_deployments')
         .update({
           site_id: siteId,
@@ -227,6 +259,10 @@ serve(async (req) => {
           commit_ref: deployData.commit_ref,
         })
         .eq('id', deployment.id);
+
+      if (updateError) {
+        console.error('[DEPLOY-TO-NETLIFY] Error updating deployment record:', updateError);
+      }
 
       response = {
         success: true,
@@ -270,7 +306,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: 'Internal server error' 
+        error: 'Internal server error',
+        details: error.message 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
