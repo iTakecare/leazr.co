@@ -1,14 +1,16 @@
+
 import { useEffect } from 'react';
 import { useSubdomainDetection } from '@/hooks/useSubdomainDetection';
 import { toast } from 'sonner';
 import { BrandedPageTitle } from './BrandedPageTitle';
+import { DeploymentStatus } from '../deployment/DeploymentStatus';
 
 /**
  * Composant qui détecte automatiquement l'entreprise basée sur le sous-domaine
  * et applique le thème correspondant
  */
 export const SubdomainDetector = ({ children }: { children: React.ReactNode }) => {
-  const { detection, loading, error, isSubdomainDetected } = useSubdomainDetection();
+  const { detection, loading, error, isSubdomainDetected, isCompanyDetected } = useSubdomainDetection();
 
   useEffect(() => {
     if (error) {
@@ -18,26 +20,34 @@ export const SubdomainDetector = ({ children }: { children: React.ReactNode }) =
   }, [error]);
 
   useEffect(() => {
-    if (isSubdomainDetected && detection.company) {
-      console.log('✅ Entreprise détectée via sous-domaine:', detection.company.name);
+    if (isCompanyDetected && detection.company) {
+      console.log('✅ Entreprise détectée:', {
+        name: detection.company.name,
+        method: detection.detectionMethod
+      });
       
-      // Optionnel: afficher une notification discrète
-      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      // Optionnel: afficher une notification discrète seulement pour les sous-domaines
+      if (isSubdomainDetected && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         toast.success(`Application configurée pour ${detection.company.name}`, {
           duration: 3000,
           position: 'bottom-right'
         });
       }
     }
-  }, [isSubdomainDetected, detection.company]);
+  }, [isCompanyDetected, isSubdomainDetected, detection.company]);
 
   // Pendant le chargement de la détection, afficher les enfants normalement
   if (loading) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <DeploymentStatus />
+      </>
+    );
   }
 
   // Ajouter des propriétés CSS personnalisées pour l'entreprise détectée
-  if (isSubdomainDetected && detection.company) {
+  if (isCompanyDetected && detection.company) {
     return (
       <div
         className="min-h-screen"
@@ -48,6 +58,7 @@ export const SubdomainDetector = ({ children }: { children: React.ReactNode }) =
       >
         <BrandedPageTitle />
         {children}
+        <DeploymentStatus />
       </div>
     );
   }
@@ -56,6 +67,7 @@ export const SubdomainDetector = ({ children }: { children: React.ReactNode }) =
     <>
       <BrandedPageTitle />
       {children}
+      <DeploymentStatus />
     </>
   );
 };

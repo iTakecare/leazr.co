@@ -81,53 +81,69 @@ const MultiTenantRouter = () => {
     <SubdomainProvider>
       <SubdomainDetector>
         <Routes>
-      {/* Page d'accueil - Landing Page */}
-      <Route path="/" element={<LandingPage />} />
-      
-      {/* Route de connexion accessible à tous */}
-      <Route path="/login" element={<Login />} />
-      
-      {/* Route de mot de passe oublié accessible à tous */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      
-      {/* Route de mise à jour du mot de passe accessible à tous */}
-      <Route path="/update-password" element={<UpdatePassword />} />
-      
-      {/* Route de signature d'offre accessible à tous (sans authentification) */}
-      <Route path="/client/sign-offer/:id" element={<SignOffer />} />
-      
-      {/* Pages publiques des sous-menus */}
-      <Route path="/solutions" element={<SolutionsPage />} />
-      <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
-      <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
-      <Route path="/solutions/crm" element={<CRMFeaturePage />} />
-      <Route path="/solutions/calculateur" element={<CalculatorPage />} />
-      <Route path="/services" element={<ServicesPage />} />
-      <Route path="/ressources" element={<ResourcesPage />} />
-      <Route path="/a-propos" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/blog" element={<ResourcesPage />} />
-      <Route path="/tarifs" element={<PricingPage />} />
-      
-      {/* Routes publiques pour les entreprises (sans authentification) */}
-      <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
-      <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
-      <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
-      <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
-      <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
-      
-      {/* Routes de catalogue avec détection automatique d'entreprise */}
-      <Route path="/catalog" element={<PublicCatalogAnonymous />} />
-      
-      {/* Anciennes routes pour compatibilité - redirection */}
-      <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
-      
-      {/* Routage intelligent basé sur le rôle */}
-      <Route path="/*" element={<RoleBasedRoutes />} />
+          {/* Page d'accueil avec détection d'entreprise */}
+          <Route path="/" element={<SmartLandingPage />} />
+          
+          {/* Route de connexion accessible à tous */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* Route de mot de passe oublié accessible à tous */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
+          {/* Route de mise à jour du mot de passe accessible à tous */}
+          <Route path="/update-password" element={<UpdatePassword />} />
+          
+          {/* Route de signature d'offre accessible à tous (sans authentification) */}
+          <Route path="/client/sign-offer/:id" element={<SignOffer />} />
+          
+          {/* Pages publiques avec support de détection d'entreprise */}
+          <Route path="/solutions" element={<SolutionsPage />} />
+          <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
+          <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
+          <Route path="/solutions/crm" element={<CRMFeaturePage />} />
+          <Route path="/solutions/calculateur" element={<CalculatorPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/ressources" element={<ResourcesPage />} />
+          <Route path="/a-propos" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/blog" element={<ResourcesPage />} />
+          <Route path="/tarifs" element={<PricingPage />} />
+          
+          {/* Catalogue avec détection automatique d'entreprise */}
+          <Route path="/catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="/products/:id" element={<ProductDetailPage />} />
+          <Route path="/panier" element={<PublicCartPage />} />
+          <Route path="/demande" element={<PublicRequestPage />} />
+          
+          {/* Routes publiques pour les entreprises (avec ID explicite) */}
+          <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
+          <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
+          <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
+          <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
+          
+          {/* Anciennes routes pour compatibilité - redirection */}
+          <Route path="/catalog/anonymous/:companyId" element={<Navigate to="/public/:companyId/catalog" replace />} />
+          
+          {/* Routage intelligent basé sur le rôle */}
+          <Route path="/*" element={<RoleBasedRoutes />} />
         </Routes>
       </SubdomainDetector>
     </SubdomainProvider>
   );
+};
+
+// Composant intelligent pour la page d'accueil
+const SmartLandingPage = () => {
+  const { detection, isCompanyDetected } = useSubdomain();
+  
+  // Si une entreprise est détectée (sous-domaine ou paramètre), afficher sa landing page
+  if (isCompanyDetected && detection.company) {
+    return <PublicCompanyLanding />;
+  }
+  
+  // Sinon, afficher la landing page générale
+  return <LandingPage />;
 };
 
 const RoleBasedRoutes = () => {

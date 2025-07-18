@@ -1,185 +1,133 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-};
-
-interface DetectCompanyRequest {
-  origin?: string;
-  email?: string;
-  companyId?: string;
-  companyParam?: string;
-  companySlug?: string;
 }
 
-serve(async (req: Request) => {
-  console.log("Detect company - Request received:", req.method);
+interface DetectCompanyRequest {
+  origin: string;
+  companyParam?: string;
+}
 
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    let requestData: DetectCompanyRequest = {};
+    const { origin, companyParam }: DetectCompanyRequest = await req.json()
     
-    if (req.method === 'POST') {
-      requestData = await req.json();
+    console.log('🔍 Detect company request:', { origin, companyParam })
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    let companyId: string | null = null
+    let company: any = null
+    let detectionMethod: 'subdomain' | 'param' | 'default' = 'default'
+
+    // Extract subdomain from origin
+    const url = new URL(origin)
+    const hostname = url.hostname
+    const parts = hostname.split('.')
+    
+    // Check if it's a subdomain (not www or main domain)
+    let subdomain: string | null = null
+    if (parts.length > 2 && parts[0] !== 'www' && hostname !== 'leazr.co') {
+      subdomain = parts[0]
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    console.log('🔍 Extracted subdomain:', subdomain)
 
-    let detectedCompanyId: string | null = null;
-    let companyInfo: any = null;
-
-    // Method 1: Use provided company ID
-    if (requestData.companyId) {
-      detectedCompanyId = requestData.companyId;
-    }
-
-    // Method 2: Detect from URL parameters (company name/slug)
-    if (!detectedCompanyId && (requestData.companyParam || requestData.companySlug)) {
-      const identifier = requestData.companyParam || requestData.companySlug;
-      console.log("Trying to detect company from URL param:", identifier);
-      
-      // Try to find company by subdomain first
-      const { data: domainRecord, error: domainError } = await supabase
+    // 1. Try to detect by subdomain first
+    if (subdomain) {
+      const { data: domainData, error: domainError } = await supabase
         .from('company_domains')
-        .select('company_id, companies(id, name, primary_color, secondary_color, accent_color, logo_url)')
-        .eq('subdomain', identifier)
+        .select(`
+          company_id,
+          companies (
+            id,
+            name,
+            logo_url,
+            primary_color,
+            secondary_color,
+            accent_color
+          )
+        `)
+        .eq('subdomain', subdomain)
         .eq('is_active', true)
-        .single();
+        .single()
 
-      if (!domainError && domainRecord) {
-        detectedCompanyId = domainRecord.company_id;
-        companyInfo = domainRecord.companies;
-        console.log("Company found via subdomain parameter:", companyInfo);
-      } else {
-        // Fallback: try to find by company name
-        const { data: companyRecord, error: companyError } = await supabase
-          .from('companies')
-          .select('id, name, primary_color, secondary_color, accent_color, logo_url')
-          .ilike('name', `%${identifier}%`)
-          .single();
-        
-        if (!companyError && companyRecord) {
-          detectedCompanyId = companyRecord.id;
-          companyInfo = companyRecord;
-          console.log("Company found via name parameter:", companyInfo);
-        }
+      if (!domainError && domainData) {
+        companyId = domainData.company_id
+        company = domainData.companies
+        detectionMethod = 'subdomain'
+        console.log('✅ Company found by subdomain:', company?.name)
       }
     }
 
-    // Method 3: Detect from origin/domain
-    if (!detectedCompanyId) {
-      const origin = requestData.origin || req.headers.get('origin') || req.headers.get('referer') || '';
-      console.log("Origin for company detection:", origin);
-      
-      if (origin) {
-        // Extract subdomain from origin
-        // Ex: https://client1.leazr.co -> client1
-        if (origin.includes('.leazr.co') || origin.includes('.localhost')) {
-          const hostname = new URL(origin).hostname;
-          const subdomain = hostname.split('.')[0];
-          
-          console.log("Extracted subdomain:", subdomain);
-          
-          // Look up company by subdomain
-          const { data: domainRecord, error: domainError } = await supabase
-            .from('company_domains')
-            .select('company_id, companies(id, name, primary_color, secondary_color, accent_color, logo_url)')
-            .eq('subdomain', subdomain)
-            .eq('is_active', true)
-            .single();
-
-          if (!domainError && domainRecord) {
-            detectedCompanyId = domainRecord.company_id;
-            companyInfo = domainRecord.companies;
-            console.log("Company found via subdomain:", companyInfo);
-          }
-        }
-      }
-    }
-
-    // Method 3: Try to detect from email domain (for known corporate domains)
-    if (!detectedCompanyId && requestData.email) {
-      const emailDomain = requestData.email.split('@')[1];
-      console.log("Trying to detect company from email domain:", emailDomain);
-      
-      // For now, we could implement a lookup table of email domains to companies
-      // This is a simple example - in practice you might want a more sophisticated mapping
-      if (emailDomain === 'itakecare.be') {
-        const { data: companyByName } = await supabase
-          .from('companies')
-          .select('id, name, primary_color, secondary_color, accent_color, logo_url')
-          .eq('name', 'iTakecare')
-          .single();
-        
-        if (companyByName) {
-          detectedCompanyId = companyByName.id;
-          companyInfo = companyByName;
-        }
-      }
-    }
-
-    // Method 4: Default fallback - get first active company (for development)
-    if (!detectedCompanyId) {
-      console.log("No company detected, using default");
-      const { data: defaultCompany } = await supabase
+    // 2. If not found by subdomain, try by company parameter
+    if (!companyId && companyParam) {
+      // First try to find by company ID
+      let { data: companyData, error: companyError } = await supabase
         .from('companies')
-        .select('id, name, primary_color, secondary_color, accent_color, logo_url')
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-      
-      if (defaultCompany) {
-        detectedCompanyId = defaultCompany.id;
-        companyInfo = defaultCompany;
-      }
-    }
+        .select('id, name, logo_url, primary_color, secondary_color, accent_color')
+        .eq('id', companyParam)
+        .single()
 
-    // If we have a company ID but no company info, fetch it
-    if (detectedCompanyId && !companyInfo) {
-      const { data: fetchedCompany } = await supabase
-        .from('companies')
-        .select('id, name, primary_color, secondary_color, accent_color, logo_url')
-        .eq('id', detectedCompanyId)
-        .single();
-      
-      companyInfo = fetchedCompany;
+      // If not found by ID, try by name (case insensitive)
+      if (companyError) {
+        const { data: companyByName, error: nameError } = await supabase
+          .from('companies')
+          .select('id, name, logo_url, primary_color, secondary_color, accent_color')
+          .ilike('name', companyParam)
+          .single()
+
+        if (!nameError && companyByName) {
+          companyData = companyByName
+          companyError = null
+        }
+      }
+
+      if (!companyError && companyData) {
+        companyId = companyData.id
+        company = companyData
+        detectionMethod = 'param'
+        console.log('✅ Company found by parameter:', company.name)
+      }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        companyId: detectedCompanyId,
-        company: companyInfo,
-        detectionMethod: detectedCompanyId === requestData.companyId ? 'provided' : 
-                        companyInfo ? 'domain' : 'default'
+        companyId,
+        company,
+        detectionMethod,
+        subdomain
       }),
       {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+      },
+    )
 
   } catch (error) {
-    console.error("Erreur dans detect-company:", error);
+    console.error('❌ Error in detect-company function:', error)
     return new Response(
-      JSON.stringify({ 
-        error: 'Erreur interne du serveur',
-        details: error.message 
+      JSON.stringify({
+        success: false,
+        error: error.message
       }),
       {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+      },
+    )
   }
-});
+})

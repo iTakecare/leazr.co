@@ -1,0 +1,17 @@
+
+# Netlify redirects file for subdomain handling
+# This file handles subdomain routing and fallbacks
+
+# Handle subdomain routing - redirect subdomains to main domain with company parameter
+https://*.leazr.co/* https://leazr.co/public/:splat?company=:subdomain 200!
+
+# Handle API routes and static assets (keep them on original subdomain)
+https://*.leazr.co/api/* https://:subdomain.leazr.co/api/:splat 200
+https://*.leazr.co/_next/* https://:subdomain.leazr.co/_next/:splat 200
+https://*.leazr.co/static/* https://:subdomain.leazr.co/static/:splat 200
+
+# Main domain routes (no redirect needed)
+https://leazr.co/* https://leazr.co/:splat 200
+
+# SPA fallback for client-side routing
+/* /index.html 200
