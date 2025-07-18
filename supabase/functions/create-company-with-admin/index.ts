@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -46,23 +47,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Création sécurisée de l\'entreprise:', { companyName, adminEmail, plan });
 
-    // Vérifier si l'utilisateur existe déjà ET a déjà un profil complet
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUser.users.some(user => user.email === adminEmail);
+    // Vérifier si l'utilisateur existe déjà
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const userExists = existingUsers?.users?.some(user => user.email === adminEmail);
     
     if (userExists) {
-      // Vérifier si l'utilisateur a déjà un profil avec une entreprise
-      const { data: existingProfile } = await supabaseAdmin
-        .from('profiles')
-        .select('company_id')
-        .eq('id', existingUser.users.find(u => u.email === adminEmail)?.id)
-        .single();
-      
-      if (existingProfile && existingProfile.company_id) {
-        throw new Error(`Un utilisateur avec l'email ${adminEmail} existe déjà et a déjà un profil`);
-      }
-      
-      console.log(`Utilisateur ${adminEmail} existe mais sans profil complet - on continue`);
+      console.log(`Utilisateur avec l'email ${adminEmail} existe déjà`);
+      throw new Error(`Un utilisateur avec l'email ${adminEmail} existe déjà`);
     }
 
     // Étape 1: Créer l'utilisateur avec le client admin
@@ -128,46 +119,42 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log('Entreprise et profil créés avec succès:', { companyId, userId: authData.user.id });
 
-    // Vérifier que l'isolation fonctionne - l'utilisateur ne doit voir que sa propre entreprise
-    const { data: isolationCheck, error: isolationError } = await supabaseAdmin
-      .from('company_data_isolation_check')
-      .select('*')
-      .eq('company_id', companyId);
+    // Étape 4: Associer les modules sélectionnés (validation sécurisée)
+    if (selectedModules && selectedModules.length > 0) {
+      try {
+        // Vérifier que les modules existent
+        const { data: modules, error: modulesQueryError } = await supabaseAdmin
+          .from('modules')
+          .select('id, slug')
+          .in('slug', selectedModules);
 
-    if (isolationError) {
-      console.warn('Erreur lors de la vérification de l\'isolation:', isolationError);
-    } else {
-      console.log('Vérification de l\'isolation des données:', isolationCheck);
-    }
+        if (!modulesQueryError && modules && modules.length > 0) {
+          const moduleAssociations = modules.map(module => ({
+            company_id: companyId,
+            module_id: module.id,
+            enabled: true,
+            activated_at: new Date().toISOString()
+          }));
 
-    // Étape 3: Associer les modules sélectionnés
-    if (selectedModules.length > 0) {
-      const { data: modules, error: modulesQueryError } = await supabaseAdmin
-        .from('modules')
-        .select('id, slug')
-        .in('slug', selectedModules);
+          const { error: modulesError } = await supabaseAdmin
+            .from('company_modules')
+            .insert(moduleAssociations);
 
-      if (!modulesQueryError && modules && modules.length > 0) {
-        const moduleAssociations = modules.map(module => ({
-          company_id: companyId,
-          module_id: module.id,
-          enabled: true,
-          activated_at: new Date().toISOString()
-        }));
-
-        const { error: modulesError } = await supabaseAdmin
-          .from('company_modules')
-          .insert(moduleAssociations);
-
-        if (modulesError) {
-          console.warn('Erreur lors de l\'association des modules:', modulesError);
+          if (modulesError) {
+            console.warn('Erreur lors de l\'association des modules:', modulesError);
+          } else {
+            console.log('Modules associés avec succès');
+          }
         } else {
-          console.log('Modules associés avec succès');
+          console.warn('Aucun module valide trouvé pour:', selectedModules);
         }
+      } catch (moduleError) {
+        console.warn('Erreur lors du traitement des modules:', moduleError);
+        // On continue même si l'association des modules échoue
       }
     }
 
-    // Étape 4: Envoyer l'email de bienvenue
+    // Étape 5: Envoyer l'email de bienvenue (optionnel)
     try {
       const { error: emailError } = await supabaseAdmin.functions.invoke('send-trial-welcome-email', {
         body: {
