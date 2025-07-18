@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import Logo from "./Logo";
@@ -59,4 +59,4 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
   );
 };
 
-export default CompanyLogo;
+export default memo(CompanyLogo);
