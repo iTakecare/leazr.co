@@ -21,6 +21,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { PageTransition } from "@/components/ui/page-transition";
+import CloudflareNetlifyService from "@/services/cloudflareNetlifyService";
 
 interface NetlifyDeployment {
   id: string;
@@ -78,17 +79,27 @@ const LeazrSaaSDeployments = () => {
   const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
 
   useEffect(() => {
-    if (!user || !isLeazrSaaSAdmin) {
+    if (!user) {
+      console.log('No user found, redirecting to login');
+      navigate("/login");
+      return;
+    }
+
+    if (!isLeazrSaaSAdmin) {
+      console.log('User is not Leazr SaaS admin:', user.email);
+      toast.error('Accès non autorisé. Vous devez être l\'administrateur SaaS Leazr.');
       navigate("/dashboard");
       return;
     }
 
+    console.log('User authorized, fetching data for:', user.email);
     fetchData();
   }, [user, isLeazrSaaSAdmin, navigate]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching deployment data as user:', user?.email);
 
       // Récupérer les entreprises
       const { data: companiesData, error: companiesError } = await supabase
@@ -96,7 +107,10 @@ const LeazrSaaSDeployments = () => {
         .select('id, name, custom_domain')
         .order('name');
 
-      if (companiesError) throw companiesError;
+      if (companiesError) {
+        console.error('Companies fetch error:', companiesError);
+        throw new Error(`Erreur lors du chargement des entreprises: ${companiesError.message}`);
+      }
 
       // Récupérer les déploiements
       const { data: deploymentsData, error: deploymentsError } = await supabase
@@ -104,7 +118,10 @@ const LeazrSaaSDeployments = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (deploymentsError) throw deploymentsError;
+      if (deploymentsError) {
+        console.error('Deployments fetch error:', deploymentsError);
+        throw new Error(`Erreur lors du chargement des déploiements: ${deploymentsError.message}`);
+      }
 
       // Récupérer les configurations
       const { data: configurationsData, error: configurationsError } = await supabase
@@ -112,15 +129,24 @@ const LeazrSaaSDeployments = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (configurationsError) throw configurationsError;
+      if (configurationsError) {
+        console.error('Configurations fetch error:', configurationsError);
+        throw new Error(`Erreur lors du chargement des configurations: ${configurationsError.message}`);
+      }
+
+      console.log('Data fetched successfully:', {
+        companies: companiesData?.length || 0,
+        deployments: deploymentsData?.length || 0,
+        configurations: configurationsData?.length || 0
+      });
 
       setCompanies(companiesData || []);
       setDeployments(deploymentsData || []);
       setConfigurations(configurationsData || []);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching data:', error);
-      toast.error('Erreur lors du chargement des données');
+      toast.error(error.message || 'Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
@@ -367,6 +393,53 @@ const LeazrSaaSDeployments = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Architecture Cloudflare + Netlify */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Architecture Cloudflare + Netlify
+              </CardTitle>
+              <CardDescription>
+                Cloudflare reste utile pour la gestion DNS, CDN et sécurité
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {CloudflareNetlifyService.getArchitectureRecommendations().workflow.map((step) => (
+                    <div key={step.step} className="text-center p-4 border rounded-lg">
+                      <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                        {step.step}
+                      </div>
+                      <h4 className="font-semibold text-sm mb-1">{step.title}</h4>
+                      <p className="text-xs text-muted-foreground mb-2">{step.description}</p>
+                      <div className="flex flex-wrap gap-1 justify-center">
+                        {step.tools.map((tool) => (
+                          <Badge key={tool} variant="secondary" className="text-xs">
+                            {tool}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">💡 Pourquoi garder Cloudflare ?</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    {CloudflareNetlifyService.getArchitectureRecommendations().benefits.map((benefit, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Liste des déploiements */}
           <Card>
