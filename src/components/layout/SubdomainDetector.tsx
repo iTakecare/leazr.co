@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useSubdomainDetection } from '@/hooks/useSubdomainDetection';
 import { toast } from 'sonner';
+import { BrandedPageTitle } from './BrandedPageTitle';
 
 /**
  * Composant qui détecte automatiquement l'entreprise basée sur le sous-domaine
@@ -45,10 +46,16 @@ export const SubdomainDetector = ({ children }: { children: React.ReactNode }) =
           '--detected-company-name': `"${detection.company.name}"`,
         } as React.CSSProperties}
       >
+        <BrandedPageTitle />
         {children}
       </div>
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <BrandedPageTitle />
+      {children}
+    </>
+  );
 };

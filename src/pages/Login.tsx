@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home } from 'lucide-react';
 import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
+import { useSubdomain } from '@/context/SubdomainContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
+  const { detection, isSubdomainDetected } = useSubdomain();
 
   // Redirection automatique
   useEffect(() => {
@@ -72,7 +74,7 @@ const Login = () => {
         console.error("🔐 LOGIN FORM - Erreur de connexion:", error);
         let errorMessage = 'Erreur de connexion';
         if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Email ou mot de passe incorrect';
+          errorMessage = `Email ou mot de passe incorrect${isSubdomainDetected && detection.company ? ` pour ${detection.company.name}` : ''}`;
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'Veuillez confirmer votre email avant de vous connecter';
         } else if (error.message.includes('Too many requests')) {
@@ -125,12 +127,35 @@ const Login = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center justify-center mb-6">
-            <Logo showText={false} logoSize="lg" className="scale-[3] mb-16" />
+            {isSubdomainDetected && detection.company?.logo_url ? (
+              <div className="mb-16">
+                <img 
+                  src={detection.company.logo_url}
+                  alt={`Logo ${detection.company.name}`}
+                  className="w-32 h-32 object-contain scale-[3]"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden">
+                  <Logo showText={false} logoSize="lg" className="scale-[3]" />
+                </div>
+              </div>
+            ) : (
+              <Logo showText={false} logoSize="lg" className="scale-[3] mb-16" />
+            )}
           </div>
           
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold text-center">Connexion</CardTitle>
+              <CardTitle className="text-xl font-semibold text-center">
+                {isSubdomainDetected && detection.company ? 
+                  `Connexion à ${detection.company.name}` : 
+                  'Connexion'
+                }
+              </CardTitle>
             </CardHeader>
             
             <form onSubmit={handleLogin}>
@@ -242,9 +267,14 @@ const Login = () => {
         ></div>
         
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          <h3 className="text-2xl font-bold text-white mb-2">Leazr.co</h3>
+          <h3 className="text-2xl font-bold text-white mb-2">
+            {isSubdomainDetected && detection.company ? detection.company.name : 'Leazr.co'}
+          </h3>
           <p className="text-white/90">
-            Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
+            {isSubdomainDetected && detection.company ? 
+              `Plateforme sécurisée ${detection.company.name} pour gérer vos offres, contrats et équipements.` :
+              'Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n\'importe où, à tout moment.'
+            }
           </p>
         </div>
       </div>
