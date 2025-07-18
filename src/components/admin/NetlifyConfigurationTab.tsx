@@ -73,9 +73,21 @@ const NetlifyConfigurationTab = () => {
   const saveNetlifyConfig = async () => {
     setIsLoading(true);
     try {
+      // Get current user's company ID
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.company_id) {
+        throw new Error('Company ID not found');
+      }
+
       const { error } = await supabase
         .from('company_integrations')
         .upsert({
+          company_id: profile.company_id,
           integration_type: 'netlify',
           api_credentials: {
             api_token: config.api_token
