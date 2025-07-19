@@ -72,7 +72,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "px-2" : "px-4"
       )}>
         <div className={cn(
-          "flex flex-col gap-0.5",
+          "flex flex-col gap-0",
           isCollapsed ? "items-center" : "items-start"
         )}>
           <CompanyLogo 
