@@ -3,6 +3,7 @@ import React, { useState, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLocation } from "react-router-dom";
 import { 
   BarChart3, 
@@ -34,6 +35,7 @@ interface SidebarProps {
 const Sidebar = memo(({ className }: SidebarProps) => {
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -58,6 +60,9 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), []);
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
 
+  // Mémoriser le nom de l'entreprise
+  const companyName = useMemo(() => settings?.company_name || "Leazr", [settings?.company_name]);
+
   if (!user || !companyId) return null;
 
   const SidebarContent = memo(() => (
@@ -77,8 +82,12 @@ const Sidebar = memo(({ className }: SidebarProps) => {
           />
           {!isCollapsed && (
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-bold text-gray-900 truncate">Leazr</h1>
-              <p className="text-xs text-gray-500 truncate">Administration</p>
+              {!settingsLoading && (
+                <>
+                  <h1 className="text-lg font-bold text-gray-900 truncate">{companyName}</h1>
+                  <p className="text-xs text-gray-500 truncate">Administration</p>
+                </>
+              )}
             </div>
           )}
         </div>
