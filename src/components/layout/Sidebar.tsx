@@ -1,4 +1,3 @@
-
 import React, { useState, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -73,7 +72,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "px-2" : "px-4"
       )}>
         <div className={cn(
-          "flex flex-col gap-2",
+          "flex flex-col gap-1",
           isCollapsed ? "items-center" : "items-start"
         )}>
           <CompanyLogo 
