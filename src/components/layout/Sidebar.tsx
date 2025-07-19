@@ -1,3 +1,4 @@
+
 import React, { useState, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -71,18 +72,22 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         "p-4 border-b border-gray-200/50 bg-gradient-to-r from-blue-50/50 to-purple-50/50",
         isCollapsed ? "px-2" : "px-4"
       )}>
-        <div className={cn(
-          "flex flex-col gap-0",
-          isCollapsed ? "items-center" : "items-start"
-        )}>
+        <div className="flex items-center gap-3">
           <CompanyLogo 
-            logoSize={isCollapsed ? "sm" : "md"}
-            className={isCollapsed ? "mx-auto" : ""}
+            logoSize="sm"
+            className={cn(
+              "transition-all duration-300",
+              isCollapsed ? "mx-auto" : ""
+            )}
           />
-          {!isCollapsed && !settingsLoading && (
-            <div className="text-left">
-              <h1 className="text-lg font-bold text-gray-900">{companyName}</h1>
-              <p className="text-xs text-gray-500">Administration</p>
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              {!settingsLoading && (
+                <>
+                  <h1 className="text-lg font-bold text-gray-900 truncate">{companyName}</h1>
+                  <p className="text-xs text-gray-500 truncate">Administration</p>
+                </>
+              )}
             </div>
           )}
         </div>
