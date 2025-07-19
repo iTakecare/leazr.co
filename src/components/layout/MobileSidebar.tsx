@@ -12,6 +12,7 @@ interface MenuItem {
   label: string;
   icon: React.ElementType;
   href: string;
+  color: string;
 }
 
 interface MobileSidebarProps {

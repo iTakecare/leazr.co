@@ -26,13 +26,13 @@ const LeazrAdminSidebar = ({ className }: LeazrAdminSidebarProps) => {
   if (!user) return null;
 
   const menuItems = [
-    { icon: BarChart3, label: "Dashboard", href: "/admin/leazr-saas-dashboard" },
-    { icon: Users, label: "Clients", href: "/admin/leazr-saas-clients" },
-    { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions" },
-    { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans" },
-    { icon: Globe, label: "Gestion domaines", href: "/admin/cloudflare-domains" },
-    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
-    { icon: Settings, label: "Paramètres", href: "/admin/leazr-saas-settings" },
+    { icon: BarChart3, label: "Dashboard", href: "/admin/leazr-saas-dashboard", color: "blue" },
+    { icon: Users, label: "Clients", href: "/admin/leazr-saas-clients", color: "emerald" },
+    { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions", color: "orange" },
+    { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans", color: "violet" },
+    { icon: Globe, label: "Gestion domaines", href: "/admin/cloudflare-domains", color: "indigo" },
+    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support", color: "pink" },
+    { icon: Settings, label: "Paramètres", href: "/admin/leazr-saas-settings", color: "gray" },
   ];
 
   const isActive = (href: string) => {

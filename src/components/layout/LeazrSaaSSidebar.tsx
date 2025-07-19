@@ -27,11 +27,11 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
   if (!user || !isLeazrSaaSAdmin) return null;
 
   const menuItems = [
-    { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard" },
-    { icon: Zap, label: "Gestion Applications", href: "/admin/leazr-saas-clients" },
-    { icon: Globe, label: "Gestion Domaines", href: "/admin/leazr-saas-domains" },
-    { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings" },
-    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support" },
+    { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard", color: "blue" },
+    { icon: Zap, label: "Gestion Applications", href: "/admin/leazr-saas-clients", color: "orange" },
+    { icon: Globe, label: "Gestion Domaines", href: "/admin/leazr-saas-domains", color: "indigo" },
+    { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings", color: "gray" },
+    { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support", color: "pink" },
   ];
 
   const isActive = (href: string) => {
