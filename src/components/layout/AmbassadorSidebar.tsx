@@ -1,114 +1,89 @@
 
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/context/AuthContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
+import SidebarMenuItem from "./SidebarMenuItem";
+import SidebarUserSection from "./SidebarUserSection";
 import {
   BarChart,
   Users,
   Calculator,
   Package,
-  LogOut,
   FileText,
   Zap,
 } from "lucide-react";
-import { toast } from "sonner";
 
 const AmbassadorSidebar = () => {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success("Déconnexion réussie");
-    } catch (error) {
-      toast.error("Erreur lors de la déconnexion");
-      console.error("Erreur de déconnexion:", error);
-    }
-  };
+  if (!user) return null;
 
-  const ambassadorRoutes = [
+  const menuItems = [
     {
-      title: "Tableau de bord",
+      label: "Tableau de bord",
       icon: BarChart,
-      href: `/ambassador/dashboard`,
-      active: pathname === "/ambassador/dashboard",
+      href: "/ambassador/dashboard",
+      color: "blue",
     },
     {
-      title: "Mes Clients",
+      label: "Mes Clients", 
       icon: Users,
-      href: `/ambassador/clients`,
-      active: pathname === "/ambassador/clients" || pathname.startsWith("/ambassador/clients/"),
+      href: "/ambassador/clients",
+      color: "emerald",
     },
     {
-      title: "Calculateur",
+      label: "Calculateur",
       icon: Calculator,
-      href: `/ambassador/create-offer`,
-      active: pathname === "/ambassador/create-offer",
+      href: "/ambassador/create-offer",
+      color: "orange",
     },
     {
-      title: "Générateur d'offres",
+      label: "Générateur d'offres",
       icon: Zap,
-      href: `/ambassador/custom-offer-generator`,
-      active: pathname === "/ambassador/custom-offer-generator",
+      href: "/ambassador/custom-offer-generator", 
+      color: "violet",
     },
     {
-      title: "Offres",
+      label: "Offres",
       icon: FileText,
-      href: `/ambassador/offers`,
-      active: pathname === "/ambassador/offers" || pathname.startsWith("/ambassador/offers/"),
+      href: "/ambassador/offers",
+      color: "indigo",
     },
     {
-      title: "Catalogue",
+      label: "Catalogue",
       icon: Package,
-      href: `/ambassador/catalog`,
-      active: pathname === "/ambassador/catalog" || pathname.startsWith("/ambassador/catalog/"),
+      href: "/ambassador/catalog",
+      color: "pink",
     },
   ];
 
+  const isActive = (href: string) => {
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
   return (
-    <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r bg-background md:flex">
-      <div className="flex h-16 items-center justify-center border-b px-6">
-        <Link to="/ambassador/dashboard" className="flex items-center justify-center">
-          <CompanyLogo showText={false} logoSize="sm" />
-        </Link>
+    <div className="fixed inset-y-0 left-0 z-20 hidden h-full w-64 flex-col border-r border-gray-100 bg-white md:flex">
+      <div className="flex h-16 items-center justify-center border-b border-gray-100 px-6 bg-gradient-to-r from-gray-50 to-white">
+        <CompanyLogo showText={false} logoSize="sm" />
       </div>
-      <ScrollArea className="flex-1 px-4 py-4">
-        <nav className="grid gap-2">
-          {ambassadorRoutes.map((route, i) => (
-            <Button
-              key={i}
-              variant={route.active ? "default" : "ghost"}
-              className={cn(
-                "justify-start gap-2",
-                route.active && "bg-primary text-primary-foreground"
-              )}
-              onClick={() => navigate(route.href)}
-            >
-              <route.icon className="h-4 w-4" />
-              {route.title}
-            </Button>
+      
+      <div className="flex-1 px-4 py-6">
+        <nav className="space-y-2">
+          {menuItems.map((item) => (
+            <SidebarMenuItem
+              key={item.href}
+              item={item}
+              isActive={isActive}
+              collapsed={false}
+            />
           ))}
         </nav>
-      </ScrollArea>
-      <div className="flex flex-col gap-2 border-t p-4">
-        <div className="px-2 py-1 text-xs text-muted-foreground">
-          {user?.email}
-        </div>
-        <Button
-          variant="outline"
-          className="justify-start gap-2"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4" />
-          Déconnexion
-        </Button>
       </div>
+      
+      <SidebarUserSection />
     </div>
   );
 };

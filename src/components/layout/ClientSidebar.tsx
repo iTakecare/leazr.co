@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
   Laptop,
   Clock,
   Package,
-  LogOut,
   Menu,
   ChevronLeft,
   ChevronRight,
@@ -17,19 +16,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
-import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import Logo from "./Logo";
+import SidebarMenuItem from "./SidebarMenuItem";
+import SidebarUserSection from "./SidebarUserSection";
 
 interface SidebarProps {
   className?: string;
@@ -40,6 +32,7 @@ interface MenuItem {
   label: string;
   icon: React.ElementType;
   href: string;
+  color: string;
   badge?: string;
   isNew?: boolean;
   moduleSlug?: string;
@@ -58,13 +51,13 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   // Tous les éléments de menu possibles avec leurs modules associés
   const allSidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard" },
-    { label: "Équipements", icon: Laptop, href: "/client/equipment" },
-    { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts" },
-    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm" },
-    { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog" },
-    { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support" },
-    { label: "Paramètres", icon: Settings, href: "/client/settings" },
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard", color: "blue" },
+    { label: "Équipements", icon: Laptop, href: "/client/equipment", color: "slate" },
+    { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts", color: "emerald" },
+    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm", color: "orange" },
+    { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog", color: "violet" },
+    { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support", color: "pink" },
+    { label: "Paramètres", icon: Settings, href: "/client/settings", color: "gray" },
   ];
 
   useEffect(() => {
@@ -168,16 +161,6 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
     return enabledModules.includes(item.moduleSlug);
   });
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-      toast.success("Déconnexion réussie");
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -232,71 +215,23 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
               </div>
               
               <nav className="flex-1 px-2 py-4">
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {sidebarItems.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        to={item.href}
-                        onClick={() => {
-                          onLinkClick?.();
-                          setMobileOpen(false);
-                        }}
-                        className={cn(
-                          "flex items-center py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-300",
-                          isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]"
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={isActive(item.href) ? "page" : undefined}
-                      >
-                        <item.icon className={cn("mr-3 h-5 w-5", isActive(item.href) && "stroke-[2.5px]")} />
-                        <span className="flex-1">{item.label}</span>
-                        {item.badge && (
-                          <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
-                            {item.badge}
-                          </Badge>
-                        )}
-                        {item.isNew && !item.badge && (
-                          <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
-                            New
-                          </Badge>
-                        )}
-                      </Link>
-                    </li>
+                    <SidebarMenuItem
+                      key={item.href}
+                      item={item}
+                      isActive={isActive}
+                      collapsed={false}
+                      onLinkClick={() => {
+                        onLinkClick?.();
+                        setMobileOpen(false);
+                      }}
+                    />
                   ))}
                 </ul>
               </nav>
               
-              {user && (
-                <div className="p-4 border-t mt-auto">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Avatar>
-                      <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                      <AvatarFallback className="bg-primary/20 text-primary">
-                        {user.email?.substring(0, 2).toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="overflow-hidden">
-                      <p className="text-sm font-medium truncate">
-                        {user.first_name && user.last_name 
-                          ? `${user.first_name} ${user.last_name}` 
-                          : user.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Client</p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Déconnexion
-                  </Button>
-                </div>
-              )}
+              <SidebarUserSection />
             </div>
           </SheetContent>
         </Sheet>
@@ -332,120 +267,22 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
         </div>
         
         <nav className="flex-1 px-2 py-4">
-          <TooltipProvider delayDuration={200}>
-            <ul className="space-y-1">
-              {sidebarItems.map((item) => (
-                <li key={item.href}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => handleNavigation(item.href)}
-                        className={cn(
-                          "w-full flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                          collapsed ? "justify-center px-2" : "px-3",
-                          isActive(item.href)
-                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-y-[-2px]" 
-                            : "hover:bg-primary/10 hover:text-primary hover:translate-y-[-2px]"
-                        )}
-                        aria-current={isActive(item.href) ? "page" : undefined}
-                      >
-                        <item.icon 
-                          className={cn(
-                            "h-5 w-5 flex-shrink-0", 
-                            collapsed ? "relative" : "mr-3",
-                            isActive(item.href) && "stroke-[2.5px]"
-                          )} 
-                        />
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1 text-left">{item.label}</span>
-                            {item.badge && (
-                              <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
-                                {item.badge}
-                              </Badge>
-                            )}
-                            {item.isNew && !item.badge && (
-                              <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
-                                New
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                        {collapsed && item.badge && (
-                          <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
-                        <p>{item.label}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </li>
-              ))}
-            </ul>
-          </TooltipProvider>
+          <ul className="space-y-2">
+            {sidebarItems.map((item) => (
+              <SidebarMenuItem
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                collapsed={collapsed}
+                onLinkClick={() => {
+                  handleNavigation(item.href);
+                }}
+              />
+            ))}
+          </ul>
         </nav>
         
-        {user && (
-          <div className={cn(
-            "transition-all duration-300 mt-auto border-t border-t-primary/10 pt-4",
-            collapsed ? "p-2" : "p-4 mx-2 mb-2"
-          )}>
-            {!collapsed ? (
-              <>
-                <div className="flex items-center gap-3 mb-4">
-                  <Avatar>
-                    <AvatarImage src={avatarUrl || ''} alt="Avatar utilisateur" />
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                      {user.email?.substring(0, 2).toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="overflow-hidden">
-                    <p className="text-sm font-medium truncate">
-                      {user.first_name && user.last_name 
-                        ? `${user.first_name} ${user.last_name}` 
-                        : user.email}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Client</p>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 text-destructive border-destructive/20 hover:bg-destructive/10 hover:shadow"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Déconnexion
-                </Button>
-              </>
-            ) : (
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={handleLogout}
-                      className="w-full h-10 flex justify-center text-destructive/80 hover:bg-destructive/10 hover:text-destructive rounded-xl"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      <span className="sr-only">Déconnexion</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>Déconnexion</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        )}
+        <SidebarUserSection />
         
         {collapsed && (
           <div className="p-2">

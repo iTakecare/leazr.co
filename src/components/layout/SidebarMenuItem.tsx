@@ -2,6 +2,7 @@
 import React, { memo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +16,8 @@ interface SidebarMenuItemProps {
     icon: React.ElementType;
     href: string;
     color: string;
+    badge?: string;
+    isNew?: boolean;
   };
   isActive: (href: string) => boolean;
   collapsed: boolean;
@@ -82,6 +85,18 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
 
   const currentColor = colorClasses[item.color as keyof typeof colorClasses] || colorClasses.gray;
   
+  // Ajouter les couleurs slate si nécessaire
+  const extendedColorClasses = {
+    ...colorClasses,
+    slate: {
+      active: "bg-slate-600 text-white shadow-lg shadow-slate-600/25 border-l-4 border-slate-700",
+      hover: "hover:bg-slate-50 hover:text-slate-700 hover:border-l-4 hover:border-slate-300",
+      icon: active ? "text-white" : "text-slate-600"
+    }
+  };
+  
+  const finalColor = extendedColorClasses[item.color as keyof typeof extendedColorClasses] || extendedColorClasses.gray;
+  
   return (
     <li>
       <TooltipProvider delayDuration={200}>
@@ -94,10 +109,10 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
                 "flex items-center py-3 px-3 rounded-xl text-sm font-semibold transition-all duration-300 group relative",
                 collapsed ? "justify-center" : "",
                 active
-                  ? currentColor.active
+                  ? finalColor.active
                   : cn(
                       "text-gray-700 bg-white/60 hover:bg-white/80 hover:shadow-md hover:scale-[1.02]",
-                      currentColor.hover
+                      finalColor.hover
                     )
               )}
               aria-current={active ? "page" : undefined}
@@ -115,14 +130,31 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
                   "h-5 w-5 flex-shrink-0 transition-all duration-300", 
                   collapsed ? "" : "mr-3",
                   active ? "stroke-[2.5px]" : "stroke-[2px]",
-                  currentColor.icon
+                  finalColor.icon
                 )} 
               />
               
               {!collapsed && (
-                <span className="font-medium tracking-wide">
-                  {item.label}
-                </span>
+                <>
+                  <span className="flex-1 font-medium tracking-wide">
+                    {item.label}
+                  </span>
+                  {item.badge && (
+                    <Badge className="ml-auto bg-primary/20 text-primary hover:bg-primary/30">
+                      {item.badge}
+                    </Badge>
+                  )}
+                  {item.isNew && !item.badge && (
+                    <Badge variant="outline" className="ml-auto text-xs border-primary/30 text-primary">
+                      New
+                    </Badge>
+                  )}
+                </>
+              )}
+              {collapsed && item.badge && (
+                <Badge className="absolute top-0 right-0 transform translate-x-1 -translate-y-1 w-4 h-4 p-0 flex items-center justify-center text-[10px]">
+                  {item.badge}
+                </Badge>
               )}
 
               {/* Effet lumineux pour l'élément actif */}
