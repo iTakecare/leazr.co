@@ -40,16 +40,16 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Mémoriser les éléments de menu pour éviter les re-renders
+  // Mémoriser les éléments de menu avec des couleurs améliorées
   const menuItems = useMemo(() => [
-    { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "text-blue-600" },
-    { icon: UserCheck, label: "CRM", href: "/admin/clients", color: "text-orange-600" },
-    { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "text-red-600" },
-    { icon: ClipboardList, label: "Devis", href: "/admin/offers", color: "text-indigo-600" },
-    { icon: Calculator, label: "Factures", href: "/admin/invoicing", color: "text-pink-600" },
-    { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "text-emerald-600" },
-    { icon: Mail, label: "Chat Admin", href: "/admin/chat", color: "text-violet-600" },
-    { icon: Settings, label: "Paramètres", href: "/admin/settings", color: "text-gray-600" },
+    { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "blue" },
+    { icon: UserCheck, label: "CRM", href: "/admin/clients", color: "orange" },
+    { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "red" },
+    { icon: ClipboardList, label: "Devis", href: "/admin/offers", color: "indigo" },
+    { icon: Calculator, label: "Factures", href: "/admin/invoicing", color: "pink" },
+    { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "emerald" },
+    { icon: Mail, label: "Chat Admin", href: "/admin/chat", color: "violet" },
+    { icon: Settings, label: "Paramètres", href: "/admin/settings", color: "gray" },
   ], []);
 
   // Mémoriser la fonction isActive
@@ -66,10 +66,10 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   if (!user || !companyId) return null;
 
   const SidebarContent = memo(() => (
-    <div className="flex flex-col h-full bg-white/80 backdrop-blur-xl border-r border-gray-200/50 shadow-xl">
-      {/* Header avec logo */}
+    <div className="flex flex-col h-full bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl">
+      {/* Header avec logo - amélioration du contraste */}
       <div className={cn(
-        "p-4 border-b border-gray-200/50 bg-gradient-to-r from-blue-50/50 to-purple-50/50",
+        "p-4 border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
         isCollapsed ? "px-2" : "px-4"
       )}>
         <div className="flex items-center gap-3">
@@ -85,7 +85,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
               {!settingsLoading && (
                 <>
                   <h1 className="text-lg font-bold text-gray-900 truncate">{companyName}</h1>
-                  <p className="text-xs text-gray-500 truncate">Administration</p>
+                  <p className="text-xs text-gray-600 truncate font-medium">Administration</p>
                 </>
               )}
             </div>
@@ -93,9 +93,9 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-3 overflow-y-auto">
-        <ul className="space-y-1">
+      {/* Navigation avec espacement amélioré */}
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <ul className="space-y-2">
           {menuItems.map((item) => (
             <SidebarMenuItem
               key={item.href}
@@ -108,8 +108,8 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         </ul>
       </nav>
 
-      {/* User Section */}
-      <div className="border-t border-gray-200/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50">
+      {/* User Section avec meilleur contraste */}
+      <div className="border-t border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-blue-50/80">
         <SidebarUserSection />
       </div>
     </div>
@@ -117,12 +117,12 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile Toggle Button - amélioration visuelle */}
       <button
         onClick={toggleMobile}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-all duration-200"
       >
-        {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {isMobileOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
       </button>
 
       {/* Desktop Sidebar */}
@@ -131,10 +131,10 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "w-16" : "w-64",
         className
       )}>
-        {/* Collapse Toggle */}
+        {/* Collapse Toggle - amélioration visuelle */}
         <button
           onClick={toggleCollapsed}
-          className="absolute -right-3 top-8 z-10 p-1.5 bg-white border border-gray-200 rounded-full shadow-md hover:shadow-lg transition-all duration-200"
+          className="absolute -right-3 top-8 z-10 p-2 bg-white border border-gray-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all duration-200"
         >
           <ChevronRight className={cn(
             "h-4 w-4 text-gray-600 transition-transform duration-200",
@@ -149,7 +149,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
           <div 
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={closeMobile}
           />
           <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
