@@ -104,7 +104,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => updateProduct(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateProduct(id, data),
     onSuccess: () => {
       console.log("✅ Product updated successfully");
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -125,15 +125,16 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         id: productToEdit.id,
         data: {
           ...data,
-          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
       });
     } else {
       createMutation.mutate({
         ...data,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+        company_id: user?.user_metadata?.company_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any);
     }
   };
 
