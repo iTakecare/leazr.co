@@ -125,7 +125,7 @@ const ProductEditPage = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour
               </Button>
-              <h1 className="text-2xl font-bold">Modifier le produit</h1>
+              <h1 className="text-2xl font-bold">Modifier le produit: {product.name}</h1>
             </div>
 
             <ProductEditor
