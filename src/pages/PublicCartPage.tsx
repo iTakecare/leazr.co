@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from "@tanstack/react-query";
@@ -13,48 +12,25 @@ import { supabase } from "@/integrations/supabase/client";
 import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
 
 const PublicCartPage: React.FC = () => {
-  const { companyId, companySlug } = useParams<{ companyId: string; companySlug: string }>();
+  const { companyId } = useParams<{ companyId: string }>();
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
-  
-  // Determine actual company ID to use
-  const actualCompanyId = companyId;
-  
-  // Get catalog URL based on context
-  const getCatalogUrl = () => {
-    if (companySlug) {
-      return `/${companySlug}/catalog`;
-    } else if (actualCompanyId) {
-      return `/public/${actualCompanyId}/catalog`;
-    }
-    return `/catalog/anonymous/${actualCompanyId}`;
-  };
-  
-  // Get request URL based on context
-  const getRequestUrl = () => {
-    if (companySlug) {
-      return `/${companySlug}/demande`;
-    } else if (actualCompanyId) {
-      return `/public/${actualCompanyId}/demande`;
-    }
-    return `/public/${actualCompanyId}/demande`;
-  };
   
   // Fetch company info with branding
   const { data: company } = useQuery({
-    queryKey: ["company", actualCompanyId],
+    queryKey: ["company", companyId],
     queryFn: async () => {
-      if (!actualCompanyId) return null;
+      if (!companyId) return null;
       const { data, error } = await supabase
         .from("companies")
         .select("*")
-        .eq("id", actualCompanyId)
+        .eq("id", companyId)
         .single();
       if (error) throw error;
       
       // Apply company branding
       if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
         CompanyCustomizationService.applyCompanyBranding({
-          company_id: actualCompanyId,
+          company_id: companyId,
           primary_color: data.primary_color || "#3b82f6",
           secondary_color: data.secondary_color || "#64748b",
           accent_color: data.accent_color || "#8b5cf6",
@@ -64,7 +40,7 @@ const PublicCartPage: React.FC = () => {
       
       return data;
     },
-    enabled: !!actualCompanyId,
+    enabled: !!companyId,
   });
   
   const handleRemoveItem = (productId: string) => {
@@ -116,7 +92,7 @@ const PublicCartPage: React.FC = () => {
                 asChild
                 className="flex items-center gap-2"
               >
-                <Link to={getCatalogUrl()}>
+                <Link to={`/catalog/anonymous/${companyId}`}>
                   <ArrowLeft className="h-4 w-4" />
                   Continuer mes achats
                 </Link>
@@ -139,7 +115,7 @@ const PublicCartPage: React.FC = () => {
               Parcourez notre catalogue pour trouver des équipements à louer.
             </p>
             <Button asChild>
-              <Link to={getCatalogUrl()}>Voir le catalogue</Link>
+              <Link to={`/catalog/anonymous/${companyId}`}>Voir le catalogue</Link>
             </Button>
           </div>
         ) : (
@@ -257,7 +233,7 @@ const PublicCartPage: React.FC = () => {
                   </div>
                   
                   <Button className="w-full mt-6" size="lg" asChild>
-                    <Link to={getRequestUrl()}>
+                    <Link to={`/public/${companyId}/demande`}>
                       Introduire une demande
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
