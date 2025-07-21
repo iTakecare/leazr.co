@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -83,6 +84,20 @@ const MultiTenantRouter = () => {
     <SubdomainProvider>
       <SubdomainDetector>
         <Routes>
+          {/* ROUTES PUBLIQUES AVEC SLUG - PRIORITÉ ABSOLUE */}
+          <Route path="/:companySlug/catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="/:companySlug/products/:id" element={<ProductDetailPage />} />
+          <Route path="/:companySlug/panier" element={<PublicCartPage />} />
+          <Route path="/:companySlug/demande" element={<PublicRequestPage />} />
+          <Route path="/:companySlug" element={<SmartCompanyPage />} />
+          
+          {/* Routes publiques avec ID explicite */}
+          <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
+          <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
+          <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
+          <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
+          
           {/* Page d'accueil avec détection d'entreprise */}
           <Route path="/" element={<SmartLandingPage />} />
           
@@ -98,7 +113,7 @@ const MultiTenantRouter = () => {
           {/* Route de signature d'offre accessible à tous (sans authentification) */}
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           
-          {/* Pages publiques avec support de détection d'entreprise */}
+          {/* Pages publiques générales */}
           <Route path="/solutions" element={<SolutionsPage />} />
           <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
           <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
@@ -111,30 +126,16 @@ const MultiTenantRouter = () => {
           <Route path="/blog" element={<ResourcesPage />} />
           <Route path="/tarifs" element={<PricingPage />} />
           
-          {/* Catalogue avec détection automatique d'entreprise */}
+          {/* Catalogue public général avec détection automatique d'entreprise */}
           <Route path="/catalog" element={<PublicCatalogAnonymous />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/panier" element={<PublicCartPage />} />
           <Route path="/demande" element={<PublicRequestPage />} />
           
-          {/* Nouvelles routes avec slug d'entreprise - PRIORITÉ HAUTE */}
-          <Route path="/:companySlug/catalog" element={<PublicCatalogAnonymous />} />
-          <Route path="/:companySlug/products/:id" element={<ProductDetailPage />} />
-          <Route path="/:companySlug/panier" element={<PublicCartPage />} />
-          <Route path="/:companySlug/demande" element={<PublicRequestPage />} />
-          <Route path="/:companySlug" element={<SmartCompanyPage />} />
-          
-          {/* Routes publiques pour les entreprises (avec ID explicite) */}
-          <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
-          <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
-          <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
-          <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
-          <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
-          
           {/* Anciennes routes pour compatibilité - redirection */}
           <Route path="/catalog/anonymous/:companyId" element={<Navigate to="/public/:companyId/catalog" replace />} />
           
-          {/* Routage intelligent basé sur le rôle */}
+          {/* ROUTES ADMIN ET UTILISATEURS CONNECTÉS */}
           <Route path="/*" element={<RoleBasedRoutes />} />
         </Routes>
       </SubdomainDetector>
@@ -247,7 +248,6 @@ const RoleBasedRoutes = () => {
         <Route path="/admin/settings" element={<Settings />} />
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
-                   <Route path="/catalog" element={<PublicCatalogAnonymous />} />
         <Route path="/admin/catalog" element={<CatalogManagement />} />
         <Route path="/catalog/edit/:id" element={<ProductEditPage />} />
         <Route path="/admin/catalog/edit/:id" element={<ProductEditPage />} />
