@@ -1,9 +1,11 @@
+
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProducts, deleteProduct } from "@/services/catalogService";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
+import { useAuth } from "@/context/AuthContext";
 
 export const useCatalogManagement = () => {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -13,13 +15,15 @@ export const useCatalogManagement = () => {
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user, isLoading: isAuthLoading } = useAuth();
   
-  // Fetch products with forced refresh on mount
+  // Fetch products only when user is authenticated
   const { data: productsData = [], isLoading, error, refetch } = useQuery({
     queryKey: ["products"],
     queryFn: () => getProducts(true), // Pass true to include admin-only products
     staleTime: 0, // Force refresh
     gcTime: 0, // Don't cache (gcTime replaces cacheTime in React Query v5)
+    enabled: !!user && !isAuthLoading, // Only run when user is authenticated
   });
   
   // Enhanced products processing with better variant detection
@@ -77,7 +81,7 @@ export const useCatalogManagement = () => {
   
   return {
     products,
-    isLoading,
+    isLoading: isLoading || isAuthLoading,
     error,
     isAddProductOpen,
     setIsAddProductOpen,

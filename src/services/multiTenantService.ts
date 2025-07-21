@@ -19,13 +19,17 @@ export type CreateDataWithCompany<T> = T & WithCompanyId;
 export const getCurrentUserCompanyId = async (): Promise<string> => {
   console.log("🏢 SERVICE - Début getCurrentUserCompanyId");
   
-  const { data: { user } } = await supabase.auth.getUser();
-  console.log("🏢 SERVICE - Utilisateur récupéré:", user?.id);
+  // Vérifier d'abord la session
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log("🏢 SERVICE - Session vérifiée:", !!session);
   
-  if (!user) {
-    console.error("🏢 SERVICE - Utilisateur non authentifié");
-    throw new Error("Utilisateur non authentifié");
+  if (!session?.user) {
+    console.error("🏢 SERVICE - Aucune session active");
+    throw new Error("Aucune session active. Veuillez vous connecter.");
   }
+
+  const user = session.user;
+  console.log("🏢 SERVICE - Utilisateur de la session:", user.id);
 
   // Utiliser la nouvelle fonction sécurisée qui évite les récursions
   console.log("🏢 SERVICE - Appel de get_current_user_profile RPC");

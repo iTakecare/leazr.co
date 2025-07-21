@@ -41,9 +41,18 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   });
 
   if (error) {
+    console.error("CatalogContent error:", error);
     return (
-      <div className="text-center p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
-        Une erreur s'est produite lors du chargement des produits. Veuillez réessayer.
+      <div className="text-center p-8 bg-red-50 text-red-600 rounded-md border border-red-200">
+        <h3 className="font-medium mb-2">Erreur de chargement</h3>
+        <p className="text-sm">
+          {error?.message?.includes("non authentifié") 
+            ? "Vous devez être connecté pour accéder au catalogue." 
+            : "Une erreur s'est produite lors du chargement des produits."}
+        </p>
+        <p className="text-xs mt-2 text-red-500">
+          Veuillez actualiser la page ou vous reconnecter.
+        </p>
       </div>
     );
   }
@@ -51,6 +60,9 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   if (isLoading) {
     return (
       <div className="space-y-4">
+        <div className="text-center p-4 text-muted-foreground">
+          <div className="animate-pulse">Chargement du catalogue...</div>
+        </div>
         {[...Array(5)].map((_, i) => (
           <div key={i} className="h-20 rounded-md bg-muted animate-pulse" />
         ))}
