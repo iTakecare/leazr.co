@@ -69,18 +69,30 @@ const Sidebar = memo(({ className }: SidebarProps) => {
     <div className="flex flex-col h-full bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl">
       {/* Header avec logo - amélioration du contraste */}
       <div className={cn(
-        "p-4 border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
-        isCollapsed ? "px-2" : "px-4"
+        "border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
+        isCollapsed ? "p-2" : "p-4"
       )}>
-        <div className="flex items-center gap-3">
-          <CompanyLogo 
-            logoSize="sm"
-            className={cn(
-              "transition-all duration-300",
-              isCollapsed ? "mx-auto" : ""
-            )}
-          />
-          {!isCollapsed && (
+        {isCollapsed ? (
+          // Mode collapsed : seulement le logo centré et bouton de toggle
+          <div className="flex flex-col items-center gap-2">
+            <CompanyLogo 
+              logoSize="sm"
+              className="transition-all duration-300"
+            />
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:flex p-1 bg-white/80 border border-gray-200/60 rounded-md shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+            >
+              <ChevronRight className="h-3 w-3 text-gray-600 transition-transform duration-200" />
+            </button>
+          </div>
+        ) : (
+          // Mode étendu : layout normal
+          <div className="flex items-center gap-3">
+            <CompanyLogo 
+              logoSize="sm"
+              className="transition-all duration-300"
+            />
             <div className="min-w-0 flex-1">
               {!settingsLoading && (
                 <>
@@ -89,22 +101,21 @@ const Sidebar = memo(({ className }: SidebarProps) => {
                 </>
               )}
             </div>
-          )}
-          {/* Collapse Toggle Button intégré dans l'header */}
-          <button
-            onClick={toggleCollapsed}
-            className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200 ml-auto"
-          >
-            <ChevronRight className={cn(
-              "h-4 w-4 text-gray-600 transition-transform duration-200",
-              isCollapsed ? "rotate-0" : "rotate-180"
-            )} />
-          </button>
-        </div>
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+            >
+              <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200 rotate-180" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Navigation avec espacement amélioré */}
-      <nav className="flex-1 p-4 overflow-y-auto">
+      <nav className={cn(
+        "flex-1 overflow-y-auto",
+        isCollapsed ? "p-2" : "p-4"
+      )}>
         <ul className="space-y-2">
           {menuItems.map((item) => (
             <SidebarMenuItem
@@ -120,7 +131,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
       {/* User Section avec meilleur contraste */}
       <div className="border-t border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-blue-50/80">
-        <SidebarUserSection />
+        <SidebarUserSection collapsed={isCollapsed} />
       </div>
     </div>
   ));

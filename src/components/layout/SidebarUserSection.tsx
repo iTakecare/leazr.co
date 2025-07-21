@@ -5,9 +5,14 @@ import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import NavbarUserProfile from "./NavbarUserProfile";
 
-const SidebarUserSection = () => {
+interface SidebarUserSectionProps {
+  collapsed?: boolean;
+}
+
+const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -32,6 +37,28 @@ const SidebarUserSection = () => {
       toast.error("Erreur lors de la déconnexion");
     }
   };
+
+  if (collapsed) {
+    return (
+      <div className="p-2 border-t border-gray-200">
+        <div className="flex flex-col items-center gap-2">
+          <NavbarUserProfile 
+            user={user}
+            avatarUrl={null}
+            getUserInitials={getUserInitials}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="w-8 h-8 p-0 flex items-center justify-center"
+          >
+            <LogOut className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 border-t border-gray-200">
