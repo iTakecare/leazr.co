@@ -3,7 +3,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-// import PublicProductDetails from '@/pages/PublicProductDetails';
+import ProductDetailPage from '@/pages/ProductDetailPage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import Container from '@/components/layout/Container';
@@ -56,16 +56,8 @@ const PublicSlugProductDetails = () => {
     );
   }
 
-  // Render the actual product details
-  return (
-    <Container>
-      <div className="py-8">
-        <h1 className="text-2xl font-bold mb-4">Détails du produit</h1>
-        <p>Company: {company.name}</p>
-        <p>Product ID: {productId}</p>
-      </div>
-    </Container>
-  );
+  // Render the actual product details using the existing ProductDetailPage
+  return <ProductDetailPage />;
 };
 
 export default PublicSlugProductDetails;
