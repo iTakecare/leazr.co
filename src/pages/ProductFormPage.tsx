@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -50,6 +49,12 @@ const ProductFormPage = () => {
     console.log("📄 ProductFormPage - Operation successful");
     toast.success(isEditMode ? "Produit mis à jour avec succès" : "Produit créé avec succès");
     navigate("/admin/catalog");
+  };
+
+  const handleImageUpdate = (imageUrl: string) => {
+    console.log("📄 ProductFormPage - Image updated:", imageUrl);
+    // The ProductImageManager handles the database update internally
+    // This callback can be used for additional UI updates if needed
   };
 
   // Loading state for edit mode
@@ -157,6 +162,7 @@ const ProductFormPage = () => {
               <ProductFormImagesTab 
                 productToEdit={isEditMode ? product : undefined}
                 isEditMode={isEditMode}
+                onImageUpdate={handleImageUpdate}
               />
             </TabsContent>
 

@@ -1,17 +1,20 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { Product } from "@/types/catalog";
+import ProductImageManager from "./ProductImageManager";
 
 interface ProductFormImagesTabProps {
   productToEdit?: Product;
   isEditMode: boolean;
+  onImageUpdate?: (imageUrl: string) => void;
 }
 
 const ProductFormImagesTab: React.FC<ProductFormImagesTabProps> = ({ 
   productToEdit, 
-  isEditMode 
+  isEditMode,
+  onImageUpdate 
 }) => {
   return (
     <Card>
@@ -22,45 +25,25 @@ const ProductFormImagesTab: React.FC<ProductFormImagesTabProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isEditMode && productToEdit?.image_url ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Image actuelle</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative group">
-                <img
-                  src={productToEdit.image_url}
-                  alt={productToEdit.name}
-                  className="w-full h-48 object-cover rounded-lg border"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg" />
-              </div>
+        {isEditMode && productToEdit ? (
+          <ProductImageManager 
+            product={productToEdit}
+            onImageUpdate={onImageUpdate}
+          />
+        ) : (
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto">
+              <ImageIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Images non disponibles</h3>
+              <p className="text-muted-foreground mb-4">
+                La gestion des images n'est disponible qu'après la création du produit.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Créez d'abord le produit, puis revenez ici pour ajouter des images.
+              </p>
             </div>
           </div>
-        ) : null}
-
-        <div className="mt-6">
-          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-            <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {isEditMode ? "Ajouter ou remplacer des images" : "Ajouter des images"}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Glissez-déposez vos images ici ou cliquez pour parcourir.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Formats acceptés: JPG, PNG, WebP (max 5MB par image)
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            <strong>À venir :</strong> Système d'upload d'images complet avec aperçu, 
-            suppression et réorganisation des images.
-          </p>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

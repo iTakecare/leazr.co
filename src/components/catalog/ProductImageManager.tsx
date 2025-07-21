@@ -1,407 +1,366 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Upload, 
+  X, 
+  Star, 
+  StarOff, 
+  Loader2, 
+  RotateCcw,
+  AlertCircle 
+} from "lucide-react";
 import { toast } from "sonner";
-import { Loader2, Upload, Trash2, Check, AlertCircle, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
 import { uploadImage } from "@/utils/imageUtils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateProduct } from "@/services/catalogService";
+import { Product } from "@/types/catalog";
 
-interface ProductImageManagerProps {
-  productId: string;
-  onChange?: (images: any[]) => void;
-  onSetMainImage?: (imageUrl: string) => void;
-  currentMainImage?: string;
+interface ProductImage {
+  id: string;
+  url: string;
+  isMain: boolean;
+  file?: File;
+  isUploading?: boolean;
+  uploadError?: string;
 }
 
-const ProductImageManager: React.FC<ProductImageManagerProps> = ({
-  productId,
-  onChange,
-  onSetMainImage,
-  currentMainImage
+interface ProductImageManagerProps {
+  product?: Product;
+  onImageUpdate?: (imageUrl: string) => void;
+}
+
+const ProductImageManager: React.FC<ProductImageManagerProps> = ({ 
+  product, 
+  onImageUpdate 
 }) => {
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const loadingRef = useRef(false);
-  
-  const getUniqueImageUrl = (url: string, index: number): string => {
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${Date.now()}&rc=${retryCount}&idx=${index}`;
-  };
-  
+  const queryClient = useQueryClient();
+
+  // Initialize images from product
   useEffect(() => {
-    if (loadingRef.current) return;
-    
-    const loadImages = async () => {
-      loadingRef.current = true;
-      setIsLoadingImages(true);
-      setErrorMessage(null);
-      
-      try {
-        console.log(`Loading images for product ${productId} from product-images bucket`);
-        
-        const { data: files, error } = await supabase.storage
-          .from("product-images")
-          .list(productId, {
-            sortBy: { column: 'name', order: 'asc' }
-          });
-        
-        if (error) {
-          if (error.message.includes('does not exist') || error.message.includes('not found')) {
-            console.log(`No folder found for product ${productId}, this is normal for new products`);
-            setImages([]);
-            
-            if (onChange) {
-              onChange([]);
-            }
-          } else {
-            console.error(`Error loading images: ${error.message}`);
-            setErrorMessage(`Erreur lors du chargement des images: ${error.message}`);
-          }
-          
-          setIsLoadingImages(false);
-          loadingRef.current = false;
-          return;
-        }
-        
-        if (!files || files.length === 0) {
-          console.log(`No images found for product ${productId}`);
-          setImages([]);
-          setIsLoadingImages(false);
-          loadingRef.current = false;
-          
-          if (onChange) {
-            onChange([]);
-          }
-          
-          return;
-        }
-        
-        const imageFiles = files
-          .filter(file => 
-            !file.name.startsWith('.') && 
-            file.name !== '.emptyFolderPlaceholder'
-          )
-          .map(file => {
-            try {
-              const { data } = supabase.storage
-                .from("product-images")
-                .getPublicUrl(`${productId}/${file.name}`);
-              
-              if (!data || !data.publicUrl) {
-                console.error(`Failed to get public URL for ${file.name}`);
-                return null;
-              }
-              
-              const timestamp = Date.now();
-              const isMain = currentMainImage && data.publicUrl === currentMainImage;
-              
-              return {
-                name: file.name,
-                url: `${data.publicUrl}?t=${timestamp}&rc=${retryCount}`,
-                originalUrl: data.publicUrl,
-                isMain: isMain
-              };
-            } catch (e) {
-              console.error(`Error generating URL for ${file.name}:`, e);
-              return null;
-            }
-          })
-          .filter(Boolean);
-        
-        console.log(`Loaded ${imageFiles.length} images for product ${productId}`);
-        console.log("Images mises à jour:", imageFiles);
-        setImages(imageFiles);
-        
-        if (onChange) {
-          onChange(imageFiles);
-        }
-      } catch (error) {
-        console.error("Error loading images:", error);
-        setErrorMessage(`Erreur lors du chargement des images: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-        setImages([]);
-      } finally {
-        setIsLoadingImages(false);
-        loadingRef.current = false;
+    if (product?.image_url) {
+      setImages([{
+        id: 'main',
+        url: product.image_url,
+        isMain: true
+      }]);
+    } else {
+      setImages([]);
+    }
+  }, [product?.image_url]);
+
+  // Update product mutation
+  const updateProductMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      if (product?.id) {
+        queryClient.invalidateQueries({ queryKey: ["product", product.id] });
       }
-    };
-    
-    loadImages();
-    
-    return () => {
-      loadingRef.current = false;
-    };
-  }, [productId, onChange, retryCount, currentMainImage]);
-  
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-    toast.info("Rafraîchissement des images...");
-  };
-  
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    console.log("=== DÉBUT UPLOAD IMAGE ===");
-    console.log("Nombre de fichiers sélectionnés:", files.length);
-    
+      toast.success("Image principale mise à jour");
+    },
+    onError: (error) => {
+      console.error("Error updating product image:", error);
+      toast.error("Erreur lors de la mise à jour de l'image");
+    },
+  });
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log("📸 ProductImageManager - Files dropped:", acceptedFiles.length);
+
+    if (!product?.id) {
+      toast.error("Impossible d'uploader - ID produit manquant");
+      return;
+    }
+
     setIsUploading(true);
-    let uploadedCount = 0;
-    
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        console.log(`=== FICHIER ${i + 1}/${files.length} ===`);
-        console.log("Propriétés du fichier original:", {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          lastModified: file.lastModified,
-          constructor: file.constructor.name,
-          isInstanceOfFile: file instanceof File,
-          isInstanceOfBlob: file instanceof Blob,
-          keys: Object.keys(file)
-        });
-        
-        // Validation du type de fichier
-        if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-          console.error(`Fichier ${file.name} rejeté - type non valide:`, file.type);
-          toast.error(`Le fichier ${file.name} n'est pas une image valide`);
-          continue;
-        }
-        
-        console.log(`Tentative d'upload pour ${file.name} vers product-images/${productId}`);
-        
-        // Créer une copie du fichier pour éviter la sérialisation
-        const fileBlob = new Blob([file], { type: file.type });
-        const cleanFile = new File([fileBlob], file.name, {
-          type: file.type,
-          lastModified: file.lastModified
-        });
-        
-        console.log("Propriétés du fichier nettoyé:", {
-          name: cleanFile.name,
-          type: cleanFile.type,
-          size: cleanFile.size,
-          constructor: cleanFile.constructor.name,
-          isInstanceOfFile: cleanFile instanceof File,
-          isInstanceOfBlob: cleanFile instanceof Blob
-        });
-        
-        const imageUrl = await uploadImage(cleanFile, "product-images", productId);
-        if (imageUrl) {
-          uploadedCount++;
-          console.log(`✅ Upload réussi pour ${file.name}:`, imageUrl);
-        } else {
-          console.error(`❌ Échec upload pour ${file.name}`);
-        }
-      }
-      
-      if (uploadedCount > 0) {
-        toast.success(`${uploadedCount} image(s) téléchargée(s) avec succès`);
-        setRetryCount(prev => prev + 1);
-      }
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      toast.error("Erreur lors de l'upload des images");
-    } finally {
-      setIsUploading(false);
-      
-      if (e.target) {
-        e.target.value = '';
-      }
-    }
-  };
-  
-  const handleDelete = async (imageName: string) => {
-    try {
-      const filePath = `${productId}/${imageName}`;
-      console.log(`Deleting file ${filePath} from bucket product-images`);
-      
-      const { error } = await supabase.storage
-        .from("product-images")
-        .remove([filePath]);
-      
-      if (error) {
-        console.error('Error deleting file:', error);
-        toast.error(`Erreur lors de la suppression: ${error.message}`);
-        return;
-      }
-      
-      toast.success("Image supprimée avec succès");
-      setRetryCount(prev => prev + 1);
-    } catch (error) {
-      console.error("Error deleting image:", error);
-      toast.error("Erreur lors de la suppression de l'image");
-    }
-  };
-  
-  const handleSetMainImage = (imageInfo: any) => {
-    const originalUrl = imageInfo.originalUrl || imageInfo.url;
-    if (onSetMainImage) {
+
+    const newImages: ProductImage[] = acceptedFiles.map((file, index) => ({
+      id: `temp-${Date.now()}-${index}`,
+      url: URL.createObjectURL(file),
+      isMain: images.length === 0 && index === 0, // First image is main if no existing images
+      file,
+      isUploading: true
+    }));
+
+    setImages(prev => [...prev, ...newImages]);
+
+    // Upload each file
+    for (const imageData of newImages) {
+      if (!imageData.file) continue;
+
       try {
-        onSetMainImage(originalUrl);
-        // We don't show success toast here because it will be shown by the parent component
-        // after the operation is actually complete
+        console.log(`📸 Uploading image: ${imageData.file.name}`);
+        
+        const uploadedUrl = await uploadImage(
+          imageData.file,
+          "product-images",
+          `products/${product.id}/`
+        );
+
+        if (uploadedUrl) {
+          console.log(`✅ Image uploaded successfully: ${uploadedUrl}`);
+          
+          setImages(prev => prev.map(img => 
+            img.id === imageData.id 
+              ? { ...img, url: uploadedUrl, isUploading: false, file: undefined }
+              : img
+          ));
+
+          // If this is the main image, update the product
+          if (imageData.isMain) {
+            updateProductMutation.mutate({
+              id: product.id,
+              data: { image_url: uploadedUrl }
+            });
+            onImageUpdate?.(uploadedUrl);
+          }
+
+          toast.success(`Image ${imageData.file.name} uploadée avec succès`);
+        } else {
+          throw new Error("URL d'upload vide");
+        }
       } catch (error) {
-        console.error("Error setting main image:", error);
-        toast.error("Erreur lors de la définition de l'image principale");
+        console.error(`❌ Error uploading image ${imageData.file?.name}:`, error);
+        
+        setImages(prev => prev.map(img => 
+          img.id === imageData.id 
+            ? { ...img, isUploading: false, uploadError: "Erreur d'upload" }
+            : img
+        ));
+
+        toast.error(`Erreur lors de l'upload de ${imageData.file?.name}`);
       }
     }
+
+    setIsUploading(false);
+  }, [product?.id, images.length, updateProductMutation, onImageUpdate]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.svg']
+    },
+    maxSize: 5 * 1024 * 1024, // 5MB
+    multiple: true
+  });
+
+  const setAsMainImage = (imageId: string) => {
+    if (!product?.id) return;
+
+    const image = images.find(img => img.id === imageId);
+    if (!image || image.isUploading) return;
+
+    // Update local state
+    setImages(prev => prev.map(img => ({
+      ...img,
+      isMain: img.id === imageId
+    })));
+
+    // Update product in database
+    updateProductMutation.mutate({
+      id: product.id,
+      data: { image_url: image.url }
+    });
+
+    onImageUpdate?.(image.url);
   };
-  
-  if (errorMessage) {
-    return (
-      <div className="p-6 border border-red-300 bg-red-50 rounded-md">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle className="text-red-500 h-5 w-5" />
-          <h3 className="font-medium">Erreur d'accès au stockage</h3>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          {errorMessage}
-        </p>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRetry}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Réessayer
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => {
-              const url = `https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/storage/buckets`;
-              window.open(url, '_blank');
-            }}
-          >
-            Vérifier les buckets de stockage
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
-  if (isLoadingImages && images.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-center h-10">
-          <Skeleton className="h-10 w-40" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="aspect-square w-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+
+  const removeImage = (imageId: string) => {
+    setImages(prev => {
+      const filteredImages = prev.filter(img => img.id !== imageId);
+      
+      // If we removed the main image and there are other images, make the first one main
+      if (prev.find(img => img.id === imageId)?.isMain && filteredImages.length > 0) {
+        filteredImages[0].isMain = true;
+        
+        if (product?.id) {
+          updateProductMutation.mutate({
+            id: product.id,
+            data: { image_url: filteredImages[0].url }
+          });
+          onImageUpdate?.(filteredImages[0].url);
+        }
+      }
+      
+      return filteredImages;
+    });
+  };
+
+  const retryUpload = async (imageId: string) => {
+    const image = images.find(img => img.id === imageId);
+    if (!image?.file || !product?.id) return;
+
+    setImages(prev => prev.map(img => 
+      img.id === imageId 
+        ? { ...img, isUploading: true, uploadError: undefined }
+        : img
+    ));
+
+    try {
+      const uploadedUrl = await uploadImage(
+        image.file,
+        "product-images",
+        `products/${product.id}/`
+      );
+
+      if (uploadedUrl) {
+        setImages(prev => prev.map(img => 
+          img.id === imageId 
+            ? { ...img, url: uploadedUrl, isUploading: false, file: undefined }
+            : img
+        ));
+
+        if (image.isMain) {
+          updateProductMutation.mutate({
+            id: product.id,
+            data: { image_url: uploadedUrl }
+          });
+          onImageUpdate?.(uploadedUrl);
+        }
+
+        toast.success("Image uploadée avec succès");
+      }
+    } catch (error) {
+      setImages(prev => prev.map(img => 
+        img.id === imageId 
+          ? { ...img, isUploading: false, uploadError: "Erreur d'upload" }
+          : img
+      ));
+      toast.error("Erreur lors de l'upload");
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Label htmlFor="image-upload" className="cursor-pointer">
-          <div className="flex items-center gap-2 px-4 py-2 border rounded bg-background hover:bg-accent">
-            <Upload className="w-4 h-4" />
-            <span>Télécharger des images</span>
-          </div>
-        </Label>
-        <Input
-          id="image-upload"
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-          disabled={isUploading}
-        />
-        {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleRetry}
-          disabled={isUploading || isLoadingImages}
-        >
-          {isLoadingImages ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
-          )}
-          Actualiser
-        </Button>
-      </div>
+    <div className="space-y-6">
+      {/* Current Images */}
+      {images.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Images du produit</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {images.map((image) => (
+              <Card key={image.id} className="relative group">
+                <CardContent className="p-2">
+                  <div className="relative aspect-square">
+                    <img
+                      src={image.url}
+                      alt="Product"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    
+                    {/* Loading overlay */}
+                    {image.isUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                        <Loader2 className="h-8 w-8 text-white animate-spin" />
+                      </div>
+                    )}
 
-      {isLoadingImages && images.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map((image, index) => (
-            <Card key={`${image.name}-${index}-loading`} className="overflow-hidden relative">
-              <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : images.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">Aucune image n'a été téléchargée pour ce produit.</p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map((image, index) => (
-            <Card key={`${image.name}-${index}`} className={`overflow-hidden ${image.isMain ? 'border-primary' : ''}`}>
-              <div className="relative aspect-square">
-                <div className="w-full h-full flex items-center justify-center bg-gray-50 p-2">
-                  <img
-                    src={getUniqueImageUrl(image.url, index)}
-                    alt={`Produit ${index + 1}`}
-                    className="object-contain max-h-full max-w-full"
-                    loading="lazy"
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${image.url}`);
-                      (e.target as HTMLImageElement).src = "/placeholder.svg";
-                    }}
-                  />
-                  {image.isMain && (
-                    <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">
-                      Image principale
-                    </div>
-                  )}
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/50 transition-opacity">
-                  <div className="flex space-x-2">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      onClick={() => handleSetMainImage(image)}
-                      title="Définir comme image principale"
-                      disabled={image.isMain}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      onClick={() => handleDelete(image.name)}
-                      title="Supprimer l'image"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {/* Error overlay */}
+                    {image.uploadError && (
+                      <div className="absolute inset-0 bg-red-500/80 flex flex-col items-center justify-center rounded-lg text-white text-sm">
+                        <AlertCircle className="h-6 w-6 mb-1" />
+                        <span>{image.uploadError}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 text-xs"
+                          onClick={() => retryUpload(image.id)}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Réessayer
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Actions overlay */}
+                    {!image.isUploading && !image.uploadError && (
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg">
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity space-x-1">
+                          <Button
+                            size="sm"
+                            variant={image.isMain ? "default" : "outline"}
+                            className="h-8 w-8 p-0"
+                            onClick={() => setAsMainImage(image.id)}
+                            title={image.isMain ? "Image principale" : "Définir comme image principale"}
+                          >
+                            {image.isMain ? (
+                              <Star className="h-4 w-4 fill-current" />
+                            ) : (
+                              <StarOff className="h-4 w-4" />
+                            )}
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-8 w-8 p-0"
+                            onClick={() => removeImage(image.id)}
+                            title="Supprimer l'image"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main image badge */}
+                    {image.isMain && !image.isUploading && (
+                      <div className="absolute bottom-2 left-2">
+                        <div className="bg-primary text-primary-foreground px-2 py-1 text-xs rounded-md flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-current" />
+                          Principale
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* Upload Zone */}
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+          isDragActive
+            ? "border-primary bg-primary/5"
+            : "border-muted-foreground/25 hover:border-muted-foreground/50"
+        }`}
+      >
+        <input {...getInputProps()} />
+        <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-medium mb-2">
+          {isDragActive ? "Déposez vos images ici" : "Ajouter des images"}
+        </h3>
+        <p className="text-muted-foreground mb-4">
+          Glissez-déposez vos images ici ou cliquez pour parcourir.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Formats acceptés: JPG, PNG, WebP, SVG (max 5MB par image)
+        </p>
+      </div>
+
+      {/* Loading state */}
+      {isUploading && (
+        <div className="text-center py-4">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Upload en cours...</p>
+        </div>
+      )}
+
+      {/* Info */}
+      <div className="p-4 bg-muted/50 rounded-lg">
+        <p className="text-sm text-muted-foreground">
+          <strong>💡 Conseil :</strong> La première image uploadée devient automatiquement 
+          l'image principale. Vous pouvez changer l'image principale en cliquant sur l'étoile.
+        </p>
+      </div>
     </div>
   );
 };
