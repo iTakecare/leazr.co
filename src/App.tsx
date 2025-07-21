@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,7 +37,8 @@ import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import InvoicingPage from "@/pages/InvoicingPage";
-import ProductEditPage from "@/pages/ProductEditPage";
+
+import ProductFormPage from "@/pages/ProductFormPage";
 import Layout from "@/components/layout/Layout";
 
 const queryClient = new QueryClient({
@@ -85,11 +85,17 @@ function App() {
                         <Route path="/admin/contracts" element={<Layout><Contracts /></Layout>} />
                         <Route path="/admin/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/admin/catalog" element={<Layout><CatalogManagement /></Layout>} />
-                        <Route path="/admin/catalog/edit/:id" element={<Layout><ProductEditPage /></Layout>} />
                         <Route path="/admin/invoicing" element={<Layout><InvoicingPage /></Layout>} />
                         
-                        {/* Catalog routes without admin prefix */}
-                        <Route path="/catalog/edit/:id" element={<Layout><ProductEditPage /></Layout>} />
+                        {/* Unified product form routes - handles both creation and editing */}
+                        <Route path="/admin/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
+                        
+                        {/* Legacy redirects for backward compatibility */}
+                        <Route path="/admin/catalog/create" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="/admin/catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="/catalog/create" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="/catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
                         
                         {/* Default dashboard route */}
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />

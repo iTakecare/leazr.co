@@ -1,7 +1,6 @@
 
 import React from "react";
 import Container from "@/components/layout/Container";
-import ProductEditor from "@/components/catalog/ProductEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Award, Folder } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
@@ -13,17 +12,17 @@ import ProductsViewOptions from "@/components/catalog/management/ProductsViewOpt
 import CatalogContent from "@/components/catalog/management/CatalogContent";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 
 const CatalogManagement = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   // Use catalog management hook
   const {
     products,
     isLoading,
     error,
-    isAddProductOpen,
-    setIsAddProductOpen,
     activeTab,
     setActiveTab,
     viewMode,
@@ -31,9 +30,13 @@ const CatalogManagement = () => {
     setGroupingOption,
     onProductAdded,
     handleProductDeleted,
-    handleAddNewProduct,
     handleViewModeChange
   } = useCatalogManagement();
+  
+  // Handle new product creation
+  const handleAddNewProduct = () => {
+    navigate("/catalog/form");
+  };
   
   return (
     <Container>
@@ -87,12 +90,6 @@ const CatalogManagement = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      <ProductEditor 
-        isOpen={isAddProductOpen} 
-        onClose={() => setIsAddProductOpen(false)} 
-        onSuccess={onProductAdded}
-      />
     </Container>
   );
 };
