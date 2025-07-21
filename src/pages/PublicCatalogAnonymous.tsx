@@ -4,7 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import ProductGrid from "@/components/catalog/ProductGrid";
-import { usePublicCatalog } from "@/hooks/catalog/usePublicCatalog";
+import { getProducts } from "@/services/catalogService";
+import { useQuery } from "@tanstack/react-query";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -43,12 +44,15 @@ const PublicCatalogAnonymous = () => {
     queryClient.removeQueries({ queryKey: ['products'] });
   }, [companyId, queryClient]);
 
-  const { 
-    products, 
-    company, 
-    isLoading: isLoadingProducts, 
-    error: productsError 
-  } = usePublicCatalog(companyId);
+  // Fetch products data
+  const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
+    queryKey: ['public-products', companyId],
+    queryFn: () => getProducts(),
+    enabled: !!companyId,
+  });
+
+  // For now, we'll get company info from the detection hook result
+  const company = detectedSlug ? { name: detectedSlug, logo_url: undefined } : null;
 
   console.log('📱 PUBLIC CATALOG - Products data:', {
     productsCount: products?.length || 0,

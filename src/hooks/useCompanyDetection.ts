@@ -139,7 +139,7 @@ export const useCompanyDetection = () => {
   };
 
   // Force the query to run even when parameters are null by making the key more dynamic
-  const shouldRun = urlCompanyId || companySlug || companyParam || companySlugParam || location.pathname.includes('/');
+  const shouldRun = Boolean(urlCompanyId || companySlug || companyParam || companySlugParam || location.pathname.includes('/'));
   
   const { data: companyId, isLoading: isLoadingCompanyId, error: detectionError } = useQuery({
     queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam, location.pathname, window.location.origin],
