@@ -38,6 +38,7 @@ import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import InvoicingPage from "@/pages/InvoicingPage";
+import ProductEditPage from "@/pages/ProductEditPage";
 import Layout from "@/components/layout/Layout";
 
 const queryClient = new QueryClient({
@@ -84,7 +85,11 @@ function App() {
                         <Route path="/admin/contracts" element={<Layout><Contracts /></Layout>} />
                         <Route path="/admin/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/admin/catalog" element={<Layout><CatalogManagement /></Layout>} />
+                        <Route path="/admin/catalog/edit/:id" element={<Layout><ProductEditPage /></Layout>} />
                         <Route path="/admin/invoicing" element={<Layout><InvoicingPage /></Layout>} />
+                        
+                        {/* Catalog routes without admin prefix */}
+                        <Route path="/catalog/edit/:id" element={<Layout><ProductEditPage /></Layout>} />
                         
                         {/* Default dashboard route */}
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
