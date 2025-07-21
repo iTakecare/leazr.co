@@ -61,7 +61,7 @@ export const deleteCategory = async (params: { name: string }) => {
   return true;
 };
 
-// Product Management
+// Product Management Functions
 export const createProduct = async (product: Partial<Product>) => {
   const { data, error } = await supabase.from('products').insert(product).select().single();
   if (error) throw error;
