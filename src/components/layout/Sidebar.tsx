@@ -72,15 +72,16 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "p-2" : "p-4"
       )}>
         {isCollapsed ? (
-          // Mode collapsed : logo centré uniquement
+          // Mode collapsed : logo Leazr centré uniquement
           <div className="flex flex-col items-center">
             <CompanyLogo 
               logoSize="sm"
-              className="transition-all duration-300 w-10 h-10"
+              className="transition-all duration-300 w-8 h-8"
+              forceDefaultLogo={true}
             />
           </div>
         ) : (
-          // Mode étendu : layout complet avec bouton
+          // Mode étendu : layout complet avec logo d'entreprise
           <div className="flex items-center gap-3">
             <CompanyLogo 
               logoSize="sm"

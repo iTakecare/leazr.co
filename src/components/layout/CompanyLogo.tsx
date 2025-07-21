@@ -9,13 +9,15 @@ interface CompanyLogoProps {
   showText?: boolean;
   logoSize?: "sm" | "md" | "lg" | "xl" | "2xl";
   variant?: "full" | "avatar";
+  forceDefaultLogo?: boolean;
 }
 
 const CompanyLogo: React.FC<CompanyLogoProps> = ({ 
   className, 
   showText = false, 
   logoSize = "lg", 
-  variant = "avatar" 
+  variant = "avatar",
+  forceDefaultLogo = false
 }) => {
   const { settings, loading } = useSiteSettings();
 
@@ -32,8 +34,8 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
     return null;
   }
 
-  // Si il n'y a pas de logo d'entreprise, utiliser le logo par défaut
-  if (!settings?.logo_url) {
+  // Si forceDefaultLogo est true ou s'il n'y a pas de logo d'entreprise, utiliser le logo par défaut
+  if (forceDefaultLogo || !settings?.logo_url) {
     return <Logo className={className} showText={showText} logoSize={logoSize} variant={variant} />;
   }
 
