@@ -1,8 +1,9 @@
+
 import React, { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
-import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
+import ProductGrid from "@/components/catalog/ProductGrid";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 import { getPublicProducts } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
@@ -183,7 +184,7 @@ const PublicCatalogAnonymous = () => {
             </div>
           )}
           
-          <PublicProductGrid products={products || []} />
+          <ProductGrid products={products || []} />
         </div>
       </Container>
     </div>

@@ -1,6 +1,5 @@
-
 import React from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
@@ -14,17 +13,6 @@ interface SimpleHeaderProps {
 
 const SimpleHeader = ({ companyId, companyLogo, companyName }: SimpleHeaderProps) => {
   const { cartCount } = useCart();
-  const { companySlug } = useParams<{ companySlug: string }>();
-  
-  // Determine the correct cart URL based on context
-  const getCartUrl = () => {
-    if (companySlug) {
-      return `/${companySlug}/panier`;
-    } else if (companyId) {
-      return `/public/${companyId}/panier`;
-    }
-    return "/panier";
-  };
   
   return (
     <header className="bg-white border-b">
@@ -49,7 +37,7 @@ const SimpleHeader = ({ companyId, companyLogo, companyName }: SimpleHeaderProps
           </Link>
           
           <Link
-            to={getCartUrl()}
+            to={companyId ? `/public/${companyId}/panier` : "/panier"}
             className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Voir le panier"
           >

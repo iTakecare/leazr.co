@@ -159,7 +159,6 @@ export interface VariantCombinationPrice {
   purchase_price?: number; // Purchase price (cost)
   monthly_price?: number;
   stock?: number;
-  sku?: string; // SKU for this specific variant combination
   created_at?: Date | string;
   updated_at?: Date | string;
 }

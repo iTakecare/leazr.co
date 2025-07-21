@@ -19,8 +19,6 @@ import ForgotPassword from "@/pages/ForgotPassword";
 // Public pages
 import HomePage from "@/pages/HomePage";
 import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
-import PublicCartPage from "@/pages/PublicCartPage";
-import ProductDetailPage from "@/pages/ProductDetailPage";
 
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
@@ -66,12 +64,7 @@ function App() {
                       {/* Public routes */}
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
-                      
-                      {/* Public company ID-based routes */}
                       <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
-                      <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
-                      <Route path="/public/:companyId/products/:productId" element={<ProductDetailPage />} />
-                      <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
                       
                       {/* Protected routes - MUST be before slug-based routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>

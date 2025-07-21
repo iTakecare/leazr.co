@@ -4422,18 +4422,6 @@ export type Database = {
           conversion_rate: number
         }[]
       }
-      get_public_company_info: {
-        Args: { company_slug: string }
-        Returns: {
-          id: string
-          name: string
-          slug: string
-          logo_url: string
-          primary_color: string
-          secondary_color: string
-          accent_color: string
-        }[]
-      }
       get_related_blog_posts: {
         Args: { post_id: string; limit_count?: number }
         Returns: {
