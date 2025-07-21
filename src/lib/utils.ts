@@ -95,3 +95,56 @@ export function formatTemplatesForSelection(templates: any[]): { label: string, 
     value: template.id
   }));
 }
+
+// Génère un slug SEO-friendly à partir du nom et de la marque d'un produit
+export function generateProductSlug(name: string, brand?: string): string {
+  // Créer la chaîne de base : brand-name ou juste name
+  let baseString = brand ? `${brand} ${name}` : name;
+  
+  // Normaliser le slug
+  return baseString
+    .toLowerCase() // Tout en minuscules
+    .normalize('NFD') // Décomposer les caractères accentués
+    .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+    .replace(/[^a-z0-9\s-]/g, '') // Garder seulement lettres, chiffres, espaces et tirets
+    .replace(/\s+/g, '-') // Remplacer les espaces par des tirets
+    .replace(/-+/g, '-') // Remplacer les tirets multiples par un seul
+    .replace(/^-|-$/g, '') // Supprimer les tirets en début/fin
+    .trim();
+}
+
+// Trouve un produit par son slug dans une liste de produits
+export function findProductBySlug(products: any[], targetSlug: string): any | null {
+  if (!products || !Array.isArray(products) || !targetSlug) {
+    return null;
+  }
+  
+  // Map pour éviter de recalculer les slugs plusieurs fois
+  const productSlugs = new Map();
+  
+  for (const product of products) {
+    if (!product.name) continue;
+    
+    const productSlug = generateProductSlug(product.name, product.brand);
+    productSlugs.set(product.id, productSlug);
+    
+    if (productSlug === targetSlug) {
+      return product;
+    }
+  }
+  
+  // Si aucun match exact, essayer de trouver un produit avec un slug similaire
+  // (gestion des conflits potentiels avec suffixes numériques)
+  for (const product of products) {
+    const productSlug = productSlugs.get(product.id);
+    if (productSlug && targetSlug.startsWith(productSlug + '-')) {
+      // Le slug cible pourrait être une variation avec suffixe numérique
+      const suffix = targetSlug.substring(productSlug.length + 1);
+      if (/^\d+$/.test(suffix)) {
+        return product;
+      }
+    }
+  }
+  
+  return null;
+}

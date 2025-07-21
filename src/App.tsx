@@ -25,6 +25,7 @@ import ProductDetailPage from "@/pages/ProductDetailPage";
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
 import PublicSlugProductDetails from "@/components/public/PublicSlugProductDetails";
+import PublicSlugProductBySlug from "@/components/public/PublicSlugProductBySlug";
 import PublicSlugCart from "@/components/public/PublicSlugCart";
 import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
 
@@ -91,6 +92,7 @@ function App() {
                       
                       {/* Company slug-based routes - MUST be after admin routes */}
                       <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
+                      <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
                       <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
                       <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
                       <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />

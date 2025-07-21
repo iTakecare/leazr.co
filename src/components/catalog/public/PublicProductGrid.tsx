@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
+import { generateProductSlug } from "@/lib/utils";
 
 interface PublicProductGridProps {
   products: Product[];
@@ -28,12 +29,17 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
       companyId
     });
 
-    // Navigate based on context - slug-based takes priority
+    // Générer le slug du produit
+    const productSlug = generateProductSlug(product.name, product.brand);
+    console.log('🔗 Generated product slug:', productSlug);
+
+    // Navigate based on context - slug-based takes priority with SEO-friendly URLs
     if (companySlug) {
-      const targetUrl = `/${companySlug}/products/${product.id}`;
+      const targetUrl = `/${companySlug}/products/${productSlug}`;
       console.log('🎯 Navigating to slug-based URL:', targetUrl);
       navigate(targetUrl);
     } else if (companyId) {
+      // Fallback to company-id-based URL with original format
       const targetUrl = `/public/${companyId}/products/${product.id}`;
       console.log('🎯 Navigating to company-id-based URL:', targetUrl);
       navigate(targetUrl);
@@ -70,7 +76,8 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
 
   console.log(`PublicProductGrid: Rendering ${products.length} products`);
   products.forEach((product, index) => {
-    console.log(`PublicProductGrid product ${index + 1}: ${product.name} (ID: ${product.id})`);
+    const slug = generateProductSlug(product.name, product.brand);
+    console.log(`PublicProductGrid product ${index + 1}: ${product.name} (slug: ${slug})`);
   });
 
   return (

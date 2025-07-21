@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -109,7 +110,7 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader companyId={companyId} companyLogo={company.logo_url} companyName={company.name} />
-        <Container>
+        <Container className="max-w-[1320px]">
           <ProductLoadingState />
         </Container>
       </div>
@@ -120,7 +121,7 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader companyId={companyId} companyLogo={company.logo_url} companyName={company.name} />
-        <Container>
+        <Container className="max-w-[1320px]">
           <ProductErrorState 
             onBackToCatalog={handleBackToCatalog}
             companyId={companyId}
@@ -136,7 +137,7 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
     <div className="min-h-screen bg-white">
       <SimpleHeader companyId={companyId} companyLogo={company.logo_url} companyName={company.name} />
       
-      <Container className="py-6">
+      <Container className="py-6 max-w-[1320px]">
         {/* Breadcrumb Navigation */}
         <div className="mb-6 flex items-center gap-4">
           <Button 
