@@ -86,12 +86,38 @@ export const useProductById = (productId: string | undefined) => {
   const query = useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
-      if (!productId) return null;
-      const productData = await getProductById(productId);
-      return productData ? formatProductPrices(productData) : null;
+      console.log('useProductById - Fetching product:', productId);
+      
+      if (!productId) {
+        console.log('useProductById - No productId provided');
+        return null;
+      }
+      
+      try {
+        const productData = await getProductById(productId);
+        
+        if (!productData) {
+          console.log('useProductById - Product not found for ID:', productId);
+          return null;
+        }
+        
+        console.log('useProductById - Product loaded successfully:', productData.name);
+        return formatProductPrices(productData);
+      } catch (error) {
+        console.error('useProductById - Error fetching product:', error);
+        throw error; // Let React Query handle the error
+      }
     },
     enabled: !!productId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry if it's a 404-like error (product not found)
+      if (error?.message?.includes('not found') || error?.code === 'PGRST116') {
+        return false;
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2;
+    },
   });
 
   // Function to update product data locally and invalidate cache

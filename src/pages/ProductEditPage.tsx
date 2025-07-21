@@ -1,527 +1,154 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProductById, updateProduct, deleteProduct, getBrands } from "@/services/catalogService";
-import { useProductById } from "@/hooks/products/useProductById";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Product } from "@/types/catalog";
-import {
-  ArrowLeft,
-  Loader2,
-  Info,
-  ImageIcon,
-  Layers,
-  Copy,
-  Trash2,
-  Save,
-  ShieldAlert
-} from "lucide-react";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import ProductVariantManager from "@/components/catalog/ProductVariantManager";
-import ProductImageManager from "@/components/catalog/ProductImageManager";
-
-const productCategories = [
-  "laptop",
-  "desktop",
-  "tablet",
-  "smartphone",
-  "accessories",
-  "printer",
-  "monitor",
-  "software",
-  "networking",
-  "server",
-  "storage",
-  "other"
-];
-
-const categoryTranslations: Record<string, string> = {
-  "laptop": "Ordinateur portable",
-  "desktop": "Ordinateur de bureau",
-  "tablet": "Tablette",
-  "smartphone": "Smartphone",
-  "accessories": "Accessoires",
-  "printer": "Imprimante",
-  "monitor": "Écran",
-  "software": "Logiciel",
-  "networking": "Réseau",
-  "server": "Serveur",
-  "storage": "Stockage",
-  "other": "Autre"
-};
+import Container from "@/components/layout/Container";
+import PageTransition from "@/components/layout/PageTransition";
+import ProductEditor from "@/components/catalog/ProductEditor";
+import { useProductById } from "@/hooks/products/useProductById";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ProductEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  
-  const [formData, setFormData] = useState<Partial<Product>>({
-    name: "",
-    description: "",
-    category: "",
-    brand: "",
-    price: 0,
-    monthly_price: 0,
-    stock: 0,
-    active: true,
-    admin_only: false
-  });
-  
-  const [activeTab, setActiveTab] = useState("details");
-  const [updatingMainImage, setUpdatingMainImage] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { product, isLoading, error, updateLocalProduct } = useProductById(id || "");
-  
-  // Fetch brands from API
-  const { data: brandsData = [] } = useQuery({
-    queryKey: ["brands"],
-    queryFn: getBrands
-  });
-  
-  // Process brands data for the dropdown
-  const brandOptions = brandsData.map((brand: any) => ({
-    value: brand.name,
-    label: brand.translation || brand.name
-  }));
-  
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
+
+  // Debug logging
   useEffect(() => {
-    if (product) {
-      setFormData({
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        brand: product.brand,
-        price: product.price,
-        monthly_price: product.monthly_price || 0,
-        stock: product.stock || 0,
-        active: product.active !== undefined ? product.active : true,
-        specifications: product.specifications || {},
-        is_parent: product.is_parent || false,
-        variation_attributes: product.variation_attributes || {},
-        admin_only: product.admin_only || false
-      });
+    console.log("ProductEditPage - Mounted with ID:", id);
+    console.log("ProductEditPage - Current route:", window.location.pathname);
+  }, [id]);
+
+  const { product, isLoading, error } = useProductById(id);
+
+  // Track when we've attempted to load
+  useEffect(() => {
+    if (!isLoading) {
+      setHasAttemptedLoad(true);
     }
-  }, [product, id]);
-  
-  const updateMutation = useMutation({
-    mutationFn: (data: Partial<Product>) => updateProduct(id || "", data),
-    onSuccess: (updatedProduct) => {
-      queryClient.invalidateQueries({ queryKey: ["product", id] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      if (updatedProduct) {
-        updateLocalProduct(updatedProduct);
-      }
-      toast.success("Produit mis à jour avec succès");
-      setIsSubmitting(false);
-    },
-    onError: (error: any) => {
-      console.error("Error in updateProduct:", error);
-      toast.error(`Erreur lors de la mise à jour: ${error.message || "Produit introuvable ou problème de connexion"}`);
-      setIsSubmitting(false);
-    }
-  });
-  
-  const deleteMutation = useMutation({
-    mutationFn: () => deleteProduct(id || ""),
-    onSuccess: () => {
-      toast.success("Produit supprimé avec succès");
-      navigate("/admin/catalog");
-    },
-    onError: (error: any) => {
-      toast.error(`Erreur lors de la suppression: ${error.message}`);
-    }
-  });
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === "number") {
-      setFormData(prev => ({
-        ...prev,
-        [name]: parseFloat(value) || 0
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  }, [isLoading]);
+
+  // Handle navigation validation
+  useEffect(() => {
     if (!id) {
-      toast.error("ID du produit manquant");
+      console.error("ProductEditPage - No ID provided");
+      toast.error("ID de produit manquant");
+      navigate("/admin/catalog");
       return;
     }
-    
-    try {
-      toast.info("Mise à jour du produit en cours...");
-      setIsSubmitting(true);
-      
-      const dataToUpdate = {
-        ...formData,
-        admin_only: formData.admin_only === true
-      };
-      
-      console.log("Submitting data with admin_only:", dataToUpdate.admin_only);
-      
-      await updateMutation.mutateAsync(dataToUpdate);
-    } catch (error: any) {
-      console.error("Error updating product:", error);
-    }
-  };
-  
-  const handleDelete = () => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
-      deleteMutation.mutate();
-    }
+  }, [id, navigate]);
+
+  const handleProductUpdated = () => {
+    console.log("ProductEditPage - Product updated successfully");
+    toast.success("Produit mis à jour avec succès");
+    navigate("/admin/catalog");
   };
 
-  const handleCopyId = () => {
-    if (id) {
-      navigator.clipboard.writeText(id);
-      toast.success("ID copié dans le presse-papier");
-    }
-  };
-  
-  const handleImageChange = (images: any[]) => {
-    console.log("Images mises à jour:", images);
-  };
-  
-  const handleSetMainImage = async (imageUrl: string) => {
-    if (!id) return;
-    
-    try {
-      setUpdatingMainImage(true);
-      toast.loading("Mise à jour de l'image principale...");
-      
-      const result = await updateMutation.mutateAsync({
-        image_url: imageUrl
-      });
-      
-      updateLocalProduct({ image_url: imageUrl });
-      
-      toast.dismiss();
-      toast.success("Image principale définie avec succès");
-    } catch (error) {
-      console.error("Error setting main image:", error);
-      toast.dismiss();
-      toast.error("Erreur lors de la définition de l'image principale");
-    } finally {
-      setUpdatingMainImage(false);
-    }
+  const handleCancel = () => {
+    console.log("ProductEditPage - Cancel edit, navigating back to catalog");
+    navigate("/admin/catalog");
   };
 
-  const handleAdminOnlyChange = (checked: boolean) => {
-    console.log("Admin only switch changed to:", checked);
-    
-    setFormData(prev => ({ ...prev, admin_only: checked }));
-    
-    if (id) {
-      toast.loading("Mise à jour du statut admin...");
-      updateMutation.mutate({ 
-        admin_only: checked 
-      }, {
-        onSuccess: () => {
-          toast.dismiss();
-          toast.success(`Produit ${checked ? 'réservé' : 'accessible'} aux administrateurs`);
-        },
-        onError: (err) => {
-          toast.dismiss();
-          toast.error(`Erreur lors de la mise à jour: ${err.message}`);
-          setFormData(prev => ({ ...prev, admin_only: !checked }));
-        }
-      });
-    }
-  };
-
+  // Show loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Chargement du produit...</span>
+          </div>
+        </Container>
+      </PageTransition>
     );
   }
-  
-  if (error) {
+
+  // Show error state if there's an error or product not found after loading
+  if (hasAttemptedLoad && (error || !product)) {
     return (
-      <div className="p-4 text-red-500">
-        Erreur: {(error as Error).message}
-      </div>
+      <PageTransition>
+        <Container>
+          <div className="py-6">
+            <div className="flex items-center mb-6">
+              <Button
+                variant="ghost"
+                onClick={handleCancel}
+                className="mr-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour
+              </Button>
+              <h1 className="text-2xl font-bold">Modifier le produit</h1>
+            </div>
+
+            <Alert variant="destructive" className="max-w-2xl">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Produit introuvable</AlertTitle>
+              <AlertDescription className="mt-2">
+                {error 
+                  ? `Erreur lors du chargement: ${error.message}`
+                  : `Le produit avec l'ID "${id}" n'a pas été trouvé ou vous n'avez pas les permissions pour y accéder.`
+                }
+              </AlertDescription>
+            </Alert>
+
+            <div className="mt-6 space-x-2">
+              <Button variant="outline" onClick={() => navigate("/admin/catalog")}>
+                Retour au catalogue
+              </Button>
+              {id && (
+                <Button onClick={() => window.location.reload()}>
+                  Réessayer
+                </Button>
+              )}
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
     );
   }
-  
+
+  // Render the product editor if everything is loaded successfully
+  if (product) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-6">
+            <div className="flex items-center mb-6">
+              <Button
+                variant="ghost"
+                onClick={handleCancel}
+                className="mr-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour
+              </Button>
+              <h1 className="text-2xl font-bold">Modifier le produit</h1>
+            </div>
+
+            <ProductEditor
+              isOpen={true}
+              onClose={handleCancel}
+              onSuccess={handleProductUpdated}
+              productToEdit={product}
+            />
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  // Fallback - should not reach here, but just in case
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/admin/catalog")}
-            className="mr-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
-          <h1 className="text-2xl font-bold">Modifier le produit</h1>
+    <PageTransition>
+      <Container>
+        <div className="flex items-center justify-center h-64">
+          <span>Chargement...</span>
         </div>
-      </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto mb-6">
-          <TabsTrigger value="details">
-            <Info className="h-4 w-4 mr-2" />
-            Informations
-          </TabsTrigger>
-          <TabsTrigger value="images">
-            <ImageIcon className="h-4 w-4 mr-2" />
-            Images
-          </TabsTrigger>
-          <TabsTrigger value="variants">
-            <Layers className="h-4 w-4 mr-2" />
-            Variantes
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations du produit</CardTitle>
-              <CardDescription>
-                Modifiez les informations de base du produit.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyId}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copier l'ID
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                      {id}
-                    </span>
-                  </div>
-                  
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-md bg-amber-50">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="h-5 w-5 text-amber-600" />
-                    <div>
-                      <h3 className="font-medium">Produit réservé aux administrateurs</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Si activé, ce produit sera visible uniquement pour les administrateurs et ambassadeurs
-                      </p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={!!formData.admin_only}
-                    onCheckedChange={handleAdminOnlyChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nom du produit</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name || ""}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="brand">Marque</Label>
-                  <Select 
-                    name="brand" 
-                    value={formData.brand || ""} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, brand: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une marque" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brandOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="category">Catégorie</Label>
-                  <Select 
-                    name="category" 
-                    value={formData.category || ""} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {productCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {categoryTranslations[cat] || cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Prix (€)</Label>
-                    <Input
-                      id="price"
-                      name="price"
-                      type="number"
-                      value={formData.price?.toString() || "0"}
-                      onChange={handleChange}
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="monthly_price">Mensualité (€/mois)</Label>
-                    <Input
-                      id="monthly_price"
-                      name="monthly_price"
-                      type="number"
-                      value={formData.monthly_price?.toString() || "0"}
-                      onChange={handleChange}
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input
-                    id="stock"
-                    name="stock"
-                    type="number"
-                    value={formData.stock?.toString() || "0"}
-                    onChange={handleChange}
-                    min="0"
-                    step="1"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description || ""}
-                    onChange={handleChange}
-                    rows={6}
-                  />
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button type="submit">
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer les modifications
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="images">
-          <Card>
-            <CardHeader>
-              <CardTitle>Images du produit</CardTitle>
-              <CardDescription>
-                Gérez les images du produit. Définissez une image principale en cliquant sur le bouton ✓.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {id && (
-                <ProductImageManager
-                  productId={id}
-                  onChange={handleImageChange}
-                  onSetMainImage={handleSetMainImage}
-                  currentMainImage={product?.image_url}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="variants">
-          <Card>
-            <CardHeader>
-              <CardTitle>Variantes du produit</CardTitle>
-              <CardDescription>
-                Gérez les variantes de ce produit.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {id && product && (
-                <ProductVariantManager
-                  product={product}
-                  onSuccess={() => {
-                    queryClient.invalidateQueries({ queryKey: ["product", id] });
-                  }}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+      </Container>
+    </PageTransition>
   );
 };
 
