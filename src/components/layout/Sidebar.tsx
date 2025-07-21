@@ -90,6 +90,16 @@ const Sidebar = memo(({ className }: SidebarProps) => {
               )}
             </div>
           )}
+          {/* Collapse Toggle Button intégré dans l'header */}
+          <button
+            onClick={toggleCollapsed}
+            className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200 ml-auto"
+          >
+            <ChevronRight className={cn(
+              "h-4 w-4 text-gray-600 transition-transform duration-200",
+              isCollapsed ? "rotate-0" : "rotate-180"
+            )} />
+          </button>
         </div>
       </div>
 
@@ -131,17 +141,6 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "w-16" : "w-64",
         className
       )}>
-        {/* Collapse Toggle - amélioration visuelle */}
-        <button
-          onClick={toggleCollapsed}
-          className="absolute -right-3 top-8 z-10 p-2 bg-white border border-gray-200/60 rounded-full shadow-lg hover:shadow-xl hover:bg-gray-50 transition-all duration-200"
-        >
-          <ChevronRight className={cn(
-            "h-4 w-4 text-gray-600 transition-transform duration-200",
-            isCollapsed ? "rotate-0" : "rotate-180"
-          )} />
-        </button>
-        
         <SidebarContent />
       </div>
 
