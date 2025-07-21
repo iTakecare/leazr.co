@@ -66,7 +66,8 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
     setIsUploading(true);
 
     try {
-      const imageUrl = await uploadImage(file, "products", `product-${product.id}`);
+      // Corrected: Use the existing multi-tenant bucket "product-images"
+      const imageUrl = await uploadImage(file, "product-images", `product-${product.id}`);
       
       if (imageUrl) {
         console.log("📸 Image uploaded successfully:", imageUrl);
