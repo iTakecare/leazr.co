@@ -25,6 +25,10 @@ import PublicSlugProductDetails from "@/components/public/PublicSlugProductDetai
 import PublicSlugCart from "@/components/public/PublicSlugCart";
 import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
 
+// Admin pages
+import Dashboard from "@/pages/Dashboard";
+import AdminChatPage from "@/pages/AdminChatPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -44,26 +48,32 @@ function App() {
               <SubdomainProvider>
                 <CompanyBrandingProvider>
                   <CartProvider>
-                  <Routes>
-                    {/* PRIORITY: Company slug-based routes - MUST be first */}
-                    <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
-                    <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
-                    <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
-                    <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
-                    
-                    {/* Authentication routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    
-                    {/* Public routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
-                    <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
-                    
-                    {/* Protected routes */}
-                    <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>} />
-                    
-                  </Routes>
+                    <Routes>
+                      {/* PRIORITY: Company slug-based routes - MUST be first */}
+                      <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
+                      <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
+                      <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+                      <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
+                      
+                      {/* Authentication routes */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      
+                      {/* Public routes */}
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
+                      <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
+                      
+                      {/* Protected routes */}
+                      <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+                        {/* Admin routes */}
+                        <Route path="/admin/dashboard" element={<Dashboard />} />
+                        <Route path="/admin/chat" element={<AdminChatPage />} />
+                        
+                        {/* Default dashboard route */}
+                        <Route path="/dashboard" element={<Dashboard />} />
+                      </Route>
+                    </Routes>
                   </CartProvider>
                 </CompanyBrandingProvider>
               </SubdomainProvider>
