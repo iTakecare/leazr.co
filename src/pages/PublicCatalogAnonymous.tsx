@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import ProductGrid from "@/components/catalog/ProductGrid";
-import { getProducts } from "@/services/catalogService";
+import { getPublicProducts } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,7 +49,7 @@ const PublicCatalogAnonymous = () => {
   // Fetch products data
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: ['public-products', companyId],
-    queryFn: () => getProducts(),
+    queryFn: () => getPublicProducts(companyId!),
     enabled: !!companyId,
   });
 

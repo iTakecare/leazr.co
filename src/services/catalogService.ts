@@ -74,6 +74,62 @@ export const getProducts = async (includeAdminOnly?: boolean | { includeAdminOnl
 };
 
 /**
+ * Récupère les produits publics pour une entreprise spécifique (sans authentification)
+ */
+export const getPublicProducts = async (companyId: string) => {
+  try {
+    console.log("🛒 PUBLIC CATALOG - Début getPublicProducts pour company:", companyId);
+    
+    // Récupérer les produits publics uniquement (admin_only = false ou null)
+    const { data: productsData, error: productsError } = await supabase
+      .from("products")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("active", true)
+      .or('admin_only.is.null,admin_only.eq.false')
+      .order("created_at", { ascending: false });
+    
+    if (productsError) throw productsError;
+    
+    console.log(`🛒 PUBLIC CATALOG - Produits publics trouvés pour company ${companyId}:`, productsData?.length || 0);
+    
+    // Récupérer tous les prix de variantes pour ces produits
+    const productIds = productsData.map(p => p.id);
+    const { data: variantPricesData, error: variantPricesError } = await supabase
+      .from("product_variant_prices")
+      .select("*")
+      .in("product_id", productIds);
+    
+    if (variantPricesError) throw variantPricesError;
+    
+    // Associer les prix de variantes aux produits correspondants
+    const productsWithVariants = productsData.map((product) => {
+      // Filtrer les prix de variantes pour ce produit
+      const productVariantPrices = variantPricesData.filter((price) => price.product_id === product.id);
+      console.log(`Public Product ${product.name}: Found ${productVariantPrices.length} variant prices`);
+      
+      // Déterminer si c'est un produit parent
+      const isParent = product.is_parent || 
+                       productVariantPrices.length > 0 || 
+                       (product.variation_attributes && Object.keys(product.variation_attributes).length > 0);
+      
+      return {
+        ...product,
+        variant_combination_prices: productVariantPrices,
+        is_parent: isParent,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at
+      };
+    });
+    
+    return productsWithVariants;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des produits publics:", error);
+    throw error;
+  }
+};
+
+/**
  * Récupère un produit par son ID avec ses variantes et prix
  */
 export const getProductById = async (id: string) => {
