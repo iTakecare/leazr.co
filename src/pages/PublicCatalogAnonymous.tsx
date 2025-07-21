@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import ProductGrid from "@/components/catalog/ProductGrid";
+import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 import { getPublicProducts } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
@@ -67,14 +68,17 @@ const PublicCatalogAnonymous = () => {
   if (isLoadingCompanyId) {
     console.log('📱 PUBLIC CATALOG - Showing company detection loading');
     return (
-      <Container>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Détection de l'entreprise...</p>
+      <div className="min-h-screen bg-white">
+        <SimpleHeader />
+        <Container className="max-w-[1320px]">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Détection de l'entreprise...</p>
+            </div>
           </div>
-        </div>
-      </Container>
+        </Container>
+      </div>
     );
   }
 
@@ -82,16 +86,19 @@ const PublicCatalogAnonymous = () => {
   if (detectionError && !companyId) {
     console.error('📱 PUBLIC CATALOG - Company detection error:', detectionError);
     return (
-      <Container>
-        <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Erreur lors de la détection de l'entreprise. Veuillez réessayer.
-            <br />
-            <small>Erreur: {detectionError.message}</small>
-          </AlertDescription>
-        </Alert>
-      </Container>
+      <div className="min-h-screen bg-white">
+        <SimpleHeader />
+        <Container className="max-w-[1320px]">
+          <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Erreur lors de la détection de l'entreprise. Veuillez réessayer.
+              <br />
+              <small>Erreur: {detectionError.message}</small>
+            </AlertDescription>
+          </Alert>
+        </Container>
+      </div>
     );
   }
 
@@ -99,16 +106,19 @@ const PublicCatalogAnonymous = () => {
   if (!companyId && !isLoadingCompanyId) {
     console.warn('📱 PUBLIC CATALOG - No company detected');
     return (
-      <Container>
-        <Alert className="max-w-lg mx-auto mt-8">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Aucune entreprise trouvée pour cette URL.
-            <br />
-            <small>Slug recherché: {companySlug || 'N/A'}</small>
-          </AlertDescription>
-        </Alert>
-      </Container>
+      <div className="min-h-screen bg-white">
+        <SimpleHeader />
+        <Container className="max-w-[1320px]">
+          <Alert className="max-w-lg mx-auto mt-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Aucune entreprise trouvée pour cette URL.
+              <br />
+              <small>Slug recherché: {companySlug || 'N/A'}</small>
+            </AlertDescription>
+          </Alert>
+        </Container>
+      </div>
     );
   }
 
@@ -116,14 +126,17 @@ const PublicCatalogAnonymous = () => {
   if (isLoadingProducts) {
     console.log('📱 PUBLIC CATALOG - Showing products loading');
     return (
-      <Container>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Chargement du catalogue...</p>
+      <div className="min-h-screen bg-white">
+        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
+        <Container className="max-w-[1320px]">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Chargement du catalogue...</p>
+            </div>
           </div>
-        </div>
-      </Container>
+        </Container>
+      </div>
     );
   }
 
@@ -131,43 +144,50 @@ const PublicCatalogAnonymous = () => {
   if (productsError) {
     console.error('📱 PUBLIC CATALOG - Products error:', productsError);
     return (
-      <Container>
-        <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Erreur lors du chargement des produits.
-            <br />
-            <small>Erreur: {productsError.message}</small>
-          </AlertDescription>
-        </Alert>
-      </Container>
+      <div className="min-h-screen bg-white">
+        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
+        <Container className="max-w-[1320px]">
+          <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Erreur lors du chargement des produits.
+              <br />
+              <small>Erreur: {productsError.message}</small>
+            </AlertDescription>
+          </Alert>
+        </Container>
+      </div>
     );
   }
 
   console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', products?.length || 0);
 
   return (
-    <Container className="py-6">
-      <div className="space-y-8">
-        <CatalogHeader 
-          companyName={company?.name}
-          companyLogo={company?.logo_url}
-        />
-        
-        {/* Debug info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-gray-100 p-4 rounded text-xs">
-            <strong>Debug Info:</strong><br />
-            Company ID: {companyId}<br />
-            Company: {company?.name}<br />
-            Products: {products?.length || 0}<br />
-            Slug: {companySlug}
-          </div>
-        )}
-        
-        <ProductGrid products={products || []} />
-      </div>
-    </Container>
+    <div className="min-h-screen bg-white">
+      <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
+      
+      <Container className="py-6 max-w-[1320px]">
+        <div className="space-y-8">
+          <CatalogHeader 
+            companyName={company?.name}
+            companyLogo={company?.logo_url}
+          />
+          
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-gray-100 p-4 rounded text-xs">
+              <strong>Debug Info:</strong><br />
+              Company ID: {companyId}<br />
+              Company: {company?.name}<br />
+              Products: {products?.length || 0}<br />
+              Slug: {companySlug}
+            </div>
+          )}
+          
+          <ProductGrid products={products || []} />
+        </div>
+      </Container>
+    </div>
   );
 };
 
