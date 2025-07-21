@@ -15,58 +15,81 @@ const ProductEditPage = () => {
   const navigate = useNavigate();
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("ProductEditPage - Mounted with ID:", id);
-    console.log("ProductEditPage - Current route:", window.location.pathname);
-  }, [id]);
+  console.log("📄 ProductEditPage - Component mounted", { id, currentPath: window.location.pathname });
 
-  const { product, isLoading, error } = useProductById(id);
-
-  // Track when we've attempted to load
+  // Validation de l'ID en paramètre
   useEffect(() => {
-    if (!isLoading) {
-      setHasAttemptedLoad(true);
-    }
-  }, [isLoading]);
-
-  // Handle navigation validation
-  useEffect(() => {
+    console.log("📄 ProductEditPage - ID validation", { id });
     if (!id) {
-      console.error("ProductEditPage - No ID provided");
+      console.error("📄 ProductEditPage - No ID provided in URL");
       toast.error("ID de produit manquant");
       navigate("/admin/catalog");
       return;
     }
+    console.log("📄 ProductEditPage - ID validation passed:", id);
   }, [id, navigate]);
 
+  const { product, isLoading, error } = useProductById(id);
+
+  console.log("📄 ProductEditPage - Data state", { 
+    hasProduct: !!product, 
+    isLoading, 
+    hasError: !!error,
+    productId: product?.id,
+    productName: product?.name
+  });
+
+  // Marquer qu'on a tenté de charger
+  useEffect(() => {
+    if (!isLoading) {
+      console.log("📄 ProductEditPage - Loading completed, setting hasAttemptedLoad");
+      setHasAttemptedLoad(true);
+    }
+  }, [isLoading]);
+
   const handleProductUpdated = () => {
-    console.log("ProductEditPage - Product updated successfully");
+    console.log("📄 ProductEditPage - Product updated successfully");
     toast.success("Produit mis à jour avec succès");
     navigate("/admin/catalog");
   };
 
   const handleCancel = () => {
-    console.log("ProductEditPage - Cancel edit, navigating back to catalog");
+    console.log("📄 ProductEditPage - Cancel edit, navigating back to catalog");
     navigate("/admin/catalog");
   };
 
-  // Show loading state
+  // État de chargement initial
   if (isLoading) {
+    console.log("📄 ProductEditPage - Showing loading state");
     return (
       <PageTransition>
         <Container>
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Chargement du produit...</span>
+          <div className="py-6">
+            <div className="flex items-center mb-6">
+              <Button
+                variant="ghost"
+                onClick={handleCancel}
+                className="mr-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour
+              </Button>
+              <h1 className="text-2xl font-bold">Modifier le produit</h1>
+            </div>
+            
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Chargement du produit...</span>
+            </div>
           </div>
         </Container>
       </PageTransition>
     );
   }
 
-  // Show error state if there's an error or product not found after loading
+  // État d'erreur après tentative de chargement
   if (hasAttemptedLoad && (error || !product)) {
+    console.log("📄 ProductEditPage - Showing error state", { error: error?.message, hasProduct: !!product });
     return (
       <PageTransition>
         <Container>
@@ -110,8 +133,9 @@ const ProductEditPage = () => {
     );
   }
 
-  // Render the product editor if everything is loaded successfully
+  // Rendu principal avec le produit chargé
   if (product) {
+    console.log("📄 ProductEditPage - Rendering ProductEditor with product:", product.name);
     return (
       <PageTransition>
         <Container>
@@ -140,7 +164,8 @@ const ProductEditPage = () => {
     );
   }
 
-  // Fallback - should not reach here, but just in case
+  // Fallback - ne devrait pas arriver
+  console.log("📄 ProductEditPage - Fallback state reached");
   return (
     <PageTransition>
       <Container>
