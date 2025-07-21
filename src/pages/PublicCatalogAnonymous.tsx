@@ -1,12 +1,16 @@
-import React, { useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import PublicCatalogSidebar from "@/components/catalog/public/filters/PublicCatalogSidebar";
+import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import { getPublicProducts } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
+import { usePublicProductFilter } from "@/hooks/products/usePublicProductFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useParams, useLocation } from "react-router-dom";
@@ -15,6 +19,7 @@ const PublicCatalogAnonymous = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const { companySlug } = useParams<{ companySlug: string }>();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   console.log('📱 PUBLIC CATALOG - Component rendered with:', {
     companySlug,
@@ -53,11 +58,30 @@ const PublicCatalogAnonymous = () => {
     enabled: !!companyId,
   });
 
+  // Initialize filters
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    priceRange,
+    setPriceRange,
+    isPriceFilterActive,
+    selectedBrands,
+    setSelectedBrands,
+    filteredProducts,
+    categories,
+    brands,
+    priceRangeLimits,
+    resetFilters
+  } = usePublicProductFilter(products);
+
   // For now, we'll get company info from the detection hook result
   const company = detectedSlug ? { name: detectedSlug, logo_url: undefined } : null;
 
   console.log('📱 PUBLIC CATALOG - Products data:', {
     productsCount: products?.length || 0,
+    filteredCount: filteredProducts?.length || 0,
     company: company?.name,
     isLoadingProducts,
     productsError
@@ -159,23 +183,51 @@ const PublicCatalogAnonymous = () => {
     );
   }
 
-  console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', products?.length || 0);
+  console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', filteredProducts?.length || 0);
 
   return (
     <div className="min-h-screen bg-white">
       <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
       
-      <Container className="py-6 max-w-[1320px]">
-        <div className="space-y-8">
-          <CatalogHeader 
-            companyName={company?.name}
-            companyLogo={company?.logo_url}
-          />
-          
-          
-          <PublicProductGrid products={products || []} />
-        </div>
-      </Container>
+      <FilterMobileToggle
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        resultsCount={filteredProducts.length}
+      />
+      
+      <div className="flex">
+        <PublicCatalogSidebar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          priceRange={priceRange}
+          priceRangeLimits={priceRangeLimits}
+          onPriceRangeChange={setPriceRange}
+          isPriceFilterActive={isPriceFilterActive}
+          brands={brands}
+          selectedBrands={selectedBrands}
+          onBrandChange={setSelectedBrands}
+          onResetFilters={resetFilters}
+          resultsCount={filteredProducts.length}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+        
+        <main className="flex-1 lg:ml-0">
+          <Container className="py-6 max-w-[1200px]">
+            <div className="space-y-8">
+              <CatalogHeader 
+                companyName={company?.name}
+                companyLogo={company?.logo_url}
+              />
+              
+              <PublicProductGrid products={filteredProducts} />
+            </div>
+          </Container>
+        </main>
+      </div>
     </div>
   );
 };
