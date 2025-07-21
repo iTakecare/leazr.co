@@ -69,7 +69,7 @@ const EquipmentTracking: React.FC = () => {
       item.to_location?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = filterType === "all" || item.movement_type === filterType;
-    const matchesEquipment = !selectedEquipment || item.equipment_id === selectedEquipment;
+    const matchesEquipment = !selectedEquipment || selectedEquipment === "all" || item.equipment_id === selectedEquipment;
     
     return matchesSearch && matchesFilter && matchesEquipment;
   });
@@ -294,7 +294,7 @@ const EquipmentTracking: React.FC = () => {
                 <SelectValue placeholder="Tous les équipements" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les équipements</SelectItem>
+                <SelectItem value="all">Tous les équipements</SelectItem>
                 {products.map((product: any) => (
                   <SelectItem key={product.id} value={product.id}>
                     {product.name}
