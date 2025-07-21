@@ -2,10 +2,9 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Package } from "lucide-react";
+import { Award, Folder } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import CategoryManager from "@/components/catalog/CategoryManager";
-import InventoryManagement from "@/components/inventory/InventoryManagement";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -45,10 +44,6 @@ const CatalogManagement = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4 w-full justify-start mobile-tabs-full">
             <TabsTrigger value="catalog">Catalogue</TabsTrigger>
-            <TabsTrigger value="inventory">
-              <Package className={isMobile ? "" : "mr-2 h-4 w-4"} />
-              {isMobile ? "Inventaire" : <span>Inventaire</span>}
-            </TabsTrigger>
             <TabsTrigger value="categories">
               <Folder className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Catégories" : <span>Catégories</span>}
@@ -84,10 +79,6 @@ const CatalogManagement = () => {
                 />
               </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="inventory">
-            <InventoryManagement />
           </TabsContent>
           
           <TabsContent value="categories">
