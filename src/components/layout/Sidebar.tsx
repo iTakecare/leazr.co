@@ -1,4 +1,3 @@
-
 import React, { useState, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -67,27 +66,21 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
   const SidebarContent = memo(() => (
     <div className="flex flex-col h-full bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl">
-      {/* Header avec logo - amélioration du contraste */}
+      {/* Header avec logo - layout adapté pour collapsed */}
       <div className={cn(
         "border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
         isCollapsed ? "p-2" : "p-4"
       )}>
         {isCollapsed ? (
-          // Mode collapsed : seulement le logo centré et bouton de toggle
-          <div className="flex flex-col items-center gap-2">
+          // Mode collapsed : logo centré uniquement
+          <div className="flex flex-col items-center">
             <CompanyLogo 
               logoSize="sm"
-              className="transition-all duration-300"
+              className="transition-all duration-300 w-10 h-10"
             />
-            <button
-              onClick={toggleCollapsed}
-              className="hidden lg:flex p-1 bg-white/80 border border-gray-200/60 rounded-md shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
-            >
-              <ChevronRight className="h-3 w-3 text-gray-600 transition-transform duration-200" />
-            </button>
           </div>
         ) : (
-          // Mode étendu : layout normal
+          // Mode étendu : layout complet avec bouton
           <div className="flex items-center gap-3">
             <CompanyLogo 
               logoSize="sm"
@@ -111,12 +104,12 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         )}
       </div>
 
-      {/* Navigation avec espacement amélioré */}
+      {/* Navigation avec espacement adapté */}
       <nav className={cn(
         "flex-1 overflow-y-auto",
-        isCollapsed ? "p-2" : "p-4"
+        isCollapsed ? "px-1 py-2" : "p-4"
       )}>
-        <ul className="space-y-2">
+        <ul className={cn("space-y-1", isCollapsed ? "" : "space-y-2")}>
           {menuItems.map((item) => (
             <SidebarMenuItem
               key={item.href}
@@ -129,6 +122,18 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         </ul>
       </nav>
 
+      {/* Bouton de collapse en bas en mode collapsed */}
+      {isCollapsed && (
+        <div className="p-2 border-t border-gray-200/60">
+          <button
+            onClick={toggleCollapsed}
+            className="hidden lg:flex w-full justify-center p-2 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+          >
+            <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200" />
+          </button>
+        </div>
+      )}
+
       {/* User Section avec meilleur contraste */}
       <div className="border-t border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-blue-50/80">
         <SidebarUserSection collapsed={isCollapsed} />
@@ -138,7 +143,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
   return (
     <>
-      {/* Mobile Toggle Button - amélioration visuelle */}
+      {/* Mobile Toggle Button */}
       <button
         onClick={toggleMobile}
         className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-all duration-200"
@@ -146,7 +151,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         {isMobileOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
       </button>
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar avec largeurs fixes */}
       <div className={cn(
         "hidden lg:flex flex-col transition-all duration-300 ease-in-out",
         isCollapsed ? "w-16" : "w-64",

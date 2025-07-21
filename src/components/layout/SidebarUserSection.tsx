@@ -40,13 +40,13 @@ const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
 
   if (collapsed) {
     return (
-      <div className="p-2 border-t border-gray-200">
+      <div className="p-2">
         <div className="flex flex-col items-center gap-2">
-          <NavbarUserProfile 
-            user={user}
-            avatarUrl={null}
-            getUserInitials={getUserInitials}
-          />
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-xs font-semibold text-primary">
+              {getUserInitials()}
+            </span>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -61,7 +61,7 @@ const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
   }
 
   return (
-    <div className="p-4 border-t border-gray-200">
+    <div className="p-4">
       <div className="flex items-center justify-between mb-3">
         <NavbarUserProfile 
           user={user}
