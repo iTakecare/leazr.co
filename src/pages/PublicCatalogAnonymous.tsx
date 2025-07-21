@@ -19,7 +19,9 @@ const PublicCatalogAnonymous = () => {
   console.log('📱 PUBLIC CATALOG - Component rendered with:', {
     companySlug,
     pathname: location.pathname,
-    search: location.search
+    search: location.search,
+    origin: window.location.origin,
+    href: window.location.href
   });
 
   // Force detection to run
