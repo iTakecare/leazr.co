@@ -27,10 +27,8 @@ const ProductFormImagesTab: React.FC<ProductFormImagesTabProps> = ({
       <CardContent>
         {isEditMode && productToEdit ? (
           <ProductImageManager 
-            productId={productToEdit.id}
-            initialImages={productToEdit.image_urls || []}
-            mainImageUrl={productToEdit.image_url}
-            onImageUpdate={(mainImageUrl, allImageUrls) => onImageUpdate?.(mainImageUrl)}
+            product={productToEdit}
+            onImageUpdate={onImageUpdate}
           />
         ) : (
           <div className="text-center py-12">
