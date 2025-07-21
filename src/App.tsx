@@ -28,6 +28,7 @@ import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
 // Admin pages
 import Dashboard from "@/pages/Dashboard";
 import AdminChatPage from "@/pages/AdminChatPage";
+import Layout from "@/components/layout/Layout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,12 +67,12 @@ function App() {
                       
                       {/* Protected routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
-                        {/* Admin routes */}
-                        <Route path="/admin/dashboard" element={<Dashboard />} />
-                        <Route path="/admin/chat" element={<AdminChatPage />} />
+                        {/* Admin routes with Layout */}
+                        <Route path="/admin/dashboard" element={<Layout><Dashboard /></Layout>} />
+                        <Route path="/admin/chat" element={<Layout><AdminChatPage /></Layout>} />
                         
                         {/* Default dashboard route */}
-                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                       </Route>
                     </Routes>
                   </CartProvider>
