@@ -24,14 +24,14 @@ const PublicSlugProductDetails = () => {
   
   console.log('🏪 PUBLIC SLUG PRODUCT - Component rendered with:', { companySlug, productId });
   
-  // Fetch company by slug
+  // Fetch company by slug using public function
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
-    queryKey: ['company-by-slug', companySlug],
+    queryKey: ['public-company-info', companySlug],
     queryFn: async () => {
       if (!companySlug) return null;
       
       const { data, error } = await supabase
-        .rpc('get_company_by_slug', { company_slug: companySlug });
+        .rpc('get_public_company_info', { company_slug: companySlug });
       
       if (error) throw error;
       return data && data.length > 0 ? data[0] : null;
