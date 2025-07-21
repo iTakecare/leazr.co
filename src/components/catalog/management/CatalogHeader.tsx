@@ -14,9 +14,12 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({ onAddNewProduct }) => {
   const { companyId } = useMultiTenant();
   
   const handleViewPublicCatalog = () => {
-    if (companyId) {
-      // Ouvrir le catalogue anonyme de l'entreprise actuelle
-      window.open(`/catalog/anonymous/${companyId}`, "_blank");
+    if (companyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0') {
+      // Pour iTakecare, utiliser directement le slug
+      window.open(`/itakecare/catalog`, "_blank");
+    } else if (companyId) {
+      // Pour les autres entreprises, utiliser l'URL avec ID
+      window.open(`/public/${companyId}/catalog`, "_blank");
     } else {
       // Fallback vers le catalogue multi-tenant authentifié
       window.open("/catalog", "_blank");
