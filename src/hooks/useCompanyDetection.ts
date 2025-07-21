@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 
@@ -10,10 +10,20 @@ export const useCompanyDetection = () => {
     companySlug: string; 
   }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { detectCompany } = useCustomAuth();
   
   const companyParam = searchParams.get('company');
   const companySlugParam = searchParams.get('slug');
+  
+  console.log('🔍 COMPANY DETECTION - Hook triggered with:', {
+    urlCompanyId,
+    companySlug,
+    companyParam,
+    companySlugParam,
+    pathname: location.pathname,
+    origin: window.location.origin
+  });
   
   const resolveCompanyId = async (): Promise<string | null> => {
     console.log('🔍 COMPANY DETECTION - Starting detection', {
@@ -128,9 +138,13 @@ export const useCompanyDetection = () => {
     return null;
   };
 
+  // Force the query to run even when parameters are null by making the key more dynamic
+  const shouldRun = urlCompanyId || companySlug || companyParam || companySlugParam || location.pathname.includes('/');
+  
   const { data: companyId, isLoading: isLoadingCompanyId, error: detectionError } = useQuery({
-    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam, window.location.origin],
+    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam, location.pathname, window.location.origin],
     queryFn: resolveCompanyId,
+    enabled: shouldRun,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
     retryDelay: 1000,
@@ -140,7 +154,8 @@ export const useCompanyDetection = () => {
     companyId,
     isLoadingCompanyId,
     detectionError,
-    companySlug
+    companySlug,
+    shouldRun
   });
 
   return {

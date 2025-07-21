@@ -1,388 +1,167 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Package, Laptop, Monitor, Smartphone, Printer, Star, ShoppingCart, Search, Filter, SlidersHorizontal, Phone, Mail, ExternalLink, AlertCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
+import React, { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
-import CatalogProductCard from "@/components/ui/CatalogProductCard";
-import { Product } from "@/types/catalog";
-import { useCart } from "@/context/CartContext";
-import CompanyLogo from "@/components/layout/CompanyLogo";
-import { PublicChatWidget } from "@/components/catalog/public/PublicChatWidget";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import ProductGrid from "@/components/catalog/ProductGrid";
+import { usePublicCatalog } from "@/hooks/catalog/usePublicCatalog";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useParams, useLocation } from "react-router-dom";
 
 const PublicCatalogAnonymous = () => {
-  const navigate = useNavigate();
-  const { cartCount } = useCart();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tout");
-
-  // Use the company detection hook
-  const { companyId, companySlug, isLoadingCompanyId, detectionError } = useCompanyDetection();
-
-  console.log('📄 PUBLIC CATALOG - Component state:', {
-    companyId,
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  console.log('📱 PUBLIC CATALOG - Component rendered with:', {
     companySlug,
-    isLoadingCompanyId,
+    pathname: location.pathname,
+    search: location.search
+  });
+
+  // Force detection to run
+  const { 
+    companyId, 
+    isLoadingCompanyId, 
     detectionError,
-    pathname: window.location.pathname
-  });
+    companySlug: detectedSlug
+  } = useCompanyDetection();
 
-  const handleCartClick = () => {
-    if (companyId && companySlug) {
-      navigate(`/${companySlug}/panier`);
-    } else if (companyId) {
-      navigate(`/public/${companyId}/panier`);
-    }
-  };
-
-  // Fetch company info with branding
-  const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
-    queryKey: ["company", companyId],
-    queryFn: async () => {
-      if (!companyId) return null;
-      
-      console.log('🏢 COMPANY FETCH - Starting fetch for ID:', companyId);
-      
-      const { data, error } = await supabase
-        .from("companies")
-        .select("*")
-        .eq("id", companyId)
-        .single();
-      
-      console.log('🏢 COMPANY FETCH - Result:', { data, error });
-      
-      if (error) throw error;
-      
-      // Apply company branding if colors are defined
-      if (data && (data.primary_color || data.secondary_color || data.accent_color)) {
-        console.log('🎨 APPLYING BRANDING - Company colors:', {
-          primary: data.primary_color,
-          secondary: data.secondary_color,
-          accent: data.accent_color
-        });
-        
-        CompanyCustomizationService.applyCompanyBranding({
-          company_id: companyId,
-          primary_color: data.primary_color || "#3b82f6",
-          secondary_color: data.secondary_color || "#64748b",
-          accent_color: data.accent_color || "#8b5cf6",
-          logo_url: data.logo_url || ""
-        });
-      }
-      
-      return data;
-    },
-    enabled: !!companyId,
-    retry: 2,
-    retryDelay: 1000,
-  });
-
-  // Fetch products for this company (public only)
-  const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
-    queryKey: ["products", "public", companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      
-      console.log('📦 PRODUCTS FETCH - Starting fetch for company:', companyId);
-      
-      const { data, error } = await supabase
-        .from("products")
-        .select(`
-          *,
-          variant_combination_prices:product_variant_prices(*)
-        `)
-        .eq("company_id", companyId)
-        .or('admin_only.is.null,admin_only.eq.false')
-        .order("created_at", { ascending: false });
-      
-      console.log('📦 PRODUCTS FETCH - Result:', { 
-        data, 
-        error, 
-        count: data?.length || 0 
-      });
-      
-      if (error) throw error;
-      return data as Product[];
-    },
-    enabled: !!companyId,
-    retry: 2,
-    retryDelay: 1000,
-  });
-
-  // Filter products
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = !searchQuery || 
-      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "Tout" || product.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
-
-  // Calculate categories
-  const categories = [
-    { name: "Tout", icon: Package, count: products.length },
-    { name: "laptop", icon: Laptop, count: products.filter(p => p.category === "laptop").length },
-    { name: "desktop", icon: Monitor, count: products.filter(p => p.category === "desktop").length },
-    { name: "tablet", icon: Smartphone, count: products.filter(p => p.category === "tablet").length },
-    { name: "printer", icon: Printer, count: products.filter(p => p.category === "printer").length }
-  ];
-
-  console.log('📊 CATALOG STATE - Final state:', {
-    isLoadingCompanyId,
-    isLoadingCompany,
-    isLoadingProducts,
+  console.log('📱 PUBLIC CATALOG - Company detection result:', {
     companyId,
-    companyName: company?.name,
-    productsCount: products.length,
-    filteredProductsCount: filteredProducts.length,
+    isLoadingCompanyId,
     detectionError,
-    companyError,
+    detectedSlug
+  });
+
+  // Clear potentially stale cache when component mounts or company changes
+  useEffect(() => {
+    console.log('📱 PUBLIC CATALOG - Clearing stale cache for company change');
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.removeQueries({ queryKey: ['products'] });
+  }, [companyId, queryClient]);
+
+  const { 
+    products, 
+    company, 
+    isLoading: isLoadingProducts, 
+    error: productsError 
+  } = usePublicCatalog(companyId);
+
+  console.log('📱 PUBLIC CATALOG - Products data:', {
+    productsCount: products?.length || 0,
+    company: company?.name,
+    isLoadingProducts,
     productsError
   });
 
   // Loading state
   if (isLoadingCompanyId) {
+    console.log('📱 PUBLIC CATALOG - Showing company detection loading');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Détection de l'entreprise...</h3>
-            <p className="text-muted-foreground text-center">
-              Veuillez patienter pendant que nous identifions votre entreprise.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Container>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Détection de l'entreprise...</p>
+          </div>
+        </div>
+      </Container>
     );
   }
 
-  // Error state for company detection
-  if (detectionError) {
+  // Company detection error
+  if (detectionError && !companyId) {
+    console.error('📱 PUBLIC CATALOG - Company detection error:', detectionError);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Erreur de détection</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Impossible de détecter l'entreprise. Erreur: {detectionError.message}
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Réessayer
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Container>
+        <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Erreur lors de la détection de l'entreprise. Veuillez réessayer.
+            <br />
+            <small>Erreur: {detectionError.message}</small>
+          </AlertDescription>
+        </Alert>
+      </Container>
     );
   }
 
   // No company found
-  if (!companyId) {
+  if (!companyId && !isLoadingCompanyId) {
+    console.warn('📱 PUBLIC CATALOG - No company detected');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="h-12 w-12 text-destructive mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Entreprise non trouvée</h3>
-            <p className="text-muted-foreground text-center">
-              L'identifiant de l'entreprise est manquant ou invalide.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Slug recherché: {companySlug || 'N/A'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Container>
+        <Alert className="max-w-lg mx-auto mt-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Aucune entreprise trouvée pour cette URL.
+            <br />
+            <small>Slug recherché: {companySlug || 'N/A'}</small>
+          </AlertDescription>
+        </Alert>
+      </Container>
     );
   }
 
-  // Loading company data
-  if (isLoadingCompany) {
+  // Products loading
+  if (isLoadingProducts) {
+    console.log('📱 PUBLIC CATALOG - Showing products loading');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Chargement de l'entreprise...</h3>
-            <p className="text-muted-foreground text-center">
-              Récupération des informations de l'entreprise.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Container>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Chargement du catalogue...</p>
+          </div>
+        </div>
+      </Container>
     );
   }
 
-  // Company error
-  if (companyError) {
+  // Products error
+  if (productsError) {
+    console.error('📱 PUBLIC CATALOG - Products error:', productsError);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Erreur de chargement</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Impossible de charger les données de l'entreprise.
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Réessayer
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Container>
+        <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Erreur lors du chargement des produits.
+            <br />
+            <small>Erreur: {productsError.message}</small>
+          </AlertDescription>
+        </Alert>
+      </Container>
     );
   }
+
+  console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', products?.length || 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
-      
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Hero Header */}
+    <Container className="py-6">
+      <div className="space-y-8">
         <CatalogHeader 
           companyName={company?.name}
           companyLogo={company?.logo_url}
         />
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Rechercher un produit, une marque..."
-                className="pl-10 h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="h-4 w-4" />
-                Filtrer
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <SlidersHorizontal className="h-4 w-4" />
-                Trier par
-              </Button>
-            </div>
-          </div>
-
-          {/* Category filters */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category.name}
-                variant={selectedCategory === category.name ? "default" : "outline"}
-                onClick={() => setSelectedCategory(category.name)}
-                className="gap-2 rounded-full"
-                size="sm"
-              >
-                <category.icon className="h-4 w-4" />
-                {category.name === "Tout" ? "Tous les produits" : category.name}
-                {category.count > 0 && (
-                  <Badge variant="secondary" className="ml-1 rounded-full text-xs">
-                    {category.count}
-                  </Badge>
-                )}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Products grid */}
-        {isLoadingProducts ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader className="p-4">
-                  <div className="w-full h-48 bg-muted rounded-md"></div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="h-4 bg-muted rounded mb-2"></div>
-                  <div className="h-3 bg-muted rounded mb-2"></div>
-                  <div className="h-8 bg-muted rounded"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : productsError ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Erreur de chargement</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Impossible de charger les produits. Veuillez réessayer.
-              </p>
-              <Button onClick={() => window.location.reload()}>
-                Réessayer
-              </Button>
-            </CardContent>
-          </Card>
-        ) : filteredProducts.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Aucun produit trouvé</h3>
-              <p className="text-muted-foreground text-center">
-                {searchQuery 
-                  ? "Aucun produit ne correspond à votre recherche."
-                  : "Aucun produit disponible dans cette catégorie."
-                }
-              </p>
-              {products.length > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Total des produits disponibles: {products.length}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {filteredProducts.map((product) => (
-              <CatalogProductCard
-                key={product.id}
-                product={product}
-                onClick={() => {
-                  // Navigate to product detail - prefer slug-based URLs
-                  if (companySlug) {
-                    navigate(`/${companySlug}/products/${product.id}`);
-                  } else {
-                    navigate(`/public/${companyId}/products/${product.id}`);
-                  }
-                }}
-              />
-            ))}
+        
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-gray-100 p-4 rounded text-xs">
+            <strong>Debug Info:</strong><br />
+            Company ID: {companyId}<br />
+            Company: {company?.name}<br />
+            Products: {products?.length || 0}<br />
+            Slug: {companySlug}
           </div>
         )}
-
-        {/* Footer */}
-        <footer className="text-center py-8 text-muted-foreground">
-          <p>© {new Date().getFullYear()} {company?.name}. Tous droits réservés.</p>
-        </footer>
+        
+        <ProductGrid products={products || []} />
       </div>
-
-      {/* Public Chat Widget */}
-      {companyId && (
-        <PublicChatWidget 
-          companyId={companyId}
-        />
-      )}
-    </div>
+    </Container>
   );
 };
 

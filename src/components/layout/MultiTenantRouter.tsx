@@ -117,12 +117,12 @@ const MultiTenantRouter = () => {
           <Route path="/panier" element={<PublicCartPage />} />
           <Route path="/demande" element={<PublicRequestPage />} />
           
-          {/* Nouvelles routes avec slug d'entreprise */}
-          <Route path="/:companySlug" element={<SmartCompanyPage />} />
+          {/* Nouvelles routes avec slug d'entreprise - PRIORITÉ HAUTE */}
           <Route path="/:companySlug/catalog" element={<PublicCatalogAnonymous />} />
           <Route path="/:companySlug/products/:id" element={<ProductDetailPage />} />
           <Route path="/:companySlug/panier" element={<PublicCartPage />} />
           <Route path="/:companySlug/demande" element={<PublicRequestPage />} />
+          <Route path="/:companySlug" element={<SmartCompanyPage />} />
           
           {/* Routes publiques pour les entreprises (avec ID explicite) */}
           <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
@@ -160,11 +160,15 @@ const SmartLandingPage = () => {
 const SmartCompanyPage = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   
+  console.log('🏢 SMART COMPANY PAGE - Rendering with slug:', companySlug);
+  
   // Chercher l'entreprise par son slug
   const { data: company, isLoading, error } = useQuery({
     queryKey: ['company-by-slug', companySlug],
     queryFn: async () => {
       if (!companySlug) return null;
+      
+      console.log('🏢 SMART COMPANY PAGE - Fetching company for slug:', companySlug);
       
       const { data, error } = await supabase
         .rpc('get_company_by_slug', { company_slug: companySlug });
@@ -187,6 +191,7 @@ const SmartCompanyPage = () => {
   }
   
   if (error || !company) {
+    console.error('🏢 SMART COMPANY PAGE - Error or no company:', { error, company });
     return <Navigate to="/" replace />;
   }
   
