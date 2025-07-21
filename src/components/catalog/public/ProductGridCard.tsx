@@ -144,7 +144,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   };
   
   const getCategoryLabel = (category: string | undefined) => {
-    if (!category) return "Autre";
+    if (!category) return "Équipement";
     
     const categoryMap: Record<string, string> = {
       laptop: "Ordinateur portable",
@@ -156,7 +156,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       accessories: "Accessoire"
     };
     
-    return categoryMap[category] || "Autre";
+    return categoryMap[category.toLowerCase()] || "Équipement";
   };
 
   const countExistingVariants = (): number => {
