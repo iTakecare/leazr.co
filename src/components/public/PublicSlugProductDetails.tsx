@@ -3,15 +3,13 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import ProductDetailPage from '@/pages/ProductDetailPage';
+import PublicProductDetail from './PublicProductDetail';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import Container from '@/components/layout/Container';
 
 const PublicSlugProductDetails = () => {
   const { companySlug, productId } = useParams<{ companySlug: string; productId: string }>();
-  
-  console.log('🏪 PUBLIC SLUG PRODUCT - Component rendered with:', { companySlug, productId });
   
   // Fetch company by slug
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
@@ -43,21 +41,28 @@ const PublicSlugProductDetails = () => {
   }
 
   // Error or not found
-  if (companyError || !company) {
+  if (companyError || !company || !productId) {
     return (
       <Container>
         <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Entreprise non trouvée pour le slug: {companySlug}
+            {!company ? `Entreprise non trouvée pour le slug: ${companySlug}` : 'Produit non trouvé'}
           </AlertDescription>
         </Alert>
       </Container>
     );
   }
 
-  // Render the actual product details using the existing ProductDetailPage
-  return <ProductDetailPage />;
+  // Render the public product detail component
+  return (
+    <PublicProductDetail
+      companyId={company.id}
+      companySlug={companySlug!}
+      productId={productId}
+      company={company}
+    />
+  );
 };
 
 export default PublicSlugProductDetails;

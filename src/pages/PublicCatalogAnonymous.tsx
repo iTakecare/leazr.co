@@ -172,16 +172,6 @@ const PublicCatalogAnonymous = () => {
             companyLogo={company?.logo_url}
           />
           
-          {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-gray-100 p-4 rounded text-xs">
-              <strong>Debug Info:</strong><br />
-              Company ID: {companyId}<br />
-              Company: {company?.name}<br />
-              Products: {products?.length || 0}<br />
-              Slug: {companySlug}
-            </div>
-          )}
           
           <PublicProductGrid products={products || []} />
         </div>
