@@ -56,7 +56,7 @@ const PublicCatalogAnonymous = () => {
   // Fetch products data
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: ['public-products', companyId],
-    queryFn: () => getPublicProducts(companyId!),
+    queryFn: () => getPublicProducts(),
     enabled: !!companyId,
   });
 

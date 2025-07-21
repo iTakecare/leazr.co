@@ -161,7 +161,7 @@ const ProductDetail: React.FC = () => {
   
   const imageUploadMutation = useMutation({
     mutationFn: ({ file, id, isMain = false }: { file: File; id: string; isMain?: boolean }) => 
-      uploadProductImage(file, id, isMain),
+      uploadProductImage(file, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       setImageFiles([]);
@@ -177,7 +177,7 @@ const ProductDetail: React.FC = () => {
   
   const convertToParentMutation = useMutation({
     mutationFn: ({ productId, modelName }: { productId: string, modelName: string }) => 
-      convertProductToParent(productId, modelName),
+      convertProductToParent(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["products"] });

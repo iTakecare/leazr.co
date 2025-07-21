@@ -166,7 +166,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
     setIsUploading(true);
     try {
       const tempId = Date.now().toString();
-      const imageUrl = await uploadProductImage(file, tempId, true);
+      const imageUrl = await uploadProductImage(file, tempId);
       setUploadedImages(prev => [...prev, imageUrl]);
       toast.success("Image uploadée avec succès");
     } catch (error: any) {
