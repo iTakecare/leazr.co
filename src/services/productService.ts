@@ -10,16 +10,12 @@ export const findProductBySlugInCompany = async (
   try {
     console.log('🔍 Searching for product by slug:', { companyId, productSlug });
     
-    // Récupérer tous les produits de l'entreprise
+    // Récupérer tous les produits de l'entreprise avec une requête simplifiée
     const { data: products, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        variants:products!parent_id(*),
-        variant_combination_prices(*)
-      `)
+      .select('*')
       .eq('company_id', companyId)
-      .eq('active', true); // Correction: utiliser 'active' au lieu de 'is_active'
+      .eq('active', true);
 
     if (error) {
       console.error('❌ Error fetching products for slug search:', error);
