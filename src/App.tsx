@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
+import { SubdomainProvider } from "@/context/SubdomainContext";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { RoleBasedRoutes } from "@/components/auth/RoleBasedRoutes";
 import { PrivateRoute } from "@/components/PrivateRoute";
@@ -40,8 +41,9 @@ function App() {
         <TooltipProvider>
           <BrowserRouter>
             <AuthProvider>
-              <CompanyBrandingProvider>
-                <CartProvider>
+              <SubdomainProvider>
+                <CompanyBrandingProvider>
+                  <CartProvider>
                   <Routes>
                     {/* PRIORITY: Company slug-based routes - MUST be first */}
                     <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
@@ -62,8 +64,9 @@ function App() {
                     <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>} />
                     
                   </Routes>
-                </CartProvider>
-              </CompanyBrandingProvider>
+                  </CartProvider>
+                </CompanyBrandingProvider>
+              </SubdomainProvider>
             </AuthProvider>
           </BrowserRouter>
           <Toaster />
