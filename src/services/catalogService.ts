@@ -29,7 +29,7 @@ export const getProductById = async (productId: string): Promise<Product | null>
   }
 };
 
-export const getAllProducts = async (companyId?: string): Promise<Product[]> => {
+export const getAllProducts = async (options?: { includeAdminOnly?: boolean } | string): Promise<Product[]> => {
   try {
     const { data: products, error } = await supabase
       .from('products')
@@ -50,7 +50,7 @@ export const getAllProducts = async (companyId?: string): Promise<Product[]> => 
 // Alias for compatibility
 export const getProducts = getAllProducts;
 
-export const getPublicProducts = async (companyId?: string): Promise<Product[]> => {
+export const getPublicProducts = async (options?: { includeAdminOnly?: boolean } | string): Promise<Product[]> => {
   try {
     const { data: products, error } = await supabase
       .from('products')
@@ -137,24 +137,24 @@ export const duplicateProduct = async (id: string): Promise<Product> => {
   }
 };
 
-export const convertProductToParent = async (id: string): Promise<Product> => {
-  return updateProduct(id, { has_variants: true });
+export const convertProductToParent = async (id: string, modelName?: string): Promise<Product> => {
+  return updateProduct(id, { has_variants: true, name: modelName || undefined });
 };
 
-export const uploadProductImage = async (file: File, productId: string, isMain?: boolean): Promise<string> => {
+export const uploadProductImage = async (file: File, productId: string, isMain?: boolean, customFileName?: string): Promise<string> => {
   try {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${productId}-${Date.now()}.${fileExt}`;
+    const finalFileName = customFileName || `${productId}-${Date.now()}.${fileExt}`;
     
     const { data, error } = await supabase.storage
       .from('products')
-      .upload(fileName, file);
+      .upload(finalFileName, file);
 
     if (error) throw error;
     
     const { data: { publicUrl } } = supabase.storage
       .from('products')
-      .getPublicUrl(fileName);
+      .getPublicUrl(finalFileName);
       
     return publicUrl;
   } catch (error) {
@@ -257,7 +257,7 @@ export const addCategory = async (category: any) => {
   }
 };
 
-export const updateCategory = async (updates: any, id?: string) => {
+export const updateCategory = async (id: string, updates: any) => {
   try {
     const { data, error } = await supabase
       .from('categories')
@@ -274,12 +274,12 @@ export const updateCategory = async (updates: any, id?: string) => {
   }
 };
 
-export const deleteCategory = async (category: { name: string }) => {
+export const deleteCategory = async (id: string) => {
   try {
     const { error } = await supabase
       .from('categories')
       .delete()
-      .eq('name', category.name);
+      .eq('id', id);
 
     if (error) throw error;
     return true;

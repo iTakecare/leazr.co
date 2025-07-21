@@ -271,7 +271,7 @@ const AmbassadorProductDetail = () => {
                                 ))}
                               </div>
                               <div className="text-sm text-gray-500 mt-1">
-                                Réf: {variant.sku || `VAR-${index + 1}`}
+                                Réf: {(variant as any).sku || `VAR-${index + 1}`}
                               </div>
                             </div>
                             

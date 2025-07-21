@@ -66,7 +66,7 @@ const CategoryManager = () => {
     mutationFn: async ({ id, name, translation, ...categoryData }: Category) => {
       const { updateCategory } = await import("@/services/catalogService");
       // Use the name as originalName since that's what the service expects
-      return updateCategory({ originalName: name, name, translation });
+      return updateCategory(id, { name, translation });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -84,7 +84,7 @@ const CategoryManager = () => {
   const deleteCategoryMutation = useMutation({
     mutationFn: async (categoryName: string) => {
       const { deleteCategory } = await import("@/services/catalogService");
-      return deleteCategory({ name: categoryName });
+      return deleteCategory(categoryName);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
