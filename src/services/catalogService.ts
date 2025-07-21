@@ -82,17 +82,67 @@ export const getProducts = getAllProducts;
 
 export const getPublicProducts = async (options?: { includeAdminOnly?: boolean } | string): Promise<Product[]> => {
   try {
-    const { data: products, error } = await supabase
+    console.log('🔍 Fetching public products with variants');
+    
+    // Récupérer tous les produits actifs
+    const { data: products, error: productsError } = await supabase
       .from('products')
       .select('*')
       .eq('active', true);
 
-    if (error) {
-      console.error('Error fetching public products:', error);
-      throw error;
+    if (productsError) {
+      console.error('Error fetching public products:', productsError);
+      throw productsError;
     }
 
-    return products as Product[];
+    if (!products || products.length === 0) {
+      console.log('📦 No public products found');
+      return [];
+    }
+
+    // Récupérer tous les prix de variantes pour ces produits
+    const productIds = products.map(p => p.id);
+    const { data: variantPrices, error: variantError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .in('product_id', productIds);
+
+    if (variantError) {
+      console.error('❌ Error fetching variant prices for public products:', variantError);
+      // Ne pas faire échouer la requête, continuer sans variantes
+    }
+
+    // Mapper les prix de variantes par product_id pour un accès rapide
+    const variantPricesByProduct = new Map<string, any[]>();
+    if (variantPrices) {
+      variantPrices.forEach(vp => {
+        const productId = vp.product_id;
+        if (!variantPricesByProduct.has(productId)) {
+          variantPricesByProduct.set(productId, []);
+        }
+        variantPricesByProduct.get(productId)!.push({
+          id: vp.id,
+          product_id: vp.product_id,
+          attributes: vp.attributes || {},
+          price: vp.price || 0,
+          monthly_price: vp.monthly_price || 0,
+          stock: vp.stock || null,
+          created_at: vp.created_at,
+          updated_at: vp.updated_at
+        });
+      });
+    }
+
+    // Associer les variantes à chaque produit
+    const productsWithVariants = products.map(product => ({
+      ...product,
+      variant_combination_prices: variantPricesByProduct.get(product.id) || []
+    })) as Product[];
+
+    console.log('✅ Public products loaded:', productsWithVariants.length);
+    console.log('📊 Products with variants:', productsWithVariants.filter(p => p.variant_combination_prices && p.variant_combination_prices.length > 0).length);
+
+    return productsWithVariants;
   } catch (error) {
     console.error('Error in getPublicProducts:', error);
     return [];
