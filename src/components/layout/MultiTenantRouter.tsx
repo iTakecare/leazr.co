@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { SubdomainProvider, useSubdomain } from "@/context/SubdomainContext";
 import { SubdomainDetector } from "./SubdomainDetector";
@@ -67,9 +67,18 @@ import UpdatePassword from "@/pages/UpdatePassword";
 
 const MultiTenantRouter = () => {
   const { user, isLoading, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const location = useLocation();
+
+  console.log('🔍 ROUTER DEBUG - Current location:', {
+    pathname: location.pathname,
+    search: location.search,
+    hash: location.hash,
+    state: location.state
+  });
 
   // Pendant le chargement, afficher un loader
   if (isLoading) {
+    console.log('⏳ ROUTER - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -80,16 +89,25 @@ const MultiTenantRouter = () => {
     );
   }
 
+  console.log('🔍 ROUTER DEBUG - User state:', {
+    hasUser: !!user,
+    isAdmin: isAdmin(),
+    isClient: isClient(),
+    isPartner: isPartner(),
+    isAmbassador: isAmbassador(),
+    pathname: location.pathname
+  });
+
   return (
     <SubdomainProvider>
       <SubdomainDetector>
         <Routes>
           {/* ROUTES PUBLIQUES AVEC SLUG - PRIORITÉ ABSOLUE */}
-          <Route path="/:companySlug/catalog" element={<PublicCatalogAnonymous />} />
-          <Route path="/:companySlug/products/:id" element={<ProductDetailPage />} />
-          <Route path="/:companySlug/panier" element={<PublicCartPage />} />
-          <Route path="/:companySlug/demande" element={<PublicRequestPage />} />
-          <Route path="/:companySlug" element={<SmartCompanyPage />} />
+          <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
+          <Route path="/:companySlug/products/:id" element={<PublicSlugProductDetail />} />
+          <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+          <Route path="/:companySlug/demande" element={<PublicSlugRequest />} />
+          <Route path="/:companySlug" element={<PublicSlugCompany />} />
           
           {/* Routes publiques avec ID explicite */}
           <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
@@ -98,19 +116,10 @@ const MultiTenantRouter = () => {
           <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
           <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
           
-          {/* Page d'accueil avec détection d'entreprise */}
-          <Route path="/" element={<SmartLandingPage />} />
-          
-          {/* Route de connexion accessible à tous */}
+          {/* Routes d'authentification accessibles à tous */}
           <Route path="/login" element={<Login />} />
-          
-          {/* Route de mot de passe oublié accessible à tous */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          
-          {/* Route de mise à jour du mot de passe accessible à tous */}
           <Route path="/update-password" element={<UpdatePassword />} />
-          
-          {/* Route de signature d'offre accessible à tous (sans authentification) */}
           <Route path="/client/sign-offer/:id" element={<SignOffer />} />
           
           {/* Pages publiques générales */}
@@ -132,10 +141,10 @@ const MultiTenantRouter = () => {
           <Route path="/panier" element={<PublicCartPage />} />
           <Route path="/demande" element={<PublicRequestPage />} />
           
-          {/* Anciennes routes pour compatibilité - redirection */}
-          <Route path="/catalog/anonymous/:companyId" element={<Navigate to="/public/:companyId/catalog" replace />} />
+          {/* Page d'accueil avec détection d'entreprise */}
+          <Route path="/" element={<SmartLandingPage />} />
           
-          {/* ROUTES ADMIN ET UTILISATEURS CONNECTÉS */}
+          {/* ROUTES ADMIN ET UTILISATEURS CONNECTÉS - SEULEMENT SI PAS DE SLUG */}
           <Route path="/*" element={<RoleBasedRoutes />} />
         </Routes>
       </SubdomainDetector>
@@ -143,10 +152,53 @@ const MultiTenantRouter = () => {
   );
 };
 
+// Composants pour les routes publiques avec slug
+const PublicSlugCatalog = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  console.log('📱 PUBLIC SLUG CATALOG - Rendering for slug:', companySlug);
+  
+  return <PublicCatalogAnonymous />;
+};
+
+const PublicSlugProductDetail = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  console.log('📱 PUBLIC SLUG PRODUCT - Rendering for slug:', companySlug);
+  
+  return <ProductDetailPage />;
+};
+
+const PublicSlugCart = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  console.log('📱 PUBLIC SLUG CART - Rendering for slug:', companySlug);
+  
+  return <PublicCartPage />;
+};
+
+const PublicSlugRequest = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  console.log('📱 PUBLIC SLUG REQUEST - Rendering for slug:', companySlug);
+  
+  return <PublicRequestPage />;
+};
+
+const PublicSlugCompany = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  console.log('📱 PUBLIC SLUG COMPANY - Rendering for slug:', companySlug);
+  
+  return <SmartCompanyPage />;
+};
+
 // Composant intelligent pour la page d'accueil
 const SmartLandingPage = () => {
   const { detection, isSubdomainDetected } = useSubdomain();
   const isCompanyDetected = detection.detectionMethod !== 'default';
+  
+  console.log('🏠 SMART LANDING - Company detected:', isCompanyDetected);
   
   // Si une entreprise est détectée (sous-domaine ou paramètre), afficher sa landing page
   if (isCompanyDetected && detection.company) {
@@ -202,18 +254,52 @@ const SmartCompanyPage = () => {
 
 const RoleBasedRoutes = () => {
   const { user, isAdmin, isClient, isPartner, isAmbassador } = useAuth();
+  const location = useLocation();
+
+  console.log('🔐 ROLE BASED ROUTES - Processing:', {
+    pathname: location.pathname,
+    hasUser: !!user,
+    userEmail: user?.email
+  });
+
+  // Vérifier si l'URL contient un slug d'entreprise potentiel
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const isCompanySlugPath = pathSegments.length >= 1 && 
+    !['admin', 'dashboard', 'clients', 'offers', 'contracts', 'settings', 'crm', 'ambassadors', 'partners'].includes(pathSegments[0]);
+
+  console.log('🔐 ROLE BASED ROUTES - Path analysis:', {
+    pathSegments,
+    isCompanySlugPath,
+    shouldBypass: isCompanySlugPath
+  });
+
+  // Si c'est potentiellement un slug d'entreprise, ne pas traiter par les routes admin
+  if (isCompanySlugPath) {
+    console.log('🔐 ROLE BASED ROUTES - Bypassing for potential company slug');
+    return <Navigate to="/" replace />;
+  }
 
   // Si pas d'utilisateur connecté, rediriger vers login
   if (!user) {
+    console.log('🔐 ROLE BASED ROUTES - No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
+  console.log('🔐 ROLE BASED ROUTES - User roles:', {
+    isClient: isClient(),
+    isAmbassador: isAmbassador(),
+    isPartner: isPartner(),
+    isAdmin: isAdmin()
+  });
+
   // Routage selon le rôle principal de l'utilisateur
   if (isClient()) {
+    console.log('🔐 ROLE BASED ROUTES - Routing to ClientRoutes');
     return <ClientRoutes />;
   }
 
   if (isAmbassador()) {
+    console.log('🔐 ROLE BASED ROUTES - Routing to AmbassadorRoutes');
     return (
       <AmbassadorLayout>
         <Routes>
@@ -226,10 +312,12 @@ const RoleBasedRoutes = () => {
   }
 
   if (isPartner()) {
+    console.log('🔐 ROLE BASED ROUTES - Routing to PartnerRoutes');
     return <PartnerRoutes />;
   }
 
   // Par défaut (admin ou utilisateur sans rôle spécifique), utiliser l'interface admin
+  console.log('🔐 ROLE BASED ROUTES - Routing to Admin Layout');
   return (
     <Layout>
       <Routes>
