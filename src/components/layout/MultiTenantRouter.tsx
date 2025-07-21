@@ -39,7 +39,7 @@ import PricingPage from "@/pages/PricingPage";
 
 // Pages admin
 import CatalogManagement from "@/pages/CatalogManagement";
-import ProductEditPage from "@/pages/ProductEditPage";
+import ProductFormPage from "@/pages/ProductFormPage";
 import PartnerEditPage from "@/pages/PartnerEditPage";
 import AmbassadorCatalog from "@/pages/AmbassadorCatalog";
 import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
@@ -337,8 +337,8 @@ const RoleBasedRoutes = () => {
         <Route path="/company/settings" element={<CompanySettingsPage />} />
         <Route path="/crm" element={<CRMPage />} />
         <Route path="/admin/catalog" element={<CatalogManagement />} />
-        <Route path="/catalog/edit/:id" element={<ProductEditPage />} />
-        <Route path="/admin/catalog/edit/:id" element={<ProductEditPage />} />
+        <Route path="/catalog/edit/:id" element={<ProductFormPage />} />
+        <Route path="/admin/catalog/edit/:id" element={<ProductFormPage />} />
         <Route path="/partners/edit/:id" element={<PartnerEditPage />} />
         <Route path="/admin/partners/edit/:id" element={<PartnerEditPage />} />
         <Route path="/ambassador/catalog" element={<AmbassadorCatalog />} />

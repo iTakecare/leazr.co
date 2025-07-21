@@ -125,15 +125,14 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         id: productToEdit.id,
         data: {
           ...data,
-          updated_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       });
     } else {
       createMutation.mutate({
         ...data,
-        company_id: user?.user_metadata?.company_id || user?.company_id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
     }
   };

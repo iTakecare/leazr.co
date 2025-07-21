@@ -76,7 +76,6 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
         <AccordionProductList 
           products={products} 
           onProductDeleted={onProductDeleted} 
-          groupingOption={groupingOption} 
         />
       ) : (
         <ProductGrid products={products} />
