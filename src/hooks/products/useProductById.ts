@@ -52,7 +52,7 @@ const formatProductPrices = (productData: Product): Product => {
     });
   }
   
-  // And for variant combination prices
+  // Format variant combination prices
   if (productData.variant_combination_prices && productData.variant_combination_prices.length > 0) {
     productData.variant_combination_prices = productData.variant_combination_prices.map(combo => {
       const comboOriginalPrice = combo.monthly_price;
@@ -102,6 +102,7 @@ export const useProductById = (productId: string | undefined) => {
         }
         
         console.log('useProductById - Product loaded successfully:', productData.name);
+        console.log('useProductById - Variant combination prices:', productData.variant_combination_prices?.length || 0);
         return formatProductPrices(productData);
       } catch (error) {
         console.error('useProductById - Error fetching product:', error);

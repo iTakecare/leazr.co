@@ -5,15 +5,16 @@ export const getProductById = async (productId: string): Promise<Product | null>
   try {
     console.log('🔍 Fetching product by ID:', productId);
     
-    const { data: product, error } = await supabase
+    // Récupérer le produit principal
+    const { data: product, error: productError } = await supabase
       .from('products')
       .select('*')
       .eq('id', productId)
-      .maybeSingle(); // Changed from .single() to .maybeSingle() to avoid errors when product not found
+      .maybeSingle();
 
-    if (error) {
-      console.error('❌ Error fetching product by ID:', error);
-      throw error;
+    if (productError) {
+      console.error('❌ Error fetching product by ID:', productError);
+      throw productError;
     }
 
     if (!product) {
@@ -21,11 +22,40 @@ export const getProductById = async (productId: string): Promise<Product | null>
       return null;
     }
 
+    // Récupérer les prix des variantes depuis product_variant_prices
+    const { data: variantPrices, error: variantError } = await supabase
+      .from('product_variant_prices')
+      .select('*')
+      .eq('product_id', productId);
+
+    if (variantError) {
+      console.error('❌ Error fetching variant prices:', variantError);
+      // Ne pas faire échouer la requête si les variantes ne peuvent pas être récupérées
+    }
+
+    // Mapper les prix des variantes vers variant_combination_prices
+    const variant_combination_prices = variantPrices?.map(vp => ({
+      id: vp.id,
+      product_id: vp.product_id,
+      attributes: vp.attributes || {},
+      price: vp.price || 0,
+      monthly_price: vp.monthly_price || 0,
+      stock: vp.stock || null,
+      created_at: vp.created_at,
+      updated_at: vp.updated_at
+    })) || [];
+
     console.log('✅ Product found:', product.name);
-    return product as Product;
+    console.log('📊 Variant prices found:', variant_combination_prices.length);
+    
+    // Retourner le produit avec les variantes mappées
+    return {
+      ...product,
+      variant_combination_prices
+    } as Product;
   } catch (error) {
     console.error('❌ Error in getProductById:', error);
-    return null; // Return null instead of throwing to allow graceful handling
+    return null;
   }
 };
 
