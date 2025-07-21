@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
@@ -13,12 +13,17 @@ import ProductConfigurationSection from "@/components/product-detail/ProductConf
 import ProductMainContent from "@/components/product-detail/ProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
+import { useCompanyDetection } from "@/hooks/useCompanyDetection";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useParams } from "react-router-dom";
 
 const ProductDetailPage = () => {
-  const { id, companyId } = useParams<{ id: string; companyId?: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  // Use company detection hook for slug support
+  const { companyId, companySlug } = useCompanyDetection();
   
   // Fetch company info for branding
   const { data: company } = useQuery({
@@ -74,7 +79,9 @@ const ProductDetailPage = () => {
   } = attributeHelpers;
   
   const handleBackToCatalog = () => {
-    if (companyId) {
+    if (companySlug) {
+      navigate(`/${companySlug}/catalog`);
+    } else if (companyId) {
       navigate(`/public/${companyId}/catalog`);
     } else {
       navigate("/catalog/anonymous");
@@ -97,7 +104,11 @@ const ProductDetailPage = () => {
   const configAttributes = getConfigAttributes();
   
   // Construire l'URL de base du catalogue
-  const catalogBaseUrl = companyId ? `/public/${companyId}/catalog` : "/catalog/anonymous";
+  const catalogBaseUrl = companySlug 
+    ? `/${companySlug}/catalog` 
+    : companyId 
+      ? `/public/${companyId}/catalog` 
+      : "/catalog/anonymous";
   
   return (
     <div className="min-h-screen bg-white">

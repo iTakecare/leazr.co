@@ -849,6 +849,7 @@ export type Database = {
           plan: string
           primary_color: string | null
           secondary_color: string | null
+          slug: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
@@ -870,6 +871,7 @@ export type Database = {
           plan?: string
           primary_color?: string | null
           secondary_color?: string | null
+          slug?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
@@ -891,6 +893,7 @@ export type Database = {
           plan?: string
           primary_color?: string | null
           secondary_color?: string | null
+          slug?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
@@ -4022,6 +4025,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string[]
       }
+      generate_company_slug: {
+        Args: { company_name: string }
+        Returns: string
+      }
       generate_company_subdomain: {
         Args: { company_name: string }
         Returns: string
@@ -4170,6 +4177,18 @@ export type Database = {
           commission_level_id: string
           company_id: string
           pdf_template_id: string
+        }[]
+      }
+      get_company_by_slug: {
+        Args: { company_slug: string }
+        Returns: {
+          id: string
+          name: string
+          slug: string
+          logo_url: string
+          primary_color: string
+          secondary_color: string
+          accent_color: string
         }[]
       }
       get_company_dashboard_metrics: {

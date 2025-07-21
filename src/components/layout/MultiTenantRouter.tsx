@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { SubdomainProvider, useSubdomain } from "@/context/SubdomainContext";
 import { SubdomainDetector } from "./SubdomainDetector";
@@ -8,6 +8,8 @@ import ClientRoutes from "./ClientRoutes";
 import AmbassadorLayout from "./AmbassadorLayout";
 import AmbassadorRoutes from "./AmbassadorRoutes";
 import PartnerRoutes from "./PartnerRoutes";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // Pages admin existantes
 import Dashboard from "@/pages/Dashboard";
@@ -115,6 +117,13 @@ const MultiTenantRouter = () => {
           <Route path="/panier" element={<PublicCartPage />} />
           <Route path="/demande" element={<PublicRequestPage />} />
           
+          {/* Nouvelles routes avec slug d'entreprise */}
+          <Route path="/:companySlug" element={<SmartCompanyPage />} />
+          <Route path="/:companySlug/catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="/:companySlug/products/:id" element={<ProductDetailPage />} />
+          <Route path="/:companySlug/panier" element={<PublicCartPage />} />
+          <Route path="/:companySlug/demande" element={<PublicRequestPage />} />
+          
           {/* Routes publiques pour les entreprises (avec ID explicite) */}
           <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
           <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
@@ -145,6 +154,44 @@ const SmartLandingPage = () => {
   
   // Sinon, afficher la landing page générale
   return <LandingPage />;
+};
+
+// Composant intelligent pour détecter une entreprise par slug
+const SmartCompanyPage = () => {
+  const { companySlug } = useParams<{ companySlug: string }>();
+  
+  // Chercher l'entreprise par son slug
+  const { data: company, isLoading, error } = useQuery({
+    queryKey: ['company-by-slug', companySlug],
+    queryFn: async () => {
+      if (!companySlug) return null;
+      
+      const { data, error } = await supabase
+        .rpc('get_company_by_slug', { company_slug: companySlug });
+      
+      if (error) throw error;
+      return data?.[0] || null;
+    },
+    enabled: !!companySlug,
+  });
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error || !company) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Si une entreprise est trouvée, afficher sa landing page
+  return <PublicCompanyLanding />;
 };
 
 const RoleBasedRoutes = () => {

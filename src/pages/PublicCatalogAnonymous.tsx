@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,97 +15,21 @@ import { useCart } from "@/context/CartContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
 import { PublicChatWidget } from "@/components/catalog/public/PublicChatWidget";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
-import { useCustomAuth } from "@/hooks/useCustomAuth";
+import { useCompanyDetection } from "@/hooks/useCompanyDetection";
 
 const PublicCatalogAnonymous = () => {
-  const { companyId: urlCompanyId } = useParams<{ companyId: string }>();
-  const [searchParams] = useSearchParams();
-  const { detectCompany } = useCustomAuth();
   const navigate = useNavigate();
   const { cartCount } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tout");
 
-  // Company detection logic with URL params support
-  const companyParam = searchParams.get('company');
-  const companySlug = searchParams.get('slug');
-  
-  const resolveCompanyId = async (): Promise<string | null> => {
-    console.log('🔍 RESOLVE COMPANY - Début de la détection', {
-      urlCompanyId,
-      companyParam,
-      companySlug,
-      origin: window.location.origin
-    });
-    
-    // 1. Direct company ID from URL params
-    if (urlCompanyId) {
-      console.log('✅ RESOLVE COMPANY - Company ID trouvé dans l\'URL:', urlCompanyId);
-      return urlCompanyId;
-    }
-    
-    // 2. Company name/slug from query params
-    if (companyParam || companySlug) {
-      const identifier = companyParam || companySlug;
-      console.log('🔍 RESOLVE COMPANY - Recherche par identifier:', identifier);
-      
-      // Try to find company by subdomain first
-      console.log('🔍 RESOLVE COMPANY - Recherche dans company_domains avec subdomain:', identifier);
-      const { data: domainData, error: domainError } = await supabase
-        .from('company_domains')
-        .select('company_id')
-        .eq('subdomain', identifier)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      console.log('🔍 RESOLVE COMPANY - Résultat company_domains:', { domainData, domainError });
-      
-      if (domainData?.company_id) {
-        console.log('✅ RESOLVE COMPANY - Company trouvée via subdomain:', domainData.company_id);
-        return domainData.company_id;
-      }
-      
-      // Fallback: try to find by company name
-      console.log('🔍 RESOLVE COMPANY - Fallback recherche par nom:', identifier);
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('id')
-        .ilike('name', `%${identifier}%`)
-        .maybeSingle();
-      
-      console.log('🔍 RESOLVE COMPANY - Résultat companies:', { companyData, companyError });
-      
-      if (companyData?.id) {
-        console.log('✅ RESOLVE COMPANY - Company trouvée via nom:', companyData.id);
-        return companyData.id;
-      }
-    }
-    
-    // 3. Detect from domain/origin using edge function
-    try {
-      const companyInfo = await detectCompany({ 
-        origin: window.location.origin,
-        companyParam: companyParam || undefined,
-        companySlug: companySlug || undefined
-      });
-      if (companyInfo?.success && companyInfo.companyId) {
-        return companyInfo.companyId;
-      }
-    } catch (error) {
-      console.error('Error detecting company from domain:', error);
-    }
-    
-    return null;
-  };
-
-  const { data: companyId, isLoading: isLoadingCompanyId } = useQuery({
-    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, window.location.origin],
-    queryFn: resolveCompanyId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Use the company detection hook
+  const { companyId, companySlug, isLoadingCompanyId } = useCompanyDetection();
 
   const handleCartClick = () => {
-    if (companyId) {
+    if (companyId && companySlug) {
+      navigate(`/${companySlug}/panier`);
+    } else if (companyId) {
       navigate(`/public/${companyId}/panier`);
     }
   };
@@ -302,8 +226,12 @@ const PublicCatalogAnonymous = () => {
                 key={product.id}
                 product={product}
                 onClick={() => {
-                  // Navigate to product detail in public context
-                  navigate(`/public/${companyId}/products/${product.id}`);
+                  // Navigate to product detail - prefer slug-based URLs
+                  if (companySlug) {
+                    navigate(`/${companySlug}/products/${product.id}`);
+                  } else {
+                    navigate(`/public/${companyId}/products/${product.id}`);
+                  }
                 }}
               />
             ))}
