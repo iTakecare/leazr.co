@@ -52,9 +52,10 @@ interface ProductEditorProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  productToEdit?: Product;
 }
 
-const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSuccess }) => {
+const ProductEditor: React.FC<ProductEditorProps> = ({ isOpen, onClose, onSuccess, productToEdit }) => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("basic");
   const [name, setName] = useState("");

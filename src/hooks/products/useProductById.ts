@@ -112,7 +112,7 @@ export const useProductById = (productId: string | undefined) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
       // Don't retry if it's a 404-like error (product not found)
-      if (error?.message?.includes('not found') || error?.code === 'PGRST116') {
+      if (error?.message?.includes('not found') || (error as any)?.code === 'PGRST116') {
         return false;
       }
       // Retry up to 2 times for other errors
