@@ -19,7 +19,7 @@ export const findProductBySlugInCompany = async (
         variant_combination_prices(*)
       `)
       .eq('company_id', companyId)
-      .eq('is_active', true);
+      .eq('active', true); // Correction: utiliser 'active' au lieu de 'is_active'
 
     if (error) {
       console.error('❌ Error fetching products for slug search:', error);
@@ -32,6 +32,11 @@ export const findProductBySlugInCompany = async (
     }
 
     console.log(`📦 Found ${products.length} products, searching for slug: ${productSlug}`);
+    
+    // Log des produits pour débugger
+    products.forEach((product, index) => {
+      console.log(`Product ${index + 1}: "${product.name}" (brand: "${product.brand}")`);
+    });
     
     // Utiliser la fonction utilitaire pour trouver le produit par slug
     const foundProduct = findProductBySlug(products, productSlug);

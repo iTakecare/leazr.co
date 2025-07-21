@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Product } from "@/types/catalog";
@@ -25,6 +24,7 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
     console.log('🎯 PUBLIC PRODUCT GRID - Product clicked:', {
       productId: product.id,
       productName: product.name,
+      productBrand: product.brand,
       companySlug,
       companyId
     });
@@ -77,7 +77,7 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
   console.log(`PublicProductGrid: Rendering ${products.length} products`);
   products.forEach((product, index) => {
     const slug = generateProductSlug(product.name, product.brand);
-    console.log(`PublicProductGrid product ${index + 1}: ${product.name} (slug: ${slug})`);
+    console.log(`PublicProductGrid product ${index + 1}: ${product.name} (brand: ${product.brand}, slug: ${slug})`);
   });
 
   return (

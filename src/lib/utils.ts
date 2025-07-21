@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -101,8 +100,10 @@ export function generateProductSlug(name: string, brand?: string): string {
   // Créer la chaîne de base : brand-name ou juste name
   let baseString = brand ? `${brand} ${name}` : name;
   
+  console.log(`🔗 Generating slug for: "${name}" with brand: "${brand}" → base: "${baseString}"`);
+  
   // Normaliser le slug
-  return baseString
+  const slug = baseString
     .toLowerCase() // Tout en minuscules
     .normalize('NFD') // Décomposer les caractères accentués
     .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
@@ -111,24 +112,40 @@ export function generateProductSlug(name: string, brand?: string): string {
     .replace(/-+/g, '-') // Remplacer les tirets multiples par un seul
     .replace(/^-|-$/g, '') // Supprimer les tirets en début/fin
     .trim();
+  
+  console.log(`🔗 Generated slug: "${slug}"`);
+  return slug;
 }
 
 // Trouve un produit par son slug dans une liste de produits
 export function findProductBySlug(products: any[], targetSlug: string): any | null {
   if (!products || !Array.isArray(products) || !targetSlug) {
+    console.log('❌ Invalid parameters for findProductBySlug:', { 
+      hasProducts: !!products, 
+      isArray: Array.isArray(products), 
+      targetSlug 
+    });
     return null;
   }
+  
+  console.log(`🔍 Searching for slug "${targetSlug}" in ${products.length} products`);
   
   // Map pour éviter de recalculer les slugs plusieurs fois
   const productSlugs = new Map();
   
   for (const product of products) {
-    if (!product.name) continue;
+    if (!product.name) {
+      console.log('⚠️ Product without name, skipping:', product.id);
+      continue;
+    }
     
     const productSlug = generateProductSlug(product.name, product.brand);
     productSlugs.set(product.id, productSlug);
     
+    console.log(`🔍 Comparing "${productSlug}" === "${targetSlug}": ${productSlug === targetSlug}`);
+    
     if (productSlug === targetSlug) {
+      console.log(`✅ Found exact match for "${targetSlug}": ${product.name}`);
       return product;
     }
   }
@@ -141,10 +158,12 @@ export function findProductBySlug(products: any[], targetSlug: string): any | nu
       // Le slug cible pourrait être une variation avec suffixe numérique
       const suffix = targetSlug.substring(productSlug.length + 1);
       if (/^\d+$/.test(suffix)) {
+        console.log(`✅ Found variant match for "${targetSlug}": ${product.name} (with suffix: ${suffix})`);
         return product;
       }
     }
   }
   
+  console.log(`❌ No product found for slug "${targetSlug}"`);
   return null;
 }
