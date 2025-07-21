@@ -1,12 +1,18 @@
-import React, { useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
+import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
+import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
+import SortFilter from "@/components/catalog/public/filters/SortFilter";
 import { getPublicProducts } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
 import { useCompanyDetection } from "@/hooks/useCompanyDetection";
+import { usePublicProductFilter } from "@/hooks/products/usePublicProductFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useParams, useLocation } from "react-router-dom";
@@ -15,6 +21,7 @@ const PublicCatalogAnonymous = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const { companySlug } = useParams<{ companySlug: string }>();
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
   console.log('📱 PUBLIC CATALOG - Component rendered with:', {
     companySlug,
@@ -53,15 +60,41 @@ const PublicCatalogAnonymous = () => {
     enabled: !!companyId,
   });
 
+  // Initialize filter system
+  const {
+    filters,
+    updateFilter,
+    resetFilters,
+    filteredProducts,
+    categories,
+    brands,
+    priceRange,
+    hasActiveFilters,
+    resultsCount
+  } = usePublicProductFilter(products);
+
   // For now, we'll get company info from the detection hook result
   const company = detectedSlug ? { name: detectedSlug, logo_url: undefined } : null;
 
   console.log('📱 PUBLIC CATALOG - Products data:', {
     productsCount: products?.length || 0,
+    filteredCount: filteredProducts?.length || 0,
     company: company?.name,
     isLoadingProducts,
     productsError
   });
+
+  // Close mobile filter on screen resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileFilterOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Loading state
   if (isLoadingCompanyId) {
@@ -159,7 +192,7 @@ const PublicCatalogAnonymous = () => {
     );
   }
 
-  console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', products?.length || 0);
+  console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', filteredProducts?.length || 0);
 
   return (
     <div className="min-h-screen bg-white">
@@ -172,8 +205,68 @@ const PublicCatalogAnonymous = () => {
             companyLogo={company?.logo_url}
           />
           
-          
-          <PublicProductGrid products={products || []} />
+          <div className="flex gap-6">
+            {/* Filter Sidebar */}
+            <PublicFilterSidebar
+              isOpen={isMobileFilterOpen}
+              onClose={() => setIsMobileFilterOpen(false)}
+              filters={filters}
+              updateFilter={updateFilter}
+              resetFilters={resetFilters}
+              categories={categories}
+              brands={brands}
+              priceRange={priceRange}
+              hasActiveFilters={hasActiveFilters}
+              resultsCount={resultsCount}
+            />
+
+            {/* Main Content */}
+            <div className="flex-1 space-y-6">
+              {/* Header with mobile toggle and sort */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <FilterMobileToggle
+                    isOpen={isMobileFilterOpen}
+                    onToggle={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+                    filterCount={
+                      (filters.searchQuery ? 1 : 0) +
+                      (filters.selectedCategory ? 1 : 0) +
+                      filters.selectedBrands.length +
+                      (filters.inStockOnly ? 1 : 0) +
+                      (filters.priceRange[0] > priceRange[0] || filters.priceRange[1] < priceRange[1] ? 1 : 0)
+                    }
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    {resultsCount} produit{resultsCount > 1 ? 's' : ''} trouvé{resultsCount > 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                <SortFilter
+                  sortBy={filters.sortBy}
+                  sortOrder={filters.sortOrder}
+                  onSortByChange={(value) => updateFilter('sortBy', value)}
+                  onSortOrderChange={(value) => updateFilter('sortOrder', value)}
+                />
+              </div>
+
+              {/* Active Filter Badges */}
+              <FilterBadges
+                searchQuery={filters.searchQuery}
+                selectedCategory={filters.selectedCategory}
+                selectedBrands={filters.selectedBrands}
+                inStockOnly={filters.inStockOnly}
+                categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
+                onRemoveSearch={() => updateFilter('searchQuery', '')}
+                onRemoveCategory={() => updateFilter('selectedCategory', null)}
+                onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
+                onRemoveStock={() => updateFilter('inStockOnly', false)}
+                onClearAll={resetFilters}
+              />
+
+              {/* Product Grid */}
+              <PublicProductGrid products={filteredProducts || []} />
+            </div>
+          </div>
         </div>
       </Container>
     </div>
