@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +29,8 @@ import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
 // Admin pages
 import Dashboard from "@/pages/Dashboard";
 import AdminChatPage from "@/pages/AdminChatPage";
+import Clients from "@/pages/Clients";
+import Offers from "@/pages/Offers";
 import Layout from "@/components/layout/Layout";
 
 const queryClient = new QueryClient({
@@ -70,6 +73,8 @@ function App() {
                         {/* Admin routes with Layout */}
                         <Route path="/admin/dashboard" element={<Layout><Dashboard /></Layout>} />
                         <Route path="/admin/chat" element={<Layout><AdminChatPage /></Layout>} />
+                        <Route path="/admin/clients" element={<Layout><Clients /></Layout>} />
+                        <Route path="/admin/offers" element={<Layout><Offers /></Layout>} />
                         
                         {/* Default dashboard route */}
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
