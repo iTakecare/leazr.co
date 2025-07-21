@@ -4,7 +4,7 @@ import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import VariantIndicator from "@/components/ui/product/VariantIndicator";
-import { Leaf } from "lucide-react";
+import { Leaf, Images } from "lucide-react";
 
 interface ProductGridCardProps {
   product: Product;
@@ -47,6 +47,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     console.log(`- variation_attributes: ${JSON.stringify(product.variation_attributes)}`);
     console.log(`- variants: ${product.variants?.length || 0}`);
     console.log(`- price: ${product.price}, monthly_price: ${product.monthly_price}`);
+    console.log(`- images: main=${product.image_url}, all=${product.image_urls?.length || 0}`);
   };
   
   useEffect(() => {
@@ -141,6 +142,11 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     }
     
     return "/placeholder.svg";
+  };
+
+  const hasMultipleImages = (): boolean => {
+    const imageCount = (product.image_urls?.length || 0) + (product.imageUrls?.length || 0);
+    return imageCount > 1;
   };
   
   const getCategoryLabel = (category: string | undefined) => {
@@ -244,6 +250,15 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
               className="w-16 h-16 object-contain opacity-50"
             />
             <div className="text-sm text-gray-500 mt-2">Image non disponible</div>
+          </div>
+        )}
+
+        {hasMultipleImages() && (
+          <div className="absolute top-2 left-2 z-10">
+            <Badge variant="secondary" className="bg-white/90 text-gray-700 text-xs flex items-center gap-1">
+              <Images className="h-3 w-3" />
+              {(product.image_urls?.length || 0) + (product.imageUrls?.length || 0)}
+            </Badge>
           </div>
         )}
         
