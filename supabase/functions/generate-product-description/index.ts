@@ -49,14 +49,16 @@ serve(async (req) => {
         
         const searchQuery = `${productName} ${brand || ''} ${category || ''} specifications features`.trim();
         
-        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+        // Try with sonar-pro first (most performant model)
+        let perplexityModel = 'sonar-pro';
+        let perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${perplexityApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'llama-3.1-sonar-small-128k-online',
+            model: perplexityModel,
             messages: [
               {
                 role: 'user',
@@ -68,10 +70,34 @@ serve(async (req) => {
           }),
         });
 
+        // If sonar-pro fails, try with sonar as fallback
+        if (!perplexityResponse.ok && perplexityResponse.status === 400) {
+          console.log('sonar-pro failed, trying with sonar model...');
+          perplexityModel = 'sonar';
+          perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${perplexityApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: perplexityModel,
+              messages: [
+                {
+                  role: 'user',
+                  content: `Find key information about this product: ${searchQuery}. Provide specifications, features, and benefits in a concise format.`
+                }
+              ],
+              temperature: 0.2,
+              max_tokens: 800,
+            }),
+          });
+        }
+
         if (perplexityResponse.ok) {
           const perplexityData = await perplexityResponse.json();
           productInfo = perplexityData.choices[0]?.message?.content || '';
-          console.log('Successfully retrieved product information from Perplexity');
+          console.log(`Successfully retrieved product information from Perplexity using ${perplexityModel}`);
         } else {
           const errorText = await perplexityResponse.text();
           console.log(`Perplexity API failed with status ${perplexityResponse.status}: ${errorText}`);
@@ -137,7 +163,17 @@ Write a compelling 150-300 word description that highlights typical benefits and
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
-      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+      console.error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+      
+      // Provide specific error messages based on status
+      let errorMessage = 'Failed to generate description';
+      if (openaiResponse.status === 429) {
+        errorMessage = 'OpenAI quota exceeded. Please check your OpenAI account and billing details.';
+      } else if (openaiResponse.status === 401) {
+        errorMessage = 'Invalid OpenAI API key. Please check your configuration.';
+      }
+      
+      throw new Error(`${errorMessage}: ${errorText}`);
     }
 
     const openaiData = await openaiResponse.json();
@@ -153,7 +189,8 @@ Write a compelling 150-300 word description that highlights typical benefits and
       JSON.stringify({ 
         description: description.trim(),
         success: true,
-        usedPerplexity: !!productInfo
+        usedPerplexity: !!productInfo,
+        model: productInfo ? 'Perplexity + OpenAI' : 'OpenAI only'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
