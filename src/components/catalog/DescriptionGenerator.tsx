@@ -73,7 +73,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
       setGeneratedDescription(data.description);
       setGeneratedShortDescription(data.shortDescription || "");
       
-      toast.success("Description optimisée générée avec succès", {
+      toast.success("Description générée avec succès", {
         description: `Modèle utilisé: ${data.model} | Perplexity: ${data.usedPerplexity ? 'Oui' : 'Non'}`
       });
 
@@ -108,21 +108,15 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wand2 className="h-5 w-5" />
-          Générateur de description IA optimisée
+          Générateur de description IA
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-sm text-muted-foreground">
-          <p>
-            Générez une description SEO optimisée pour le leasing de matériel reconditionné, 
-            sans détails techniques précis, mettant l'accent sur les bénéfices écologiques et économiques.
-          </p>
-          {hasVariants && (
-            <p className="mt-2 text-blue-600">
-              ✓ Variantes détectées - L'IA évitera les spécifications techniques précises
-            </p>
-          )}
-        </div>
+        {hasVariants && (
+          <div className="text-sm text-blue-600">
+            ✓ Variantes détectées - L'IA évitera les spécifications techniques précises
+          </div>
+        )}
 
         <Button 
           onClick={handleGenerateDescription}
@@ -137,7 +131,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
           ) : (
             <>
               <Wand2 className="h-4 w-4 mr-2" />
-              Générer une description optimisée
+              Générer une description
             </>
           )}
         </Button>
@@ -182,17 +176,6 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
             </div>
           </div>
         )}
-
-        <div className="text-xs text-muted-foreground mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="font-medium text-green-800 mb-1">🌿 Optimisé pour le leasing reconditionné :</div>
-          <ul className="text-green-700 space-y-1">
-            <li>• Vocabulaire SEO français spécialisé</li>
-            <li>• Focus sur l'aspect écologique du reconditionné</li>
-            <li>• Mentions du leasing mensuel et flexibilité</li>
-            <li>• Évitement des spécifications techniques précises</li>
-            <li>• Call-to-action orienté leasing</li>
-          </ul>
-        </div>
       </CardContent>
     </Card>
   );
