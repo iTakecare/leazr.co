@@ -98,30 +98,27 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         await updateProduct.mutateAsync({
           id: productToEdit.id,
           name: data.name,
-          short_description: data.shortDescription,
+          shortDescription: data.shortDescription,
           description: data.description,
-          purchase_price: data.purchasePrice,
-          monthly_price: data.monthlyPrice,
-          category_id: data.categoryId,
-          brand_id: data.brandId,
+          purchasePrice: data.purchasePrice,
+          categoryId: data.categoryId,
+          brandId: data.brandId,
           active: data.active,
-          is_refurbished: data.isRefurbished,
+          isRefurbished: data.isRefurbished,
           condition: data.condition,
-          admin_only: data.adminOnly,
         });
       } else {
         await createProduct.mutateAsync({
           name: data.name,
-          short_description: data.shortDescription,
+          shortDescription: data.shortDescription,
           description: data.description,
-          purchase_price: data.purchasePrice,
-          monthly_price: data.monthlyPrice,
-          category_id: data.categoryId,
-          brand_id: data.brandId,
+          price: data.purchasePrice,
+          purchasePrice: data.purchasePrice,
+          categoryId: data.categoryId,
+          brandId: data.brandId,
           active: data.active,
-          is_refurbished: data.isRefurbished,
+          isRefurbished: data.isRefurbished,
           condition: data.condition,
-          admin_only: data.adminOnly,
         });
       }
       onSuccess();
