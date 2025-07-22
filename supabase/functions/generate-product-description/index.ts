@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -30,53 +31,80 @@ serve(async (req) => {
     const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!perplexityApiKey || !openaiApiKey) {
+    if (!openaiApiKey) {
       return new Response(
-        JSON.stringify({ error: 'API keys not configured' }),
+        JSON.stringify({ error: 'OpenAI API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(`Generating description for: ${productName} ${brand ? `by ${brand}` : ''}`);
 
-    // Step 1: Search for product information using Perplexity
-    const searchQuery = `${productName} ${brand || ''} ${category || ''} specifications features benefits review`.trim();
-    
-    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a product research assistant. Provide accurate, factual information about products including specifications, features, and benefits. Focus on current and reliable information.'
-          },
-          {
-            role: 'user',
-            content: `Find detailed information about this product: ${searchQuery}. Include specifications, key features, benefits, and any notable characteristics.`
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 1000,
-        return_related_questions: false,
-        search_recency_filter: 'month',
-      }),
-    });
+    let productInfo = '';
 
-    if (!perplexityResponse.ok) {
-      throw new Error(`Perplexity API error: ${perplexityResponse.status}`);
+    // Step 1: Try to get product information using Perplexity (with fallback)
+    if (perplexityApiKey) {
+      try {
+        console.log('Attempting to fetch product info from Perplexity...');
+        
+        const searchQuery = `${productName} ${brand || ''} ${category || ''} specifications features`.trim();
+        
+        const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-sonar-small-128k-online',
+            messages: [
+              {
+                role: 'user',
+                content: `Find key information about this product: ${searchQuery}. Provide specifications, features, and benefits in a concise format.`
+              }
+            ],
+            temperature: 0.2,
+            max_tokens: 800,
+          }),
+        });
+
+        if (perplexityResponse.ok) {
+          const perplexityData = await perplexityResponse.json();
+          productInfo = perplexityData.choices[0]?.message?.content || '';
+          console.log('Successfully retrieved product information from Perplexity');
+        } else {
+          const errorText = await perplexityResponse.text();
+          console.log(`Perplexity API failed with status ${perplexityResponse.status}: ${errorText}`);
+          console.log('Continuing with OpenAI-only approach...');
+        }
+      } catch (perplexityError) {
+        console.log('Perplexity API error:', perplexityError);
+        console.log('Continuing with OpenAI-only approach...');
+      }
+    } else {
+      console.log('Perplexity API key not configured, using OpenAI only');
     }
 
-    const perplexityData = await perplexityResponse.json();
-    const productInfo = perplexityData.choices[0]?.message?.content || '';
+    // Step 2: Generate description using OpenAI (works with or without Perplexity data)
+    const openaiPrompt = productInfo 
+      ? `Create an SEO-optimized product description for:
+Product: ${productName}
+${brand ? `Brand: ${brand}` : ''}
+${category ? `Category: ${category}` : ''}
 
-    console.log('Product information gathered from Perplexity');
+Product Information:
+${productInfo}
 
-    // Step 2: Generate SEO-optimized description using OpenAI
+Write a compelling 150-300 word description that highlights key benefits and features for e-commerce.`
+      : `Create an SEO-optimized product description for:
+Product: ${productName}
+${brand ? `Brand: ${brand}` : ''}
+${category ? `Category: ${category}` : ''}
+
+Write a compelling 150-300 word description that highlights typical benefits and features for this type of product. Focus on what customers would want to know when considering this purchase.`;
+
+    console.log('Generating SEO-optimized description with OpenAI...');
+
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -88,26 +116,18 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert e-commerce copywriter specializing in SEO-optimized product descriptions. Create compelling, accurate descriptions that:
-- Use natural keyword integration for SEO
+            content: `You are an expert e-commerce copywriter. Create compelling, SEO-optimized product descriptions that:
+- Use natural keyword integration
 - Highlight key benefits and features
 - Are scannable with clear structure
 - Include emotional triggers and value propositions
 - Are 150-300 words long
 - Use persuasive but honest language
-- Focus on customer benefits over features`
+- Focus on customer benefits`
           },
           {
             role: 'user',
-            content: `Create an SEO-optimized product description for:
-Product: ${productName}
-${brand ? `Brand: ${brand}` : ''}
-${category ? `Category: ${category}` : ''}
-
-Product Information:
-${productInfo}
-
-Write a compelling description that will rank well in search engines and convert visitors into customers.`
+            content: openaiPrompt
           }
         ],
         temperature: 0.7,
@@ -116,18 +136,24 @@ Write a compelling description that will rank well in search engines and convert
     });
 
     if (!openaiResponse.ok) {
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      const errorText = await openaiResponse.text();
+      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
     const openaiData = await openaiResponse.json();
     const description = openaiData.choices[0]?.message?.content || '';
+
+    if (!description) {
+      throw new Error('No description generated by OpenAI');
+    }
 
     console.log('SEO-optimized description generated successfully');
 
     return new Response(
       JSON.stringify({ 
         description: description.trim(),
-        success: true 
+        success: true,
+        usedPerplexity: !!productInfo
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
