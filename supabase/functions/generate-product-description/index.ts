@@ -47,7 +47,7 @@ serve(async (req) => {
       try {
         console.log('Attempting to fetch product info from Perplexity...');
         
-        const searchQuery = `${productName} ${brand || ''} ${category || ''} spécifications caractéristiques`.trim();
+        const searchQuery = `${productName} ${brand || ''} ${category || ''} caractéristiques générales usage professionnel`.trim();
         
         // Try with sonar-pro first (most performant model)
         let perplexityModel = 'sonar-pro';
@@ -62,7 +62,7 @@ serve(async (req) => {
             messages: [
               {
                 role: 'user',
-                content: `Trouve des informations clés sur ce produit : ${searchQuery}. Fournis les spécifications, caractéristiques et avantages dans un format concis en français.`
+                content: `Trouve des informations générales sur ce produit : ${searchQuery}. Fournis les caractéristiques principales, l'usage typique et les avantages SANS mentionner de spécifications techniques précises comme le processeur exact ou la RAM exacte. Focus sur l'utilisation et les bénéfices pour l'utilisateur en français.`
               }
             ],
             temperature: 0.2,
@@ -85,7 +85,7 @@ serve(async (req) => {
               messages: [
                 {
                   role: 'user',
-                  content: `Trouve des informations clés sur ce produit : ${searchQuery}. Fournis les spécifications, caractéristiques et avantages dans un format concis en français.`
+                  content: `Trouve des informations générales sur ce produit : ${searchQuery}. Fournis les caractéristiques principales, l'usage typique et les avantages SANS mentionner de spécifications techniques précises comme le processeur exact ou la RAM exacte. Focus sur l'utilisation et les bénéfices pour l'utilisateur en français.`
                 }
               ],
               temperature: 0.2,
@@ -113,7 +113,8 @@ serve(async (req) => {
 
     // Step 2: Generate description using OpenAI (works with or without Perplexity data)
     const openaiPrompt = productInfo 
-      ? `Crée une description produit optimisée SEO pour :
+      ? `Crée une description produit optimisée SEO pour du leasing de matériel informatique reconditionné :
+
 Produit : ${productName}
 ${brand ? `Marque : ${brand}` : ''}
 ${category ? `Catégorie : ${category}` : ''}
@@ -121,15 +122,30 @@ ${category ? `Catégorie : ${category}` : ''}
 Informations produit :
 ${productInfo}
 
-Rédige une description convaincante de 150-300 mots en français qui met en avant les avantages clés et caractéristiques pour un site e-commerce français.`
-      : `Crée une description produit optimisée SEO pour :
+INSTRUCTIONS IMPORTANTES :
+- Évite les spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
+- Focus sur l'usage et les bénéfices généraux du produit
+- Mentionne que c'est du matériel reconditionné (bon pour la planète, économique)
+- Intègre le concept de leasing mensuel avec "à partir de..." (sans prix exact)
+- Utilise un vocabulaire SEO français pour le leasing informatique
+- Met en avant l'aspect écologique et économique du reconditionné
+- 150-300 mots en français pour un site e-commerce de leasing`
+      : `Crée une description produit optimisée SEO pour du leasing de matériel informatique reconditionné :
+
 Produit : ${productName}
 ${brand ? `Marque : ${brand}` : ''}
 ${category ? `Catégorie : ${category}` : ''}
 
-Rédige une description convaincante de 150-300 mots en français qui met en avant les avantages typiques et caractéristiques de ce type de produit. Concentre-toi sur ce que les clients français voudraient savoir lors de l'achat de ce produit.`;
+INSTRUCTIONS IMPORTANTES :
+- Évite les spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
+- Focus sur l'usage et les bénéfices généraux typiques de ce type de produit
+- Mentionne que c'est du matériel reconditionné (bon pour la planète, économique)
+- Intègre le concept de leasing mensuel avec "à partir de..." (sans prix exact)
+- Utilise un vocabulaire SEO français pour le leasing informatique
+- Met en avant l'aspect écologique et économique du reconditionné
+- 150-300 mots en français pour un site e-commerce de leasing`;
 
-    console.log('Generating SEO-optimized description with OpenAI...');
+    console.log('Generating SEO-optimized leasing description with OpenAI...');
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -142,15 +158,19 @@ Rédige une description convaincante de 150-300 mots en français qui met en ava
         messages: [
           {
             role: 'system',
-            content: `Tu es un expert en rédaction e-commerce français. Crée des descriptions produit convaincantes et optimisées SEO qui :
-- Utilisent une intégration naturelle de mots-clés en français
-- Mettent en avant les avantages et caractéristiques clés
-- Sont facilement lisibles avec une structure claire
-- Incluent des déclencheurs émotionnels et propositions de valeur
-- Font entre 150-300 mots
-- Utilisent un langage persuasif mais honnête
-- Se concentrent sur les bénéfices client
-- Sont adaptées au marché français`
+            content: `Tu es un expert en rédaction e-commerce français spécialisé dans le leasing de matériel informatique reconditionné. Crée des descriptions produit qui :
+
+RÈGLES IMPORTANTES :
+- N'inclus JAMAIS de spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
+- Focus sur l'usage général et les bénéfices du produit
+- Intègre naturellement le vocabulaire du leasing : "location mensuelle", "leasing", "à partir de"
+- Met en avant l'aspect écologique : "reconditionné", "bon pour la planète", "économie circulaire"
+- Utilise un ton professionnel mais accessible
+- Inclus des mots-clés SEO français pour le leasing informatique
+- Structure claire avec des bénéfices utilisateur
+- Mentione la flexibilité du leasing et l'aspect économique
+- 150-300 mots optimisés pour le marché français
+- Termine par un call-to-action orienté leasing plutôt qu'achat`
           },
           {
             role: 'user',
@@ -184,7 +204,7 @@ Rédige une description convaincante de 150-300 mots en français qui met en ava
       throw new Error('No description generated by OpenAI');
     }
 
-    console.log('SEO-optimized description generated successfully in French');
+    console.log('SEO-optimized leasing description generated successfully in French');
 
     return new Response(
       JSON.stringify({ 
@@ -192,7 +212,8 @@ Rédige une description convaincante de 150-300 mots en français qui met en ava
         success: true,
         usedPerplexity: !!productInfo,
         model: productInfo ? 'Perplexity + OpenAI' : 'OpenAI only',
-        language: 'fr'
+        language: 'fr',
+        type: 'leasing_reconditionne'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
