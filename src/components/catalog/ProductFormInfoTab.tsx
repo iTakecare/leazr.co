@@ -15,8 +15,8 @@ import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
-import { useCategories } from "@/hooks/categories/useCategories";
-import { useBrands } from "@/hooks/brands/useBrands";
+import { useCategories } from "@/hooks/products/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
 import { useProductVariants } from "@/hooks/products/useProductVariants";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -59,15 +59,15 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     defaultValues: {
       name: productToEdit?.name || "",
       description: productToEdit?.description || "",
-      shortDescription: productToEdit?.short_description || "",
-      categoryId: productToEdit?.category_id || "",
-      brandId: productToEdit?.brand_id || "",
+      shortDescription: productToEdit?.shortDescription || "",
+      categoryId: productToEdit?.category || "",
+      brandId: productToEdit?.brand || "",
       price: productToEdit?.price || 0,
-      purchasePrice: productToEdit?.purchase_price || 0,
+      purchasePrice: productToEdit?.regularPrice ? parseFloat(productToEdit.regularPrice) : 0,
       sku: productToEdit?.sku || "",
       active: productToEdit?.active ?? true,
-      isRefurbished: productToEdit?.is_refurbished || false,
-      condition: productToEdit?.condition || "neuf",
+      isRefurbished: productToEdit?.virtual || false,
+      condition: productToEdit?.status || "neuf",
     },
   });
 
