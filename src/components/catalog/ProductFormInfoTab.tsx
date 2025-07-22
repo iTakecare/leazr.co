@@ -94,14 +94,14 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         name: productToEdit.name || "",
         description: productToEdit.description || "",
         shortDescription: productToEdit.shortDescription || "",
-        categoryId: productToEdit.categoryId || "",
-        brandId: productToEdit.brandId || "",
+        categoryId: productToEdit.category || "",
+        brandId: productToEdit.brand || "",
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         sku: productToEdit.sku || "",
-        isRefurbished: productToEdit.isRefurbished || false,
-        condition: productToEdit.condition || "",
-        warranty: productToEdit.warranty || "",
+        isRefurbished: false,
+        condition: "",
+        warranty: "",
         images: productToEdit.images || [],
         active: productToEdit.active !== false,
       });
@@ -121,11 +121,14 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
           updatedAt: new Date().toISOString(),
         };
         
-        await updateProductMutation.mutateAsync(updatedProduct);
+        await updateProductMutation.mutateAsync({
+          id: productToEdit.id,
+          ...data
+        });
         console.log("✅ ProductFormInfoTab - Product updated successfully");
       } else {
         console.log("📝 ProductFormInfoTab - Creating new product");
-        await createProductMutation.mutateAsync(data);
+        await createProductMutation.mutateAsync(data as any);
         console.log("✅ ProductFormInfoTab - Product created successfully");
       }
       

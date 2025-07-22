@@ -9,12 +9,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
 interface DescriptionGeneratorProps {
-  product: Product;
+  productName: string;
+  categoryId: string;
+  brandId: string;
+  categories: Array<{ id: string; name: string; translation?: string }>;
+  brands: Array<{ id: string; name: string; translation?: string }>;
   onDescriptionGenerated: (description: string) => void;
 }
 
 const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
-  product,
+  productName,
+  categoryId,
+  brandId,
+  categories,
+  brands,
   onDescriptionGenerated
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,22 +33,19 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
     setIsGenerating(true);
 
     try {
-      console.log("🤖 Generating description for product:", product.name);
+      console.log("🤖 Generating description for product:", productName);
 
-      // Prepare variants data for the AI
-      const variants = product.variant_combination_prices?.map(variant => ({
-        attributes: variant.attributes || {},
-        price: variant.price,
-        monthly_price: variant.monthly_price
-      })) || [];
+      // Get category and brand names
+      const category = categories.find(c => c.id === categoryId);
+      const brand = brands.find(b => b.id === brandId);
 
       const { data, error } = await supabase.functions.invoke('generate-product-description', {
         body: {
-          productName: product.name,
-          brand: product.brand,
-          category: product.category,
+          productName: productName,
+          brand: brand?.translation || brand?.name || "",
+          category: category?.translation || category?.name || "",
           includeSpecifications: false,
-          variants: variants
+          variants: []
         }
       });
 
@@ -85,7 +90,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
     toast.success("Description appliquée au produit");
   };
 
-  const hasVariants = product.variant_combination_prices && product.variant_combination_prices.length > 0;
+  const hasVariants = false; // For now, variants are handled separately
 
   return (
     <Card>
@@ -103,7 +108,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
           </p>
           {hasVariants && (
             <p className="mt-2 text-blue-600">
-              ✓ {product.variant_combination_prices?.length} variantes détectées - L'IA évitera les spécifications techniques précises
+              ✓ Variantes détectées - L'IA évitera les spécifications techniques précises
             </p>
           )}
         </div>
