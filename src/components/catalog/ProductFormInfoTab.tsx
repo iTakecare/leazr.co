@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,12 +12,13 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { createProduct, updateProduct, getBrands, getCategories } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@/types/catalog";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const productSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
@@ -45,6 +46,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -116,6 +118,47 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       toast.error("Erreur lors de la mise à jour du produit");
     },
   });
+
+  const generateDescription = async () => {
+    const formValues = form.getValues();
+    const { name, brand, category } = formValues;
+
+    if (!name) {
+      toast.error("Veuillez renseigner le nom du produit pour générer une description");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      console.log("🤖 Generating AI description for:", { name, brand, category });
+      
+      const { data, error } = await supabase.functions.invoke('generate-product-description', {
+        body: {
+          productName: name,
+          brand: brand || undefined,
+          category: category || undefined,
+        },
+      });
+
+      if (error) {
+        console.error("❌ Error generating description:", error);
+        toast.error("Erreur lors de la génération de la description");
+        return;
+      }
+
+      if (data?.description) {
+        form.setValue('description', data.description);
+        toast.success("Description générée avec succès !");
+      } else {
+        toast.error("Aucune description générée");
+      }
+    } catch (error) {
+      console.error("❌ Error in generateDescription:", error);
+      toast.error("Erreur lors de la génération de la description");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
   const onSubmit = (data: ProductFormData) => {
     console.log("📝 ProductFormInfoTab - Submitting:", { isEditMode, data });
@@ -229,7 +272,29 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Description</FormLabel>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generateDescription}
+                      disabled={isGeneratingDescription}
+                      className="text-sm"
+                    >
+                      {isGeneratingDescription ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Génération...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Générer avec l'IA
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea 
                       placeholder="Description détaillée du produit..."
