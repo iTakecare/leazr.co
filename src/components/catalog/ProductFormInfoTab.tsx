@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +19,6 @@ import { useCategories } from "@/hooks/products/useCategories";
 import { useBrands } from "@/hooks/products/useBrands";
 import DescriptionGenerator from "./DescriptionGenerator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
 const productFormSchema = z.object({
   name: z.string().min(1, "Le nom du produit est requis"),
   short_description: z.string().optional(),
@@ -31,31 +29,32 @@ const productFormSchema = z.object({
   stock: z.number().min(0, "Le stock ne peut pas être négatif"),
   sku: z.string().optional(),
   active: z.boolean(),
-  admin_only: z.boolean(),
+  admin_only: z.boolean()
 });
-
 type ProductFormData = z.infer<typeof productFormSchema>;
-
 interface ProductFormInfoTabProps {
   productToEdit?: Product;
   onSuccess: () => void;
   isEditMode: boolean;
 }
-
 const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   productToEdit,
   onSuccess,
   isEditMode
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
-  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
-  const { data: brands = [], isLoading: brandsLoading } = useBrands();
-
-  console.log("📝 ProductFormInfoTab - Rendering", { 
-    isEditMode, 
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading
+  } = useCategories();
+  const {
+    data: brands = [],
+    isLoading: brandsLoading
+  } = useBrands();
+  console.log("📝 ProductFormInfoTab - Rendering", {
+    isEditMode,
     hasProduct: !!productToEdit,
     productName: productToEdit?.name,
     categoriesCount: categories.length,
@@ -67,12 +66,10 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     const category = categories.find(c => c.name === categoryName || c.translation === categoryName);
     return category?.id || "";
   };
-
   const findBrandId = (brandName: string) => {
     const brand = brands.find(b => b.name === brandName || b.translation === brandName);
     return brand?.id || "";
   };
-
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -85,8 +82,8 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       stock: 0,
       sku: "",
       active: true,
-      admin_only: false,
-    },
+      admin_only: false
+    }
   });
 
   // Reset form when product data or categories/brands change
@@ -100,7 +97,6 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         categoryId: findCategoryId(productToEdit.category || ""),
         brandId: findBrandId(productToEdit.brand || "")
       });
-      
       form.reset({
         name: productToEdit.name || "",
         short_description: productToEdit.shortDescription || "",
@@ -111,27 +107,30 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         stock: productToEdit.stock || 0,
         sku: productToEdit.sku || "",
         active: productToEdit.active !== false,
-        admin_only: productToEdit.admin_only || false,
+        admin_only: productToEdit.admin_only || false
       });
     }
   }, [productToEdit, isEditMode, categories, brands, form]);
-
   const onSubmit = async (data: ProductFormData) => {
-    console.log("📝 ProductFormInfoTab - Form submission", { data, isEditMode });
-    
+    console.log("📝 ProductFormInfoTab - Form submission", {
+      data,
+      isEditMode
+    });
+
     // Ensure required fields are present
     if (!data.name || !data.category_id || !data.brand_id) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    
     setIsLoading(true);
     try {
       if (isEditMode && productToEdit) {
-        console.log("📝 ProductFormInfoTab - Updating product", { productId: productToEdit.id });
+        console.log("📝 ProductFormInfoTab - Updating product", {
+          productId: productToEdit.id
+        });
         await updateProduct.mutateAsync({
           id: productToEdit.id,
-          ...data,
+          ...data
         });
       } else {
         console.log("📝 ProductFormInfoTab - Creating new product");
@@ -146,11 +145,10 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
           stock: data.stock,
           sku: data.sku,
           active: data.active,
-          admin_only: data.admin_only,
+          admin_only: data.admin_only
         };
         await createProduct.mutateAsync(createData);
       }
-      
       console.log("📝 ProductFormInfoTab - Operation successful");
       onSuccess();
     } catch (error) {
@@ -160,9 +158,11 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       setIsLoading(false);
     }
   };
-
   const handleDescriptionGenerated = (description: string, shortDescription: string) => {
-    console.log("📝 ProductFormInfoTab - Descriptions generated", { description: description.length, shortDescription: shortDescription.length });
+    console.log("📝 ProductFormInfoTab - Descriptions generated", {
+      description: description.length,
+      shortDescription: shortDescription.length
+    });
     if (shortDescription) {
       form.setValue("short_description", shortDescription);
     }
@@ -170,41 +170,28 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       form.setValue("description", description);
     }
   };
-
   if (categoriesLoading || brandsLoading) {
-    return (
-      <Card>
+    return <Card>
         <CardContent className="py-6">
           <div className="flex items-center justify-center">
             <div className="text-sm text-muted-foreground">Chargement des données...</div>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
   if (categories.length === 0 || brands.length === 0) {
-    return (
-      <Card>
+    return <Card>
         <CardContent className="py-6">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {categories.length === 0 && brands.length === 0 
-                ? "Aucune catégorie ni marque disponible. Veuillez d'abord créer des catégories et des marques."
-                : categories.length === 0 
-                ? "Aucune catégorie disponible. Veuillez d'abord créer des catégories."
-                : "Aucune marque disponible. Veuillez d'abord créer des marques."
-              }
+              {categories.length === 0 && brands.length === 0 ? "Aucune catégorie ni marque disponible. Veuillez d'abord créer des catégories et des marques." : categories.length === 0 ? "Aucune catégorie disponible. Veuillez d'abord créer des catégories." : "Aucune marque disponible. Veuillez d'abord créer des marques."}
             </AlertDescription>
           </Alert>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -219,26 +206,20 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Informations générales</h3>
                 
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
+                <FormField control={form.control} name="name" render={({
+                field
+              }) => <FormItem>
                       <FormLabel>Nom du produit *</FormLabel>
                       <FormControl>
                         <Input placeholder="Nom du produit" {...field} />
                       </FormControl>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </FormItem>} />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="category_id"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="category_id" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Catégorie *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -247,23 +228,17 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
+                            {categories.map(category => <SelectItem key={category.id} value={category.id}>
                                 {category.translation || category.name}
-                              </SelectItem>
-                            ))}
+                              </SelectItem>)}
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="brand_id"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="brand_id" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Marque *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -272,54 +247,22 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {brands.map((brand) => (
-                              <SelectItem key={brand.id} value={brand.id}>
+                            {brands.map(brand => <SelectItem key={brand.id} value={brand.id}>
                                 {brand.translation || brand.name}
-                              </SelectItem>
-                            ))}
+                              </SelectItem>)}
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="short_description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description courte</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Description courte du produit"
-                          rows={2}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="short_description" render={({
+                field
+              }) => {}} />
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description détaillée</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Description détaillée du produit"
-                          rows={4}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="description" render={({
+                field
+              }) => {}} />
               </div>
 
               <Separator />
@@ -332,58 +275,35 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="price" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Prix de vente (€) *</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="0.00"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="stock"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="stock" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Stock disponible</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="0"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          />
+                          <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="sku"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="sku" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>SKU</FormLabel>
                         <FormControl>
                           <Input placeholder="SKU-001" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
               </div>
 
@@ -394,11 +314,9 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                 <h3 className="text-lg font-medium">Paramètres</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormField control={form.control} name="active" render={({
+                  field
+                }) => <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base">Produit actif</FormLabel>
                           <div className="text-sm text-muted-foreground">
@@ -406,20 +324,13 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                           </div>
                         </div>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="admin_only"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormField control={form.control} name="admin_only" render={({
+                  field
+                }) => <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base">Réservé aux admins</FormLabel>
                           <div className="text-sm text-muted-foreground">
@@ -427,34 +338,21 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                           </div>
                         </div>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
               </div>
 
               <div className="flex justify-end gap-4 pt-6">
-                <Button 
-                  type="submit" 
-                  disabled={isLoading}
-                  className="min-w-[120px]"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
+                <Button type="submit" disabled={isLoading} className="min-w-[120px]">
+                  {isLoading ? <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       {isEditMode ? "Mise à jour..." : "Création..."}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
+                    </div> : <div className="flex items-center gap-2">
                       <Save className="h-4 w-4" />
                       {isEditMode ? "Mettre à jour" : "Créer le produit"}
-                    </div>
-                  )}
+                    </div>}
                 </Button>
               </div>
             </form>
@@ -463,20 +361,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       </Card>
 
       {/* Générateur de description IA */}
-      <DescriptionGenerator
-        productName={form.watch("name")}
-        currentShortDescription={form.watch("short_description")}
-        currentDescription={form.watch("description")}
-        categoryId={form.watch("category_id") || ""}
-        brandId={form.watch("brand_id") || ""}
-        categories={categories}
-        brands={brands}
-        onDescriptionGenerated={handleDescriptionGenerated}
-        onShortDescriptionChange={(value) => form.setValue("short_description", value)}
-        onDescriptionChange={(value) => form.setValue("description", value)}
-      />
-    </div>
-  );
+      <DescriptionGenerator productName={form.watch("name")} currentShortDescription={form.watch("short_description")} currentDescription={form.watch("description")} categoryId={form.watch("category_id") || ""} brandId={form.watch("brand_id") || ""} categories={categories} brands={brands} onDescriptionGenerated={handleDescriptionGenerated} onShortDescriptionChange={value => form.setValue("short_description", value)} onDescriptionChange={value => form.setValue("description", value)} />
+    </div>;
 };
-
 export default ProductFormInfoTab;
