@@ -17,7 +17,6 @@ interface UpdateProductData {
   is_refurbished?: boolean;
   condition?: string;
   purchase_price?: number;
-  images?: string[];
   active?: boolean;
 }
 
@@ -40,7 +39,6 @@ export const useUpdateProduct = () => {
           is_refurbished: data.is_refurbished || false,
           condition: data.condition,
           purchase_price: data.purchase_price,
-          images: data.images || [],
           active: data.active !== false,
           updated_at: new Date().toISOString(),
         })

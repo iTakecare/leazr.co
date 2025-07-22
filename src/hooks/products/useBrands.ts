@@ -1,14 +1,18 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { Brand } from "@/types/catalog";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useBrands = () => {
   return useQuery({
     queryKey: ["brands"],
-    queryFn: async (): Promise<Brand[]> => {
-      const { getBrands } = await import("@/services/catalogService");
-      return getBrands();
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };
