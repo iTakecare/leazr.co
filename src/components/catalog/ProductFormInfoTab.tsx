@@ -1,51 +1,37 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, X } from "lucide-react";
+import { Loader2, Save, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
+import { useCategories } from "@/hooks/categories/useCategories";
+import { useBrands } from "@/hooks/brands/useBrands";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useCategories } from "@/hooks/products/useCategories";
-import { useBrands } from "@/hooks/products/useBrands";
 import DescriptionGenerator from "./DescriptionGenerator";
 
-// Define a schema for form validation using Zod
-// This schema defines the expected data types and validation rules for each field in the form.
-// It ensures that the data submitted by the user is valid before being processed.
-
-const formSchema = z.object({
-  name: z.string().min(1, "Le nom du produit est requis"),
-  description: z.string().optional(),
+const productFormSchema = z.object({
+  name: z.string().min(1, "Le nom est requis"),
   short_description: z.string().optional(),
-  category_id: z.string().optional(),
-  brand_id: z.string().optional(),
-  price: z.number().min(0, "Le prix doit être positif"),
-  stock: z.number().min(0, "Le stock doit être positif"),
-  sku: z.string().optional(),
-  is_refurbished: z.boolean(),
-  condition: z.string().optional(),
+  description: z.string().optional(),
+  category_id: z.string().min(1, "La catégorie est requise"),
+  brand_id: z.string().min(1, "La marque est requise"),
+  model: z.string().optional(),
+  reference: z.string().optional(),
   purchase_price: z.number().min(0, "Le prix d'achat doit être positif"),
-  active: z.boolean(),
-  admin_only: z.boolean(),
+  selling_price: z.number().min(0, "Le prix de vente doit être positif"),
+  active: z.boolean().default(true),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type ProductFormData = z.infer<typeof productFormSchema>;
 
 interface ProductFormInfoTabProps {
   productToEdit?: Product;
@@ -53,343 +39,289 @@ interface ProductFormInfoTabProps {
   isEditMode: boolean;
 }
 
-const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
-  productToEdit,
-  onSuccess,
-  isEditMode,
+const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({ 
+  productToEdit, 
+  onSuccess, 
+  isEditMode 
 }) => {
-  console.log("🔧 ProductFormInfoTab - Render", { 
-    isEditMode, 
-    productToEdit: productToEdit?.name 
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: categories = [] } = useCategories();
   const { data: brands = [] } = useBrands();
-  
-  const createProduct = useCreateProduct();
-  const updateProduct = useUpdateProduct();
+  const createProductMutation = useCreateProduct();
+  const updateProductMutation = useUpdateProduct();
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
-      name: productToEdit?.name || "",
-      description: productToEdit?.description || "",
-      short_description: productToEdit?.shortDescription || "",
-      category_id: productToEdit?.category || "",
-      brand_id: productToEdit?.brand || "",
-      price: productToEdit?.price || 0,
-      stock: productToEdit?.stock || 0,
-      sku: productToEdit?.sku || "",
-      is_refurbished: false, // Will be set based on business logic
-      condition: "", // Will be conditional
-      purchase_price: 0, // Not in Product type, will use form data
-      active: productToEdit?.active ?? true,
-      admin_only: productToEdit?.admin_only || false,
+      name: "",
+      short_description: "",
+      description: "",
+      category_id: "",
+      brand_id: "",
+      model: "",
+      reference: "",
+      purchase_price: 0,
+      selling_price: 0,
+      active: true,
     },
   });
 
-  // Watch form values for DescriptionGenerator
-  const watchedName = form.watch("name");
-  const watchedCategoryId = form.watch("category_id");
-  const watchedBrandId = form.watch("brand_id");
-  const watchedDescription = form.watch("description");
-  const watchedShortDescription = form.watch("short_description");
-  const watchedIsRefurbished = form.watch("is_refurbished");
-
-  const onSubmit = async (data: FormData) => {
-    console.log("🔧 ProductFormInfoTab - Submitting data:", data);
-
-    const productData = {
-      name: data.name,
-      description: data.description,
-      short_description: data.short_description,
-      category_id: data.category_id,
-      brand_id: data.brand_id,
-      price: data.price,
-      stock: data.stock,
-      sku: data.sku,
-      is_refurbished: data.is_refurbished,
-      condition: data.is_refurbished ? data.condition : null,
-      purchase_price: data.purchase_price,
-      active: data.active,
-      admin_only: data.admin_only,
-    };
-
-    if (isEditMode && productToEdit?.id) {
-      await updateProduct.mutateAsync({ id: productToEdit.id, ...productData });
-    } else {
-      await createProduct.mutateAsync(productData);
+  // Reset form when productToEdit changes
+  useEffect(() => {
+    if (isEditMode && productToEdit) {
+      console.log("📝 ProductFormInfoTab - Setting form values from product", productToEdit);
+      form.reset({
+        name: productToEdit.name || "",
+        short_description: productToEdit.short_description || "",
+        description: productToEdit.description || "",
+        category_id: productToEdit.category_id || "",
+        brand_id: productToEdit.brand_id || "",
+        model: productToEdit.model || "",
+        reference: productToEdit.reference || "",
+        purchase_price: productToEdit.purchase_price || 0,
+        selling_price: productToEdit.selling_price || 0,
+        active: productToEdit.active ?? true,
+      });
+    } else if (!isEditMode) {
+      console.log("📝 ProductFormInfoTab - Resetting form for create mode");
+      form.reset({
+        name: "",
+        short_description: "",
+        description: "",
+        category_id: "",
+        brand_id: "",
+        model: "",
+        reference: "",
+        purchase_price: 0,
+        selling_price: 0,
+        active: true,
+      });
     }
-    
-    onSuccess();
-  };
+  }, [productToEdit, isEditMode, form]);
 
   const handleDescriptionGenerated = (description: string, shortDescription: string) => {
-    console.log("🤖 ProductFormInfoTab - AI descriptions received", { 
-      descriptionLength: description.length,
-      shortDescriptionLength: shortDescription.length 
+    console.log("📝 ProductFormInfoTab - Setting generated descriptions", {
+      description: description.length,
+      shortDescription: shortDescription?.length || 0
     });
     
     // Update form values
-    form.setValue("description", description, { shouldValidate: true });
+    form.setValue("description", description);
     if (shortDescription) {
-      form.setValue("short_description", shortDescription, { shouldValidate: true });
+      form.setValue("short_description", shortDescription);
     }
   };
 
   const handleDescriptionChange = (description: string) => {
-    form.setValue("description", description, { shouldValidate: true });
+    form.setValue("description", description);
   };
 
   const handleShortDescriptionChange = (shortDescription: string) => {
-    form.setValue("short_description", shortDescription, { shouldValidate: true });
+    form.setValue("short_description", shortDescription);
   };
 
-  const isSubmitting = createProduct.isPending || updateProduct.isPending;
+  const onSubmit = async (data: ProductFormData) => {
+    console.log("📝 ProductFormInfoTab - Submitting form", { isEditMode, data });
+    setIsSubmitting(true);
+
+    try {
+      if (isEditMode && productToEdit) {
+        await updateProductMutation.mutateAsync({
+          id: productToEdit.id,
+          ...data,
+        });
+        console.log("✅ ProductFormInfoTab - Product updated successfully");
+      } else {
+        await createProductMutation.mutateAsync(data);
+        console.log("✅ ProductFormInfoTab - Product created successfully");
+      }
+      
+      onSuccess();
+    } catch (error) {
+      console.error("❌ ProductFormInfoTab - Submit error:", error);
+      toast.error(`Erreur lors de ${isEditMode ? 'la mise à jour' : 'la création'} du produit`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>
-            {isEditMode ? "Modifier le produit" : "Créer un nouveau produit"}
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Informations générales
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom du produit *</Label>
-                <Input
-                  id="name"
-                  {...form.register("name")}
-                  placeholder="Nom du produit"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom du produit *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Nom du produit" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.name.message}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  {...form.register("sku")}
-                  placeholder="SKU du produit"
+                <FormField
+                  control={form.control}
+                  name="reference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Référence</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Référence produit" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
 
-            {/* Category and Brand */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Catégorie</Label>
-                <Select
-                  value={form.watch("category_id")}
-                  onValueChange={(value) => form.setValue("category_id", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.translation || category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="brand">Marque</Label>
-                <Select
-                  value={form.watch("brand_id")}
-                  onValueChange={(value) => form.setValue("brand_id", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez une marque" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id}>
-                        {brand.translation || brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* AI Description Generator */}
-            {watchedName && (
-              <DescriptionGenerator
-                productName={watchedName}
-                categoryId={watchedCategoryId || ""}
-                brandId={watchedBrandId || ""}
-                categories={categories}
-                brands={brands}
-                onDescriptionGenerated={handleDescriptionGenerated}
-                currentDescription={watchedDescription || ""}
-                currentShortDescription={watchedShortDescription || ""}
-                onDescriptionChange={handleDescriptionChange}
-                onShortDescriptionChange={handleShortDescriptionChange}
-              />
-            )}
-
-            {/* Manual Description Fields (for users who prefer manual input) */}
-            <div className="space-y-4">
-              <Separator />
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="short_description">Description courte</Label>
-                  <Textarea
-                    id="short_description"
-                    {...form.register("short_description")}
-                    rows={2}
-                    placeholder="Description courte du produit (optionnel)"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description détaillée</Label>
-                  <Textarea
-                    id="description"
-                    {...form.register("description")}
-                    rows={4}
-                    placeholder="Description détaillée du produit (optionnel)"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Pricing and Stock */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Prix *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  {...form.register("price", { valueAsNumber: true })}
-                  placeholder="0.00"
+                <FormField
+                  control={form.control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Catégorie *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une catégorie" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.translation || category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {form.formState.errors.price && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.price.message}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  {...form.register("stock", { valueAsNumber: true })}
-                  placeholder="0"
+                <FormField
+                  control={form.control}
+                  name="brand_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Marque *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une marque" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {brands.map((brand) => (
+                            <SelectItem key={brand.id} value={brand.id}>
+                              {brand.translation || brand.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {form.formState.errors.stock && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.stock.message}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="purchase_price">Prix d'achat</Label>
-                <Input
-                  id="purchase_price"
-                  type="number"
-                  step="0.01"
-                  {...form.register("purchase_price", { valueAsNumber: true })}
-                  placeholder="0.00"
+                <FormField
+                  control={form.control}
+                  name="model"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Modèle</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Modèle du produit" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
 
-            {/* Product Options */}
-            <div className="space-y-4">
-              <Separator />
-              
-              {/* Refurbished Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Produit reconditionné</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Ce produit est-il reconditionné ?
-                  </p>
-                </div>
-                <Switch
-                  checked={watchedIsRefurbished}
-                  onCheckedChange={(checked) => {
-                    form.setValue("is_refurbished", checked);
-                    if (!checked) {
-                      form.setValue("condition", "");
-                    }
-                  }}
+                <FormField
+                  control={form.control}
+                  name="active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Produit actif</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Le produit sera visible dans le catalogue
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
               </div>
 
-              {/* Condition Select (only visible if refurbished) */}
-              {watchedIsRefurbished && (
-                <div className="space-y-2">
-                  <Label htmlFor="condition">État du produit</Label>
-                  <Select
-                    value={form.watch("condition")}
-                    onValueChange={(value) => form.setValue("condition", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez l'état" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="État Neuf">État Neuf</SelectItem>
-                      <SelectItem value="Grade A">Grade A</SelectItem>
-                      <SelectItem value="Grade B">Grade B</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="purchase_price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prix d'achat (€) *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              {/* Admin Only Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Produit administrateur</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Réservé aux administrateurs uniquement
-                  </p>
-                </div>
-                <Switch
-                  checked={form.watch("admin_only")}
-                  onCheckedChange={(checked) => form.setValue("admin_only", checked)}
+                <FormField
+                  control={form.control}
+                  name="selling_price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prix de vente (€) *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
 
-              {/* Active Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Produit actif</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Le produit est-il disponible à la vente ?
-                  </p>
-                </div>
-                <Switch
-                  checked={form.watch("active")}
-                  onCheckedChange={(checked) => form.setValue("active", checked)}
-                />
-              </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                <X className="h-4 w-4 mr-2" />
-                Annuler
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full md:w-auto"
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -398,14 +330,28 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {isEditMode ? "Mettre à jour" : "Créer le produit"}
+                    {isEditMode ? "Mettre à jour le produit" : "Créer le produit"}
                   </>
                 )}
               </Button>
-            </div>
-          </form>
+            </form>
+          </Form>
         </CardContent>
       </Card>
+
+      {/* Description Generator - handles both manual input and AI generation */}
+      <DescriptionGenerator
+        productName={form.watch("name")}
+        categoryId={form.watch("category_id")}
+        brandId={form.watch("brand_id")}
+        categories={categories}
+        brands={brands}
+        currentDescription={form.watch("description")}
+        currentShortDescription={form.watch("short_description")}
+        onDescriptionGenerated={handleDescriptionGenerated}
+        onDescriptionChange={handleDescriptionChange}
+        onShortDescriptionChange={handleShortDescriptionChange}
+      />
     </div>
   );
 };
