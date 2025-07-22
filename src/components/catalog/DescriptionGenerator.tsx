@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Wand2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types/catalog";
 
 interface DescriptionGeneratorProps {
   productName: string;
@@ -30,14 +29,19 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
   const [copied, setCopied] = useState(false);
 
   const handleGenerateDescription = async () => {
+    if (!productName?.trim()) {
+      toast.error("Veuillez saisir un nom de produit");
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
       console.log("🤖 Generating description for product:", productName);
 
       // Get category and brand names
-      const category = categories.find(c => c.id === categoryId);
-      const brand = brands.find(b => b.id === brandId);
+      const category = categories?.find(c => c.id === categoryId);
+      const brand = brands?.find(b => b.id === brandId);
 
       const { data, error } = await supabase.functions.invoke('generate-product-description', {
         body: {
