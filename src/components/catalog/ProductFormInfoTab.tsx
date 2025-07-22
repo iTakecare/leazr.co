@@ -164,7 +164,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         onProductUpdated?.(updatedProduct);
       } else {
         // Create new product
-        const newProduct = await createProductMutation.mutateAsync(data);
+        const newProduct = await createProductMutation.mutateAsync(data as any);
         toast.success("Produit créé avec succès");
         onProductCreated?.(newProduct);
       }
@@ -335,7 +335,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
             <Checkbox
               id="is_refurbished"
               checked={form.watch("is_refurbished")}
-              onCheckedChange={(checked) => setValue("is_refurbished", checked || false)}
+              onCheckedChange={(checked) => setValue("is_refurbished", !!checked)}
             />
             <Label htmlFor="is_refurbished">Reconditionné</Label>
           </div>

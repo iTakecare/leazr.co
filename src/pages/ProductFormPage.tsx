@@ -153,8 +153,11 @@ const ProductFormPage = () => {
             <TabsContent value="info">
               <ProductFormInfoTab 
                 productToEdit={isEditMode ? product : undefined}
-                onSuccess={handleSuccess}
                 isEditMode={isEditMode}
+                brands={[]}
+                categories={[]}
+                onProductCreated={handleSuccess}
+                onProductUpdated={handleSuccess}
               />
             </TabsContent>
 
