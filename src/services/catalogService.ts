@@ -88,10 +88,10 @@ export const getProductById = async (productId: string): Promise<Product | null>
   return mappedProduct as Product;
 };
 
-export const getPublicProducts = async () => {
-  console.log("📦 getPublicProducts - Démarrage");
+export const getPublicProducts = async (companyId?: string) => {
+  console.log("📦 getPublicProducts - Démarrage", companyId ? `pour company ${companyId}` : "");
   
-  const { data, error } = await supabase
+  let query = supabase
     .from("products")
     .select(`
       *,
@@ -101,6 +101,12 @@ export const getPublicProducts = async () => {
     .eq("active", true)
     .eq("admin_only", false)
     .order("created_at", { ascending: false });
+
+  if (companyId) {
+    query = query.eq("company_id", companyId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("📦 getPublicProducts - Erreur:", error);
@@ -154,4 +160,130 @@ export const getCategories = async () => {
 
   console.log("📦 getCategories - Catégories récupérées:", data?.length);
   return data || [];
+};
+
+export const addBrand = async (brandData: { name: string; translation: string }) => {
+  const { data, error } = await supabase
+    .from("brands")
+    .insert(brandData)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateBrand = async ({ originalName, name, translation }: { originalName: string; name: string; translation: string }) => {
+  const { data, error } = await supabase
+    .from("brands")
+    .update({ name, translation })
+    .eq("name", originalName)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const deleteBrand = async ({ name }: { name: string }) => {
+  const { error } = await supabase
+    .from("brands")
+    .delete()
+    .eq("name", name);
+
+  if (error) throw error;
+};
+
+export const addCategory = async (categoryData: { name: string; translation: string }) => {
+  const { data, error } = await supabase
+    .from("categories")
+    .insert(categoryData)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateCategory = async (id: string, categoryData: { name: string; translation: string }) => {
+  const { data, error } = await supabase
+    .from("categories")
+    .update({ name: categoryData.name, translation: categoryData.translation })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const deleteCategory = async (categoryName: string) => {
+  const { error } = await supabase
+    .from("categories")
+    .delete()
+    .eq("name", categoryName);
+
+  if (error) throw error;
+};
+
+export const createProduct = async (productData: any) => {
+  const { data, error } = await supabase
+    .from("products")
+    .insert(productData)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateProduct = async (productId: string, productData: any) => {
+  const { data, error } = await supabase
+    .from("products")
+    .update(productData)
+    .eq("id", productId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const deleteProduct = async (productId: string) => {
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", productId);
+
+  if (error) throw error;
+};
+
+export const uploadProductImage = async (imageFile: File, productId: string, isMain?: boolean | string) => {
+  // This would typically upload to storage and return the URL
+  // For now, just return a string URL
+  return `mock-image-url-${productId}-${isMain ? 'main' : 'additional'}`;
+};
+
+export const findVariantByAttributes = async (productId: string, attributes: any) => {
+  // Find variant implementation
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("parent_id", productId)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const convertProductToParent = async (productId: string, updateData: any) => {
+  const { data, error } = await supabase
+    .from("products")
+    .update({ ...updateData, is_parent: true })
+    .eq("id", productId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 };

@@ -5,19 +5,29 @@ export interface Product {
   name: string;
   brand: string;
   category: string;
+  brand_id?: string;
+  category_id?: string;
   description: string;
+  short_description?: string;
   price: number;
   monthly_price?: number;
+  purchase_price?: number;
   currentPrice?: number; // Ajout de currentPrice au type Product
   imageUrl?: string;
   specifications?: Record<string, string | number>;
   tier?: string; // Silver, gold, or platinum
   createdAt: Date | string;
   updatedAt: Date | string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
   active: boolean;
   model?: string;
   stock?: number;
   admin_only?: boolean; // Added for admin-only products
+  is_refurbished?: boolean;
+  condition?: string;
+  sku?: string;
+  company_id?: string;
   
   // WooCommerce compatibility fields
   slug?: string;
@@ -29,7 +39,6 @@ export interface Product {
   featured?: boolean;
   catalogVisibility?: string;
   shortDescription?: string;
-  sku?: string;
   regularPrice?: string;
   salePrice?: string;
   dateOnSaleFrom?: string | null;
