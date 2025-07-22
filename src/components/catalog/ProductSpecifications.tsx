@@ -9,17 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import SpecificationGenerator from "./SpecificationGenerator";
 
 interface ProductSpecificationsProps {
   productId: string;
   initialSpecifications: Record<string, string>;
   onSpecificationsUpdated?: () => void;
+  product?: any; // Pour passer le produit complet au générateur
 }
 
 const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({
   productId,
   initialSpecifications = {},
-  onSpecificationsUpdated
+  onSpecificationsUpdated,
+  product
 }) => {
   const [specifications, setSpecifications] = useState<Record<string, string>>({});
   const [newSpecKey, setNewSpecKey] = useState("");
@@ -78,87 +81,105 @@ const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({
   const saveSpecifications = () => {
     updateSpecificationsMutation.mutate(specifications);
   };
+
+  // Handle generated specifications
+  const handleSpecificationsGenerated = (generatedSpecs: Record<string, string>) => {
+    // Merge with existing specifications
+    const mergedSpecs = { ...specifications, ...generatedSpecs };
+    setSpecifications(mergedSpecs);
+    setIsUpdated(true);
+  };
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Spécifications techniques</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {Object.entries(specifications).length > 0 ? (
-            <div className="space-y-4">
-              {Object.entries(specifications).map(([key, value]) => (
-                <div key={key} className="flex items-center gap-2">
-                  <Input 
-                    value={key} 
-                    disabled 
-                    className="w-1/3" 
-                  />
-                  <Input 
-                    value={value} 
-                    onChange={(e) => handleSpecificationChange(key, e.target.value)} 
-                    className="w-2/3" 
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeSpecification(key)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center p-4 text-gray-500">
-              Aucune spécification définie pour ce produit.
-            </div>
-          )}
-          
-          <Separator className="my-4" />
-          
-          <h4 className="text-sm font-medium mb-2">Ajouter une spécification</h4>
-          <div className="flex items-center gap-2">
-            <Input 
-              value={newSpecKey}
-              onChange={(e) => setNewSpecKey(e.target.value)}
-              placeholder="Nom de la spécification"
-              className="w-1/3"
-            />
-            <Input 
-              value={newSpecValue}
-              onChange={(e) => setNewSpecValue(e.target.value)}
-              placeholder="Valeur"
-              className="w-2/3"
-            />
-            <Button
-              type="button"
-              onClick={addSpecification}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {isUpdated && (
-            <div className="mt-4 flex justify-end">
+    <div className="space-y-6">
+      {/* AI Generator - Show only if we have the full product */}
+      {product && (
+        <SpecificationGenerator 
+          product={product}
+          onSpecificationsGenerated={handleSpecificationsGenerated}
+        />
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Spécifications techniques</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Object.entries(specifications).length > 0 ? (
+              <div className="space-y-4">
+                {Object.entries(specifications).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <Input 
+                      value={key} 
+                      disabled 
+                      className="w-1/3" 
+                    />
+                    <Input 
+                      value={value} 
+                      onChange={(e) => handleSpecificationChange(key, e.target.value)} 
+                      className="w-2/3" 
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeSpecification(key)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-4 text-gray-500">
+                Aucune spécification définie pour ce produit.
+              </div>
+            )}
+            
+            <Separator className="my-4" />
+            
+            <h4 className="text-sm font-medium mb-2">Ajouter une spécification</h4>
+            <div className="flex items-center gap-2">
+              <Input 
+                value={newSpecKey}
+                onChange={(e) => setNewSpecKey(e.target.value)}
+                placeholder="Nom de la spécification"
+                className="w-1/3"
+              />
+              <Input 
+                value={newSpecValue}
+                onChange={(e) => setNewSpecValue(e.target.value)}
+                placeholder="Valeur"
+                className="w-2/3"
+              />
               <Button
-                onClick={saveSpecifications}
-                disabled={updateSpecificationsMutation.isPending}
+                type="button"
+                onClick={addSpecification}
               >
-                {updateSpecificationsMutation.isPending ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
-                    Sauvegarde...
-                  </span>
-                ) : "Enregistrer les modifications"}
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            
+            {isUpdated && (
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={saveSpecifications}
+                  disabled={updateSpecificationsMutation.isPending}
+                >
+                  {updateSpecificationsMutation.isPending ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></span>
+                      Sauvegarde...
+                    </span>
+                  ) : "Enregistrer les modifications"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

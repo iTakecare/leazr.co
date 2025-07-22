@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -25,13 +24,13 @@ import VariantAttributeSelector from "./VariantAttributeSelector";
 interface ProductVariantManagerProps {
   product: Product;
   onVariantAdded?: () => void;
-  onSuccess?: () => void; // Added the onSuccess prop to fix the error
+  onSuccess?: () => void;
 }
 
 const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({ 
   product,
   onVariantAdded,
-  onSuccess // Add this prop parameter
+  onSuccess
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -111,7 +110,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 initialAttributes={product.variation_attributes}
                 onAttributesUpdated={() => {
                   queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-                  if (onSuccess) onSuccess(); // Call onSuccess when attributes are updated
+                  if (onSuccess) onSuccess();
                 }}
               />
             </TabsContent>
@@ -122,7 +121,7 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
                 onPriceAdded={() => {
                   queryClient.invalidateQueries({ queryKey: ["product", product.id] });
                   if (onVariantAdded) onVariantAdded();
-                  if (onSuccess) onSuccess(); // Call onSuccess when prices are added
+                  if (onSuccess) onSuccess();
                 }} 
               />
             </TabsContent>
@@ -131,9 +130,10 @@ const ProductVariantManager: React.FC<ProductVariantManagerProps> = ({
               <ProductSpecifications 
                 productId={product.id}
                 initialSpecifications={product.specifications as Record<string, string>}
+                product={product}
                 onSpecificationsUpdated={() => {
                   queryClient.invalidateQueries({ queryKey: ["product", product.id] });
-                  if (onSuccess) onSuccess(); // Call onSuccess when specifications are updated
+                  if (onSuccess) onSuccess();
                 }}
               />
             </TabsContent>

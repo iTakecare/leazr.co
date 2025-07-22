@@ -11,6 +11,23 @@ interface RequestBody {
   productName: string;
   brand?: string;
   category?: string;
+  includeSpecifications?: boolean;
+  variants?: Array<{
+    attributes: Record<string, string>;
+    price: number;
+    monthly_price?: number;
+  }>;
+  existingSpecifications?: Record<string, string>;
+}
+
+interface GenerationResponse {
+  description: string;
+  specifications?: Record<string, string>;
+  success: boolean;
+  usedPerplexity: boolean;
+  model: string;
+  language: string;
+  type: string;
 }
 
 serve(async (req) => {
@@ -19,7 +36,14 @@ serve(async (req) => {
   }
 
   try {
-    const { productName, brand, category }: RequestBody = await req.json();
+    const { 
+      productName, 
+      brand, 
+      category, 
+      includeSpecifications = false,
+      variants = [],
+      existingSpecifications = {}
+    }: RequestBody = await req.json();
 
     if (!productName) {
       return new Response(
@@ -38,7 +62,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating description for: ${productName} ${brand ? `by ${brand}` : ''}`);
+    console.log(`Generating ${includeSpecifications ? 'description + specifications' : 'description'} for: ${productName} ${brand ? `by ${brand}` : ''}`);
 
     let productInfo = '';
 
@@ -111,8 +135,26 @@ serve(async (req) => {
       console.log('Perplexity API key not configured, using OpenAI only');
     }
 
-    // Step 2: Generate description using OpenAI (works with or without Perplexity data)
-    const openaiPrompt = productInfo 
+    // Prepare variant context for OpenAI
+    let variantContext = '';
+    if (variants.length > 0) {
+      variantContext = `\n\nVariantes disponibles :\n${variants.map(v => 
+        `- Configuration: ${Object.entries(v.attributes).map(([k,v]) => `${k}: ${v}`).join(', ')} - Prix: ${v.price}€ - Mensualité: ${v.monthly_price || 'N/A'}€/mois`
+      ).join('\n')}`;
+    }
+
+    // Step 2: Generate description and optionally specifications using OpenAI
+    const responseData: GenerationResponse = {
+      description: '',
+      success: false,
+      usedPerplexity: !!productInfo,
+      model: productInfo ? 'Perplexity + OpenAI' : 'OpenAI only',
+      language: 'fr',
+      type: 'leasing_reconditionne'
+    };
+
+    // Generate description
+    const descriptionPrompt = productInfo 
       ? `Crée une description produit optimisée SEO pour du leasing de matériel informatique reconditionné :
 
 Produit : ${productName}
@@ -120,7 +162,7 @@ ${brand ? `Marque : ${brand}` : ''}
 ${category ? `Catégorie : ${category}` : ''}
 
 Informations produit :
-${productInfo}
+${productInfo}${variantContext}
 
 INSTRUCTIONS IMPORTANTES :
 - Évite les spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
@@ -134,7 +176,7 @@ INSTRUCTIONS IMPORTANTES :
 
 Produit : ${productName}
 ${brand ? `Marque : ${brand}` : ''}
-${category ? `Catégorie : ${category}` : ''}
+${category ? `Catégorie : ${category}` : ''}${variantContext}
 
 INSTRUCTIONS IMPORTANTES :
 - Évite les spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
@@ -147,7 +189,7 @@ INSTRUCTIONS IMPORTANTES :
 
     console.log('Generating SEO-optimized leasing description with OpenAI...');
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const descriptionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
@@ -174,7 +216,7 @@ RÈGLES IMPORTANTES :
           },
           {
             role: 'user',
-            content: openaiPrompt
+            content: descriptionPrompt
           }
         ],
         temperature: 0.7,
@@ -182,47 +224,113 @@ RÈGLES IMPORTANTES :
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
-      
-      // Provide specific error messages based on status
-      let errorMessage = 'Failed to generate description';
-      if (openaiResponse.status === 429) {
-        errorMessage = 'OpenAI quota exceeded. Please check your OpenAI account and billing details.';
-      } else if (openaiResponse.status === 401) {
-        errorMessage = 'Invalid OpenAI API key. Please check your configuration.';
-      }
-      
-      throw new Error(`${errorMessage}: ${errorText}`);
+    if (!descriptionResponse.ok) {
+      const errorText = await descriptionResponse.text();
+      console.error(`OpenAI API error for description: ${descriptionResponse.status} - ${errorText}`);
+      throw new Error(`Failed to generate description: ${errorText}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    const description = openaiData.choices[0]?.message?.content || '';
+    const descriptionData = await descriptionResponse.json();
+    responseData.description = descriptionData.choices[0]?.message?.content?.trim() || '';
 
-    if (!description) {
+    // Generate specifications if requested
+    if (includeSpecifications) {
+      console.log('Generating technical specifications...');
+      
+      const specificationPrompt = `Génère des spécifications techniques génériques et professionnelles pour ce produit de leasing reconditionné :
+
+Produit : ${productName}
+${brand ? `Marque : ${brand}` : ''}
+${category ? `Catégorie : ${category}` : ''}
+
+${productInfo ? `Informations produit :\n${productInfo}` : ''}${variantContext}
+
+${Object.keys(existingSpecifications).length > 0 ? `\nSpécifications existantes à enrichir :\n${Object.entries(existingSpecifications).map(([k,v]) => `${k}: ${v}`).join('\n')}` : ''}
+
+INSTRUCTIONS :
+- Crée des spécifications génériques adaptées au reconditionné
+- Évite les détails techniques trop précis (CPU exact, RAM exacte)
+- Focus sur les caractéristiques générales et certifications
+- Inclus des mentions sur le reconditionnement et la garantie
+- Utilise des termes professionnels en français
+- Format : objet JSON avec clé-valeur
+- Maximum 10-15 spécifications pertinentes
+
+Retourne UNIQUEMENT un objet JSON valide sans markdown, exemple :
+{"Type": "Ordinateur portable professionnel", "Etat": "Reconditionné Grade A", "Garantie": "12 mois", "Connectivité": "Wi-Fi, Bluetooth, USB", "Écran": "LED antireflet", "Clavier": "AZERTY français", "Système": "Compatible Windows/Linux", "Certification": "Reconditionné professionnel", "Livraison": "Express incluse", "Support": "Technique dédié"}`;
+
+      const specificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Tu es un expert en spécifications techniques pour matériel informatique reconditionné. Tu génères des spécifications professionnelles génériques adaptées au marché du leasing. Réponds UNIQUEMENT en JSON valide.'
+            },
+            {
+              role: 'user',
+              content: specificationPrompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 600,
+        }),
+      });
+
+      if (specificationResponse.ok) {
+        const specificationData = await specificationResponse.json();
+        const specContent = specificationData.choices[0]?.message?.content?.trim() || '';
+        
+        try {
+          // Parse JSON response
+          const parsedSpecs = JSON.parse(specContent);
+          responseData.specifications = parsedSpecs;
+          console.log('Technical specifications generated successfully');
+        } catch (parseError) {
+          console.log('Failed to parse specifications JSON, using fallback');
+          // Fallback to basic specifications
+          responseData.specifications = {
+            "Type": `${category || 'Matériel informatique'} professionnel`,
+            "État": "Reconditionné Grade A",
+            "Garantie": "12 mois",
+            "Livraison": "Express incluse",
+            "Support": "Technique dédié"
+          };
+        }
+      } else {
+        console.log('Failed to generate specifications, using fallback');
+        responseData.specifications = {
+          "Type": `${category || 'Matériel informatique'} professionnel`,
+          "État": "Reconditionné Grade A", 
+          "Garantie": "12 mois",
+          "Livraison": "Express incluse",
+          "Support": "Technique dédié"
+        };
+      }
+    }
+
+    if (!responseData.description) {
       throw new Error('No description generated by OpenAI');
     }
 
-    console.log('SEO-optimized leasing description generated successfully in French');
+    responseData.success = true;
+    console.log(`${includeSpecifications ? 'Description and specifications' : 'Description'} generated successfully in French`);
 
     return new Response(
-      JSON.stringify({ 
-        description: description.trim(),
-        success: true,
-        usedPerplexity: !!productInfo,
-        model: productInfo ? 'Perplexity + OpenAI' : 'OpenAI only',
-        language: 'fr',
-        type: 'leasing_reconditionne'
-      }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error generating product description:', error);
+    console.error('Error generating product content:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to generate description',
+        error: 'Failed to generate content',
         details: error.message 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
