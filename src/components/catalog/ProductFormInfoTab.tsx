@@ -119,6 +119,12 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   const onSubmit = async (data: ProductFormData) => {
     console.log("📝 ProductFormInfoTab - Form submission", { data, isEditMode });
     
+    // Ensure required fields are present
+    if (!data.name || !data.category_id || !data.brand_id) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+    
     setIsLoading(true);
     try {
       if (isEditMode && productToEdit) {
@@ -129,7 +135,20 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         });
       } else {
         console.log("📝 ProductFormInfoTab - Creating new product");
-        await createProduct.mutateAsync(data);
+        // Explicitly type the data to ensure required fields are present
+        const createData = {
+          name: data.name,
+          description: data.description,
+          short_description: data.short_description,
+          category_id: data.category_id,
+          brand_id: data.brand_id,
+          price: data.price || 0,
+          stock: data.stock,
+          sku: data.sku,
+          active: data.active,
+          admin_only: data.admin_only,
+        };
+        await createProduct.mutateAsync(createData);
       }
       
       console.log("📝 ProductFormInfoTab - Operation successful");
