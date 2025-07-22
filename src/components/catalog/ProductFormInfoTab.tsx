@@ -1,360 +1,379 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { Save, Package, DollarSign, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
+import { Package, Save } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useCategories } from "@/hooks/products/useCategories";
-import { useBrands } from "@/hooks/products/useBrands";
-import DescriptionGenerator from "./DescriptionGenerator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-const productFormSchema = z.object({
-  name: z.string().min(1, "Le nom du produit est requis"),
-  short_description: z.string().optional(),
-  description: z.string().optional(),
-  category_id: z.string().min(1, "La catégorie est requise"),
-  brand_id: z.string().min(1, "La marque est requise"),
-  price: z.number().min(0, "Le prix doit être positif"),
-  stock: z.number().min(0, "Le stock ne peut pas être négatif"),
-  sku: z.string().optional(),
-  active: z.boolean(),
-  admin_only: z.boolean()
-});
-type ProductFormData = z.infer<typeof productFormSchema>;
+import { getBrands, getCategories } from "@/services/catalogService";
+
 interface ProductFormInfoTabProps {
   productToEdit?: Product;
   onSuccess: () => void;
   isEditMode: boolean;
 }
-const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
-  productToEdit,
-  onSuccess,
-  isEditMode
+
+interface Brand {
+  id: string;
+  name: string;
+  translation: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  translation: string;
+}
+
+interface FormData {
+  name: string;
+  description: string;
+  short_description?: string;
+  brand_id: string;
+  category_id: string;
+  price: number;
+  stock: number;
+  sku?: string;
+  is_refurbished: boolean;
+  condition?: string;
+  purchase_price?: number;
+  active: boolean;
+  admin_only: boolean;
+}
+
+const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({ 
+  productToEdit, 
+  onSuccess, 
+  isEditMode 
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
-  const {
-    data: categories = [],
-    isLoading: categoriesLoading
-  } = useCategories();
-  const {
-    data: brands = [],
-    isLoading: brandsLoading
-  } = useBrands();
-  console.log("📝 ProductFormInfoTab - Rendering", {
-    isEditMode,
-    hasProduct: !!productToEdit,
-    productName: productToEdit?.name,
-    categoriesCount: categories.length,
-    brandsCount: brands.length
-  });
 
-  // Helper function to find ID from name
-  const findCategoryId = (categoryName: string) => {
-    const category = categories.find(c => c.name === categoryName || c.translation === categoryName);
-    return category?.id || "";
-  };
-  const findBrandId = (brandName: string) => {
-    const brand = brands.find(b => b.name === brandName || b.translation === brandName);
-    return brand?.id || "";
-  };
-  const form = useForm<ProductFormData>({
-    resolver: zodResolver(productFormSchema),
+  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<FormData>({
     defaultValues: {
       name: "",
-      short_description: "",
       description: "",
-      category_id: "",
+      short_description: "",
       brand_id: "",
+      category_id: "",
       price: 0,
       stock: 0,
       sku: "",
+      is_refurbished: false,
+      condition: "",
+      purchase_price: 0,
       active: true,
-      admin_only: false
+      admin_only: false,
     }
   });
 
-  // Reset form when product data or categories/brands change
+  // Charger les marques et catégories
   useEffect(() => {
-    if (productToEdit && isEditMode && categories.length > 0 && brands.length > 0) {
-      console.log("📝 ProductFormInfoTab - Resetting form with product data", {
+    const loadData = async () => {
+      try {
+        console.log("🏷️ ProductFormInfoTab - Chargement des données de référence");
+        const [brandsData, categoriesData] = await Promise.all([
+          getBrands(),
+          getCategories()
+        ]);
+        
+        setBrands(brandsData);
+        setCategories(categoriesData);
+        console.log("🏷️ ProductFormInfoTab - Données chargées:", {
+          brands: brandsData.length,
+          categories: categoriesData.length
+        });
+      } catch (error) {
+        console.error("🏷️ ProductFormInfoTab - Erreur lors du chargement:", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Initialiser le formulaire avec les données du produit en mode édition
+  useEffect(() => {
+    if (isEditMode && productToEdit && brands.length > 0 && categories.length > 0) {
+      console.log("✏️ ProductFormInfoTab - Initialisation du formulaire avec:", {
         name: productToEdit.name,
-        category: productToEdit.category,
         brand: productToEdit.brand,
-        price: productToEdit.price,
-        categoryId: findCategoryId(productToEdit.category || ""),
-        brandId: findBrandId(productToEdit.brand || "")
+        category: productToEdit.category,
+        brand_id: productToEdit.brand_id,
+        category_id: productToEdit.category_id
       });
-      form.reset({
+
+      // Trouver les IDs des marques et catégories
+      const selectedBrand = brands.find(b => 
+        b.id === productToEdit.brand_id || 
+        b.name === productToEdit.brand
+      );
+      const selectedCategory = categories.find(c => 
+        c.id === productToEdit.category_id || 
+        c.name === productToEdit.category
+      );
+
+      console.log("✏️ ProductFormInfoTab - Marque et catégorie trouvées:", {
+        selectedBrand: selectedBrand?.name,
+        selectedCategory: selectedCategory?.name
+      });
+
+      reset({
         name: productToEdit.name || "",
-        short_description: productToEdit.shortDescription || "",
         description: productToEdit.description || "",
-        category_id: findCategoryId(productToEdit.category || ""),
-        brand_id: findBrandId(productToEdit.brand || ""),
+        short_description: productToEdit.shortDescription || productToEdit.short_description || "",
+        brand_id: selectedBrand?.id || "",
+        category_id: selectedCategory?.id || "",
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         sku: productToEdit.sku || "",
+        is_refurbished: productToEdit.is_refurbished || false,
+        condition: productToEdit.condition || "",
+        purchase_price: productToEdit.purchase_price || 0,
         active: productToEdit.active !== false,
-        admin_only: productToEdit.admin_only || false
+        admin_only: productToEdit.admin_only || false,
       });
     }
-  }, [productToEdit, isEditMode, categories, brands, form]);
-  const onSubmit = async (data: ProductFormData) => {
-    console.log("📝 ProductFormInfoTab - Form submission", {
-      data,
-      isEditMode
-    });
+  }, [isEditMode, productToEdit, brands, categories, reset]);
 
-    // Ensure required fields are present
-    if (!data.name || !data.category_id || !data.brand_id) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-    setIsLoading(true);
+  const onSubmit = async (data: FormData) => {
+    console.log("💾 ProductFormInfoTab - Soumission du formulaire:", data);
+    
     try {
       if (isEditMode && productToEdit) {
-        console.log("📝 ProductFormInfoTab - Updating product", {
-          productId: productToEdit.id
-        });
         await updateProduct.mutateAsync({
           id: productToEdit.id,
           ...data
         });
       } else {
-        console.log("📝 ProductFormInfoTab - Creating new product");
-        // Explicitly type the data to ensure required fields are present
-        const createData = {
-          name: data.name,
-          description: data.description,
-          short_description: data.short_description,
-          category_id: data.category_id,
-          brand_id: data.brand_id,
-          price: data.price || 0,
-          stock: data.stock,
-          sku: data.sku,
-          active: data.active,
-          admin_only: data.admin_only
-        };
-        await createProduct.mutateAsync(createData);
+        await createProduct.mutateAsync(data);
       }
-      console.log("📝 ProductFormInfoTab - Operation successful");
       onSuccess();
     } catch (error) {
-      console.error("📝 ProductFormInfoTab - Operation failed:", error);
-      toast.error("Erreur lors de l'opération");
-    } finally {
-      setIsLoading(false);
+      console.error("💾 ProductFormInfoTab - Erreur lors de la soumission:", error);
     }
   };
-  const handleDescriptionGenerated = (description: string, shortDescription: string) => {
-    console.log("📝 ProductFormInfoTab - Descriptions generated", {
-      description: description.length,
-      shortDescription: shortDescription.length
-    });
-    if (shortDescription) {
-      form.setValue("short_description", shortDescription);
-    }
-    if (description) {
-      form.setValue("description", description);
-    }
-  };
-  if (categoriesLoading || brandsLoading) {
-    return <Card>
-        <CardContent className="py-6">
-          <div className="flex items-center justify-center">
-            <div className="text-sm text-muted-foreground">Chargement des données...</div>
-          </div>
-        </CardContent>
-      </Card>;
-  }
-  if (categories.length === 0 || brands.length === 0) {
-    return <Card>
-        <CardContent className="py-6">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {categories.length === 0 && brands.length === 0 ? "Aucune catégorie ni marque disponible. Veuillez d'abord créer des catégories et des marques." : categories.length === 0 ? "Aucune catégorie disponible. Veuillez d'abord créer des catégories." : "Aucune marque disponible. Veuillez d'abord créer des marques."}
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>;
-  }
-  return <div className="space-y-6">
+
+  const isLoading = createProduct.isPending || updateProduct.isPending || isLoadingData;
+
+  if (isLoadingData) {
+    return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            {isEditMode ? "Modifier le produit" : "Créer un nouveau produit"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Informations générales */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Informations générales</h3>
-                
-                <FormField control={form.control} name="name" render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Nom du produit *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nom du produit" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="category_id" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Catégorie *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner une catégorie" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map(category => <SelectItem key={category.id} value={category.id}>
-                                {category.translation || category.name}
-                              </SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>} />
-
-                  <FormField control={form.control} name="brand_id" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Marque *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner une marque" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {brands.map(brand => <SelectItem key={brand.id} value={brand.id}>
-                                {brand.translation || brand.name}
-                              </SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>} />
-                </div>
-
-              </div>
-
-              <Separator />
-
-              {/* Prix et stock */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Prix et inventaire
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField control={form.control} name="price" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Prix de vente (€) *</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
-
-                  <FormField control={form.control} name="stock" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Stock disponible</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
-
-                  <FormField control={form.control} name="sku" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>SKU</FormLabel>
-                        <FormControl>
-                          <Input placeholder="SKU-001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Paramètres */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Paramètres</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField control={form.control} name="active" render={({
-                  field
-                }) => <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Produit actif</FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            Le produit est visible et disponible
-                          </div>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>} />
-
-                  <FormField control={form.control} name="admin_only" render={({
-                  field
-                }) => <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Réservé aux admins</FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            Seuls les administrateurs peuvent voir ce produit
-                          </div>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>} />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-4 pt-6">
-                <Button type="submit" disabled={isLoading} className="min-w-[120px]">
-                  {isLoading ? <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      {isEditMode ? "Mise à jour..." : "Création..."}
-                    </div> : <div className="flex items-center gap-2">
-                      <Save className="h-4 w-4" />
-                      {isEditMode ? "Mettre à jour" : "Créer le produit"}
-                    </div>}
-                </Button>
-              </div>
-            </form>
-          </Form>
+        <CardContent className="p-6">
+          <div className="text-center">Chargement des données...</div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Générateur de description IA */}
-      <DescriptionGenerator productName={form.watch("name")} currentShortDescription={form.watch("short_description")} currentDescription={form.watch("description")} categoryId={form.watch("category_id") || ""} brandId={form.watch("brand_id") || ""} categories={categories} brands={brands} onDescriptionGenerated={handleDescriptionGenerated} onShortDescriptionChange={value => form.setValue("short_description", value)} onDescriptionChange={value => form.setValue("description", value)} />
-    </div>;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Package className="h-5 w-5" />
+          Informations du produit
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom du produit *</Label>
+              <Input
+                id="name"
+                {...register("name", { required: "Le nom est obligatoire" })}
+                placeholder="Nom du produit"
+              />
+              {errors.name && (
+                <p className="text-sm text-red-600">{errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                {...register("sku")}
+                placeholder="Code produit"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="brand_id">Marque *</Label>
+              <Select 
+                value={watch("brand_id")} 
+                onValueChange={(value) => setValue("brand_id", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une marque" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.brand_id && (
+                <p className="text-sm text-red-600">{errors.brand_id.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category_id">Catégorie *</Label>
+              <Select 
+                value={watch("category_id")} 
+                onValueChange={(value) => setValue("category_id", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category_id && (
+                <p className="text-sm text-red-600">{errors.category_id.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description *</Label>
+            <Textarea
+              id="description"
+              {...register("description", { required: "La description est obligatoire" })}
+              placeholder="Description détaillée du produit"
+              rows={4}
+            />
+            {errors.description && (
+              <p className="text-sm text-red-600">{errors.description.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="short_description">Description courte</Label>
+            <Textarea
+              id="short_description"
+              {...register("short_description")}
+              placeholder="Description courte pour l'aperçu"
+              rows={2}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="price">Prix de vente (€)</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                {...register("price", { valueAsNumber: true })}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="purchase_price">Prix d'achat (€)</Label>
+              <Input
+                id="purchase_price"
+                type="number"
+                step="0.01"
+                {...register("purchase_price", { valueAsNumber: true })}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="stock">Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                {...register("stock", { valueAsNumber: true })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="condition">État</Label>
+              <Select 
+                value={watch("condition") || ""} 
+                onValueChange={(value) => setValue("condition", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un état" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Neuf</SelectItem>
+                  <SelectItem value="excellent">Excellent</SelectItem>
+                  <SelectItem value="good">Bon</SelectItem>
+                  <SelectItem value="fair">Correct</SelectItem>
+                  <SelectItem value="poor">Mauvais</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_refurbished"
+                checked={watch("is_refurbished")}
+                onCheckedChange={(checked) => setValue("is_refurbished", !!checked)}
+              />
+              <Label htmlFor="is_refurbished">Produit reconditionné</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="active"
+                checked={watch("active")}
+                onCheckedChange={(checked) => setValue("active", !!checked)}
+              />
+              <Label htmlFor="active">Produit actif</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="admin_only"
+                checked={watch("admin_only")}
+                onCheckedChange={(checked) => setValue("admin_only", !!checked)}
+              />
+              <Label htmlFor="admin_only">Réservé aux administrateurs</Label>
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-6">
+            <Button type="submit" disabled={isLoading} className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              {isLoading ? "Enregistrement..." : isEditMode ? "Mettre à jour" : "Créer le produit"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
 };
+
 export default ProductFormInfoTab;
