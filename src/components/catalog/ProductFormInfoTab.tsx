@@ -82,22 +82,22 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     if (productToEdit && isEditMode) {
       console.log("📝 ProductFormInfoTab - Resetting form with product data", {
         name: productToEdit.name,
-        brand_id: productToEdit.brand_id,
-        category_id: productToEdit.category_id,
+        brand: productToEdit.brand,
+        category: productToEdit.category,
         price: productToEdit.price
       });
       
       form.reset({
         name: productToEdit.name || "",
-        short_description: productToEdit.short_description || productToEdit.shortDescription || "",
+        short_description: productToEdit.shortDescription || "",
         description: productToEdit.description || "",
-        category_id: productToEdit.category_id || "",
-        brand_id: productToEdit.brand_id || "",
+        category_id: productToEdit.category || "",
+        brand_id: productToEdit.brand || "",
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         sku: productToEdit.sku || "",
-        is_refurbished: productToEdit.is_refurbished || false,
-        condition: productToEdit.condition || "",
+        is_refurbished: false, // Property doesn't exist in Product type
+        condition: "", // Property doesn't exist in Product type
         active: productToEdit.active !== false,
         admin_only: productToEdit.admin_only || false,
       });
@@ -291,9 +291,13 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                 productName={form.watch("name")}
                 currentShortDescription={form.watch("short_description")}
                 currentDescription={form.watch("description")}
-                onDescriptionsGenerated={(short, detailed) => {
-                  if (short) form.setValue("short_description", short);
-                  if (detailed) form.setValue("description", detailed);
+                categoryId={form.watch("category_id") || ""}
+                brandId={form.watch("brand_id") || ""}
+                categories={categories}
+                brands={brands}
+                onDescriptionGenerated={(description, shortDescription) => {
+                  if (shortDescription) form.setValue("short_description", shortDescription);
+                  if (description) form.setValue("description", description);
                 }}
                 onShortDescriptionChange={(value) => form.setValue("short_description", value)}
                 onDescriptionChange={(value) => form.setValue("description", value)}
