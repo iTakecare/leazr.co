@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,15 +7,15 @@ import { Product } from "@/types/catalog";
 interface CreateProductData {
   name: string;
   description?: string;
-  shortDescription?: string;
-  categoryId: string;
-  brandId: string;
+  short_description?: string;
+  category_id?: string;
+  brand_id?: string;
   price: number;
   stock?: number;
   sku?: string;
-  isRefurbished?: boolean;
+  is_refurbished?: boolean;
   condition?: string;
-  purchasePrice?: number;
+  purchase_price?: number;
   images?: string[];
   active?: boolean;
 }
@@ -26,23 +27,23 @@ export const useCreateProduct = () => {
     mutationFn: async (data: CreateProductData) => {
       const { data: product, error } = await supabase
         .from("products")
-        .insert([
-          {
-            name: data.name,
-            description: data.description,
-            short_description: data.shortDescription,
-            category_id: data.categoryId,
-            brand_id: data.brandId,
-            price: data.price,
-            stock: data.stock,
-            sku: data.sku,
-            is_refurbished: data.isRefurbished || false,
-            condition: data.condition,
-            purchase_price: data.purchasePrice,
-            images: data.images || [],
-            active: data.active !== false,
-          },
-        ])
+        .insert({
+          name: data.name,
+          description: data.description,
+          short_description: data.short_description,
+          category_id: data.category_id,
+          brand_id: data.brand_id,
+          price: data.price,
+          stock: data.stock || 0,
+          sku: data.sku,
+          is_refurbished: data.is_refurbished || false,
+          condition: data.condition,
+          purchase_price: data.purchase_price,
+          images: data.images || [],
+          active: data.active !== false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .select()
         .single();
 

@@ -1,38 +1,40 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Loader2, Save } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
-import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useBrands } from "@/hooks/products/useBrands";
-import { useCategories } from "@/hooks/products/useCategories";
-import DescriptionGenerator from "./DescriptionGenerator";
+import { useCreateProduct } from "@/hooks/products/useCreateProduct";
+import { useCategories } from "@/hooks/categories/useCategories";
+import { useBrands } from "@/hooks/brands/useBrands";
+import { useProductVariants } from "@/hooks/products/useProductVariants";
+import { supabase } from "@/integrations/supabase/client";
 
-const productSchema = z.object({
+const formSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
-  shortDescription: z.string().optional(),
   description: z.string().optional(),
+  shortDescription: z.string().optional(),
+  categoryId: z.string().optional(),
+  brandId: z.string().optional(),
+  price: z.number().min(0, "Le prix doit être positif"),
   purchasePrice: z.number().min(0, "Le prix d'achat doit être positif"),
-  monthlyPrice: z.number().optional(),
-  categoryId: z.string().min(1, "La catégorie est requise"),
-  brandId: z.string().min(1, "La marque est requise"),
+  sku: z.string().optional(),
   active: z.boolean().default(true),
-  isRefurbished: z.boolean().default(true),
+  isRefurbished: z.boolean().default(false),
   condition: z.string().optional(),
-  adminOnly: z.boolean().default(false),
 });
 
-type ProductFormData = z.infer<typeof productSchema>;
+type FormData = z.infer<typeof formSchema>;
 
 interface ProductFormInfoTabProps {
   productToEdit?: Product;
@@ -43,319 +45,365 @@ interface ProductFormInfoTabProps {
 const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   productToEdit,
   onSuccess,
-  isEditMode
+  isEditMode,
 }) => {
-  const { data: brands = [] } = useBrands();
-  const { data: categories = [] } = useCategories();
-  const createProduct = useCreateProduct();
+  const [isGenerating, setIsGenerating] = useState(false);
   const updateProduct = useUpdateProduct();
+  const createProduct = useCreateProduct();
+  const { data: categories = [] } = useCategories();
+  const { data: brands = [] } = useBrands();
+  const { data: variants = [] } = useProductVariants(productToEdit?.id);
 
-  // États pour les descriptions
-  const [currentDescription, setCurrentDescription] = useState("");
-  const [currentShortDescription, setCurrentShortDescription] = useState("");
-
-  const form = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      name: (productToEdit as any)?.name || "",
-      shortDescription: (productToEdit as any)?.short_description || "",
-      description: (productToEdit as any)?.description || "",
-      purchasePrice: (productToEdit as any)?.purchase_price || 0,
-      monthlyPrice: (productToEdit as any)?.monthly_price || undefined,
-      categoryId: (productToEdit as any)?.category_id || "",
-      brandId: (productToEdit as any)?.brand_id || "",
-      active: (productToEdit as any)?.active ?? true,
-      isRefurbished: (productToEdit as any)?.is_refurbished ?? true,
-      condition: (productToEdit as any)?.condition || "",
-      adminOnly: (productToEdit as any)?.admin_only ?? false,
+      name: productToEdit?.name || "",
+      description: productToEdit?.description || "",
+      shortDescription: productToEdit?.short_description || "",
+      categoryId: productToEdit?.category_id || "",
+      brandId: productToEdit?.brand_id || "",
+      price: productToEdit?.price || 0,
+      purchasePrice: productToEdit?.purchase_price || 0,
+      sku: productToEdit?.sku || "",
+      active: productToEdit?.active ?? true,
+      isRefurbished: productToEdit?.is_refurbished || false,
+      condition: productToEdit?.condition || "neuf",
     },
   });
 
-  // Synchroniser les états locaux avec les valeurs du formulaire
-  React.useEffect(() => {
-    const subscription = form.watch((value) => {
-      setCurrentDescription(value.description || "");
-      setCurrentShortDescription(value.shortDescription || "");
-    });
-    
-    // Initialiser les valeurs au chargement
-    setCurrentDescription(form.getValues("description") || "");
-    setCurrentShortDescription(form.getValues("shortDescription") || "");
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
+  const { watch, setValue } = form;
+  const watchedValues = watch();
 
-  const handleDescriptionGenerated = (description: string, shortDescription: string) => {
-    form.setValue("description", description);
-    form.setValue("shortDescription", shortDescription);
-    setCurrentDescription(description);
-    setCurrentShortDescription(shortDescription);
+  const conditionOptions = [
+    { value: "neuf", label: "Neuf" },
+    { value: "excellent", label: "Excellent" },
+    { value: "très bon", label: "Très bon" },
+    { value: "bon", label: "Bon" },
+    { value: "satisfaisant", label: "Satisfaisant" },
+  ];
+
+  const handleGenerateDescription = async () => {
+    if (!watchedValues.name?.trim()) {
+      toast.error("Veuillez saisir un nom de produit");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      console.log("🤖 Generating description for product:", watchedValues.name);
+
+      const category = categories?.find(c => c.id === watchedValues.categoryId);
+      const brand = brands?.find(b => b.id === watchedValues.brandId);
+      
+      // Calculer la mensualité minimum des variantes
+      const minMonthlyPrice = variants.length > 0 
+        ? Math.min(...variants.map(v => v.monthly_price || 0).filter(p => p > 0))
+        : 0;
+
+      const { data, error } = await supabase.functions.invoke('generate-product-description', {
+        body: {
+          productName: watchedValues.name,
+          brand: brand?.translation || brand?.name || "",
+          category: category?.translation || category?.name || "",
+          includeSpecifications: false,
+          variants: variants,
+          minMonthlyPrice: minMonthlyPrice,
+        }
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Erreur lors de la génération");
+      }
+
+      if (!data?.success || !data?.description) {
+        throw new Error("Aucune description générée");
+      }
+
+      console.log("✅ Description generated successfully");
+      
+      // Mettre à jour les valeurs du formulaire
+      setValue("description", data.description);
+      if (data.shortDescription) {
+        setValue("shortDescription", data.shortDescription);
+      }
+      
+      toast.success("Description générée avec succès", {
+        description: `Modèle utilisé: ${data.model} | Perplexity: ${data.usedPerplexity ? 'Oui' : 'Non'}`
+      });
+
+    } catch (error) {
+      console.error("Error generating description:", error);
+      toast.error(`Erreur lors de la génération: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data: FormData) => {
     try {
       if (isEditMode && productToEdit) {
         await updateProduct.mutateAsync({
           id: productToEdit.id,
           name: data.name,
-          shortDescription: data.shortDescription,
+          short_description: data.shortDescription,
           description: data.description,
-          purchasePrice: data.purchasePrice,
-          categoryId: data.categoryId,
-          brandId: data.brandId,
+          purchase_price: data.purchasePrice,
+          category_id: data.categoryId,
+          brand_id: data.brandId,
+          price: data.price,
           active: data.active,
-          isRefurbished: data.isRefurbished,
+          is_refurbished: data.isRefurbished,
           condition: data.condition,
         });
       } else {
         await createProduct.mutateAsync({
           name: data.name,
-          shortDescription: data.shortDescription,
+          short_description: data.shortDescription,
           description: data.description,
-          price: data.purchasePrice,
-          purchasePrice: data.purchasePrice,
-          categoryId: data.categoryId,
-          brandId: data.brandId,
+          purchase_price: data.purchasePrice,
+          category_id: data.categoryId,
+          brand_id: data.brandId,
+          price: data.price,
           active: data.active,
-          isRefurbished: data.isRefurbished,
+          is_refurbished: data.isRefurbished,
           condition: data.condition,
         });
       }
       onSuccess();
     } catch (error) {
-      console.error("Error saving product:", error);
-      toast.error("Erreur lors de la sauvegarde du produit");
+      console.error("Erreur lors de la soumission:", error);
     }
   };
 
-  const isLoading = createProduct.isPending || updateProduct.isPending;
-
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Informations du produit
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom du produit *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: MacBook Pro 14" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {isEditMode ? "Modifier le produit" : "Créer un nouveau produit"}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Informations de base */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom du produit *</Label>
+              <Input
+                id="name"
+                {...form.register("name")}
+                placeholder="Nom du produit"
+              />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.name.message}
+                </p>
+              )}
+            </div>
 
-                <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Catégorie *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une catégorie" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.translation || category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div className="space-y-2">
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                {...form.register("sku")}
+                placeholder="SKU du produit"
+              />
+            </div>
+          </div>
 
-                <FormField
-                  control={form.control}
-                  name="brandId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Marque *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une marque" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {brands.map((brand) => (
-                            <SelectItem key={brand.id} value={brand.id}>
-                              {brand.translation || brand.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          {/* Catégorie et Marque */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="categoryId">Catégorie</Label>
+              <Select 
+                value={watchedValues.categoryId} 
+                onValueChange={(value) => setValue("categoryId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.translation || category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <FormField
-                  control={form.control}
-                  name="purchasePrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prix d'achat *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div className="space-y-2">
+              <Label htmlFor="brandId">Marque</Label>
+              <Select 
+                value={watchedValues.brandId} 
+                onValueChange={(value) => setValue("brandId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une marque" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.translation || brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-                <FormField
-                  control={form.control}
-                  name="monthlyPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prix mensuel (optionnel)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          {/* Prix */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="price">Prix de vente (€)</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                {...form.register("price", { valueAsNumber: true })}
+                placeholder="0.00"
+              />
+              {form.formState.errors.price && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.price.message}
+                </p>
+              )}
+            </div>
 
-                <FormField
-                  control={form.control}
-                  name="condition"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>État du produit</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Excellent, Bon, Satisfaisant" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="purchasePrice">Prix d'achat (€)</Label>
+              <Input
+                id="purchasePrice"
+                type="number"
+                step="0.01"
+                min="0"
+                {...form.register("purchasePrice", { valueAsNumber: true })}
+                placeholder="0.00"
+              />
+              {form.formState.errors.purchasePrice && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.purchasePrice.message}
+                </p>
+              )}
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Produit actif</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+          {/* État du produit */}
+          <div className="space-y-2">
+            <Label htmlFor="condition">État du produit</Label>
+            <Select 
+              value={watchedValues.condition} 
+              onValueChange={(value) => setValue("condition", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner l'état" />
+              </SelectTrigger>
+              <SelectContent>
+                {conditionOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                <FormField
-                  control={form.control}
-                  name="isRefurbished"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Produit reconditionné</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+          {/* Générateur de description IA intégré */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+            <div className="flex items-center gap-2 mb-4">
+              <Wand2 className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">Générateur de description IA</h3>
+            </div>
+            
+            <Button 
+              type="button"
+              onClick={handleGenerateDescription}
+              disabled={isGenerating}
+              className="w-full"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Génération en cours...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Générer une description
+                </>
+              )}
+            </Button>
 
-                <FormField
-                  control={form.control}
-                  name="adminOnly"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Réservé aux administrateurs</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="shortDescription">Description courte</Label>
+                <Textarea
+                  id="shortDescription"
+                  {...form.register("shortDescription")}
+                  rows={2}
+                  className="resize-none"
+                  placeholder="Saisissez une description courte ou générez-en une avec l'IA..."
                 />
               </div>
 
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {isEditMode ? "Mise à jour..." : "Création..."}
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {isEditMode ? "Mettre à jour le produit" : "Créer le produit"}
-                  </>
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  {...form.register("description")}
+                  rows={6}
+                  className="resize-none"
+                  placeholder="Saisissez une description détaillée ou générez-en une avec l'IA..."
+                />
+              </div>
+            </div>
+          </div>
 
-      {/* Générateur de description avec les champs intégrés */}
-      <DescriptionGenerator
-        productName={form.watch("name")}
-        categoryId={form.watch("categoryId")}
-        brandId={form.watch("brandId")}
-        categories={categories}
-        brands={brands}
-        onDescriptionGenerated={handleDescriptionGenerated}
-        currentDescription={currentDescription}
-        currentShortDescription={currentShortDescription}
-        onDescriptionChange={(desc) => {
-          setCurrentDescription(desc);
-          form.setValue("description", desc);
-        }}
-        onShortDescriptionChange={(shortDesc) => {
-          setCurrentShortDescription(shortDesc);
-          form.setValue("shortDescription", shortDesc);
-        }}
-      />
-    </div>
+          {/* Options */}
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="active"
+                checked={watchedValues.active}
+                onCheckedChange={(checked) => setValue("active", checked)}
+              />
+              <Label htmlFor="active">Produit actif</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isRefurbished"
+                checked={watchedValues.isRefurbished}
+                onCheckedChange={(checked) => setValue("isRefurbished", checked)}
+              />
+              <Label htmlFor="isRefurbished">Produit reconditionné</Label>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="submit"
+              disabled={updateProduct.isPending || createProduct.isPending}
+              className="w-full md:w-auto"
+            >
+              {updateProduct.isPending || createProduct.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {isEditMode ? "Mise à jour..." : "Création..."}
+                </>
+              ) : (
+                <>
+                  {isEditMode ? "Mettre à jour le produit" : "Créer le produit"}
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
