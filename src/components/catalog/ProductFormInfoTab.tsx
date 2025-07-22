@@ -15,8 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Loader2, Save, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Product, Category, Brand } from "@/types/catalog";
-import { useCategories } from "@/hooks/catalog/useCategories";
-import { useBrands } from "@/hooks/catalog/useBrands";
+import { useCategories } from "@/hooks/products/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import DescriptionGenerator from "./DescriptionGenerator";
@@ -66,8 +66,8 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { categories, isLoading: categoriesLoading } = useCategories();
-  const { brands, isLoading: brandsLoading } = useBrands();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: brands, isLoading: brandsLoading } = useBrands();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
@@ -103,9 +103,9 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         price: productToEdit.price || 0,
         stock: productToEdit.stock || 0,
         sku: productToEdit.sku || "",
-        isRefurbished: productToEdit.is_refurbished || false,
-        condition: productToEdit.condition || "",
-        warranty: productToEdit.warranty || "",
+        isRefurbished: false, // Default for now since property doesn't exist
+        condition: "",
+        warranty: "",
         active: productToEdit.active !== false,
       });
     }
