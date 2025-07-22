@@ -12,8 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Save, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
-import { useCategories } from "@/hooks/categories/useCategories";
-import { useBrands } from "@/hooks/brands/useBrands";
+import { useCategories } from "@/hooks/products/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import DescriptionGenerator from "./DescriptionGenerator";
@@ -24,10 +24,9 @@ const productFormSchema = z.object({
   description: z.string().optional(),
   category_id: z.string().min(1, "La catégorie est requise"),
   brand_id: z.string().min(1, "La marque est requise"),
-  model: z.string().optional(),
-  reference: z.string().optional(),
+  sku: z.string().optional(),
   purchase_price: z.number().min(0, "Le prix d'achat doit être positif"),
-  selling_price: z.number().min(0, "Le prix de vente doit être positif"),
+  price: z.number().min(0, "Le prix de vente doit être positif"),
   active: z.boolean().default(true),
 });
 
@@ -59,10 +58,9 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       description: "",
       category_id: "",
       brand_id: "",
-      model: "",
-      reference: "",
+      sku: "",
       purchase_price: 0,
-      selling_price: 0,
+      price: 0,
       active: true,
     },
   });
@@ -73,14 +71,13 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       console.log("📝 ProductFormInfoTab - Setting form values from product", productToEdit);
       form.reset({
         name: productToEdit.name || "",
-        short_description: productToEdit.short_description || "",
+        short_description: productToEdit.shortDescription || "",
         description: productToEdit.description || "",
-        category_id: productToEdit.category_id || "",
-        brand_id: productToEdit.brand_id || "",
-        model: productToEdit.model || "",
-        reference: productToEdit.reference || "",
-        purchase_price: productToEdit.purchase_price || 0,
-        selling_price: productToEdit.selling_price || 0,
+        category_id: productToEdit.category || "",
+        brand_id: productToEdit.brand || "",
+        sku: productToEdit.sku || "",
+        purchase_price: productToEdit.price || 0,
+        price: productToEdit.price || 0,
         active: productToEdit.active ?? true,
       });
     } else if (!isEditMode) {
@@ -91,10 +88,9 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         description: "",
         category_id: "",
         brand_id: "",
-        model: "",
-        reference: "",
+        sku: "",
         purchase_price: 0,
-        selling_price: 0,
+        price: 0,
         active: true,
       });
     }
@@ -133,7 +129,17 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         });
         console.log("✅ ProductFormInfoTab - Product updated successfully");
       } else {
-        await createProductMutation.mutateAsync(data);
+        await createProductMutation.mutateAsync({
+          name: data.name,
+          description: data.description,
+          short_description: data.short_description,
+          category_id: data.category_id,
+          brand_id: data.brand_id,
+          price: data.price,
+          purchase_price: data.purchase_price,
+          sku: data.sku,
+          active: data.active,
+        });
         console.log("✅ ProductFormInfoTab - Product created successfully");
       }
       
@@ -175,12 +181,12 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="reference"
+                  name="sku"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Référence</FormLabel>
+                      <FormLabel>SKU</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Référence produit" />
+                        <Input {...field} placeholder="SKU du produit" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -239,20 +245,6 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Modèle</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Modèle du produit" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="active"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
@@ -297,7 +289,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="selling_price"
+                  name="price"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Prix de vente (€) *</FormLabel>
