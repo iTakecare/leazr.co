@@ -256,33 +256,6 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                       </FormItem>} />
                 </div>
 
-                <FormField control={form.control} name="short_description" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description courte</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Résumé du produit en quelques mots..." 
-                        className="min-h-[80px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description complète</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Description détaillée du produit..."
-                        className="min-h-[120px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
               </div>
 
               <Separator />
