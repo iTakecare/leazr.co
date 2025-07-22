@@ -1,33 +1,37 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, Package } from "lucide-react";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Save, Sparkles } from "lucide-react";
 import { Product } from "@/types/catalog";
-import { useCategories } from "@/hooks/products/useCategories";
-import { useBrands } from "@/hooks/products/useBrands";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
+import { useCategories } from "@/hooks/products/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
 import DescriptionGenerator from "./DescriptionGenerator";
 
 const productFormSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
+  name: z.string().min(1, "Le nom du produit est requis"),
   short_description: z.string().optional(),
   description: z.string().optional(),
-  category_id: z.string().min(1, "La catégorie est requise"),
-  brand_id: z.string().min(1, "La marque est requise"),
+  category_id: z.string().optional(),
+  brand_id: z.string().optional(),
+  price: z.number().min(0, "Le prix doit être positif"),
+  stock: z.number().min(0, "Le stock doit être positif").optional(),
   sku: z.string().optional(),
-  purchase_price: z.number().min(0, "Le prix d'achat doit être positif"),
-  price: z.number().min(0, "Le prix de vente doit être positif"),
-  active: z.boolean().default(true),
+  is_refurbished: z.boolean().optional(),
+  condition: z.string().optional(),
+  active: z.boolean().optional(),
+  admin_only: z.boolean().optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -38,17 +42,22 @@ interface ProductFormInfoTabProps {
   isEditMode: boolean;
 }
 
-const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({ 
-  productToEdit, 
-  onSuccess, 
-  isEditMode 
+const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
+  productToEdit,
+  onSuccess,
+  isEditMode,
 }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { data: categories = [] } = useCategories();
-  const { data: brands = [] } = useBrands();
+  const { data: categories = [], isLoading: loadingCategories } = useCategories();
+  const { data: brands = [], isLoading: loadingBrands } = useBrands();
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
+
+  console.log("📝 ProductFormInfoTab - Render", { 
+    isEditMode, 
+    productToEdit: productToEdit?.name,
+    categoriesCount: categories.length,
+    brandsCount: brands.length
+  });
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -58,151 +67,125 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       description: "",
       category_id: "",
       brand_id: "",
-      sku: "",
-      purchase_price: 0,
       price: 0,
+      stock: 0,
+      sku: "",
+      is_refurbished: false,
+      condition: "",
       active: true,
+      admin_only: false,
     },
   });
 
   // Reset form when productToEdit changes
   useEffect(() => {
-    if (isEditMode && productToEdit) {
-      console.log("📝 ProductFormInfoTab - Setting form values from product", productToEdit);
+    if (productToEdit && isEditMode) {
+      console.log("📝 ProductFormInfoTab - Resetting form with product data", {
+        name: productToEdit.name,
+        brand_id: productToEdit.brand_id,
+        category_id: productToEdit.category_id,
+        price: productToEdit.price
+      });
+      
       form.reset({
         name: productToEdit.name || "",
-        short_description: productToEdit.shortDescription || "",
+        short_description: productToEdit.short_description || productToEdit.shortDescription || "",
         description: productToEdit.description || "",
-        category_id: productToEdit.category || "",
-        brand_id: productToEdit.brand || "",
-        sku: productToEdit.sku || "",
-        purchase_price: productToEdit.price || 0,
+        category_id: productToEdit.category_id || "",
+        brand_id: productToEdit.brand_id || "",
         price: productToEdit.price || 0,
-        active: productToEdit.active ?? true,
-      });
-    } else if (!isEditMode) {
-      console.log("📝 ProductFormInfoTab - Resetting form for create mode");
-      form.reset({
-        name: "",
-        short_description: "",
-        description: "",
-        category_id: "",
-        brand_id: "",
-        sku: "",
-        purchase_price: 0,
-        price: 0,
-        active: true,
+        stock: productToEdit.stock || 0,
+        sku: productToEdit.sku || "",
+        is_refurbished: productToEdit.is_refurbished || false,
+        condition: productToEdit.condition || "",
+        active: productToEdit.active !== false,
+        admin_only: productToEdit.admin_only || false,
       });
     }
   }, [productToEdit, isEditMode, form]);
 
-  const handleDescriptionGenerated = (description: string, shortDescription: string) => {
-    console.log("📝 ProductFormInfoTab - Setting generated descriptions", {
-      description: description.length,
-      shortDescription: shortDescription?.length || 0
-    });
-    
-    // Update form values
-    form.setValue("description", description);
-    if (shortDescription) {
-      form.setValue("short_description", shortDescription);
-    }
-  };
-
-  const handleDescriptionChange = (description: string) => {
-    form.setValue("description", description);
-  };
-
-  const handleShortDescriptionChange = (shortDescription: string) => {
-    form.setValue("short_description", shortDescription);
-  };
-
   const onSubmit = async (data: ProductFormData) => {
-    console.log("📝 ProductFormInfoTab - Submitting form", { isEditMode, data });
-    setIsSubmitting(true);
-
+    console.log("📝 ProductFormInfoTab - Form submission", { data, isEditMode });
+    
     try {
       if (isEditMode && productToEdit) {
+        console.log("📝 ProductFormInfoTab - Updating product", { id: productToEdit.id, data });
         await updateProductMutation.mutateAsync({
           id: productToEdit.id,
-          ...data,
-        });
-        console.log("✅ ProductFormInfoTab - Product updated successfully");
-      } else {
-        await createProductMutation.mutateAsync({
           name: data.name,
-          description: data.description,
           short_description: data.short_description,
+          description: data.description,
           category_id: data.category_id,
           brand_id: data.brand_id,
           price: data.price,
-          purchase_price: data.purchase_price,
+          stock: data.stock,
           sku: data.sku,
+          is_refurbished: data.is_refurbished,
+          condition: data.condition,
           active: data.active,
+          admin_only: data.admin_only,
         });
-        console.log("✅ ProductFormInfoTab - Product created successfully");
+      } else {
+        console.log("📝 ProductFormInfoTab - Creating new product", { data });
+        await createProductMutation.mutateAsync({
+          name: data.name,
+          short_description: data.short_description,
+          description: data.description,
+          category_id: data.category_id,
+          brand_id: data.brand_id,
+          price: data.price || 0,
+          stock: data.stock,
+          sku: data.sku,
+          is_refurbished: data.is_refurbished,
+          condition: data.condition,
+          active: data.active,
+          admin_only: data.admin_only,
+        });
       }
-      
       onSuccess();
     } catch (error) {
-      console.error("❌ ProductFormInfoTab - Submit error:", error);
-      toast.error(`Erreur lors de ${isEditMode ? 'la mise à jour' : 'la création'} du produit`);
-    } finally {
-      setIsSubmitting(false);
+      console.error("📝 ProductFormInfoTab - Submission error:", error);
     }
   };
 
+  const isLoading = createProductMutation.isPending || updateProductMutation.isPending;
+  const hasVariants = productToEdit?.has_variants || productToEdit?.variants_count > 0;
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Informations générales
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom du produit *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Nom du produit" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Informations principales */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations principales</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom du produit *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nom du produit" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SKU</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="SKU du produit" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="category_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Catégorie *</FormLabel>
+                      <FormLabel>Catégorie</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une catégorie" />
+                            <SelectValue placeholder={loadingCategories ? "Chargement..." : "Sélectionner une catégorie"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -223,11 +206,11 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   name="brand_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Marque *</FormLabel>
+                      <FormLabel>Marque</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une marque" />
+                            <SelectValue placeholder={loadingBrands ? "Chargement..." : "Sélectionner une marque"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -242,6 +225,129 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SKU / Référence</FormLabel>
+                      <FormControl>
+                        <Input placeholder="SKU123" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Prix de vente (€) *
+                        {hasVariants && (
+                          <Badge variant="secondary" className="ml-2">
+                            Prix géré par les variantes
+                          </Badge>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          disabled={hasVariants}
+                        />
+                      </FormControl>
+                      {hasVariants && (
+                        <p className="text-sm text-muted-foreground">
+                          Ce produit a des variantes. Le prix est géré dans l'onglet "Variantes".
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Description */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Descriptions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DescriptionGenerator
+                productName={form.watch("name")}
+                currentShortDescription={form.watch("short_description")}
+                currentDescription={form.watch("description")}
+                onDescriptionsGenerated={(short, detailed) => {
+                  if (short) form.setValue("short_description", short);
+                  if (detailed) form.setValue("description", detailed);
+                }}
+                onShortDescriptionChange={(value) => form.setValue("short_description", value)}
+                onDescriptionChange={(value) => form.setValue("description", value)}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Paramètres avancés */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Paramètres</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stock</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="is_refurbished"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Produit reconditionné</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Ce produit est-il reconditionné ?
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -251,7 +357,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Produit actif</FormLabel>
                         <div className="text-sm text-muted-foreground">
-                          Le produit sera visible dans le catalogue
+                          Rendre ce produit visible dans le catalogue
                         </div>
                       </div>
                       <FormControl>
@@ -265,85 +371,65 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {form.watch("is_refurbished") && (
                 <FormField
                   control={form.control}
-                  name="purchase_price"
+                  name="condition"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prix d'achat (€) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                        />
-                      </FormControl>
+                      <FormLabel>État du produit</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner l'état" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="excellent">Excellent</SelectItem>
+                          <SelectItem value="very_good">Très bon</SelectItem>
+                          <SelectItem value="good">Bon</SelectItem>
+                          <SelectItem value="fair">Correct</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              )}
 
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prix de vente (€) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full md:w-auto"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {isEditMode ? "Mise à jour..." : "Création..."}
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {isEditMode ? "Mettre à jour le produit" : "Créer le produit"}
-                  </>
+              <FormField
+                control={form.control}
+                name="admin_only"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Accès administrateur uniquement</FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        Seuls les administrateurs peuvent voir ce produit
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+              />
+            </CardContent>
+          </Card>
 
-      {/* Description Generator - handles both manual input and AI generation */}
-      <DescriptionGenerator
-        productName={form.watch("name")}
-        categoryId={form.watch("category_id")}
-        brandId={form.watch("brand_id")}
-        categories={categories}
-        brands={brands}
-        currentDescription={form.watch("description")}
-        currentShortDescription={form.watch("short_description")}
-        onDescriptionGenerated={handleDescriptionGenerated}
-        onDescriptionChange={handleDescriptionChange}
-        onShortDescriptionChange={handleShortDescriptionChange}
-      />
+          {/* Boutons d'action */}
+          <div className="flex justify-end gap-4">
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Save className="mr-2 h-4 w-4" />
+              {isEditMode ? "Mettre à jour" : "Créer le produit"}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 };
