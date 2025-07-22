@@ -15,9 +15,10 @@ interface UpdateProductData {
   stock?: number;
   sku?: string;
   is_refurbished?: boolean;
-  condition?: string;
+  condition?: string | null;
   purchase_price?: number;
   active?: boolean;
+  admin_only?: boolean;
 }
 
 export const useUpdateProduct = () => {
@@ -40,6 +41,7 @@ export const useUpdateProduct = () => {
           condition: data.condition,
           purchase_price: data.purchase_price,
           active: data.active !== false,
+          admin_only: data.admin_only || false,
           updated_at: new Date().toISOString(),
         })
         .eq("id", data.id)

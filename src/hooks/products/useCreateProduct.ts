@@ -14,10 +14,10 @@ interface CreateProductData {
   stock?: number;
   sku?: string;
   is_refurbished?: boolean;
-  condition?: string;
+  condition?: string | null;
   purchase_price?: number;
-  images?: string[];
   active?: boolean;
+  admin_only?: boolean;
 }
 
 export const useCreateProduct = () => {
@@ -39,8 +39,8 @@ export const useCreateProduct = () => {
           is_refurbished: data.is_refurbished || false,
           condition: data.condition,
           purchase_price: data.purchase_price,
-          images: data.images || [],
           active: data.active !== false,
+          admin_only: data.admin_only || false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
