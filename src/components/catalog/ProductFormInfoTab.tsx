@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,24 +13,24 @@ import { Package, Save, Loader2 } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useBrands } from "@/hooks/catalog/useBrands";
-import { useCategories } from "@/hooks/catalog/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
+import { useCategories } from "@/hooks/products/useCategories";
 import DescriptionGenerator from "./DescriptionGenerator";
 
 const productSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
   description: z.string().optional(),
-  short_description: z.string().optional(),
-  price: z.number().min(0, "Le prix doit être positif"),
-  purchase_price: z.number().min(0, "Le prix d'achat doit être positif").default(0),
-  monthly_price: z.number().min(0, "Le prix mensuel doit être positif").optional(),
-  category_id: z.string().optional(),
-  brand_id: z.string().optional(),
+  shortDescription: z.string().optional(),
+  price: z.number().min(0, "Le prix doit être positif").default(0),
+  purchasePrice: z.number().min(0, "Le prix d'achat doit être positif").default(0),
+  monthlyPrice: z.number().min(0, "Le prix mensuel doit être positif").optional(),
+  categoryId: z.string().optional(),
+  brandId: z.string().optional(),
   sku: z.string().optional(),
   stock: z.number().min(0, "Le stock doit être positif").default(0),
   active: z.boolean().default(true),
-  admin_only: z.boolean().default(false),
-  is_refurbished: z.boolean().default(true), // Changed to true by default
+  adminOnly: z.boolean().default(false),
+  isRefurbished: z.boolean().default(true), // Changed to true by default
   condition: z.string().optional(),
 });
 
@@ -58,18 +57,18 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     defaultValues: {
       name: productToEdit?.name || "",
       description: productToEdit?.description || "",
-      short_description: productToEdit?.short_description || "",
+      shortDescription: (productToEdit as any)?.short_description || "",
       price: productToEdit?.price || 0,
-      purchase_price: productToEdit?.purchase_price || 0,
-      monthly_price: productToEdit?.monthly_price || 0,
-      category_id: productToEdit?.category_id || "",
-      brand_id: productToEdit?.brand_id || "",
+      purchasePrice: (productToEdit as any)?.purchase_price || 0,
+      monthlyPrice: productToEdit?.monthly_price || 0,
+      categoryId: (productToEdit as any)?.category_id || "",
+      brandId: (productToEdit as any)?.brand_id || "",
       sku: productToEdit?.sku || "",
       stock: productToEdit?.stock || 0,
       active: productToEdit?.active ?? true,
-      admin_only: productToEdit?.admin_only ?? false,
-      is_refurbished: productToEdit?.is_refurbished ?? true, // Changed to true by default
-      condition: productToEdit?.condition || "",
+      adminOnly: (productToEdit as any)?.admin_only ?? false,
+      isRefurbished: (productToEdit as any)?.is_refurbished ?? true, // Changed to true by default
+      condition: (productToEdit as any)?.condition || "",
     },
   });
 
@@ -78,17 +77,33 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       if (isEditMode && productToEdit) {
         await updateProduct.mutateAsync({
           id: productToEdit.id,
-          updates: {
-            ...data,
-            category_id: data.category_id || null,
-            brand_id: data.brand_id || null,
-          },
+          name: data.name,
+          description: data.description,
+          shortDescription: data.shortDescription,
+          price: data.price,
+          purchasePrice: data.purchasePrice,
+          categoryId: data.categoryId,
+          brandId: data.brandId,
+          sku: data.sku,
+          stock: data.stock,
+          active: data.active,
+          isRefurbished: data.isRefurbished,
+          condition: data.condition,
         });
       } else {
         await createProduct.mutateAsync({
-          ...data,
-          category_id: data.category_id || null,
-          brand_id: data.brand_id || null,
+          name: data.name,
+          description: data.description,
+          shortDescription: data.shortDescription,
+          price: data.price,
+          purchasePrice: data.purchasePrice,
+          categoryId: data.categoryId,
+          brandId: data.brandId,
+          sku: data.sku,
+          stock: data.stock,
+          active: data.active,
+          isRefurbished: data.isRefurbished,
+          condition: data.condition,
         });
       }
       onSuccess();
@@ -100,7 +115,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   const handleDescriptionGenerated = (description: string, shortDescription: string) => {
     form.setValue("description", description);
     if (shortDescription) {
-      form.setValue("short_description", shortDescription);
+      form.setValue("shortDescription", shortDescription);
     }
   };
 
@@ -151,7 +166,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="category_id"
+                  name="categoryId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Catégorie</FormLabel>
@@ -176,7 +191,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="brand_id"
+                  name="brandId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Marque</FormLabel>
@@ -223,7 +238,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="purchase_price"
+                  name="purchasePrice"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Prix d'achat (€)</FormLabel>
@@ -243,7 +258,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="monthly_price"
+                  name="monthlyPrice"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Prix mensuel (€)</FormLabel>
@@ -310,7 +325,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
-                  name="is_refurbished"
+                  name="isRefurbished"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                       <div className="space-y-0.5">
@@ -346,7 +361,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="admin_only"
+                  name="adminOnly"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                       <div className="space-y-0.5">
@@ -365,7 +380,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
               <FormField
                 control={form.control}
-                name="short_description"
+                name="shortDescription"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description courte</FormLabel>
@@ -419,8 +434,8 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
       <DescriptionGenerator
         productName={form.watch("name")}
-        categoryId={form.watch("category_id") || ""}
-        brandId={form.watch("brand_id") || ""}
+        categoryId={form.watch("categoryId") || ""}
+        brandId={form.watch("brandId") || ""}
         categories={categories}
         brands={brands}
         onDescriptionGenerated={handleDescriptionGenerated}
