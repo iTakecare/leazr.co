@@ -1552,6 +1552,69 @@ export type Database = {
           },
         ]
       }
+      equipment_alerts: {
+        Row: {
+          alert_type: string
+          company_id: string
+          created_at: string
+          dismissed_at: string | null
+          equipment_id: string | null
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          message: string
+          read_at: string | null
+          severity: string
+          target_user_id: string | null
+          title: string
+        }
+        Insert: {
+          alert_type: string
+          company_id: string
+          created_at?: string
+          dismissed_at?: string | null
+          equipment_id?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message: string
+          read_at?: string | null
+          severity?: string
+          target_user_id?: string | null
+          title: string
+        }
+        Update: {
+          alert_type?: string
+          company_id?: string
+          created_at?: string
+          dismissed_at?: string | null
+          equipment_id?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          read_at?: string | null
+          severity?: string
+          target_user_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_alerts_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_alerts_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_assignments_history: {
         Row: {
           assigned_at: string
@@ -1592,6 +1655,228 @@ export type Database = {
             columns: ["collaborator_id"]
             isOneToOne: false
             referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_maintenance: {
+        Row: {
+          company_id: string
+          completed_date: string | null
+          cost: number | null
+          created_at: string
+          created_by: string
+          description: string
+          equipment_id: string
+          id: string
+          maintenance_type: string
+          notes: string | null
+          performed_by: string | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by: string
+          description: string
+          equipment_id: string
+          id?: string
+          maintenance_type: string
+          notes?: string | null
+          performed_by?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          equipment_id?: string
+          id?: string
+          maintenance_type?: string
+          notes?: string | null
+          performed_by?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          equipment_id: string | null
+          estimated_cost: number | null
+          id: string
+          justification: string | null
+          priority: string | null
+          rejection_reason: string | null
+          request_type: string
+          requested_date: string | null
+          requester_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          equipment_id?: string | null
+          estimated_cost?: number | null
+          id?: string
+          justification?: string | null
+          priority?: string | null
+          rejection_reason?: string | null
+          request_type: string
+          requested_date?: string | null
+          requester_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          equipment_id?: string | null
+          estimated_cost?: number | null
+          id?: string
+          justification?: string | null
+          priority?: string | null
+          rejection_reason?: string | null
+          request_type?: string
+          requested_date?: string | null
+          requester_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_requests_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_tracking: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          equipment_id: string
+          from_location: string | null
+          from_user_id: string | null
+          id: string
+          movement_type: string
+          notes: string | null
+          to_location: string | null
+          to_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          equipment_id: string
+          from_location?: string | null
+          from_user_id?: string | null
+          id?: string
+          movement_type: string
+          notes?: string | null
+          to_location?: string | null
+          to_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          equipment_id?: string
+          from_location?: string | null
+          from_user_id?: string | null
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          to_location?: string | null
+          to_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_tracking_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_tracking_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_tracking_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_tracking_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3274,10 +3559,14 @@ export type Database = {
         Row: {
           active: boolean | null
           admin_only: boolean | null
+          assigned_to: string | null
           attributes: Json | null
-          brand: string | null
-          category: string | null
+          brand_id: string | null
+          brand_name: string | null
+          category_id: string | null
+          category_name: string | null
           company_id: string
+          condition: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -3289,26 +3578,40 @@ export type Database = {
           imagealts: string[] | null
           imageurls: string[] | null
           is_parent: boolean | null
+          is_refurbished: boolean | null
           is_variation: boolean | null
+          last_maintenance_date: string | null
+          location: string | null
           model: string | null
           monthly_price: number | null
           name: string
+          next_maintenance_date: string | null
           parent_id: string | null
           price: number
+          purchase_date: string | null
+          purchase_price: number | null
+          serial_number: string | null
+          short_description: string | null
           sku: string | null
           specifications: Json | null
+          status: string | null
           stock: number | null
           updated_at: string | null
           variants_ids: string[] | null
           variation_attributes: Json | null
+          warranty_end_date: string | null
         }
         Insert: {
           active?: boolean | null
           admin_only?: boolean | null
+          assigned_to?: string | null
           attributes?: Json | null
-          brand?: string | null
-          category?: string | null
+          brand_id?: string | null
+          brand_name?: string | null
+          category_id?: string | null
+          category_name?: string | null
           company_id: string
+          condition?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -3320,26 +3623,40 @@ export type Database = {
           imagealts?: string[] | null
           imageurls?: string[] | null
           is_parent?: boolean | null
+          is_refurbished?: boolean | null
           is_variation?: boolean | null
+          last_maintenance_date?: string | null
+          location?: string | null
           model?: string | null
           monthly_price?: number | null
           name: string
+          next_maintenance_date?: string | null
           parent_id?: string | null
           price?: number
+          purchase_date?: string | null
+          purchase_price?: number | null
+          serial_number?: string | null
+          short_description?: string | null
           sku?: string | null
           specifications?: Json | null
+          status?: string | null
           stock?: number | null
           updated_at?: string | null
           variants_ids?: string[] | null
           variation_attributes?: Json | null
+          warranty_end_date?: string | null
         }
         Update: {
           active?: boolean | null
           admin_only?: boolean | null
+          assigned_to?: string | null
           attributes?: Json | null
-          brand?: string | null
-          category?: string | null
+          brand_id?: string | null
+          brand_name?: string | null
+          category_id?: string | null
+          category_name?: string | null
           company_id?: string
+          condition?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -3351,20 +3668,51 @@ export type Database = {
           imagealts?: string[] | null
           imageurls?: string[] | null
           is_parent?: boolean | null
+          is_refurbished?: boolean | null
           is_variation?: boolean | null
+          last_maintenance_date?: string | null
+          location?: string | null
           model?: string | null
           monthly_price?: number | null
           name?: string
+          next_maintenance_date?: string | null
           parent_id?: string | null
           price?: number
+          purchase_date?: string | null
+          purchase_price?: number | null
+          serial_number?: string | null
+          short_description?: string | null
           sku?: string | null
           specifications?: Json | null
+          status?: string | null
           stock?: number | null
           updated_at?: string | null
           variants_ids?: string[] | null
           variation_attributes?: Json | null
+          warranty_end_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_products_brand_id"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_products_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_company_id_fkey"
             columns: ["company_id"]
@@ -3950,6 +4298,10 @@ export type Database = {
       create_default_smtp_settings_for_company: {
         Args: { p_company_id: string }
         Returns: boolean
+      }
+      create_maintenance_alerts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       create_primary_collaborator_for_client: {
         Args: {

@@ -13,7 +13,12 @@ interface DescriptionGeneratorProps {
   brandId: string;
   categories: Array<{ id: string; name: string; translation?: string }>;
   brands: Array<{ id: string; name: string; translation?: string }>;
-  onDescriptionGenerated: (description: string) => void;
+  onDescriptionGenerated: (description: string, shortDescription: string) => void;
+  variants?: Array<{
+    attributes: Record<string, string>;
+    price: number;
+    monthly_price?: number;
+  }>;
 }
 
 const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
@@ -26,6 +31,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedDescription, setGeneratedDescription] = useState("");
+  const [generatedShortDescription, setGeneratedShortDescription] = useState("");
   const [copied, setCopied] = useState(false);
 
   const handleGenerateDescription = async () => {
@@ -65,6 +71,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
       console.log("✅ Description generated successfully");
       
       setGeneratedDescription(data.description);
+      setGeneratedShortDescription(data.shortDescription || "");
       
       toast.success("Description optimisée générée avec succès", {
         description: `Modèle utilisé: ${data.model} | Perplexity: ${data.usedPerplexity ? 'Oui' : 'Non'}`
@@ -90,7 +97,7 @@ const DescriptionGenerator: React.FC<DescriptionGeneratorProps> = ({
   };
 
   const handleUseDescription = () => {
-    onDescriptionGenerated(generatedDescription);
+    onDescriptionGenerated(generatedDescription, generatedShortDescription);
     toast.success("Description appliquée au produit");
   };
 

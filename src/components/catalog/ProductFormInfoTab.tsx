@@ -42,7 +42,7 @@ const productSchema = z.object({
   sku: z.string().optional(), // Made optional
   isRefurbished: z.boolean().optional(),
   condition: z.string().optional(),
-  warranty: z.string().optional(),
+  purchasePrice: z.coerce.number().min(0, "Le prix d'achat doit être positif").optional(),
   active: z.boolean().optional(),
 });
 
@@ -84,7 +84,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       sku: "",
       isRefurbished: false,
       condition: "",
-      warranty: "",
+      purchasePrice: 0,
       active: true,
     },
   });
@@ -105,7 +105,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         sku: productToEdit.sku || "",
         isRefurbished: false, // Default for now since property doesn't exist
         condition: "",
-        warranty: "",
+        purchasePrice: 0,
         active: productToEdit.active !== false,
       });
     }
@@ -130,7 +130,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
           sku: data.sku || undefined, // Handle empty string as undefined
           isRefurbished: data.isRefurbished,
           condition: data.condition,
-          warranty: data.warranty,
+          purchasePrice: data.purchasePrice,
           active: data.active,
         });
       } else {
@@ -146,7 +146,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
           sku: data.sku || undefined, // Handle empty string as undefined
           isRefurbished: data.isRefurbished,
           condition: data.condition,
-          warranty: data.warranty,
+          purchasePrice: data.purchasePrice,
           active: data.active,
         });
       }
@@ -435,13 +435,15 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
                     <FormField
                       control={form.control}
-                      name="warranty"
+                      name="purchasePrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Garantie</FormLabel>
+                          <FormLabel>Prix d'achat</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="ex: 12 mois" 
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00" 
                               {...field}
                             />
                           </FormControl>

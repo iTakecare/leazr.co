@@ -22,6 +22,8 @@ interface RequestBody {
 
 interface GenerationResponse {
   description: string;
+  shortDescription: string;
+  minPrice?: number;
   specifications?: Record<string, string>;
   success: boolean;
   usedPerplexity: boolean;
@@ -135,17 +137,38 @@ serve(async (req) => {
       console.log('Perplexity API key not configured, using OpenAI only');
     }
 
+    // Calculate minimum pricing from variants
+    let minPrice: number | undefined;
+    let minMonthlyPrice: number | undefined;
+    
+    if (variants.length > 0) {
+      const monthlyPrices = variants
+        .map(v => v.monthly_price)
+        .filter(price => price !== null && price !== undefined && price > 0) as number[];
+      
+      if (monthlyPrices.length > 0) {
+        minMonthlyPrice = Math.min(...monthlyPrices);
+        minPrice = minMonthlyPrice;
+      }
+    }
+
     // Prepare variant context for OpenAI
     let variantContext = '';
     if (variants.length > 0) {
       variantContext = `\n\nVariantes disponibles :\n${variants.map(v => 
         `- Configuration: ${Object.entries(v.attributes).map(([k,v]) => `${k}: ${v}`).join(', ')} - Prix: ${v.price}€ - Mensualité: ${v.monthly_price || 'N/A'}€/mois`
       ).join('\n')}`;
+      
+      if (minMonthlyPrice) {
+        variantContext += `\n\nPrix minimum mensuel: ${minMonthlyPrice}€/mois`;
+      }
     }
 
     // Step 2: Generate description and optionally specifications using OpenAI
     const responseData: GenerationResponse = {
       description: '',
+      shortDescription: '',
+      minPrice: minPrice,
       success: false,
       usedPerplexity: !!productInfo,
       model: productInfo ? 'Perplexity + OpenAI' : 'OpenAI only',
@@ -154,6 +177,8 @@ serve(async (req) => {
     };
 
     // Generate description
+    const priceText = minMonthlyPrice ? `à partir de ${minMonthlyPrice}€/mois` : 'à partir de...';
+    
     const descriptionPrompt = productInfo 
       ? `Crée une description produit optimisée SEO pour du leasing de matériel informatique reconditionné :
 
@@ -168,8 +193,9 @@ INSTRUCTIONS IMPORTANTES :
 - Évite les spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
 - Focus sur l'usage et les bénéfices généraux du produit
 - Mentionne que c'est du matériel reconditionné (bon pour la planète, économique)
-- Intègre le concept de leasing mensuel avec "à partir de..." (sans prix exact)
-- Utilise un vocabulaire SEO français pour le leasing informatique
+- Intègre le concept de leasing mensuel avec "${priceText}" (utilise ce prix exact)
+- Mentionne la garantie de 3 ans incluse dans le contrat de leasing
+- Utilise un vocabulaire SEO français pour le leasing informatique et optimisé pour les moteurs de recherche IA
 - Met en avant l'aspect écologique et économique du reconditionné
 - 150-300 mots en français pour un site e-commerce de leasing`
       : `Crée une description produit optimisée SEO pour du leasing de matériel informatique reconditionné :
@@ -182,8 +208,9 @@ INSTRUCTIONS IMPORTANTES :
 - Évite les spécifications techniques précises (processeur exact, RAM exacte) car le client propose des variantes
 - Focus sur l'usage et les bénéfices généraux typiques de ce type de produit
 - Mentionne que c'est du matériel reconditionné (bon pour la planète, économique)
-- Intègre le concept de leasing mensuel avec "à partir de..." (sans prix exact)
-- Utilise un vocabulaire SEO français pour le leasing informatique
+- Intègre le concept de leasing mensuel avec "${priceText}" (utilise ce prix exact)
+- Mentionne la garantie de 3 ans incluse dans le contrat de leasing
+- Utilise un vocabulaire SEO français pour le leasing informatique et optimisé pour les moteurs de recherche IA
 - Met en avant l'aspect écologique et économique du reconditionné
 - 150-300 mots en français pour un site e-commerce de leasing`;
 
@@ -232,6 +259,62 @@ RÈGLES IMPORTANTES :
 
     const descriptionData = await descriptionResponse.json();
     responseData.description = descriptionData.choices[0]?.message?.content?.trim() || '';
+
+    // Generate short description for SEO and AI search engines
+    console.log('Generating SEO-optimized short description for AI search engines...');
+    
+    const shortDescriptionPrompt = `Crée une description courte (50-150 caractères) optimisée pour les moteurs de recherche IA à partir de cette description complète :
+
+Produit : ${productName}
+${brand ? `Marque : ${brand}` : ''}
+${category ? `Catégorie : ${category}` : ''}
+Prix : ${priceText}
+
+Description complète : ${responseData.description}
+
+INSTRUCTIONS POUR DESCRIPTION COURTE :
+- 50-150 caractères maximum
+- Inclus le nom du produit et la marque
+- Mentionne "reconditionné" et "leasing"
+- Inclus le prix si disponible
+- Optimisé pour les moteurs de recherche IA (entités nommées, vocabulaire sémantique)
+- Format concis et informatif
+- Français naturel et professionnel
+
+Exemple : "Lenovo V14 G4 reconditionné en leasing à partir de 45€/mois - Écologique et économique"`;
+
+    const shortDescriptionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Tu es un expert en référencement et optimisation pour moteurs de recherche IA. Crée des descriptions courtes très concises et optimisées pour le SEO et les moteurs de recherche IA comme Perplexity. Réponds uniquement avec la description courte, sans guillemets ni formatage.'
+          },
+          {
+            role: 'user',
+            content: shortDescriptionPrompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 100,
+      }),
+    });
+
+    if (shortDescriptionResponse.ok) {
+      const shortDescriptionData = await shortDescriptionResponse.json();
+      responseData.shortDescription = shortDescriptionData.choices[0]?.message?.content?.trim() || '';
+      console.log('Short description generated successfully');
+    } else {
+      // Fallback short description
+      responseData.shortDescription = `${productName} ${brand ? `${brand} ` : ''}reconditionné en leasing ${priceText}`;
+      console.log('Failed to generate short description, using fallback');
+    }
 
     // Generate specifications if requested
     if (includeSpecifications) {

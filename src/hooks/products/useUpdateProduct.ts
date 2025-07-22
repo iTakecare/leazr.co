@@ -15,7 +15,7 @@ interface UpdateProductData {
   sku?: string;
   isRefurbished?: boolean;
   condition?: string;
-  warranty?: string;
+  purchasePrice?: number;
   images?: string[];
   active?: boolean;
 }
@@ -31,14 +31,14 @@ export const useUpdateProduct = () => {
           name: data.name,
           description: data.description,
           short_description: data.shortDescription,
-          category: data.categoryId,
-          brand: data.brandId,
+          category_id: data.categoryId,
+          brand_id: data.brandId,
           price: data.price,
           stock: data.stock,
           sku: data.sku,
           is_refurbished: data.isRefurbished || false,
           condition: data.condition,
-          warranty: data.warranty,
+          purchase_price: data.purchasePrice,
           images: data.images || [],
           active: data.active !== false,
           updated_at: new Date().toISOString(),
