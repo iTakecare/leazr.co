@@ -66,15 +66,15 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     defaultValues: {
       name: productToEdit?.name || "",
       description: productToEdit?.description || "",
-      short_description: productToEdit?.short_description || "",
-      category_id: productToEdit?.category_id || "",
-      brand_id: productToEdit?.brand_id || "",
+      short_description: productToEdit?.shortDescription || "",
+      category_id: productToEdit?.category || "",
+      brand_id: productToEdit?.brand || "",
       price: productToEdit?.price || 0,
       stock: productToEdit?.stock || 0,
       sku: productToEdit?.sku || "",
-      is_refurbished: productToEdit?.is_refurbished || false,
-      condition: productToEdit?.condition || "",
-      purchase_price: productToEdit?.purchase_price || 0,
+      is_refurbished: false, // Will be set based on business logic
+      condition: "", // Will be conditional
+      purchase_price: 0, // Not in Product type, will use form data
       active: productToEdit?.active ?? true,
       admin_only: productToEdit?.admin_only || false,
     },
@@ -87,9 +87,19 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     console.log("🔧 ProductFormInfoTab - Submitting data:", data);
 
     const productData = {
-      ...data,
-      // Si le produit n'est pas reconditionné, on force la condition à null
+      name: data.name,
+      description: data.description,
+      short_description: data.short_description,
+      category_id: data.category_id,
+      brand_id: data.brand_id,
+      price: data.price,
+      stock: data.stock,
+      sku: data.sku,
+      is_refurbished: data.is_refurbished,
       condition: data.is_refurbished ? data.condition : null,
+      purchase_price: data.purchase_price,
+      active: data.active,
+      admin_only: data.admin_only,
     };
 
     if (isEditMode && productToEdit?.id) {
