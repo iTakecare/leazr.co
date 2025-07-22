@@ -18,9 +18,17 @@ serve(async (req) => {
   }
 
   try {
-    const { productName, brand, category, includeSpecifications, variants, minMonthlyPrice } = await req.json();
+    const { 
+      productName, 
+      brand, 
+      category, 
+      includeSpecifications, 
+      variants, 
+      minMonthlyPrice,
+      existingSpecifications 
+    } = await req.json();
     
-    console.log('Generating description for:', productName);
+    console.log('Generating content for:', productName, { includeSpecifications });
     
     let productInfo = '';
     let usedPerplexity = false;
@@ -70,19 +78,117 @@ serve(async (req) => {
       }
     }
     
-    // Générer la description avec OpenAI
     if (!openaiApiKey) {
       throw new Error('OpenAI API key is not configured');
     }
     
-    console.log('Generating SEO-optimized leasing description with OpenAI...');
-    
-    // Calculer la mensualité minimum des variantes
-    const monthlyPriceText = minMonthlyPrice > 0 
-      ? `La mensualité à partir de ${minMonthlyPrice.toFixed(2)}€/mois`
-      : 'Mensualité disponible selon configuration';
-    
-    const descriptionPrompt = `
+    let description = '';
+    let shortDescription = '';
+    let specifications = null;
+
+    // Générer les spécifications si demandées
+    if (includeSpecifications) {
+      console.log('Generating technical specifications with OpenAI...');
+      
+      const specPrompt = `
+Tu es un expert en spécifications techniques pour matériel informatique reconditionné.
+
+Produit: ${productName}
+Marque: ${brand}
+Catégorie: ${category}
+
+${productInfo ? `Informations produit:\n${productInfo}` : ''}
+
+${variants && variants.length > 0 ? `Variantes disponibles: ${variants.length} configurations` : ''}
+
+${existingSpecifications && Object.keys(existingSpecifications).length > 0 ? 
+  `Spécifications existantes à enrichir:\n${Object.entries(existingSpecifications).map(([k,v]) => `${k}: ${v}`).join('\n')}` : ''}
+
+Génère des spécifications techniques appropriées pour ce produit reconditionné en format JSON.
+
+RÈGLES IMPORTANTES:
+- Évite les détails trop précis (CPU exact, RAM exacte) car nous avons des variantes
+- Met l'accent sur le reconditionnement et la garantie
+- Inclus des specs génériques mais pertinentes
+- Maximum 8-10 spécifications
+- Spécifications en français
+- Valeurs courtes et claires
+
+Format de réponse attendu (JSON uniquement):
+{
+  "État": "Reconditionné Grade A/B",
+  "Garantie": "12 mois constructeur",
+  "Connectivité": "Wi-Fi, Bluetooth, USB",
+  "Système": "Compatible Windows/Mac/Linux",
+  "Type": "Professionnel/Grand public",
+  "Conditionnement": "Emballage sécurisé"
+}
+
+Réponds UNIQUEMENT avec le JSON, sans texte d'introduction ni d'explication.
+`;
+
+      const specResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Tu es un expert en spécifications techniques. Tu réponds uniquement en JSON valide sans texte supplémentaire.'
+            },
+            {
+              role: 'user',
+              content: specPrompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 400,
+        }),
+      });
+
+      if (specResponse.ok) {
+        const specData = await specResponse.json();
+        const specContent = specData.choices[0].message.content.trim();
+        
+        try {
+          // Nettoyer le contenu pour extraire le JSON
+          const jsonMatch = specContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            specifications = JSON.parse(jsonMatch[0]);
+            console.log('Successfully generated specifications:', specifications);
+          } else {
+            throw new Error('No JSON found in response');
+          }
+        } catch (parseError) {
+          console.error('Error parsing specifications JSON:', parseError);
+          console.log('Raw specification content:', specContent);
+          // Fallback: créer des spécifications de base
+          specifications = {
+            "État": "Reconditionné Grade A",
+            "Garantie": "12 mois",
+            "Type": "Matériel professionnel",
+            "Reconditionnement": "Testé et vérifié"
+          };
+        }
+      } else {
+        console.error('OpenAI specifications API error:', specResponse.status);
+      }
+    }
+
+    // Générer la description si pas de spécifications demandées OU en plus des spécifications
+    if (!includeSpecifications) {
+      console.log('Generating SEO-optimized leasing description with OpenAI...');
+      
+      // Calculer la mensualité minimum des variantes
+      const monthlyPriceText = minMonthlyPrice > 0 
+        ? `La mensualité à partir de ${minMonthlyPrice.toFixed(2)}€/mois`
+        : 'Mensualité disponible selon configuration';
+      
+      const descriptionPrompt = `
 Tu es un expert en rédaction de fiches produits pour une plateforme de leasing professionnel.
 
 Produit: ${productName}
@@ -109,42 +215,38 @@ Ton style doit être:
 Mets l'accent sur les bénéfices pour l'entreprise et la solution de leasing.
 `;
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Tu es un expert en rédaction commerciale spécialisé dans le leasing professionnel. Tu écris des descriptions de produits optimisées pour convaincre les entreprises de choisir le leasing.'
-          },
-          {
-            role: 'user',
-            content: descriptionPrompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      }),
-    });
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Tu es un expert en rédaction commerciale spécialisé dans le leasing professionnel. Tu écris des descriptions de produits optimisées pour convaincre les entreprises de choisir le leasing.'
+            },
+            {
+              role: 'user',
+              content: descriptionPrompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
+      });
 
-    if (!openaiResponse.ok) {
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
-    }
-
-    const openaiData = await openaiResponse.json();
-    const description = openaiData.choices[0].message.content;
-    
-    console.log('Description generated successfully in French');
-    
-    // Générer la description courte
-    console.log('Generating SEO-optimized short description for AI search engines...');
-    
-    const shortDescriptionPrompt = `
+      if (openaiResponse.ok) {
+        const openaiData = await openaiResponse.json();
+        description = openaiData.choices[0].message.content;
+        console.log('Description generated successfully in French');
+        
+        // Générer la description courte
+        console.log('Generating SEO-optimized short description for AI search engines...');
+        
+        const shortDescriptionPrompt = `
 À partir de cette description produit, crée une description courte de 50-80 mots maximum qui:
 
 1. Résume les points clés du produit
@@ -158,46 +260,46 @@ ${description}
 Génère uniquement la description courte, sans introduction ni explication.
 `;
 
-    const shortDescriptionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Tu es un expert en rédaction de résumés produits pour le web. Tu crées des descriptions courtes, percutantes et optimisées SEO.'
+        const shortDescriptionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
           },
-          {
-            role: 'user',
-            content: shortDescriptionPrompt
-          }
-        ],
-        temperature: 0.5,
-        max_tokens: 150,
-      }),
-    });
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'Tu es un expert en rédaction de résumés produits pour le web. Tu crées des descriptions courtes, percutantes et optimisées SEO.'
+              },
+              {
+                role: 'user',
+                content: shortDescriptionPrompt
+              }
+            ],
+            temperature: 0.5,
+            max_tokens: 150,
+          }),
+        });
 
-    if (!shortDescriptionResponse.ok) {
-      throw new Error(`OpenAI API error for short description: ${shortDescriptionResponse.status}`);
+        if (shortDescriptionResponse.ok) {
+          const shortDescriptionData = await shortDescriptionResponse.json();
+          shortDescription = shortDescriptionData.choices[0].message.content;
+          console.log('Short description generated successfully');
+        }
+      }
     }
-
-    const shortDescriptionData = await shortDescriptionResponse.json();
-    const shortDescription = shortDescriptionData.choices[0].message.content;
-    
-    console.log('Short description generated successfully');
     
     return new Response(
       JSON.stringify({
         success: true,
-        description: description,
-        shortDescription: shortDescription,
+        description: description || null,
+        shortDescription: shortDescription || null,
+        specifications: specifications,
         model: 'gpt-4o-mini',
         usedPerplexity: usedPerplexity,
-        minMonthlyPrice: minMonthlyPrice
+        minMonthlyPrice: minMonthlyPrice || null
       }),
       { 
         headers: { 
