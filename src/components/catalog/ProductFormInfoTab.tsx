@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Save, Loader2 } from "lucide-react";
+import { Package, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
@@ -19,19 +20,16 @@ import DescriptionGenerator from "./DescriptionGenerator";
 
 const productSchema = z.object({
   name: z.string().min(1, "Le nom est requis"),
-  description: z.string().optional(),
   shortDescription: z.string().optional(),
-  price: z.number().min(0, "Le prix doit être positif").default(0),
-  purchasePrice: z.number().min(0, "Le prix d'achat doit être positif").default(0),
-  monthlyPrice: z.number().min(0, "Le prix mensuel doit être positif").optional(),
-  categoryId: z.string().optional(),
-  brandId: z.string().optional(),
-  sku: z.string().optional(),
-  stock: z.number().min(0, "Le stock doit être positif").default(0),
+  description: z.string().optional(),
+  purchasePrice: z.number().min(0, "Le prix d'achat doit être positif"),
+  monthlyPrice: z.number().optional(),
+  categoryId: z.string().min(1, "La catégorie est requise"),
+  brandId: z.string().min(1, "La marque est requise"),
   active: z.boolean().default(true),
-  adminOnly: z.boolean().default(false),
-  isRefurbished: z.boolean().default(true), // Changed to true by default
+  isRefurbished: z.boolean().default(true),
   condition: z.string().optional(),
+  adminOnly: z.boolean().default(false),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -42,35 +40,57 @@ interface ProductFormInfoTabProps {
   isEditMode: boolean;
 }
 
-const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({ 
-  productToEdit, 
-  onSuccess, 
-  isEditMode 
+const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
+  productToEdit,
+  onSuccess,
+  isEditMode
 }) => {
   const { data: brands = [] } = useBrands();
   const { data: categories = [] } = useCategories();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
+  // États pour les descriptions
+  const [currentDescription, setCurrentDescription] = useState("");
+  const [currentShortDescription, setCurrentShortDescription] = useState("");
+
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: productToEdit?.name || "",
-      description: productToEdit?.description || "",
+      name: (productToEdit as any)?.name || "",
       shortDescription: (productToEdit as any)?.short_description || "",
-      price: productToEdit?.price || 0,
+      description: (productToEdit as any)?.description || "",
       purchasePrice: (productToEdit as any)?.purchase_price || 0,
-      monthlyPrice: productToEdit?.monthly_price || 0,
+      monthlyPrice: (productToEdit as any)?.monthly_price || undefined,
       categoryId: (productToEdit as any)?.category_id || "",
       brandId: (productToEdit as any)?.brand_id || "",
-      sku: productToEdit?.sku || "",
-      stock: productToEdit?.stock || 0,
-      active: productToEdit?.active ?? true,
-      adminOnly: (productToEdit as any)?.admin_only ?? false,
-      isRefurbished: (productToEdit as any)?.is_refurbished ?? true, // Changed to true by default
+      active: (productToEdit as any)?.active ?? true,
+      isRefurbished: (productToEdit as any)?.is_refurbished ?? true,
       condition: (productToEdit as any)?.condition || "",
+      adminOnly: (productToEdit as any)?.admin_only ?? false,
     },
   });
+
+  // Synchroniser les états locaux avec les valeurs du formulaire
+  React.useEffect(() => {
+    const subscription = form.watch((value) => {
+      setCurrentDescription(value.description || "");
+      setCurrentShortDescription(value.shortDescription || "");
+    });
+    
+    // Initialiser les valeurs au chargement
+    setCurrentDescription(form.getValues("description") || "");
+    setCurrentShortDescription(form.getValues("shortDescription") || "");
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  const handleDescriptionGenerated = (description: string, shortDescription: string) => {
+    form.setValue("description", description);
+    form.setValue("shortDescription", shortDescription);
+    setCurrentDescription(description);
+    setCurrentShortDescription(shortDescription);
+  };
 
   const onSubmit = async (data: ProductFormData) => {
     try {
@@ -78,44 +98,36 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         await updateProduct.mutateAsync({
           id: productToEdit.id,
           name: data.name,
+          short_description: data.shortDescription,
           description: data.description,
-          shortDescription: data.shortDescription,
-          price: data.price,
-          purchasePrice: data.purchasePrice,
-          categoryId: data.categoryId,
-          brandId: data.brandId,
-          sku: data.sku,
-          stock: data.stock,
+          purchase_price: data.purchasePrice,
+          monthly_price: data.monthlyPrice,
+          category_id: data.categoryId,
+          brand_id: data.brandId,
           active: data.active,
-          isRefurbished: data.isRefurbished,
+          is_refurbished: data.isRefurbished,
           condition: data.condition,
+          admin_only: data.adminOnly,
         });
       } else {
         await createProduct.mutateAsync({
           name: data.name,
+          short_description: data.shortDescription,
           description: data.description,
-          shortDescription: data.shortDescription,
-          price: data.price,
-          purchasePrice: data.purchasePrice,
-          categoryId: data.categoryId,
-          brandId: data.brandId,
-          sku: data.sku,
-          stock: data.stock,
+          purchase_price: data.purchasePrice,
+          monthly_price: data.monthlyPrice,
+          category_id: data.categoryId,
+          brand_id: data.brandId,
           active: data.active,
-          isRefurbished: data.isRefurbished,
+          is_refurbished: data.isRefurbished,
           condition: data.condition,
+          admin_only: data.adminOnly,
         });
       }
       onSuccess();
     } catch (error) {
       console.error("Error saving product:", error);
-    }
-  };
-
-  const handleDescriptionGenerated = (description: string, shortDescription: string) => {
-    form.setValue("description", description);
-    if (shortDescription) {
-      form.setValue("shortDescription", shortDescription);
+      toast.error("Erreur lors de la sauvegarde du produit");
     }
   };
 
@@ -127,7 +139,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            {isEditMode ? "Modifier le produit" : "Créer un nouveau produit"}
+            Informations du produit
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -141,36 +153,20 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                     <FormItem>
                       <FormLabel>Nom du produit *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nom du produit" {...field} />
+                        <Input placeholder="Ex: MacBook Pro 14" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SKU</FormLabel>
-                      <FormControl>
-                        <Input placeholder="SKU du produit" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="categoryId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Catégorie</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Catégorie *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner une catégorie" />
@@ -194,8 +190,8 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   name="brandId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Marque</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Marque *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner une marque" />
@@ -213,35 +209,13 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prix de vente (€) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
                   name="purchasePrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prix d'achat (€)</FormLabel>
+                      <FormLabel>Prix d'achat *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -261,35 +235,14 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   name="monthlyPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prix mensuel (€)</FormLabel>
+                      <FormLabel>Prix mensuel (optionnel)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="stock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stock</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -302,59 +255,49 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   name="condition"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>État</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner l'état" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="excellent">Excellent</SelectItem>
-                          <SelectItem value="very_good">Très bon</SelectItem>
-                          <SelectItem value="good">Bon</SelectItem>
-                          <SelectItem value="fair">Correct</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>État du produit</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Excellent, Bon, Satisfaisant" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="isRefurbished"
+                  name="active"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Produit reconditionné</FormLabel>
-                      </div>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                       <FormControl>
-                        <Switch
+                        <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Produit actif</FormLabel>
+                      </div>
                     </FormItem>
                   )}
                 />
 
                 <FormField
                   control={form.control}
-                  name="active"
+                  name="isRefurbished"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Produit actif</FormLabel>
-                      </div>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                       <FormControl>
-                        <Switch
+                        <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Produit reconditionné</FormLabel>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -363,56 +306,20 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   control={form.control}
                   name="adminOnly"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Admin uniquement</FormLabel>
-                      </div>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                       <FormControl>
-                        <Switch
+                        <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Réservé aux administrateurs</FormLabel>
+                      </div>
                     </FormItem>
                   )}
                 />
               </div>
-
-              <FormField
-                control={form.control}
-                name="shortDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description courte</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Description courte du produit"
-                        rows={2}
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Description détaillée du produit"
-                        rows={4}
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading ? (
@@ -432,13 +339,24 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         </CardContent>
       </Card>
 
+      {/* Générateur de description avec les champs intégrés */}
       <DescriptionGenerator
         productName={form.watch("name")}
-        categoryId={form.watch("categoryId") || ""}
-        brandId={form.watch("brandId") || ""}
+        categoryId={form.watch("categoryId")}
+        brandId={form.watch("brandId")}
         categories={categories}
         brands={brands}
         onDescriptionGenerated={handleDescriptionGenerated}
+        currentDescription={currentDescription}
+        currentShortDescription={currentShortDescription}
+        onDescriptionChange={(desc) => {
+          setCurrentDescription(desc);
+          form.setValue("description", desc);
+        }}
+        onShortDescriptionChange={(shortDesc) => {
+          setCurrentShortDescription(shortDesc);
+          form.setValue("shortDescription", shortDesc);
+        }}
       />
     </div>
   );
