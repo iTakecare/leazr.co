@@ -26,7 +26,12 @@ interface LeaserFormProps {
 const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormProps) => {
   const [tempRanges, setTempRanges] = useState<Range[]>(
     currentLeaser?.ranges && currentLeaser.ranges.length > 0
-      ? [...currentLeaser.ranges]
+      ? currentLeaser.ranges.map(r => ({ 
+          id: r.id, 
+          min: r.min, 
+          max: r.max, 
+          coefficient: r.coefficient || 3.55 
+        }))
       : [{ id: crypto.randomUUID(), min: 0, max: 0, coefficient: 0 }]
   );
   const [isSaving, setIsSaving] = useState(false);

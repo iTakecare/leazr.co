@@ -8,7 +8,7 @@ import {
   calculateFinancedAmountForEquipment 
 } from '@/utils/equipmentCalculations';
 
-export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) => {
+export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
   const leaser = selectedLeaser;
   
   // États pour l'équipement en cours de création/édition
@@ -52,7 +52,7 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
     lastEquipmentMarginRef.current = equipment.margin;
     
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
-    const coef = findCoefficientForAmount(financedAmount, leaser);
+    const coef = findCoefficientForAmount(financedAmount, leaser, duration);
     setCoefficient(coef);
     const calculated = (financedAmount * coef) / 100;
     
@@ -71,23 +71,49 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
       return;
     }
     
-    // Valeurs de fallback statiques
-    const DEFAULT_RANGES = [
-      { id: "fallback-1", min: 500, max: 2500, coefficient: 3.55 },
-      { id: "fallback-2", min: 2500.01, max: 5000, coefficient: 3.27 },
-      { id: "fallback-3", min: 5000.01, max: 12500, coefficient: 3.18 },
-      { id: "fallback-4", min: 12500.01, max: 25000, coefficient: 3.17 },
-      { id: "fallback-5", min: 25000.01, max: 50000, coefficient: 3.16 }
-    ];
+    // Utiliser directement les ranges du leaser ou des valeurs de fallback
+    const ranges = leaser?.ranges || [];
     
-    const ranges = leaser?.ranges || DEFAULT_RANGES;
+    let coef = 3.55; // Coefficient par défaut
     
-    let coef = ranges[0].coefficient;
-    for (const range of ranges) {
-      const financedAmountEstimate = (targetMonthlyPayment * 100) / range.coefficient;
-      if (financedAmountEstimate >= range.min && financedAmountEstimate <= range.max) {
-        coef = range.coefficient;
-        break;
+    if (ranges.length > 0) {
+      coef = ranges[0].coefficient || 3.55;
+      
+      for (const range of ranges) {
+        let rangeCoef = range.coefficient || 3.55;
+        
+        // Si le range a des coefficients par durée, les utiliser
+        if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+          const durationCoeff = range.duration_coefficients.find(
+            dc => dc.duration_months === duration
+          );
+          if (durationCoeff) {
+            rangeCoef = durationCoeff.coefficient;
+          }
+        }
+        
+        const financedAmountEstimate = (targetMonthlyPayment * 100) / rangeCoef;
+        if (financedAmountEstimate >= range.min && financedAmountEstimate <= range.max) {
+          coef = rangeCoef;
+          break;
+        }
+      }
+    } else {
+      // Fallback avec les valeurs par défaut
+      const DEFAULT_RANGES = [
+        { min: 500, max: 2500, coefficient: 3.55 },
+        { min: 2500.01, max: 5000, coefficient: 3.27 },
+        { min: 5000.01, max: 12500, coefficient: 3.18 },
+        { min: 12500.01, max: 25000, coefficient: 3.17 },
+        { min: 25000.01, max: 50000, coefficient: 3.16 }
+      ];
+      
+      for (const range of DEFAULT_RANGES) {
+        const financedAmountEstimate = (targetMonthlyPayment * 100) / range.coefficient;
+        if (financedAmountEstimate >= range.min && financedAmountEstimate <= range.max) {
+          coef = range.coefficient;
+          break;
+        }
       }
     }
     
@@ -211,7 +237,7 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
   };
 
   // Calculs globaux basés sur la liste des équipements
-  const calculations = calculateEquipmentResults(equipmentList, leaser);
+  const calculations = calculateEquipmentResults(equipmentList, leaser, duration);
   
   // Log des marges pour debugging
   const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
@@ -307,7 +333,7 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null) 
     toggleAdaptMonthlyPayment,
     
     // Utilitaires
-    findCoefficient: (amount: number) => findCoefficientForAmount(amount, leaser),
+    findCoefficient: (amount: number) => findCoefficientForAmount(amount, leaser, duration),
     calculateFinancedAmount: calculateFinancedAmountForEquipment,
     
     // Calculs détaillés pour debugging

@@ -26,11 +26,16 @@ export const getLeasers = async (): Promise<Leaser[]> => {
         vat_number,
         phone,
         email,
+        available_durations,
         ranges:leaser_ranges(
           id,
           min,
           max,
-          coefficient
+          coefficient,
+          duration_coefficients:leaser_duration_coefficients(
+            duration_months,
+            coefficient
+          )
         )
       `)
       .order('name');
@@ -73,6 +78,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       vat_number: leaser.vat_number,
       phone: leaser.phone,
       email: leaser.email,
+      available_durations: leaser.available_durations || [12,18,24,36,48,60,72],
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -107,11 +113,16 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
         vat_number,
         phone,
         email,
+        available_durations,
         ranges:leaser_ranges(
           id,
           min,
           max,
-          coefficient
+          coefficient,
+          duration_coefficients:leaser_duration_coefficients(
+            duration_months,
+            coefficient
+          )
         )
       `)
       .eq('id', id)
@@ -138,6 +149,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       vat_number: data.vat_number,
       phone: data.phone,
       email: data.email,
+      available_durations: data.available_durations || [12,18,24,36,48,60,72],
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
     };
   } catch (error) {

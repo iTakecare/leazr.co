@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 
-export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
+export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
   const leaser = selectedLeaser || defaultLeasers[0];
   const calculationsInProgressRef = useRef<Record<string, boolean>>({});
   
@@ -61,14 +61,28 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null) => {
     const currentLeaser = leaser || defaultLeasers[0];
     
     if (!currentLeaser || !currentLeaser.ranges || currentLeaser.ranges.length === 0) {
-      return defaultLeasers[0].ranges[0].coefficient;
+      return defaultLeasers[0].ranges[0].coefficient || 3.55;
     }
     
     const range = currentLeaser.ranges.find(
       (r) => amount >= r.min && amount <= r.max
     );
     
-    return range?.coefficient || currentLeaser.ranges[0].coefficient;
+    if (!range) {
+      return currentLeaser.ranges[0].coefficient || 3.55;
+    }
+
+    // Si le range a des coefficients par durée, les utiliser
+    if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+      const durationCoeff = range.duration_coefficients.find(
+        dc => dc.duration_months === duration
+      );
+      if (durationCoeff) {
+        return durationCoeff.coefficient;
+      }
+    }
+    
+    return range.coefficient || 3.55;
   };
 
   const calculateMonthlyPayment = () => {

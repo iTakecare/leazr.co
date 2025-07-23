@@ -19,7 +19,7 @@ export const calculateFinancedAmountForEquipment = (equipment: Equipment): numbe
 };
 
 // Valeurs de fallback statiques pour éviter les erreurs
-const DEFAULT_FALLBACK_RANGES = [
+const DEFAULT_FALLBACK_RANGES: LeaserRange[] = [
   { id: "fallback-1", min: 500, max: 2500, coefficient: 3.55 },
   { id: "fallback-2", min: 2500.01, max: 5000, coefficient: 3.27 },
   { id: "fallback-3", min: 5000.01, max: 12500, coefficient: 3.18 },
@@ -27,23 +27,43 @@ const DEFAULT_FALLBACK_RANGES = [
   { id: "fallback-5", min: 25000.01, max: 50000, coefficient: 3.16 }
 ];
 
-export const findCoefficientForAmount = (amount: number, leaser: Leaser | null): number => {
+export const findCoefficientForAmount = (
+  amount: number, 
+  leaser: Leaser | null, 
+  duration: number = 36
+): number => {
   const ranges = leaser?.ranges || DEFAULT_FALLBACK_RANGES;
   
   if (!ranges || ranges.length === 0) {
     return 3.55; // Coefficient par défaut
   }
   
-  const range = ranges.find((r: LeaserRange) => 
+  const range = ranges.find((r) => 
     amount >= r.min && amount <= r.max
   );
   
-  return range?.coefficient || ranges[0].coefficient;
+  if (!range) {
+    return ranges[0]?.coefficient || 3.55;
+  }
+
+  // Si le range a des coefficients par durée, les utiliser
+  if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+    const durationCoeff = range.duration_coefficients.find(
+      dc => dc.duration_months === duration
+    );
+    if (durationCoeff) {
+      return durationCoeff.coefficient;
+    }
+  }
+  
+  // Sinon utiliser le coefficient par défaut
+  return range.coefficient || 3.55;
 };
 
 export const calculateEquipmentResults = (
   equipmentList: Equipment[], 
-  leaser: Leaser | null
+  leaser: Leaser | null,
+  duration: number = 36
 ): CalculationResult => {
   console.log("🔢 CALCUL - Début des calculs avec:", {
     equipmentCount: equipmentList.length,
@@ -74,13 +94,13 @@ export const calculateEquipmentResults = (
     }
     // Si pas de mensualité définie, calculer avec le coefficient individuel
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
-    const coeff = findCoefficientForAmount(financedAmount, leaser);
+    const coeff = findCoefficientForAmount(financedAmount, leaser, duration);
     const monthlyForOne = (financedAmount * coeff) / 100;
     return sum + monthlyForOne;
   }, 0);
 
   // 5. Calculer avec le coefficient global sur le montant financé total
-  const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser);
+  const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser, duration);
   const adjustedMonthlyPayment = (totalFinancedAmountIndividual * globalCoefficient) / 100;
 
   // 6. Calculer la marge ajustée réelle avec la mensualité globale

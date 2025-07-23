@@ -278,25 +278,31 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
+          website_url: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
           id?: string
+          image_search_patterns?: Json | null
           name: string
           translation: string
           updated_at?: string
+          website_url?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
           id?: string
+          image_search_patterns?: Json | null
           name?: string
           translation?: string
           updated_at?: string
+          website_url?: string | null
         }
         Relationships: [
           {
@@ -2236,10 +2242,46 @@ export type Database = {
           },
         ]
       }
+      leaser_duration_coefficients: {
+        Row: {
+          coefficient: number
+          created_at: string
+          duration_months: number
+          id: string
+          leaser_range_id: string
+          updated_at: string
+        }
+        Insert: {
+          coefficient: number
+          created_at?: string
+          duration_months: number
+          id?: string
+          leaser_range_id: string
+          updated_at?: string
+        }
+        Update: {
+          coefficient?: number
+          created_at?: string
+          duration_months?: number
+          id?: string
+          leaser_range_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaser_duration_coefficients_leaser_range_id_fkey"
+            columns: ["leaser_range_id"]
+            isOneToOne: false
+            referencedRelation: "leaser_ranges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leaser_ranges: {
         Row: {
           coefficient: number
           created_at: string | null
+          duration_months: number
           id: string
           leaser_id: string | null
           max: number
@@ -2249,6 +2291,7 @@ export type Database = {
         Insert: {
           coefficient?: number
           created_at?: string | null
+          duration_months?: number
           id?: string
           leaser_id?: string | null
           max?: number
@@ -2258,6 +2301,7 @@ export type Database = {
         Update: {
           coefficient?: number
           created_at?: string | null
+          duration_months?: number
           id?: string
           leaser_id?: string | null
           max?: number
@@ -2277,6 +2321,7 @@ export type Database = {
       leasers: {
         Row: {
           address: string | null
+          available_durations: number[] | null
           city: string | null
           company_id: string
           company_name: string | null
@@ -2293,6 +2338,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          available_durations?: number[] | null
           city?: string | null
           company_id: string
           company_name?: string | null
@@ -2309,6 +2355,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          available_durations?: number[] | null
           city?: string | null
           company_id?: string
           company_name?: string | null
@@ -4171,9 +4218,11 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
+          website_url: string | null
         }
       }
       apply_permission_profile: {
@@ -4497,9 +4546,11 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
+          website_url: string | null
         }[]
       }
       get_company_ambassadors_secure: {
@@ -4993,9 +5044,11 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
+          website_url: string | null
         }
       }
       update_client_securely: {
