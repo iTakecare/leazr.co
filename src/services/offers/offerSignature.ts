@@ -195,6 +195,55 @@ export const getOfferForClient = async (offerId: string) => {
       }
     }
     
+    // Récupérer les équipements associés à l'offre
+    console.log("🔍 Récupération des équipements pour l'offre...");
+    try {
+      const { data: equipmentData, error: equipmentError } = await supabase
+        .from('offer_equipment')
+        .select(`
+          *,
+          attributes:offer_equipment_attributes(*),
+          specifications:offer_equipment_specifications(*)
+        `)
+        .eq('offer_id', offerId);
+        
+      if (!equipmentError && equipmentData && equipmentData.length > 0) {
+        console.log("✅ Équipements récupérés:", equipmentData);
+        offerData.equipment_data = equipmentData;
+        
+        // Pour la compatibilité avec l'ancien format, convertir aussi en JSON
+        try {
+          const equipmentJson = equipmentData.map(eq => ({
+            title: eq.title,
+            purchasePrice: eq.purchase_price,
+            quantity: eq.quantity,
+            margin: eq.margin,
+            monthlyPayment: eq.monthly_payment,
+            serialNumber: eq.serial_number,
+            attributes: eq.attributes ? eq.attributes.reduce((acc, attr) => {
+              acc[attr.key] = attr.value;
+              return acc;
+            }, {}) : {},
+            specifications: eq.specifications ? eq.specifications.reduce((acc, spec) => {
+              acc[spec.key] = spec.value;
+              return acc;
+            }, {}) : {}
+          }));
+          offerData.equipment_description = JSON.stringify(equipmentJson);
+          console.log("✅ Description d'équipement JSON créée pour compatibilité");
+        } catch (jsonError) {
+          console.error("⚠️ Erreur lors de la création du JSON de compatibilité:", jsonError);
+        }
+      } else {
+        console.log("⚠️ Aucun équipement trouvé pour cette offre");
+        if (equipmentError) {
+          console.error("Erreur lors de la récupération des équipements:", equipmentError);
+        }
+      }
+    } catch (equipmentErr) {
+      console.log("⚠️ Erreur lors de la récupération des équipements, continuons sans:", equipmentErr);
+    }
+    
     return offerData;
   } catch (error) {
     console.error("❌ Erreur complète lors de la récupération de l'offre:", error);
