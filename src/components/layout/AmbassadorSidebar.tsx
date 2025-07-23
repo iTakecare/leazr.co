@@ -12,6 +12,7 @@ import {
   BarChart,
   Users,
   Calculator,
+  Package,
   FileText,
   ChevronLeft,
   ChevronRight,
@@ -51,6 +52,12 @@ const AmbassadorSidebar = memo(() => {
       icon: FileText,
       href: "/ambassador/offers",
       color: "indigo",
+    },
+    {
+      label: "Catalogue",
+      icon: Package,
+      href: "/ambassador/catalog",
+      color: "pink",
     },
   ];
 

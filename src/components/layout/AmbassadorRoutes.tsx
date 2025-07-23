@@ -2,7 +2,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
-
+import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
 import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
 import AmbassadorClientsPage from "@/pages/AmbassadorPages/AmbassadorClientsPage";
@@ -14,7 +14,7 @@ const AmbassadorRoutes = () => {
   return (
     <Routes>
       <Route path="dashboard" element={<AmbassadorDashboardPage />} />
-      
+      <Route path="catalog" element={<AmbassadorCatalogPage />} />
       <Route path="custom-offer-generator" element={<CustomOfferGeneratorPage />} />
       <Route path="create-offer" element={<AmbassadorCreateOffer />} />
       <Route path="clients" element={<AmbassadorClientsPage />} />
