@@ -66,3 +66,19 @@ export function findProductBySlug(products: Product[], targetSlug: string): Prod
   console.log(`❌ No match found for slug: "${targetSlug}"`);
   return null;
 }
+
+export function formatCurrency(amount: number, currency: string = 'EUR'): string {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
+
+export function formatDate(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('fr-FR').format(dateObj);
+}
+
+export function generateTemplateId(): string {
+  return `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
