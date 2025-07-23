@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -40,6 +41,7 @@ serve(async (req) => {
     )
 
     let images: SearchImageResult[] = []
+    let brandInfo = null
 
     // Get brand information if brandId is provided
     if (brandId) {
@@ -49,19 +51,29 @@ serve(async (req) => {
         .eq('id', brandId)
         .single()
 
-      if (!brandError && brand?.website_url) {
-        console.log(`🌐 Recherche sur le site de la marque: ${brand.website_url}`)
+      if (!brandError && brand) {
+        brandInfo = brand
+        console.log(`📋 Marque trouvée: ${brand.name}, URL: ${brand.website_url || 'non configurée'}`)
         
-        // Try to scrape brand website using Firecrawl
-        const brandImages = await searchOnBrandWebsite(brand, productName)
-        images.push(...brandImages)
+        if (brand.website_url) {
+          console.log(`🌐 Recherche sur le site de la marque: ${brand.website_url}`)
+          
+          // Try to scrape brand website using Firecrawl
+          const brandImages = await searchOnBrandWebsite(brand, productName)
+          images.push(...brandImages)
+        } else {
+          console.log(`⚠️  URL du site web non configurée pour ${brand.name}`)
+        }
+      } else {
+        console.log(`⚠️  Marque non trouvée pour ID: ${brandId}`)
       }
     }
 
     // If no images found from brand website, fallback to general search
     if (images.length === 0) {
       console.log('🔄 Fallback vers recherche générale')
-      images = await fallbackImageSearch(productName, category)
+      const searchQuery = buildFallbackSearchQuery(productName, brandInfo?.name, category)
+      images = await fallbackImageSearch(searchQuery, maxResults)
     }
 
     // Limit results
@@ -69,8 +81,19 @@ serve(async (req) => {
 
     console.log(`✅ Trouvé ${limitedImages.length} images`)
 
+    // Add metadata about search method
+    const response = {
+      images: limitedImages,
+      metadata: {
+        searchMethod: images.length > 0 && brandInfo?.website_url ? 'brand_website' : 'general_search',
+        brandConfigured: !!brandInfo?.website_url,
+        brandName: brandInfo?.name,
+        totalFound: limitedImages.length
+      }
+    }
+
     return new Response(
-      JSON.stringify({ images: limitedImages }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
@@ -79,7 +102,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Erreur lors de la recherche d\'images',
-        details: error.message 
+        details: error.message,
+        images: []
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -99,20 +123,19 @@ async function searchOnBrandWebsite(brand: any, productName: string): Promise<Se
 
   try {
     const searchPatterns = brand.image_search_patterns || {
-      product_paths: ['/products/', '/catalog/'],
+      product_paths: ['/products/', '/catalog/', '/shop/'],
       image_selectors: ['img[src*=product]', '.product-image img', '.item-image img']
     }
 
     // Build search URL - try different product paths
-    const searchUrls = searchPatterns.product_paths.map((path: string) => 
-      `${brand.website_url.replace(/\/$/, '')}${path}`
-    )
+    const baseUrl = brand.website_url.replace(/\/$/, '')
+    const searchUrls = searchPatterns.product_paths.map((path: string) => `${baseUrl}${path}`)
 
     const allImages: SearchImageResult[] = []
 
-    for (const baseUrl of searchUrls) {
+    for (const searchUrl of searchUrls) {
       try {
-        console.log(`🔍 Scraping: ${baseUrl}`)
+        console.log(`🔍 Scraping: ${searchUrl}`)
         
         // Use Firecrawl to scrape the page
         const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
@@ -122,7 +145,7 @@ async function searchOnBrandWebsite(brand: any, productName: string): Promise<Se
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            url: baseUrl,
+            url: searchUrl,
             pageOptions: {
               onlyMainContent: true,
               includeHtml: true
@@ -135,7 +158,7 @@ async function searchOnBrandWebsite(brand: any, productName: string): Promise<Se
         })
 
         if (!response.ok) {
-          console.log(`⚠️ Échec scraping ${baseUrl}: ${response.status}`)
+          console.log(`⚠️ Échec scraping ${searchUrl}: ${response.status}`)
           continue
         }
 
@@ -162,7 +185,7 @@ async function searchOnBrandWebsite(brand: any, productName: string): Promise<Se
               // Resolve relative URLs
               const imageUrl = imgSrc.startsWith('http') 
                 ? imgSrc 
-                : `${brand.website_url.replace(/\/$/, '')}${imgSrc.startsWith('/') ? '' : '/'}${imgSrc}`
+                : `${baseUrl}${imgSrc.startsWith('/') ? '' : '/'}${imgSrc}`
 
               allImages.push({
                 url: imageUrl,
@@ -177,7 +200,7 @@ async function searchOnBrandWebsite(brand: any, productName: string): Promise<Se
           }
         }
       } catch (error) {
-        console.log(`⚠️ Erreur scraping ${baseUrl}:`, error.message)
+        console.log(`⚠️ Erreur scraping ${searchUrl}:`, error.message)
       }
     }
 
@@ -190,17 +213,35 @@ async function searchOnBrandWebsite(brand: any, productName: string): Promise<Se
   }
 }
 
-async function fallbackImageSearch(productName: string, category?: string): Promise<SearchImageResult[]> {
-  // Fallback to original search methods if brand website fails
+function buildFallbackSearchQuery(productName: string, brandName?: string, category?: string): string {
+  let query = productName
+  
+  if (brandName) {
+    query = `${brandName} ${productName}`
+  }
+  
+  if (category) {
+    query += ` ${category}`
+  }
+  
+  // Add keywords for better results
+  query += ' product official image'
+  
+  return query
+}
+
+async function fallbackImageSearch(query: string, maxResults: number = 10): Promise<SearchImageResult[]> {
   const results: SearchImageResult[] = []
   
   try {
+    console.log(`🔍 Recherche générale avec: "${query}"`)
+    
     // Try Unsplash API
     const unsplashKey = Deno.env.get('UNSPLASH_ACCESS_KEY')
     if (unsplashKey) {
-      const query = `${productName} ${category || ''} product`.trim()
+      console.log(`📷 Recherche Unsplash`)
       const unsplashResponse = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=5&orientation=portrait`,
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${Math.min(maxResults, 20)}&orientation=portrait`,
         {
           headers: {
             'Authorization': `Client-ID ${unsplashKey}`,
@@ -212,8 +253,8 @@ async function fallbackImageSearch(productName: string, category?: string): Prom
         const unsplashData = await unsplashResponse.json()
         const unsplashImages = unsplashData.results?.map((photo: any) => ({
           url: photo.urls.regular,
-          title: photo.alt_description || productName,
-          snippet: photo.description || '',
+          title: photo.alt_description || query,
+          snippet: photo.description || `Image trouvée sur Unsplash pour ${query}`,
           thumbnail: photo.urls.thumb,
           width: photo.width,
           height: photo.height,
@@ -221,11 +262,50 @@ async function fallbackImageSearch(productName: string, category?: string): Prom
         })) || []
         
         results.push(...unsplashImages)
+        console.log(`📷 Unsplash: ${unsplashImages.length} images`)
+      } else {
+        console.log(`⚠️ Échec Unsplash: ${unsplashResponse.status}`)
       }
+    } else {
+      console.log(`⚠️ Clé API Unsplash manquante`)
     }
 
-    console.log(`🔄 Fallback: trouvé ${results.length} images`)
-    return results
+    // Try Pexels API
+    const pexelsKey = Deno.env.get('PEXELS_API_KEY')
+    if (pexelsKey && results.length < maxResults) {
+      console.log(`📷 Recherche Pexels`)
+      const pexelsResponse = await fetch(
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${Math.min(maxResults - results.length, 20)}`,
+        {
+          headers: {
+            'Authorization': pexelsKey,
+          },
+        }
+      )
+
+      if (pexelsResponse.ok) {
+        const pexelsData = await pexelsResponse.json()
+        const pexelsImages = pexelsData.photos?.map((photo: any) => ({
+          url: photo.src.large,
+          title: photo.alt || query,
+          snippet: `Image trouvée sur Pexels pour ${query}`,
+          thumbnail: photo.src.medium,
+          width: photo.width,
+          height: photo.height,
+          source: 'Pexels'
+        })) || []
+        
+        results.push(...pexelsImages)
+        console.log(`📷 Pexels: ${pexelsImages.length} images`)
+      } else {
+        console.log(`⚠️ Échec Pexels: ${pexelsResponse.status}`)
+      }
+    } else if (!pexelsKey) {
+      console.log(`⚠️ Clé API Pexels manquante`)
+    }
+
+    console.log(`🔄 Fallback: trouvé ${results.length} images au total`)
+    return results.slice(0, maxResults)
 
   } catch (error) {
     console.error('❌ Erreur fallback search:', error)

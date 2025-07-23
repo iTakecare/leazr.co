@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Save, Plus, Trash2 } from "lucide-react";
+import { Edit, Save, Plus, Trash2, Globe, Settings } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
@@ -24,25 +25,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getBrands, addBrand, updateBrand, deleteBrand } from "@/services/catalogService";
+import { getBrands, addBrand, updateBrand, deleteBrand, preConfigureMajorBrands } from "@/services/catalogService";
 
 interface BrandWithTranslation {
   key: string;
   name: string;
   translation: string;
+  website_url?: string;
 }
 
 interface BrandData {
   name: string;
   translation: string;
+  website_url?: string;
 }
 
 const BrandManager: React.FC = () => {
   const queryClient = useQueryClient();
   const [newBrandName, setNewBrandName] = useState("");
   const [newBrandTranslation, setNewBrandTranslation] = useState("");
+  const [newBrandWebsiteUrl, setNewBrandWebsiteUrl] = useState("");
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
-  const [editValues, setEditValues] = useState<Record<string, { name: string, translation: string }>>({});
+  const [editValues, setEditValues] = useState<Record<string, { name: string, translation: string, website_url: string }>>({});
 
   // Fetch brands from the database with forced refresh using service
   const { data: brandsData = [], isLoading } = useQuery({
@@ -55,10 +59,11 @@ const BrandManager: React.FC = () => {
     gcTime: 0, // Don't cache
   });
 
-  const brandList: BrandWithTranslation[] = (brandsData as BrandData[]).map((brand) => ({
+  const brandList: BrandWithTranslation[] = (brandsData as any[]).map((brand) => ({
     key: brand.name.toLowerCase(),
     name: brand.name,
-    translation: brand.translation
+    translation: brand.translation,
+    website_url: brand.website_url
   }));
 
   // Mutations for CRUD operations
@@ -69,6 +74,7 @@ const BrandManager: React.FC = () => {
       toast.success("Marque ajoutée avec succès");
       setNewBrandName("");
       setNewBrandTranslation("");
+      setNewBrandWebsiteUrl("");
     },
     onError: (error) => {
       console.error("Erreur lors de l'ajout de la marque:", error);
@@ -100,11 +106,27 @@ const BrandManager: React.FC = () => {
     }
   });
 
+  const preConfigureMutation = useMutation({
+    mutationFn: preConfigureMajorBrands,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      toast.success("Marques principales configurées avec succès");
+    },
+    onError: (error) => {
+      console.error("Erreur lors de la pré-configuration:", error);
+      toast.error("Erreur lors de la pré-configuration des marques");
+    }
+  });
+
   const startEditing = (brand: BrandWithTranslation) => {
     setIsEditing(prev => ({ ...prev, [brand.key]: true }));
     setEditValues(prev => ({
       ...prev,
-      [brand.key]: { name: brand.name, translation: brand.translation }
+      [brand.key]: { 
+        name: brand.name, 
+        translation: brand.translation,
+        website_url: brand.website_url || ""
+      }
     }));
   };
 
@@ -117,7 +139,8 @@ const BrandManager: React.FC = () => {
     updateBrandMutation.mutate({
       originalName,
       name: editValues[key].name,
-      translation: editValues[key].translation
+      translation: editValues[key].translation,
+      website_url: editValues[key].website_url || undefined
     });
     
     setIsEditing(prev => ({ ...prev, [key]: false }));
@@ -143,7 +166,8 @@ const BrandManager: React.FC = () => {
 
     addBrandMutation.mutate({
       name: newBrandName,
-      translation: newBrandTranslation
+      translation: newBrandTranslation,
+      website_url: newBrandWebsiteUrl || undefined
     });
   };
 
@@ -162,6 +186,13 @@ const BrandManager: React.FC = () => {
     setEditValues(prev => ({
       ...prev,
       [key]: { ...prev[key], translation: value }
+    }));
+  };
+
+  const handleEditWebsiteUrlChange = (key: string, value: string) => {
+    setEditValues(prev => ({
+      ...prev,
+      [key]: { ...prev[key], website_url: value }
     }));
   };
 
@@ -185,10 +216,23 @@ const BrandManager: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Gestion des marques</CardTitle>
-          <CardDescription>
-            Gérez les marques de produits et leurs traductions françaises.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Gestion des marques</CardTitle>
+              <CardDescription>
+                Gérez les marques de produits, leurs traductions françaises et leurs sites web pour la recherche d'images.
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => preConfigureMutation.mutate()}
+              disabled={preConfigureMutation.isPending}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              {preConfigureMutation.isPending ? "Configuration..." : "Configurer marques principales"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -197,13 +241,14 @@ const BrandManager: React.FC = () => {
                 <TableRow>
                   <TableHead>Nom anglais</TableHead>
                   <TableHead>Traduction française</TableHead>
+                  <TableHead>Site web</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {brandList.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                       Aucune marque trouvée. Ajoutez votre première marque ci-dessous.
                     </TableCell>
                   </TableRow>
@@ -230,6 +275,34 @@ const BrandManager: React.FC = () => {
                           />
                         ) : (
                           brand.translation
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing[brand.key] ? (
+                          <Input
+                            value={editValues[brand.key]?.website_url || ""}
+                            onChange={(e) => handleEditWebsiteUrlChange(brand.key, e.target.value)}
+                            placeholder="https://example.com"
+                            className="w-full"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {brand.website_url ? (
+                              <>
+                                <Globe className="h-4 w-4 text-green-600" />
+                                <a 
+                                  href={brand.website_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline truncate max-w-[200px]"
+                                >
+                                  {brand.website_url}
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">Non configuré</span>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -297,7 +370,7 @@ const BrandManager: React.FC = () => {
 
             <div className="pt-6 border-t">
               <h3 className="text-lg font-medium mb-4">Ajouter une nouvelle marque</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <Input
                     placeholder="Nom de la marque (en anglais)"
@@ -310,6 +383,13 @@ const BrandManager: React.FC = () => {
                     placeholder="Traduction française"
                     value={newBrandTranslation}
                     onChange={(e) => setNewBrandTranslation(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Input
+                    placeholder="Site web (optionnel)"
+                    value={newBrandWebsiteUrl}
+                    onChange={(e) => setNewBrandWebsiteUrl(e.target.value)}
                   />
                 </div>
               </div>

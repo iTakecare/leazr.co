@@ -6,15 +6,27 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Download, Image as ImageIcon, Loader2, Check } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Search, Download, Image as ImageIcon, Loader2, Check, AlertTriangle, Globe, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { imageSearchService, SearchImageResult } from '@/services/imageSearchService';
 import { Product } from '@/types/catalog';
+import { useBrands } from '@/hooks/products/useBrands';
 
 interface ImageSearcherProps {
   product: Product;
   onImagesFound: (imageUrls: string[]) => void;
   onClose: () => void;
+}
+
+interface SearchResponse {
+  images: SearchImageResult[];
+  metadata?: {
+    searchMethod: 'brand_website' | 'general_search';
+    brandConfigured: boolean;
+    brandName?: string;
+    totalFound: number;
+  };
 }
 
 const ImageSearcher: React.FC<ImageSearcherProps> = ({ 
@@ -23,25 +35,54 @@ const ImageSearcher: React.FC<ImageSearcherProps> = ({
   onClose 
 }) => {
   const [searchResults, setSearchResults] = useState<SearchImageResult[]>([]);
+  const [searchMetadata, setSearchMetadata] = useState<SearchResponse['metadata']>();
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [customQuery, setCustomQuery] = useState('');
 
+  const { data: brands } = useBrands();
+  const currentBrand = brands?.find(b => b.id === product.brand_id);
+
   const handleSearch = async () => {
     setIsSearching(true);
+    setSearchResults([]);
+    setSearchMetadata(undefined);
+    setSelectedImages(new Set());
+    
     try {
       const query = customQuery || product.name;
       console.log(`🔍 Recherche d'images pour: ${query}`);
       
       const results = await imageSearchService.searchProductImages(
         query,
-        product.brand_id || undefined, // Use brand_id for brand-specific search
+        product.brand_id || undefined,
         product.category || undefined
       );
       
-      setSearchResults(results);
-      toast.success(`${results.length} images trouvées`);
+      // Handle both old and new response formats
+      if (Array.isArray(results)) {
+        setSearchResults(results);
+        toast.success(`${results.length} images trouvées`);
+      } else {
+        const response = results as SearchResponse;
+        setSearchResults(response.images || []);
+        setSearchMetadata(response.metadata);
+        
+        if (response.metadata) {
+          const { searchMethod, brandConfigured, brandName, totalFound } = response.metadata;
+          
+          if (searchMethod === 'brand_website' && brandConfigured) {
+            toast.success(`${totalFound} images trouvées sur le site de ${brandName}`);
+          } else if (!brandConfigured && brandName) {
+            toast.warning(`Site web non configuré pour ${brandName}. Recherche générale effectuée.`);
+          } else {
+            toast.success(`${totalFound} images trouvées via recherche générale`);
+          }
+        } else {
+          toast.success(`${(results as SearchResponse).images?.length || 0} images trouvées`);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
       toast.error('Erreur lors de la recherche d\'images');
@@ -107,13 +148,40 @@ const ImageSearcher: React.FC<ImageSearcherProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Brand configuration status */}
+          {currentBrand && (
+            <Alert>
+              <div className="flex items-center gap-2">
+                {currentBrand.website_url ? (
+                  <Globe className="h-4 w-4 text-green-600" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                )}
+                <AlertDescription>
+                  Marque: <strong>{currentBrand.name}</strong>
+                  {currentBrand.website_url ? (
+                    <span className="text-green-600 ml-2">
+                      ✓ Site web configuré - recherche optimisée disponible
+                    </span>
+                  ) : (
+                    <span className="text-orange-600 ml-2">
+                      ⚠ Site web non configuré - utilisation de la recherche générale
+                      <br />
+                      <small>Configurez l'URL du site web dans la gestion des marques pour de meilleurs résultats.</small>
+                    </span>
+                  )}
+                </AlertDescription>
+              </div>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="custom-query">Personnaliser la recherche (optionnel)</Label>
             <Input
               id="custom-query"
               value={customQuery}
               onChange={(e) => setCustomQuery(e.target.value)}
-              placeholder={`${product.name} ${product.brand || ''}`}
+              placeholder={`${product.name} ${currentBrand?.name || ''}`}
             />
           </div>
           
@@ -144,6 +212,11 @@ const ImageSearcher: React.FC<ImageSearcherProps> = ({
               <span className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5" />
                 Résultats ({searchResults.length} images)
+                {searchMetadata && (
+                  <Badge variant={searchMetadata.searchMethod === 'brand_website' ? 'default' : 'secondary'}>
+                    {searchMetadata.searchMethod === 'brand_website' ? 'Site officiel' : 'Recherche générale'}
+                  </Badge>
+                )}
               </span>
               <Badge variant="secondary">
                 {selectedImages.size}/5 sélectionnées
@@ -186,7 +259,10 @@ const ImageSearcher: React.FC<ImageSearcherProps> = ({
                   
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2">
                     <p className="text-xs truncate">{result.title}</p>
-                    <p className="text-xs text-gray-300">{result.width}x{result.height}</p>
+                    <div className="flex items-center justify-between text-xs text-gray-300">
+                      <span>{result.width}x{result.height}</span>
+                      <span>{result.source}</span>
+                    </div>
                   </div>
                 </div>
               ))}
