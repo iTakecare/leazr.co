@@ -184,6 +184,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return defaultUser;
       }
 
+      // Récupérer l'ambassador_id depuis la table ambassadors si l'utilisateur est un ambassadeur
+      let ambassadorId = '';
+      if (profile?.role === 'ambassador') {
+        console.log("📝 ENRICH - Utilisateur ambassadeur détecté, récupération de l'ambassador_id");
+        const { data: ambassadorData, error: ambassadorError } = await supabase
+          .from('ambassadors')
+          .select('id')
+          .eq('user_id', baseUser.id)
+          .single();
+        
+        if (!ambassadorError && ambassadorData) {
+          ambassadorId = ambassadorData.id;
+          console.log("📝 ENRICH - Ambassador ID trouvé:", ambassadorId);
+        } else {
+          console.log("📝 ENRICH - Erreur ou pas d'ambassador_id trouvé:", ambassadorError?.message);
+        }
+      }
+
       const enrichedUser = {
         ...baseUser,
         first_name: profile?.first_name || '',
@@ -191,7 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: profile?.role || 'admin',
         company: profile?.company || '',
         partner_id: profile?.partner_id || '',
-        ambassador_id: profile?.ambassador_id || '',
+        ambassador_id: ambassadorId,
         client_id: profile?.client_id || '',
       };
       
