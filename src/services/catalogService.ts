@@ -260,6 +260,209 @@ export const deleteCategory = async (params: { name: string }) => {
 };
 
 // Function to pre-configure major brands with their URLs
+// Products CRUD operations
+export const getProducts = async (options?: { includeAdminOnly?: boolean }): Promise<Product[]> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (!profile?.company_id) throw new Error('No company found for user');
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('company_id', profile.company_id)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+  
+  return data || [];
+};
+
+export const getPublicProducts = async (companyId: string): Promise<Product[]> => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('active', true)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching public products:', error);
+    throw error;
+  }
+  
+  return data || [];
+};
+
+export const getProductById = async (id: string): Promise<Product | null> => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    console.error('Error fetching product:', error);
+    throw error;
+  }
+  
+  return data;
+};
+
+export const createProduct = async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'company_id'>): Promise<Product> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (!profile?.company_id) throw new Error('No company found for user');
+
+  const { data, error } = await supabase
+    .from('products')
+    .insert([{
+      ...product,
+      company_id: profile.company_id
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating product:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (!profile?.company_id) throw new Error('No company found for user');
+
+  const { data, error } = await supabase
+    .from('products')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .eq('company_id', profile.company_id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating product:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const deleteProduct = async (id: string): Promise<void> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (!profile?.company_id) throw new Error('No company found for user');
+
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', id)
+    .eq('company_id', profile.company_id);
+
+  if (error) {
+    console.error('Error deleting product:', error);
+    throw error;
+  }
+};
+
+export const uploadProductImage = async (file: File): Promise<string> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random()}.${fileExt}`;
+  const filePath = `products/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('product-images')
+    .upload(filePath, file);
+
+  if (uploadError) {
+    console.error('Error uploading image:', uploadError);
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage
+    .from('product-images')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+export const findVariantByAttributes = async (parentId: string, attributes: Record<string, string>): Promise<Product | null> => {
+  // This is a placeholder - implement based on your variant logic
+  return null;
+};
+
+export const convertProductToParent = async (productId: string): Promise<Product> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('User not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', userData.user.id)
+    .single();
+
+  if (!profile?.company_id) throw new Error('No company found for user');
+
+  const { data, error } = await supabase
+    .from('products')
+    .update({
+      is_parent: true,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', productId)
+    .eq('company_id', profile.company_id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error converting product to parent:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Function to pre-configure major brands with their URLs
 export const preConfigureMajorBrands = async () => {
   const majorBrands = [
     {
