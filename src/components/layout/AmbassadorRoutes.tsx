@@ -11,6 +11,8 @@ import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClient
 import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
 
 const AmbassadorRoutes = () => {
+  console.log("[AmbassadorRoutes] Current URL:", window.location.pathname);
+  
   return (
     <Routes>
       <Route path="dashboard" element={<AmbassadorDashboardPage />} />
