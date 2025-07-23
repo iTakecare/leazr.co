@@ -136,13 +136,16 @@ function App() {
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                       </Route>
                       
-                      {/* Company slug-based routes - these will only match if no system route matched */}
-                      <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
-                      <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
-                      <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
-                      <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
-                      <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
-                    </Routes>
+                       {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
+                       <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
+                       <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
+                       <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
+                       <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+                       <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
+                       
+                       {/* Catch-all company slug route - fallback for company pages */}
+                       <Route path="/:companySlug" element={<CompanySlugGuard />} />
+                     </Routes>
                   </CartProvider>
                 </CompanyBrandingProvider>
               </SubdomainProvider>

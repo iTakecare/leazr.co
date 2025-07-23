@@ -11,7 +11,7 @@ import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClient
 import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
 
 const AmbassadorRoutes = () => {
-  console.log("[AmbassadorRoutes] Current URL:", window.location.pathname);
+  console.log("🎯 [AmbassadorRoutes] Component activated for URL:", window.location.pathname);
   
   return (
     <Routes>
