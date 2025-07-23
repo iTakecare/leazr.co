@@ -24,12 +24,18 @@ export const RoleBasedRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check if the current path looks like a company slug URL
-  const isCompanySlugUrl = location.pathname.match(/^\/[^\/]+\/(catalog|products|panier|demande)/);
+  // Reserved keywords that should not be treated as company slugs
+  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
   
-  if (isCompanySlugUrl) {
-    console.log('🔐 ROLE BASED ROUTES - Company slug URL detected, skipping redirection');
-    return <Outlet />;
+  // Check if the current path looks like a company slug URL
+  const pathMatch = location.pathname.match(/^\/([^\/]+)\/(catalog|products|panier|demande)/);
+  if (pathMatch) {
+    const firstSegment = pathMatch[1];
+    // Only treat as company slug URL if it's not a reserved keyword
+    if (!reservedKeywords.includes(firstSegment.toLowerCase())) {
+      console.log('🔐 ROLE BASED ROUTES - Company slug URL detected, skipping redirection');
+      return <Outlet />;
+    }
   }
 
   // Default redirection based on role
