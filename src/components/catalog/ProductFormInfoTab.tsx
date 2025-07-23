@@ -1,259 +1,291 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Product } from "@/types/catalog";
-import { useCreateProduct } from "@/hooks/products/useCreateProduct";
-import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useBrands } from "@/hooks/products/useBrands";
-import { useCategories } from "@/hooks/products/useCategories";
-import DescriptionGenerator from "./DescriptionGenerator";
-
-// Product form validation schema
-const productFormSchema = z.object({
-  name: z.string().min(1, "Le nom du produit est requis"),
-  brand: z.string().min(1, "La marque est requise"),
-  category: z.string().min(1, "La catégorie est requise"),
-  description: z.string().optional(),
-  purchase_price: z.number().min(0).optional(),
-  active: z.boolean().default(true),
-  admin_only: z.boolean().default(false),
-  specifications: z.record(z.union([z.string(), z.number()])).optional()
-});
-
-type FormData = z.infer<typeof productFormSchema>;
+import { Button } from "@/components/ui/button";
+import { Upload, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getBrands, getCategories } from "@/services/catalogService";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProductFormInfoTabProps {
-  productToEdit?: Product;
-  isEditMode: boolean;
-  brands: string[];
-  categories: string[];
-  onProductCreated?: () => void;
-  onProductUpdated?: () => void;
+  formData: any;
+  onUpdate: (data: any) => void;
+  onImageUpload: (file: File) => void;
+  isEditing?: boolean;
 }
 
-const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
-  productToEdit,
-  isEditMode,
-  onProductCreated,
-  onProductUpdated
-}) => {
-  const { data: brands = [] } = useBrands();
-  const { data: categories = [] } = useCategories();
+interface Brand {
+  id: string;
+  name: string;
+  translation: string;
+}
 
-  // Initialize form with existing product data or defaults
-  const form = useForm<FormData>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: {
-      name: productToEdit?.name || "",
-      brand: productToEdit?.brand || "",
-      category: productToEdit?.category || "",
-      description: productToEdit?.description || "",
-      purchase_price: productToEdit?.purchase_price || 0,
-      active: productToEdit?.active ?? true,
-      admin_only: productToEdit?.admin_only ?? false,
-      specifications: productToEdit?.specifications as Record<string, string | number> || {}
-    }
+interface Category {
+  id: string;
+  name: string;
+  translation: string;
+}
+
+export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
+  formData,
+  onUpdate,
+  onImageUpload,
+  isEditing = false
+}) => {
+  const { isAdmin } = useAuth();
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    formData.image_url || formData.imageUrl || null
+  );
+
+  const { data: brands = [] } = useQuery<Brand[]>({
+    queryKey: ["brands"],
+    queryFn: getBrands,
   });
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isDirty } } = form;
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: getCategories,
+  });
 
-  // Mutations
-  const createProductMutation = useCreateProduct();
-  const updateProductMutation = useUpdateProduct();
+  useEffect(() => {
+    if (formData.image_url || formData.imageUrl) {
+      setImagePreview(formData.image_url || formData.imageUrl);
+    }
+  }, [formData.image_url, formData.imageUrl]);
 
-  // Watch form values for controlled components
-  const watchedActive = watch("active");
-  const watchedAdminOnly = watch("admin_only");
+  const handleInputChange = (field: string, value: any) => {
+    onUpdate({ [field]: value });
+  };
 
-  const onSubmit = async (data: FormData) => {
-    console.log("📝 Form submitted with data:", data);
-
-    try {
-      if (isEditMode && productToEdit) {
-        console.log("🔄 Updating existing product:", productToEdit.id);
-        await updateProductMutation.mutateAsync({
-          id: productToEdit.id,
-          data: {
-            ...data,
-            specifications: data.specifications || {}
-          }
-        });
-        
-        toast.success("Produit mis à jour avec succès");
-        if (onProductUpdated) onProductUpdated();
-      } else {
-        console.log("✨ Creating new product");
-        await createProductMutation.mutateAsync({
-          ...data,
-          specifications: data.specifications || {}
-        });
-        
-        toast.success("Produit créé avec succès");
-        if (onProductCreated) onProductCreated();
-      }
-    } catch (error) {
-      console.error("❌ Error submitting form:", error);
-      toast.error(`Erreur lors de ${isEditMode ? 'la mise à jour' : 'la création'} du produit`);
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onImageUpload(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  // Description handler
-  const handleDescriptionGenerated = (description: string) => {
-    console.log("📝 Description generated", description);
-    setValue("description", description);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const submitData = {
+      ...formData,
+      imageUrl: imagePreview || '',
+      image_url: imagePreview || '',
+    };
+
+    if (isEditing) {
+      // Pour la mise à jour, on n'inclut que les champs modifiés
+      const updateData = {
+        name: formData.name,
+        brand_id: formData.brand_id,
+        category_id: formData.category_id,
+        description: formData.description,
+        price: formData.price,
+        monthly_price: formData.monthly_price,
+        active: formData.active,
+        admin_only: formData.admin_only,
+        image_url: imagePreview || '',
+      };
+    } else {
+      // Pour la création, on inclut tous les champs requis
+      const createData = {
+        name: formData.name || '',
+        brand_id: formData.brand_id || '',
+        category_id: formData.category_id || '',
+        description: formData.description || '',
+        price: formData.price || 0,
+        monthly_price: formData.monthly_price || 0,
+        active: formData.active !== undefined ? formData.active : true,
+        admin_only: formData.admin_only || false,
+        imageUrl: imagePreview || '',
+        image_url: imagePreview || '',
+        company_id: formData.company_id || '',
+      };
+    }
   };
 
-  const isLoading = createProductMutation.isPending || updateProductMutation.isPending;
+  const removeImage = () => {
+    setImagePreview(null);
+    handleInputChange('image_url', '');
+    handleInputChange('imageUrl', '');
+  };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {isEditMode ? "Modifier le produit" : "Nouveau produit"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Product Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom du produit *</Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="Ex: MacBook Pro 13 pouces"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
-
-            {/* Brand and Category */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="brand">Marque *</Label>
-                <Select
-                  value={watch("brand")}
-                  onValueChange={(value) => setValue("brand", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une marque" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.name}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.brand && (
-                  <p className="text-sm text-red-600">{errors.brand.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Catégorie *</Label>
-                <Select
-                  value={watch("category")}
-                  onValueChange={(value) => setValue("category", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <p className="text-sm text-red-600">{errors.category.message}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Purchase Price */}
-            <div className="space-y-2">
-              <Label htmlFor="purchase_price">Prix d'achat (€)</Label>
-              <Input
-                id="purchase_price"
-                type="number"
-                step="0.01"
-                {...register("purchase_price", { valueAsNumber: true })}
-                placeholder="0.00"
-              />
-              {errors.purchase_price && (
-                <p className="text-sm text-red-600">{errors.purchase_price.message}</p>
-              )}
-            </div>
-
-            {/* Settings */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Produit actif</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Le produit sera visible dans le catalogue
-                  </p>
-                </div>
-                <Switch
-                  checked={watchedActive}
-                  onCheckedChange={(checked) => setValue("active", checked)}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Image Upload Section */}
+        <div className="space-y-4">
+          <Label htmlFor="image">Image du produit</Label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            {imagePreview ? (
+              <div className="relative">
+                <img 
+                  src={imagePreview} 
+                  alt="Aperçu" 
+                  className="w-full h-48 object-cover rounded-lg"
                 />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={removeImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Réservé aux administrateurs</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Seuls les administrateurs peuvent voir ce produit
-                  </p>
+            ) : (
+              <div className="text-center">
+                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                <div className="mt-4">
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <span className="mt-2 block text-sm font-medium text-gray-900">
+                      Cliquez pour télécharger une image
+                    </span>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      className="sr-only"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </label>
                 </div>
-                <Switch
-                  checked={watchedAdminOnly}
-                  onCheckedChange={(checked) => setValue("admin_only", checked)}
-                />
               </div>
-            </div>
+            )}
+          </div>
+        </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isLoading || !isDirty}>
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full"></div>
-                    {isEditMode ? "Mise à jour..." : "Création..."}
-                  </>
-                ) : (
-                  <>
-                    {isEditMode ? "Mettre à jour" : "Créer le produit"}
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        {/* Product Information */}
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="name">Nom du produit *</Label>
+            <Input
+              id="name"
+              value={formData.name || ''}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Nom du produit"
+              required
+            />
+          </div>
 
-      {/* Description Generator - Keep existing one */}
-      <DescriptionGenerator
-        productName={watch("name")}
-        brand={watch("brand")}
-        category={watch("category")}
-        onDescriptionGenerated={handleDescriptionGenerated}
-      />
+          <div>
+            <Label htmlFor="brand">Marque *</Label>
+            <Select 
+              value={formData.brand_id || ''} 
+              onValueChange={(value) => handleInputChange('brand_id', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une marque" />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="category">Catégorie *</Label>
+            <Select 
+              value={formData.category_id || ''} 
+              onValueChange={(value) => handleInputChange('category_id', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description || ''}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Description du produit"
+              rows={4}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {isAdmin() && (
+          <div>
+            <Label htmlFor="price">Prix d'achat (€)</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              value={formData.price || ''}
+              onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+              placeholder="0.00"
+            />
+          </div>
+        )}
+
+        <div>
+          <Label htmlFor="monthly_price">Prix mensuel (€)</Label>
+          <Input
+            id="monthly_price"
+            type="number"
+            step="0.01"
+            value={formData.monthly_price || ''}
+            onChange={(e) => handleInputChange('monthly_price', parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+
+      {/* Status Section */}
+      <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="active"
+            checked={formData.active !== false}
+            onCheckedChange={(checked) => handleInputChange('active', checked)}
+          />
+          <Label htmlFor="active">Produit actif</Label>
+        </div>
+
+        {isAdmin() && (
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="admin_only"
+              checked={formData.admin_only || false}
+              onCheckedChange={(checked) => handleInputChange('admin_only', checked)}
+            />
+            <Label htmlFor="admin_only">Admin seulement</Label>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

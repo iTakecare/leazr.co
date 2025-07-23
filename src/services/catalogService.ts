@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 
@@ -10,7 +9,14 @@ export const getProducts = async (options?: { includeAdminOnly?: boolean }) => {
     .select(`
       *,
       brands!inner(id, name, translation),
-      categories!inner(id, name, translation)
+      categories!inner(id, name, translation),
+      product_variant_prices!left(
+        id,
+        attributes,
+        price,
+        monthly_price,
+        stock
+      )
     `)
     .eq("active", true)
     .order("created_at", { ascending: false });
@@ -29,13 +35,22 @@ export const getProducts = async (options?: { includeAdminOnly?: boolean }) => {
   console.log("📦 getProducts - Données brutes:", data?.length, "produits");
 
   // Mapper les données pour utiliser les bons noms de marques et catégories
-  const mappedProducts = data?.map(product => ({
-    ...product,
-    brand: product.brands?.name || product.brand || '',
-    category: product.categories?.name || product.category || '',
-    brand_id: product.brand_id,
-    category_id: product.category_id
-  })) || [];
+  const mappedProducts = data?.map(product => {
+    // Traiter les variant_combination_prices
+    const variantPrices = product.product_variant_prices || [];
+    console.log(`📦 Product ${product.name} - Variant prices:`, variantPrices.length);
+    
+    return {
+      ...product,
+      brand: product.brands?.name || product.brand || '',
+      category: product.categories?.name || product.category || '',
+      brand_id: product.brand_id,
+      category_id: product.category_id,
+      variant_combination_prices: variantPrices,
+      createdAt: product.created_at || new Date(),
+      updatedAt: product.updated_at || new Date()
+    };
+  }) || [];
 
   console.log("📦 getProducts - Produits mappés:", mappedProducts.length);
   return mappedProducts as Product[];
@@ -49,7 +64,14 @@ export const getProductById = async (productId: string): Promise<Product | null>
     .select(`
       *,
       brands(id, name, translation),
-      categories(id, name, translation)
+      categories(id, name, translation),
+      product_variant_prices(
+        id,
+        attributes,
+        price,
+        monthly_price,
+        stock
+      )
     `)
     .eq("id", productId)
     .maybeSingle();
@@ -67,6 +89,7 @@ export const getProductById = async (productId: string): Promise<Product | null>
   console.log("📦 getProductById - Produit trouvé:", data.name);
   console.log("📦 getProductById - Brand data:", data.brands);
   console.log("📦 getProductById - Category data:", data.categories);
+  console.log("📦 getProductById - Variant prices:", data.product_variant_prices?.length || 0);
 
   // Mapper les données pour utiliser les bons noms de marques et catégories
   const mappedProduct = {
@@ -74,7 +97,10 @@ export const getProductById = async (productId: string): Promise<Product | null>
     brand: data.brands?.name || data.brand || '',
     category: data.categories?.name || data.category || '',
     brand_id: data.brand_id,
-    category_id: data.category_id
+    category_id: data.category_id,
+    variant_combination_prices: data.product_variant_prices || [],
+    createdAt: data.created_at || new Date(),
+    updatedAt: data.updated_at || new Date()
   };
 
   console.log("📦 getProductById - Produit mappé:", {
@@ -82,7 +108,8 @@ export const getProductById = async (productId: string): Promise<Product | null>
     brand: mappedProduct.brand,
     category: mappedProduct.category,
     brand_id: mappedProduct.brand_id,
-    category_id: mappedProduct.category_id
+    category_id: mappedProduct.category_id,
+    variant_prices_count: mappedProduct.variant_combination_prices?.length || 0
   });
 
   return mappedProduct as Product;
@@ -96,7 +123,14 @@ export const getPublicProducts = async (companyId?: string) => {
     .select(`
       *,
       brands!inner(id, name, translation),
-      categories!inner(id, name, translation)
+      categories!inner(id, name, translation),
+      product_variant_prices!left(
+        id,
+        attributes,
+        price,
+        monthly_price,
+        stock
+      )
     `)
     .eq("active", true)
     .eq("admin_only", false)
@@ -116,13 +150,22 @@ export const getPublicProducts = async (companyId?: string) => {
   console.log("📦 getPublicProducts - Données brutes:", data?.length, "produits");
 
   // Mapper les données pour utiliser les bons noms de marques et catégories
-  const mappedProducts = data?.map(product => ({
-    ...product,
-    brand: product.brands?.name || product.brand || '',
-    category: product.categories?.name || product.category || '',
-    brand_id: product.brand_id,
-    category_id: product.category_id
-  })) || [];
+  const mappedProducts = data?.map(product => {
+    // Traiter les variant_combination_prices
+    const variantPrices = product.product_variant_prices || [];
+    console.log(`📦 Public Product ${product.name} - Variant prices:`, variantPrices.length);
+    
+    return {
+      ...product,
+      brand: product.brands?.name || product.brand || '',
+      category: product.categories?.name || product.category || '',
+      brand_id: product.brand_id,
+      category_id: product.category_id,
+      variant_combination_prices: variantPrices,
+      createdAt: product.created_at || new Date(),
+      updatedAt: product.updated_at || new Date()
+    };
+  }) || [];
 
   console.log("📦 getPublicProducts - Produits mappés:", mappedProducts.length);
   return mappedProducts as Product[];
