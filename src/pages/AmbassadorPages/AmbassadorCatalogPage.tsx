@@ -99,99 +99,104 @@ const AmbassadorCatalogPage = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background flex w-full">
-        {/* Filter Sidebar */}
-        <AmbassadorFilterSidebar
-          isOpen={isFilterOpen}
-          onClose={() => setIsFilterOpen(false)}
-          filters={filters}
-          updateFilter={updateFilter}
-          resetFilters={resetFilters}
-          categories={categories}
-          brands={brands}
-          priceRange={priceRangeLimits}
-          hasActiveFilters={hasActiveFilters}
-          resultsCount={resultsCount}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto">
-          <Container className="py-8 max-w-[1320px]">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
+      <div className="min-h-screen bg-background">
+        {/* Global Header with Title */}
+        <div className="bg-card border-b shadow-sm">
+          <Container className="py-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-3 mb-2">
                 <Package className="h-8 w-8 text-primary" />
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground">Catalogue Produits</h1>
-                  <p className="text-muted-foreground">Consultez le catalogue complet de votre entreprise</p>
-                </div>
+                <h1 className="text-4xl font-bold text-foreground">Catalogue Produits</h1>
               </div>
-
+              <p className="text-muted-foreground text-lg">Consultez le catalogue complet de votre entreprise</p>
+              
               {/* Mobile Filter Toggle */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFilterOpen(true)}
-                className="lg:hidden"
+                className="lg:hidden mt-4"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filtres
               </Button>
             </div>
-
-            {/* Filter Badges */}
-            {hasActiveFilters && (
-              <div className="mb-6">
-                <FilterBadges
-                  searchQuery={filters.searchQuery}
-                  selectedCategory={filters.selectedCategory}
-                  selectedBrands={filters.selectedBrands}
-                  inStockOnly={filters.inStockOnly}
-                  categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                  onRemoveSearch={() => updateFilter('searchQuery', '')}
-                  onRemoveCategory={() => updateFilter('selectedCategory', null)}
-                  onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                  onRemoveStock={() => updateFilter('inStockOnly', false)}
-                  onClearAll={resetFilters}
-                />
-              </div>
-            )}
-
-            {/* Results count */}
-            <div className="text-sm text-muted-foreground mb-6">
-              {resultsCount} produit{resultsCount > 1 ? 's' : ''} trouvé{resultsCount > 1 ? 's' : ''}
-            </div>
-
-            {/* Product Grid */}
-            <ScrollArea className="h-[calc(100vh-300px)]">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-40">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <span className="ml-2">Chargement des produits...</span>
-                </div>
-              ) : error ? (
-                <div className="text-center p-8 text-red-500">
-                  <p>Une erreur est survenue lors du chargement des produits.</p>
-                  <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
-                    Réessayer
-                  </Button>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="text-center p-8 text-muted-foreground flex flex-col items-center">
-                  <Info className="h-12 w-12 text-muted-foreground mb-2" />
-                  <p className="text-lg font-medium">Aucun produit trouvé</p>
-                  <p className="text-sm mt-1">
-                    {hasActiveFilters ? 
-                      "Essayez de modifier vos critères de recherche" : 
-                      "Aucun produit disponible"
-                    }
-                  </p>
-                </div>
-              ) : (
-                <AmbassadorProductGrid products={filteredProducts} />
-              )}
-            </ScrollArea>
           </Container>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex w-full">
+          {/* Filter Sidebar */}
+          <AmbassadorFilterSidebar
+            isOpen={isFilterOpen}
+            onClose={() => setIsFilterOpen(false)}
+            filters={filters}
+            updateFilter={updateFilter}
+            resetFilters={resetFilters}
+            categories={categories}
+            brands={brands}
+            priceRange={priceRangeLimits}
+            hasActiveFilters={hasActiveFilters}
+            resultsCount={resultsCount}
+          />
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-auto">
+            <Container className="py-8 max-w-[1200px]">
+              {/* Filter Badges */}
+              {hasActiveFilters && (
+                <div className="mb-6">
+                  <FilterBadges
+                    searchQuery={filters.searchQuery}
+                    selectedCategory={filters.selectedCategory}
+                    selectedBrands={filters.selectedBrands}
+                    inStockOnly={filters.inStockOnly}
+                    categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
+                    onRemoveSearch={() => updateFilter('searchQuery', '')}
+                    onRemoveCategory={() => updateFilter('selectedCategory', null)}
+                    onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
+                    onRemoveStock={() => updateFilter('inStockOnly', false)}
+                    onClearAll={resetFilters}
+                  />
+                </div>
+              )}
+
+              {/* Results count */}
+              <div className="text-sm text-muted-foreground mb-6 font-medium">
+                {resultsCount} produit{resultsCount > 1 ? 's' : ''} trouvé{resultsCount > 1 ? 's' : ''}
+              </div>
+
+              {/* Product Grid */}
+              <div className="min-h-[calc(100vh-400px)]">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <span className="ml-2">Chargement des produits...</span>
+                  </div>
+                ) : error ? (
+                  <div className="text-center p-8 text-destructive">
+                    <p>Une erreur est survenue lors du chargement des produits.</p>
+                    <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+                      Réessayer
+                    </Button>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="text-center p-8 text-muted-foreground flex flex-col items-center">
+                    <Info className="h-12 w-12 text-muted-foreground mb-2" />
+                    <p className="text-lg font-medium">Aucun produit trouvé</p>
+                    <p className="text-sm mt-1">
+                      {hasActiveFilters ? 
+                        "Essayez de modifier vos critères de recherche" : 
+                        "Aucun produit disponible"
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <AmbassadorProductGrid products={filteredProducts} />
+                )}
+              </div>
+            </Container>
+          </div>
         </div>
       </div>
     </PageTransition>
