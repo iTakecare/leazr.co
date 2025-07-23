@@ -136,6 +136,9 @@ function App() {
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                       </Route>
                       
+                      {/* Explicit ambassador catalog route to prevent slug conflicts */}
+                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
+                      
                       {/* Company slug-based routes - these will only match if no system route matched */}
                       <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
                       <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
