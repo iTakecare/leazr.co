@@ -35,6 +35,17 @@ export const useSubdomainDetection = () => {
         setLoading(true);
         setError(null);
 
+        // Vérifier si on est sur une route système qui ne nécessite pas de détection de company
+        const pathname = window.location.pathname;
+        const systemRoutes = ['/ambassador', '/admin', '/dashboard', '/login', '/register'];
+        const isSystemRoute = systemRoutes.some(route => pathname.startsWith(route));
+        
+        if (isSystemRoute) {
+          console.log('🔍 Route système détectée, pas de détection de company nécessaire:', pathname);
+          setLoading(false);
+          return;
+        }
+
         // Obtenir l'origine de la requête actuelle
         const origin = window.location.origin;
         const hostname = window.location.hostname;
