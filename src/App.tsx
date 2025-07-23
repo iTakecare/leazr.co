@@ -91,6 +91,11 @@ function App() {
                       {/* Client offer signing route - needs access to providers */}
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                       
+                      {/* Ambassador routes - MUST be before slug-based routes */}
+                      <Route element={<PrivateRoute><></></PrivateRoute>}>
+                        <Route path="/ambassador/*" element={<AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout>} />
+                      </Route>
+                      
                       {/* Protected routes - MUST be before slug-based routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
@@ -108,9 +113,6 @@ function App() {
                         <Route path="/ambassadors/:id" element={<Layout><AmbassadorDetail /></Layout>} />
                         <Route path="/ambassadors/edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
                         <Route path="/ambassadors/create" element={<Layout><AmbassadorCreatePage /></Layout>} />
-                        
-                        {/* Ambassador routes with AmbassadorLayout */}
-                        <Route path="/ambassador/*" element={<AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
                         <Route path="/admin/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
