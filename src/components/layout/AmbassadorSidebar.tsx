@@ -14,7 +14,6 @@ import {
   Calculator,
   Package,
   FileText,
-  Zap,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -47,12 +46,6 @@ const AmbassadorSidebar = memo(() => {
       icon: Calculator,
       href: "/ambassador/create-offer",
       color: "orange",
-    },
-    {
-      label: "Générateur d'offres",
-      icon: Zap,
-      href: "/ambassador/custom-offer-generator", 
-      color: "violet",
     },
     {
       label: "Offres",
