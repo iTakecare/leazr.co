@@ -25,7 +25,7 @@ export const RoleBasedRoutes = () => {
   }
 
   // Reserved keywords that should not be treated as company slugs
-  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
+  const reservedKeywords = ['admin', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
   
   // Check if the current path looks like a company slug URL
   const pathMatch = location.pathname.match(/^\/([^\/]+)\/(catalog|products|panier|demande)/);

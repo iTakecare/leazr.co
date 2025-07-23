@@ -14,7 +14,7 @@ const PublicSlugCatalog = () => {
   console.log('🏪 PUBLIC SLUG CATALOG - Component rendered with slug:', companySlug);
   
   // Reserved keywords that should not be treated as company slugs
-  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
+  const reservedKeywords = ['admin', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
   
   // Check if the slug is a reserved keyword
   if (companySlug && reservedKeywords.includes(companySlug.toLowerCase())) {

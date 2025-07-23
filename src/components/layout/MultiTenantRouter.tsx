@@ -166,7 +166,7 @@ const PublicSlugCatalog = () => {
   console.log('📱 PUBLIC SLUG CATALOG - Rendering for slug:', companySlug);
   
   // Vérifier si le slug est un mot-clé réservé
-  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'clients', 'api', 'dashboard', 'login', 'register', 'partner', 'partners'];
+  const reservedKeywords = ['admin', 'ambassadors', 'client', 'clients', 'api', 'dashboard', 'login', 'register', 'partner', 'partners'];
   
   if (companySlug && reservedKeywords.includes(companySlug.toLowerCase())) {
     console.log('📱 PUBLIC SLUG CATALOG - Reserved keyword detected, redirecting:', companySlug);
