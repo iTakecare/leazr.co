@@ -1,64 +1,49 @@
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Save, Package } from "lucide-react";
-import { Product, Brand, Category } from "@/types/catalog";
+import { Loader2, Package, Save } from "lucide-react";
+import { Product } from "@/types/catalog";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useBrands } from "@/hooks/catalog/useBrands";
+import { useCategories } from "@/hooks/catalog/useCategories";
 import DescriptionGenerator from "./DescriptionGenerator";
+import SpecificationGenerator from "./SpecificationGenerator";
 
-const productSchema = z.object({
-  name: z.string().min(2, {
-    message: "Le nom du produit doit comporter au moins 2 caractères.",
-  }),
+// Form validation schema
+const productFormSchema = z.object({
+  name: z.string().min(1, "Le nom est requis"),
   description: z.string().optional(),
   short_description: z.string().optional(),
-  category_id: z.string().min(1, {
-    message: "Veuillez sélectionner une catégorie.",
-  }),
-  brand_id: z.string().min(1, {
-    message: "Veuillez sélectionner une marque.",
-  }),
-  price: z.number({
-    invalid_type_error: "Le prix doit être un nombre.",
-  }).min(0, {
-    message: "Le prix ne peut pas être négatif.",
-  }),
-  stock: z.number({
-    invalid_type_error: "Le stock doit être un nombre.",
-  }).min(0, {
-    message: "Le stock ne peut pas être négatif.",
-  }).optional(),
+  category_id: z.string().min(1, "La catégorie est requise"),
+  brand_id: z.string().min(1, "La marque est requise"),
+  price: z.number().min(0, "Le prix doit être positif"),
+  stock: z.number().int().min(0, "Le stock doit être positif"),
   sku: z.string().optional(),
-  is_refurbished: z.boolean().default(false).optional(),
-  condition: z.string().nullable().optional(),
-  purchase_price: z.number({
-    invalid_type_error: "Le prix d'achat doit être un nombre.",
-  }).min(0, {
-    message: "Le prix d'achat ne peut pas être négatif.",
-  }).optional(),
-  active: z.boolean().default(true).optional(),
-  admin_only: z.boolean().default(false).optional(),
+  is_refurbished: z.boolean().default(false),
+  condition: z.string().optional(),
+  purchase_price: z.number().min(0).optional(),
+  active: z.boolean().default(true),
+  admin_only: z.boolean().default(false),
+  specifications: z.record(z.string()).optional()
 });
 
-interface FormData extends z.infer<typeof productSchema> {}
+type FormData = z.infer<typeof productFormSchema>;
 
 interface ProductFormInfoTabProps {
   productToEdit?: Product;
   isEditMode: boolean;
-  brands: Brand[];
-  categories: Category[];
+  brands?: Array<{ id: string; name: string; translation?: string }>;
+  categories?: Array<{ id: string; name: string; translation?: string }>;
   onProductCreated?: (product: Product) => void;
   onProductUpdated?: (product: Product) => void;
 }
@@ -66,18 +51,32 @@ interface ProductFormInfoTabProps {
 const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   productToEdit,
   isEditMode,
-  brands,
-  categories,
+  brands: propBrands,
+  categories: propCategories,
   onProductCreated,
   onProductUpdated
 }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { getCurrentCompanyId } = useMultiTenant();
+  console.log("🔧 ProductFormInfoTab render", { 
+    isEditMode, 
+    hasProduct: !!productToEdit,
+    productName: productToEdit?.name 
+  });
+
+  // Fetch brands and categories
+  const { data: fetchedBrands = [] } = useBrands();
+  const { data: fetchedCategories = [] } = useCategories();
+  
+  // Use provided data or fallback to fetched data
+  const brands = propBrands || fetchedBrands;
+  const categories = propCategories || fetchedCategories;
+
+  // Mutations
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
+  // Form setup
   const form = useForm<FormData>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -92,39 +91,63 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       purchase_price: 0,
       active: true,
       admin_only: false,
-    },
+      specifications: {}
+    }
   });
 
-  const { setValue, watch, handleSubmit, formState: { errors } } = form;
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch, reset } = form;
 
-  // Watch form values for the AI generator
-  const watchedName = watch("name");
-  const watchedCategoryId = watch("category_id");
-  const watchedBrandId = watch("brand_id");
-  const watchedDescription = watch("description");
-  const watchedShortDescription = watch("short_description");
-
+  // Populate form when editing
   useEffect(() => {
-    if (productToEdit) {
-      // Populate the form with the product data for editing
-      setValue("name", productToEdit.name);
-      setValue("description", productToEdit.description || "");
-      setValue("short_description", productToEdit.short_description || "");
-      setValue("category_id", productToEdit.category_id);
-      setValue("brand_id", productToEdit.brand_id);
-      setValue("price", productToEdit.price);
-      setValue("stock", productToEdit.stock || 0);
-      setValue("sku", productToEdit.sku || "");
-      setValue("is_refurbished", productToEdit.is_refurbished || false);
-      setValue("condition", productToEdit.condition || "");
-      setValue("purchase_price", productToEdit.purchase_price || 0);
-      setValue("active", productToEdit.active !== false);
-      setValue("admin_only", productToEdit.admin_only || false);
+    if (isEditMode && productToEdit) {
+      console.log("🔧 Populating form with product data", productToEdit);
+      reset({
+        name: productToEdit.name || "",
+        description: productToEdit.description || "",
+        short_description: productToEdit.short_description || "",
+        category_id: productToEdit.category_id || "",
+        brand_id: productToEdit.brand_id || "",
+        price: productToEdit.price || 0,
+        stock: productToEdit.stock || 0,
+        sku: productToEdit.sku || "",
+        is_refurbished: productToEdit.is_refurbished || false,
+        condition: productToEdit.condition || "",
+        purchase_price: productToEdit.purchase_price || 0,
+        active: productToEdit.active ?? true,
+        admin_only: productToEdit.admin_only || false,
+        specifications: productToEdit.specifications || {}
+      });
     }
-  }, [productToEdit, setValue]);
+  }, [isEditMode, productToEdit, reset]);
 
-  // Handle AI-generated descriptions
+  // Form submission handler
+  const onSubmit = async (data: FormData) => {
+    console.log("🔧 Form submission", { data, isEditMode });
+
+    try {
+      if (isEditMode && productToEdit) {
+        // Update existing product
+        const updatedProduct = await updateProductMutation.mutateAsync({
+          id: productToEdit.id,
+          ...data
+        });
+        toast.success("Produit mis à jour avec succès");
+        onProductUpdated?.(updatedProduct);
+      } else {
+        // Create new product
+        const newProduct = await createProductMutation.mutateAsync(data as any);
+        toast.success("Produit créé avec succès");
+        onProductCreated?.(newProduct);
+      }
+    } catch (error) {
+      console.error("Error saving product:", error);
+      toast.error(`Erreur lors de la sauvegarde: ${error.message}`);
+    }
+  };
+
+  // Description handlers for DescriptionGenerator
   const handleDescriptionGenerated = (description: string, shortDescription: string) => {
+    console.log("🔧 Descriptions generated", { description: description.substring(0, 50), shortDescription });
     setValue("description", description);
     setValue("short_description", shortDescription);
   };
@@ -137,295 +160,219 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     setValue("short_description", shortDescription);
   };
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-
-    try {
-      if (isEditMode && productToEdit) {
-        // Update existing product
-        const updatedProduct = await updateProductMutation.mutateAsync({
-          id: productToEdit.id,
-          name: data.name,
-          description: data.description,
-          short_description: data.short_description,
-          category_id: data.category_id,
-          brand_id: data.brand_id,
-          price: data.price,
-          stock: data.stock,
-          sku: data.sku,
-          is_refurbished: data.is_refurbished,
-          condition: data.condition,
-          purchase_price: data.purchase_price,
-          active: data.active,
-          admin_only: data.admin_only,
-        });
-
-        toast.success("Produit mis à jour avec succès");
-        onProductUpdated?.(updatedProduct);
-      } else {
-        // Create new product
-        const newProduct = await createProductMutation.mutateAsync(data as any);
-        toast.success("Produit créé avec succès");
-        onProductCreated?.(newProduct);
-      }
-    } catch (error: any) {
-      console.error("Erreur lors de la soumission:", error);
-      toast.error(
-        `Erreur lors de la soumission du formulaire: ${error.message || "Unknown error"}`
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Specifications handler
+  const handleSpecificationsGenerated = (specifications: Record<string, string>) => {
+    console.log("🔧 Specifications generated", specifications);
+    setValue("specifications", specifications);
   };
+
+  const isLoading = createProductMutation.isPending || updateProductMutation.isPending;
 
   return (
     <div className="space-y-6">
+      {/* Product Information Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Informations générales
+            {isEditMode ? "Modifier le produit" : "Informations du produit"}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom du produit *</Label>
-              <Input
-                id="name"
-                placeholder="Nom du produit"
-                type="text"
-                {...form.register("name")}
-              />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Catégorie *</Label>
-              <Select
-                value={form.watch("category_id")}
-                onValueChange={(value) => setValue("category_id", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.category_id && (
-                <p className="text-sm text-red-600">{errors.category_id.message}</p>
-              )}
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom du produit *</Label>
+                <Input
+                  {...register("name")}
+                  id="name"
+                  placeholder="Nom du produit"
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sku">SKU</Label>
+                <Input
+                  {...register("sku")}
+                  id="sku"
+                  placeholder="SKU unique"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="brand">Marque *</Label>
-              <Select
-                value={form.watch("brand_id")}
-                onValueChange={(value) => setValue("brand_id", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une marque" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.brand_id && (
-                <p className="text-sm text-red-600">{errors.brand_id.message}</p>
-              )}
-            </div>
-          </div>
+            {/* Category and Brand */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category_id">Catégorie *</Label>
+                <Select 
+                  value={watch("category_id")} 
+                  onValueChange={(value) => setValue("category_id", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.translation || category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category_id && (
+                  <p className="text-sm text-destructive">{errors.category_id.message}</p>
+                )}
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="price">Prix *</Label>
-              <Input
-                id="price"
-                placeholder="Prix du produit"
-                type="number"
-                {...form.register("price", { valueAsNumber: true })}
-              />
-              {errors.price && (
-                <p className="text-sm text-red-600">{errors.price.message}</p>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="brand_id">Marque *</Label>
+                <Select 
+                  value={watch("brand_id")} 
+                  onValueChange={(value) => setValue("brand_id", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une marque" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.translation || brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.brand_id && (
+                  <p className="text-sm text-destructive">{errors.brand_id.message}</p>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="stock">Stock</Label>
-              <Input
-                id="stock"
-                placeholder="Stock du produit"
-                type="number"
-                {...form.register("stock", { valueAsNumber: true })}
-              />
-              {errors.stock && (
-                <p className="text-sm text-red-600">{errors.stock.message}</p>
-              )}
+            {/* Pricing */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Prix de vente *</Label>
+                <Input
+                  {...register("price", { valueAsNumber: true })}
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+                {errors.price && (
+                  <p className="text-sm text-destructive">{errors.price.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="purchase_price">Prix d'achat</Label>
+                <Input
+                  {...register("purchase_price", { valueAsNumber: true })}
+                  id="purchase_price"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock *</Label>
+                <Input
+                  {...register("stock", { valueAsNumber: true })}
+                  id="stock"
+                  type="number"
+                  placeholder="0"
+                />
+                {errors.stock && (
+                  <p className="text-sm text-destructive">{errors.stock.message}</p>
+                )}
+              </div>
             </div>
-          </div>
+
+            {/* Condition */}
+            <div className="space-y-2">
+              <Label htmlFor="condition">État/Condition</Label>
+              <Input
+                {...register("condition")}
+                id="condition"
+                placeholder="Ex: Excellent, Bon, Reconditionné A"
+              />
+            </div>
+
+            {/* Options */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_refurbished"
+                  checked={watch("is_refurbished")}
+                  onCheckedChange={(checked) => setValue("is_refurbished", !!checked)}
+                />
+                <Label htmlFor="is_refurbished">Reconditionné</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="active"
+                  checked={watch("active")}
+                  onCheckedChange={(checked) => setValue("active", !!checked)}
+                />
+                <Label htmlFor="active">Actif</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="admin_only"
+                  checked={watch("admin_only")}
+                  onCheckedChange={(checked) => setValue("admin_only", !!checked)}
+                />
+                <Label htmlFor="admin_only">Admin uniquement</Label>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end pt-4">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sauvegarde...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {isEditMode ? "Mettre à jour" : "Créer le produit"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
 
-      {/* AI Description Generator */}
+      {/* Description Generator */}
       <DescriptionGenerator
-        productName={watchedName}
-        categoryId={watchedCategoryId}
-        brandId={watchedBrandId}
+        productName={watch("name") || ""}
+        categoryId={watch("category_id") || ""}
+        brandId={watch("brand_id") || ""}
         categories={categories}
         brands={brands}
         onDescriptionGenerated={handleDescriptionGenerated}
-        currentDescription={watchedDescription}
-        currentShortDescription={watchedShortDescription}
+        currentDescription={watch("description") || ""}
+        currentShortDescription={watch("short_description") || ""}
         onDescriptionChange={handleDescriptionChange}
         onShortDescriptionChange={handleShortDescriptionChange}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Descriptions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="short_description">Description courte</Label>
-            <Textarea
-              id="short_description"
-              placeholder="Description courte pour les listes de produits..."
-              {...form.register("short_description")}
-              rows={2}
-            />
-            {errors.short_description && (
-              <p className="text-sm text-red-600">{errors.short_description.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description détaillée</Label>
-            <Textarea
-              id="description"
-              placeholder="Description complète du produit..."
-              {...form.register("description")}
-              rows={6}
-            />
-            {errors.description && (
-              <p className="text-sm text-red-600">{errors.description.message}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Informations de reconditionnement</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="is_refurbished"
-              checked={form.watch("is_refurbished")}
-              onCheckedChange={(checked) => setValue("is_refurbished", !!checked)}
-            />
-            <Label htmlFor="is_refurbished">Reconditionné</Label>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="condition">État</Label>
-            <Input
-              id="condition"
-              placeholder="État du produit reconditionné (Grade A, B, C...)"
-              type="text"
-              {...form.register("condition")}
-            />
-            {errors.condition && (
-              <p className="text-sm text-red-600">{errors.condition.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="purchase_price">Prix d'achat</Label>
-            <Input
-              id="purchase_price"
-              placeholder="Prix d'achat du produit"
-              type="number"
-              {...form.register("purchase_price", { valueAsNumber: true })}
-            />
-            {errors.purchase_price && (
-              <p className="text-sm text-red-600">{errors.purchase_price.message}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>SKU & Options</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="sku">SKU</Label>
-            <Input
-              id="sku"
-              placeholder="SKU du produit"
-              type="text"
-              {...form.register("sku")}
-            />
-            {errors.sku && (
-              <p className="text-sm text-red-600">{errors.sku.message}</p>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="active"
-              checked={form.watch("active")}
-              onCheckedChange={(checked) => setValue("active", checked !== false)}
-            />
-            <Label htmlFor="active">Actif</Label>
-          </div>
-
-           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="admin_only"
-              checked={form.watch("admin_only")}
-              onCheckedChange={(checked) => setValue("admin_only", checked !== false)}
-            />
-            <Label htmlFor="admin_only">Admin Only</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end">
-        <Button 
-          type="submit" 
-          onClick={handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-          className="min-w-[120px]"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {isEditMode ? "Modification..." : "Création..."}
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              {isEditMode ? "Modifier le produit" : "Créer le produit"}
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Specification Generator - Only for editing */}
+      {isEditMode && productToEdit && (
+        <SpecificationGenerator
+          product={productToEdit}
+          onSpecificationsGenerated={handleSpecificationsGenerated}
+        />
+      )}
     </div>
   );
 };
