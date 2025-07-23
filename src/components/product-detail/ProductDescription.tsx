@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp, Info } from "lucide-react";
+import { processMarkdownToHtml } from "@/lib/utils";
 
 interface ProductDescriptionProps {
   title: string;
@@ -28,6 +29,9 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, descript
   const toggleExpanded = () => {
     setExpanded(!expanded);
   };
+
+  // Process markdown to HTML
+  const processedDescription = description ? processMarkdownToHtml(description) : null;
   
   return (
     <div className="mt-6 bg-white rounded-xl border border-[#4ab6c4]/30 shadow-sm overflow-hidden">
@@ -43,8 +47,11 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ title, descript
           ref={contentRef}
           className={`text-gray-700 p-6 transition-all duration-300 ${!expanded && showExpandButton ? 'max-h-[150px]' : ''}`}
         >
-          {description ? (
-            <div className="prose max-w-none">{description}</div>
+          {processedDescription ? (
+            <div 
+              className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-strong:text-gray-900 prose-p:text-gray-700"
+              dangerouslySetInnerHTML={{ __html: processedDescription }}
+            />
           ) : (
             <p className="text-gray-500 italic">Aucune description disponible pour ce produit.</p>
           )}

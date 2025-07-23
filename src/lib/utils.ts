@@ -1,10 +1,32 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Product } from "@/types/catalog";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+// Fonction pour traiter le markdown simple et le convertir en HTML sécurisé
+export function processMarkdownToHtml(markdown: string): string {
+  if (!markdown) return '';
+  
+  let html = markdown
+    // Traiter les titres
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    // Traiter le texte en gras
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Traiter les sauts de ligne
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+  
+  // Envelopper dans des paragraphes si nécessaire
+  if (!html.startsWith('<h') && !html.startsWith('<p>')) {
+    html = '<p>' + html + '</p>';
+  }
+  
+  return html;
 }
 
 export function generateProductSlug(productName: string, productBrand?: string): string {
