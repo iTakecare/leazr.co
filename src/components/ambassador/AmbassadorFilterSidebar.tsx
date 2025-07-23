@@ -59,7 +59,7 @@ const AmbassadorFilterSidebar: React.FC<AmbassadorFilterSidebarProps> = ({
     <>
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-64 flex-shrink-0 ml-6">
-        <div className="sticky top-8 bg-card border rounded-xl shadow-soft p-6 space-y-6 max-h-[calc(100vh-4rem)] overflow-y-auto backdrop-blur-sm border-border/50">
+        <div className="sticky top-32 bg-card border rounded-xl shadow-soft p-6 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto backdrop-blur-sm border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-primary" />
