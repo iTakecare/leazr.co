@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
-
+import { useSubdomain } from '@/context/SubdomainContext';
 
 interface DeploymentCheck {
   name: string;
@@ -13,6 +13,8 @@ interface DeploymentCheck {
 }
 
 export const DeploymentStatus = () => {
+  const { detection, loading, error, isSubdomainDetected } = useSubdomain();
+  const isCompanyDetected = detection.detectionMethod !== 'default';
   const [checks, setChecks] = useState<DeploymentCheck[]>([]);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -32,11 +34,17 @@ export const DeploymentStatus = () => {
         : 'Domaine principal (pas de sous-domaine)'
     });
 
-    // Vérifier la détection d'entreprise (désactivé - système de slug utilisé)
+    // Vérifier la détection d'entreprise
     newChecks.push({
-      name: 'Système de détection',
-      status: 'success',
-      message: 'Système de slug activé'
+      name: 'Détection d\'entreprise',
+      status: loading ? 'loading' : (error ? 'error' : (isCompanyDetected ? 'success' : 'warning')),
+      message: loading 
+        ? 'Chargement...' 
+        : error 
+          ? `Erreur: ${error}` 
+          : isCompanyDetected 
+            ? `Entreprise détectée: ${detection.company?.name}` 
+            : 'Aucune entreprise détectée'
     });
 
     // Vérifier les variables d'environnement
@@ -82,7 +90,7 @@ export const DeploymentStatus = () => {
 
   useEffect(() => {
     runDeploymentChecks();
-  }, []);
+  }, [detection, loading, error, isCompanyDetected]);
 
   const getStatusIcon = (status: DeploymentCheck['status']) => {
     switch (status) {
@@ -155,7 +163,7 @@ export const DeploymentStatus = () => {
           <div className="pt-2 border-t text-xs text-muted-foreground">
             URL: {window.location.hostname}
             <br />
-            Méthode: Système de slug
+            Méthode: {detection.detectionMethod}
           </div>
         </CardContent>
       </Card>

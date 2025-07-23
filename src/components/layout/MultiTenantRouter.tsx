@@ -2,6 +2,8 @@
 import React from "react";
 import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { SubdomainProvider, useSubdomain } from "@/context/SubdomainContext";
+import { SubdomainDetector } from "./SubdomainDetector";
 import Layout from "./Layout";
 import ClientRoutes from "./ClientRoutes";
 import AmbassadorLayout from "./AmbassadorLayout";
@@ -97,7 +99,9 @@ const MultiTenantRouter = () => {
   });
 
   return (
-    <Routes>
+    <SubdomainProvider>
+      <SubdomainDetector>
+        <Routes>
           {/* ROUTES SYSTÈME - PRIORITÉ ABSOLUE (avant les slugs) */}
           <Route path="/admin/*" element={<RoleBasedRoutes />} />
           <Route path="/ambassador/*" element={<RoleBasedRoutes />} />
@@ -150,6 +154,8 @@ const MultiTenantRouter = () => {
           {/* FALLBACK POUR ROUTES NON RECONNUES */}
           <Route path="/*" element={<RoleBasedRoutes />} />
         </Routes>
+      </SubdomainDetector>
+    </SubdomainProvider>
   );
 };
 
@@ -204,9 +210,17 @@ const PublicSlugCompany = () => {
 
 // Composant intelligent pour la page d'accueil
 const SmartLandingPage = () => {
-  console.log('🏠 SMART LANDING - Using default landing page');
+  const { detection, isSubdomainDetected } = useSubdomain();
+  const isCompanyDetected = detection.detectionMethod !== 'default';
   
-  // Afficher la landing page générale (système de slug utilisé maintenant)
+  console.log('🏠 SMART LANDING - Company detected:', isCompanyDetected);
+  
+  // Si une entreprise est détectée (sous-domaine ou paramètre), afficher sa landing page
+  if (isCompanyDetected && detection.company) {
+    return <PublicCompanyLanding />;
+  }
+  
+  // Sinon, afficher la landing page générale
   return <LandingPage />;
 };
 
