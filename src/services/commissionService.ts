@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserCompanyId } from '@/services/multiTenantService';
-import { checkDataIsolation } from '@/utils/crmCacheUtils';
 
 export interface CommissionRate {
   id: string;
@@ -44,20 +43,6 @@ export const getCommissionLevels = async (type: 'partner' | 'ambassador' = 'part
       return [];
     }
     
-    // Vérifier l'isolation par entreprise
-    try {
-      const userCompanyId = await getCurrentUserCompanyId();
-      const dataWithCompanyId = data.map(level => ({ ...level, company_id: level.company_id }));
-      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'commission_levels');
-      
-      if (!isIsolationValid) {
-        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
-        return [];
-      }
-    } catch (error) {
-      console.error('Error checking company isolation for commission levels:', error);
-    }
-    
     console.log(`[getCommissionLevels] Found ${data?.length || 0} commission levels`);
     return data || [];
   } catch (error) {
@@ -86,20 +71,6 @@ export const getCommissionRates = async (levelId: string): Promise<CommissionRat
     if (!data || data.length === 0) {
       console.log('No commission rates found in database for this company');
       return [];
-    }
-    
-    // Vérifier l'isolation par entreprise
-    try {
-      const userCompanyId = await getCurrentUserCompanyId();
-      const dataWithCompanyId = data.map(rate => ({ ...rate, company_id: rate.company_id }));
-      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'commission_rates');
-      
-      if (!isIsolationValid) {
-        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
-        return [];
-      }
-    } catch (error) {
-      console.error('Error checking company isolation for commission rates:', error);
     }
     
     console.log(`[getCommissionRates] Found ${data?.length || 0} rates for level ${levelId}`);
