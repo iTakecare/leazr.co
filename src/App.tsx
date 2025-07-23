@@ -38,6 +38,12 @@ import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import InvoicingPage from "@/pages/InvoicingPage";
 
+// Ambassador management pages
+import AmbassadorsList from "@/pages/AmbassadorsList";
+import AmbassadorDetail from "@/pages/AmbassadorDetail";
+import AmbassadorEditPage from "@/pages/AmbassadorEditPage";
+import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
+
 // Ambassador components
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
@@ -90,6 +96,12 @@ function App() {
                         <Route path="/admin/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/admin/catalog" element={<Layout><CatalogManagement /></Layout>} />
                         <Route path="/admin/invoicing" element={<Layout><InvoicingPage /></Layout>} />
+                        
+                        {/* Ambassador management routes */}
+                        <Route path="/ambassadors" element={<Layout><AmbassadorsList /></Layout>} />
+                        <Route path="/ambassadors/:id" element={<Layout><AmbassadorDetail /></Layout>} />
+                        <Route path="/ambassadors/edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
+                        <Route path="/ambassadors/create" element={<Layout><AmbassadorCreatePage /></Layout>} />
                         
                         {/* Ambassador routes with AmbassadorLayout */}
                         <Route path="/ambassador/*" element={<AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout>} />
