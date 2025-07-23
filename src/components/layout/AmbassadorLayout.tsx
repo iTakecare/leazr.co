@@ -32,7 +32,7 @@ export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) =
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <AmbassadorSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden ml-64">
+      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300 ml-16 md:ml-64">
         <main className="flex-1 overflow-auto">
           {children || <Outlet />}
         </main>
