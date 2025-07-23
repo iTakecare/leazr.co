@@ -38,6 +38,10 @@ import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import InvoicingPage from "@/pages/InvoicingPage";
 
+// Ambassador components
+import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
+import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
+
 import ProductFormPage from "@/pages/ProductFormPage";
 import Layout from "@/components/layout/Layout";
 
@@ -86,6 +90,9 @@ function App() {
                         <Route path="/admin/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/admin/catalog" element={<Layout><CatalogManagement /></Layout>} />
                         <Route path="/admin/invoicing" element={<Layout><InvoicingPage /></Layout>} />
+                        
+                        {/* Ambassador routes with AmbassadorLayout */}
+                        <Route path="/ambassador/*" element={<AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
                         <Route path="/admin/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
