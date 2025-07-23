@@ -111,7 +111,8 @@ function App() {
                         <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
                       </Route>
                       
-                      {/* Ambassador routes */}
+                      {/* Ambassador routes - with explicit catalog route */}
+                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       <Route path="/ambassador/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       
                       {/* Ambassador management routes */}
