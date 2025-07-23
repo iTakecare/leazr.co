@@ -102,19 +102,12 @@ const MultiTenantRouter = () => {
     <SubdomainProvider>
       <SubdomainDetector>
         <Routes>
-          {/* ROUTES PUBLIQUES AVEC SLUG - PRIORITÉ ABSOLUE */}
-          <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
-          <Route path="/:companySlug/products/:id" element={<PublicSlugProductDetail />} />
-          <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
-          <Route path="/:companySlug/demande" element={<PublicSlugRequest />} />
-          <Route path="/:companySlug" element={<PublicSlugCompany />} />
-          
-          {/* Routes publiques avec ID explicite */}
-          <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
-          <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
-          <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
-          <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
-          <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
+          {/* ROUTES SYSTÈME - PRIORITÉ ABSOLUE (avant les slugs) */}
+          <Route path="/admin/*" element={<RoleBasedRoutes />} />
+          <Route path="/ambassador/*" element={<RoleBasedRoutes />} />
+          <Route path="/client/*" element={<RoleBasedRoutes />} />
+          <Route path="/partner/*" element={<RoleBasedRoutes />} />
+          <Route path="/dashboard/*" element={<RoleBasedRoutes />} />
           
           {/* Routes d'authentification accessibles à tous */}
           <Route path="/login" element={<Login />} />
@@ -135,6 +128,13 @@ const MultiTenantRouter = () => {
           <Route path="/blog" element={<ResourcesPage />} />
           <Route path="/tarifs" element={<PricingPage />} />
           
+          {/* Routes publiques avec ID explicite */}
+          <Route path="/public/:companyId" element={<PublicCompanyLanding />} />
+          <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="/public/:companyId/products/:id" element={<ProductDetailPage />} />
+          <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
+          <Route path="/public/:companyId/demande" element={<PublicRequestPage />} />
+          
           {/* Catalogue public général avec détection automatique d'entreprise */}
           <Route path="/catalog" element={<PublicCatalogAnonymous />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
@@ -144,7 +144,14 @@ const MultiTenantRouter = () => {
           {/* Page d'accueil avec détection d'entreprise */}
           <Route path="/" element={<SmartLandingPage />} />
           
-          {/* ROUTES ADMIN ET UTILISATEURS CONNECTÉS - SEULEMENT SI PAS DE SLUG */}
+          {/* ROUTES PUBLIQUES AVEC SLUG - APRÈS LES ROUTES SYSTÈME */}
+          <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
+          <Route path="/:companySlug/products/:id" element={<PublicSlugProductDetail />} />
+          <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+          <Route path="/:companySlug/demande" element={<PublicSlugRequest />} />
+          <Route path="/:companySlug" element={<PublicSlugCompany />} />
+          
+          {/* FALLBACK POUR ROUTES NON RECONNUES */}
           <Route path="/*" element={<RoleBasedRoutes />} />
         </Routes>
       </SubdomainDetector>
