@@ -61,6 +61,18 @@ export const useSubdomainDetection = () => {
           subdomain = parts[0];
         }
 
+        // Ignorer les sous-domaines de développement/preview
+        const developmentPatterns = ['id-preview', 'preview', 'localhost', 'lovableproject', 'lovable'];
+        const isDevelopmentSubdomain = subdomain && developmentPatterns.some(pattern => 
+          subdomain.includes(pattern) || hostname.includes(pattern)
+        );
+
+        if (isDevelopmentSubdomain) {
+          console.log('🔍 Sous-domaine de développement détecté, pas de détection de company nécessaire:', subdomain);
+          setLoading(false);
+          return;
+        }
+
         // Récupérer le paramètre company depuis l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const companyParam = urlParams.get('company') || getCompanyParamFromPath();
