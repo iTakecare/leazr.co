@@ -18,10 +18,12 @@ import { getBrands, getCategories } from "@/services/catalogService";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProductFormInfoTabProps {
-  formData: any;
-  onUpdate: (data: any) => void;
-  onImageUpload: (file: File) => void;
-  isEditing?: boolean;
+  productToEdit?: any;
+  isEditMode: boolean;
+  brands: any[];
+  categories: any[];
+  onProductCreated: () => void;
+  onProductUpdated: () => void;
 }
 
 interface Brand {
@@ -37,14 +39,17 @@ interface Category {
 }
 
 export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
-  formData,
-  onUpdate,
-  onImageUpload,
-  isEditing = false
+  productToEdit,
+  isEditMode,
+  brands: brandsProp,
+  categories: categoriesProp,
+  onProductCreated,
+  onProductUpdated
 }) => {
   const { isAdmin } = useAuth();
+  const [formData, setFormData] = useState(productToEdit || {});
   const [imagePreview, setImagePreview] = useState<string | null>(
-    formData.image_url || formData.imageUrl || null
+    productToEdit?.image_url || productToEdit?.imageUrl || null
   );
 
   const { data: brands = [] } = useQuery<Brand[]>({
@@ -64,16 +69,17 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   }, [formData.image_url, formData.imageUrl]);
 
   const handleInputChange = (field: string, value: any) => {
-    onUpdate({ [field]: value });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onImageUpload(file);
+      // Handle image upload logic here
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
+        setFormData(prev => ({ ...prev, image_url: e.target?.result as string }));
       };
       reader.readAsDataURL(file);
     }
@@ -88,7 +94,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       image_url: imagePreview || '',
     };
 
-    if (isEditing) {
+    if (isEditMode) {
       // Pour la mise à jour, on n'inclut que les champs modifiés
       const updateData = {
         name: formData.name,
@@ -126,7 +132,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Image Upload Section */}
         <div className="space-y-4">
@@ -286,7 +292,14 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
           </div>
         )}
       </div>
-    </div>
+
+      {/* Submit Button */}
+      <div className="flex justify-end">
+        <Button type="submit" className="px-8">
+          {isEditMode ? "Mettre à jour" : "Créer le produit"}
+        </Button>
+      </div>
+    </form>
   );
 };
 
