@@ -14,7 +14,15 @@ import SignatureSection from "@/components/offers/SignatureSection";
 
 const SignOffer = () => {
   const { id } = useParams<{ id: string }>();
-  const { branding } = useCompanyBranding();
+  
+  // Safely get branding context - it might not be available
+  let branding = null;
+  try {
+    const brandingContext = useCompanyBranding();
+    branding = brandingContext?.branding;
+  } catch (error) {
+    console.log("SignOffer - No branding context available, continuing without branding");
+  }
   
   console.log("SignOffer - Component loaded");
   console.log("SignOffer - Offer ID from params:", id);

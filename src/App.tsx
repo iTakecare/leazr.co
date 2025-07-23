@@ -82,14 +82,14 @@ function App() {
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
                       
-                      {/* Client offer signing route */}
-                      <Route path="/client/offer/:id/sign" element={<SignOffer />} />
-                      
                       {/* Public company ID-based routes */}
                       <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
                       <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
                       <Route path="/public/:companyId/products/:productId" element={<ProductDetailPage />} />
                       <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
+                      
+                      {/* Client offer signing route - needs access to providers */}
+                      <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                       
                       {/* Protected routes - MUST be before slug-based routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
