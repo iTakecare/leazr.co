@@ -9,6 +9,7 @@ import AmbassadorClientsPage from "@/pages/AmbassadorPages/AmbassadorClientsPage
 import AmbassadorOffersPage from "@/pages/AmbassadorPages/AmbassadorOffersPage";
 import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClientCreatePage";
 import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
+import AmbassadorProductDetailPage from "@/pages/AmbassadorPages/AmbassadorProductDetailPage";
 
 const AmbassadorRoutes = () => {
   console.log("🎯 [AmbassadorRoutes] Component activated for URL:", window.location.pathname);
@@ -17,6 +18,7 @@ const AmbassadorRoutes = () => {
     <Routes>
       <Route path="dashboard" element={<AmbassadorDashboardPage />} />
       <Route path="catalog" element={<AmbassadorCatalogPage />} />
+      <Route path="products/:id" element={<AmbassadorProductDetailPage />} />
       <Route path="custom-offer-generator" element={<CustomOfferGeneratorPage />} />
       <Route path="create-offer" element={<AmbassadorCreateOffer />} />
       <Route path="clients" element={<AmbassadorClientsPage />} />
