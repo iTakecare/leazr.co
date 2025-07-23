@@ -30,7 +30,7 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
   const isSigned = status === 'approved';
 
   const copySignatureLink = async () => {
-    const signatureUrl = `${window.location.origin}/client/sign-offer/${offerId}`;
+    const signatureUrl = `${window.location.origin}/client/offer/${offerId}/sign`;
     try {
       await navigator.clipboard.writeText(signatureUrl);
       toast.success("Lien de signature copié dans le presse-papier");

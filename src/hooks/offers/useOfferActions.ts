@@ -81,7 +81,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       });
       
       // Construire le lien de signature côté client
-      const offerLink = `${window.location.origin}/client/sign-offer/${offer.id}`;
+      const offerLink = `${window.location.origin}/client/offer/${offer.id}/sign`;
       console.log("🔗 Lien de signature généré:", offerLink);
       
       // Formatter la description de l'équipement si nécessaire

@@ -120,7 +120,7 @@ const MultiTenantRouter = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/client/sign-offer/:id" element={<SignOffer />} />
+          {/* Route de signature d'offre - maintenant gérée dans App.tsx */}
           
           {/* Pages publiques générales */}
           <Route path="/solutions" element={<SolutionsPage />} />

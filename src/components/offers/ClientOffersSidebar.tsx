@@ -67,7 +67,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
                     }`}
                     onClick={() => {
                       if (offer.id !== currentOfferId) {
-                        navigate(`/client/sign-offer/${offer.id}`);
+                        navigate(`/client/offer/${offer.id}/sign`);
                         setShowMobileSidebar(false); // Close mobile sidebar after navigation
                       }
                     }}

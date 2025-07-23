@@ -672,7 +672,7 @@ export const sendOfferReadyEmail = async (
     console.log(`   → Template trouvé: ${!!template}`);
     
     // Utiliser le lien fourni ou construire un lien par défaut
-    const finalOfferLink = offerLink || `${window.location.origin}/client/sign-offer/${offerInfo.id}`;
+    const finalOfferLink = offerLink || `${window.location.origin}/client/offer/${offerInfo.id}/sign`;
     console.log(`🔗 Lien de l'offre utilisé: ${finalOfferLink}`);
     
     // Formater la description de l'équipement avant de l'utiliser

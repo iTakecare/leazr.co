@@ -100,7 +100,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   const openOnlineOffer = (offerId: string) => {
     // Navigation directe vers la page de signature au lieu d'ouvrir un nouvel onglet
-    navigate(`/client/sign-offer/${offerId}`);
+    navigate(`/client/offer/${offerId}/sign`);
   };
 
   // Only admins can see the margin column
