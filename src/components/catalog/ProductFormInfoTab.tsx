@@ -82,10 +82,13 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         console.log("🔄 Updating existing product:", productToEdit.id);
         await updateProductMutation.mutateAsync({
           id: productToEdit.id,
-          data: {
-            ...data,
-            specifications: data.specifications || {}
-          }
+          name: data.name,
+          description: data.description,
+          category_id: data.category,
+          brand_id: data.brand,
+          purchase_price: data.purchase_price,
+          active: data.active,
+          admin_only: data.admin_only
         });
         
         toast.success("Produit mis à jour avec succès");
@@ -93,8 +96,14 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       } else {
         console.log("✨ Creating new product");
         await createProductMutation.mutateAsync({
-          ...data,
-          specifications: data.specifications || {}
+          name: data.name,
+          description: data.description,
+          category_id: data.category,
+          brand_id: data.brand,
+          price: 0, // Default price for new products
+          purchase_price: data.purchase_price,
+          active: data.active,
+          admin_only: data.admin_only
         });
         
         toast.success("Produit créé avec succès");
@@ -250,9 +259,13 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
       {/* Description Generator - Keep existing one */}
       <DescriptionGenerator
         productName={watch("name")}
-        brand={watch("brand")}
-        category={watch("category")}
+        categoryId={watch("category")}
+        brandId={watch("brand")}
+        categories={categories}
+        brands={brands}
         onDescriptionGenerated={handleDescriptionGenerated}
+        currentDescription={watch("description")}
+        onDescriptionChange={(description) => setValue("description", description)}
       />
     </div>
   );
