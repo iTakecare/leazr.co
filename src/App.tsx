@@ -50,6 +50,7 @@ import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 // Ambassador components
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
+import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
 
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
@@ -124,6 +125,9 @@ function App() {
                         <Route path="edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
                         <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
                       </Route>
+                      
+                      {/* Explicit route for ambassador catalog to avoid slug interception */}
+                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout></PrivateRoute>} />
                       
                       {/* Other protected routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
