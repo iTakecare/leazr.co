@@ -122,15 +122,17 @@ const AmbassadorSidebar = memo(() => {
         "flex-1 transition-all duration-300",
         isCollapsed ? "px-2 py-4" : "px-4 py-6"
       )}>
-        <nav className="space-y-2">
-          {menuItems.map((item) => (
-            <SidebarMenuItem
-              key={item.href}
-              item={item}
-              isActive={isActive}
-              collapsed={isCollapsed}
-            />
-          ))}
+        <nav>
+          <ul className="space-y-2 list-none">
+            {menuItems.map((item) => (
+              <SidebarMenuItem
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                collapsed={isCollapsed}
+              />
+            ))}
+          </ul>
         </nav>
       </div>
 
