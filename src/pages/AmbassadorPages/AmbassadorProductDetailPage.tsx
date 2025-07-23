@@ -15,10 +15,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
+import { extractUuidFromSlug } from "@/utils/slugs";
 
 const AmbassadorProductDetailPage: React.FC = () => {
-  const { id: productId } = useParams<{ id: string }>();
+  const { id: productIdWithSlug } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  // Extract clean UUID from URL parameter that might contain slug
+  const productId = productIdWithSlug ? extractUuidFromSlug(productIdWithSlug) : undefined;
 
   // Use the same hook as PublicProductDetail
   const {
