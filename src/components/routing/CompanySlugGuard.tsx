@@ -16,8 +16,8 @@ const CompanySlugGuard = () => {
   
   // Check if the slug is a reserved keyword
   if (reservedKeywords.includes(companySlug.toLowerCase())) {
-    console.log('🛡️ COMPANY SLUG GUARD - Reserved keyword detected, redirecting to:', `/${companySlug}/catalog`);
-    return <Navigate to={`/${companySlug}/catalog`} replace />;
+    console.log('🛡️ COMPANY SLUG GUARD - Reserved keyword detected, redirecting to home');
+    return <Navigate to="/" replace />;
   }
   
   console.log('🛡️ COMPANY SLUG GUARD - Valid company slug, rendering PublicSlugCatalog');
