@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { generateSlug } from "@/utils/slugs";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import AmbassadorProductCard from "./AmbassadorProductCard";
+import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import { Product } from "@/types/catalog";
 
 interface AmbassadorProductGridProps {
@@ -56,7 +56,7 @@ const AmbassadorProductGrid: React.FC<AmbassadorProductGridProps> = ({ products 
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05, duration: 0.3 }}
         >
-          <AmbassadorProductCard
+          <ProductGridCard
             product={product}
             onClick={() => handleProductClick(product)}
           />

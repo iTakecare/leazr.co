@@ -100,30 +100,6 @@ const AmbassadorCatalogPage = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
-        {/* Global Header with Title */}
-        <div className="bg-card border-b shadow-sm">
-          <Container className="py-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <Package className="h-8 w-8 text-primary" />
-                <h1 className="text-4xl font-bold text-foreground">Catalogue Produits</h1>
-              </div>
-              <p className="text-muted-foreground text-lg">Consultez le catalogue complet de votre entreprise</p>
-              
-              {/* Mobile Filter Toggle */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFilterOpen(true)}
-                className="lg:hidden mt-4"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filtres
-              </Button>
-            </div>
-          </Container>
-        </div>
-
         {/* Main Content Area */}
         <div className="flex w-full">
           {/* Filter Sidebar */}
@@ -143,6 +119,25 @@ const AmbassadorCatalogPage = () => {
           {/* Main Content */}
           <div className="flex-1 overflow-auto">
             <Container className="py-8 max-w-[1200px]">
+              {/* Title Section */}
+              <div className="text-center mb-8">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <Package className="h-8 w-8 text-primary" />
+                  <h1 className="text-4xl font-bold text-foreground">Catalogue Produits</h1>
+                </div>
+                <p className="text-muted-foreground text-lg">Consultez le catalogue complet de votre entreprise</p>
+                
+                {/* Mobile Filter Toggle */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsFilterOpen(true)}
+                  className="lg:hidden mt-4"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filtres
+                </Button>
+              </div>
               {/* Filter Badges */}
               {hasActiveFilters && (
                 <div className="mb-6">

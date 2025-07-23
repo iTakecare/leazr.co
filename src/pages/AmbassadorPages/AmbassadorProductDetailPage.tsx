@@ -95,7 +95,7 @@ const AmbassadorProductDetailPage = () => {
             <p className="text-muted-foreground mb-6">
               Le produit demandé n'existe pas ou n'est plus disponible.
             </p>
-            <Button onClick={() => navigate("/ambassador/catalog")}>
+            <Button onClick={() => navigate("/ambassador/products")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour au catalogue
             </Button>
@@ -113,7 +113,7 @@ const AmbassadorProductDetailPage = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate("/ambassador/catalog")}
+            onClick={() => navigate("/ambassador/products")}
             className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
