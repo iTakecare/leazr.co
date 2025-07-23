@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSubdomainDetection } from '@/hooks/useSubdomainDetection';
 
 interface CompanyInfo {
@@ -35,8 +36,33 @@ export const useSubdomain = () => {
   return context;
 };
 
+// Utility function to detect system routes
+const isSystemRoute = (pathname: string): boolean => {
+  const systemRoutes = ['/ambassador', '/admin', '/client', '/api'];
+  return systemRoutes.some(route => pathname.startsWith(route));
+};
+
 export const SubdomainProvider = ({ children }: { children: ReactNode }) => {
-  const detectionData = useSubdomainDetection();
+  const location = useLocation();
+  
+  // Default values for system routes
+  const defaultDetectionData = {
+    detection: {
+      companyId: null,
+      company: null,
+      detectionMethod: 'default' as const
+    },
+    loading: false,
+    error: null,
+    isSubdomainDetected: false,
+    isCompanyDetected: false,
+    refetch: () => {}
+  };
+
+  // Skip subdomain detection for system routes
+  const detectionData = isSystemRoute(location.pathname) 
+    ? defaultDetectionData 
+    : useSubdomainDetection();
 
   return (
     <SubdomainContext.Provider value={detectionData}>
