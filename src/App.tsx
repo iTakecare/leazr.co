@@ -28,6 +28,9 @@ import PublicSlugProductBySlug from "@/components/public/PublicSlugProductBySlug
 import PublicSlugCart from "@/components/public/PublicSlugCart";
 import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
 
+// Routing guards
+import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
+
 // Admin pages
 import Dashboard from "@/pages/Dashboard";
 import AdminChatPage from "@/pages/AdminChatPage";
@@ -134,7 +137,7 @@ function App() {
                       </Route>
                       
                       {/* Company slug-based routes - these will only match if no system route matched */}
-                      <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
+                      <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
                       <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
                       <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
                       <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
