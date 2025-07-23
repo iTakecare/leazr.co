@@ -22,17 +22,16 @@ export interface ProcessedImage {
  */
 export class ImageSearchService {
   
-  async searchProductImages(productName: string, brand?: string, category?: string): Promise<SearchImageResult[]> {
+  async searchProductImages(productName: string, brandId?: string, category?: string): Promise<SearchImageResult[]> {
     try {
-      console.log(`🔍 Recherche d'images pour: ${productName} ${brand || ''}`);
+      console.log(`🔍 Recherche d'images pour: ${productName} (marque: ${brandId || 'aucune'})`);
       
-      // Construire la requête de recherche
-      const searchQuery = this.buildSearchQuery(productName, brand, category);
-      
-      // Appeler l'Edge Function pour la recherche
-      const { data, error } = await supabase.functions.invoke('search-product-images', {
+      // Appeler la nouvelle Edge Function pour la recherche sur les sites de marques
+      const { data, error } = await supabase.functions.invoke('search-brand-images', {
         body: { 
-          query: searchQuery,
+          productName,
+          brandId,
+          category,
           maxResults: 20 // Chercher plus d'images pour avoir plus de choix
         }
       });

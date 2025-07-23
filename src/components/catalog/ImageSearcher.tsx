@@ -36,7 +36,7 @@ const ImageSearcher: React.FC<ImageSearcherProps> = ({
       
       const results = await imageSearchService.searchProductImages(
         query,
-        product.brand || undefined,
+        product.brand_id || undefined, // Use brand_id for brand-specific search
         product.category || undefined
       );
       
