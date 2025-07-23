@@ -1,24 +1,26 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
+import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
+import { useProductDetails } from "@/hooks/products/useProductDetails";
+import ProductErrorState from "@/components/product-detail/ProductErrorState";
+import ProductLoadingState from "@/components/product-detail/ProductLoadingState";
+import ProductConfigurationSection from "@/components/product-detail/ProductConfigurationSection";
+import ProductMainContent from "@/components/product-detail/ProductMainContent";
+import RelatedProducts from "@/components/product-detail/RelatedProducts";
+import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
-import { useProductDetails } from "@/hooks/products/useProductDetails";
-import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
-import { useMultiTenant } from "@/hooks/useMultiTenant";
-import ProductMainContent from "@/components/product-detail/ProductMainContent";
-import ProductConfigurationSection from "@/components/product-detail/ProductConfigurationSection";
 
-
-const AmbassadorProductDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+const AmbassadorProductDetailPage: React.FC = () => {
+  const { id: productId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { companyId } = useMultiTenant();
 
-  // Extract product ID from the slug format (id-name)
-  const productId = id?.split('-')[0];
-
+  // Use the same hook as PublicProductDetail
   const {
     product,
     isLoading,
@@ -37,99 +39,105 @@ const AmbassadorProductDetailPage = () => {
     totalPrice,
     minMonthlyPrice,
     specifications,
-    hasVariants,
-    hasOptions,
-    variationAttributes,
     hasAttributeOptions,
-    getOptionsForAttribute,
-    availableDurations
+    variationAttributes,
+    getOptionsForAttribute
   } = useProductDetails(productId);
-
+  
+  const attributeHelpers = useAttributeHelpers(
+    specifications,
+    variationAttributes,
+    selectedOptions
+  );
+  
   const {
     getDisplayName,
-    getCanonicalName,
-    getConfigAttributes,
     getCurrentValue
-  } = useAttributeHelpers(specifications, variationAttributes, selectedOptions);
+  } = attributeHelpers;
 
+  // Get config attributes from variation attributes
+  const configAttributes = Object.keys(variationAttributes);
+
+  // Fetch brand info
+  const { data: brandInfo } = useQuery({
+    queryKey: ['brand', product?.brand],
+    queryFn: async () => {
+      if (!product?.brand) return null;
+      
+      const { data, error } = await supabase
+        .from('brands')
+        .select('translation')
+        .eq('name', product.brand)
+        .single();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: !!product?.brand,
+  });
+
+  const productName = product?.name || '';
+  const productDescription = product?.description || '';
+  const productBrand = brandInfo?.translation || product?.brand || '';
+  const productCategory = product?.category || '';
+
+  // Handle back navigation - simplified for ambassador context
   const handleBackToCatalog = () => {
-    navigate("/ambassador/products");
+    navigate('/ambassador/catalog');
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <PageTransition>
-        <Container className="py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-muted rounded w-32" />
-            <div className="h-8 bg-muted rounded w-64" />
-            <div className="h-4 bg-muted rounded w-48" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-muted rounded" />
-              <div className="space-y-4">
-                <div className="h-6 bg-muted rounded w-24" />
-                <div className="h-8 bg-muted rounded w-32" />
-                <div className="h-4 bg-muted rounded w-16" />
-                <div className="h-20 bg-muted rounded" />
-              </div>
-            </div>
-          </div>
+        <Container className="max-w-[1320px] py-8">
+          <ProductLoadingState />
         </Container>
       </PageTransition>
     );
   }
 
-  // Error state
   if (error || !product) {
     return (
       <PageTransition>
-        <Container className="py-8">
-          <div className="text-center space-y-4">
-            <h2 className="text-xl font-semibold">Produit non trouvé</h2>
-            <p className="text-muted-foreground">
-              Le produit demandé n'existe pas ou n'est plus disponible.
-            </p>
-            <Button onClick={handleBackToCatalog}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour au catalogue
-            </Button>
-          </div>
+        <Container className="max-w-[1320px] py-8">
+          <ProductErrorState 
+            onBackToCatalog={handleBackToCatalog}
+          />
         </Container>
       </PageTransition>
     );
   }
 
-  const productName = product.name || "";
-  const productDescription = product.description || "";
-  const productBrand = product.brand || "";
-
-  // Build breadcrumbs
-  const breadcrumbs = [
-    { label: "Catalogue Ambassador", href: "/ambassador/products" },
-    { label: productName, href: "" }
-  ];
-
   return (
     <PageTransition>
-      <Container className="py-8 max-w-[1400px]">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 mb-6">
+      <Container className="py-6 max-w-[1320px]">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6 flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={handleBackToCatalog}
-            className="text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-2"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="h-4 w-4" />
             Retour au catalogue
           </Button>
+          
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <BreadcrumbLink onClick={handleBackToCatalog}>
+                Catalogue Ambassador
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <span>{productName}</span>
+            </BreadcrumbItem>
+          </Breadcrumb>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Left Column - Product Info */}
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Product Images and Description */}
+          <div className="space-y-6">
             <ProductMainContent
               product={product}
               productName={productName}
@@ -139,32 +147,55 @@ const AmbassadorProductDetailPage = () => {
             />
           </div>
 
-          {/* Right Column - Configuration */}
-          <div>
+          {/* Right Column - Product Configuration */}
+          <div className="space-y-6">
             <ProductConfigurationSection
               product={product}
-              productCategory={product.category || ""}
-              productName={productName}
               productBrand={productBrand}
+              productCategory={productCategory}
+              productName={productName}
               currentPrice={currentPrice}
-              minMonthlyPrice={minMonthlyPrice}
-              totalPrice={totalPrice}
               quantity={quantity}
-              duration={duration}
               handleQuantityChange={handleQuantityChange}
               selectedOptions={selectedOptions}
               handleOptionChange={handleOptionChange}
-              isOptionAvailable={isOptionAvailable}
               variationAttributes={variationAttributes}
-              specifications={specifications}
+              configAttributes={configAttributes}
+              getDisplayName={getDisplayName}
+              getCurrentValue={getCurrentValue}
               hasAttributeOptions={hasAttributeOptions}
               getOptionsForAttribute={getOptionsForAttribute}
-              configAttributes={getConfigAttributes()}
-              getCurrentValue={getCurrentValue}
-              getDisplayName={getDisplayName}
+              isOptionAvailable={isOptionAvailable}
+              specifications={specifications}
+              duration={duration}
+              totalPrice={totalPrice}
+              minMonthlyPrice={minMonthlyPrice}
             />
           </div>
         </div>
+
+        {/* Related Products */}
+        <div className="mt-16">
+          <RelatedProducts 
+            currentProductId={productId} 
+            category={productCategory}
+            brand={productBrand}
+            limit={6}
+          />
+        </div>
+
+        {/* Request Form Modal */}
+        {isRequestFormOpen && (
+          <ProductRequestForm
+            isOpen={isRequestFormOpen}
+            onClose={() => setIsRequestFormOpen(false)}
+            product={product}
+            quantity={quantity}
+            selectedOptions={selectedOptions}
+            duration={duration}
+            monthlyPrice={currentPrice}
+          />
+        )}
       </Container>
     </PageTransition>
   );
