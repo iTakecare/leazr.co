@@ -13,6 +13,24 @@ const PublicSlugCatalog = () => {
   
   console.log('🏪 PUBLIC SLUG CATALOG - Component rendered with slug:', companySlug);
   
+  // Reserved keywords that should not be treated as company slugs
+  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
+  
+  // Check if the slug is a reserved keyword
+  if (companySlug && reservedKeywords.includes(companySlug.toLowerCase())) {
+    console.warn('🏪 PUBLIC SLUG CATALOG - Reserved keyword detected:', companySlug);
+    return (
+      <Container>
+        <Alert className="max-w-lg mx-auto mt-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Le slug "{companySlug}" est réservé par le système.
+          </AlertDescription>
+        </Alert>
+      </Container>
+    );
+  }
+  
   // Fetch company by slug
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
     queryKey: ['company-by-slug', companySlug],
