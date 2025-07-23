@@ -48,6 +48,9 @@ import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
 
+// Client offer signing
+import SignOffer from "@/pages/client/SignOffer";
+
 import ProductFormPage from "@/pages/ProductFormPage";
 import Layout from "@/components/layout/Layout";
 
@@ -78,6 +81,9 @@ function App() {
                       {/* Public routes */}
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
+                      
+                      {/* Client offer signing route */}
+                      <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                       
                       {/* Public company ID-based routes */}
                       <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
