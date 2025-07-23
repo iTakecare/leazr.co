@@ -278,31 +278,25 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
-          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
-          website_url: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
           id?: string
-          image_search_patterns?: Json | null
           name: string
           translation: string
           updated_at?: string
-          website_url?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
           id?: string
-          image_search_patterns?: Json | null
           name?: string
           translation?: string
           updated_at?: string
-          website_url?: string | null
         }
         Relationships: [
           {
@@ -4177,11 +4171,9 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
-          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
-          website_url: string | null
         }
       }
       apply_permission_profile: {
@@ -4505,11 +4497,9 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
-          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
-          website_url: string | null
         }[]
       }
       get_company_ambassadors_secure: {
@@ -5003,11 +4993,9 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
-          image_search_patterns: Json | null
           name: string
           translation: string
           updated_at: string
-          website_url: string | null
         }
       }
       update_client_securely: {
