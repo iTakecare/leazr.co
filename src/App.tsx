@@ -91,34 +91,41 @@ function App() {
                       {/* Client offer signing route - needs access to providers */}
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                       
-                      {/* Ambassador routes - MUST be before slug-based routes */}
-                      <Route path="/ambassador/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
-                      
-                      {/* Protected routes - MUST be before slug-based routes */}
-                      <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+                      {/* System routes with explicit paths - these MUST come first */}
+                      <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
-                        <Route path="/admin/dashboard" element={<Layout><Dashboard /></Layout>} />
-                        <Route path="/admin/chat" element={<Layout><AdminChatPage /></Layout>} />
-                        <Route path="/admin/clients" element={<Layout><Clients /></Layout>} />
-                        <Route path="/admin/offers" element={<Layout><Offers /></Layout>} />
-                        <Route path="/admin/contracts" element={<Layout><Contracts /></Layout>} />
-                        <Route path="/admin/settings" element={<Layout><Settings /></Layout>} />
-                        <Route path="/admin/catalog" element={<Layout><CatalogManagement /></Layout>} />
-                        <Route path="/admin/invoicing" element={<Layout><InvoicingPage /></Layout>} />
-                        
-                        {/* Ambassador management routes */}
-                        <Route path="/ambassadors" element={<Layout><AmbassadorsList /></Layout>} />
-                        <Route path="/ambassadors/:id" element={<Layout><AmbassadorDetail /></Layout>} />
-                        <Route path="/ambassadors/edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
-                        <Route path="/ambassadors/create" element={<Layout><AmbassadorCreatePage /></Layout>} />
+                        <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+                        <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
+                        <Route path="clients" element={<Layout><Clients /></Layout>} />
+                        <Route path="offers" element={<Layout><Offers /></Layout>} />
+                        <Route path="contracts" element={<Layout><Contracts /></Layout>} />
+                        <Route path="settings" element={<Layout><Settings /></Layout>} />
+                        <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
+                        <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
-                        <Route path="/admin/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
-                        <Route path="/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
                         
                         {/* Legacy redirects for backward compatibility */}
-                        <Route path="/admin/catalog/create" element={<Layout><ProductFormPage /></Layout>} />
-                        <Route path="/admin/catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="catalog/create" element={<Layout><ProductFormPage /></Layout>} />
+                        <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
+                      </Route>
+                      
+                      {/* Ambassador routes */}
+                      <Route path="/ambassador/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
+                      
+                      {/* Ambassador management routes */}
+                      <Route path="/ambassadors/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+                        <Route path="" element={<Layout><AmbassadorsList /></Layout>} />
+                        <Route path=":id" element={<Layout><AmbassadorDetail /></Layout>} />
+                        <Route path="edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
+                        <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
+                      </Route>
+                      
+                      {/* Other protected routes */}
+                      <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+                        {/* Legacy product form routes */}
+                        <Route path="/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
                         <Route path="/catalog/create" element={<Layout><ProductFormPage /></Layout>} />
                         <Route path="/catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
                         
@@ -126,7 +133,7 @@ function App() {
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                       </Route>
                       
-                      {/* Company slug-based routes - MUST be after admin routes */}
+                      {/* Company slug-based routes - these will only match if no system route matched */}
                       <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
                       <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
                       <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
