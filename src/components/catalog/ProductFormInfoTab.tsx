@@ -14,8 +14,8 @@ import { Loader2, Package, Save } from "lucide-react";
 import { Product } from "@/types/catalog";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { useBrands } from "@/hooks/catalog/useBrands";
-import { useCategories } from "@/hooks/catalog/useCategories";
+import { useBrands } from "@/hooks/products/useBrands";
+import { useCategories } from "@/hooks/products/useCategories";
 import DescriptionGenerator from "./DescriptionGenerator";
 import SpecificationGenerator from "./SpecificationGenerator";
 
@@ -34,7 +34,7 @@ const productFormSchema = z.object({
   purchase_price: z.number().min(0).optional(),
   active: z.boolean().default(true),
   admin_only: z.boolean().default(false),
-  specifications: z.record(z.string()).optional()
+  specifications: z.record(z.union([z.string(), z.number()])).optional()
 });
 
 type FormData = z.infer<typeof productFormSchema>;
@@ -161,7 +161,7 @@ const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   };
 
   // Specifications handler
-  const handleSpecificationsGenerated = (specifications: Record<string, string>) => {
+  const handleSpecificationsGenerated = (specifications: Record<string, string | number>) => {
     console.log("🔧 Specifications generated", specifications);
     setValue("specifications", specifications);
   };
