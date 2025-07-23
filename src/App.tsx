@@ -125,6 +125,9 @@ function App() {
                         <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
                       </Route>
                       
+                      {/* Explicit route for ambassador catalog to avoid slug interception */}
+                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout></PrivateRoute>} />
+                      
                       {/* Other protected routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Legacy product form routes */}
@@ -137,7 +140,6 @@ function App() {
                       </Route>
                       
                        {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
-                       {/* IMPORTANT: All system routes (/admin, /ambassador, /ambassadors, /client) must be defined BEFORE these dynamic routes */}
                        <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
                        <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
                        <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
