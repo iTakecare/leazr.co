@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Info, Check, MinusIcon, PlusIcon } from "lucide-react";
@@ -62,6 +61,9 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
   getCurrentValue,
   getDisplayName,
 }) => {
+  // Check if the current variant is available (has a valid price)
+  const isVariantAvailable = currentPrice > 0 && !isNaN(currentPrice) && isFinite(currentPrice);
+  
   const renderAttributeField = (attributeName: string, displayName: string, currentValue: string) => {
     const hasOptions = hasAttributeOptions(attributeName);
     const options = hasOptions ? getOptionsForAttribute(attributeName) : [];
@@ -102,7 +104,7 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
   return (
     <div 
       id="product-config" 
-      className="sticky top-32 lg:top-24"  // Adjusted to move down more on different screen sizes
+      className="sticky top-32 lg:top-24"
       style={{
         position: "sticky",
         zIndex: 10
@@ -190,7 +192,11 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
         <div className="p-2 rounded-lg mb-2 bg-gray-50 mx-4">
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-600">Pour 36 mois</span>
-            <span className="text-lg font-bold text-gray-800">{formatCurrency(totalPrice)} HT / mois</span>
+            {isVariantAvailable ? (
+              <span className="text-lg font-bold text-gray-800">{formatCurrency(totalPrice)} HT / mois</span>
+            ) : (
+              <span className="text-lg font-bold text-gray-500">Non disponible</span>
+            )}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-1 mt-2 mb-1">
@@ -201,6 +207,7 @@ const ProductConfigurationSection: React.FC<ProductConfigurationSectionProps> = 
               currentPrice={currentPrice}
               selectedOptions={selectedOptions}
               navigateToCart={false}
+              isAvailable={isVariantAvailable}
             />
             <Button 
               variant="outline" 

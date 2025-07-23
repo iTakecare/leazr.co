@@ -12,14 +12,15 @@ const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
   minimumPrice
 }) => {
   // Protection contre les valeurs invalides - effectuée une seule fois
-  const { displayCurrentPrice, displayMinPrice } = useMemo(() => {
+  const { displayCurrentPrice, displayMinPrice, isCurrentPriceAvailable } = useMemo(() => {
     const isValidPrice = (price: number | null): boolean => {
       return typeof price === 'number' && !isNaN(price) && price > 0 && isFinite(price);
     };
     
     return {
       displayCurrentPrice: isValidPrice(currentPrice) ? currentPrice : null,
-      displayMinPrice: isValidPrice(minimumPrice) ? minimumPrice : 0 // Remove hardcoded fallback
+      displayMinPrice: isValidPrice(minimumPrice) ? minimumPrice : 0,
+      isCurrentPriceAvailable: isValidPrice(currentPrice)
     };
   }, [currentPrice, minimumPrice]);
   
@@ -34,12 +35,14 @@ const ProductPriceDisplay: React.FC<ProductPriceDisplayProps> = ({
   
   return (
     <div className="text-lg text-gray-700 mb-4">
-      {formattedCurrentPrice ? (
+      {isCurrentPriceAvailable && formattedCurrentPrice ? (
         <span className="font-bold text-[#4ab6c4]">{formattedCurrentPrice}/mois</span>
-      ) : (
+      ) : displayMinPrice > 0 ? (
         <>
           à partir de <span className="font-bold text-[#4ab6c4]">{formattedMinPrice}/mois</span>
         </>
+      ) : (
+        <span className="font-bold text-gray-500">Non disponible</span>
       )}
     </div>
   );

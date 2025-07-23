@@ -15,6 +15,7 @@ interface AddToCartButtonProps {
   currentPrice?: number;
   selectedOptions?: Record<string, string>;
   navigateToCart?: boolean;
+  isAvailable?: boolean;
 }
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
@@ -23,7 +24,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   duration,
   currentPrice,
   selectedOptions = {},
-  navigateToCart = false // Changed default to false
+  navigateToCart = false,
+  isAvailable = true
 }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -32,6 +34,12 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Don't add to cart if not available
+    if (!isAvailable) {
+      toast.error("Cette variante n'est pas disponible");
+      return;
+    }
     
     // Make a deep copy of the product to avoid any reference issues
     const productClone = JSON.parse(JSON.stringify(product));
@@ -89,16 +97,20 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     <div className="relative">
       <Button 
         onClick={handleAddToCart}
-        className={`text-xs w-full sm:w-auto bg-[#2d618f] hover:bg-[#347599] h-8 px-3 ${isAnimating ? 'opacity-0' : 'opacity-100'}`}
+        className={`text-xs w-full sm:w-auto h-8 px-3 transition-all ${isAnimating ? 'opacity-0' : 'opacity-100'} ${
+          !isAvailable 
+            ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' 
+            : 'bg-[#2d618f] hover:bg-[#347599]'
+        }`}
         type="button"
-        disabled={isAnimating}
+        disabled={isAnimating || !isAvailable}
       >
         <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-        Ajouter au panier
+        {!isAvailable ? 'Non disponible' : 'Ajouter au panier'}
       </Button>
       
       <AnimatePresence>
-        {isAnimating && (
+        {isAnimating && isAvailable && (
           <motion.div 
             className="absolute inset-0 flex items-center justify-center"
             initial={{ scale: 0.5, opacity: 0 }}
