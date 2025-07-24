@@ -153,8 +153,22 @@ export const getPublicProducts = async (companyId: string): Promise<Product[]> =
       return [];
     }
 
-    console.log('🏪 CATALOG SERVICE - Products found:', data.length);
-    return data;
+    // Mapper les données pour utiliser le bon format Product
+    const mappedProducts = data.map(product => {
+      console.log(`🏪 Product ${product.name} - variant_combination_prices:`, product.variant_combination_prices);
+      
+      return {
+        ...product,
+        stock: product.stock_quantity || 0,
+        active: true,
+        variant_combination_prices: product.variant_combination_prices || [],
+        createdAt: product.created_at || new Date(),
+        updatedAt: product.updated_at || new Date()
+      };
+    });
+
+    console.log('🏪 CATALOG SERVICE - Mapped products:', mappedProducts.length);
+    return mappedProducts as Product[];
 
   } catch (error) {
     console.error('🏪 CATALOG SERVICE - Error in getPublicProducts:', error);

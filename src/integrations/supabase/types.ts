@@ -4856,6 +4856,7 @@ export type Database = {
           name: string
           description: string
           price: number
+          monthly_price: number
           stock_quantity: number
           category: string
           brand: string
@@ -4870,6 +4871,7 @@ export type Database = {
           company_id: string
           created_at: string
           updated_at: string
+          variant_combination_prices: Json
         }[]
       }
       get_related_blog_posts: {
