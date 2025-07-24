@@ -23,9 +23,8 @@ import { useNavigate } from "react-router-dom";
 import { useSaaSData, useRecentActivity } from "@/hooks/useSaaSData";
 
 const LeazrSaaSDashboard = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
 
   // Vérifier si l'utilisateur est autorisé
   const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
@@ -34,15 +33,25 @@ const LeazrSaaSDashboard = () => {
   const { metrics: dashboardData, loading: dataLoading } = useSaaSData();
   const recentActivity = useRecentActivity();
 
-  useEffect(() => {
-    if (!isLeazrSaaSAdmin) {
-      navigate("/dashboard");
-      return;
-    }
-    setLoading(dataLoading);
-  }, [isLeazrSaaSAdmin, navigate, dataLoading]);
+  // Si l'authentification est en cours, afficher le loading
+  if (authLoading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Vérification des autorisations...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
-  if (!isLeazrSaaSAdmin) {
+  // Si l'utilisateur n'est pas autorisé après authentification
+  if (user && !isLeazrSaaSAdmin) {
+    navigate("/dashboard");
     return null;
   }
 
@@ -63,7 +72,7 @@ const LeazrSaaSDashboard = () => {
   };
 
 
-  if (loading) {
+  if (dataLoading || !dashboardData) {
     return (
       <PageTransition>
         <Container>
@@ -219,7 +228,7 @@ const LeazrSaaSDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {recentActivity.map((activity, index) => (
+                      {recentActivity && recentActivity.length > 0 ? recentActivity.map((activity, index) => (
                         <div key={index} className="flex items-center space-x-4 p-3 rounded-lg border">
                           <div className={`w-3 h-3 rounded-full ${
                             activity.status === 'success' ? 'bg-green-500' : 
@@ -230,7 +239,11 @@ const LeazrSaaSDashboard = () => {
                             <p className="text-xs text-muted-foreground">{activity.time}</p>
                           </div>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          Aucune activité récente
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
