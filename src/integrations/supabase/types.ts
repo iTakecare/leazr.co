@@ -3640,6 +3640,7 @@ export type Database = {
           serial_number: string | null
           short_description: string | null
           sku: string | null
+          slug: string | null
           specifications: Json | null
           status: string | null
           stock: number | null
@@ -3647,6 +3648,7 @@ export type Database = {
           variants_ids: string[] | null
           variation_attributes: Json | null
           warranty_end_date: string | null
+          woocommerce_id: string | null
         }
         Insert: {
           active?: boolean | null
@@ -3685,6 +3687,7 @@ export type Database = {
           serial_number?: string | null
           short_description?: string | null
           sku?: string | null
+          slug?: string | null
           specifications?: Json | null
           status?: string | null
           stock?: number | null
@@ -3692,6 +3695,7 @@ export type Database = {
           variants_ids?: string[] | null
           variation_attributes?: Json | null
           warranty_end_date?: string | null
+          woocommerce_id?: string | null
         }
         Update: {
           active?: boolean | null
@@ -3730,6 +3734,7 @@ export type Database = {
           serial_number?: string | null
           short_description?: string | null
           sku?: string | null
+          slug?: string | null
           specifications?: Json | null
           status?: string | null
           stock?: number | null
@@ -3737,6 +3742,7 @@ export type Database = {
           variants_ids?: string[] | null
           variation_attributes?: Json | null
           warranty_end_date?: string | null
+          woocommerce_id?: string | null
         }
         Relationships: [
           {

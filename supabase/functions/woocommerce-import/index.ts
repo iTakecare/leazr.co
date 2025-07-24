@@ -193,6 +193,92 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
     const importedProducts = [];
     const errors = [];
 
+    // Fonction helper pour créer ou récupérer une marque
+    const getOrCreateBrand = async (brandName: string) => {
+      if (!brandName || brandName.trim() === '') {
+        brandName = 'Non spécifié';
+      }
+
+      // Chercher la marque existante
+      const { data: existingBrand, error: searchError } = await supabaseClient
+        .from('brands')
+        .select('id')
+        .eq('name', brandName)
+        .eq('company_id', companyId)
+        .limit(1);
+
+      if (searchError) {
+        console.error('WooCommerce Import: Erreur recherche marque:', searchError);
+        return null;
+      }
+
+      if (existingBrand && existingBrand.length > 0) {
+        console.log(`WooCommerce Import: Marque existante trouvée: ${brandName} (ID: ${existingBrand[0].id})`);
+        return existingBrand[0].id;
+      }
+
+      // Créer la marque si elle n'existe pas
+      const { data: newBrand, error: createError } = await supabaseClient
+        .from('brands')
+        .insert({
+          name: brandName,
+          translation: brandName,
+          company_id: companyId
+        })
+        .select('id');
+
+      if (createError) {
+        console.error('WooCommerce Import: Erreur création marque:', createError);
+        return null;
+      }
+
+      console.log(`WooCommerce Import: Nouvelle marque créée: ${brandName} (ID: ${newBrand[0].id})`);
+      return newBrand[0].id;
+    };
+
+    // Fonction helper pour créer ou récupérer une catégorie
+    const getOrCreateCategory = async (categoryName: string) => {
+      if (!categoryName || categoryName.trim() === '') {
+        categoryName = 'Non classé';
+      }
+
+      // Chercher la catégorie existante
+      const { data: existingCategory, error: searchError } = await supabaseClient
+        .from('categories')
+        .select('id')
+        .eq('name', categoryName)
+        .eq('company_id', companyId)
+        .limit(1);
+
+      if (searchError) {
+        console.error('WooCommerce Import: Erreur recherche catégorie:', searchError);
+        return null;
+      }
+
+      if (existingCategory && existingCategory.length > 0) {
+        console.log(`WooCommerce Import: Catégorie existante trouvée: ${categoryName} (ID: ${existingCategory[0].id})`);
+        return existingCategory[0].id;
+      }
+
+      // Créer la catégorie si elle n'existe pas
+      const { data: newCategory, error: createError } = await supabaseClient
+        .from('categories')
+        .insert({
+          name: categoryName,
+          translation: categoryName,
+          company_id: companyId
+        })
+        .select('id');
+
+      if (createError) {
+        console.error('WooCommerce Import: Erreur création catégorie:', createError);
+        return null;
+      }
+
+      console.log(`WooCommerce Import: Nouvelle catégorie créée: ${categoryName} (ID: ${newCategory[0].id})`);
+      return newCategory[0].id;
+    };
+
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i];
       console.log(`WooCommerce Import: Traitement produit ${i + 1}/${productIds.length} - ID: ${productId}`);
@@ -217,6 +303,20 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
         const wooProduct = await response.json();
         console.log(`WooCommerce Import: Produit WC récupéré: ${wooProduct.name}`);
         
+        // Extraire marque et catégorie
+        const brandName = extractBrand(wooProduct);
+        const categoryName = wooProduct.categories?.[0]?.name || 'Non catégorisé';
+        
+        // Récupérer ou créer les IDs de marque et catégorie
+        const brandId = await getOrCreateBrand(brandName);
+        const categoryId = await getOrCreateCategory(categoryName);
+
+        if (!brandId || !categoryId) {
+          console.error(`WooCommerce Import: Impossible de créer/récupérer marque ou catégorie pour ${wooProduct.name}`);
+          errors.push(`${wooProduct.name}: Erreur création marque/catégorie`);
+          continue;
+        }
+        
         // Convertir le produit WooCommerce vers notre format
         const productData = {
           name: wooProduct.name,
@@ -224,20 +324,25 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
           price: parseFloat(wooProduct.price || wooProduct.regular_price || '0'),
           monthly_price: calculateMonthlyPrice(parseFloat(wooProduct.price || '0')),
           image_url: wooProduct.images?.[0]?.src || null,
-          brand: extractBrand(wooProduct),
-          category: wooProduct.categories?.[0]?.name || 'Non catégorisé',
+          brand_name: brandName,
+          category_name: categoryName,
+          brand_id: brandId,
+          category_id: categoryId,
           specifications: formatSpecifications(wooProduct.attributes),
           company_id: companyId,
           active: true,
           woocommerce_id: wooProduct.id.toString(),
-          slug: wooProduct.slug
+          slug: wooProduct.slug || wooProduct.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
         };
 
         console.log(`WooCommerce Import: Données produit formatées:`, {
           name: productData.name,
           price: productData.price,
           company_id: productData.company_id,
-          brand: productData.brand
+          brand_name: productData.brand_name,
+          category_name: productData.category_name,
+          brand_id: productData.brand_id,
+          category_id: productData.category_id
         });
 
         // Insérer dans la base de données
