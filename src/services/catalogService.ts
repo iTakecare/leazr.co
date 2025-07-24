@@ -283,13 +283,41 @@ export const updateCategory = async (id: string, categoryData: { name: string; t
   return data;
 };
 
-export const deleteCategory = async (categoryName: string) => {
-  const { error } = await supabase
-    .from("categories")
-    .delete()
-    .eq("name", categoryName);
+export const deleteCategory = async (categoryId: string) => {
+  try {
+    // Check if the category is used by any products
+    const { data: products, error: checkError } = await supabase
+      .from("products")
+      .select("id")
+      .eq("category_id", categoryId)
+      .limit(1);
 
-  if (error) throw error;
+    if (checkError) {
+      console.error("Error checking category usage:", checkError);
+      throw new Error("Impossible de vérifier l'utilisation de la catégorie");
+    }
+
+    if (products && products.length > 0) {
+      throw new Error("Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits");
+    }
+
+    // Delete the category
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", categoryId);
+
+    if (error) {
+      console.error("Error deleting category:", error);
+      if (error.code === '23503') {
+        throw new Error("Cette catégorie ne peut pas être supprimée car elle est utilisée par d'autres éléments");
+      }
+      throw new Error("Erreur lors de la suppression de la catégorie");
+    }
+  } catch (error) {
+    console.error("Error in deleteCategory:", error);
+    throw error;
+  }
 };
 
 export const createProduct = async (productData: any) => {

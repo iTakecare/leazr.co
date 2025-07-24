@@ -82,17 +82,18 @@ const CategoryManager = () => {
 
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
-    mutationFn: async (categoryName: string) => {
+    mutationFn: async (categoryId: string) => {
       const { deleteCategory } = await import("@/services/catalogService");
-      return deleteCategory(categoryName);
+      return deleteCategory(categoryId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie supprimée avec succès");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error deleting category:", error);
-      toast.error("Erreur lors de la suppression de la catégorie");
+      const errorMessage = error?.message || "Erreur lors de la suppression de la catégorie";
+      toast.error(errorMessage);
     }
   });
 
@@ -112,9 +113,10 @@ const CategoryManager = () => {
     updateCategoryMutation.mutate(selectedCategory);
   };
 
-  const handleDeleteCategory = (categoryName: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette catégorie ?")) {
-      deleteCategoryMutation.mutate(categoryName);
+  const handleDeleteCategory = (category: Category) => {
+    const confirmMessage = `Êtes-vous sûr de vouloir supprimer la catégorie "${category.name}" ?\n\nCette action est irréversible.`;
+    if (window.confirm(confirmMessage)) {
+      deleteCategoryMutation.mutate(category.id);
     }
   };
 
@@ -158,8 +160,9 @@ const CategoryManager = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteCategory(category.name)}
+                    onClick={() => handleDeleteCategory(category)}
                     className="text-destructive"
+                    disabled={deleteCategoryMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
