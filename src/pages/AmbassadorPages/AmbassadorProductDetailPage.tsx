@@ -7,8 +7,8 @@ import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
 import ProductLoadingState from "@/components/product-detail/ProductLoadingState";
-import ProductConfigurationSection from "@/components/product-detail/ProductConfigurationSection";
-import ProductMainContent from "@/components/product-detail/ProductMainContent";
+import AmbassadorProductConfigurationSection from "@/components/product-detail/AmbassadorProductConfigurationSection";
+import AmbassadorProductMainContent from "@/components/product-detail/AmbassadorProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 import { ArrowLeft } from "lucide-react";
@@ -142,7 +142,7 @@ const AmbassadorProductDetailPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Product Images and Description */}
           <div className="space-y-6">
-            <ProductMainContent
+            <AmbassadorProductMainContent
               product={product}
               productName={productName}
               productDescription={productDescription}
@@ -153,7 +153,7 @@ const AmbassadorProductDetailPage: React.FC = () => {
 
           {/* Right Column - Product Configuration */}
           <div className="space-y-6">
-            <ProductConfigurationSection
+            <AmbassadorProductConfigurationSection
               product={product}
               productBrand={productBrand}
               productCategory={productCategory}
