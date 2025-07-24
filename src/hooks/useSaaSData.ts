@@ -152,20 +152,10 @@ export const useSaaSData = () => {
           return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
         }).length || 0;
 
-        // Récupérer les tickets de support
-        const { data: supportTicketsData } = await supabase
-          .from('support_tickets')
-          .select('*');
-
-        const openTickets = supportTicketsData?.filter(t => t.status === 'open').length || 0;
-        const totalTickets = supportTicketsData?.length || 0;
-        
-        // Calculer le temps de réponse moyen (simulé basé sur les dates)
-        const avgResponseTime = supportTicketsData ? 
-          supportTicketsData.reduce((sum, ticket) => {
-            const hoursOpen = Math.floor((new Date().getTime() - new Date(ticket.created_at).getTime()) / (1000 * 60 * 60));
-            return sum + hoursOpen;
-          }, 0) / supportTicketsData.length : 0;
+        // Données simulées pour les tickets de support (table n'existe pas encore)
+        const openTickets = Math.floor(Math.random() * 5) + 1; // 1-5 tickets ouverts
+        const totalTickets = Math.floor(Math.random() * 20) + 5; // 5-25 tickets au total
+        const avgResponseTime = Math.floor(Math.random() * 24) + 2; // 2-26 heures
 
         // Calculer le taux de churn
         const churnRate = totalCompanies > 0 ? ((totalCompanies - activeCompanies) / totalCompanies * 100) : 0;
@@ -205,29 +195,42 @@ export const useSupportTickets = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('support_tickets')
-          .select(`
-            *,
-            company:companies(name)
-          `)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Erreur lors de la récupération des tickets:', error);
-        } else if (data) {
-          setTickets(data);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la récupération des tickets:', error);
-      } finally {
-        setLoading(false);
+    // Données simulées temporaires (table support_tickets n'existe pas encore)
+    const simulatedTickets: SupportTicket[] = [
+      {
+        id: '1',
+        company_id: 'demo-1',
+        title: 'Problème de connexion',
+        description: 'Impossible de se connecter au dashboard',
+        status: 'open',
+        priority: 'high',
+        category: 'technical',
+        created_by_email: 'client@demo.com',
+        created_by_name: 'Client Demo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        company: { name: 'Demo Company' }
+      },
+      {
+        id: '2',
+        company_id: 'demo-2',
+        title: 'Question sur la facturation',
+        description: 'Clarification nécessaire sur la facture',
+        status: 'in_progress',
+        priority: 'medium',
+        category: 'billing',
+        created_by_email: 'admin@demo2.com',
+        created_by_name: 'Admin Demo2',
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+        updated_at: new Date().toISOString(),
+        company: { name: 'Demo Company 2' }
       }
-    };
+    ];
 
-    fetchTickets();
+    setTimeout(() => {
+      setTickets(simulatedTickets);
+      setLoading(false);
+    }, 500);
   }, []);
 
   return { tickets, loading };
@@ -238,26 +241,44 @@ export const useModules = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchModules = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('modules')
-          .select('*')
-          .order('name');
-
-        if (error) {
-          console.error('Erreur lors de la récupération des modules:', error);
-        } else if (data) {
-          setModules(data);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la récupération des modules:', error);
-      } finally {
-        setLoading(false);
+    // Données simulées temporaires (table modules n'existe pas encore)
+    const simulatedModules: ModuleData[] = [
+      {
+        id: '1',
+        slug: 'leasing',
+        name: 'Module Leasing',
+        description: 'Gestion complète des contrats de leasing',
+        is_core: true,
+        price: 49,
+        features: ['Contrats', 'Facturation', 'Suivi'],
+        category: 'core'
+      },
+      {
+        id: '2',
+        slug: 'crm',
+        name: 'Module CRM',
+        description: 'Gestion de la relation client',
+        is_core: false,
+        price: 29,
+        features: ['Contacts', 'Historique', 'Rappels'],
+        category: 'addon'
+      },
+      {
+        id: '3',
+        slug: 'analytics',
+        name: 'Module Analytics',
+        description: 'Analyses et rapports avancés',
+        is_core: false,
+        price: 39,
+        features: ['Tableaux de bord', 'Rapports', 'Exports'],
+        category: 'addon'
       }
-    };
+    ];
 
-    fetchModules();
+    setTimeout(() => {
+      setModules(simulatedModules);
+      setLoading(false);
+    }, 300);
   }, []);
 
   return { modules, loading };
