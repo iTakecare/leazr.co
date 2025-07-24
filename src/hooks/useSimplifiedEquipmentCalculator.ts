@@ -185,8 +185,10 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       // Mettre à jour la mensualité globale
       setMonthlyPayment(calculatedFromSalePrice.monthlyPayment);
       
-      // Forcer la mise à jour des refs pour éviter la sortie anticipée
-      lastEquipmentMarginRef.current = calculatedFromSalePrice.margin;
+      // Réinitialiser tous les refs pour forcer le recalcul
+      lastEquipmentPriceRef.current = 0;
+      lastLeaserIdRef.current = "";
+      lastEquipmentMarginRef.current = -1;
       
       // Déclencher un recalcul pour mettre à jour l'affichage
       setTimeout(() => {
