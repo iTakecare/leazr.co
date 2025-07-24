@@ -104,7 +104,7 @@ const FinancialSummary = ({
                 Coefficient appliqué :
               </span>
               <span className="text-sm font-semibold text-gray-900">
-                {coefficient.toFixed(2)}%
+                {coefficient.toFixed(3)}%
               </span>
             </div>
 
@@ -241,7 +241,7 @@ const FinancialSummary = ({
               Coefficient appliqué :
             </span>
             <span className="text-sm font-semibold text-gray-900">
-              {globalCoefficient.toFixed(2)}%
+              {globalCoefficient.toFixed(3)}%
             </span>
           </div>
 
