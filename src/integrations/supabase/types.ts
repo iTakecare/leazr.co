@@ -3603,6 +3603,27 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_product_pack_items_pack_id"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_pack_items_product_id"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_pack_items_variant_price_id"
+            columns: ["variant_price_id"]
+            isOneToOne: false
+            referencedRelation: "product_variant_prices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "product_pack_items_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false

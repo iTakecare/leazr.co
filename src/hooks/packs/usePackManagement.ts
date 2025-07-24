@@ -22,17 +22,7 @@ export const usePackManagement = () => {
     error,
   } = useQuery({
     queryKey: ["packs"],
-    queryFn: async () => {
-      console.log("🔬 PACK QUERY - Début de la requête getPacks");
-      try {
-        const result = await getPacks();
-        console.log("🔬 PACK QUERY - Succès, nombre de packs:", result.length);
-        return result;
-      } catch (err) {
-        console.error("🔬 PACK QUERY - Erreur:", err);
-        throw err;
-      }
-    },
+    queryFn: getPacks,
     staleTime: 0,
     gcTime: 0,
   });
