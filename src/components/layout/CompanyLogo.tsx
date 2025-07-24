@@ -49,7 +49,7 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
           onError={(e) => {
             // En cas d'erreur de chargement, utiliser le logo par défaut
             const target = e.target as HTMLImageElement;
-            target.src = "/lovable-uploads/61488cc8-dfaf-4ad8-940a-774feb15d912.png";
+            target.src = "/src/assets/leazr-logo.png";
             target.alt = "Leazr";
           }}
         />
