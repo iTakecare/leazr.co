@@ -24,8 +24,7 @@ export const findProductBySlugDirectly = async (companyId: string, productSlug: 
         slug,
         active,
         brands(name, translation),
-        categories(name, translation),
-        min_variant_price:product_variant_prices(monthly_price)
+        categories(name, translation)
       `)
       .eq("company_id", companyId)
       .eq("slug", productSlug)
@@ -40,6 +39,17 @@ export const findProductBySlugDirectly = async (companyId: string, productSlug: 
       return null;
     }
 
+    // Get variant prices for this product
+    const { data: variantPrices } = await supabase
+      .from("product_variant_prices")
+      .select("monthly_price")
+      .eq("product_id", data.id)
+      .gt("monthly_price", 0);
+
+    const minVariantPrice = variantPrices?.length > 0 
+      ? Math.min(...variantPrices.map(vp => vp.monthly_price))
+      : 0;
+
     // Map to Product interface
     const mappedProduct: Product = {
       id: data.id,
@@ -49,11 +59,11 @@ export const findProductBySlugDirectly = async (companyId: string, productSlug: 
       category: data.categories?.name || data.category_name || "",
       price: data.price || 0,
       monthly_price: data.monthly_price || 0,
-      min_variant_price: Array.isArray(data.min_variant_price) ? Math.min(...data.min_variant_price.filter(p => p > 0)) : 0,
+      min_variant_price: minVariantPrice,
       slug: data.slug || "",
       image_url: data.image_url || "",
       images: data.imageurls || [],
-      has_variants: Array.isArray(data.min_variant_price) && data.min_variant_price.some(p => p > 0),
+      has_variants: minVariantPrice > 0,
       variants_count: 0,
       active: data.active || false,
       createdAt: new Date(),

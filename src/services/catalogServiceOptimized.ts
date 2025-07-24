@@ -8,8 +8,8 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
   }
 
   try {
-    // Optimized query with minimum price from variants and pre-calculated slug
-    const { data, error } = await supabase
+    // First get products
+    const { data: productsData, error } = await supabase
       .from("products")
       .select(`
         id,
@@ -24,8 +24,7 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
         slug,
         active,
         brands(name, translation),
-        categories(name, translation),
-        min_variant_price:product_variant_prices(monthly_price)
+        categories(name, translation)
       `)
       .eq("company_id", companyId)
       .eq("active", true)
@@ -35,27 +34,48 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       throw error;
     }
 
+    // Get variant prices for all products
+    const productIds = productsData?.map(p => p.id) || [];
+    const { data: variantPrices } = await supabase
+      .from("product_variant_prices")
+      .select("product_id, monthly_price")
+      .in("product_id", productIds)
+      .gt("monthly_price", 0);
+
+    // Create a map of minimum prices by product
+    const minPriceMap = new Map<string, number>();
+    variantPrices?.forEach(vp => {
+      const currentMin = minPriceMap.get(vp.product_id) || Infinity;
+      if (vp.monthly_price < currentMin) {
+        minPriceMap.set(vp.product_id, vp.monthly_price);
+      }
+    });
+
+
     // Simple mapping with minimum pricing and pre-calculated slug
-    const mappedProducts: Product[] = (data || []).map(item => ({
-      id: item.id,
-      name: item.name || "",
-      description: item.description || "",
-      brand: item.brands?.name || item.brand_name || "",
-      category: item.categories?.name || item.category_name || "",
-      price: item.price || 0,
-      monthly_price: item.monthly_price || 0,
-      min_variant_price: Array.isArray(item.min_variant_price) ? Math.min(...item.min_variant_price.filter(p => p > 0)) : 0,
-      slug: item.slug || "",
-      image_url: item.image_url || "",
-      images: item.imageurls || [],
-      co2_savings: 0, // Default value since column doesn't exist
-      has_variants: Array.isArray(item.min_variant_price) && item.min_variant_price.some(p => p > 0),
-      variants_count: 0, // Default value since column doesn't exist
-      active: item.active || false,
-      // Don't load variants or variant_combination_prices for performance
-      variants: [],
-      variant_combination_prices: []
-    }));
+    const mappedProducts: Product[] = (productsData || []).map(item => {
+      const minVariantPrice = minPriceMap.get(item.id) || 0;
+      return {
+        id: item.id,
+        name: item.name || "",
+        description: item.description || "",
+        brand: item.brands?.name || item.brand_name || "",
+        category: item.categories?.name || item.category_name || "",
+        price: item.price || 0,
+        monthly_price: item.monthly_price || 0,
+        min_variant_price: minVariantPrice,
+        slug: item.slug || "",
+        image_url: item.image_url || "",
+        images: item.imageurls || [],
+        co2_savings: 0, // Default value since column doesn't exist
+        has_variants: minVariantPrice > 0,
+        variants_count: 0, // Default value since column doesn't exist
+        active: item.active || false,
+        // Don't load variants or variant_combination_prices for performance
+        variants: [],
+        variant_combination_prices: []
+      };
+    });
 
     return mappedProducts;
   } catch (error) {
