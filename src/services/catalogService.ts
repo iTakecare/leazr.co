@@ -229,14 +229,30 @@ export const getCategories = async () => {
 };
 
 export const addBrand = async (brandData: { name: string; translation: string }) => {
-  const { data, error } = await supabase
-    .from("brands")
-    .insert(brandData)
-    .select()
-    .single();
+  try {
+    const companyId = await getCurrentUserCompanyId();
+    console.log("📦 addBrand - Company ID récupéré:", companyId);
+    
+    const { data, error } = await supabase
+      .from("brands")
+      .insert({
+        ...brandData,
+        company_id: companyId
+      })
+      .select()
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      console.error("📦 addBrand - Erreur:", error);
+      throw error;
+    }
+
+    console.log("📦 addBrand - Marque ajoutée:", data);
+    return data;
+  } catch (companyError) {
+    console.error("📦 addBrand - Erreur lors de l'ajout:", companyError);
+    throw new Error("Impossible d'ajouter la marque: " + companyError.message);
+  }
 };
 
 export const updateBrand = async ({ originalName, name, translation }: { originalName: string; name: string; translation: string }) => {
@@ -261,14 +277,30 @@ export const deleteBrand = async ({ name }: { name: string }) => {
 };
 
 export const addCategory = async (categoryData: { name: string; translation: string }) => {
-  const { data, error } = await supabase
-    .from("categories")
-    .insert(categoryData)
-    .select()
-    .single();
+  try {
+    const companyId = await getCurrentUserCompanyId();
+    console.log("📦 addCategory - Company ID récupéré:", companyId);
+    
+    const { data, error } = await supabase
+      .from("categories")
+      .insert({
+        ...categoryData,
+        company_id: companyId
+      })
+      .select()
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      console.error("📦 addCategory - Erreur:", error);
+      throw error;
+    }
+
+    console.log("📦 addCategory - Catégorie ajoutée:", data);
+    return data;
+  } catch (companyError) {
+    console.error("📦 addCategory - Erreur lors de l'ajout:", companyError);
+    throw new Error("Impossible d'ajouter la catégorie: " + companyError.message);
+  }
 };
 
 export const updateCategory = async (id: string, categoryData: { name: string; translation: string }) => {
