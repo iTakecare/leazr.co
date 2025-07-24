@@ -184,6 +184,11 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       
       // Mettre à jour la mensualité globale
       setMonthlyPayment(calculatedFromSalePrice.monthlyPayment);
+      
+      // Déclencher un recalcul pour mettre à jour l'affichage
+      setTimeout(() => {
+        calculateMonthlyPayment();
+      }, 0);
     }
   };
 
