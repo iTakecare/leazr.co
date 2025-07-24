@@ -1,59 +1,70 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 export const getProducts = async (options?: { includeAdminOnly?: boolean }) => {
   console.log("📦 getProducts - Démarrage avec options:", options);
   
-  let query = supabase
-    .from("products")
-    .select(`
-      *,
-      brands!inner(id, name, translation),
-      categories!inner(id, name, translation),
-      product_variant_prices!left(
-        id,
-        attributes,
-        price,
-        monthly_price,
-        stock
-      )
-    `)
-    .eq("active", true)
-    .order("created_at", { ascending: false });
-
-  if (!options?.includeAdminOnly) {
-    query = query.eq("admin_only", false);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("📦 getProducts - Erreur:", error);
-    throw error;
-  }
-
-  console.log("📦 getProducts - Données brutes:", data?.length, "produits");
-
-  // Mapper les données pour utiliser les bons noms de marques et catégories
-  const mappedProducts = data?.map(product => {
-    // Traiter les variant_combination_prices
-    const variantPrices = product.product_variant_prices || [];
-    console.log(`📦 Product ${product.name} - Variant prices:`, variantPrices.length);
+  try {
+    // Récupérer le company_id via le service multi-tenant
+    const companyId = await getCurrentUserCompanyId();
+    console.log("📦 getProducts - Company ID récupéré:", companyId);
     
-    return {
-      ...product,
-      brand: product.brands?.name || product.brand || '',
-      category: product.categories?.name || product.category || '',
-      brand_id: product.brand_id,
-      category_id: product.category_id,
-      variant_combination_prices: variantPrices,
-      createdAt: product.created_at || new Date(),
-      updatedAt: product.updated_at || new Date()
-    };
-  }) || [];
+    let query = supabase
+      .from("products")
+      .select(`
+        *,
+        brands!inner(id, name, translation),
+        categories!inner(id, name, translation),
+        product_variant_prices!left(
+          id,
+          attributes,
+          price,
+          monthly_price,
+          stock
+        )
+      `)
+      .eq("active", true)
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false });
 
-  console.log("📦 getProducts - Produits mappés:", mappedProducts.length);
-  return mappedProducts as Product[];
+    if (!options?.includeAdminOnly) {
+      query = query.eq("admin_only", false);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("📦 getProducts - Erreur:", error);
+      throw error;
+    }
+
+    console.log("📦 getProducts - Données brutes:", data?.length, "produits");
+
+    // Mapper les données pour utiliser les bons noms de marques et catégories
+    const mappedProducts = data?.map(product => {
+      // Traiter les variant_combination_prices
+      const variantPrices = product.product_variant_prices || [];
+      console.log(`📦 Product ${product.name} - Variant prices:`, variantPrices.length);
+      
+      return {
+        ...product,
+        brand: product.brands?.name || product.brand || '',
+        category: product.categories?.name || product.category || '',
+        brand_id: product.brand_id,
+        category_id: product.category_id,
+        variant_combination_prices: variantPrices,
+        createdAt: product.created_at || new Date(),
+        updatedAt: product.updated_at || new Date()
+      };
+    }) || [];
+
+    console.log("📦 getProducts - Produits mappés:", mappedProducts.length);
+    return mappedProducts as Product[];
+  } catch (companyError) {
+    console.error("📦 getProducts - Erreur lors de la récupération du company_id:", companyError);
+    throw new Error("Impossible de récupérer les produits: " + companyError.message);
+  }
 };
 
 export const getProductById = async (productId: string): Promise<Product | null> => {
@@ -174,35 +185,53 @@ export const getPublicProducts = async (companyId?: string) => {
 export const getBrands = async () => {
   console.log("📦 getBrands - Récupération des marques");
   
-  const { data, error } = await supabase
-    .from("brands")
-    .select("*")
-    .order("name", { ascending: true });
+  try {
+    const companyId = await getCurrentUserCompanyId();
+    console.log("📦 getBrands - Company ID récupéré:", companyId);
+    
+    const { data, error } = await supabase
+      .from("brands")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("name", { ascending: true });
 
-  if (error) {
-    console.error("📦 getBrands - Erreur:", error);
-    throw error;
+    if (error) {
+      console.error("📦 getBrands - Erreur:", error);
+      throw error;
+    }
+
+    console.log("📦 getBrands - Marques récupérées:", data?.length);
+    return data || [];
+  } catch (companyError) {
+    console.error("📦 getBrands - Erreur lors de la récupération du company_id:", companyError);
+    throw new Error("Impossible de récupérer les marques: " + companyError.message);
   }
-
-  console.log("📦 getBrands - Marques récupérées:", data?.length);
-  return data || [];
 };
 
 export const getCategories = async () => {
   console.log("📦 getCategories - Récupération des catégories");
   
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("name", { ascending: true });
+  try {
+    const companyId = await getCurrentUserCompanyId();
+    console.log("📦 getCategories - Company ID récupéré:", companyId);
+    
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("name", { ascending: true });
 
-  if (error) {
-    console.error("📦 getCategories - Erreur:", error);
-    throw error;
+    if (error) {
+      console.error("📦 getCategories - Erreur:", error);
+      throw error;
+    }
+
+    console.log("📦 getCategories - Catégories récupérées:", data?.length);
+    return data || [];
+  } catch (companyError) {
+    console.error("📦 getCategories - Erreur lors de la récupération du company_id:", companyError);
+    throw new Error("Impossible de récupérer les catégories: " + companyError.message);
   }
-
-  console.log("📦 getCategories - Catégories récupérées:", data?.length);
-  return data || [];
 };
 
 export const addBrand = async (brandData: { name: string; translation: string }) => {
