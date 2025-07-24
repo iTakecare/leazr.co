@@ -3,39 +3,51 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Hash, Euro } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
+import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 
 interface ClientEquipmentSectionProps {
   offer: any;
 }
 
 const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }) => {
+  const { equipment: offerEquipment, loading } = useOfferEquipment(offer.id);
   let equipmentItems = [];
   
-  // Essayer de parser les équipements depuis equipment_description
-  if (offer.equipment_description) {
-    try {
-      equipmentItems = JSON.parse(offer.equipment_description);
-    } catch (e) {
-      // Si ce n'est pas du JSON, traiter comme du texte
-      equipmentItems = [{
-        title: "Équipement",
-        description: offer.equipment_description,
-        quantity: 1
-      }];
+  // Utiliser d'abord les données du hook useOfferEquipment si disponibles
+  if (offerEquipment && offerEquipment.length > 0) {
+    equipmentItems = offerEquipment.map(item => ({
+      title: item.title,
+      quantity: item.quantity,
+      monthlyPayment: item.monthly_payment,
+      attributes: item.attributes ? Object.fromEntries(item.attributes.map(attr => [attr.key, attr.value])) : {}
+    }));
+  } else {
+    // Fallback : essayer de parser les équipements depuis equipment_description
+    if (offer.equipment_description) {
+      try {
+        equipmentItems = JSON.parse(offer.equipment_description);
+      } catch (e) {
+        // Si ce n'est pas du JSON, traiter comme du texte
+        equipmentItems = [{
+          title: "Équipement",
+          description: offer.equipment_description,
+          quantity: 1,
+          monthlyPayment: offer.monthly_payment || 0
+        }];
+      }
+    }
+
+    // Utiliser les équipements parsés depuis parsedEquipment si disponibles
+    if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
+      equipmentItems = offer.parsedEquipment;
     }
   }
 
-  // Utiliser les équipements parsés depuis parsedEquipment si disponibles
-  if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
-    equipmentItems = offer.parsedEquipment;
-  }
-
-  // Calculer le total global des marges
+  // Calculer le total global des mensualités
   const totalGlobal = equipmentItems.reduce((sum: number, item: any) => {
-    const purchasePrice = item.purchasePrice || 0;
+    const monthlyPayment = item.monthlyPayment || 0;
     const quantity = item.quantity || 1;
-    const margin = item.margin || 0;
-    return sum + (purchasePrice * quantity * margin / 100);
+    return sum + (monthlyPayment * quantity);
   }, 0);
 
   return (
@@ -59,19 +71,18 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                     Qté
                   </th>
                   <th className="text-right py-4 px-4 font-semibold text-gray-700 w-32">
-                    Prix d'achat
+                    Mensualité unitaire
                   </th>
                   <th className="text-right py-4 px-4 font-semibold text-gray-700 w-32">
-                    Marge totale
+                    Mensualité totale
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {equipmentItems.map((item: any, index: number) => {
-                  const purchasePrice = item.purchasePrice || 0;
+                  const monthlyPayment = item.monthlyPayment || 0;
                   const quantity = item.quantity || 1;
-                  const margin = item.margin || 0;
-                  const totalMargin = purchasePrice * quantity * margin / 100;
+                  const totalMonthlyPayment = monthlyPayment * quantity;
                   
                   return (
                     <tr key={index} className={`border-b transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
@@ -105,10 +116,10 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                         </span>
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-gray-800">
-                        {formatCurrency(purchasePrice)}
+                        {formatCurrency(monthlyPayment)}
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-blue-700">
-                        {formatCurrency(totalMargin)}
+                        {formatCurrency(totalMonthlyPayment)}
                       </td>
                     </tr>
                   );
@@ -117,7 +128,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
               <tfoot>
                 <tr className="border-t-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                   <td colSpan={3} className="py-4 px-6 text-right font-bold text-gray-800">
-                    Marge totale:
+                    Mensualité totale:
                   </td>
                   <td className="py-4 px-4 text-right font-bold text-blue-700 text-lg">
                     {formatCurrency(totalGlobal)}
