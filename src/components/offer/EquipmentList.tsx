@@ -18,6 +18,14 @@ interface GlobalMarginAdjustment {
   marginDifference: number;
 }
 
+interface OfferFinancialData {
+  totalPurchasePrice: number;
+  totalFinancedAmount: number;
+  totalMargin: number;
+  monthlyPayment: number;
+  coefficient: number;
+}
+
 interface EquipmentListProps {
   equipmentList: Equipment[];
   editingId: string | null;
@@ -32,6 +40,7 @@ interface EquipmentListProps {
   commissionLevelId?: string;
   calculations?: any;
   hidePriceColumn?: boolean;
+  offerData?: OfferFinancialData;
 }
 
 const EquipmentList = ({
@@ -47,7 +56,8 @@ const EquipmentList = ({
   ambassadorId,
   commissionLevelId,
   calculations,
-  hidePriceColumn = false
+  hidePriceColumn = false,
+  offerData
 }: EquipmentListProps) => {
   const { user } = useAuth();
   const handleQuantityChange = (id: string, newQuantity: number) => {
@@ -264,6 +274,7 @@ const EquipmentList = ({
                 levelName: commissionData.levelName
               }}
               showCommission={true}
+              offerData={offerData}
             />
           ) : isAmbassadorMode ? (
             // Ambassador creating their own offer: show simplified summary
@@ -280,6 +291,7 @@ const EquipmentList = ({
               calculations={calculations}
               useGlobalAdjustment={globalMarginAdjustment.active}
               onToggleAdjustment={toggleAdaptMonthlyPayment}
+              offerData={offerData}
             />
           )}
         </>

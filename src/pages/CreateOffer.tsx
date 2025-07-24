@@ -59,6 +59,7 @@ const CreateOffer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAmbassadorSelectorOpen, setIsAmbassadorSelectorOpen] = useState(false);
+  const [loadedOfferData, setLoadedOfferData] = useState(null);
   const {
     equipment,
     setEquipment,
@@ -174,6 +175,9 @@ const CreateOffer = () => {
           const offer = await getOfferById(offerId);
           if (offer) {
             console.log("🔄 STEP 3: Offer data loaded:", offer);
+            
+            // Store offer data for financial summary
+            setLoadedOfferData(offer);
 
             // Charger les informations client
             setClientId(offer.client_id || null);
@@ -602,7 +606,15 @@ const CreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
                     // Transmettre les infos commission pour l'affichage
-                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} />
+                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} 
+                    // Pass offer data for edit mode
+                    offerData={isEditMode && loadedOfferData ? {
+                      totalPurchasePrice: loadedOfferData.amount || 0,
+                      totalFinancedAmount: loadedOfferData.financed_amount || loadedOfferData.amount || 0,
+                      totalMargin: loadedOfferData.margin || 0,
+                      monthlyPayment: loadedOfferData.monthly_payment || 0,
+                      coefficient: loadedOfferData.coefficient || 0
+                    } : undefined} />
                         
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} />
                       </div>
