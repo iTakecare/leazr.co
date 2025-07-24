@@ -51,7 +51,8 @@ const CreateClientDialog = ({
     country: 'France',
     vat_number: '',
     status: 'active' as 'active' | 'inactive' | 'lead',
-    notes: ''
+    notes: '',
+    contact_name: ''
   });
 
   const resetForm = () => {
@@ -66,7 +67,8 @@ const CreateClientDialog = ({
       country: 'France',
       vat_number: '',
       status: 'active',
-      notes: ''
+      notes: '',
+      contact_name: ''
     });
   };
 
@@ -204,6 +206,16 @@ const CreateClientDialog = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
+            <Label htmlFor="contact_name">Nom du contact</Label>
+            <Input
+              id="contact_name"
+              value={formData.contact_name}
+              onChange={(e) => handleInputChange('contact_name', e.target.value)}
+              placeholder="Nom de la personne de contact"
+            />
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="company">Société</Label>
             <Input
               id="company"
@@ -212,16 +224,16 @@ const CreateClientDialog = ({
               placeholder="Nom de la société"
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="phone">Téléphone</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="+33 1 23 45 67 89"
-            />
-          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="phone">Téléphone</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => handleInputChange('phone', e.target.value)}
+            placeholder="+33 1 23 45 67 89"
+          />
         </div>
 
         <div className="space-y-2">
