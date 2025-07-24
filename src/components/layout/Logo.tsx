@@ -27,7 +27,7 @@ const Logo: React.FC<LogoProps> = ({
     <div className={cn("flex items-center gap-2", className)}>
       <div className={cn("relative flex-shrink-0", sizeClasses[logoSize])}>
         <img 
-          src="/src/assets/leazr-logo.png"
+          src="/leazr-logo.png"
           alt="Leazr"
           className="w-full h-full object-contain"
           onError={(e) => {
