@@ -42,21 +42,41 @@ const WooCommerceConfigurationManager = () => {
 
   const loadConfigurations = async () => {
     try {
-      console.log('Chargement des configurations WooCommerce...');
+      console.log('🔬 DIAGNOSTIC AUTH - Début du chargement des configurations WooCommerce...');
+      
+      // Diagnostiquer l'authentification
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔬 Session actuelle:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        userId: session?.user?.id,
+        sessionError: sessionError?.message
+      });
+
+      // Test de la fonction get_user_company_id
+      try {
+        const { data: companyTest, error: companyError } = await supabase.rpc('get_user_company_id');
+        console.log('🔬 Test get_user_company_id():', { companyTest, companyError: companyError?.message });
+      } catch (err) {
+        console.log('🔬 Erreur get_user_company_id():', err);
+      }
+
+      // Charger les configurations
       const { data, error } = await supabase
         .from('woocommerce_configs')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erreur Supabase lors du chargement:', error);
+        console.error('🔬 Erreur Supabase lors du chargement:', error);
         throw error;
       }
       
-      console.log('Configurations chargées:', data);
+      console.log('🔬 Configurations chargées:', data);
       setConfigs(data || []);
     } catch (error) {
-      console.error('Erreur lors du chargement des configurations:', error);
+      console.error('🔬 Erreur lors du chargement des configurations:', error);
       toast.error('Impossible de charger les configurations WooCommerce: ' + (error.message || 'Erreur inconnue'));
     } finally {
       setLoading(false);
