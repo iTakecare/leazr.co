@@ -78,7 +78,7 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
               <Pencil className="mr-2 h-4 w-4" />
               Modifier
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate(`/create-offer?client=${client.id}`)}>
+            <DropdownMenuItem onClick={() => navigate(`/admin/create-offer?client=${client.id}`)}>
               <Calculator className="mr-2 h-4 w-4" />
               Créer une offre
             </DropdownMenuItem>

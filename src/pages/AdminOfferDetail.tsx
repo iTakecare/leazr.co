@@ -170,7 +170,7 @@ const AdminOfferDetail = () => {
   };
 
   const handleEditOffer = () => {
-    navigate(`/create-offer?offerId=${id}`);
+    navigate(`/admin/create-offer?offerId=${id}`);
   };
 
   const handlePreview = () => {

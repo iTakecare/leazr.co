@@ -69,7 +69,7 @@ const Offers = () => {
         <div className="flex justify-between items-center mb-6">
           <OffersHeader />
           <Button asChild>
-            <Link to="/create-offer" className="flex items-center">
+            <Link to="/admin/create-offer" className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Nouvelle offre
             </Link>

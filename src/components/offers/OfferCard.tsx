@@ -40,7 +40,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   };
   
   const handleEditOffer = () => {
-    navigate(`/create-offer?id=${offer.id}`);
+    navigate(`/admin/create-offer?id=${offer.id}`);
   };
   
   const openOnlineOffer = () => {
