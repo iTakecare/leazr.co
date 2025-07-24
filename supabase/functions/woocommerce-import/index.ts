@@ -28,6 +28,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('WooCommerce Import: Début de la requête', { method: req.method });
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -35,36 +37,69 @@ serve(async (req) => {
     );
 
     const { action, companyId, configId, productIds } = await req.json();
+    console.log('WooCommerce Import: Paramètres reçus', { 
+      action, 
+      companyId, 
+      configId, 
+      productIdsCount: productIds?.length 
+    });
 
-    // Récupérer la configuration WooCommerce (RLS s'occupe de l'isolation par company_id)
+    // Récupérer la configuration WooCommerce avec logs détaillés
+    console.log('WooCommerce Import: Récupération de la configuration', configId);
     const { data: config, error: configError } = await supabaseClient
       .from('woocommerce_configs')
       .select('*')
       .eq('id', configId)
       .single();
 
-    if (configError || !config) {
+    if (configError) {
+      console.error('WooCommerce Import: Erreur lors de la récupération de la config:', configError);
+      throw new Error(`Configuration WooCommerce non trouvée: ${configError.message}`);
+    }
+
+    if (!config) {
+      console.error('WooCommerce Import: Configuration vide');
       throw new Error('Configuration WooCommerce non trouvée');
     }
 
+    console.log('WooCommerce Import: Configuration récupérée avec succès', {
+      site_url: config.site_url,
+      hasConsumerKey: !!config.consumer_key,
+      hasConsumerSecret: !!config.consumer_secret
+    });
+
     if (action === 'test-connection') {
+      console.log('WooCommerce Import: Test de connexion');
       return await testWooCommerceConnection(config);
     }
 
     if (action === 'fetch-products') {
+      console.log('WooCommerce Import: Récupération des produits');
       return await fetchWooCommerceProducts(config);
     }
 
     if (action === 'import-products') {
+      console.log('WooCommerce Import: Import des produits', { count: productIds?.length });
+      if (!productIds || !Array.isArray(productIds)) {
+        throw new Error('IDs de produits manquants ou invalides');
+      }
+      if (!companyId) {
+        throw new Error('Company ID manquant');
+      }
       return await importProducts(config, productIds, supabaseClient, companyId);
     }
 
-    throw new Error('Action non reconnue');
+    console.error('WooCommerce Import: Action non reconnue:', action);
+    throw new Error(`Action non reconnue: ${action}`);
 
   } catch (error) {
-    console.error('Erreur dans woocommerce-import:', error);
+    console.error('WooCommerce Import: Erreur générale:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message,
+        details: error.stack || 'Pas de détails disponibles'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -152,63 +187,100 @@ async function fetchWooCommerceProducts(config: any) {
 
 async function importProducts(config: any, productIds: number[], supabaseClient: any, companyId: string) {
   try {
+    console.log(`WooCommerce Import: Début import de ${productIds.length} produits pour company ${companyId}`);
+    
     const auth = btoa(`${config.consumer_key}:${config.consumer_secret}`);
     const importedProducts = [];
+    const errors = [];
 
-    for (const productId of productIds) {
-      const response = await fetch(
-        `${config.site_url}/wp-json/wc/v3/products/${productId}`,
-        {
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) continue;
-
-      const wooProduct = await response.json();
+    for (let i = 0; i < productIds.length; i++) {
+      const productId = productIds[i];
+      console.log(`WooCommerce Import: Traitement produit ${i + 1}/${productIds.length} - ID: ${productId}`);
       
-      // Convertir le produit WooCommerce vers notre format
-      const productData = {
-        name: wooProduct.name,
-        description: wooProduct.description || wooProduct.short_description || '',
-        price: parseFloat(wooProduct.price || wooProduct.regular_price || '0'),
-        monthly_price: calculateMonthlyPrice(parseFloat(wooProduct.price || '0')),
-        image_url: wooProduct.images?.[0]?.src || null,
-        brand: extractBrand(wooProduct),
-        category: wooProduct.categories?.[0]?.name || 'Non catégorisé',
-        specifications: formatSpecifications(wooProduct.attributes),
-        company_id: companyId,
-        active: true,
-        woocommerce_id: wooProduct.id.toString(),
-        slug: wooProduct.slug
-      };
+      try {
+        const response = await fetch(
+          `${config.site_url}/wp-json/wc/v3/products/${productId}`,
+          {
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
-      // Insérer dans la base de données
-      const { data: insertedProduct, error } = await supabaseClient
-        .from('products')
-        .insert(productData)
-        .select()
-        .single();
+        if (!response.ok) {
+          console.error(`WooCommerce Import: Erreur récupération produit ${productId}: ${response.status}`);
+          errors.push(`Produit ${productId}: ${response.status} ${response.statusText}`);
+          continue;
+        }
 
-      if (!error && insertedProduct) {
-        importedProducts.push(insertedProduct);
+        const wooProduct = await response.json();
+        console.log(`WooCommerce Import: Produit WC récupéré: ${wooProduct.name}`);
+        
+        // Convertir le produit WooCommerce vers notre format
+        const productData = {
+          name: wooProduct.name,
+          description: wooProduct.description || wooProduct.short_description || '',
+          price: parseFloat(wooProduct.price || wooProduct.regular_price || '0'),
+          monthly_price: calculateMonthlyPrice(parseFloat(wooProduct.price || '0')),
+          image_url: wooProduct.images?.[0]?.src || null,
+          brand: extractBrand(wooProduct),
+          category: wooProduct.categories?.[0]?.name || 'Non catégorisé',
+          specifications: formatSpecifications(wooProduct.attributes),
+          company_id: companyId,
+          active: true,
+          woocommerce_id: wooProduct.id.toString(),
+          slug: wooProduct.slug
+        };
+
+        console.log(`WooCommerce Import: Données produit formatées:`, {
+          name: productData.name,
+          price: productData.price,
+          company_id: productData.company_id,
+          brand: productData.brand
+        });
+
+        // Insérer dans la base de données
+        console.log(`WooCommerce Import: Insertion en base pour ${productData.name}`);
+        const { data: insertedProduct, error } = await supabaseClient
+          .from('products')
+          .insert(productData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`WooCommerce Import: Erreur insertion produit ${productData.name}:`, error);
+          errors.push(`${productData.name}: ${error.message}`);
+        } else if (insertedProduct) {
+          console.log(`WooCommerce Import: Produit ${productData.name} importé avec succès`);
+          importedProducts.push(insertedProduct);
+        }
+      } catch (productError) {
+        console.error(`WooCommerce Import: Erreur traitement produit ${productId}:`, productError);
+        errors.push(`Produit ${productId}: ${productError.message}`);
       }
     }
+
+    console.log(`WooCommerce Import: Terminé - ${importedProducts.length} importés, ${errors.length} erreurs`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         imported: importedProducts.length,
-        products: importedProducts 
+        products: importedProducts,
+        errors: errors.length > 0 ? errors : undefined,
+        total_processed: productIds.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    console.error('WooCommerce Import: Erreur générale dans importProducts:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        details: error.stack || 'Pas de détails disponibles'
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
