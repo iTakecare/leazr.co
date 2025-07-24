@@ -310,7 +310,7 @@ const CreateOffer = () => {
             toast.success("Offre chargée avec succès");
           } else {
             toast.error("Impossible de trouver cette offre");
-            navigate("/offers");
+            navigate("/admin/offers");
           }
         } catch (error) {
           console.error("❌ STEP 3: Error loading offer:", error);
@@ -539,7 +539,7 @@ const CreateOffer = () => {
 
       // Attendre un peu avant de rediriger pour s'assurer que l'offre est bien enregistrée
       setTimeout(() => {
-        navigate("/offers");
+        navigate("/admin/offers");
       }, 1000);
     } catch (error) {
       console.error("❌ ERREUR lors de l'enregistrement de l'offre:", error);
@@ -564,7 +564,7 @@ const CreateOffer = () => {
                       {!isInternalOffer && commissionData.amount > 0}
                     </h1>
                   </div>
-                  <Button variant="outline" onClick={() => navigate('/offers')} className="flex items-center gap-2 h-8 px-3" size="sm">
+                  <Button variant="outline" onClick={() => navigate('/admin/offers')} className="flex items-center gap-2 h-8 px-3" size="sm">
                     <ArrowLeft className="h-3 w-3" />
                     Retour
                   </Button>
