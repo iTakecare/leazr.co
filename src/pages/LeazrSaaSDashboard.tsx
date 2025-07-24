@@ -72,7 +72,7 @@ const LeazrSaaSDashboard = () => {
   };
 
 
-  if (dataLoading || !dashboardData) {
+  if (dataLoading) {
     return (
       <PageTransition>
         <Container>
