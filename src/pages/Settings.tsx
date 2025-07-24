@@ -7,20 +7,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Upload, Users, Shield, Zap, MessageCircle } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
 import LeaserManager from '@/components/settings/LeaserManager';
 import CommissionManager from '@/components/settings/CommissionManager';
 import ContractSettings from '@/components/settings/ContractSettings';
-import DataImporter from '@/components/settings/DataImporter';
 import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager';
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
-import { DataIsolationDiagnostic } from '@/components/admin/DataIsolationDiagnostic';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -76,10 +74,14 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-12">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Intégrations
           </TabsTrigger>
           <TabsTrigger value="emails" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -101,10 +103,6 @@ const Settings: React.FC = () => {
             <FileSignature className="h-4 w-4" />
             Contrats
           </TabsTrigger>
-          <TabsTrigger value="import" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Import
-          </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
@@ -112,14 +110,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             Chat
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            Intégrations
-          </TabsTrigger>
-          <TabsTrigger value="diagnostic" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Diagnostic
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -129,6 +119,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="general" className="mt-6">
           <GeneralSettings />
+        </TabsContent>
+
+        <TabsContent value="integrations" className="mt-6">
+          <IntegrationsManager />
         </TabsContent>
 
         <TabsContent value="emails" className="mt-6">
@@ -149,10 +143,6 @@ const Settings: React.FC = () => {
 
         <TabsContent value="contracts" className="mt-6">
           <ContractSettings />
-        </TabsContent>
-
-        <TabsContent value="import" className="mt-6">
-          <DataImporter />
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">
@@ -180,14 +170,6 @@ const Settings: React.FC = () => {
 
         <TabsContent value="chat" className="mt-6">
           <ChatSettings />
-        </TabsContent>
-
-        <TabsContent value="integrations" className="mt-6">
-          <IntegrationsManager />
-        </TabsContent>
-
-        <TabsContent value="diagnostic" className="mt-6">
-          <DataIsolationDiagnostic />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">

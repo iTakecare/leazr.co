@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database } from 'lucide-react';
+import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, CreditCard, Shield, Mail, Database, ShoppingCart } from 'lucide-react';
 import BillitIntegrationSettings from './BillitIntegrationSettings';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
+import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
 
 interface Integration {
   id: string;
@@ -18,6 +19,16 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
+  // E-commerce
+  {
+    id: 'woocommerce',
+    name: 'WooCommerce',
+    description: 'Importez automatiquement vos produits WooCommerce dans votre catalogue',
+    logoUrl: 'https://woocommerce.com/wp-content/themes/woo/images/logo-woocommerce@2x.png',
+    status: 'available',
+    category: 'E-commerce'
+  },
+  
   // Facturation
   {
     id: 'billit',
@@ -376,6 +387,8 @@ const getStatusIcon = (status: string) => {
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
+    case 'E-commerce':
+      return <ShoppingCart className="h-6 w-6 text-purple-600" />;
     case 'Facturation':
       return <FileText className="h-6 w-6 text-blue-600" />;
     case 'ERP':
@@ -398,6 +411,8 @@ const getCategoryIcon = (category: string) => {
 const getIntegrationIcon = (integration: Integration) => {
   // Pour certaines intégrations spécifiques, on peut retourner des icônes personnalisées
   switch (integration.id) {
+    case 'woocommerce':
+      return <ShoppingCart className="h-6 w-6 text-purple-600" />;
     case 'billit':
       return <FileText className="h-6 w-6 text-blue-600" />;
     case 'microsoft-dynamics':
@@ -537,6 +552,10 @@ const IntegrationsManager = () => {
           </DialogHeader>
           
           <div className="mt-4">
+            {selectedIntegration === 'woocommerce' && (
+              <WooCommerceConfigurationManager />
+            )}
+            
             {selectedIntegration === 'billit' && (
               <BillitIntegrationSettings />
             )}
@@ -545,7 +564,7 @@ const IntegrationsManager = () => {
               <CompanyWebIntegrationSettings />
             )}
             
-            {selectedIntegration && selectedIntegration !== 'billit' && selectedIntegration !== 'companyweb' && (
+            {selectedIntegration && !['woocommerce', 'billit', 'companyweb'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
