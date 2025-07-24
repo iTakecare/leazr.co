@@ -4587,6 +4587,7 @@ export type Database = {
           user_id: string
           has_user_account: boolean
           company_id: string
+          is_ambassador_client: boolean
         }[]
       }
       get_all_users_extended: {
