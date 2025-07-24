@@ -25,6 +25,7 @@ import OfferConfiguration from "@/components/offer/OfferConfiguration";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
+import { calculateEquipmentTotals, getFinancedAmount } from "@/utils/marginCalculations";
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
@@ -609,11 +610,18 @@ const CreateOffer = () => {
                     ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} 
                     // Pass offer data for edit mode
                     offerData={isEditMode && loadedOfferData ? {
-                      totalPurchasePrice: loadedOfferData.amount || 0,
-                      totalFinancedAmount: loadedOfferData.financed_amount || loadedOfferData.amount || 0,
-                      totalMargin: loadedOfferData.margin || 0,
-                      monthlyPayment: loadedOfferData.monthly_payment || 0,
-                      coefficient: loadedOfferData.coefficient || 0
+                       totalPurchasePrice: (() => {
+                         const equipmentTotals = calculateEquipmentTotals(loadedOfferData);
+                         return equipmentTotals.totalPurchasePrice;
+                       })(),
+                       totalFinancedAmount: getFinancedAmount(loadedOfferData),
+                       totalMargin: (() => {
+                         const equipmentTotals = calculateEquipmentTotals(loadedOfferData);
+                         const financedAmount = getFinancedAmount(loadedOfferData);
+                         return financedAmount - equipmentTotals.totalPurchasePrice;
+                       })(),
+                       monthlyPayment: loadedOfferData.monthly_payment || 0,
+                       coefficient: loadedOfferData.coefficient || 0
                     } : undefined} />
                         
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} />
