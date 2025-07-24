@@ -42,16 +42,22 @@ const WooCommerceConfigurationManager = () => {
 
   const loadConfigurations = async () => {
     try {
+      console.log('Chargement des configurations WooCommerce...');
       const { data, error } = await supabase
         .from('woocommerce_configs')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur Supabase lors du chargement:', error);
+        throw error;
+      }
+      
+      console.log('Configurations chargées:', data);
       setConfigs(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des configurations:', error);
-      toast.error('Impossible de charger les configurations WooCommerce');
+      toast.error('Impossible de charger les configurations WooCommerce: ' + (error.message || 'Erreur inconnue'));
     } finally {
       setLoading(false);
     }
@@ -62,10 +68,25 @@ const WooCommerceConfigurationManager = () => {
     setSaving(true);
 
     try {
+      // Vérifier la duplication
+      if (!editingConfig) {
+        const existing = configs.find(c => c.site_url === formData.site_url);
+        if (existing) {
+          toast.error('Une configuration existe déjà pour cette URL');
+          setSaving(false);
+          return;
+        }
+      }
+
       const configData = {
-        ...formData,
+        name: formData.name || `Boutique ${formData.site_url.replace(/https?:\/\//, '')}`,
+        site_url: formData.site_url,
+        consumer_key: formData.consumer_key,
+        consumer_secret: formData.consumer_secret,
         ...(editingConfig ? { id: editingConfig.id } : {})
       };
+
+      console.log('Sauvegarde de la configuration:', configData);
 
       const { error } = editingConfig
         ? await supabase
@@ -76,7 +97,10 @@ const WooCommerceConfigurationManager = () => {
             .from('woocommerce_configs')
             .insert([configData]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur Supabase lors de la sauvegarde:', error);
+        throw error;
+      }
 
       toast.success(editingConfig ? 'Configuration mise à jour' : 'Configuration ajoutée');
       setIsDialogOpen(false);
@@ -84,7 +108,7 @@ const WooCommerceConfigurationManager = () => {
       loadConfigurations();
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      toast.error('Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde: ' + (error.message || 'Erreur inconnue'));
     } finally {
       setSaving(false);
     }
@@ -207,7 +231,6 @@ const WooCommerceConfigurationManager = () => {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Ex: Ma boutique principale"
-                    required
                   />
                 </div>
                 <div>
