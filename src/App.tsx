@@ -142,15 +142,15 @@ function App() {
                       </Route>
                       
                         {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
-                        {/* Use regex constraint to exclude reserved keywords from company slug matching */}
-                        <Route path="/:companySlug(^(?!admin|ambassador|ambassadors|client|api|dashboard|login|register|public).*)/catalog" element={<CompanySlugGuard />} />
-                        <Route path="/:companySlug(^(?!admin|ambassador|ambassadors|client|api|dashboard|login|register|public).*)/products/:productSlug" element={<PublicSlugProductBySlug />} />
-                        <Route path="/:companySlug(^(?!admin|ambassador|ambassadors|client|api|dashboard|login|register|public).*)/products/:productId" element={<PublicSlugProductDetails />} />
-                        <Route path="/:companySlug(^(?!admin|ambassador|ambassadors|client|api|dashboard|login|register|public).*)/panier" element={<PublicSlugCart />} />
-                        <Route path="/:companySlug(^(?!admin|ambassador|ambassadors|client|api|dashboard|login|register|public).*)/demande" element={<PublicSlugRequestSteps />} />
+                        {/* Validation is handled in CompanySlugGuard component */}
+                        <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
+                        <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
+                        <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
+                        <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+                        <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
                         
                         {/* Catch-all company slug route - fallback for company pages */}
-                        <Route path="/:companySlug(^(?!admin|ambassador|ambassadors|client|api|dashboard|login|register|public).*)" element={<CompanySlugGuard />} />
+                        <Route path="/:companySlug" element={<CompanySlugGuard />} />
                      </Routes>
                 </CartProvider>
               </CompanyBrandingProvider>
