@@ -140,16 +140,20 @@ export const useCompanyDetection = () => {
     return null;
   };
 
-  // Simplified query key to avoid excessive re-renders
-  const shouldRun = Boolean(urlCompanyId || companySlug || companyParam || companySlugParam);
+  // More conservative conditions to prevent infinite loops  
+  const shouldRun = Boolean(
+    (urlCompanyId || companySlug || companyParam || companySlugParam) && 
+    !location.pathname.includes('/admin') // Prevent queries on admin pages
+  );
   
   const { data: companyId, isLoading: isLoadingCompanyId, error: detectionError } = useQuery({
     queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam],
     queryFn: resolveCompanyId,
     enabled: shouldRun,
-    staleTime: 10 * 60 * 1000, // 10 minutes - increased to reduce re-fetching
-    retry: 1, // Reduced retries for Safari
-    retryDelay: 2000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - increased further to reduce re-fetching
+    retry: 0, // No retries to prevent loops
+    refetchOnWindowFocus: false, // Disable refetch on focus
+    refetchOnMount: false, // Only refetch if data is stale
   });
 
   // Simplified final logging for Safari

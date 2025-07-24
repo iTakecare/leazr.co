@@ -4,7 +4,7 @@ import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
-import { useCompanyDetection } from "@/hooks/useCompanyDetection";
+import { useCompanyContext } from "@/context/CompanyContext";
 import { generateProductSlug } from "@/lib/utils";
 
 interface PublicProductGridProps {
@@ -13,7 +13,7 @@ interface PublicProductGridProps {
 
 const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
   const navigate = useNavigate();
-  const { companyId, companySlug } = useCompanyDetection();
+  const { companyId, companySlug } = useCompanyContext();
   
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },

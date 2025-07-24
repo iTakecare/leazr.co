@@ -121,7 +121,7 @@ const PublicSlugCatalog = () => {
   // Render the actual catalog with company context
   return (
     <ErrorBoundary>
-      <PublicCatalogAnonymous />
+      <PublicCatalogAnonymous company={company} />
     </ErrorBoundary>
   );
 };

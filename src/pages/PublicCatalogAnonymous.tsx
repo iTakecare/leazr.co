@@ -15,46 +15,64 @@ import { usePublicProductFilter } from "@/hooks/products/usePublicProductFilter"
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useParams, useLocation } from "react-router-dom";
+import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const PublicCatalogAnonymous = () => {
+interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+}
+
+interface PublicCatalogAnonymousProps {
+  company?: Company;
+}
+
+const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company: providedCompany }) => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
-  // Safari-compatible logging
-  try {
-    console.log('📱 PUBLIC CATALOG - Rendering for:', companySlug || 'undefined');
-  } catch (e) {
-    // Silent fail for Safari compatibility
-  }
-
-  // Fetch company by slug directly
-  const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
+  // Fetch company by slug if not provided (fallback for legacy routes)
+  const { data: fetchedCompany, isLoading: isLoadingCompany, error: companyError } = useQuery({
     queryKey: ['company-by-slug', companySlug],
     queryFn: async () => {
       if (!companySlug) return null;
       
       try {
-        console.log('📱 Fetching company:', companySlug);
+        console.log('📱 Fetching company (fallback):', companySlug);
       } catch (e) {}
       
       const { data, error } = await supabase
         .rpc('get_company_by_slug', { company_slug: companySlug });
       
       if (error) {
-        console.error('📱 Company error:', error.message);
+        console.error('📱 Company error (fallback):', error.message);
         throw error;
       }
       
       try {
-        console.log('📱 Company loaded:', data?.[0]?.name || 'None');
+        console.log('📱 Company loaded (fallback):', data?.[0]?.name || 'None');
       } catch (e) {}
       return data && data.length > 0 ? data[0] : null;
     },
-    enabled: !!companySlug,
+    enabled: !!companySlug && !providedCompany,
   });
+
+  // Use provided company or fetch fallback
+  const company = providedCompany || fetchedCompany;
+  
+  // Safari-compatible logging
+  try {
+    console.log('📱 PUBLIC CATALOG - Rendering for:', company?.name || 'undefined');
+  } catch (e) {
+    // Silent fail for Safari compatibility
+  }
 
   const companyId = company?.id;
 
@@ -112,9 +130,8 @@ const PublicCatalogAnonymous = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Loading state
+  // Loading state for company fetch
   if (isLoadingCompany) {
-    console.log('📱 PUBLIC CATALOG - Showing company loading');
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -132,7 +149,6 @@ const PublicCatalogAnonymous = () => {
 
   // Company error
   if (companyError) {
-    console.error('📱 PUBLIC CATALOG - Company error:', companyError);
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -150,11 +166,8 @@ const PublicCatalogAnonymous = () => {
     );
   }
 
-  // No company found
+  // Early return if no company data
   if (!company) {
-    try {
-      console.error('📱 No company found:', companySlug);
-    } catch (e) {}
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -163,8 +176,6 @@ const PublicCatalogAnonymous = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               Entreprise non trouvée pour le slug: <strong>{companySlug}</strong>
-              <br />
-              <small className="text-xs">URL: {location.pathname}</small>
             </AlertDescription>
           </Alert>
         </Container>
@@ -216,81 +227,83 @@ const PublicCatalogAnonymous = () => {
   } catch (e) {}
 
   return (
-    <div className="min-h-screen bg-white">
-      <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
-      
-      <Container className="py-6 max-w-[1320px]">
-        <div className="space-y-8">
-          <CatalogHeader 
-            companyName={company?.name}
-            companyLogo={company?.logo_url}
-          />
-          
-          <div className="flex gap-6">
-            {/* Filter Sidebar */}
-            <PublicFilterSidebar
-              isOpen={isMobileFilterOpen}
-              onClose={() => setIsMobileFilterOpen(false)}
-              filters={filters}
-              updateFilter={updateFilter}
-              resetFilters={resetFilters}
-              categories={categories}
-              brands={brands}
-              priceRange={priceRange}
-              hasActiveFilters={hasActiveFilters}
-              resultsCount={resultsCount}
+    <CompanyProvider company={company}>
+      <div className="min-h-screen bg-white">
+        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
+        
+        <Container className="py-6 max-w-[1320px]">
+          <div className="space-y-8">
+            <CatalogHeader 
+              companyName={company?.name}
+              companyLogo={company?.logo_url}
             />
-
-            {/* Main Content */}
-            <div className="flex-1 space-y-6">
-              {/* Header with mobile toggle and sort */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <FilterMobileToggle
-                    isOpen={isMobileFilterOpen}
-                    onToggle={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                    filterCount={
-                      (filters.searchQuery ? 1 : 0) +
-                      (filters.selectedCategory ? 1 : 0) +
-                      filters.selectedBrands.length +
-                      (filters.inStockOnly ? 1 : 0) +
-                      (filters.priceRange[0] > priceRange[0] || filters.priceRange[1] < priceRange[1] ? 1 : 0)
-                    }
-                  />
-                  <div className="text-sm text-muted-foreground">
-                    {resultsCount} produit{resultsCount > 1 ? 's' : ''} trouvé{resultsCount > 1 ? 's' : ''}
-                  </div>
-                </div>
-
-                <SortFilter
-                  sortBy={filters.sortBy}
-                  sortOrder={filters.sortOrder}
-                  onSortByChange={(value) => updateFilter('sortBy', value)}
-                  onSortOrderChange={(value) => updateFilter('sortOrder', value)}
-                />
-              </div>
-
-              {/* Active Filter Badges */}
-              <FilterBadges
-                searchQuery={filters.searchQuery}
-                selectedCategory={filters.selectedCategory}
-                selectedBrands={filters.selectedBrands}
-                inStockOnly={filters.inStockOnly}
-                categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                onRemoveSearch={() => updateFilter('searchQuery', '')}
-                onRemoveCategory={() => updateFilter('selectedCategory', null)}
-                onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                onRemoveStock={() => updateFilter('inStockOnly', false)}
-                onClearAll={resetFilters}
+            
+            <div className="flex gap-6">
+              {/* Filter Sidebar */}
+              <PublicFilterSidebar
+                isOpen={isMobileFilterOpen}
+                onClose={() => setIsMobileFilterOpen(false)}
+                filters={filters}
+                updateFilter={updateFilter}
+                resetFilters={resetFilters}
+                categories={categories}
+                brands={brands}
+                priceRange={priceRange}
+                hasActiveFilters={hasActiveFilters}
+                resultsCount={resultsCount}
               />
 
-              {/* Product Grid */}
-              <PublicProductGrid products={filteredProducts || []} />
+              {/* Main Content */}
+              <div className="flex-1 space-y-6">
+                {/* Header with mobile toggle and sort */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <FilterMobileToggle
+                      isOpen={isMobileFilterOpen}
+                      onToggle={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+                      filterCount={
+                        (filters.searchQuery ? 1 : 0) +
+                        (filters.selectedCategory ? 1 : 0) +
+                        filters.selectedBrands.length +
+                        (filters.inStockOnly ? 1 : 0) +
+                        (filters.priceRange[0] > priceRange[0] || filters.priceRange[1] < priceRange[1] ? 1 : 0)
+                      }
+                    />
+                    <div className="text-sm text-muted-foreground">
+                      {resultsCount} produit{resultsCount > 1 ? 's' : ''} trouvé{resultsCount > 1 ? 's' : ''}
+                    </div>
+                  </div>
+
+                  <SortFilter
+                    sortBy={filters.sortBy}
+                    sortOrder={filters.sortOrder}
+                    onSortByChange={(value) => updateFilter('sortBy', value)}
+                    onSortOrderChange={(value) => updateFilter('sortOrder', value)}
+                  />
+                </div>
+
+                {/* Active Filter Badges */}
+                <FilterBadges
+                  searchQuery={filters.searchQuery}
+                  selectedCategory={filters.selectedCategory}
+                  selectedBrands={filters.selectedBrands}
+                  inStockOnly={filters.inStockOnly}
+                  categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
+                  onRemoveSearch={() => updateFilter('searchQuery', '')}
+                  onRemoveCategory={() => updateFilter('selectedCategory', null)}
+                  onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
+                  onRemoveStock={() => updateFilter('inStockOnly', false)}
+                  onClearAll={resetFilters}
+                />
+
+                {/* Product Grid */}
+                <PublicProductGrid products={filteredProducts || []} />
+              </div>
             </div>
           </div>
-        </div>
-      </Container>
-    </div>
+        </Container>
+      </div>
+    </CompanyProvider>
   );
 };
 
