@@ -3561,6 +3561,110 @@ export type Database = {
         }
         Relationships: []
       }
+      product_pack_items: {
+        Row: {
+          created_at: string
+          custom_price_override: boolean
+          id: string
+          margin_percentage: number
+          pack_id: string
+          position: number
+          product_id: string
+          quantity: number
+          unit_monthly_price: number
+          unit_purchase_price: number
+          variant_price_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custom_price_override?: boolean
+          id?: string
+          margin_percentage?: number
+          pack_id: string
+          position?: number
+          product_id: string
+          quantity?: number
+          unit_monthly_price?: number
+          unit_purchase_price?: number
+          variant_price_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custom_price_override?: boolean
+          id?: string
+          margin_percentage?: number
+          pack_id?: string
+          position?: number
+          product_id?: string
+          quantity?: number
+          unit_monthly_price?: number
+          unit_purchase_price?: number
+          variant_price_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_pack_items_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_packs: {
+        Row: {
+          admin_only: boolean
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          total_margin: number
+          total_monthly_price: number
+          total_purchase_price: number
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          admin_only?: boolean
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          total_margin?: number
+          total_monthly_price?: number
+          total_purchase_price?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          admin_only?: boolean
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          total_margin?: number
+          total_monthly_price?: number
+          total_purchase_price?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: []
+      }
       product_variant_prices: {
         Row: {
           attributes: Json

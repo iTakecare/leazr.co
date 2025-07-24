@@ -85,13 +85,17 @@ const CatalogManagement = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="categories">
-            <CategoryManager />
-          </TabsContent>
-          
-          <TabsContent value="brands">
-            <BrandManager />
-          </TabsContent>
+        <TabsContent value="categories">
+          <CategoryManager />
+        </TabsContent>
+
+        <TabsContent value="brands">
+          <BrandManager />
+        </TabsContent>
+
+        <TabsContent value="packs">
+          <PackManager />
+        </TabsContent>
         </Tabs>
       </div>
     </Container>
