@@ -2,7 +2,7 @@ import React from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
-import ProductGridCard from "@/components/catalog/public/ProductGridCard";
+import ProductGridCardOptimized from "@/components/catalog/public/ProductGridCardOptimized";
 import { useCompanyContext } from "@/context/CompanyContext";
 import { generateProductSlug } from "@/lib/utils";
 import { useSafeNavigate } from "@/hooks/useSafeNavigate";
@@ -72,17 +72,13 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
     );
   }
 
-  console.log(`PublicProductGrid: Rendering ${products.length} products`);
-  products.forEach((product, index) => {
-    const slug = generateProductSlug(product.name, product.brand);
-    console.log(`PublicProductGrid product ${index + 1}: ${product.name} (brand: ${product.brand}, slug: ${slug})`);
-  });
+  // Simplified logging for production
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
       {products.map((product) => (
         <motion.div key={product.id} variants={itemVariants}>
-          <ProductGridCard 
+          <ProductGridCardOptimized 
             product={product} 
             onClick={() => handleProductClick(product)}
           />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
@@ -116,26 +116,18 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
     return categoryMap[category.toLowerCase()] || "Équipement";
   };
 
-  const countExistingVariants = (): number => {
-    if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
-      console.log(`${product.name} a ${product.variant_combination_prices.length} combinaisons de prix de variantes`);
-      return product.variant_combination_prices.length;
-    }
-    
+  // Simplified variant counting without logs
+  const variantsCount = useMemo(() => {
     if (product.variants_count !== undefined && product.variants_count > 0) {
       return product.variants_count;
     }
-    
-    if (product.variants && product.variants.length > 0) {
-      return product.variants.length;
+    if (product.has_variants) {
+      return 1; // Default to 1 if has_variants is true but no count
     }
-    
     return 0;
-  };
+  }, [product.variants_count, product.has_variants]);
 
-  const hasVariantsFlag = hasVariantPricing(product);
-  const variantsCount = hasVariantsFlag ? countExistingVariants() : 0;
-  
+  const hasVariantsFlag = variantsCount > 0;
   const co2Savings = getCO2Savings(product.category);
   
   const handleImageLoad = () => {

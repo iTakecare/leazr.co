@@ -9,9 +9,9 @@ import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilte
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
 import SortFilter from "@/components/catalog/public/filters/SortFilter";
-import { getPublicProducts } from "@/services/catalogService";
+import { getPublicProductsOptimized } from "@/services/catalogServiceOptimized";
 import { useQuery } from "@tanstack/react-query";
-import { usePublicProductFilter } from "@/hooks/products/usePublicProductFilter";
+import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useParams, useLocation } from "react-router-dom";
@@ -91,14 +91,16 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     }
   }, [companyId, queryClient]);
 
-  // Fetch products data
+  // Optimized products fetch
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
-    queryKey: ['public-products', companyId],
-    queryFn: () => getPublicProducts(companyId!),
+    queryKey: ['public-products-optimized', companyId],
+    queryFn: () => getPublicProductsOptimized(companyId!),
     enabled: !!companyId,
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: false
   });
 
-  // Initialize filter system
+  // Optimized filter system
   const {
     filters,
     updateFilter,
@@ -109,23 +111,15 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     priceRange,
     hasActiveFilters,
     resultsCount
-  } = usePublicProductFilter(products);
+  } = useOptimizedCatalogFilter(products);
 
-  // Company info is now directly from the RPC call
-
-  // Safari-compatible logging
-  try {
-    console.log('📱 Products loaded:', products?.length || 0);
-  } catch (e) {}
-
-  // Close mobile filter on screen resize
+  // Simplified resize handler
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {
         setIsMobileFilterOpen(false);
       }
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -265,8 +259,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                         (filters.searchQuery ? 1 : 0) +
                         (filters.selectedCategory ? 1 : 0) +
                         filters.selectedBrands.length +
-                        (filters.inStockOnly ? 1 : 0) +
-                        (filters.priceRange[0] > priceRange[0] || filters.priceRange[1] < priceRange[1] ? 1 : 0)
+                         (filters.inStockOnly ? 1 : 0)
                       }
                     />
                     <div className="text-sm text-muted-foreground">
@@ -290,7 +283,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                   inStockOnly={filters.inStockOnly}
                   categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
                   onRemoveSearch={() => updateFilter('searchQuery', '')}
-                  onRemoveCategory={() => updateFilter('selectedCategory', null)}
+                  onRemoveCategory={() => updateFilter('selectedCategory', '')}
                   onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
                   onRemoveStock={() => updateFilter('inStockOnly', false)}
                   onClearAll={resetFilters}
