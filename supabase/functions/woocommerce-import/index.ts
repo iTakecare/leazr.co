@@ -412,12 +412,26 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
         const isVariable = wooProduct.type === 'variable';
         const isVariation = wooProduct.type === 'variation';
         
+        // Vérifier si le produit a des variantes réelles
+        const hasVariations = isVariable && wooProduct.variations && wooProduct.variations.length > 0;
+        const hasVariationAttributes = Object.keys(variationAttributes).length > 0;
+        
+        // Un produit est parent s'il a des variantes ET des attributs de variation
+        const shouldBeParent = hasVariations || hasVariationAttributes;
+        
+        console.log(`WooCommerce Import: Analyse des variantes pour ${wooProduct.name}:`, {
+          type: wooProduct.type,
+          variations_count: wooProduct.variations?.length || 0,
+          variation_attributes_count: Object.keys(variationAttributes).length,
+          should_be_parent: shouldBeParent
+        });
+        
         const productData = {
           name: wooProduct.name,
           description: wooProduct.description || wooProduct.short_description || '',
           price: 0, // Prix d'achat par défaut à 0
           purchase_price: 0, // Prix d'achat par défaut à 0  
-          monthly_price: isVariable ? 0 : wooPrice, // Pas de prix pour les produits variables
+          monthly_price: shouldBeParent ? 0 : wooPrice, // Pas de prix fixe pour les produits avec variantes
           image_url: wooProduct.images?.[0]?.src || null,
           brand_name: brandName,
           category_name: categoryName,
@@ -425,8 +439,8 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
           category_id: categoryId,
           specifications: formatSpecifications(wooProduct.attributes),
           attributes: productAttributes,
-          variation_attributes: Object.keys(variationAttributes).length > 0 ? variationAttributes : null,
-          is_parent: isVariable,
+          variation_attributes: hasVariationAttributes ? variationAttributes : null,
+          is_parent: shouldBeParent,
           parent_id: isVariation ? wooProduct.parent_id?.toString() : null,
           company_id: companyId,
           active: true,
@@ -460,20 +474,30 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
           console.log(`WooCommerce Import: Produit ${productData.name} importé avec succès`);
           importedProducts.push(insertedProduct);
 
-          // Si c'est un produit variable, récupérer et traiter ses variantes
-          if (isVariable && wooProduct.variations && wooProduct.variations.length > 0) {
+          // Si c'est un produit avec variantes, récupérer et traiter ses variantes
+          if (shouldBeParent) {
             console.log(`WooCommerce Import: Traitement des variantes pour ${productData.name}`);
-            const variations = await fetchProductVariations(wooProduct.id);
             
-            if (variations.length > 0) {
-              await createVariantPrices(insertedProduct.id, variations);
+            // Si c'est un produit WooCommerce "variable", récupérer ses variantes via l'API
+            if (isVariable && wooProduct.variations && wooProduct.variations.length > 0) {
+              const variations = await fetchProductVariations(wooProduct.id);
               
-              // Mettre à jour le produit parent avec les IDs des variantes (optionnel)
-              const variantIds = variations.map(v => v.id.toString());
-              await supabaseClient
-                .from('products')
-                .update({ variants_ids: variantIds })
-                .eq('id', insertedProduct.id);
+              if (variations.length > 0) {
+                await createVariantPrices(insertedProduct.id, variations);
+                
+                // Mettre à jour le produit parent avec les IDs des variantes
+                const variantIds = variations.map(v => v.id.toString());
+                await supabaseClient
+                  .from('products')
+                  .update({ variants_ids: variantIds })
+                  .eq('id', insertedProduct.id);
+                
+                console.log(`WooCommerce Import: ${variations.length} variantes traitées pour ${productData.name}`);
+              }
+            } else {
+              // Si pas de variantes WooCommerce mais des attributs de variation,
+              // les prix de variantes peuvent être ajoutés manuellement plus tard
+              console.log(`WooCommerce Import: Produit avec attributs de variation mais sans variantes WooCommerce: ${productData.name}`);
             }
           }
         }
