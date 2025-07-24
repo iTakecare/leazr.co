@@ -240,6 +240,11 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       setEquipment(equipmentToEdit);
       setEditingId(id);
       
+      // Calculer et définir le prix de vente basé sur la marge stockée
+      const marginAmount = (equipmentToEdit.purchasePrice * equipmentToEdit.margin) / 100;
+      const priceWithMargin = equipmentToEdit.purchasePrice + marginAmount;
+      setTargetSalePrice(priceWithMargin);
+      
       if (equipmentToEdit.monthlyPayment && equipmentToEdit.monthlyPayment > 0) {
         setTargetMonthlyPayment(equipmentToEdit.monthlyPayment);
       }
