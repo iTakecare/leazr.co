@@ -27,8 +27,8 @@ const Logo: React.FC<LogoProps> = ({
     <div className={cn("flex items-center gap-2", className)}>
       <div className={cn("relative flex-shrink-0", sizeClasses[logoSize])}>
         <img 
-          src="/src/assets/itakecare-logo.png"
-          alt="iTakecare"
+          src="/lovable-uploads/7c9642df-3c9e-454c-a0db-a3be7fd9ca53.png"
+          alt="Leazr"
           className="w-full h-full object-contain"
           onError={(e) => {
             const target = e.target as HTMLImageElement;

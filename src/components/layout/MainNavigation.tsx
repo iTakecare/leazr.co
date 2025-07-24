@@ -68,7 +68,7 @@ const MainNavigation = () => {
             <img
               className="w-[120px] md:w-[201px] h-auto md:h-[41px] object-contain transition-transform duration-300 group-hover:scale-105"
               alt="Leazr Logo"
-              src="/lovable-uploads/3a4ae1ec-2b87-4a07-a178-b3bc5d86594b.png"
+              src="/lovable-uploads/7c9642df-3c9e-454c-a0db-a3be7fd9ca53.png"
             />
           </Link>
           
