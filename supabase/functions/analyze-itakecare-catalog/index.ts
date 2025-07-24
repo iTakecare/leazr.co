@@ -30,7 +30,7 @@ serve(async (req) => {
 
     console.log('Starting iTakecare catalog analysis...');
 
-    // Analyser le catalogue iTakecare avec Firecrawl
+    // Analyser le catalogue iTakecare avec Firecrawl (optimisé pour WooCommerce)
     const crawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -40,8 +40,16 @@ serve(async (req) => {
       body: JSON.stringify({
         url: 'https://www.itakecare.be/catalogue/',
         formats: ['markdown', 'html'],
-        includeTags: ['img', 'h1', 'h2', 'h3', 'p', 'div'],
+        includeTags: ['img', 'h1', 'h2', 'h3', 'p', 'div', 'span', 'a'],
+        excludeTags: ['nav', 'footer', 'aside', 'script', 'style'],
         onlyMainContent: true,
+        waitFor: 3000, // Attendre le chargement des scripts WooCommerce
+        actions: [
+          {
+            type: 'click',
+            selector: '.load-more, .show-more, button[data-load-more]'
+          }
+        ]
       }),
     });
 
@@ -51,9 +59,13 @@ serve(async (req) => {
 
     const crawlData = await crawlResponse.json();
     console.log('Firecrawl response received, processing...');
-
-    // Extraire les produits du contenu markdown/html
-    const products = extractProductsFromContent(crawlData.data.markdown, crawlData.data.html);
+    
+    // Debug: Afficher des extraits du contenu pour analyse
+    console.log('HTML excerpt (first 1000 chars):', crawlData.data.html?.substring(0, 1000));
+    console.log('Markdown excerpt (first 1000 chars):', crawlData.data.markdown?.substring(0, 1000));
+    
+    // Extraire les produits du contenu markdown/html (prioriser HTML pour WooCommerce)
+    const products = extractProductsFromContent(crawlData.data.markdown || '', crawlData.data.html || '');
     
     console.log(`Extracted ${products.length} products from catalog`);
 
@@ -61,7 +73,10 @@ serve(async (req) => {
       success: true,
       products,
       totalFound: products.length,
-      rawData: crawlData.data.markdown.substring(0, 500) + '...' // Premier aperçu
+      rawData: {
+        markdownSample: crawlData.data.markdown?.substring(0, 500) + '...',
+        htmlSample: crawlData.data.html?.substring(0, 500) + '...'
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -82,8 +97,34 @@ function extractProductsFromContent(markdown: string, html: string): Product[] {
   const products: Product[] = [];
   
   try {
-    // Extraire les produits à partir du contenu markdown
-    // Rechercher des patterns typiques pour les produits de leasing
+    console.log('Starting product extraction...');
+    
+    // Prioriser l'extraction HTML pour WooCommerce
+    const htmlProducts = extractProductsFromHTML(html);
+    console.log(`Found ${htmlProducts.length} products from HTML`);
+    products.push(...htmlProducts);
+    
+    // Si peu de produits trouvés avec HTML, essayer markdown en fallback
+    if (products.length < 3) {
+      console.log('Fallback to markdown extraction...');
+      const markdownProducts = extractProductsFromMarkdown(markdown);
+      console.log(`Found ${markdownProducts.length} products from markdown`);
+      products.push(...markdownProducts);
+    }
+    
+  } catch (error) {
+    console.error('Error extracting products:', error);
+  }
+  
+  const filteredProducts = products.filter(p => p.name && p.price > 0);
+  console.log(`Final product count after filtering: ${filteredProducts.length}`);
+  return filteredProducts;
+}
+
+function extractProductsFromMarkdown(markdown: string): Product[] {
+  const products: Product[] = [];
+  
+  try {
     const lines = markdown.split('\n');
     let currentProduct: Partial<Product> = {};
     
@@ -91,7 +132,7 @@ function extractProductsFromContent(markdown: string, html: string): Product[] {
       const line = lines[i].trim();
       
       // Détecter les titres de produits (MacBook, PC, etc.)
-      if (line.match(/^#{1,3}\s*(MacBook|iPad|PC|Laptop|Desktop|iMac|Monitor|Écran)/i)) {
+      if (line.match(/^#{1,3}\s*(MacBook|iPad|PC|Laptop|Desktop|iMac|Monitor|Écran|ThinkPad|Pavilion|EliteBook)/i)) {
         // Sauvegarder le produit précédent s'il existe
         if (currentProduct.name) {
           products.push(createProduct(currentProduct));
@@ -105,16 +146,18 @@ function extractProductsFromContent(markdown: string, html: string): Product[] {
         };
       }
       
-      // Extraire les prix (€/jour, €/mois)
-      const priceMatch = line.match(/(\d+(?:,\d{2})?)\s*€\/(?:jour|mois)/i);
+      // Extraire les prix (€/jour, €/mois, € simple)
+      const priceMatch = line.match(/(\d+(?:[,.]?\d{1,2})?)\s*€(?:\/(?:jour|mois|day|month))?/i);
       if (priceMatch && currentProduct.name) {
         const price = parseFloat(priceMatch[1].replace(',', '.'));
-        if (line.includes('/mois')) {
+        if (line.includes('/mois') || line.includes('/month')) {
           currentProduct.monthly_price = price;
           currentProduct.price = price * 12; // Prix annuel estimé
-        } else if (line.includes('/jour')) {
+        } else if (line.includes('/jour') || line.includes('/day')) {
           currentProduct.monthly_price = price * 30; // Prix mensuel estimé
           currentProduct.price = price * 365; // Prix annuel estimé
+        } else {
+          currentProduct.price = price;
         }
       }
       
@@ -128,7 +171,7 @@ function extractProductsFromContent(markdown: string, html: string): Product[] {
       }
       
       // Extraire les spécifications techniques
-      if (line.match(/(RAM|SSD|Processeur|Écran|Intel|AMD|M1|M2|M3)/i) && currentProduct.name) {
+      if (line.match(/(RAM|SSD|Processeur|Écran|Intel|AMD|M1|M2|M3|i3|i5|i7|i9)/i) && currentProduct.name) {
         const specs = extractSpecs(line);
         currentProduct.specifications = { ...currentProduct.specifications, ...specs };
       }
@@ -139,43 +182,127 @@ function extractProductsFromContent(markdown: string, html: string): Product[] {
       products.push(createProduct(currentProduct));
     }
     
-    // Si peu de produits trouvés avec la méthode markdown, essayer avec HTML
-    if (products.length < 5) {
-      const htmlProducts = extractProductsFromHTML(html);
-      products.push(...htmlProducts);
-    }
-    
   } catch (error) {
-    console.error('Error extracting products:', error);
+    console.error('Error extracting products from markdown:', error);
   }
   
-  return products.filter(p => p.name && p.price > 0);
+  return products;
 }
 
 function extractProductsFromHTML(html: string): Product[] {
   const products: Product[] = [];
   
   try {
-    // Patterns pour extraire les produits depuis le HTML
-    const productMatches = html.match(/<div[^>]*class[^>]*product[^>]*>.*?<\/div>/gis) || [];
+    console.log('Extracting products from HTML...');
     
-    for (const match of productMatches) {
-      const nameMatch = match.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/i);
-      const priceMatch = match.match(/(\d+(?:,\d{2})?)\s*€/);
-      
-      if (nameMatch && priceMatch) {
-        const name = nameMatch[1].replace(/<[^>]*>/g, '').trim();
-        const price = parseFloat(priceMatch[1].replace(',', '.'));
+    // WooCommerce product patterns - try multiple selectors
+    const wooCommerceSelectors = [
+      // Standard WooCommerce product containers
+      /<(?:li|div)[^>]*class[^>]*(?:product|woocommerce-loop-product)[^>]*>.*?<\/(?:li|div)>/gis,
+      // Product cards with various classes
+      /<div[^>]*class[^>]*(?:product-item|item-product|product-card)[^>]*>.*?<\/div>/gis,
+      // Shop items
+      /<(?:article|div)[^>]*class[^>]*(?:shop-item|catalog-item)[^>]*>.*?<\/(?:article|div)>/gis
+    ];
+    
+    let allMatches: string[] = [];
+    for (const selector of wooCommerceSelectors) {
+      const matches = html.match(selector) || [];
+      allMatches = allMatches.concat(matches);
+      console.log(`Found ${matches.length} matches with selector pattern`);
+    }
+    
+    console.log(`Total HTML product matches found: ${allMatches.length}`);
+    
+    for (const match of allMatches) {
+      try {
+        // Extract product name - try multiple patterns
+        let name = '';
+        const namePatterns = [
+          /<h[1-6][^>]*class[^>]*(?:product-title|woocommerce-loop-product__title|entry-title)[^>]*>(.*?)<\/h[1-6]>/i,
+          /<h[1-6][^>]*>(.*?)<\/h[1-6]>/i,
+          /<a[^>]*class[^>]*(?:product-title|title)[^>]*[^>]*>(.*?)<\/a>/i,
+          /<(?:span|div)[^>]*class[^>]*(?:product-name|title)[^>]*>(.*?)<\/(?:span|div)>/i
+        ];
         
-        products.push(createProduct({
-          name,
-          price,
-          brand: extractBrand(name),
-          category: extractCategory(name),
-          description: `Produit de leasing professionnel ${name}`
-        }));
+        for (const pattern of namePatterns) {
+          const nameMatch = match.match(pattern);
+          if (nameMatch) {
+            name = nameMatch[1].replace(/<[^>]*>/g, '').trim();
+            if (name.length > 3) break; // Use first meaningful match
+          }
+        }
+        
+        // Extract price - try multiple WooCommerce price patterns
+        let price = 0;
+        let monthlyPrice: number | undefined;
+        const pricePatterns = [
+          // WooCommerce price with classes
+          /<span[^>]*class[^>]*(?:woocommerce-Price-amount|amount|price)[^>]*>.*?(\d+(?:[,.]?\d{1,2})?)\s*€/i,
+          // Generic price patterns
+          /(\d+(?:[,.]?\d{1,2})?)\s*€\s*\/\s*(?:jour|day)/i,
+          /(\d+(?:[,.]?\d{1,2})?)\s*€\s*\/\s*(?:mois|month)/i,
+          /(\d+(?:[,.]?\d{1,2})?)\s*€(?!\s*\/)/i
+        ];
+        
+        for (const pattern of pricePatterns) {
+          const priceMatch = match.match(pattern);
+          if (priceMatch) {
+            const extractedPrice = parseFloat(priceMatch[1].replace(',', '.'));
+            if (pattern.source.includes('jour') || pattern.source.includes('day')) {
+              monthlyPrice = extractedPrice * 30;
+              price = extractedPrice * 365;
+            } else if (pattern.source.includes('mois') || pattern.source.includes('month')) {
+              monthlyPrice = extractedPrice;
+              price = extractedPrice * 12;
+            } else {
+              price = extractedPrice;
+            }
+            break;
+          }
+        }
+        
+        // Extract image URL
+        let imageUrl: string | undefined;
+        const imgMatch = match.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
+        if (imgMatch) {
+          imageUrl = imgMatch[1];
+        }
+        
+        // Extract description from content
+        let description = '';
+        const descPatterns = [
+          /<(?:p|div)[^>]*class[^>]*(?:excerpt|description|summary)[^>]*>(.*?)<\/(?:p|div)>/i,
+          /<p[^>]*>(.*?)<\/p>/i
+        ];
+        
+        for (const pattern of descPatterns) {
+          const descMatch = match.match(pattern);
+          if (descMatch) {
+            description = descMatch[1].replace(/<[^>]*>/g, '').trim();
+            if (description.length > 20) break;
+          }
+        }
+        
+        if (name && price > 0) {
+          console.log(`Found product: ${name} - ${price}€`);
+          products.push(createProduct({
+            name,
+            price,
+            monthly_price: monthlyPrice,
+            brand: extractBrand(name),
+            category: extractCategory(name),
+            description: description || `Produit de leasing professionnel ${name}`,
+            imageUrl,
+            specifications: extractSpecs(name + ' ' + description)
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing individual product match:', error);
       }
     }
+    
+    console.log(`Successfully extracted ${products.length} products from HTML`);
   } catch (error) {
     console.error('Error extracting from HTML:', error);
   }
