@@ -12,7 +12,7 @@ import LeaserSelector from "@/components/ui/LeaserSelector";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { useAmbassadorOfferState } from "@/hooks/useAmbassadorOfferState";
 import { useAmbassadorOfferSave } from "@/components/ambassador/AmbassadorOfferSaveLogic";
-import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
+import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 
 const AmbassadorCreateOffer = () => {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const AmbassadorCreateOffer = () => {
     updateQuantity,
     toggleAdaptMonthlyPayment,
     calculations
-  } = useSimplifiedEquipmentCalculator(selectedLeaser);
+  } = useEquipmentCalculator(selectedLeaser);
 
   // Calculate the correct total margin from calculations
   const totalMargin = calculations?.normalMarginAmount || 0;

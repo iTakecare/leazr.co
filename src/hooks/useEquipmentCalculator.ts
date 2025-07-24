@@ -378,6 +378,23 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     setTotalMonthlyPayment(appliedMonthly);
   };
 
+  // Calculate financial summary for display
+  const calculations = {
+    totalPurchasePrice: equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
+    totalFinancedAmount: equipmentList.reduce((sum, eq) => {
+      const financedAmount = calculateFinancedAmount(eq);
+      return sum + (financedAmount * eq.quantity);
+    }, 0),
+    normalMarginAmount: equipmentList.reduce((sum, eq) => {
+      return sum + (eq.purchasePrice * eq.quantity * eq.margin / 100);
+    }, 0),
+    finalMonthlyPayment: totalMonthlyPayment,
+    coefficient: equipmentList.length > 0 ? findCoefficient(equipmentList.reduce((sum, eq) => {
+      const financedAmount = calculateFinancedAmount(eq);
+      return sum + (financedAmount * eq.quantity);
+    }, 0)) : 0
+  };
+
   return {
     equipment,
     setEquipment,
@@ -403,6 +420,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     updateQuantity,
     findCoefficient,
     calculateFinancedAmount,
+    calculations,
     toggleAdaptMonthlyPayment: () => {
       setGlobalMarginAdjustment(prev => ({
         ...prev,
