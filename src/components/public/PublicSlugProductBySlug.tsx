@@ -3,7 +3,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { findProductBySlugInCompany } from '@/services/productService';
+import { findProductBySlugDirectly } from '@/services/productServiceOptimized';
 import PublicProductDetail from './PublicProductDetail';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -35,7 +35,7 @@ const PublicSlugProductBySlug = () => {
     queryFn: async () => {
       if (!company?.id || !productSlug) return null;
       
-      const foundProduct = await findProductBySlugInCompany(company.id, productSlug);
+      const foundProduct = await findProductBySlugDirectly(company.id, productSlug);
       console.log('🎯 Product found by slug search:', foundProduct?.name || 'none');
       return foundProduct;
     },
