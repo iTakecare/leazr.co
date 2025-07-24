@@ -58,12 +58,16 @@ const PartnerCreateOffer = () => {
     setTargetMonthlyPayment,
     coefficient,
     calculatedMargin,
+    targetSalePrice,
+    setTargetSalePrice,
+    calculatedFromSalePrice,
     equipmentList,
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
+    applyCalculatedFromSalePrice,
     addToList,
     startEditing,
     cancelEditing,
@@ -380,6 +384,10 @@ const PartnerCreateOffer = () => {
                       setTargetMonthlyPayment={setTargetMonthlyPayment}
                       calculatedMargin={calculatedMargin}
                       applyCalculatedMargin={applyCalculatedMargin}
+                      targetSalePrice={targetSalePrice}
+                      setTargetSalePrice={setTargetSalePrice}
+                      calculatedFromSalePrice={calculatedFromSalePrice}
+                      applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
                     />
                   </div>
                 </div>

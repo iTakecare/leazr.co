@@ -65,14 +65,18 @@ const CreateOffer = () => {
     monthlyPayment,
     targetMonthlyPayment,
     setTargetMonthlyPayment,
+    targetSalePrice,
+    setTargetSalePrice,
     coefficient,
     calculatedMargin,
+    calculatedFromSalePrice,
     equipmentList,
     setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
     editingId,
     applyCalculatedMargin,
+    applyCalculatedFromSalePrice,
     addToList,
     startEditing,
     cancelEditing,
@@ -587,7 +591,7 @@ const CreateOffer = () => {
                     {/* Contenu principal */}
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                       <div className="xl:col-span-1">
-                        <EquipmentForm equipment={equipment} setEquipment={setEquipment} selectedLeaser={selectedLeaser} addToList={addToList} editingId={editingId} cancelEditing={cancelEditing} onOpenCatalog={() => setIsCatalogOpen(true)} coefficient={coefficient} monthlyPayment={monthlyPayment} targetMonthlyPayment={targetMonthlyPayment} setTargetMonthlyPayment={setTargetMonthlyPayment} calculatedMargin={calculatedMargin} applyCalculatedMargin={applyCalculatedMargin} />
+                        <EquipmentForm equipment={equipment} setEquipment={setEquipment} selectedLeaser={selectedLeaser} addToList={addToList} editingId={editingId} cancelEditing={cancelEditing} onOpenCatalog={() => setIsCatalogOpen(true)} coefficient={coefficient} monthlyPayment={monthlyPayment} targetMonthlyPayment={targetMonthlyPayment} setTargetMonthlyPayment={setTargetMonthlyPayment} calculatedMargin={calculatedMargin} applyCalculatedMargin={applyCalculatedMargin} targetSalePrice={targetSalePrice} setTargetSalePrice={setTargetSalePrice} calculatedFromSalePrice={calculatedFromSalePrice} applyCalculatedFromSalePrice={applyCalculatedFromSalePrice} />
                       </div>
 
                       <div className="xl:col-span-1 space-y-4">

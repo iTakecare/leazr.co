@@ -23,6 +23,10 @@ interface EquipmentFormProps {
   calculatedMargin: { percentage: number; amount: number };
   applyCalculatedMargin: () => void;
   hideFinancialDetails?: boolean;
+  targetSalePrice?: number;
+  setTargetSalePrice?: (value: number) => void;
+  calculatedFromSalePrice?: { margin: number; monthlyPayment: number };
+  applyCalculatedFromSalePrice?: () => void;
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -39,7 +43,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   setTargetMonthlyPayment,
   calculatedMargin,
   applyCalculatedMargin,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  targetSalePrice = 0,
+  setTargetSalePrice = () => {},
+  calculatedFromSalePrice = { margin: 0, monthlyPayment: 0 },
+  applyCalculatedFromSalePrice = () => {}
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -180,6 +188,11 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               selectedLeaser={selectedLeaser}
               coefficient={coefficient}
               hideFinancialDetails={hideFinancialDetails}
+              equipmentPurchasePrice={equipment.purchasePrice}
+              targetSalePrice={targetSalePrice}
+              setTargetSalePrice={setTargetSalePrice}
+              calculatedFromSalePrice={calculatedFromSalePrice}
+              applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
             />
           </div>
         </div>

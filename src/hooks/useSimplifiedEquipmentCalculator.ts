@@ -24,8 +24,10 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   // États pour les calculs de l'équipement individuel
   const [monthlyPayment, setMonthlyPayment] = useState<number>(0);
   const [targetMonthlyPayment, setTargetMonthlyPayment] = useState<number>(0);
+  const [targetSalePrice, setTargetSalePrice] = useState<number>(0);
   const [coefficient, setCoefficient] = useState<number>(0);
   const [calculatedMargin, setCalculatedMargin] = useState({ percentage: 0, amount: 0 });
+  const [calculatedFromSalePrice, setCalculatedFromSalePrice] = useState({ margin: 0, monthlyPayment: 0 });
   
   // États pour la liste des équipements
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
@@ -129,6 +131,26 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     setCoefficient(coef);
   };
 
+  // Calcul à partir du prix de vente souhaité
+  const calculateFromSalePrice = () => {
+    if (targetSalePrice <= 0 || equipment.purchasePrice <= 0 || targetSalePrice <= equipment.purchasePrice) {
+      setCalculatedFromSalePrice({ margin: 0, monthlyPayment: 0 });
+      return;
+    }
+    
+    const marginAmount = targetSalePrice - equipment.purchasePrice;
+    const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
+    
+    // Calculer la mensualité à partir du prix de vente et du coefficient
+    const coef = coefficient > 0 ? coefficient : findCoefficientForAmount(targetSalePrice, leaser, duration);
+    const monthlyPayment = (targetSalePrice * coef) / 100;
+    
+    setCalculatedFromSalePrice({
+      margin: Number(marginPercentage.toFixed(2)),
+      monthlyPayment: monthlyPayment
+    });
+  };
+
   // Application de la marge calculée
   const applyCalculatedMargin = () => {
     if (calculatedMargin.percentage > 0) {
@@ -148,6 +170,20 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       if (targetMonthlyPayment <= 0) {
         calculateMonthlyPayment();
       }
+    }
+  };
+
+  // Application du calcul à partir du prix de vente
+  const applyCalculatedFromSalePrice = () => {
+    if (calculatedFromSalePrice.margin > 0 && calculatedFromSalePrice.monthlyPayment > 0) {
+      setEquipment(prev => ({
+        ...prev,
+        margin: calculatedFromSalePrice.margin,
+        monthlyPayment: calculatedFromSalePrice.monthlyPayment
+      }));
+      
+      // Mettre à jour la mensualité globale
+      setMonthlyPayment(calculatedFromSalePrice.monthlyPayment);
     }
   };
 
@@ -192,7 +228,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       });
       
       setTargetMonthlyPayment(0);
+      setTargetSalePrice(0);
       setCalculatedMargin({ percentage: 0, amount: 0 });
+      setCalculatedFromSalePrice({ margin: 0, monthlyPayment: 0 });
     }
   };
 
@@ -219,7 +257,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       monthlyPayment: 0,
     });
     setTargetMonthlyPayment(0);
+    setTargetSalePrice(0);
     setCalculatedMargin({ percentage: 0, amount: 0 });
+    setCalculatedFromSalePrice({ margin: 0, monthlyPayment: 0 });
   };
 
   const removeFromList = (id: string) => {
@@ -291,6 +331,12 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     }
   }, [targetMonthlyPayment, equipment.purchasePrice, leaser?.id]);
 
+  useEffect(() => {
+    if (targetSalePrice > 0 && equipment.purchasePrice > 0) {
+      calculateFromSalePrice();
+    }
+  }, [targetSalePrice, equipment.purchasePrice, coefficient]);
+
   console.log("🎯 HOOK - État final:", {
     equipmentCount: equipmentList.length,
     useGlobalAdjustment,
@@ -307,8 +353,11 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     monthlyPayment,
     targetMonthlyPayment,
     setTargetMonthlyPayment,
+    targetSalePrice,
+    setTargetSalePrice,
     coefficient,
     calculatedMargin,
+    calculatedFromSalePrice,
     
     // Liste des équipments
     equipmentList,
@@ -325,6 +374,7 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     
     // Actions
     applyCalculatedMargin,
+    applyCalculatedFromSalePrice,
     addToList,
     startEditing,
     cancelEditing,
