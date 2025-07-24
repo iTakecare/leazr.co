@@ -11,11 +11,11 @@ import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
 import SortFilter from "@/components/catalog/public/filters/SortFilter";
 import { getPublicProducts } from "@/services/catalogService";
 import { useQuery } from "@tanstack/react-query";
-import { useCompanyDetection } from "@/hooks/useCompanyDetection";
 import { usePublicProductFilter } from "@/hooks/products/usePublicProductFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useParams, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const PublicCatalogAnonymous = () => {
   const queryClient = useQueryClient();
@@ -31,26 +31,44 @@ const PublicCatalogAnonymous = () => {
     href: window.location.href
   });
 
-  // Force detection to run
-  const { 
-    companyId, 
-    isLoadingCompanyId, 
-    detectionError,
-    companySlug: detectedSlug
-  } = useCompanyDetection();
+  // Fetch company by slug directly
+  const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
+    queryKey: ['company-by-slug', companySlug],
+    queryFn: async () => {
+      if (!companySlug) return null;
+      
+      console.log('📱 PUBLIC CATALOG - Fetching company for slug:', companySlug);
+      
+      const { data, error } = await supabase
+        .rpc('get_company_by_slug', { company_slug: companySlug });
+      
+      if (error) {
+        console.error('📱 PUBLIC CATALOG - Error fetching company:', error);
+        throw error;
+      }
+      
+      console.log('📱 PUBLIC CATALOG - Company data:', data);
+      return data && data.length > 0 ? data[0] : null;
+    },
+    enabled: !!companySlug,
+  });
+
+  const companyId = company?.id;
 
   console.log('📱 PUBLIC CATALOG - Company detection result:', {
     companyId,
-    isLoadingCompanyId,
-    detectionError,
-    detectedSlug
+    isLoadingCompany,
+    companyError,
+    company: company?.name
   });
 
   // Clear potentially stale cache when component mounts or company changes
   useEffect(() => {
-    console.log('📱 PUBLIC CATALOG - Clearing stale cache for company change');
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.removeQueries({ queryKey: ['products'] });
+    if (companyId) {
+      console.log('📱 PUBLIC CATALOG - Clearing stale cache for company change');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.removeQueries({ queryKey: ['products'] });
+    }
   }, [companyId, queryClient]);
 
   // Fetch products data
@@ -73,8 +91,7 @@ const PublicCatalogAnonymous = () => {
     resultsCount
   } = usePublicProductFilter(products);
 
-  // For now, we'll get company info from the detection hook result
-  const company = detectedSlug ? { name: detectedSlug, logo_url: undefined } : null;
+  // Company info is now directly from the RPC call
 
   console.log('📱 PUBLIC CATALOG - Products data:', {
     productsCount: products?.length || 0,
@@ -97,8 +114,8 @@ const PublicCatalogAnonymous = () => {
   }, []);
 
   // Loading state
-  if (isLoadingCompanyId) {
-    console.log('📱 PUBLIC CATALOG - Showing company detection loading');
+  if (isLoadingCompany) {
+    console.log('📱 PUBLIC CATALOG - Showing company loading');
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -106,7 +123,7 @@ const PublicCatalogAnonymous = () => {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Détection de l'entreprise...</p>
+              <p className="text-muted-foreground">Chargement de l'entreprise...</p>
             </div>
           </div>
         </Container>
@@ -114,9 +131,9 @@ const PublicCatalogAnonymous = () => {
     );
   }
 
-  // Company detection error
-  if (detectionError && !companyId) {
-    console.error('📱 PUBLIC CATALOG - Company detection error:', detectionError);
+  // Company error
+  if (companyError) {
+    console.error('📱 PUBLIC CATALOG - Company error:', companyError);
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -124,9 +141,9 @@ const PublicCatalogAnonymous = () => {
           <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Erreur lors de la détection de l'entreprise. Veuillez réessayer.
+              Erreur lors du chargement de l'entreprise.
               <br />
-              <small>Erreur: {detectionError.message}</small>
+              <small>Erreur: {companyError.message}</small>
             </AlertDescription>
           </Alert>
         </Container>
@@ -135,12 +152,8 @@ const PublicCatalogAnonymous = () => {
   }
 
   // No company found
-  if (!companyId && !isLoadingCompanyId) {
-    console.error('📱 PUBLIC CATALOG - No company detected, debugging info:', {
-      companyId,
-      isLoadingCompanyId,
-      detectionError: detectionError?.message,
-      companySlug,
+  if (!company) {
+    console.error('📱 PUBLIC CATALOG - No company found for slug:', companySlug, {
       pathname: location.pathname,
       search: location.search,
       origin: window.location.origin,
@@ -153,17 +166,9 @@ const PublicCatalogAnonymous = () => {
           <Alert className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Aucune entreprise trouvée pour cette URL.
-              <br />
-              <small>Slug recherché: <strong>{companySlug || 'N/A'}</strong></small>
+              Entreprise non trouvée pour le slug: <strong>{companySlug}</strong>
               <br />
               <small className="text-xs">URL: {location.pathname}</small>
-              {detectionError && (
-                <>
-                  <br />
-                  <small className="text-red-600">Erreur: {detectionError.message}</small>
-                </>
-              )}
             </AlertDescription>
           </Alert>
         </Container>
