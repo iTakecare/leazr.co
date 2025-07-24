@@ -84,7 +84,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
     if (isAmbassador()) {
       navigate(`/ambassador/offers/${offerId}`);
     } else {
-      navigate(`/offers/${offerId}`);
+      navigate(`/admin/offers/${offerId}`);
     }
   };
 

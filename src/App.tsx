@@ -36,6 +36,7 @@ import Dashboard from "@/pages/Dashboard";
 import AdminChatPage from "@/pages/AdminChatPage";
 import Clients from "@/pages/Clients";
 import Offers from "@/pages/Offers";
+import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
@@ -108,6 +109,7 @@ function App() {
                         <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
                         <Route path="clients" element={<Layout><Clients /></Layout>} />
                         <Route path="offers" element={<Layout><Offers /></Layout>} />
+                        <Route path="offers/:id" element={<Layout><AdminOfferDetail /></Layout>} />
                         <Route path="contracts" element={<Layout><Contracts /></Layout>} />
                         <Route path="settings" element={<Layout><Settings /></Layout>} />
                         <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
