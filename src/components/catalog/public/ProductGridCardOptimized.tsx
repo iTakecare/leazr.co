@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
-import VariantIndicator from "@/components/ui/product/VariantIndicator";
+
 
 interface ProductGridCardProps {
   product: Product;
@@ -68,18 +68,13 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
     return categoryMap[product.category.toLowerCase()] || "Équipement";
   }, [product.category]);
 
-  // Simplified variant counting
-  const variantsCount = useMemo(() => {
-    return product.variants_count || (product.has_variants ? 1 : 0);
-  }, [product.variants_count, product.has_variants]);
-
-  const hasVariants = variantsCount > 0;
+  const hasVariants = product.has_variants;
   const co2Savings = getCO2Savings(product.category);
   const brandLabel = product.brand || "Generic";
   
   // Optimized pricing with minimum variant price
-  const hasMinPrice = product.min_monthly_price && product.min_monthly_price > 0;
-  const displayPrice = hasMinPrice ? product.min_monthly_price : (product.monthly_price || product.price || 0);
+  const hasMinPrice = product.min_variant_price && product.min_variant_price > 0;
+  const displayPrice = hasMinPrice ? product.min_variant_price : (product.monthly_price || product.price || 0);
   const hasPrice = displayPrice > 0;
 
   const handleImageError = () => {
@@ -133,11 +128,6 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
               {brandLabel}
             </Badge>
           )}
-          
-          <VariantIndicator 
-            hasVariants={hasVariants} 
-            variantsCount={variantsCount} 
-          />
         </div>
         
         <h3 className="font-bold text-gray-900 text-xs mb-1 truncate">{product.name}</h3>

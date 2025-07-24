@@ -25,7 +25,7 @@ export const findProductBySlugDirectly = async (companyId: string, productSlug: 
         active,
         brands(name, translation),
         categories(name, translation),
-        min_monthly_price:product_variant_prices(monthly_price).min()
+        min_variant_price:product_variant_prices(monthly_price)
       `)
       .eq("company_id", companyId)
       .eq("slug", productSlug)
@@ -49,11 +49,11 @@ export const findProductBySlugDirectly = async (companyId: string, productSlug: 
       category: data.categories?.name || data.category_name || "",
       price: data.price || 0,
       monthly_price: data.monthly_price || 0,
-      min_monthly_price: data.min_monthly_price || data.monthly_price || 0,
+      min_variant_price: Array.isArray(data.min_variant_price) ? Math.min(...data.min_variant_price.filter(p => p > 0)) : 0,
       slug: data.slug || "",
       image_url: data.image_url || "",
       images: data.imageurls || [],
-      has_variants: data.min_monthly_price ? true : false,
+      has_variants: Array.isArray(data.min_variant_price) && data.min_variant_price.some(p => p > 0),
       variants_count: 0,
       active: data.active || false,
       createdAt: new Date(),

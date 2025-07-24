@@ -25,7 +25,7 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
         active,
         brands(name, translation),
         categories(name, translation),
-        min_monthly_price:product_variant_prices(monthly_price).min()
+        min_variant_price:product_variant_prices(monthly_price)
       `)
       .eq("company_id", companyId)
       .eq("active", true)
@@ -44,12 +44,12 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       category: item.categories?.name || item.category_name || "",
       price: item.price || 0,
       monthly_price: item.monthly_price || 0,
-      min_monthly_price: item.min_monthly_price || item.monthly_price || 0,
+      min_variant_price: Array.isArray(item.min_variant_price) ? Math.min(...item.min_variant_price.filter(p => p > 0)) : 0,
       slug: item.slug || "",
       image_url: item.image_url || "",
       images: item.imageurls || [],
       co2_savings: 0, // Default value since column doesn't exist
-      has_variants: item.min_monthly_price ? true : false, // Has variants if min price exists
+      has_variants: Array.isArray(item.min_variant_price) && item.min_variant_price.some(p => p > 0),
       variants_count: 0, // Default value since column doesn't exist
       active: item.active || false,
       // Don't load variants or variant_combination_prices for performance
