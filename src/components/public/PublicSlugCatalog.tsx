@@ -7,11 +7,17 @@ import PublicCatalogAnonymous from '@/pages/PublicCatalogAnonymous';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import Container from '@/components/layout/Container';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const PublicSlugCatalog = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   
-  console.log('🏪 PUBLIC SLUG CATALOG - Component rendered with slug:', companySlug);
+  // Safari-compatible logging
+  try {
+    console.log('🏪 PUBLIC SLUG CATALOG - Slug:', companySlug || 'undefined');
+  } catch (e) {
+    // Silent fail for Safari compatibility
+  }
   
   // Reserved keywords that should not be treated as company slugs
   const reservedKeywords = ['admin', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
@@ -37,17 +43,21 @@ const PublicSlugCatalog = () => {
     queryFn: async () => {
       if (!companySlug) return null;
       
-      console.log('🏪 PUBLIC SLUG CATALOG - Fetching company for slug:', companySlug);
+      try {
+        console.log('🏪 Fetching company:', companySlug);
+      } catch (e) {}
       
       const { data, error } = await supabase
         .rpc('get_company_by_slug', { company_slug: companySlug });
       
       if (error) {
-        console.error('🏪 PUBLIC SLUG CATALOG - Error fetching company:', error);
+        console.error('🏪 Company fetch error:', error.message);
         throw error;
       }
       
-      console.log('🏪 PUBLIC SLUG CATALOG - Company data:', data);
+      try {
+        console.log('🏪 Company found:', data?.[0]?.name || 'None');
+      } catch (e) {}
       return data && data.length > 0 ? data[0] : null;
     },
     enabled: !!companySlug,
@@ -87,11 +97,9 @@ const PublicSlugCatalog = () => {
 
   // Company not found
   if (!company) {
-    console.error('🏪 PUBLIC SLUG CATALOG - Company not found for slug:', companySlug, {
-      pathname: window.location.pathname,
-      search: window.location.search,
-      origin: window.location.origin
-    });
+    try {
+      console.error('🏪 Company not found:', companySlug);
+    } catch (e) {}
     return (
       <Container>
         <Alert className="max-w-lg mx-auto mt-8">
@@ -106,10 +114,16 @@ const PublicSlugCatalog = () => {
     );
   }
 
-  console.log('🏪 PUBLIC SLUG CATALOG - Rendering PublicCatalogAnonymous with company:', company.name);
+  try {
+    console.log('🏪 Rendering catalog for:', company.name);
+  } catch (e) {}
   
   // Render the actual catalog with company context
-  return <PublicCatalogAnonymous />;
+  return (
+    <ErrorBoundary>
+      <PublicCatalogAnonymous />
+    </ErrorBoundary>
+  );
 };
 
 export default PublicSlugCatalog;

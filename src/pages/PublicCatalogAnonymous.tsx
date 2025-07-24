@@ -23,13 +23,12 @@ const PublicCatalogAnonymous = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
-  console.log('📱 PUBLIC CATALOG - Component rendered with:', {
-    companySlug,
-    pathname: location.pathname,
-    search: location.search,
-    origin: window.location.origin,
-    href: window.location.href
-  });
+  // Safari-compatible logging
+  try {
+    console.log('📱 PUBLIC CATALOG - Rendering for:', companySlug || 'undefined');
+  } catch (e) {
+    // Silent fail for Safari compatibility
+  }
 
   // Fetch company by slug directly
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
@@ -37,17 +36,21 @@ const PublicCatalogAnonymous = () => {
     queryFn: async () => {
       if (!companySlug) return null;
       
-      console.log('📱 PUBLIC CATALOG - Fetching company for slug:', companySlug);
+      try {
+        console.log('📱 Fetching company:', companySlug);
+      } catch (e) {}
       
       const { data, error } = await supabase
         .rpc('get_company_by_slug', { company_slug: companySlug });
       
       if (error) {
-        console.error('📱 PUBLIC CATALOG - Error fetching company:', error);
+        console.error('📱 Company error:', error.message);
         throw error;
       }
       
-      console.log('📱 PUBLIC CATALOG - Company data:', data);
+      try {
+        console.log('📱 Company loaded:', data?.[0]?.name || 'None');
+      } catch (e) {}
       return data && data.length > 0 ? data[0] : null;
     },
     enabled: !!companySlug,
@@ -55,12 +58,10 @@ const PublicCatalogAnonymous = () => {
 
   const companyId = company?.id;
 
-  console.log('📱 PUBLIC CATALOG - Company detection result:', {
-    companyId,
-    isLoadingCompany,
-    companyError,
-    company: company?.name
-  });
+  // Safari-compatible logging
+  try {
+    console.log('📱 Company status:', companyId ? 'Found' : 'Not found');
+  } catch (e) {}
 
   // Clear potentially stale cache when component mounts or company changes
   useEffect(() => {
@@ -93,13 +94,10 @@ const PublicCatalogAnonymous = () => {
 
   // Company info is now directly from the RPC call
 
-  console.log('📱 PUBLIC CATALOG - Products data:', {
-    productsCount: products?.length || 0,
-    filteredCount: filteredProducts?.length || 0,
-    company: company?.name,
-    isLoadingProducts,
-    productsError
-  });
+  // Safari-compatible logging
+  try {
+    console.log('📱 Products loaded:', products?.length || 0);
+  } catch (e) {}
 
   // Close mobile filter on screen resize
   useEffect(() => {
@@ -153,12 +151,9 @@ const PublicCatalogAnonymous = () => {
 
   // No company found
   if (!company) {
-    console.error('📱 PUBLIC CATALOG - No company found for slug:', companySlug, {
-      pathname: location.pathname,
-      search: location.search,
-      origin: window.location.origin,
-      href: window.location.href
-    });
+    try {
+      console.error('📱 No company found:', companySlug);
+    } catch (e) {}
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -214,7 +209,10 @@ const PublicCatalogAnonymous = () => {
     );
   }
 
-  console.log('📱 PUBLIC CATALOG - Rendering catalog with products:', filteredProducts?.length || 0);
+  // Safari-compatible logging
+  try {
+    console.log('📱 Rendering products:', filteredProducts?.length || 0);
+  } catch (e) {}
 
   return (
     <div className="min-h-screen bg-white">
