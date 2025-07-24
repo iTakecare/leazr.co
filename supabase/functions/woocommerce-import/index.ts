@@ -318,11 +318,13 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
         }
         
         // Convertir le produit WooCommerce vers notre format
+        const wooPrice = parseFloat(wooProduct.price || wooProduct.regular_price || '0');
         const productData = {
           name: wooProduct.name,
           description: wooProduct.description || wooProduct.short_description || '',
-          price: parseFloat(wooProduct.price || wooProduct.regular_price || '0'),
-          monthly_price: calculateMonthlyPrice(parseFloat(wooProduct.price || '0')),
+          price: 0, // Prix d'achat par défaut à 0
+          purchase_price: 0, // Prix d'achat par défaut à 0  
+          monthly_price: wooPrice, // Le prix WooCommerce est déjà la mensualité
           image_url: wooProduct.images?.[0]?.src || null,
           brand_name: brandName,
           category_name: categoryName,
@@ -392,12 +394,13 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
 }
 
 function formatProduct(product: WooCommerceProduct) {
+  const wooPrice = parseFloat(product.price || product.regular_price || '0');
   return {
     id: product.id,
     name: product.name,
     description: product.description || product.short_description || '',
-    price: parseFloat(product.price || product.regular_price || '0'),
-    monthly_price: calculateMonthlyPrice(parseFloat(product.price || '0')),
+    price: 0, // Prix d'achat par défaut à 0
+    monthly_price: wooPrice, // Le prix WooCommerce est déjà la mensualité
     imageUrl: product.images?.[0]?.src || null,
     brand: extractBrand(product),
     category: product.categories?.[0]?.name || 'Non catégorisé',
@@ -446,6 +449,6 @@ function formatSpecifications(attributes: Array<{ name: string; options: string[
 }
 
 function calculateMonthlyPrice(price: number): number {
-  // Calcul simple : prix / 36 mois (durée de leasing standard)
-  return Math.round((price / 36) * 100) / 100;
+  // Le prix WooCommerce est déjà la mensualité, pas besoin de diviser
+  return Math.round(price * 100) / 100;
 }
