@@ -30,11 +30,14 @@ serve(async (req) => {
 
     console.log('Starting iTakecare catalog analysis...');
 
-    // Configuration simplifiée pour Firecrawl (démarrage basique)
+    // Configuration améliorée pour extraire plus de contenu
     const scrapeConfig = {
       url: 'https://www.itakecare.be/catalogue/',
       formats: ['markdown', 'html'],
-      onlyMainContent: true,
+      onlyMainContent: false, // Récupérer plus de contenu
+      includeTags: ['img', 'h1', 'h2', 'h3', 'h4', 'p', 'div', 'span', 'a', 'ul', 'li', 'article', 'section'],
+      excludeTags: ['nav', 'footer', 'aside', 'script', 'style', 'meta'],
+      waitFor: 5000, // Attendre le chargement JavaScript
     };
 
     console.log('Making Firecrawl request with config:', JSON.stringify(scrapeConfig));
