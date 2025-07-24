@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home } from 'lucide-react';
 import PageTransition from '@/components/layout/PageTransition';
-import Logo from '@/components/layout/Logo';
+import CompanyLogo from '@/components/layout/CompanyLogo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -125,7 +125,7 @@ const Login = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center justify-center mb-6">
-            <Logo showText={false} logoSize="lg" className="scale-[3] mb-16" />
+            <CompanyLogo showText={false} logoSize="lg" className="scale-[3] mb-16" />
           </div>
           
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
