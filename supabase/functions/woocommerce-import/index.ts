@@ -11,6 +11,8 @@ interface WooCommerceProduct {
   id: number;
   name: string;
   slug: string;
+  type: string; // simple, variable, variation, etc.
+  parent_id?: number;
   description: string;
   short_description: string;
   price: string;
@@ -18,8 +20,18 @@ interface WooCommerceProduct {
   sale_price: string;
   images: Array<{ src: string; alt: string }>;
   categories: Array<{ id: number; name: string }>;
-  attributes: Array<{ id: number; name: string; options: string[] }>;
+  attributes: Array<{ id: number; name: string; options: string[]; variation?: boolean }>;
+  variations?: number[];
   meta_data: Array<{ key: string; value: any }>;
+}
+
+interface WooCommerceVariation {
+  id: number;
+  price: string;
+  regular_price: string;
+  sale_price: string;
+  attributes: Array<{ id: number; name: string; option: string }>;
+  image?: { src: string; alt: string };
 }
 
 serve(async (req) => {
@@ -279,6 +291,81 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
       return newCategory[0].id;
     };
 
+    // Fonction pour traiter les attributs et créer la structure pour variation_attributes
+    const processAttributes = (attributes: Array<{ id: number; name: string; options: string[]; variation?: boolean }>) => {
+      const productAttributes: Record<string, string> = {};
+      const variationAttributes: Record<string, string[]> = {};
+      
+      attributes.forEach(attr => {
+        if (attr.variation) {
+          // Attribut utilisé pour les variantes
+          variationAttributes[attr.name] = attr.options || [];
+        } else {
+          // Attribut standard du produit
+          productAttributes[attr.name] = attr.options?.join(', ') || '';
+        }
+      });
+
+      return { productAttributes, variationAttributes };
+    };
+
+    // Fonction pour récupérer les variantes d'un produit
+    const fetchProductVariations = async (productId: number): Promise<WooCommerceVariation[]> => {
+      try {
+        const response = await fetch(
+          `${config.site_url}/wp-json/wc/v3/products/${productId}/variations?per_page=100`,
+          {
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.warn(`Erreur récupération variantes pour produit ${productId}: ${response.status}`);
+          return [];
+        }
+
+        const variations = await response.json();
+        console.log(`WooCommerce Import: ${variations.length} variantes trouvées pour produit ${productId}`);
+        return variations;
+      } catch (error) {
+        console.error(`Erreur récupération variantes pour produit ${productId}:`, error);
+        return [];
+      }
+    };
+
+    // Fonction pour créer des prix de variantes
+    const createVariantPrices = async (productId: string, variations: WooCommerceVariation[]) => {
+      for (const variation of variations) {
+        try {
+          const attributes: Record<string, string> = {};
+          variation.attributes.forEach(attr => {
+            attributes[attr.name] = attr.option;
+          });
+
+          const price = parseFloat(variation.price || variation.regular_price || '0');
+          
+          if (price > 0) {
+            await supabaseClient
+              .from('product_variant_prices')
+              .insert({
+                product_id: productId,
+                attributes: attributes,
+                price: 0, // Prix d'achat par défaut
+                monthly_price: price,
+                stock: null
+              });
+            
+            console.log(`WooCommerce Import: Prix de variante créé pour ${JSON.stringify(attributes)}: ${price}€`);
+          }
+        } catch (error) {
+          console.error('Erreur création prix variante:', error);
+        }
+      }
+    };
+
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i];
       console.log(`WooCommerce Import: Traitement produit ${i + 1}/${productIds.length} - ID: ${productId}`);
@@ -301,7 +388,7 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
         }
 
         const wooProduct = await response.json();
-        console.log(`WooCommerce Import: Produit WC récupéré: ${wooProduct.name}`);
+        console.log(`WooCommerce Import: Produit WC récupéré: ${wooProduct.name} (Type: ${wooProduct.type})`);
         
         // Extraire marque et catégorie
         const brandName = extractBrand(wooProduct);
@@ -316,21 +403,31 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
           errors.push(`${wooProduct.name}: Erreur création marque/catégorie`);
           continue;
         }
+
+        // Traiter les attributs
+        const { productAttributes, variationAttributes } = processAttributes(wooProduct.attributes || []);
         
         // Convertir le produit WooCommerce vers notre format
         const wooPrice = parseFloat(wooProduct.price || wooProduct.regular_price || '0');
+        const isVariable = wooProduct.type === 'variable';
+        const isVariation = wooProduct.type === 'variation';
+        
         const productData = {
           name: wooProduct.name,
           description: wooProduct.description || wooProduct.short_description || '',
           price: 0, // Prix d'achat par défaut à 0
           purchase_price: 0, // Prix d'achat par défaut à 0  
-          monthly_price: wooPrice, // Le prix WooCommerce est déjà la mensualité
+          monthly_price: isVariable ? 0 : wooPrice, // Pas de prix pour les produits variables
           image_url: wooProduct.images?.[0]?.src || null,
           brand_name: brandName,
           category_name: categoryName,
           brand_id: brandId,
           category_id: categoryId,
           specifications: formatSpecifications(wooProduct.attributes),
+          attributes: productAttributes,
+          variation_attributes: Object.keys(variationAttributes).length > 0 ? variationAttributes : null,
+          is_parent: isVariable,
+          parent_id: isVariation ? wooProduct.parent_id?.toString() : null,
           company_id: companyId,
           active: true,
           woocommerce_id: wooProduct.id.toString(),
@@ -339,12 +436,13 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
 
         console.log(`WooCommerce Import: Données produit formatées:`, {
           name: productData.name,
+          type: wooProduct.type,
+          is_parent: productData.is_parent,
+          parent_id: productData.parent_id,
+          has_variation_attributes: Object.keys(variationAttributes).length > 0,
           price: productData.price,
-          company_id: productData.company_id,
-          brand_name: productData.brand_name,
-          category_name: productData.category_name,
-          brand_id: productData.brand_id,
-          category_id: productData.category_id
+          monthly_price: productData.monthly_price,
+          company_id: productData.company_id
         });
 
         // Insérer dans la base de données
@@ -361,6 +459,23 @@ async function importProducts(config: any, productIds: number[], supabaseClient:
         } else if (insertedProduct) {
           console.log(`WooCommerce Import: Produit ${productData.name} importé avec succès`);
           importedProducts.push(insertedProduct);
+
+          // Si c'est un produit variable, récupérer et traiter ses variantes
+          if (isVariable && wooProduct.variations && wooProduct.variations.length > 0) {
+            console.log(`WooCommerce Import: Traitement des variantes pour ${productData.name}`);
+            const variations = await fetchProductVariations(wooProduct.id);
+            
+            if (variations.length > 0) {
+              await createVariantPrices(insertedProduct.id, variations);
+              
+              // Mettre à jour le produit parent avec les IDs des variantes (optionnel)
+              const variantIds = variations.map(v => v.id.toString());
+              await supabaseClient
+                .from('products')
+                .update({ variants_ids: variantIds })
+                .eq('id', insertedProduct.id);
+            }
+          }
         }
       } catch (productError) {
         console.error(`WooCommerce Import: Erreur traitement produit ${productId}:`, productError);
