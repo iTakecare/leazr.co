@@ -44,7 +44,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
     { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "blue" },
     { icon: UserCheck, label: "CRM", href: "/admin/clients", color: "orange" },
     { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "red" },
-    { icon: ClipboardList, label: "Devis", href: "/admin/offers", color: "indigo" },
+    { icon: ClipboardList, label: "Offres", href: "/admin/offers", color: "indigo" },
     { icon: Calculator, label: "Factures", href: "/admin/invoicing", color: "pink" },
     { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "emerald" },
     { icon: Mail, label: "Chat Admin", href: "/admin/chat", color: "violet" },
