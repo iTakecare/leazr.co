@@ -30,31 +30,30 @@ serve(async (req) => {
 
     console.log('Starting iTakecare catalog analysis...');
 
-    // Analyser le catalogue iTakecare avec Firecrawl (optimisé pour WooCommerce)
+    // Configuration simplifiée pour Firecrawl (démarrage basique)
+    const scrapeConfig = {
+      url: 'https://www.itakecare.be/catalogue/',
+      formats: ['markdown', 'html'],
+      onlyMainContent: true,
+    };
+
+    console.log('Making Firecrawl request with config:', JSON.stringify(scrapeConfig));
+
     const crawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        url: 'https://www.itakecare.be/catalogue/',
-        formats: ['markdown', 'html'],
-        includeTags: ['img', 'h1', 'h2', 'h3', 'p', 'div', 'span', 'a'],
-        excludeTags: ['nav', 'footer', 'aside', 'script', 'style'],
-        onlyMainContent: true,
-        waitFor: 3000, // Attendre le chargement des scripts WooCommerce
-        actions: [
-          {
-            type: 'click',
-            selector: '.load-more, .show-more, button[data-load-more]'
-          }
-        ]
-      }),
+      body: JSON.stringify(scrapeConfig),
     });
 
+    console.log('Firecrawl response status:', crawlResponse.status, crawlResponse.statusText);
+
     if (!crawlResponse.ok) {
-      throw new Error(`Firecrawl API error: ${crawlResponse.statusText}`);
+      const errorText = await crawlResponse.text();
+      console.error('Firecrawl API error details:', errorText);
+      throw new Error(`Firecrawl API error: ${crawlResponse.status} ${crawlResponse.statusText} - ${errorText}`);
     }
 
     const crawlData = await crawlResponse.json();
