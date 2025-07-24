@@ -30,7 +30,7 @@ function useQuery() {
 }
 const CreateOffer = () => {
   const {
-    id
+    id: editId
   } = useParams();
   const navigate = useNavigate();
   const {
@@ -38,7 +38,10 @@ const CreateOffer = () => {
   } = useAuth();
   const query = useQuery();
   const clientIdParam = query.get("client");
-  const offerId = query.get("id");
+  const offerIdParam = query.get("offerId");
+  
+  // Priorité: URL parameter > query parameter pour l'ID d'édition
+  const offerId = editId || offerIdParam;
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
   const [leasersLoaded, setLeasersLoaded] = useState(false);
   const [clientName, setClientName] = useState('');

@@ -110,6 +110,7 @@ function App() {
                         <Route path="clients" element={<Layout><Clients /></Layout>} />
                         <Route path="offers" element={<Layout><Offers /></Layout>} />
                         <Route path="offers/:id" element={<Layout><AdminOfferDetail /></Layout>} />
+                        <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
                         <Route path="contracts" element={<Layout><Contracts /></Layout>} />
                         <Route path="settings" element={<Layout><Settings /></Layout>} />
                         <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
