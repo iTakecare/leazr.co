@@ -29,9 +29,9 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
       companyId
     });
 
-    // Générer le slug du produit
-    const productSlug = generateProductSlug(product.name, product.brand);
-    console.log('🔗 Generated product slug:', productSlug);
+    // Use pre-calculated slug with fallback
+    const productSlug = product.slug || generateProductSlug(product.name, product.brand);
+    console.log('🔗 Using product slug:', productSlug, product.slug ? '(pre-calculated)' : '(generated)');
 
     // Navigate based on context - slug-based takes priority with SEO-friendly URLs
     if (companySlug) {

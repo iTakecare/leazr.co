@@ -8,7 +8,7 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
   }
 
   try {
-    // Single optimized query without variant joins
+    // Optimized query with minimum price from variants and pre-calculated slug
     const { data, error } = await supabase
       .from("products")
       .select(`
@@ -21,9 +21,11 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
         monthly_price,
         image_url,
         imageurls,
+        slug,
         active,
         brands(name, translation),
-        categories(name, translation)
+        categories(name, translation),
+        min_monthly_price:product_variant_prices(monthly_price).min()
       `)
       .eq("company_id", companyId)
       .eq("active", true)
@@ -33,7 +35,7 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       throw error;
     }
 
-    // Simple mapping without heavy processing
+    // Simple mapping with minimum pricing and pre-calculated slug
     const mappedProducts: Product[] = (data || []).map(item => ({
       id: item.id,
       name: item.name || "",
@@ -42,10 +44,12 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       category: item.categories?.name || item.category_name || "",
       price: item.price || 0,
       monthly_price: item.monthly_price || 0,
+      min_monthly_price: item.min_monthly_price || item.monthly_price || 0,
+      slug: item.slug || "",
       image_url: item.image_url || "",
       images: item.imageurls || [],
       co2_savings: 0, // Default value since column doesn't exist
-      has_variants: false, // Default value since column doesn't exist
+      has_variants: item.min_monthly_price ? true : false, // Has variants if min price exists
       variants_count: 0, // Default value since column doesn't exist
       active: item.active || false,
       // Don't load variants or variant_combination_prices for performance

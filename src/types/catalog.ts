@@ -11,6 +11,7 @@ export interface Product {
   short_description?: string;
   price: number;
   monthly_price?: number;
+  min_monthly_price?: number;
   purchase_price?: number;
   currentPrice?: number; // Ajout de currentPrice au type Product
   imageUrl?: string;

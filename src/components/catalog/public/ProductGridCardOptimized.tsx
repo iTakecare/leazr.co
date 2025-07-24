@@ -77,8 +77,9 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
   const co2Savings = getCO2Savings(product.category);
   const brandLabel = product.brand || "Generic";
   
-  // Simplified pricing - use monthly_price or price
-  const displayPrice = product.monthly_price || product.price || 0;
+  // Optimized pricing with minimum variant price
+  const hasMinPrice = product.min_monthly_price && product.min_monthly_price > 0;
+  const displayPrice = hasMinPrice ? product.min_monthly_price : (product.monthly_price || product.price || 0);
   const hasPrice = displayPrice > 0;
 
   const handleImageError = () => {
