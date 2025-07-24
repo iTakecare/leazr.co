@@ -55,46 +55,47 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
     sum + (eq.purchasePrice * eq.quantity * eq.margin / 100), 0
   );
 
-  const totalAmount = totalPurchasePrice + totalMargin;
+  // Le montant financé est le montant total qui sera financé (prix d'achat + marge)
+  const totalFinancedAmount = totalPurchasePrice + totalMargin;
 
   // Calculate monthly payment based on coefficient and duration
-  const calculateMonthlyPayment = (amount: number, coefficient: number) => {
+  const calculateMonthlyPayment = (financedAmount: number, coefficient: number) => {
     if (!coefficient || coefficient <= 0) return 0;
-    return amount / coefficient;
+    return (financedAmount * coefficient) / 100;
   };
 
   // Update financing when values change
   useEffect(() => {
-    const monthlyPayment = calculateMonthlyPayment(totalAmount, financing.coefficient);
+    const monthlyPayment = calculateMonthlyPayment(totalFinancedAmount, financing.coefficient);
     
     updateFormData('financing', {
       ...financing,
-      totalAmount,
+      totalAmount: totalFinancedAmount, // Maintenant c'est le montant financé
       monthlyPayment,
       margin: totalMargin
     });
 
     // Update equipment monthly payments
-    const updatedEquipment = equipment.map(eq => ({
-      ...eq,
-      monthlyPayment: calculateMonthlyPayment(
-        eq.purchasePrice * eq.quantity * (1 + eq.margin / 100),
-        financing.coefficient
-      )
-    }));
+    const updatedEquipment = equipment.map(eq => {
+      const equipmentFinancedAmount = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
+      return {
+        ...eq,
+        monthlyPayment: calculateMonthlyPayment(equipmentFinancedAmount, financing.coefficient)
+      };
+    });
     
     updateFormData('equipment', updatedEquipment);
-  }, [totalAmount, financing.coefficient, financing.duration]);
+  }, [totalFinancedAmount, financing.coefficient, financing.duration]);
 
   const handleLeaserChange = (leaserId: string) => {
     const leaser = leasers.find(l => l.id === leaserId);
     setSelectedLeaser(leaser);
     
-    // Find appropriate coefficient based on amount
+    // Find appropriate coefficient based on financed amount
     let coefficient = 0;
     if (leaser?.leaser_ranges) {
       const range = leaser.leaser_ranges.find((r: any) => 
-        totalAmount >= r.min && totalAmount <= r.max
+        totalFinancedAmount >= r.min && totalFinancedAmount <= r.max
       );
       if (range) {
         coefficient = range.coefficient;
@@ -151,8 +152,8 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
                 <p className="font-medium text-green-600">+{totalMargin.toLocaleString('fr-FR')} €</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Montant total</p>
-                <p className="font-bold text-primary">{totalAmount.toLocaleString('fr-FR')} €</p>
+                <p className="text-muted-foreground">Montant financé</p>
+                <p className="font-bold text-primary">{totalFinancedAmount.toLocaleString('fr-FR')} €</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Mensualité</p>
@@ -275,7 +276,7 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
               <div className="p-4 bg-green-50 rounded-lg">
                 <h4 className="font-medium text-green-900 mb-2">Calcul Mensualité</h4>
                 <div className="text-sm text-green-800 space-y-1">
-                  <p>{totalAmount.toLocaleString('fr-FR')} € ÷ {financing.coefficient} =</p>
+                  <p>{totalFinancedAmount.toLocaleString('fr-FR')} € × {financing.coefficient}% =</p>
                   <p className="font-bold text-lg">
                     {financing.monthlyPayment.toFixed(2)} € / mois
                   </p>
