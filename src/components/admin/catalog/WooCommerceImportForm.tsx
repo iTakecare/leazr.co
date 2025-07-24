@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Loader2, CheckCircle, AlertCircle, Package } from "lucide-react";
 
 interface WooCommerceProduct {
@@ -44,6 +45,7 @@ export function WooCommerceImportForm() {
   const [importedCount, setImportedCount] = useState(0);
   
   const { toast } = useToast();
+  const { companyId, loading: companyLoading } = useMultiTenant();
 
   useEffect(() => {
     loadWooCommerceConfigs();
@@ -69,7 +71,7 @@ export function WooCommerceImportForm() {
   };
 
   const testConnection = async () => {
-    if (!selectedConfig) return;
+    if (!selectedConfig || !companyId) return;
 
     setIsTestingConnection(true);
     setConnectionStatus('idle');
@@ -79,7 +81,7 @@ export function WooCommerceImportForm() {
         body: {
           action: 'test-connection',
           configId: selectedConfig,
-          companyId: "current-company" // Sera récupéré automatiquement via RLS
+          companyId: companyId
         }
       });
 
@@ -113,7 +115,7 @@ export function WooCommerceImportForm() {
   };
 
   const fetchProducts = async () => {
-    if (!selectedConfig || connectionStatus !== 'success') return;
+    if (!selectedConfig || connectionStatus !== 'success' || !companyId) return;
 
     setIsFetchingProducts(true);
     setProducts([]);
@@ -124,7 +126,7 @@ export function WooCommerceImportForm() {
         body: {
           action: 'fetch-products',
           configId: selectedConfig,
-          companyId: "current-company" // Sera récupéré automatiquement via RLS
+          companyId: companyId
         }
       });
 
@@ -156,7 +158,7 @@ export function WooCommerceImportForm() {
   };
 
   const importSelectedProducts = async () => {
-    if (selectedProducts.size === 0) return;
+    if (selectedProducts.size === 0 || !companyId) return;
 
     setIsImporting(true);
     setImportProgress(0);
@@ -170,7 +172,7 @@ export function WooCommerceImportForm() {
           action: 'import-products',
           configId: selectedConfig,
           productIds,
-          companyId: "current-company" // Sera récupéré automatiquement via RLS
+          companyId: companyId
         }
       });
 
@@ -255,7 +257,7 @@ export function WooCommerceImportForm() {
           <div className="flex gap-2">
             <Button
               onClick={testConnection}
-              disabled={!selectedConfig || isTestingConnection}
+              disabled={!selectedConfig || isTestingConnection || companyLoading || !companyId}
               variant="outline"
             >
               {isTestingConnection && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -279,7 +281,7 @@ export function WooCommerceImportForm() {
 
           <Button
             onClick={fetchProducts}
-            disabled={connectionStatus !== 'success' || isFetchingProducts}
+            disabled={connectionStatus !== 'success' || isFetchingProducts || companyLoading || !companyId}
             className="w-full"
           >
             {isFetchingProducts && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -304,7 +306,7 @@ export function WooCommerceImportForm() {
               </Button>
               <Button 
                 onClick={importSelectedProducts}
-                disabled={selectedProducts.size === 0 || isImporting}
+                disabled={selectedProducts.size === 0 || isImporting || companyLoading || !companyId}
                 className="ml-auto"
               >
                 {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
