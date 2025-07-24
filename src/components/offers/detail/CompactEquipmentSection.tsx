@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Button } from "@/components/ui/button";
+import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 
 interface CompactEquipmentSectionProps {
   offer: any;
@@ -12,29 +13,42 @@ interface CompactEquipmentSectionProps {
 
 const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer, hideFinancialColumns = false }) => {
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  const { equipment: offerEquipment, loading } = useOfferEquipment(offer.id);
   
   let equipmentItems = [];
   
-  // Essayer de parser les équipements depuis equipment_description
-  if (offer.equipment_description) {
-    try {
-      equipmentItems = JSON.parse(offer.equipment_description);
-    } catch (e) {
-      // Si ce n'est pas du JSON, traiter comme du texte
-      equipmentItems = [{
-        title: "Équipement",
-        description: offer.equipment_description,
-        quantity: 1,
-        purchasePrice: offer.amount || 0,
-        monthlyPayment: offer.monthly_payment || 0, // Prix fixe du catalogue (pour demandes clients)
-        margin: 0
-      }];
+  // Utiliser d'abord les données du hook useOfferEquipment si disponibles
+  if (offerEquipment && offerEquipment.length > 0) {
+    equipmentItems = offerEquipment.map(item => ({
+      title: item.title,
+      quantity: item.quantity,
+      purchasePrice: item.purchase_price,
+      monthlyPayment: item.monthly_payment,
+      margin: item.margin,
+      attributes: item.attributes ? Object.fromEntries(item.attributes.map(attr => [attr.key, attr.value])) : {}
+    }));
+  } else {
+    // Fallback : essayer de parser les équipements depuis equipment_description
+    if (offer.equipment_description) {
+      try {
+        equipmentItems = JSON.parse(offer.equipment_description);
+      } catch (e) {
+        // Si ce n'est pas du JSON, traiter comme du texte
+        equipmentItems = [{
+          title: "Équipement",
+          description: offer.equipment_description,
+          quantity: 1,
+          purchasePrice: offer.amount || 0,
+          monthlyPayment: offer.monthly_payment || 0,
+          margin: 0
+        }];
+      }
     }
-  }
 
-  // Utiliser les équipements parsés depuis parsedEquipment si disponibles
-  if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
-    equipmentItems = offer.parsedEquipment;
+    // Utiliser les équipements parsés depuis parsedEquipment si disponibles
+    if (offer.parsedEquipment && offer.parsedEquipment.length > 0) {
+      equipmentItems = offer.parsedEquipment;
+    }
   }
 
   const toggleExpanded = (index: number) => {
@@ -98,11 +112,11 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
               const isExpanded = expandedItems.includes(index);
               const hasAttributes = item.attributes && Object.keys(item.attributes).length > 0;
               
-              // Calculer la marge proportionnelle pour cet équipement
-              const itemPurchasePrice = (parseFloat(item.purchasePrice) || 0) * (parseInt(item.quantity) || 1);
-              const totalPurchasePrice = calculateTotal();
-              const totalMargin = calculateTotalMargin();
-              const proportionalMargin = totalPurchasePrice > 0 ? (itemPurchasePrice / totalPurchasePrice) * totalMargin : 0;
+              // Calculer la marge réelle pour cet équipement
+              const purchasePrice = parseFloat(item.purchasePrice) || 0;
+              const quantity = parseInt(item.quantity) || 1;
+              const margin = parseFloat(item.margin) || 0;
+              const itemMargin = purchasePrice * quantity * margin / 100;
               
               return (
                 <div key={index} className="border-b last:border-b-0">
@@ -125,11 +139,11 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
                     <div className="col-span-2 text-right font-medium text-green-600">
                       {item.monthlyPayment ? formatCurrency(item.monthlyPayment) : '-'}
                     </div>
-                    {!hideFinancialColumns && (
-                      <div className="col-span-2 text-right font-medium text-purple-600">
-                        {formatCurrency(proportionalMargin)}
-                      </div>
-                    )}
+                     {!hideFinancialColumns && (
+                       <div className="col-span-2 text-right font-medium text-purple-600">
+                         {formatCurrency(itemMargin)}
+                       </div>
+                     )}
                     <div className="col-span-1 text-center">
                       {hasAttributes && (
                         <Button
