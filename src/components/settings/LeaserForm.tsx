@@ -490,7 +490,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
                     value={range.coefficient}
                     onChange={(e) => handleRangeChange(index, 'coefficient', parseFloat(e.target.value))}
                     min="0"
-                    step="0.01"
+                    step="0.001"
                     required
                   />
                 </div>

@@ -261,10 +261,10 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
                 id="coefficient"
                 type="number"
                 min="0"
-                step="0.1"
+                step="0.001"
                 value={financing.coefficient}
                 onChange={(e) => handleCoefficientChange(parseFloat(e.target.value) || 0)}
-                placeholder="36.5"
+                placeholder="36.500"
               />
               <p className="text-xs text-muted-foreground">
                 Plus le coefficient est élevé, plus la mensualité est faible

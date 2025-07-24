@@ -63,12 +63,12 @@ const LeaserDurationMatrix: React.FC<LeaserDurationMatrixProps> = ({
                   <div key={duration} className="p-2 border-r last:border-r-0">
                     <Input
                       type="number"
-                      step="0.01"
+                      step="0.001"
                       min="0"
                       value={getCoefficientForRange(range, duration)}
                       onChange={(e) => onCoefficientChange(range.id, duration, parseFloat(e.target.value) || 0)}
                       className="text-center text-sm h-8"
-                      placeholder="0.00"
+                      placeholder="0.000"
                     />
                   </div>
                 ))}
