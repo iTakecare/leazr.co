@@ -2,7 +2,7 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder } from "lucide-react";
+import { Award, Folder, Download } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import CategoryManager from "@/components/catalog/CategoryManager";
 
@@ -51,6 +51,10 @@ const CatalogManagement = () => {
             <TabsTrigger value="brands">
               <Award className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Marques" : <span>Marques</span>}
+            </TabsTrigger>
+            <TabsTrigger value="import" onClick={() => navigate("/admin/catalog/import")}>
+              <Download className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Import" : <span>Import</span>}
             </TabsTrigger>
           </TabsList>
           
