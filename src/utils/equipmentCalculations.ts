@@ -84,8 +84,10 @@ export const calculateEquipmentResults = (
     ? (normalMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 3. Calculer le montant financé total avec les marges individuelles
-  const totalFinancedAmountIndividual = totalPurchasePrice + normalMarginAmount;
+  // 3. Calculer le montant financé total (somme des montants financés individuels)
+  const totalFinancedAmountIndividual = equipmentList.reduce((sum, equipment) => {
+    return sum + calculateFinancedAmountForEquipment(equipment);
+  }, 0);
 
   // 4. Calculer la mensualité normale (somme des mensualités individuelles)
   const normalMonthlyPayment = equipmentList.reduce((sum, equipment) => {
