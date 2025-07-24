@@ -126,60 +126,40 @@ export const getProductById = async (productId: string): Promise<Product | null>
   return mappedProduct as Product;
 };
 
-export const getPublicProducts = async (companyId?: string) => {
-  console.log("📦 getPublicProducts - Démarrage", companyId ? `pour company ${companyId}` : "");
-  
-  let query = supabase
-    .from("products")
-    .select(`
-      *,
-      brands!inner(id, name, translation),
-      categories!inner(id, name, translation),
-      product_variant_prices!left(
-        id,
-        attributes,
-        price,
-        monthly_price,
-        stock
-      )
-    `)
-    .eq("active", true)
-    .eq("admin_only", false)
-    .order("created_at", { ascending: false });
+export const getPublicProducts = async (companyId: string): Promise<Product[]> => {
+  console.log('🏪 CATALOG SERVICE - Getting public products for company:', companyId);
 
-  if (companyId) {
-    query = query.eq("company_id", companyId);
+  if (!companyId) {
+    console.error('🏪 CATALOG SERVICE - No company ID provided');
+    throw new Error("Company ID is required for public products");
   }
 
-  const { data, error } = await query;
+  try {
+    // Utiliser la fonction RPC sécurisée pour contourner les problèmes RLS
+    const { data, error } = await supabase
+      .rpc('get_public_products_by_company', { 
+        p_company_id: companyId 
+      });
 
-  if (error) {
-    console.error("📦 getPublicProducts - Erreur:", error);
+    if (error) {
+      console.error('🏪 CATALOG SERVICE - Error fetching public products:', error);
+      throw error;
+    }
+
+    console.log('🏪 CATALOG SERVICE - Raw products data:', data);
+
+    if (!data || data.length === 0) {
+      console.log('🏪 CATALOG SERVICE - No products found for company:', companyId);
+      return [];
+    }
+
+    console.log('🏪 CATALOG SERVICE - Products found:', data.length);
+    return data;
+
+  } catch (error) {
+    console.error('🏪 CATALOG SERVICE - Error in getPublicProducts:', error);
     throw error;
   }
-
-  console.log("📦 getPublicProducts - Données brutes:", data?.length, "produits");
-
-  // Mapper les données pour utiliser les bons noms de marques et catégories
-  const mappedProducts = data?.map(product => {
-    // Traiter les variant_combination_prices
-    const variantPrices = product.product_variant_prices || [];
-    console.log(`📦 Public Product ${product.name} - Variant prices:`, variantPrices.length);
-    
-    return {
-      ...product,
-      brand: product.brands?.name || product.brand || '',
-      category: product.categories?.name || product.category || '',
-      brand_id: product.brand_id,
-      category_id: product.category_id,
-      variant_combination_prices: variantPrices,
-      createdAt: product.created_at || new Date(),
-      updatedAt: product.updated_at || new Date()
-    };
-  }) || [];
-
-  console.log("📦 getPublicProducts - Produits mappés:", mappedProducts.length);
-  return mappedProducts as Product[];
 };
 
 export const getBrands = async () => {

@@ -4849,6 +4849,29 @@ export type Database = {
           accent_color: string
         }[]
       }
+      get_public_products_by_company: {
+        Args: { p_company_id: string }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          price: number
+          stock_quantity: number
+          category: string
+          brand: string
+          brand_translation: string
+          category_translation: string
+          image_url: string
+          sku: string
+          weight: number
+          dimensions: string
+          warranty_period: string
+          in_stock: boolean
+          company_id: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_related_blog_posts: {
         Args: { post_id: string; limit_count?: number }
         Returns: {
