@@ -59,8 +59,8 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
  * Calculate financed amount consistently
  */
 export const getFinancedAmount = (offer: OfferFinancialData): number => {
-  // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
-  return offer.amount || 0;
+  // Utiliser offer.financed_amount en priorité, puis offer.amount comme fallback
+  return offer.financed_amount || offer.amount || 0;
 };
 
 /**
@@ -68,13 +68,14 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
  * Uses the exact same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
  */
 export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
+  console.log("🔍 calculateOfferMargin - offer.financed_amount:", offer.financed_amount);
   console.log("🔍 calculateOfferMargin - offer.amount:", offer.amount);
   console.log("🔍 calculateOfferMargin - equipmentItems:", equipmentItems);
   
   const totals = calculateEquipmentTotals(offer, equipmentItems);
   console.log("🔍 calculateOfferMargin - totals:", totals);
   
-  // Utiliser offer.amount comme montant financé (comme dans FinancialSection)
+  // Utiliser offer.financed_amount en priorité pour le calcul de marge
   const financedAmount = getFinancedAmount(offer);
   console.log("🔍 calculateOfferMargin - financedAmount:", financedAmount);
 

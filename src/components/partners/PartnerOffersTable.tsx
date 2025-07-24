@@ -63,20 +63,32 @@ const PartnerOffersTable = () => {
         
         // Si le montant financé n'est pas défini ou est à 0, mais que nous avons un coefficient et une mensualité
         if ((!financedAmount || financedAmount === 0) && offer.coefficient && offer.monthly_payment) {
-          financedAmount = parseFloat((Number(offer.monthly_payment) * Number(offer.coefficient)).toFixed(2));
+          financedAmount = calculateFinancedAmount(
+            Number(offer.monthly_payment), 
+            Number(offer.coefficient)
+          );
         }
 
-        // Calculer la marge si elle n'est pas définie mais que nous avons le montant et le montant financé
-        let marginAmount = offer.margin;
-        if ((!marginAmount || marginAmount === 0) && offer.amount && financedAmount) {
-          const margin = (offer.amount - financedAmount) / offer.amount;
-          marginAmount = parseFloat((margin * 100).toFixed(2));
+        // Calculer la marge si nécessaire en utilisant le financed_amount corrigé
+        if (offer.equipment_description) {
+          try {
+            const equipmentData = JSON.parse(offer.equipment_description);
+            if (Array.isArray(equipmentData)) {
+              const totalPurchasePrice = equipmentData.reduce((sum: number, item: any) => {
+                return sum + (Number(item.purchasePrice || item.purchase_price || 0) * Number(item.quantity || 1));
+              }, 0);
+              offer.totalPurchasePrice = totalPurchasePrice;
+              // Utiliser financed_amount pour le calcul de marge
+              offer.margin = (financedAmount || 0) - totalPurchasePrice;
+            }
+          } catch (e) {
+            console.warn("Could not parse equipment_description");
+          }
         }
         
         return {
           ...offer,
-          financed_amount: financedAmount,
-          margin: marginAmount
+          financed_amount: financedAmount
         };
       });
       
@@ -181,7 +193,7 @@ const PartnerOffersTable = () => {
                     {offer.equipment_description?.length > 30 ? '...' : ''}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(offer.financed_amount)}
+                    {formatCurrency(offer.financed_amount || 0)}
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(offer.monthly_payment)}
