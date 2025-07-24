@@ -96,6 +96,10 @@ function App() {
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                       
                       {/* System routes with explicit paths - these MUST come first */}
+                      
+                      {/* Explicit create-offer route to prevent slug interception */}
+                      <Route path="/create-offer" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
+                      
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
