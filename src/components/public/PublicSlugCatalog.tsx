@@ -87,13 +87,19 @@ const PublicSlugCatalog = () => {
 
   // Company not found
   if (!company) {
-    console.warn('🏪 PUBLIC SLUG CATALOG - Company not found for slug:', companySlug);
+    console.error('🏪 PUBLIC SLUG CATALOG - Company not found for slug:', companySlug, {
+      pathname: window.location.pathname,
+      search: window.location.search,
+      origin: window.location.origin
+    });
     return (
       <Container>
         <Alert className="max-w-lg mx-auto mt-8">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Entreprise non trouvée pour le slug: {companySlug}
+            Entreprise non trouvée pour le slug: <strong>{companySlug}</strong>
+            <br />
+            <small className="text-xs">URL: {window.location.pathname}</small>
           </AlertDescription>
         </Alert>
       </Container>

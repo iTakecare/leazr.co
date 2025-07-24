@@ -136,7 +136,16 @@ const PublicCatalogAnonymous = () => {
 
   // No company found
   if (!companyId && !isLoadingCompanyId) {
-    console.warn('📱 PUBLIC CATALOG - No company detected');
+    console.error('📱 PUBLIC CATALOG - No company detected, debugging info:', {
+      companyId,
+      isLoadingCompanyId,
+      detectionError: detectionError?.message,
+      companySlug,
+      pathname: location.pathname,
+      search: location.search,
+      origin: window.location.origin,
+      href: window.location.href
+    });
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader />
@@ -146,7 +155,15 @@ const PublicCatalogAnonymous = () => {
             <AlertDescription>
               Aucune entreprise trouvée pour cette URL.
               <br />
-              <small>Slug recherché: {companySlug || 'N/A'}</small>
+              <small>Slug recherché: <strong>{companySlug || 'N/A'}</strong></small>
+              <br />
+              <small className="text-xs">URL: {location.pathname}</small>
+              {detectionError && (
+                <>
+                  <br />
+                  <small className="text-red-600">Erreur: {detectionError.message}</small>
+                </>
+              )}
             </AlertDescription>
           </Alert>
         </Container>

@@ -22,7 +22,8 @@ export const useCompanyDetection = () => {
     companyParam,
     companySlugParam,
     pathname: location.pathname,
-    origin: window.location.origin
+    origin: window.location.origin,
+    url: window.location.href
   });
   
   const resolveCompanyId = async (): Promise<string | null> => {
@@ -68,7 +69,9 @@ export const useCompanyDetection = () => {
           });
           return slugData[0].id;
         } else {
-          console.log('⚠️ COMPANY DETECTION - No company found for slug:', companySlug);
+          console.error('❌ COMPANY DETECTION - No company found for slug:', companySlug);
+          console.log('🔍 COMPANY DETECTION - Available data:', slugData);
+          return null;
         }
       } catch (error) {
         console.error('❌ COMPANY DETECTION - Error in slug lookup:', error);
