@@ -42,6 +42,7 @@ import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
+import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 
 // Ambassador management pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -102,6 +103,7 @@ function App() {
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+                        <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
                         <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
                         <Route path="clients" element={<Layout><Clients /></Layout>} />
                         <Route path="offers" element={<Layout><Offers /></Layout>} />
