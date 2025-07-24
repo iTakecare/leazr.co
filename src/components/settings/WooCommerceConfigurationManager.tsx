@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, TestTube, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, TestTube, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { diagnoseAuthSession, fixAuthTransmission } from '@/utils/authDiagnostic';
 
 interface WooCommerceConfig {
   id: string;
@@ -44,22 +45,19 @@ const WooCommerceConfigurationManager = () => {
     try {
       console.log('🔬 DIAGNOSTIC AUTH - Début du chargement des configurations WooCommerce...');
       
-      // Diagnostiquer l'authentification
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔬 Session actuelle:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userEmail: session?.user?.email,
-        userId: session?.user?.id,
-        sessionError: sessionError?.message
-      });
+      // Exécuter un diagnostic complet de l'authentification
+      const diagnostic = await diagnoseAuthSession();
+      console.log('🔬 Résultat diagnostic complet:', diagnostic);
 
-      // Test de la fonction get_user_company_id
-      try {
-        const { data: companyTest, error: companyError } = await supabase.rpc('get_user_company_id');
-        console.log('🔬 Test get_user_company_id():', { companyTest, companyError: companyError?.message });
-      } catch (err) {
-        console.log('🔬 Erreur get_user_company_id():', err);
+      // Si diagnostic échoue, essayer de corriger
+      if (!diagnostic.success) {
+        console.log('🔧 Tentative de correction automatique...');
+        const fixResult = await fixAuthTransmission();
+        console.log('🔧 Résultat correction:', fixResult);
+        
+        if (!fixResult.success) {
+          throw new Error('Problème d\'authentification détecté: ' + (fixResult.error || 'Token invalide'));
+        }
       }
 
       // Charger les configurations
@@ -70,6 +68,25 @@ const WooCommerceConfigurationManager = () => {
 
       if (error) {
         console.error('🔬 Erreur Supabase lors du chargement:', error);
+        
+        // Si l'erreur est liée à RLS, essayer de diagnostiquer plus en détail
+        if (error.message?.includes('RLS') || error.message?.includes('policy')) {
+          console.log('🔧 Erreur RLS détectée - tentative de correction...');
+          const fixResult = await fixAuthTransmission();
+          if (fixResult.success) {
+            // Re-essayer la requête après correction
+            const { data: retryData, error: retryError } = await supabase
+              .from('woocommerce_configs')
+              .select('*')
+              .order('created_at', { ascending: false });
+              
+            if (!retryError) {
+              setConfigs(retryData || []);
+              return;
+            }
+          }
+        }
+        
         throw error;
       }
       
