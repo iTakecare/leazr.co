@@ -55,8 +55,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
   };
   const totals = calculateEquipmentTotals();
   
-  // Utiliser offer.amount comme montant financé (10639,44€) au lieu de offer.financed_amount
-  const financedAmount = offer.amount || 0;
+  // Utiliser le vrai montant financé
+  const financedAmount = offer.financed_amount || 0;
 
   // Calculer la marge directement : montant financé - prix d'achat total
   const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;

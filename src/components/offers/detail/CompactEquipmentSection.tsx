@@ -62,11 +62,11 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
     return Math.round(total * 100) / 100; // Arrondir correctement
   };
 
-  // Calculer la marge totale réelle : financed_amount - amount
+  // Calculer la marge totale réelle : financed_amount - total prix d'achat
   const calculateTotalMargin = () => {
     const financedAmount = offer.financed_amount || 0;
-    const purchaseAmount = offer.amount || 0;
-    return financedAmount - purchaseAmount;
+    const totalPurchasePrice = calculateTotal();
+    return financedAmount - totalPurchasePrice;
   };
 
   return (
