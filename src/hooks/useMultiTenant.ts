@@ -1,20 +1,32 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { getCurrentUserCompanyId, hasCompanyAccess, multiTenantServices } from '@/services/multiTenantService';
+import { isSystemRoute } from '@/utils/routeDetection';
 
 /**
  * Hook pour faciliter l'utilisation de l'architecture multi-tenant
  */
 export const useMultiTenant = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  
+  // Don't execute on system routes
+  const shouldExecute = !isSystemRoute(location.pathname);
 
   useEffect(() => {
-    // Éviter les re-exécutions inutiles
+    // Don't execute on system routes like homepage
+    if (!shouldExecute) {
+      setLoading(false);
+      return;
+    }
+    
+    // Avoid unnecessary re-executions
     if (fetchingRef.current || lastUserIdRef.current === user?.id) {
       return;
     }
@@ -46,7 +58,7 @@ export const useMultiTenant = () => {
     };
 
     fetchCompanyId();
-  }, [user?.id]); // Utiliser seulement user.id comme dépendance
+  }, [user?.id, shouldExecute]);
 
   // Mémoriser les valeurs de retour pour éviter les re-rendus
   const returnValue = useMemo(() => ({

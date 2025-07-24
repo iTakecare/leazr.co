@@ -1,7 +1,9 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 import CompanyCustomizationService, { CompanyBranding } from '@/services/companyCustomizationService';
+import { isSystemRoute } from '@/utils/routeDetection';
 
 interface CompanyBrandingContextType {
   branding: CompanyBranding | null;
@@ -25,11 +27,15 @@ interface CompanyBrandingProviderProps {
 }
 
 export const CompanyBrandingProvider = ({ children }: CompanyBrandingProviderProps) => {
+  const location = useLocation();
   const { companyId, loading: companyLoading } = useMultiTenant();
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
   const lastCompanyIdRef = useRef<string | null>(null);
+  
+  // Don't load branding on system routes
+  const shouldLoadBranding = !isSystemRoute(location.pathname);
 
   const fetchBranding = useCallback(async () => {
     if (!companyId || fetchingRef.current || lastCompanyIdRef.current === companyId) {
@@ -82,10 +88,16 @@ export const CompanyBrandingProvider = ({ children }: CompanyBrandingProviderPro
   };
 
   useEffect(() => {
+    // Don't fetch branding on system routes like homepage
+    if (!shouldLoadBranding) {
+      setLoading(false);
+      return;
+    }
+    
     if (!companyLoading) {
       fetchBranding();
     }
-  }, [companyLoading, fetchBranding]);
+  }, [companyLoading, fetchBranding, shouldLoadBranding]);
 
   const value = {
     branding,

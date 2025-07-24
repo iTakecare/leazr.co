@@ -6,8 +6,8 @@ interface NavigationHistory {
   timestamp: number;
 }
 
-const NAVIGATION_THRESHOLD = 10; // Max navigations per 5 seconds
-const TIME_WINDOW = 5000; // 5 seconds
+const NAVIGATION_THRESHOLD = 5; // Reduced threshold for Safari
+const TIME_WINDOW = 10000; // Increased window to 10 seconds
 
 /**
  * Hook sécurisé pour la navigation qui prévient les boucles infinies dans Safari
@@ -30,13 +30,17 @@ export const useSafeNavigate = () => {
     );
     
     if (recentNavigations.length >= NAVIGATION_THRESHOLD) {
-      console.warn('🛡️ SAFE NAVIGATE - Navigation throttled to prevent infinite loop');
+      console.warn('🛡️ SAFE NAVIGATE - Navigation throttled to prevent Safari infinite loop');
+      // Force a longer delay on Safari to break the loop
+      setTimeout(() => {
+        navigate(to, options);
+      }, 2000);
       return;
     }
     
-    // Vérifier si c'est la même URL que la dernière navigation
+    // Check for duplicate navigation with stricter timing
     const lastNavigation = navigationHistory.current[navigationHistory.current.length - 1];
-    if (lastNavigation && lastNavigation.url === to && (now - lastNavigation.timestamp) < 1000) {
+    if (lastNavigation && lastNavigation.url === to && (now - lastNavigation.timestamp) < 2000) {
       console.warn('🛡️ SAFE NAVIGATE - Duplicate navigation prevented:', to);
       return;
     }
@@ -44,7 +48,10 @@ export const useSafeNavigate = () => {
     // Ajouter à l'historique
     navigationHistory.current.push({ url: to, timestamp: now });
     
-    console.log('🛡️ SAFE NAVIGATE - Navigating to:', to);
+    // Reduced logging for homepage
+    if (to !== '/') {
+      console.log('🛡️ SAFE NAVIGATE - Navigating to:', to);
+    }
     navigate(to, options);
   }, [navigate]);
   

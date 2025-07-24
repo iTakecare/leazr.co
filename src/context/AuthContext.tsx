@@ -277,33 +277,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
               
-              // Utiliser un timeout pour éviter les blocages
-              setTimeout(async () => {
+              // No timeout on homepage to prevent Safari loops
+              if (window.location.pathname === '/') {
                 try {
-                  console.log("🔄 AUTH EVENT - Début enrichissement avec timeout");
                   const enrichedUser = await enrichUserData(newSession.user);
-                  
-                  // NETTOYAGE AUTOMATIQUE DÉSACTIVÉ
-                  // Pour éviter la suppression accidentelle des données iTakecare
-                  // Le nettoyage automatique a été désactivé pour protéger les données
-                  console.log("🧹 CLEANING - Nettoyage automatique désactivé pour protéger les données iTakecare");
-                  
                   if (isMounted) {
-                    console.log("🔄 AUTH EVENT - Utilisateur défini:", enrichedUser.email);
                     setUser(enrichedUser);
-                    console.log("🔄 AUTH EVENT - setIsLoading(false) appelé");
                     setIsLoading(false);
                   }
                 } catch (error) {
-                  console.error('🔄 AUTH EVENT - Erreur lors de l\'enrichissement:', error);
                   if (isMounted) {
-                    console.log("🔄 AUTH EVENT - Erreur: utilisation de l'utilisateur de base");
                     setUser(newSession.user as ExtendedUser);
-                    console.log("🔄 AUTH EVENT - setIsLoading(false) appelé après erreur");
                     setIsLoading(false);
                   }
                 }
-              }, 100);
+              } else {
+                // Keep timeout for other pages
+                setTimeout(async () => {
+                  try {
+                    const enrichedUser = await enrichUserData(newSession.user);
+                    if (isMounted) {
+                      setUser(enrichedUser);
+                      setIsLoading(false);
+                    }
+                  } catch (error) {
+                    if (isMounted) {
+                      setUser(newSession.user as ExtendedUser);
+                      setIsLoading(false);
+                    }
+                  }
+                }, 50); // Reduced timeout
+              }
             }
           }
         );
@@ -327,25 +331,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log("🚀 AUTH CONTEXT - Session existante trouvée pour:", currentSession.user.email);
           setSession(currentSession);
           
-          // Utiliser un timeout pour éviter les blocages
-          setTimeout(async () => {
+          // No timeout on homepage to prevent Safari loops
+          if (window.location.pathname === '/') {
             try {
-              console.log("🚀 AUTH CONTEXT - Début enrichissement session existante avec timeout");
               const enrichedUser = await enrichUserData(currentSession.user);
               if (isMounted) {
                 setUser(enrichedUser);
-                console.log("🚀 AUTH CONTEXT - Session existante: setIsLoading(false)");
                 setIsLoading(false);
               }
             } catch (error) {
-              console.error('🚀 AUTH CONTEXT - Erreur lors de l\'enrichissement initial:', error);
               if (isMounted) {
                 setUser(currentSession.user as ExtendedUser);
-                console.log("🚀 AUTH CONTEXT - Erreur session existante: setIsLoading(false)");
                 setIsLoading(false);
               }
             }
-          }, 100);
+          } else {
+            // Keep timeout for other pages
+            setTimeout(async () => {
+              try {
+                const enrichedUser = await enrichUserData(currentSession.user);
+                if (isMounted) {
+                  setUser(enrichedUser);
+                  setIsLoading(false);
+                }
+              } catch (error) {
+                if (isMounted) {
+                  setUser(currentSession.user as ExtendedUser);
+                  setIsLoading(false);
+                }
+              }
+            }, 50); // Reduced timeout
+          }
         } else if (isMounted) {
           console.log("🚀 AUTH CONTEXT - Aucune session existante: setIsLoading(false)");
           setIsLoading(false);
@@ -372,11 +388,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Auto-refresh subscription
+  // Auto-refresh subscription - disabled on homepage to prevent Safari loops
   useEffect(() => {
-    if (!session) return;
+    if (!session || window.location.pathname === '/') return;
 
-    const interval = setInterval(checkSubscription, 10000);
+    const interval = setInterval(checkSubscription, 30000); // Increased to 30s
     return () => clearInterval(interval);
   }, [session]);
 
@@ -396,13 +412,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAmbassador,
   };
 
-  console.log("🎯 AUTH CONTEXT RENDER - État actuel:", {
-    hasUser: !!user,
-    hasSession: !!session,
-    isLoading,
-    userEmail: user?.email,
-    userRole: user?.role
-  });
+  // Reduced logging on homepage
+  if (window.location.pathname !== '/') {
+    console.log("🎯 AUTH CONTEXT RENDER - État actuel:", {
+      hasUser: !!user,
+      hasSession: !!session,
+      isLoading,
+      userEmail: user?.email,
+      userRole: user?.role
+    });
+  }
 
   return (
     <AuthContext.Provider value={value}>
