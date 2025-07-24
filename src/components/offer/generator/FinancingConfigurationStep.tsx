@@ -9,6 +9,7 @@ import { Calculator, CreditCard, TrendingUp, Info } from 'lucide-react';
 import { OfferFormData } from '@/hooks/useCustomOfferGenerator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import FinancialSummary from '@/components/offer/FinancialSummary';
 
 interface FinancingConfigurationStepProps {
   formData: OfferFormData;
@@ -124,6 +125,7 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
   };
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -321,6 +323,22 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
         )}
       </CardContent>
     </Card>
+
+    {/* Récapitulatif financier */}
+    {totalFinancedAmount > 0 && financing.monthlyPayment > 0 && (
+      <FinancialSummary 
+        offerData={{
+          totalPurchasePrice,
+          totalFinancedAmount,
+          totalMargin,
+          monthlyPayment: financing.monthlyPayment,
+          coefficient: financing.coefficient
+        }}
+        useGlobalAdjustment={false}
+        onToggleAdjustment={() => {}}
+      />
+     )}
+   </div>
   );
 };
 
