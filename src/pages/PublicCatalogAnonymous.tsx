@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
@@ -63,12 +63,13 @@ const PublicCatalogAnonymous = () => {
     console.log('📱 Company status:', companyId ? 'Found' : 'Not found');
   } catch (e) {}
 
-  // Clear potentially stale cache when component mounts or company changes
+  // Clear stale product data when company changes (optimized for Safari)
+  const prevCompanyId = useRef<string | null>(null);
   useEffect(() => {
-    if (companyId) {
-      console.log('📱 PUBLIC CATALOG - Clearing stale cache for company change');
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.removeQueries({ queryKey: ['products'] });
+    if (companyId && companyId !== prevCompanyId.current) {
+      // Only invalidate if company actually changed
+      queryClient.removeQueries({ queryKey: ['products'], exact: false });
+      prevCompanyId.current = companyId;
     }
   }, [companyId, queryClient]);
 

@@ -16,15 +16,14 @@ export const useCompanyDetection = () => {
   const companyParam = searchParams.get('company');
   const companySlugParam = searchParams.get('slug');
   
-  console.log('🔍 COMPANY DETECTION - Hook triggered with:', {
-    urlCompanyId,
-    companySlug,
-    companyParam,
-    companySlugParam,
-    pathname: location.pathname,
-    origin: window.location.origin,
-    url: window.location.href
-  });
+  // Simplified logging for Safari compatibility
+  if (urlCompanyId || companySlug || companyParam || companySlugParam) {
+    try {
+      console.log('🔍 COMPANY DETECTION - Hook triggered with params:', urlCompanyId || companySlug || companyParam || companySlugParam);
+    } catch (e) {
+      // Safari console.log fallback
+    }
+  }
   
   const resolveCompanyId = async (): Promise<string | null> => {
     console.log('🔍 COMPANY DETECTION - Starting detection', {
@@ -141,25 +140,26 @@ export const useCompanyDetection = () => {
     return null;
   };
 
-  // Force the query to run even when parameters are null by making the key more dynamic
-  const shouldRun = Boolean(urlCompanyId || companySlug || companyParam || companySlugParam || location.pathname.includes('/'));
+  // Simplified query key to avoid excessive re-renders
+  const shouldRun = Boolean(urlCompanyId || companySlug || companyParam || companySlugParam);
   
   const { data: companyId, isLoading: isLoadingCompanyId, error: detectionError } = useQuery({
-    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam, location.pathname, window.location.origin],
+    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam],
     queryFn: resolveCompanyId,
     enabled: shouldRun,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-    retryDelay: 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes - increased to reduce re-fetching
+    retry: 1, // Reduced retries for Safari
+    retryDelay: 2000,
   });
 
-  console.log('🔍 COMPANY DETECTION - Final result:', {
-    companyId,
-    isLoadingCompanyId,
-    detectionError,
-    companySlug,
-    shouldRun
-  });
+  // Simplified final logging for Safari
+  if (companyId) {
+    try {
+      console.log('✅ COMPANY DETECTION - Found company:', companyId);
+    } catch (e) {
+      // Safari console.log fallback
+    }
+  }
 
   return {
     companyId,
