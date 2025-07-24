@@ -81,9 +81,7 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
                     </span>
                     <div className="flex-1 overflow-hidden">
                       <div className="font-medium text-sm text-slate-800 truncate">
-                        {offer.equipment_data && offer.equipment_data.length > 0 && offer.equipment_data[0]?.title 
-                          ? offer.equipment_data[0].title 
-                          : 'Offre de financement'}
+                        Offre #{offer.id.substring(0, 8).toUpperCase()}
                       </div>
                       <div className="text-xs text-slate-500 truncate mt-1">
                         {offer.workflow_status === 'approved' || offer.signature_data
