@@ -26,8 +26,25 @@ const LeazrSaaSDashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est autorisé
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  // Liste des utilisateurs autorisés à accéder au dashboard SaaS
+  const authorizedUsers = ["ecommerce@itakecare.be"];
+  const isLeazrSaaSAdmin = user?.email && authorizedUsers.includes(user.email) || user?.role === "admin";
+  
+  console.log('🔐 SAAS DASHBOARD - User check:', {
+    email: user?.email,
+    role: user?.role,
+    isAuthorized: isLeazrSaaSAdmin,
+    authLoading,
+    hasUser: !!user
+  });
+
+  // Navigation pour les utilisateurs non autorisés
+  useEffect(() => {
+    if (user && !isLeazrSaaSAdmin && !authLoading) {
+      console.log('🚫 SAAS DASHBOARD - Redirecting unauthorized user to dashboard');
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isLeazrSaaSAdmin, authLoading, navigate]);
   
   // Récupérer les vraies données SaaS
   const { metrics: dashboardData, loading: dataLoading } = useSaaSData();
@@ -51,8 +68,19 @@ const LeazrSaaSDashboard = () => {
 
   // Si l'utilisateur n'est pas autorisé après authentification
   if (user && !isLeazrSaaSAdmin) {
-    navigate("/dashboard");
-    return null;
+    console.log('🚫 SAAS DASHBOARD - Access denied, redirecting to dashboard');
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Accès non autorisé, redirection en cours...</p>
+            </div>
+          </div>
+        </Container>
+      </PageTransition>
+    );
   }
 
   const containerVariants = {
