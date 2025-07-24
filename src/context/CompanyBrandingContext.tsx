@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 import CompanyCustomizationService, { CompanyBranding } from '@/services/companyCustomizationService';
 
@@ -28,37 +28,33 @@ export const CompanyBrandingProvider = ({ children }: CompanyBrandingProviderPro
   const { companyId, loading: companyLoading } = useMultiTenant();
   const [branding, setBranding] = useState<CompanyBranding | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingRef = useRef(false);
+  const lastCompanyIdRef = useRef<string | null>(null);
 
-  const fetchBranding = async () => {
-    console.log("🏢 COMPANY BRANDING - Début fetchBranding, companyId:", companyId);
-    
-    if (!companyId) {
-      console.log("🏢 COMPANY BRANDING - Pas de companyId, arrêt");
+  const fetchBranding = useCallback(async () => {
+    if (!companyId || fetchingRef.current || lastCompanyIdRef.current === companyId) {
       setLoading(false);
       return;
     }
     
+    fetchingRef.current = true;
+    lastCompanyIdRef.current = companyId;
+    
     try {
       setLoading(true);
-      console.log("🏢 COMPANY BRANDING - Appel getCompanyBranding pour:", companyId);
-      
       const brandingData = await CompanyCustomizationService.getCompanyBranding(companyId);
-      console.log("🏢 COMPANY BRANDING - Données reçues:", brandingData);
-      
       setBranding(brandingData);
       
-      // Appliquer automatiquement le branding si disponible
       if (brandingData) {
-        console.log("🏢 COMPANY BRANDING - Application du branding");
         CompanyCustomizationService.applyCompanyBranding(brandingData);
       }
     } catch (error) {
-      console.error('🏢 COMPANY BRANDING - Erreur lors de la récupération:', error);
+      console.error('🏢 COMPANY BRANDING - Erreur:', error);
     } finally {
-      console.log("🏢 COMPANY BRANDING - Fin de fetchBranding, setLoading(false)");
       setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, [companyId]);
 
   const updateBranding = async (newBranding: Partial<CompanyBranding>) => {
     if (!companyId) return;
@@ -86,17 +82,10 @@ export const CompanyBrandingProvider = ({ children }: CompanyBrandingProviderPro
   };
 
   useEffect(() => {
-    console.log("🏢 COMPANY BRANDING - useEffect déclenché, companyLoading:", companyLoading, "companyId:", companyId);
-    
-    if (!companyLoading && companyId) {
+    if (!companyLoading) {
       fetchBranding();
-    } else if (!companyLoading && !companyId) {
-      console.log("🏢 COMPANY BRANDING - Pas de companyId après chargement, setLoading(false)");
-      setLoading(false);
     }
-  }, [companyId, companyLoading]);
-
-  console.log("🏢 COMPANY BRANDING - Rendu du provider, loading:", loading, "branding:", !!branding);
+  }, [companyLoading, fetchBranding]);
 
   const value = {
     branding,

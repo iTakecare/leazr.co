@@ -98,11 +98,7 @@ function App() {
                       {/* Client offer signing route - needs access to providers */}
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
                       
-                      {/* System routes with explicit paths - these MUST come first */}
-                      
-                      {/* Explicit create-offer route for ambassadors */}
-                      <Route path="/create-offer/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
-                      
+                      {/* System routes with explicit paths - HIGHEST PRIORITY */}
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
@@ -136,6 +132,9 @@ function App() {
                         <Route path="edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
                         <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
                       </Route>
+                      
+                      {/* Explicit create-offer route for ambassadors */}
+                      <Route path="/create-offer/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       
                       {/* Explicit route for ambassador catalog to avoid slug interception */}
                       <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout></PrivateRoute>} />

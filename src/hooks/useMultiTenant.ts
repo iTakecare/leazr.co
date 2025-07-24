@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentUserCompanyId, hasCompanyAccess, multiTenantServices } from '@/services/multiTenantService';
 
@@ -10,44 +10,54 @@ export const useMultiTenant = () => {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    console.log("🏢 MULTI TENANT - useEffect déclenché, user:", user?.id);
+    // Éviter les re-exécutions inutiles
+    if (fetchingRef.current || lastUserIdRef.current === user?.id) {
+      return;
+    }
+    
+    lastUserIdRef.current = user?.id || null;
     
     const fetchCompanyId = async () => {
+      if (fetchingRef.current) return;
+      
+      fetchingRef.current = true;
+      
       if (!user) {
-        console.log("🏢 MULTI TENANT - Pas d'utilisateur, setCompanyId(null)");
         setCompanyId(null);
         setLoading(false);
+        fetchingRef.current = false;
         return;
       }
 
       try {
-        console.log("🏢 MULTI TENANT - Appel getCurrentUserCompanyId");
         const id = await getCurrentUserCompanyId();
-        console.log("🏢 MULTI TENANT - CompanyId reçu:", id);
         setCompanyId(id);
       } catch (error) {
-        console.error('🏢 MULTI TENANT - Erreur lors de la récupération du company ID:', error);
+        console.error('🏢 MULTI TENANT - Erreur:', error);
         setCompanyId(null);
       } finally {
-        console.log("🏢 MULTI TENANT - Fin fetchCompanyId, setLoading(false)");
         setLoading(false);
+        fetchingRef.current = false;
       }
     };
 
     fetchCompanyId();
-  }, [user]);
+  }, [user?.id]); // Utiliser seulement user.id comme dépendance
 
-  console.log("🏢 MULTI TENANT - Rendu hook, companyId:", companyId, "loading:", loading);
-
-  return {
+  // Mémoriser les valeurs de retour pour éviter les re-rendus
+  const returnValue = useMemo(() => ({
     companyId,
     loading,
     hasAccess: hasCompanyAccess,
     services: multiTenantServices,
     getCurrentCompanyId: getCurrentUserCompanyId
-  };
+  }), [companyId, loading]);
+
+  return returnValue;
 };
 
 /**

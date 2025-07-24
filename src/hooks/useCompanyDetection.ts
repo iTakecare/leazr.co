@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
+import { useMemo } from "react";
 
 export const useCompanyDetection = () => {
   const { companyId: urlCompanyId, companySlug } = useParams<{ 
@@ -140,20 +141,34 @@ export const useCompanyDetection = () => {
     return null;
   };
 
-  // More conservative conditions to prevent infinite loops  
-  const shouldRun = Boolean(
-    (urlCompanyId || companySlug || companyParam || companySlugParam) && 
-    !location.pathname.includes('/admin') // Prevent queries on admin pages
-  );
+  const shouldRun = useMemo(() => {
+    // Ne pas exécuter sur les pages admin ou système
+    const isSystemPage = location.pathname.startsWith('/admin') || 
+                        location.pathname.startsWith('/ambassador') || 
+                        location.pathname.startsWith('/login') ||
+                        location.pathname.startsWith('/forgot-password');
+    
+    // Ne pas exécuter si aucun paramètre pertinent n'est présent
+    const hasRelevantParams = Boolean(
+      urlCompanyId || 
+      companySlugParam || 
+      companyParam ||
+      companySlug
+    );
+    
+    return !isSystemPage && hasRelevantParams;
+  }, [location.pathname, urlCompanyId, companySlugParam, companyParam, companySlug]);
   
   const { data: companyId, isLoading: isLoadingCompanyId, error: detectionError } = useQuery({
-    queryKey: ['company-detection', urlCompanyId, companyParam, companySlug, companySlugParam],
+    queryKey: ['companyDetection', urlCompanyId, companySlug, companyParam, companySlugParam, window.location.origin],
     queryFn: resolveCompanyId,
     enabled: shouldRun,
-    staleTime: 15 * 60 * 1000, // 15 minutes - increased further to reduce re-fetching
-    retry: 0, // No retries to prevent loops
-    refetchOnWindowFocus: false, // Disable refetch on focus
-    refetchOnMount: false, // Only refetch if data is stale
+    staleTime: 10 * 60 * 1000, // 10 minutes - plus long pour Safari
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchInterval: false, // Désactiver le refetch automatique
+    refetchIntervalInBackground: false,
   });
 
   // Simplified final logging for Safari

@@ -1,18 +1,18 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 import { useCompanyContext } from "@/context/CompanyContext";
 import { generateProductSlug } from "@/lib/utils";
+import { useSafeNavigate } from "@/hooks/useSafeNavigate";
 
 interface PublicProductGridProps {
   products: Product[];
 }
 
 const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
-  const navigate = useNavigate();
+  const safeNavigate = useSafeNavigate();
   const { companyId, companySlug } = useCompanyContext();
   
   const itemVariants = {
@@ -36,13 +36,11 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
     // Navigate based on context - slug-based takes priority with SEO-friendly URLs
     if (companySlug) {
       const targetUrl = `/${companySlug}/products/${productSlug}`;
-      console.log('🎯 Navigating to slug-based URL:', targetUrl);
-      navigate(targetUrl);
+      safeNavigate(targetUrl);
     } else if (companyId) {
       // Fallback to company-id-based URL with original format
       const targetUrl = `/public/${companyId}/products/${product.id}`;
-      console.log('🎯 Navigating to company-id-based URL:', targetUrl);
-      navigate(targetUrl);
+      safeNavigate(targetUrl);
     } else {
       console.error('🎯 No valid navigation context found');
     }
