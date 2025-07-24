@@ -52,6 +52,7 @@ import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
 import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
+import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
 
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
@@ -97,8 +98,8 @@ function App() {
                       
                       {/* System routes with explicit paths - these MUST come first */}
                       
-                      {/* Explicit create-offer route to prevent slug interception */}
-                      <Route path="/create-offer" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
+                      {/* Explicit create-offer route for ambassadors */}
+                      <Route path="/create-offer/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
@@ -111,6 +112,7 @@ function App() {
                         <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
                         <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
                         <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
+                        <Route path="create-offer" element={<Layout><AmbassadorCreateOffer /></Layout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
                         <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />

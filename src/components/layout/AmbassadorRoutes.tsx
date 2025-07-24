@@ -26,8 +26,8 @@ const AmbassadorRoutes = () => {
       <Route path="offers" element={<AmbassadorOffersPage />} />
       <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
       {/* Redirection par défaut vers le dashboard */}
-      <Route path="" element={<Navigate to="dashboard" replace />} />
-      <Route path="*" element={<Navigate to="dashboard" replace />} />
+      <Route path="" element={<Navigate to="/ambassador/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/ambassador/dashboard" replace />} />
     </Routes>
   );
 };
