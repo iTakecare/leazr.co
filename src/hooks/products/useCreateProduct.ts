@@ -9,9 +9,14 @@ interface CreateProductData {
   name: string;
   description?: string;
   short_description?: string;
+  category?: string;
+  brand?: string;
   category_id?: string;
   brand_id?: string;
   price: number;
+  monthly_price?: number;
+  image_url?: string;
+  specifications?: Record<string, any>;
   stock?: number;
   sku?: string;
   is_refurbished?: boolean;
@@ -41,9 +46,14 @@ export const useCreateProduct = () => {
         name: data.name,
         description: data.description,
         short_description: data.short_description,
+        category: data.category,
+        brand: data.brand,
         category_id: data.category_id,
         brand_id: data.brand_id,
         price: data.price,
+        monthly_price: data.monthly_price,
+        image_url: data.image_url,
+        specifications: data.specifications,
         stock: data.stock || 0,
         sku: data.sku,
         is_refurbished: data.is_refurbished || false,
