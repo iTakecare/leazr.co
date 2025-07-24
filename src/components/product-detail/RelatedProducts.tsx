@@ -2,11 +2,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProducts } from "@/services/catalogService";
+import { getRelatedProducts } from "@/services/catalogServiceOptimized";
 import { Product } from "@/types/catalog";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
 
 interface RelatedProductsProps {
+  companyId: string;
   category: string;
   currentProductId?: string;
   brand?: string;
@@ -14,6 +15,7 @@ interface RelatedProductsProps {
 }
 
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ 
+  companyId,
   category, 
   currentProductId,
   brand,
@@ -27,15 +29,15 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
     const loadRelatedProducts = async () => {
       try {
         setIsLoading(true);
-        const allProducts = await getProducts();
+        const relatedProducts = await getRelatedProducts(
+          companyId, 
+          category, 
+          brand, 
+          currentProductId, 
+          limit
+        );
         
-        const filteredProducts = allProducts
-          .filter(p => brand ? p.brand === brand : p.category === category)
-          .filter(p => p.id !== currentProductId)
-          .filter(p => p.active !== false)
-          .slice(0, limit);
-        
-        setProducts(filteredProducts);
+        setProducts(relatedProducts);
       } catch (error) {
         console.error("Error loading related products:", error);
       } finally {
@@ -43,10 +45,10 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
       }
     };
 
-    if (category || brand) {
+    if (companyId && (category || brand)) {
       loadRelatedProducts();
     }
-  }, [category, currentProductId, brand, limit]);
+  }, [companyId, category, currentProductId, brand, limit]);
 
   const handleProductClick = (productId: string) => {
     navigate(`/produits/${productId}`);

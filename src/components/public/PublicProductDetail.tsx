@@ -204,6 +204,7 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
         {/* Related Products */}
         <div className="mt-16">
           <RelatedProducts 
+            companyId={companyId}
             currentProductId={productId} 
             category={productCategory}
           />

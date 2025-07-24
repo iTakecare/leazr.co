@@ -11,6 +11,7 @@ import AmbassadorProductConfigurationSection from "@/components/product-detail/A
 import AmbassadorProductMainContent from "@/components/product-detail/AmbassadorProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
@@ -20,6 +21,9 @@ import { extractUuidFromSlug } from "@/utils/slugs";
 const AmbassadorProductDetailPage: React.FC = () => {
   const { id: productIdWithSlug } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  // Get company context for multi-tenant isolation
+  const { companyId } = useMultiTenant();
 
   // Extract clean UUID from URL parameter that might contain slug
   const productId = productIdWithSlug ? extractUuidFromSlug(productIdWithSlug) : undefined;
@@ -180,12 +184,15 @@ const AmbassadorProductDetailPage: React.FC = () => {
 
         {/* Related Products */}
         <div className="mt-16">
-          <RelatedProducts 
-            currentProductId={productId} 
-            category={productCategory}
-            brand={productBrand}
-            limit={6}
-          />
+          {companyId && (
+            <RelatedProducts 
+              companyId={companyId}
+              currentProductId={productId} 
+              category={productCategory}
+              brand={productBrand}
+              limit={6}
+            />
+          )}
         </div>
 
         {/* Request Form Modal */}

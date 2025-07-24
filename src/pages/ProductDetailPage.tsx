@@ -187,12 +187,15 @@ const ProductDetailPage = () => {
         
         <div className="mt-16 mb-24">
           <h2 className="text-2xl font-bold mb-6">Produits de la même marque que {productName}</h2>
-          <RelatedProducts 
-            category={productCategory} 
-            currentProductId={product?.id} 
-            brand={productBrand}
-            limit={6}
-          />
+          {companyId && (
+            <RelatedProducts 
+              companyId={companyId}
+              category={productCategory} 
+              currentProductId={product?.id} 
+              brand={productBrand}
+              limit={6}
+            />
+          )}
         </div>
       </div>
       
