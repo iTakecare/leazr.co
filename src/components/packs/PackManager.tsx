@@ -4,8 +4,12 @@ import { Package, Plus, Edit, Copy, Trash2, Eye, ToggleLeft, ToggleRight, Star }
 import { Badge } from "@/components/ui/badge";
 import { usePackManagement } from "@/hooks/packs/usePackManagement";
 import { PackCreator } from "./PackCreator";
+import { diagnoseAuthSession } from "@/utils/authDiagnostic";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 
 export const PackManager = () => {
+  const { user } = useAuth();
   const {
     packs,
     isLoading,
@@ -21,6 +25,16 @@ export const PackManager = () => {
     handleTogglePackStatus,
     handleTogglePackFeatured,
   } = usePackManagement();
+
+  // Diagnostic d'authentification lors du chargement
+  useEffect(() => {
+    if (error) {
+      console.log("🔬 PACK MANAGER - Erreur détectée, lancement du diagnostic...");
+      diagnoseAuthSession().then(result => {
+        console.log("🔬 PACK MANAGER - Résultat diagnostic:", result);
+      });
+    }
+  }, [error]);
 
   if (isLoading) {
     return (
@@ -52,8 +66,31 @@ export const PackManager = () => {
           </div>
         </div>
         <Card className="text-center py-12">
-          <CardContent>
-            <p className="text-destructive">Erreur lors du chargement des packs</p>
+          <CardContent className="space-y-4">
+            <p className="text-destructive font-medium">Erreur lors du chargement des packs</p>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>Détails: {error.message}</p>
+              <p>Utilisateur: {user?.email || 'Non connecté'}</p>
+              <p>ID utilisateur: {user?.id || 'Aucun'}</p>
+            </div>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+              >
+                Réessayer
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={async () => {
+                  const result = await diagnoseAuthSession();
+                  console.log("🔬 Diagnostic manuel:", result);
+                  alert(`Diagnostic terminé - Voir la console pour les détails. Session: ${result.session ? 'OK' : 'KO'}`);
+                }}
+              >
+                Diagnostic
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
