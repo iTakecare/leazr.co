@@ -53,6 +53,7 @@ import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
 import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
 import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
+import CreateOffer from "@/pages/CreateOffer";
 
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
@@ -112,7 +113,7 @@ function App() {
                         <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
                         <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
                         <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
-                        <Route path="create-offer" element={<Layout><AmbassadorCreateOffer /></Layout>} />
+                        <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
                         <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
