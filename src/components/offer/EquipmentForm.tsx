@@ -144,6 +144,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
     setIsQuickCatalogOpen(false);
   };
 
+  // Calcul de la mensualité à afficher (priorité à targetMonthlyPayment, puis equipment.monthlyPayment, puis monthlyPayment)
   const displayMonthlyPayment = targetMonthlyPayment > 0 
     ? targetMonthlyPayment 
     : (equipment.monthlyPayment || monthlyPayment);

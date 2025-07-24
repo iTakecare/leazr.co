@@ -176,6 +176,14 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   // Application du calcul à partir du prix de vente
   const applyCalculatedFromSalePrice = () => {
     if (calculatedFromSalePrice.margin > 0 && calculatedFromSalePrice.monthlyPayment > 0) {
+      console.log('Applying calculated from sale price:', {
+        margin: calculatedFromSalePrice.margin,
+        monthlyPayment: calculatedFromSalePrice.monthlyPayment,
+        currentEquipmentMargin: equipment.margin,
+        currentMonthlyPayment: monthlyPayment,
+        currentTargetMonthlyPayment: targetMonthlyPayment
+      });
+      
       setEquipment(prev => ({
         ...prev,
         margin: calculatedFromSalePrice.margin,
@@ -184,6 +192,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       
       // Mettre à jour la mensualité globale
       setMonthlyPayment(calculatedFromSalePrice.monthlyPayment);
+      
+      // Réinitialiser targetMonthlyPayment pour éviter les conflits d'affichage
+      setTargetMonthlyPayment(0);
       
       // Réinitialiser tous les refs pour forcer le recalcul
       lastEquipmentPriceRef.current = 0;
