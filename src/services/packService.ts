@@ -6,7 +6,7 @@ export const getPacks = async (): Promise<ProductPack[]> => {
     .from('product_packs')
     .select(`
       *,
-      items:product_pack_items(
+      items:product_pack_items!fk_product_pack_items_pack_id(
         *,
         product:products(id, name, description, image_url, brand, category),
         variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
@@ -27,7 +27,7 @@ export const getPackById = async (id: string): Promise<ProductPack | null> => {
     .from('product_packs')
     .select(`
       *,
-      items:product_pack_items(
+      items:product_pack_items!fk_product_pack_items_pack_id(
         *,
         product:products(id, name, description, image_url, brand, category),
         variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)

@@ -3623,13 +3623,6 @@ export type Database = {
             referencedRelation: "product_variant_prices"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "product_pack_items_pack_id_fkey"
-            columns: ["pack_id"]
-            isOneToOne: false
-            referencedRelation: "product_packs"
-            referencedColumns: ["id"]
-          },
         ]
       }
       product_packs: {
