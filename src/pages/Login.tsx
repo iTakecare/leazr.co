@@ -19,7 +19,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
-  // Redirection automatique
+  // Redirection automatique - simplifiée pour résoudre le problème de timing
   useEffect(() => {
     console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
       isLoading,
@@ -28,28 +28,34 @@ const Login = () => {
       userRole: user?.role
     });
 
-    if (!isLoading && user) {
-      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection...", user.email, "Role:", user.role);
+    // Rediriger dès qu'on a un utilisateur avec email, même si isLoading est true
+    if (user && user.email) {
+      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection immédiate...", user.email, "Role:", user.role);
       
-      // Redirection basée sur le rôle
-      if (user.email === "ecommerce@itakecare.be") {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
-        navigate('/admin/leazr-saas-dashboard', { replace: true });
-      } else if (isClient()) {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
-        navigate('/client/dashboard', { replace: true });
-      } else if (isAmbassador()) {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
-        navigate('/ambassador/dashboard', { replace: true });
-      } else if (isPartner()) {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
-        navigate('/partner/dashboard', { replace: true });
-      } else {
-        console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
-        navigate('/admin/dashboard', { replace: true });
-      }
+      // Utiliser setTimeout pour éviter les conflits de rendu
+      const timer = setTimeout(() => {
+        // Redirection basée sur le rôle et l'email
+        if (user.email === "ecommerce@itakecare.be") {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
+          navigate('/admin/leazr-saas-dashboard', { replace: true });
+        } else if (isClient()) {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
+          navigate('/client/dashboard', { replace: true });
+        } else if (isAmbassador()) {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
+          navigate('/ambassador/dashboard', { replace: true });
+        } else if (isPartner()) {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
+          navigate('/partner/dashboard', { replace: true });
+        } else {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
+          navigate('/admin/dashboard', { replace: true });
+        }
+      }, 50); // Délai très court pour éviter les conflits
+
+      return () => clearTimeout(timer);
     }
-  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [user, navigate, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
