@@ -30,11 +30,12 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
     equipmentItems = offer.parsedEquipment;
   }
 
-  // Calculer le total global
+  // Calculer le total global des marges
   const totalGlobal = equipmentItems.reduce((sum: number, item: any) => {
-    const monthlyPayment = item.monthlyPayment || 0;
+    const purchasePrice = item.purchasePrice || 0;
     const quantity = item.quantity || 1;
-    return sum + (monthlyPayment * quantity);
+    const margin = item.margin || 0;
+    return sum + (purchasePrice * quantity * margin / 100);
   }, 0);
 
   return (
@@ -58,18 +59,19 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                     Qté
                   </th>
                   <th className="text-right py-4 px-4 font-semibold text-gray-700 w-32">
-                    Prix unitaire HT
+                    Prix d'achat
                   </th>
                   <th className="text-right py-4 px-4 font-semibold text-gray-700 w-32">
-                    Total HT
+                    Marge totale
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {equipmentItems.map((item: any, index: number) => {
-                  const monthlyPayment = item.monthlyPayment || 0;
+                  const purchasePrice = item.purchasePrice || 0;
                   const quantity = item.quantity || 1;
-                  const totalItem = monthlyPayment * quantity;
+                  const margin = item.margin || 0;
+                  const totalMargin = purchasePrice * quantity * margin / 100;
                   
                   return (
                     <tr key={index} className={`border-b transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
@@ -103,10 +105,10 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
                         </span>
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-gray-800">
-                        {formatCurrency(monthlyPayment)}
+                        {formatCurrency(purchasePrice)}
                       </td>
                       <td className="py-6 px-4 text-right font-semibold text-blue-700">
-                        {formatCurrency(totalItem)}
+                        {formatCurrency(totalMargin)}
                       </td>
                     </tr>
                   );
@@ -115,7 +117,7 @@ const ClientEquipmentSection: React.FC<ClientEquipmentSectionProps> = ({ offer }
               <tfoot>
                 <tr className="border-t-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                   <td colSpan={3} className="py-4 px-6 text-right font-bold text-gray-800">
-                    Total mensualité HT:
+                    Marge totale:
                   </td>
                   <td className="py-4 px-4 text-right font-bold text-blue-700 text-lg">
                     {formatCurrency(totalGlobal)}
