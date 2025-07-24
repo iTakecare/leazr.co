@@ -136,9 +136,9 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
         color: "white"
       }}>
         <img 
-          src="/lovable-uploads/645b6558-da78-4099-a8d4-c78f40873b60.png" 
+          src="/lovable-uploads/b844f6ca-2e24-40b1-adbb-9497e971d8e8.png" 
           alt="iTakecare Logo" 
-          style={{ height: "10mm" }} 
+          style={{ height: "8mm" }} 
         />
         <span style={{ 
           fontSize: "12pt", 

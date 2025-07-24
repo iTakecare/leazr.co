@@ -16,22 +16,22 @@ const Logo: React.FC<LogoProps> = ({
   variant = "avatar" 
 }) => {
   const sizeClasses = {
-    sm: "w-12 h-12",
-    md: "w-20 h-20", 
-    lg: "w-24 h-24",
-    xl: "w-32 h-32",
-    "2xl": "w-40 h-40"
+    sm: "w-10 h-10",
+    md: "w-16 h-16", 
+    lg: "w-20 h-20",
+    xl: "w-28 h-28",
+    "2xl": "w-36 h-36"
   };
 
-  // Utiliser le nouveau logo fourni
-  const logoSrc = "/lovable-uploads/55d4da90-682a-4d13-a0f6-3b47519e15c0.png";
+  // Utiliser le nouveau logo iTakecare avec fond transparent
+  const logoSrc = "/lovable-uploads/b844f6ca-2e24-40b1-adbb-9497e971d8e8.png";
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className={cn("relative flex-shrink-0", sizeClasses[logoSize])}>
         <img 
           src={logoSrc}
-          alt="Leazr"
+          alt="iTakecare"
           className="w-full h-full object-contain"
         />
       </div>
