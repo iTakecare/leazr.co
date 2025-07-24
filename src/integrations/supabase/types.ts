@@ -4170,28 +4170,34 @@ export type Database = {
       }
       woocommerce_configs: {
         Row: {
+          company_id: string
           consumer_key: string
           consumer_secret: string
           created_at: string | null
           id: string
+          name: string | null
           site_url: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          company_id: string
           consumer_key: string
           consumer_secret: string
           created_at?: string | null
           id?: string
+          name?: string | null
           site_url: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          company_id?: string
           consumer_key?: string
           consumer_secret?: string
           created_at?: string | null
           id?: string
+          name?: string | null
           site_url?: string
           updated_at?: string | null
           user_id?: string

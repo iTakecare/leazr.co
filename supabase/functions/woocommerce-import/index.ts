@@ -36,12 +36,11 @@ serve(async (req) => {
 
     const { action, companyId, configId, productIds } = await req.json();
 
-    // Récupérer la configuration WooCommerce
+    // Récupérer la configuration WooCommerce (RLS s'occupe de l'isolation par company_id)
     const { data: config, error: configError } = await supabaseClient
       .from('woocommerce_configs')
       .select('*')
       .eq('id', configId)
-      .eq('company_id', companyId)
       .single();
 
     if (configError || !config) {

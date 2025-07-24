@@ -79,7 +79,7 @@ export function WooCommerceImportForm() {
         body: {
           action: 'test-connection',
           configId: selectedConfig,
-          companyId: (await supabase.auth.getUser()).data.user?.user_metadata?.company_id
+          companyId: "current-company" // Sera récupéré automatiquement via RLS
         }
       });
 
@@ -124,7 +124,7 @@ export function WooCommerceImportForm() {
         body: {
           action: 'fetch-products',
           configId: selectedConfig,
-          companyId: (await supabase.auth.getUser()).data.user?.user_metadata?.company_id
+          companyId: "current-company" // Sera récupéré automatiquement via RLS
         }
       });
 
@@ -170,7 +170,7 @@ export function WooCommerceImportForm() {
           action: 'import-products',
           configId: selectedConfig,
           productIds,
-          companyId: (await supabase.auth.getUser()).data.user?.user_metadata?.company_id
+          companyId: "current-company" // Sera récupéré automatiquement via RLS
         }
       });
 
