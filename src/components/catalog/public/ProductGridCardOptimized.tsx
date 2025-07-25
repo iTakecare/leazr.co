@@ -132,7 +132,7 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
             <div className="text-gray-700 text-xs">
               {hasVariants ? "À partir de " : ""}
               <span className="font-bold text-[#4ab6c4]">{formatCurrency(displayPrice)}</span>
-              <span className="text-[10px]">{product.monthly_price ? " HTVA/mois" : ""}</span>
+              <span className="text-[10px]">{(product.monthly_price || hasMinPrice) ? " HTVA/mois" : ""}</span>
             </div>
           ) : (
             <div className="text-gray-700 text-xs">
