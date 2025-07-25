@@ -29,10 +29,35 @@ export class SecurityMonitor {
   static logSuspiciousActivity(type: string, details: any): void {
     Logger.security(`Suspicious activity: ${type}`, details);
     
+    // Enhanced security monitoring
+    this.trackSecurityEvent(type, details);
+    
     // In a real application, you might want to:
-    // - Send alerts to administrators
+    // - Send alerts to administrators  
     // - Log to external security monitoring service
     // - Implement automatic blocking
+  }
+
+  // Track security events for analysis
+  private static trackSecurityEvent(type: string, details: any): void {
+    const event = {
+      type,
+      details,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    };
+    
+    // Store in session for analysis (non-persistent)
+    const events = JSON.parse(sessionStorage.getItem('security_events') || '[]');
+    events.push(event);
+    
+    // Keep only last 50 events to prevent memory issues
+    if (events.length > 50) {
+      events.splice(0, events.length - 50);
+    }
+    
+    sessionStorage.setItem('security_events', JSON.stringify(events));
   }
   
   // Validate session integrity

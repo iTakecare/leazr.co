@@ -37,6 +37,20 @@ export class Logger {
     }
   }
 
+  // Product-focused logging - only in development
+  static product(message: string, data?: any): void {
+    if (isDevelopment && !isProduction) {
+      console.log(`📦 PRODUCT: ${message}`, data);
+    }
+  }
+
+  // Commission-focused logging - only in development  
+  static commission(message: string, data?: any): void {
+    if (isDevelopment && !isProduction) {
+      console.log(`💰 COMMISSION: ${message}`, data);
+    }
+  }
+
   // Always log critical errors, but sanitize them
   static critical(message: string, error?: any): void {
     const sanitizedMessage = isDevelopment ? message : 'Critical system error occurred';

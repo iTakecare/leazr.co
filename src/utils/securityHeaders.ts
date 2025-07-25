@@ -2,9 +2,14 @@
 export class SecurityHeaders {
   // Add Content Security Policy meta tag
   static addCSP(): void {
+    const isProduction = import.meta.env.PROD;
+    
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      // More restrictive script-src for production
+      isProduction 
+        ? "script-src 'self' https://js.stripe.com"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
@@ -12,7 +17,10 @@ export class SecurityHeaders {
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'"
+      "form-action 'self'",
+      // Enhanced security directives
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests"
     ].join('; ');
 
     const meta = document.createElement('meta');
