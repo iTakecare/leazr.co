@@ -37,6 +37,39 @@ const AmbassadorCreateOffer = () => {
     handleLeaserSelect
   } = useAmbassadorOfferState();
 
+  // Only initialize useEquipmentCalculator when selectedLeaser is available
+  const calculatorProps = (selectedLeaser && !loadingLeasers) ? 
+    useEquipmentCalculator(selectedLeaser) : 
+    {
+      equipment: { id: '', title: '', name: '', purchasePrice: 0, margin: 0, monthlyPayment: 0, quantity: 1 },
+      setEquipment: () => {},
+      monthlyPayment: 0,
+      targetMonthlyPayment: 0,
+      setTargetMonthlyPayment: () => {},
+      coefficient: 3.55,
+      calculatedMargin: { percentage: 0, amount: 0 },
+      equipmentList: [],
+      totalMonthlyPayment: 0,
+      globalMarginAdjustment: { 
+        percentage: 0, 
+        amount: 0, 
+        newMonthly: 0, 
+        currentCoef: 3.55, 
+        newCoef: 3.55, 
+        adaptMonthlyPayment: false, 
+        marginDifference: 0 
+      },
+      editingId: null,
+      applyCalculatedMargin: () => {},
+      addToList: () => {},
+      startEditing: () => {},
+      cancelEditing: () => {},
+      removeFromList: () => {},
+      updateQuantity: () => {},
+      toggleAdaptMonthlyPayment: () => {},
+      calculations: { totalPurchasePrice: 0, totalFinancedAmount: 0, normalMarginAmount: 0, finalMonthlyPayment: 0, coefficient: 3.55 }
+    };
+
   const {
     equipment,
     setEquipment,
@@ -57,7 +90,7 @@ const AmbassadorCreateOffer = () => {
     updateQuantity,
     toggleAdaptMonthlyPayment,
     calculations
-  } = useEquipmentCalculator(selectedLeaser);
+  } = calculatorProps;
 
   // Calculate the correct total margin from calculations
   const totalMargin = calculations?.normalMarginAmount || 0;
