@@ -6,34 +6,47 @@ import { SecurityMonitor } from '@/utils/securityMonitor';
 
 export const useSecurityInit = () => {
   useEffect(() => {
-    try {
-      // Initialize security headers
-      SecurityHeaders.initialize();
-      
-      // Clean up expired data on app start (with error handling)
+    // Security initialization with graceful degradation
+    const initSecurity = () => {
       try {
-        SecureStorage.cleanupExpiredData();
-      } catch (error) {
-        console.warn('Storage cleanup failed:', error);
-      }
-      
-      // Set up periodic cleanup
-      const cleanupInterval = setInterval(() => {
+        // Initialize security headers (non-blocking)
+        try {
+          SecurityHeaders.initialize();
+        } catch (headerError) {
+          console.warn('Security headers failed to initialize:', headerError);
+        }
+        
+        // Clean up expired data with fallback handling
         try {
           SecureStorage.cleanupExpiredData();
-          SecurityMonitor.cleanupRateLimit();
-        } catch (error) {
-          console.warn('Periodic cleanup failed:', error);
+        } catch (storageError) {
+          console.warn('Storage cleanup failed, continuing without:', storageError);
         }
-      }, 15 * 60 * 1000); // Every 15 minutes
-      
-      // Cleanup on unmount
-      return () => {
-        clearInterval(cleanupInterval);
-      };
-    } catch (error) {
-      console.warn('Security initialization failed:', error);
-      // App should continue working even if security features fail
-    }
+        
+        // Set up periodic cleanup with error isolation
+        const cleanupInterval = setInterval(() => {
+          try {
+            SecureStorage.cleanupExpiredData();
+          } catch (error) {
+            console.warn('Periodic storage cleanup failed:', error);
+          }
+          
+          try {
+            SecurityMonitor.cleanupRateLimit();
+          } catch (error) {
+            console.warn('Rate limit cleanup failed:', error);
+          }
+        }, 15 * 60 * 1000); // Every 15 minutes
+        
+        return () => {
+          clearInterval(cleanupInterval);
+        };
+      } catch (error) {
+        console.warn('Security initialization failed completely, app will continue:', error);
+        return () => {}; // Return empty cleanup function
+      }
+    };
+
+    return initSecurity();
   }, []);
 };

@@ -6,9 +6,9 @@ export class SecurityHeaders {
     
     const csp = [
       "default-src 'self'",
-      // More restrictive script-src for production
+      // More permissive script-src to prevent storage access issues
       isProduction 
-        ? "script-src 'self' https://js.stripe.com"
+        ? "script-src 'self' 'unsafe-inline' https://js.stripe.com"
         : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
@@ -17,8 +17,8 @@ export class SecurityHeaders {
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'",
-      "upgrade-insecure-requests"
+      "form-action 'self'"
+      // Removed upgrade-insecure-requests to prevent storage conflicts
       // Note: frame-ancestors directive is ignored in meta tags
     ].join('; ');
 

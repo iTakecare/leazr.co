@@ -18,28 +18,52 @@ const generateEncryptionKey = (): string => {
 };
 
 export class SecureStorage {
-  // Check if storage is available
+  // Check if storage is available with specific error detection
   private static isStorageAvailable(): boolean {
     try {
+      // Test if we can access localStorage
+      if (typeof Storage === 'undefined' || !window.localStorage) {
+        return false;
+      }
       const test = '__storage_test__';
       localStorage.setItem(test, 'test');
       localStorage.removeItem(test);
       return true;
-    } catch {
+    } catch (error) {
+      // Handle specific "Access to storage is not allowed" error
+      if (error instanceof Error && error.message.includes('Access to storage is not allowed')) {
+        console.warn('Storage access blocked by browser context');
+      }
       return false;
     }
   }
 
-  // Safe storage operation wrapper
-  private static safeStorageOperation<T>(operation: () => T, fallback: T): T {
+  // In-memory fallback storage for when localStorage is unavailable
+  private static memoryStorage: Map<string, string> = new Map();
+  
+  // Check if we should use memory fallback
+  private static shouldUseMemoryFallback(): boolean {
+    return !this.isStorageAvailable();
+  }
+
+  // Safe storage operation wrapper with memory fallback
+  private static safeStorageOperation<T>(operation: () => T, fallback: T, memoryOperation?: () => T): T {
     try {
-      if (!this.isStorageAvailable()) {
-        console.warn('Storage not available, using fallback');
-        return fallback;
+      if (this.shouldUseMemoryFallback()) {
+        console.warn('Storage not available, using memory fallback');
+        return memoryOperation ? memoryOperation() : fallback;
       }
       return operation();
     } catch (error) {
       console.warn('Storage operation failed:', error);
+      // Try memory fallback if available
+      if (memoryOperation) {
+        try {
+          return memoryOperation();
+        } catch (memError) {
+          console.warn('Memory fallback also failed:', memError);
+        }
+      }
       return fallback;
     }
   }
@@ -60,7 +84,16 @@ export class SecureStorage {
       const encrypted = CryptoJS.AES.encrypt(jsonString, encryptionKey).toString();
       localStorage.setItem(`${PREFIX}${key}`, encrypted);
       return true;
-    }, false);
+    }, false, () => {
+      // Memory fallback - store without encryption as it's temporary
+      const payload = {
+        data,
+        expires: Date.now() + (expirationMinutes * 60 * 1000),
+        timestamp: Date.now()
+      };
+      this.memoryStorage.set(`${PREFIX}${key}`, JSON.stringify(payload));
+      return true;
+    });
   }
 
   // Retrieve and decrypt sensitive data with validation
@@ -88,7 +121,26 @@ export class SecureStorage {
       }
       
       return payload.data;
-    }, null);
+    }, null, () => {
+      // Memory fallback - no decryption needed
+      const stored = this.memoryStorage.get(`${PREFIX}${key}`);
+      if (!stored) return null;
+      
+      try {
+        const payload = JSON.parse(stored);
+        
+        // Check expiration
+        if (payload.expires && Date.now() > payload.expires) {
+          this.memoryStorage.delete(`${PREFIX}${key}`);
+          return null;
+        }
+        
+        return payload.data;
+      } catch {
+        this.memoryStorage.delete(`${PREFIX}${key}`);
+        return null;
+      }
+    });
   }
 
   // Remove specific secure item
@@ -96,15 +148,33 @@ export class SecureStorage {
     this.safeStorageOperation(() => {
       localStorage.removeItem(`${PREFIX}${key}`);
       return true;
-    }, false);
+    }, false, () => {
+      // Memory fallback
+      this.memoryStorage.delete(`${PREFIX}${key}`);
+      return true;
+    });
   }
 
   // Clear all secure items
   static clearAllSecure(): void {
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
+    try {
+      if (this.isStorageAvailable()) {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith(PREFIX)) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to clear localStorage:', error);
+    }
+    
+    // Always clear memory storage
+    const memoryKeys = Array.from(this.memoryStorage.keys());
+    memoryKeys.forEach(key => {
       if (key.startsWith(PREFIX)) {
-        localStorage.removeItem(key);
+        this.memoryStorage.delete(key);
       }
     });
   }
