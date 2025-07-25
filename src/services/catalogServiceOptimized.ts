@@ -28,6 +28,7 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       `)
       .eq("company_id", companyId)
       .eq("active", true)
+      .eq("admin_only", false)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -115,7 +116,8 @@ export const getRelatedProducts = async (
         categories(name, translation)
       `)
       .eq("company_id", companyId)
-      .eq("active", true);
+      .eq("active", true)
+      .eq("admin_only", false);
 
     // Filter by brand first (higher priority), then category
     if (brand) {
