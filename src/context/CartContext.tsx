@@ -28,11 +28,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   
-  // Load cart from SecureStorage on component mount with error protection
+  // Load cart from SecureStorage on component mount
   useEffect(() => {
-    try {
-      const savedCart = SecureStorage.get('itakecare-cart');
-      if (savedCart) {
+    const savedCart = SecureStorage.get('itakecare-cart');
+    if (savedCart) {
       try {
         // Validate prices in loaded cart items
         const validatedCart = savedCart.map((item: CartItem) => {
@@ -68,24 +67,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         setItems(validatedCart);
-      } catch (parseError) {
-        Logger.error('Failed to parse cart from storage', parseError);
+      } catch (error) {
+        Logger.error('Failed to parse cart from storage', error);
       }
-      }
-    } catch (storageError) {
-      Logger.warn('Failed to load cart from storage, starting with empty cart:', storageError);
-      // Continue with empty cart if storage fails
     }
   }, []);
   
-  // Save cart to SecureStorage whenever it changes with error protection
+  // Save cart to SecureStorage whenever it changes
   useEffect(() => {
-    try {
-      SecureStorage.set('itakecare-cart', items);
-    } catch (storageError) {
-      Logger.warn('Failed to save cart to storage, cart will be temporary:', storageError);
-      // Cart will continue to work in memory, just won't persist
-    }
+    SecureStorage.set('itakecare-cart', items);
   }, [items]);
   
   const addToCart = (newItem: CartItem) => {

@@ -19,39 +19,39 @@ const Login = () => {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
-  // Redirection automatique optimisée
+  // Redirection automatique - simplifiée pour résoudre le problème de timing
   useEffect(() => {
-    // Reduced logging to prevent excessive console messages
-    if (process.env.NODE_ENV === 'development') {
-      console.log("🔀 LOGIN REDIRECT - Checking redirect:", {
-        isLoading,
-        hasUser: !!user,
-        userEmail: user?.email?.substring(0, 10) + '...',
-        userRole: user?.role
-      });
-    }
+    console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
+      isLoading,
+      hasUser: !!user,
+      userEmail: user?.email,
+      userRole: user?.role
+    });
 
-    // Redirect as soon as we have a user with email
+    // Rediriger dès qu'on a un utilisateur avec email, même si isLoading est true
     if (user && user.email) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log("🔀 LOGIN REDIRECT - User connected, redirecting...", user.email, "Role:", user.role);
-      }
+      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection immédiate...", user.email, "Role:", user.role);
       
-      // Use setTimeout to avoid render conflicts
+      // Utiliser setTimeout pour éviter les conflits de rendu
       const timer = setTimeout(() => {
-        // Role-based redirection
+        // Redirection basée sur le rôle et l'email
         if (user.email === "ecommerce@itakecare.be") {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
           navigate('/admin/leazr-saas-dashboard', { replace: true });
         } else if (isClient()) {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
           navigate('/client/dashboard', { replace: true });
         } else if (isAmbassador()) {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
           navigate('/ambassador/dashboard', { replace: true });
         } else if (isPartner()) {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
           navigate('/partner/dashboard', { replace: true });
         } else {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
           navigate('/admin/dashboard', { replace: true });
         }
-      }, 50);
+      }, 50); // Délai très court pour éviter les conflits
 
       return () => clearTimeout(timer);
     }
@@ -60,17 +60,22 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("🔐 LOGIN FORM - Soumission du formulaire");
+    
     if (!email || !password) {
+      console.log("🔐 LOGIN FORM - Champs manquants");
       toast.error('Veuillez remplir tous les champs');
       return;
     }
 
     setLoading(true);
+    console.log("🔐 LOGIN FORM - Début de la connexion pour:", email);
     
     try {
       const { error } = await signIn(email, password);
 
       if (error) {
+        console.error("🔐 LOGIN FORM - Erreur de connexion:", error);
         let errorMessage = 'Erreur de connexion';
         if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Email ou mot de passe incorrect';
@@ -87,10 +92,12 @@ const Login = () => {
         return;
       }
 
+      console.log("🔐 LOGIN FORM - Connexion réussie, en attente de redirection automatique");
       toast.success('Connexion réussie');
-      // Don't call setLoading(false) here, let redirect happen
+      // Ne pas appeler setLoading(false) ici, laisser la redirection se faire
       
     } catch (error: any) {
+      console.error('🔐 LOGIN FORM - Exception lors de la connexion:', error);
       toast.error('Erreur inattendue lors de la connexion');
       setLoading(false);
     }
@@ -100,8 +107,9 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  // Show loader if user is already connected
+  // Afficher un loader si l'utilisateur est déjà connecté
   if (user && !isLoading) {
+    console.log("🔀 LOGIN RENDER - Utilisateur connecté, affichage du loader de redirection");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -111,6 +119,12 @@ const Login = () => {
       </div>
     );
   }
+
+  console.log("🔀 LOGIN RENDER - Rendu du formulaire de connexion", {
+    isLoading,
+    hasUser: !!user,
+    loading
+  });
 
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">
