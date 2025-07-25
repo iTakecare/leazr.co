@@ -16,7 +16,7 @@ const Logo: React.FC<LogoProps> = ({
   logoSize = "md", 
   variant = "avatar" 
 }) => {
-  const { settings } = usePlatformSettings();
+  const { settings, loading, error } = usePlatformSettings();
   
   const sizeClasses = {
     sm: "w-10 h-10",
@@ -30,6 +30,9 @@ const Logo: React.FC<LogoProps> = ({
   const logoUrl = settings?.logo_url || "/leazr-logo.png";
   const logoAlt = settings?.company_name || "Leazr";
 
+  // Log pour déboguer
+  console.log("Logo component - settings:", settings, "loading:", loading, "error:", error);
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className={cn("relative flex-shrink-0", sizeClasses[logoSize])}>
@@ -38,8 +41,12 @@ const Logo: React.FC<LogoProps> = ({
           alt={logoAlt}
           className="w-full h-full object-contain"
           onError={(e) => {
+            console.log("Logo image error, falling back to default");
             const target = e.target as HTMLImageElement;
             target.src = "/leazr-logo.png"; // Fallback vers le logo par défaut
+          }}
+          onLoad={() => {
+            console.log("Logo loaded successfully:", logoUrl);
           }}
         />
       </div>
