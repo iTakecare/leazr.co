@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
+import { useSecurityInit } from "@/hooks/useSecurityInit";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { RoleBasedRoutes } from "@/components/auth/RoleBasedRoutes";
@@ -92,6 +93,9 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Initialize security features
+  useSecurityInit();
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
