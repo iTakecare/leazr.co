@@ -3505,6 +3505,63 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          accent_color: string | null
+          company_address: string | null
+          company_description: string | null
+          company_email: string | null
+          company_name: string
+          company_phone: string | null
+          created_at: string
+          favicon_url: string | null
+          id: string
+          linkedin_url: string | null
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          twitter_url: string | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          company_address?: string | null
+          company_description?: string | null
+          company_email?: string | null
+          company_name?: string
+          company_phone?: string | null
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          company_address?: string | null
+          company_description?: string | null
+          company_email?: string | null
+          company_name?: string
+          company_phone?: string | null
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       product_attribute_values: {
         Row: {
           attribute_id: string
