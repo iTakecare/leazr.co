@@ -104,14 +104,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return await supabase.auth.signUp({ email, password, options });
   };
 
-  // Fonctions de vérification des rôles avec logging amélioré
+  // Fonctions de vérification des rôles sécurisées
   const isAdmin = () => {
-    const result = user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
+    // SÉCURITÉ: Ne jamais accorder des privilèges admin par défaut
+    const result = user?.role === 'admin' || user?.role === 'super_admin';
     console.log("🔍 isAdmin check:", {
       userRole: user?.role,
-      partnerId: user?.partner_id,
-      ambassadorId: user?.ambassador_id,
-      clientId: user?.client_id,
       result
     });
     return result;
@@ -167,11 +165,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.log("📝 ENRICH - Pas de profil trouvé, utilisation des valeurs par défaut:", error.message);
+        // SÉCURITÉ: Rôle par défaut le plus restrictif possible
         const defaultUser = {
           ...baseUser,
           first_name: '',
           last_name: '',
-          role: 'admin',
+          role: 'client', // Rôle le plus restrictif par défaut
           company: '',
           partner_id: '',
           ambassador_id: '',
@@ -206,7 +205,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ...baseUser,
         first_name: profile?.first_name || '',
         last_name: profile?.last_name || '',
-        role: profile?.role || 'admin',
+        role: profile?.role || 'client', // Rôle le plus restrictif par défaut
         company: profile?.company || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: ambassadorId,
@@ -228,7 +227,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ...baseUser,
         first_name: '',
         last_name: '',
-        role: 'admin',
+        role: 'client', // Rôle le plus restrictif par défaut
         company: '',
         partner_id: '',
         ambassador_id: '',
@@ -277,36 +276,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
               
-              // No timeout on homepage to prevent Safari loops
-              if (window.location.pathname === '/') {
-                try {
-                  const enrichedUser = await enrichUserData(newSession.user);
-                  if (isMounted) {
-                    setUser(enrichedUser);
-                    setIsLoading(false);
-                  }
-                } catch (error) {
-                  if (isMounted) {
-                    setUser(newSession.user as ExtendedUser);
-                    setIsLoading(false);
-                  }
+              // SÉCURITÉ: Enrichissement synchrone pour éviter les race conditions
+              try {
+                const enrichedUser = await enrichUserData(newSession.user);
+                if (isMounted) {
+                  setUser(enrichedUser);
+                  setIsLoading(false);
                 }
-              } else {
-                // Keep timeout for other pages
-                setTimeout(async () => {
-                  try {
-                    const enrichedUser = await enrichUserData(newSession.user);
-                    if (isMounted) {
-                      setUser(enrichedUser);
-                      setIsLoading(false);
-                    }
-                  } catch (error) {
-                    if (isMounted) {
-                      setUser(newSession.user as ExtendedUser);
-                      setIsLoading(false);
-                    }
-                  }
-                }, 50); // Reduced timeout
+              } catch (error) {
+                console.error("🔄 AUTH EVENT - Erreur enrichissement:", error);
+                if (isMounted) {
+                  // En cas d'erreur, créer un utilisateur avec le rôle le plus restrictif
+                  const secureUser = {
+                    ...newSession.user,
+                    role: 'client',
+                    first_name: '',
+                    last_name: '',
+                    company: '',
+                    partner_id: '',
+                    ambassador_id: '',
+                    client_id: '',
+                  } as ExtendedUser;
+                  setUser(secureUser);
+                  setIsLoading(false);
+                }
               }
             }
           }
@@ -331,36 +324,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log("🚀 AUTH CONTEXT - Session existante trouvée pour:", currentSession.user.email);
           setSession(currentSession);
           
-          // No timeout on homepage to prevent Safari loops
-          if (window.location.pathname === '/') {
-            try {
-              const enrichedUser = await enrichUserData(currentSession.user);
-              if (isMounted) {
-                setUser(enrichedUser);
-                setIsLoading(false);
-              }
-            } catch (error) {
-              if (isMounted) {
-                setUser(currentSession.user as ExtendedUser);
-                setIsLoading(false);
-              }
+          // SÉCURITÉ: Enrichissement synchrone pour éviter les race conditions
+          try {
+            const enrichedUser = await enrichUserData(currentSession.user);
+            if (isMounted) {
+              setUser(enrichedUser);
+              setIsLoading(false);
             }
-          } else {
-            // Keep timeout for other pages
-            setTimeout(async () => {
-              try {
-                const enrichedUser = await enrichUserData(currentSession.user);
-                if (isMounted) {
-                  setUser(enrichedUser);
-                  setIsLoading(false);
-                }
-              } catch (error) {
-                if (isMounted) {
-                  setUser(currentSession.user as ExtendedUser);
-                  setIsLoading(false);
-                }
-              }
-            }, 50); // Reduced timeout
+          } catch (error) {
+            console.error("🚀 AUTH CONTEXT - Erreur enrichissement session existante:", error);
+            if (isMounted) {
+              // En cas d'erreur, créer un utilisateur avec le rôle le plus restrictif
+              const secureUser = {
+                ...currentSession.user,
+                role: 'client',
+                first_name: '',
+                last_name: '',
+                company: '',
+                partner_id: '',
+                ambassador_id: '',
+                client_id: '',
+              } as ExtendedUser;
+              setUser(secureUser);
+              setIsLoading(false);
+            }
           }
         } else if (isMounted) {
           console.log("🚀 AUTH CONTEXT - Aucune session existante: setIsLoading(false)");
