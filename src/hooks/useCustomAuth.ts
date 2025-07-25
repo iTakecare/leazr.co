@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Logger } from '@/utils/logger';
+import { ErrorHandler } from '@/utils/errorHandler';
 
 interface CompanyInfo {
   id: string;
@@ -61,8 +63,8 @@ export const useCustomAuth = () => {
       });
 
       if (error) {
-        console.error('Error detecting company:', error);
-        setError('Erreur lors de la détection de l\'entreprise');
+        Logger.error('Error detecting company', error);
+        setError(ErrorHandler.handle(error, 'server'));
         return null;
       }
 
@@ -86,9 +88,10 @@ export const useCustomAuth = () => {
       });
 
       if (error) {
-        console.error('Error in custom signup:', error);
-        setError(error.message || 'Erreur lors de l\'inscription');
-        return { success: false, error: error.message };
+        Logger.error('Error in custom signup', error);
+        const errorMessage = ErrorHandler.handleAuthError(error);
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
       }
 
       return { success: true, data };
