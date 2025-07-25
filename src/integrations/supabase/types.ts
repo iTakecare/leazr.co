@@ -4447,6 +4447,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: boolean
       }
+      check_user_exists_by_id: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       cleanup_company_data_isolation: {
         Args: Record<PropertyKey, never>
         Returns: boolean
