@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '@/types/catalog';
 import { getProductPrice } from '@/utils/productPricing';
 import { toast } from 'sonner';
+import { SecureStorage } from '@/utils/secureStorage';
+import { Logger } from '@/utils/logger';
 
 type CartItem = {
   product: Product;
@@ -26,15 +28,13 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   
-  // Load cart from localStorage on component mount
+  // Load cart from SecureStorage on component mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('itakecare-cart');
+    const savedCart = SecureStorage.get('itakecare-cart');
     if (savedCart) {
       try {
-        const parsedCart = JSON.parse(savedCart);
-        
         // Validate prices in loaded cart items
-        const validatedCart = parsedCart.map((item: CartItem) => {
+        const validatedCart = savedCart.map((item: CartItem) => {
           let validPrice: number;
           
           if (typeof item.product.monthly_price === 'number') {
@@ -55,7 +55,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // If the price is not a valid number, set it to 0
           if (isNaN(validPrice)) validPrice = 0;
           
-          console.log(`CartContext: Validating price for ${item.product.name}: ${validPrice}`);
+          Logger.debug(`CartContext: Validating price for ${item.product.name}: ${validPrice}`);
           
           return {
             ...item,
@@ -68,14 +68,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setItems(validatedCart);
       } catch (error) {
-        console.error('Failed to parse cart from localStorage:', error);
+        Logger.error('Failed to parse cart from storage', error);
       }
     }
   }, []);
   
-  // Save cart to localStorage whenever it changes
+  // Save cart to SecureStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('itakecare-cart', JSON.stringify(items));
+    SecureStorage.set('itakecare-cart', items);
   }, [items]);
   
   const addToCart = (newItem: CartItem) => {
@@ -91,7 +91,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       productToAdd.currentPrice = priceData.purchasePrice;
     }
     
-    console.log(`CartContext: Setting prices for ${productToAdd.name}: monthly=${priceData.monthlyPrice}, purchase=${priceData.purchasePrice}`);
+    Logger.debug(`CartContext: Setting prices for ${productToAdd.name}: monthly=${priceData.monthlyPrice}, purchase=${priceData.purchasePrice}`);
     
     setItems(prevItems => {
       // Check if this product is already in the cart
@@ -114,7 +114,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success('Produit ajouté au panier');
         
         // Log the product and price being added
-        console.log('Adding to cart product with details:', {
+        Logger.debug('Adding to cart product with details:', {
           id: productToAdd.id,
           name: productToAdd.name,
           price: priceData.monthlyPrice,
@@ -157,7 +157,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const subtotal = priceData.monthlyPrice * item.quantity;
     
     // Log detailed information about each item in cart total calculation
-    console.log(`Cart total calculation - Item: ${item.product.name}, Monthly Price: ${priceData.monthlyPrice}, Quantity: ${item.quantity}, Subtotal: ${subtotal}`);
+    Logger.debug(`Cart total calculation - Item: ${item.product.name}, Monthly Price: ${priceData.monthlyPrice}, Quantity: ${item.quantity}, Subtotal: ${subtotal}`);
     
     return total + subtotal;
   }, 0);

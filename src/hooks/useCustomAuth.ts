@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Logger } from '@/utils/logger';
+import { ErrorHandler } from '@/utils/errorHandler';
+import { SecurityMonitor } from '@/utils/securityMonitor';
+import { InputSanitizer } from '@/utils/inputSanitizer';
 
 interface CompanyInfo {
   id: string;
@@ -61,8 +65,8 @@ export const useCustomAuth = () => {
       });
 
       if (error) {
-        console.error('Error detecting company:', error);
-        setError('Erreur lors de la détection de l\'entreprise');
+        Logger.error('Error detecting company', error);
+        setError(ErrorHandler.handle(error, 'server'));
         return null;
       }
 
@@ -86,9 +90,10 @@ export const useCustomAuth = () => {
       });
 
       if (error) {
-        console.error('Error in custom signup:', error);
-        setError(error.message || 'Erreur lors de l\'inscription');
-        return { success: false, error: error.message };
+        Logger.error('Error in custom signup', error);
+        const errorMessage = ErrorHandler.handleAuthError(error);
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
       }
 
       return { success: true, data };
@@ -152,27 +157,38 @@ export const useCustomAuth = () => {
   };
 
   // Regular Supabase auth for login (after account is activated)
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; data?: any }> => {
     try {
       setLoading(true);
-      setError(null);
+      setError('');
+
+      // Sanitize and validate inputs
+      const sanitizedEmail = InputSanitizer.sanitizeEmail(email);
+      if (!sanitizedEmail) {
+        throw new Error('Invalid email format');
+      }
+
+      // Check rate limiting
+      if (!SecurityMonitor.checkRateLimit(sanitizedEmail)) {
+        throw new Error('Too many login attempts. Please try again later.');
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+        email: sanitizedEmail,
+        password,
       });
 
       if (error) {
-        console.error('Error in login:', error);
-        setError(error.message || 'Erreur de connexion');
-        return { success: false, error: error.message };
+        SecurityMonitor.logSuspiciousActivity('failed_login', { email: sanitizedEmail, error: error.message });
+        throw error;
       }
 
+      Logger.security('Successful login', { email: sanitizedEmail });
       return { success: true, data };
-    } catch (err) {
-      console.error('Error in login:', err);
-      setError('Erreur de connexion');
-      return { success: false, error: 'Erreur de connexion' };
+    } catch (err: any) {
+      const errorMessage = ErrorHandler.handleAuthError(err);
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
