@@ -88,9 +88,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(null);
       setSubscription(null);
       
-      // Enhanced security clear - remove all sensitive data
-      SecureStorage.securityClear();
-      SecureStorage.cleanupExpiredData();
+      // Enhanced security clear with error protection
+      try {
+        SecureStorage.securityClear();
+      } catch (storageError) {
+        Logger.warn('Storage security clear failed, continuing logout:', storageError);
+      }
+      
+      try {
+        SecureStorage.cleanupExpiredData();
+      } catch (cleanupError) {
+        Logger.warn('Storage cleanup failed, continuing logout:', cleanupError);
+      }
       
       Logger.log('Logout completed successfully');
     } catch (error) {
@@ -99,7 +108,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setSession(null);
       setSubscription(null);
-      SecureStorage.securityClear();
+      
+      // Protect storage operations even in error case
+      try {
+        SecureStorage.securityClear();
+      } catch (storageError) {
+        Logger.warn('Storage security clear failed during error handling:', storageError);
+      }
     } finally {
       setIsLoading(false);
     }
