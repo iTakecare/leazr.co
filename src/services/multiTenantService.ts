@@ -19,88 +19,40 @@ export type CreateDataWithCompany<T> = T & WithCompanyId;
 export const getCurrentUserCompanyId = async (): Promise<string> => {
   console.log("🏢 SERVICE - Début getCurrentUserCompanyId");
   
-  // SÉCURITÉ: Validation stricte de la session
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  // Vérifier d'abord la session
+  const { data: { session } } = await supabase.auth.getSession();
   console.log("🏢 SERVICE - Session vérifiée:", !!session);
   
-  if (sessionError) {
-    console.error("🏢 SERVICE - Erreur récupération session:", sessionError);
-    throw new Error("Erreur lors de la vérification de la session");
-  }
-  
-  if (!session?.user?.id) {
-    console.error("🏢 SERVICE - Session ou utilisateur invalide");
+  if (!session?.user) {
+    console.error("🏢 SERVICE - Aucune session active");
     throw new Error("Aucune session active. Veuillez vous connecter.");
   }
 
   const user = session.user;
   console.log("🏢 SERVICE - Utilisateur de la session:", user.id);
 
-  // SÉCURITÉ: Validation avec retry et fallback
-  let profileData = null;
-  let error = null;
-  
-  try {
-    console.log("🏢 SERVICE - Appel de get_current_user_profile RPC");
-    const result = await supabase.rpc('get_current_user_profile');
-    profileData = result.data;
-    error = result.error;
-    
-    console.log("🏢 SERVICE - Résultat RPC:", { profileData, error });
-    
-    // SÉCURITÉ: Validation approfondie de la réponse
-    if (error) {
-      console.error("🏢 SERVICE - Erreur RPC:", error);
-      throw new Error(`Erreur RPC: ${error.message}`);
-    }
-    
-    if (!profileData || !Array.isArray(profileData) || profileData.length === 0) {
-      console.error("🏢 SERVICE - Données de profil vides ou invalides");
-      throw new Error("Profil utilisateur introuvable");
-    }
-    
-    // SÉCURITÉ: Validation stricte du company_id
-    const companyId = profileData[0]?.company_id;
-    
-    if (!companyId || typeof companyId !== 'string') {
-      console.error("🏢 SERVICE - company_id manquant ou invalide:", companyId);
-      throw new Error("Aucune entreprise associée à cet utilisateur");
-    }
-    
-    // SÉCURITÉ: Validation du format UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(companyId)) {
-      console.error("🏢 SERVICE - Format company_id invalide:", companyId);
-      throw new Error("Format d'entreprise invalide");
-    }
+  // Utiliser la nouvelle fonction sécurisée qui évite les récursions
+  console.log("🏢 SERVICE - Appel de get_current_user_profile RPC");
+  const { data: profileData, error } = await supabase
+    .rpc('get_current_user_profile');
 
-    console.log("🏢 SERVICE - CompanyId validé:", companyId);
-    return companyId;
-    
-  } catch (rpcError) {
-    console.error("🏢 SERVICE - Erreur lors de l'appel RPC:", rpcError);
-    
-    // SÉCURITÉ: Fallback avec validation directe du profil
-    try {
-      console.log("🏢 SERVICE - Tentative de fallback avec requête directe");
-      const { data: fallbackProfile, error: fallbackError } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
-      
-      if (fallbackError || !fallbackProfile?.company_id) {
-        throw new Error("Impossible de récupérer l'entreprise de l'utilisateur");
-      }
-      
-      console.log("🏢 SERVICE - CompanyId de fallback:", fallbackProfile.company_id);
-      return fallbackProfile.company_id;
-      
-    } catch (fallbackError) {
-      console.error("🏢 SERVICE - Échec du fallback:", fallbackError);
-      throw new Error("Impossible de déterminer l'entreprise de l'utilisateur");
-    }
+  console.log("🏢 SERVICE - Résultat RPC:", { profileData, error });
+
+  if (error) {
+    console.error("🏢 SERVICE - Erreur lors de la récupération du profil:", error);
+    throw new Error("Impossible de récupérer le profil de l'utilisateur");
   }
+
+  // Récupérer le company_id depuis les données du profil
+  const companyId = profileData && profileData.length > 0 ? profileData[0].company_id : null;
+  
+  if (!companyId) {
+    console.error("🏢 SERVICE - Aucun company_id trouvé dans le profil");
+    throw new Error("Aucune entreprise associée à cet utilisateur");
+  }
+
+  console.log("🏢 SERVICE - CompanyId retourné:", companyId);
+  return companyId;
 };
 
 /**

@@ -21,29 +21,10 @@ export const useAmbassadorOfferState = () => {
   // Charger les données de l'ambassadeur connecté
   useEffect(() => {
     const loadAmbassadorData = async () => {
-      if (!user?.id) {
-        console.log("🔍 useAmbassadorOfferState - User not authenticated");
+      if (!user?.id || !isAmbassador()) {
+        console.log("🔍 useAmbassadorOfferState - User not authenticated or not ambassador");
         setLoading(false);
         return;
-      }
-
-      // Vérifier si l'utilisateur est ambassadeur (soit par rôle, soit par profil en DB)
-      const userIsAmbassador = isAmbassador() || user?.role === 'ambassador';
-      if (!userIsAmbassador) {
-        console.log("🔍 useAmbassadorOfferState - User not ambassador, checking DB...");
-        
-        // Dernière vérification en cas où l'enrichissement des données a échoué
-        const { data: checkAmbassador } = await supabase
-          .from('ambassadors')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (!checkAmbassador) {
-          console.log("🔍 useAmbassadorOfferState - User not ambassador in DB either");
-          setLoading(false);
-          return;
-        }
       }
 
       try {

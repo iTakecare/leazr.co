@@ -21,18 +21,6 @@ import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
 import PublicCartPage from "@/pages/PublicCartPage";
 import ProductDetailPage from "@/pages/ProductDetailPage";
 
-// Additional public pages
-import SolutionsPage from "@/pages/SolutionsPage";
-import EnterprisesSolutionsPage from "@/pages/EnterprisesSolutionsPage";
-import ProfessionalsSolutionsPage from "@/pages/ProfessionalsSolutionsPage";
-import CRMFeaturePage from "@/pages/CRMFeaturePage";
-import CalculatorPage from "@/pages/CalculatorPage";
-import ServicesPage from "@/pages/ServicesPage";
-import ResourcesPage from "@/pages/ResourcesPage";
-import AboutPage from "@/pages/AboutPage";
-import ContactPage from "@/pages/ContactPage";
-import PricingPage from "@/pages/PricingPage";
-
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
 import PublicSlugProductDetails from "@/components/public/PublicSlugProductDetails";
@@ -55,13 +43,6 @@ import CatalogManagement from "@/pages/CatalogManagement";
 import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
-import LeazrSaasClients from "@/pages/LeazrSaasClients";
-import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
-import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
-import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
-import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
-import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
-import LeazrSaaSDeployments from "@/pages/LeazrSaaSDeployments";
 
 // Ambassador management pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -109,19 +90,6 @@ function App() {
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
                       
-                      {/* Additional public pages */}
-                      <Route path="/solutions" element={<SolutionsPage />} />
-                      <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
-                      <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
-                      <Route path="/solutions/crm" element={<CRMFeaturePage />} />
-                      <Route path="/solutions/calculateur" element={<CalculatorPage />} />
-                      <Route path="/services" element={<ServicesPage />} />
-                      <Route path="/ressources" element={<ResourcesPage />} />
-                      <Route path="/a-propos" element={<AboutPage />} />
-                      <Route path="/contact" element={<ContactPage />} />
-                      <Route path="/blog" element={<ResourcesPage />} />
-                      <Route path="/tarifs" element={<PricingPage />} />
-                      
                       {/* Public company ID-based routes */}
                       <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
                       <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
@@ -136,13 +104,6 @@ function App() {
                         {/* Admin routes with Layout */}
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
                         <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
-                        <Route path="leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
-                        <Route path="leazr-saas-subscriptions" element={<Layout><LeazrSaaSSubscriptions /></Layout>} />
-                        <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
-                        <Route path="leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
-                        <Route path="leazr-saas-plans" element={<Layout><LeazrSaaSPlans /></Layout>} />
-                        <Route path="leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
-                        <Route path="leazr-saas-deployments" element={<Layout><LeazrSaaSDeployments /></Layout>} />
                         <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
                         <Route path="clients" element={<Layout><Clients /></Layout>} />
                         <Route path="offers" element={<Layout><Offers /></Layout>} />
