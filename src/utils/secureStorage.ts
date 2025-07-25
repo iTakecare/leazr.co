@@ -40,43 +40,6 @@ export class SecureStorage {
     keys.forEach(key => localStorage.removeItem(key));
   }
 
-  // Clean up expired tokens and old data
-  static cleanupExpiredData(): void {
-    try {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith('auth_') || key.startsWith('session_') || key.startsWith('temp_')) {
-          const item = localStorage.getItem(key);
-          if (item) {
-            try {
-              const data = JSON.parse(item);
-              if (data.expires && new Date(data.expires) < new Date()) {
-                localStorage.removeItem(key);
-              }
-            } catch {
-              // If we can't parse it, it might be old/corrupted data
-              localStorage.removeItem(key);
-            }
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to cleanup expired data');
-    }
-  }
-
-  // Enhanced security clear - clears everything including session storage
-  static securityClear(): void {
-    this.clearAllSecure();
-    // Clear session storage as well
-    sessionStorage.clear();
-    // Clear any auth-related items
-    const authKeys = Object.keys(localStorage).filter(key => 
-      key.includes('auth') || key.includes('token') || key.includes('session')
-    );
-    authKeys.forEach(key => localStorage.removeItem(key));
-  }
-
   // Store non-sensitive data normally
   static set(key: string, data: any): void {
     localStorage.setItem(key, JSON.stringify(data));

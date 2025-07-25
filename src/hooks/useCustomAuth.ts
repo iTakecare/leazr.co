@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Logger } from '@/utils/logger';
 import { ErrorHandler } from '@/utils/errorHandler';
-import { SecurityMonitor } from '@/utils/securityMonitor';
-import { InputSanitizer } from '@/utils/inputSanitizer';
 
 interface CompanyInfo {
   id: string;
@@ -157,38 +155,27 @@ export const useCustomAuth = () => {
   };
 
   // Regular Supabase auth for login (after account is activated)
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; data?: any }> => {
+  const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      setError('');
-
-      // Sanitize and validate inputs
-      const sanitizedEmail = InputSanitizer.sanitizeEmail(email);
-      if (!sanitizedEmail) {
-        throw new Error('Invalid email format');
-      }
-
-      // Check rate limiting
-      if (!SecurityMonitor.checkRateLimit(sanitizedEmail)) {
-        throw new Error('Too many login attempts. Please try again later.');
-      }
+      setError(null);
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: sanitizedEmail,
-        password,
+        email,
+        password
       });
 
       if (error) {
-        SecurityMonitor.logSuspiciousActivity('failed_login', { email: sanitizedEmail, error: error.message });
-        throw error;
+        console.error('Error in login:', error);
+        setError(error.message || 'Erreur de connexion');
+        return { success: false, error: error.message };
       }
 
-      Logger.security('Successful login', { email: sanitizedEmail });
       return { success: true, data };
-    } catch (err: any) {
-      const errorMessage = ErrorHandler.handleAuthError(err);
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+    } catch (err) {
+      console.error('Error in login:', err);
+      setError('Erreur de connexion');
+      return { success: false, error: 'Erreur de connexion' };
     } finally {
       setLoading(false);
     }

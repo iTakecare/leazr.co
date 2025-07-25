@@ -6,7 +6,6 @@ import { cleanUserData } from '@/services/dataIsolationService';
 import { DataIsolationCleanupService } from '@/services/dataIsolationCleanupService';
 import { Logger } from '@/utils/logger';
 import { ErrorHandler } from '@/utils/errorHandler';
-import { SecureStorage } from '@/utils/secureStorage';
 
 // Étendre le type User pour inclure les propriétés personnalisées
 interface ExtendedUser extends User {
@@ -80,28 +79,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async (): Promise<void> => {
-    Logger.log('Starting logout process');
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setSubscription(null);
-      
-      // Enhanced security clear - remove all sensitive data
-      SecureStorage.securityClear();
-      SecureStorage.cleanupExpiredData();
-      
-      Logger.log('Logout completed successfully');
-    } catch (error) {
-      Logger.error('Logout error', error);
-      // Even if logout fails, clear local state for security
-      setUser(null);
-      setSession(null);
-      setSubscription(null);
-      SecureStorage.securityClear();
-    } finally {
-      setIsLoading(false);
+  const logout = async () => {
+    Logger.debug("🔥 LOGOUT - Début de la déconnexion");
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Logger.error('Error signing out', error);
+    } else {
+      Logger.debug("🔥 LOGOUT - Déconnexion réussie");
     }
   };
 
