@@ -18,9 +18,35 @@ const generateEncryptionKey = (): string => {
 };
 
 export class SecureStorage {
+  // Check if storage is available
+  private static isStorageAvailable(): boolean {
+    try {
+      const test = '__storage_test__';
+      localStorage.setItem(test, 'test');
+      localStorage.removeItem(test);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Safe storage operation wrapper
+  private static safeStorageOperation<T>(operation: () => T, fallback: T): T {
+    try {
+      if (!this.isStorageAvailable()) {
+        console.warn('Storage not available, using fallback');
+        return fallback;
+      }
+      return operation();
+    } catch (error) {
+      console.warn('Storage operation failed:', error);
+      return fallback;
+    }
+  }
+
   // Encrypt and store sensitive data with expiration and integrity check
   static setSecure(key: string, data: any, expirationMinutes: number = 60): void {
-    try {
+    this.safeStorageOperation(() => {
       const expirationTime = Date.now() + (expirationMinutes * 60 * 1000);
       const payload = {
         data,
@@ -33,14 +59,13 @@ export class SecureStorage {
       const encryptionKey = generateEncryptionKey();
       const encrypted = CryptoJS.AES.encrypt(jsonString, encryptionKey).toString();
       localStorage.setItem(`${PREFIX}${key}`, encrypted);
-    } catch (error) {
-      console.error('Error storing secure data:', error);
-    }
+      return true;
+    }, false);
   }
 
   // Retrieve and decrypt sensitive data with validation
   static getSecure(key: string): any {
-    try {
+    return this.safeStorageOperation(() => {
       const encrypted = localStorage.getItem(`${PREFIX}${key}`);
       if (!encrypted) return null;
       
@@ -63,16 +88,15 @@ export class SecureStorage {
       }
       
       return payload.data;
-    } catch (error) {
-      console.error('Error retrieving secure data:', error);
-      this.removeSecure(key); // Remove corrupted data
-      return null;
-    }
+    }, null);
   }
 
   // Remove specific secure item
   static removeSecure(key: string): void {
-    localStorage.removeItem(`${PREFIX}${key}`);
+    this.safeStorageOperation(() => {
+      localStorage.removeItem(`${PREFIX}${key}`);
+      return true;
+    }, false);
   }
 
   // Clear all secure items

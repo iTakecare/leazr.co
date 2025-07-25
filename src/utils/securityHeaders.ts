@@ -18,9 +18,8 @@ export class SecurityHeaders {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      // Enhanced security directives
-      "frame-ancestors 'none'",
       "upgrade-insecure-requests"
+      // Note: frame-ancestors directive is ignored in meta tags
     ].join('; ');
 
     const meta = document.createElement('meta');
@@ -29,14 +28,13 @@ export class SecurityHeaders {
     document.head.appendChild(meta);
   }
 
-  // Add additional security meta tags
+  // Add additional security meta tags (only valid ones for meta tags)
   static addSecurityMetas(): void {
     const securityMetas = [
       { name: 'referrer', content: 'strict-origin-when-cross-origin' },
       { httpEquiv: 'X-Content-Type-Options', content: 'nosniff' },
-      { httpEquiv: 'X-Frame-Options', content: 'DENY' },
-      { httpEquiv: 'X-XSS-Protection', content: '1; mode=block' },
-      { httpEquiv: 'Strict-Transport-Security', content: 'max-age=31536000; includeSubDomains' }
+      { httpEquiv: 'X-XSS-Protection', content: '1; mode=block' }
+      // Note: X-Frame-Options and Strict-Transport-Security must be set as HTTP headers, not meta tags
     ];
 
     securityMetas.forEach(({ name, httpEquiv, content }) => {
