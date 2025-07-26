@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import PublicCatalogAnonymous from '@/pages/PublicCatalogAnonymous';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 const PublicSlugCatalog = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
+  const queryClient = useQueryClient();
   
   // Safari-compatible logging
   try {
@@ -18,6 +19,18 @@ const PublicSlugCatalog = () => {
   } catch (e) {
     // Silent fail for Safari compatibility
   }
+
+  // Invalidate old cache on mount to avoid conflicts
+  useEffect(() => {
+    try {
+      console.log('🏪 Cache cleanup - Invalidating old company cache');
+      queryClient.invalidateQueries({ queryKey: ['company-by-slug'] });
+      queryClient.removeQueries({ queryKey: ['company-by-slug'] });
+      console.log('🏪 Cache cleanup - Done');
+    } catch (e) {
+      console.warn('🏪 Cache cleanup failed:', e);
+    }
+  }, [queryClient]);
   
   // Reserved keywords that should not be treated as company slugs
   const reservedKeywords = ['admin', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
@@ -37,35 +50,48 @@ const PublicSlugCatalog = () => {
     );
   }
   
-  // Fetch company by slug - approche simplifiée et robuste
+  // Fetch company by slug - cache key unique pour éviter les conflits
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
-    queryKey: ['company-by-slug', companySlug],
+    queryKey: ['company-by-slug-direct', companySlug],
     queryFn: async () => {
-      if (!companySlug) return null;
-      
-      console.log('🏪 Fetching company directly:', companySlug);
-      
-      // Requête directe simple sans timeout artificiel
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color')
-        .eq('slug', companySlug)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('🏪 Company fetch error:', error.message);
-        throw error;
+      if (!companySlug) {
+        console.log('🏪 No slug provided');
+        return null;
       }
       
-      console.log('🏪 Company result:', data?.name || 'Not found');
-      return data;
+      console.log('🏪 [START] Direct SQL query for:', companySlug);
+      console.time('company-fetch');
+      
+      try {
+        // Requête SQL directe ultra-simple
+        const { data, error } = await supabase
+          .from('companies')
+          .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color')
+          .eq('slug', companySlug)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        console.timeEnd('company-fetch');
+        
+        if (error) {
+          console.error('🏪 [ERROR] SQL query failed:', error.message, error.code);
+          throw error;
+        }
+        
+        console.log('🏪 [SUCCESS] Company found:', data?.name || 'Not found');
+        return data;
+        
+      } catch (err) {
+        console.timeEnd('company-fetch');
+        console.error('🏪 [FATAL] Query exception:', err);
+        throw err;
+      }
     },
     enabled: !!companySlug,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
-    staleTime: 5 * 60 * 1000, // Cache 5 minutes
-    gcTime: 10 * 60 * 1000, // Garde en mémoire 10 minutes
+    retry: 1, // Réduit pour détecter plus vite les problèmes
+    retryDelay: 1000,
+    staleTime: 30 * 1000, // Cache court pour forcer le refresh
+    gcTime: 2 * 60 * 1000, // Garde en mémoire moins longtemps
   });
 
   // Loading state
