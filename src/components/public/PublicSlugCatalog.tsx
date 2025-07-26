@@ -37,70 +37,35 @@ const PublicSlugCatalog = () => {
     );
   }
   
-  // Fetch company by slug avec robustesse améliorée
+  // Fetch company by slug - approche simplifiée et robuste
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
     queryKey: ['company-by-slug', companySlug],
     queryFn: async () => {
       if (!companySlug) return null;
       
-      console.log('🏪 [DEBUT] Fetching company:', companySlug);
+      console.log('🏪 Fetching company directly:', companySlug);
       
-      // Protection contre les erreurs d'extensions
-      let companyData = null;
+      // Requête directe simple sans timeout artificiel
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color')
+        .eq('slug', companySlug)
+        .eq('is_active', true)
+        .maybeSingle();
       
-      try {
-        console.log('🏪 [STEP 1] Tentative RPC get_company_by_slug...');
-        
-        // Timeout de sécurité pour éviter les blocages
-        const rpcPromise = supabase.rpc('get_company_by_slug', { company_slug: companySlug });
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('RPC timeout after 10s')), 10000)
-        );
-        
-        const { data, error } = await Promise.race([rpcPromise, timeoutPromise]) as any;
-        
-        if (error) {
-          console.error('🏪 [ERROR] RPC error:', error.message);
-          throw error;
-        }
-        
-        console.log('🏪 [SUCCESS] RPC result:', { dataLength: data?.length, firstCompany: data?.[0]?.name });
-        companyData = data && data.length > 0 ? data[0] : null;
-        
-      } catch (rpcError) {
-        console.error('🏪 [FALLBACK] RPC failed, trying direct query:', rpcError);
-        
-        try {
-          console.log('🏪 [STEP 2] Tentative requête directe...');
-          
-          const { data: directData, error: directError } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('slug', companySlug)
-            .eq('is_active', true)
-            .single();
-          
-          if (directError && directError.code !== 'PGRST116') { // PGRST116 = no rows found
-            console.error('🏪 [ERROR] Direct query error:', directError.message);
-            throw directError;
-          }
-          
-          console.log('🏪 [SUCCESS] Direct query result:', directData?.name || 'None');
-          companyData = directData;
-          
-        } catch (directError) {
-          console.error('🏪 [FATAL] Both RPC and direct query failed:', directError);
-          throw directError;
-        }
+      if (error) {
+        console.error('🏪 Company fetch error:', error.message);
+        throw error;
       }
       
-      console.log('🏪 [FINAL] Company result:', companyData?.name || 'Not found');
-      return companyData;
+      console.log('🏪 Company result:', data?.name || 'Not found');
+      return data;
     },
     enabled: !!companySlug,
-    retry: 3,
-    retryDelay: 1000,
-    staleTime: 60000, // Cache pendant 1 minute
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    gcTime: 10 * 60 * 1000, // Garde en mémoire 10 minutes
   });
 
   // Loading state
