@@ -118,6 +118,11 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
       
       <CardContent className="flex-1 flex flex-col p-3">
         <div className="flex flex-wrap gap-1 mb-1">
+          {product.category && (
+            <Badge className="bg-[#33638e] text-white hover:bg-[#33638e]/90 rounded-full font-normal text-xs">
+              {categoryLabel}
+            </Badge>
+          )}
           {brandLabel && (
             <Badge variant="outline" className="rounded-full font-normal text-gray-600 bg-gray-50 text-xs border-[#4ab6c4]/20">
               {brandLabel}
@@ -132,7 +137,7 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
             <div className="text-gray-700 text-xs">
               {hasVariants ? "À partir de " : ""}
               <span className="font-bold text-[#4ab6c4]">{formatCurrency(displayPrice)}</span>
-              <span className="text-[10px]">{(product.monthly_price || hasMinPrice) ? " HTVA/mois" : ""}</span>
+              <span className="text-[10px]">{product.monthly_price ? " par mois" : ""}</span>
             </div>
           ) : (
             <div className="text-gray-700 text-xs">

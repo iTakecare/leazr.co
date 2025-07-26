@@ -61,11 +61,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     const currentLeaser = leaser || defaultLeasers[0];
     
     if (!currentLeaser || !currentLeaser.ranges || currentLeaser.ranges.length === 0) {
-      // Fallback sécurisé si aucun leaser ou ranges disponible
-      if (defaultLeasers.length > 0 && defaultLeasers[0].ranges && defaultLeasers[0].ranges.length > 0) {
-        return defaultLeasers[0].ranges[0].coefficient || 3.55;
-      }
-      return 3.55; // Coefficient par défaut ultime
+      return defaultLeasers[0].ranges[0].coefficient || 3.55;
     }
     
     const range = currentLeaser.ranges.find(
@@ -123,12 +119,7 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     if (calculationsInProgressRef.current[calcKey]) return;
     calculationsInProgressRef.current[calcKey] = true;
 
-    const ranges = leaser?.ranges || (defaultLeasers.length > 0 ? defaultLeasers[0].ranges : []);
-    
-    if (!ranges || ranges.length === 0) {
-      setCalculatedMargin({ percentage: 0, amount: 0 });
-      return;
-    }
+    const ranges = leaser?.ranges || defaultLeasers[0].ranges;
     
     let coef = ranges[0].coefficient;
     for (const range of ranges) {

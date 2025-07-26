@@ -19,59 +19,43 @@ const Login = () => {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
 
-  // Redirection automatique avec diagnostic complet
+  // Redirection automatique - simplifiée pour résoudre le problème de timing
   useEffect(() => {
-    console.log("🔀 LOGIN REDIRECT - Vérification redirection détaillée:", {
+    console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
       isLoading,
       hasUser: !!user,
       userEmail: user?.email,
-      userRole: user?.role,
-      isAdmin: user ? isAdmin() : false,
-      isClient: user ? isClient() : false,
-      isPartner: user ? isPartner() : false,
-      isAmbassador: user ? isAmbassador() : false
+      userRole: user?.role
     });
 
-    // Rediriger dès qu'on a un utilisateur avec email et role
-    if (user && user.email && user.role && !isLoading) {
-      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté avec role, redirection...", {
-        email: user.email, 
-        role: user.role,
-        isAdminResult: isAdmin(),
-        isClientResult: isClient(),
-        isPartnerResult: isPartner(),
-        isAmbassadorResult: isAmbassador()
-      });
+    // Rediriger dès qu'on a un utilisateur avec email, même si isLoading est true
+    if (user && user.email) {
+      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection immédiate...", user.email, "Role:", user.role);
       
       // Utiliser setTimeout pour éviter les conflits de rendu
       const timer = setTimeout(() => {
-        // Redirection basée sur le rôle avec priorité Admin
+        // Redirection basée sur le rôle et l'email
         if (user.email === "ecommerce@itakecare.be") {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard (ecommerce admin)");
+          console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
           navigate('/admin/leazr-saas-dashboard', { replace: true });
-        } else if (isAdmin()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard (isAdmin = true)");
-          navigate('/admin/dashboard', { replace: true });
         } else if (isClient()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard (isClient = true)");
+          console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
           navigate('/client/dashboard', { replace: true });
         } else if (isAmbassador()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard (isAmbassador = true)");
+          console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
           navigate('/ambassador/dashboard', { replace: true });
         } else if (isPartner()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard (isPartner = true)");
+          console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
           navigate('/partner/dashboard', { replace: true });
         } else {
-          console.log("🔀 LOGIN REDIRECT - Redirection fallback vers admin dashboard (role:", user.role, ")");
+          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
           navigate('/admin/dashboard', { replace: true });
         }
-      }, 100); // Délai légèrement augmenté pour s'assurer que l'enrichissement est complet
+      }, 50); // Délai très court pour éviter les conflits
 
       return () => clearTimeout(timer);
-    } else if (user && user.email && !user.role) {
-      console.log("🔀 LOGIN REDIRECT - Utilisateur sans role, attente enrichissement...", user.email);
     }
-  }, [user, isLoading, navigate, isAdmin, isClient, isPartner, isAmbassador]);
+  }, [user, navigate, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -11,19 +11,16 @@ import {
   Globe,
   Server,
   BarChart3,
-  Package,
-  Building2
+  Package
 } from "lucide-react";
 import SaaSPlansManager from "./SaaSPlansManager";
 import NetlifyDeploymentTab from "./NetlifyDeploymentTab";
-import PlatformSettingsTab from "./PlatformSettingsTab";
 
 const SaaSSettingsManager = () => {
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
     { id: "general", label: "Général", icon: Settings },
-    { id: "company", label: "Entreprise", icon: Building2 },
     { id: "netlify", label: "Netlify", icon: Globe },
     { id: "plans", label: "Plans & Tarifs", icon: Package },
     { id: "users", label: "Utilisateurs", icon: Users },
@@ -45,7 +42,7 @@ const SaaSSettingsManager = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
@@ -80,10 +77,6 @@ const SaaSSettingsManager = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="company" className="space-y-6">
-          <PlatformSettingsTab />
         </TabsContent>
 
         <TabsContent value="netlify" className="space-y-6">
