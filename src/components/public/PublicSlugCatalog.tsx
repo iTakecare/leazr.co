@@ -37,30 +37,70 @@ const PublicSlugCatalog = () => {
     );
   }
   
-  // Fetch company by slug
+  // Fetch company by slug avec robustesse améliorée
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
     queryKey: ['company-by-slug', companySlug],
     queryFn: async () => {
       if (!companySlug) return null;
       
+      console.log('🏪 [DEBUT] Fetching company:', companySlug);
+      
+      // Protection contre les erreurs d'extensions
+      let companyData = null;
+      
       try {
-        console.log('🏪 Fetching company:', companySlug);
-      } catch (e) {}
-      
-      const { data, error } = await supabase
-        .rpc('get_company_by_slug', { company_slug: companySlug });
-      
-      if (error) {
-        console.error('🏪 Company fetch error:', error.message);
-        throw error;
+        console.log('🏪 [STEP 1] Tentative RPC get_company_by_slug...');
+        
+        // Timeout de sécurité pour éviter les blocages
+        const rpcPromise = supabase.rpc('get_company_by_slug', { company_slug: companySlug });
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('RPC timeout after 10s')), 10000)
+        );
+        
+        const { data, error } = await Promise.race([rpcPromise, timeoutPromise]) as any;
+        
+        if (error) {
+          console.error('🏪 [ERROR] RPC error:', error.message);
+          throw error;
+        }
+        
+        console.log('🏪 [SUCCESS] RPC result:', { dataLength: data?.length, firstCompany: data?.[0]?.name });
+        companyData = data && data.length > 0 ? data[0] : null;
+        
+      } catch (rpcError) {
+        console.error('🏪 [FALLBACK] RPC failed, trying direct query:', rpcError);
+        
+        try {
+          console.log('🏪 [STEP 2] Tentative requête directe...');
+          
+          const { data: directData, error: directError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('slug', companySlug)
+            .eq('is_active', true)
+            .single();
+          
+          if (directError && directError.code !== 'PGRST116') { // PGRST116 = no rows found
+            console.error('🏪 [ERROR] Direct query error:', directError.message);
+            throw directError;
+          }
+          
+          console.log('🏪 [SUCCESS] Direct query result:', directData?.name || 'None');
+          companyData = directData;
+          
+        } catch (directError) {
+          console.error('🏪 [FATAL] Both RPC and direct query failed:', directError);
+          throw directError;
+        }
       }
       
-      try {
-        console.log('🏪 Company found:', data?.[0]?.name || 'None');
-      } catch (e) {}
-      return data && data.length > 0 ? data[0] : null;
+      console.log('🏪 [FINAL] Company result:', companyData?.name || 'Not found');
+      return companyData;
     },
     enabled: !!companySlug,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 60000, // Cache pendant 1 minute
   });
 
   // Loading state
