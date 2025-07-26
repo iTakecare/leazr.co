@@ -20,11 +20,9 @@ import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-// Hook temporairement désactivé - utilisation de données statiques
+import { useSaaSData, useRecentActivity } from "@/hooks/useSaaSData";
 
 const LeazrSaaSDashboard = () => {
-  console.log('🚀 SAAS DASHBOARD - Component mounting');
-  
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -42,33 +40,15 @@ const LeazrSaaSDashboard = () => {
 
   // Navigation pour les utilisateurs non autorisés
   useEffect(() => {
-    console.log('🔄 SAAS DASHBOARD - useEffect triggered', { user: !!user, isLeazrSaaSAdmin, authLoading });
     if (user && !isLeazrSaaSAdmin && !authLoading) {
       console.log('🚫 SAAS DASHBOARD - Redirecting unauthorized user to dashboard');
       navigate("/dashboard", { replace: true });
     }
   }, [user, isLeazrSaaSAdmin, authLoading, navigate]);
   
-  // Données SaaS temporaires pour le test
-  const dashboardData = {
-    totalClients: 147,
-    newClientsThisMonth: 12,
-    activeSubscriptions: 134,
-    monthlyRevenue: 23450,
-    openTickets: 8,
-    supportTickets: 32,
-    conversionRate: 3.8,
-    churnRate: 2.1,
-    satisfactionRate: 4.6
-  };
-  
-  const recentActivity = [
-    { message: "Nouveau client inscrit", time: "Il y a 2 heures", status: "success" },
-    { message: "Ticket support résolu", time: "Il y a 3 heures", status: "success" },
-    { message: "Paiement en attente", time: "Il y a 5 heures", status: "warning" }
-  ];
-  
-  const dataLoading = false;
+  // Récupérer les vraies données SaaS
+  const { metrics: dashboardData, loading: dataLoading } = useSaaSData();
+  const recentActivity = useRecentActivity();
 
   // Si l'authentification est en cours, afficher le loading
   if (authLoading) {

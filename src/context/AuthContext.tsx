@@ -192,7 +192,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .from('ambassadors')
           .select('id')
           .eq('user_id', baseUser.id)
-          .maybeSingle();
+          .single();
         
         if (!ambassadorError && ambassadorData) {
           ambassadorId = ambassadorData.id;
