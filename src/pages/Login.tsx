@@ -17,27 +17,36 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading } = useAuth();
+  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading, session } = useAuth();
 
-  // Redirection automatique - simplifiée pour résoudre le problème de timing
+  // Redirection automatique - améliorée pour gérer les problèmes d'enrichissement
   useEffect(() => {
     console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
       isLoading,
       hasUser: !!user,
+      hasSession: !!session,
       userEmail: user?.email,
       userRole: user?.role
     });
 
-    // Rediriger dès qu'on a un utilisateur avec email, même si isLoading est true
-    if (user && user.email) {
-      console.log("🔀 LOGIN REDIRECT - Utilisateur connecté, redirection immédiate...", user.email, "Role:", user.role);
+    // Rediriger si on a un utilisateur OU une session valide (même sans enrichissement)
+    const shouldRedirect = (user && user.email) || (session && session.user && session.user.email);
+    
+    if (shouldRedirect) {
+      const userEmail = user?.email || session?.user?.email;
+      const userRole = user?.role || 'admin'; // Fallback vers admin si pas de rôle
+      
+      console.log("🔀 LOGIN REDIRECT - Utilisateur/Session détecté, redirection...", userEmail, "Role:", userRole);
       
       // Utiliser setTimeout pour éviter les conflits de rendu
       const timer = setTimeout(() => {
         // Redirection basée sur le rôle et l'email
-        if (user.email === "ecommerce@itakecare.be") {
+        if (userEmail === "ecommerce@itakecare.be") {
           console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
           navigate('/admin/leazr-saas-dashboard', { replace: true });
+        } else if (userEmail === "hello@itakecare.be" || userRole === 'admin') {
+          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
+          navigate('/admin/dashboard', { replace: true });
         } else if (isClient()) {
           console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
           navigate('/client/dashboard', { replace: true });
@@ -48,14 +57,14 @@ const Login = () => {
           console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
           navigate('/partner/dashboard', { replace: true });
         } else {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
+          console.log("🔀 LOGIN REDIRECT - Redirection par défaut vers admin dashboard");
           navigate('/admin/dashboard', { replace: true });
         }
-      }, 50); // Délai très court pour éviter les conflits
+      }, 100); // Délai légèrement plus long pour laisser le temps à l'enrichissement
 
       return () => clearTimeout(timer);
     }
-  }, [user, navigate, isClient, isPartner, isAmbassador]);
+  }, [user, session, navigate, isClient, isPartner, isAmbassador]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,9 +116,9 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  // Afficher un loader si l'utilisateur est déjà connecté
-  if (user && !isLoading) {
-    console.log("🔀 LOGIN RENDER - Utilisateur connecté, affichage du loader de redirection");
+  // Afficher un loader si l'utilisateur est déjà connecté ou si on a une session
+  if ((user && !isLoading) || (session && session.user)) {
+    console.log("🔀 LOGIN RENDER - Utilisateur/Session détecté, affichage du loader de redirection");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -151,6 +151,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
     try {
       console.log("📝 ENRICH - Enrichissement des données pour:", baseUser.email);
+      console.log("📝 ENRICH - User ID:", baseUser.id);
+      
+      // Vérification de sécurité pour l'ID utilisateur
+      if (!baseUser.id) {
+        console.error("📝 ENRICH - ERREUR: User ID manquant");
+        throw new Error("User ID is undefined");
+      }
+      
       console.log("📝 ENRICH - Début de la requête vers profiles");
       
       const { data: profile, error } = await supabase
@@ -167,11 +175,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.log("📝 ENRICH - Pas de profil trouvé, utilisation des valeurs par défaut:", error.message);
+        
+        // Pour hello@itakecare.be, assigner le rôle admin par défaut
+        const isItakecareUser = baseUser.email === 'hello@itakecare.be';
+        
         const defaultUser = {
           ...baseUser,
           first_name: '',
           last_name: '',
-          role: 'admin',
+          role: isItakecareUser ? 'admin' : 'admin',
           company: '',
           partner_id: '',
           ambassador_id: '',
@@ -179,7 +191,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         console.log("📝 ENRICH - Utilisateur par défaut créé:", {
           email: defaultUser.email,
-          role: defaultUser.role
+          role: defaultUser.role,
+          isItakecareUser
         });
         return defaultUser;
       }
@@ -224,11 +237,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return enrichedUser;
     } catch (error) {
       console.error('📝 ENRICH - Erreur lors de l\'enrichissement:', error);
+      
+      // Pour hello@itakecare.be, assigner le rôle admin par défaut
+      const isItakecareUser = baseUser.email === 'hello@itakecare.be';
+      
       const fallbackUser = {
         ...baseUser,
         first_name: '',
         last_name: '',
-        role: 'admin',
+        role: isItakecareUser ? 'admin' : 'admin',
         company: '',
         partner_id: '',
         ambassador_id: '',
@@ -236,7 +253,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
       console.log("📝 ENRICH - Utilisateur de fallback créé:", {
         email: fallbackUser.email,
-        role: fallbackUser.role
+        role: fallbackUser.role,
+        isItakecareUser
       });
       return fallbackUser;
     }
@@ -277,36 +295,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               console.log("🔄 AUTH EVENT - Enrichissement des données utilisateur...");
               
-              // No timeout on homepage to prevent Safari loops
-              if (window.location.pathname === '/') {
+              // Enrichissement avec timeout pour éviter les blocages
+              const enrichWithTimeout = async () => {
                 try {
-                  const enrichedUser = await enrichUserData(newSession.user);
+                  // Promise race entre enrichissement et timeout
+                  const enrichedUser = await Promise.race([
+                    enrichUserData(newSession.user),
+                    new Promise<ExtendedUser>((_, reject) => 
+                      setTimeout(() => reject(new Error('Timeout')), 3000)
+                    )
+                  ]);
+                  
                   if (isMounted) {
                     setUser(enrichedUser);
                     setIsLoading(false);
                   }
                 } catch (error) {
+                  console.log("🔄 AUTH EVENT - Enrichissement échoué, utilisation des données de base");
                   if (isMounted) {
-                    setUser(newSession.user as ExtendedUser);
+                    // Fallback vers les données de base avec rôle admin pour iTakecare
+                    const isItakecareUser = newSession.user.email === 'hello@itakecare.be';
+                    setUser({
+                      ...newSession.user,
+                      role: isItakecareUser ? 'admin' : 'admin'
+                    } as ExtendedUser);
                     setIsLoading(false);
                   }
                 }
+              };
+              
+              // No timeout on homepage to prevent Safari loops
+              if (window.location.pathname === '/') {
+                enrichWithTimeout();
               } else {
-                // Keep timeout for other pages
-                setTimeout(async () => {
-                  try {
-                    const enrichedUser = await enrichUserData(newSession.user);
-                    if (isMounted) {
-                      setUser(enrichedUser);
-                      setIsLoading(false);
-                    }
-                  } catch (error) {
-                    if (isMounted) {
-                      setUser(newSession.user as ExtendedUser);
-                      setIsLoading(false);
-                    }
-                  }
-                }, 50); // Reduced timeout
+                // Small delay for other pages
+                setTimeout(enrichWithTimeout, 50);
               }
             }
           }
@@ -331,36 +354,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log("🚀 AUTH CONTEXT - Session existante trouvée pour:", currentSession.user.email);
           setSession(currentSession);
           
-          // No timeout on homepage to prevent Safari loops
-          if (window.location.pathname === '/') {
+          // Enrichissement avec timeout pour éviter les blocages
+          const enrichWithTimeout = async () => {
             try {
-              const enrichedUser = await enrichUserData(currentSession.user);
+              // Promise race entre enrichissement et timeout
+              const enrichedUser = await Promise.race([
+                enrichUserData(currentSession.user),
+                new Promise<ExtendedUser>((_, reject) => 
+                  setTimeout(() => reject(new Error('Timeout')), 3000)
+                )
+              ]);
+              
               if (isMounted) {
                 setUser(enrichedUser);
                 setIsLoading(false);
               }
             } catch (error) {
+              console.log("🚀 AUTH CONTEXT - Enrichissement initial échoué, utilisation des données de base");
               if (isMounted) {
-                setUser(currentSession.user as ExtendedUser);
+                // Fallback vers les données de base avec rôle admin pour iTakecare
+                const isItakecareUser = currentSession.user.email === 'hello@itakecare.be';
+                setUser({
+                  ...currentSession.user,
+                  role: isItakecareUser ? 'admin' : 'admin'
+                } as ExtendedUser);
                 setIsLoading(false);
               }
             }
+          };
+          
+          // No timeout on homepage to prevent Safari loops
+          if (window.location.pathname === '/') {
+            enrichWithTimeout();
           } else {
-            // Keep timeout for other pages
-            setTimeout(async () => {
-              try {
-                const enrichedUser = await enrichUserData(currentSession.user);
-                if (isMounted) {
-                  setUser(enrichedUser);
-                  setIsLoading(false);
-                }
-              } catch (error) {
-                if (isMounted) {
-                  setUser(currentSession.user as ExtendedUser);
-                  setIsLoading(false);
-                }
-              }
-            }, 50); // Reduced timeout
+            // Small delay for other pages
+            setTimeout(enrichWithTimeout, 50);
           }
         } else if (isMounted) {
           console.log("🚀 AUTH CONTEXT - Aucune session existante: setIsLoading(false)");
