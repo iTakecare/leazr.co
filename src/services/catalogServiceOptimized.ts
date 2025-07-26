@@ -23,11 +23,13 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
         imageurls,
         slug,
         active,
+        admin_only,
         brands(name, translation),
         categories(name, translation)
       `)
       .eq("company_id", companyId)
       .eq("active", true)
+      .or("admin_only.is.null,admin_only.eq.false")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -111,11 +113,13 @@ export const getRelatedProducts = async (
         imageurls,
         slug,
         active,
+        admin_only,
         brands(name, translation),
         categories(name, translation)
       `)
       .eq("company_id", companyId)
-      .eq("active", true);
+      .eq("active", true)
+      .or("admin_only.is.null,admin_only.eq.false");
 
     // Filter by brand first (higher priority), then category
     if (brand) {

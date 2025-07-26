@@ -66,12 +66,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVaria
             <ProductInfo product={product} />
             
             <div className="flex flex-wrap gap-2 my-2">
-              {product.category && (
-                <Badge variant="outline" className="rounded-full text-xs bg-gray-100 text-gray-800">
-                  {product.category}
-                </Badge>
-              )}
-              
               <VariantIndicator 
                 hasVariants={hasVariants}
                 variantsCount={variantsCount}
