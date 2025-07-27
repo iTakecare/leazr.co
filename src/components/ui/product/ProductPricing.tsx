@@ -69,7 +69,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({ product, hasVariants })
       {productMonthlyPrice !== "Non définie" && (
         <p className="text-gray-700">
           {hasVariants ? "À partir de " : "Mensualité: "}
-          <span className="font-bold text-indigo-700">{productMonthlyPrice}{hasVariants ? " HTVA/mois" : " HTVA"}</span>
+          <span className="font-bold text-indigo-700">{productMonthlyPrice} HTVA/mois</span>
         </p>
       )}
     </div>
