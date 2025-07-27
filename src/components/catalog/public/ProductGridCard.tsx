@@ -192,17 +192,6 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
       
       <CardContent className="flex-1 flex flex-col p-3">
         <div className="flex flex-wrap gap-1 mb-1">
-          {product.category && (
-            <Badge className="bg-[#33638e] text-white hover:bg-[#33638e]/90 rounded-full font-normal text-xs">
-              {getCategoryLabel(product.category)}
-            </Badge>
-          )}
-          {brandLabel && (
-            <Badge variant="outline" className="rounded-full font-normal text-gray-600 bg-gray-50 text-xs border-[#4ab6c4]/20">
-              {brandLabel}
-            </Badge>
-          )}
-          
           <VariantIndicator 
             hasVariants={hasVariantsFlag} 
             variantsCount={variantsCount} 
@@ -215,8 +204,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           {hasPrice ? (
             <div className="text-gray-700 text-xs">
               {hasVariantsFlag ? "À partir de " : ""}
-              <span className="font-bold text-[#4ab6c4]">{formatCurrency(monthlyPrice)}</span>
-              <span className="text-[10px]"> par mois</span>
+              <span className="font-bold text-[#4ab6c4]">{formatCurrency(monthlyPrice)} HTVA/mois</span>
             </div>
           ) : (
             <div className="text-gray-700 text-xs">
