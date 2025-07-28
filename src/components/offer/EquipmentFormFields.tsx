@@ -13,6 +13,7 @@ interface EquipmentFormFieldsProps {
   onOpenCatalog: () => void;
   calculatedMargin?: { percentage: number; amount: number };
   hideFinancialDetails?: boolean;
+  hidePurchasePrice?: boolean;
 }
 
 const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
@@ -21,7 +22,8 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
   errors,
   onOpenCatalog,
   calculatedMargin,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  hidePurchasePrice = false
 }) => {
   const marginToDisplay = calculatedMargin && calculatedMargin.percentage > 0 
     ? calculatedMargin.percentage 
@@ -55,28 +57,30 @@ const EquipmentFormFields: React.FC<EquipmentFormFieldsProps> = ({
         )}
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="purchasePrice" className={`block font-medium ${errors.purchasePrice ? 'text-red-500' : 'text-gray-700'}`}>
-            Prix d'achat (€) *
-          </Label>
-          <div className="mt-1 relative">
-            <Input
-              id="purchasePrice"
-              type="number"
-              min="0"
-              step="0.01"
-              value={equipment.purchasePrice === 0 ? '' : equipment.purchasePrice}
-              onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
-              className={`pl-8 ${errors.purchasePrice ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="0.00"
-            />
-            <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
+      <div className={`grid ${hidePurchasePrice ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+        {!hidePurchasePrice && (
+          <div>
+            <Label htmlFor="purchasePrice" className={`block font-medium ${errors.purchasePrice ? 'text-red-500' : 'text-gray-700'}`}>
+              Prix d'achat (€) *
+            </Label>
+            <div className="mt-1 relative">
+              <Input
+                id="purchasePrice"
+                type="number"
+                min="0"
+                step="0.01"
+                value={equipment.purchasePrice === 0 ? '' : equipment.purchasePrice}
+                onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
+                className={`pl-8 ${errors.purchasePrice ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="0.00"
+              />
+              <span className="absolute left-3 top-3 text-gray-500 pointer-events-none">€</span>
+            </div>
+            {errors.purchasePrice && (
+              <p className="mt-1 text-sm text-red-500">Ce champ est requis</p>
+            )}
           </div>
-          {errors.purchasePrice && (
-            <p className="mt-1 text-sm text-red-500">Ce champ est requis</p>
-          )}
-        </div>
+        )}
         
         <div>
           <Label htmlFor="quantity" className="block text-sm font-medium text-gray-700">

@@ -23,6 +23,7 @@ interface EquipmentFormProps {
   calculatedMargin: { percentage: number; amount: number };
   applyCalculatedMargin: () => void;
   hideFinancialDetails?: boolean;
+  hidePurchasePrice?: boolean;
   targetSalePrice?: number;
   setTargetSalePrice?: (value: number) => void;
   calculatedFromSalePrice?: { margin: number; monthlyPayment: number };
@@ -44,6 +45,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   calculatedMargin,
   applyCalculatedMargin,
   hideFinancialDetails = false,
+  hidePurchasePrice = false,
   targetSalePrice = 0,
   setTargetSalePrice = () => {},
   calculatedFromSalePrice = { margin: 0, monthlyPayment: 0 },
@@ -84,7 +86,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const validateForm = () => {
     const newErrors = {
       title: !equipment.title,
-      purchasePrice: equipment.purchasePrice <= 0,
+      purchasePrice: hidePurchasePrice ? false : equipment.purchasePrice <= 0,
       margin: equipment.margin < 0
     };
     
@@ -163,6 +165,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             onOpenCatalog={() => setIsQuickCatalogOpen(true)}
             calculatedMargin={calculatedMargin}
             hideFinancialDetails={hideFinancialDetails}
+            hidePurchasePrice={hidePurchasePrice}
           />
 
           <PriceDetailsDisplay

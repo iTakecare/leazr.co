@@ -236,6 +236,7 @@ const AmbassadorCreateOffer = () => {
                         calculatedMargin={calculatedMargin || 0}
                         applyCalculatedMargin={applyCalculatedMargin}
                         hideFinancialDetails={true}
+                        hidePurchasePrice={true}
                       />
                     ) : (
                       <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
