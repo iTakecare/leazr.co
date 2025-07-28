@@ -11,7 +11,7 @@ import AmbassadorProductConfigurationSection from "@/components/product-detail/A
 import AmbassadorProductMainContent from "@/components/product-detail/AmbassadorProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
-import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useAmbassadorCompanyContext } from "@/hooks/useAmbassadorCompanyContext";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
@@ -22,8 +22,8 @@ const AmbassadorProductDetailPage: React.FC = () => {
   const { id: productIdWithSlug } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  // Get company context for multi-tenant isolation
-  const { companyId } = useMultiTenant();
+  // Get company context for ambassador
+  const { companyId, loading: companyLoading, error: companyError } = useAmbassadorCompanyContext();
 
   // Extract clean UUID from URL parameter that might contain slug
   const productId = productIdWithSlug ? extractUuidFromSlug(productIdWithSlug) : undefined;
@@ -94,7 +94,7 @@ const AmbassadorProductDetailPage: React.FC = () => {
     navigate('/ambassador/catalog');
   };
 
-  if (isLoading) {
+  if (isLoading || companyLoading) {
     return (
       <PageTransition>
         <Container className="max-w-[1320px] py-8">
@@ -104,7 +104,7 @@ const AmbassadorProductDetailPage: React.FC = () => {
     );
   }
 
-  if (error || !product) {
+  if (error || !product || companyError || !companyId) {
     return (
       <PageTransition>
         <Container className="max-w-[1320px] py-8">
