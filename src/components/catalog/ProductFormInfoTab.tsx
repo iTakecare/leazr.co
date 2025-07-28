@@ -258,16 +258,14 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         </div>
 
         {/* AI Description Generator */}
-        {formData.name && formData.brand_id && formData.category_id && (
-          <AIDescriptionHelper
-            productName={formData.name}
-            categoryId={formData.category_id}
-            brandId={formData.brand_id}
-            categories={categories}
-            brands={brands}
-            onDescriptionGenerated={handleDescriptionGenerated}
-          />
-        )}
+        <AIDescriptionHelper
+          productName={formData.name || ""}
+          categoryId={formData.category_id || ""}
+          brandId={formData.brand_id || ""}
+          categories={categories}
+          brands={brands}
+          onDescriptionGenerated={handleDescriptionGenerated}
+        />
 
         {/* Description Fields */}
         <div className="space-y-4">

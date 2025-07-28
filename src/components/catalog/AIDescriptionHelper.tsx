@@ -110,9 +110,19 @@ const AIDescriptionHelper: React.FC<AIDescriptionHelperProps> = ({
           </Button>
 
           {(!productName || !categoryId || !brandId) && (
-            <p className="text-xs text-amber-600">
-              💡 Remplissez le nom, la marque et la catégorie pour activer l'IA
-            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs text-amber-700 font-medium mb-1">
+                ⚠️ Champs requis manquants:
+              </p>
+              <ul className="text-xs text-amber-600 list-disc list-inside space-y-1">
+                {!productName && <li>Nom du produit</li>}
+                {!brandId && <li>Marque</li>}
+                {!categoryId && <li>Catégorie</li>}
+              </ul>
+              <p className="text-xs text-amber-600 mt-2">
+                💡 Complétez ces informations pour utiliser l'IA
+              </p>
+            </div>
           )}
         </div>
       </CardContent>
