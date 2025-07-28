@@ -17,6 +17,8 @@ import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 const AmbassadorCreateOffer = () => {
   const navigate = useNavigate();
   
+  console.log("🎯 AmbassadorCreateOffer - Component starting to render");
+  
   const {
     client,
     loading,
@@ -36,6 +38,14 @@ const AmbassadorCreateOffer = () => {
     handleSelectClient,
     handleLeaserSelect
   } = useAmbassadorOfferState();
+  
+  console.log("🎯 AmbassadorCreateOffer - After useAmbassadorOfferState hook:", {
+    loading,
+    loadingLeasers,
+    ambassadorId,
+    hasUser: !!user,
+    hasAmbassador: !!ambassador
+  });
 
   const {
     equipment,
