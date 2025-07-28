@@ -17,6 +17,8 @@ import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 const AmbassadorCreateOffer = () => {
   const navigate = useNavigate();
   
+  console.log("🎯 AmbassadorCreateOffer - Component rendered, location:", window.location.pathname);
+  
   const {
     client,
     loading,
@@ -36,6 +38,25 @@ const AmbassadorCreateOffer = () => {
     handleSelectClient,
     handleLeaserSelect
   } = useAmbassadorOfferState();
+
+  console.log("🎯 AmbassadorCreateOffer - State loaded:", {
+    hasUser: !!user,
+    userEmail: user?.email,
+    loading,
+    loadingLeasers,
+    ambassadorId,
+    hasAmbassador: !!ambassador,
+    ambassadorName: ambassador?.name
+  });
+
+  // Protection : rediriger si pas d'utilisateur authentifié
+  React.useEffect(() => {
+    if (!loading && !user) {
+      console.log("🎯 AmbassadorCreateOffer - No user, redirecting to login");
+      navigate('/auth');
+      return;
+    }
+  }, [user, loading, navigate]);
 
   const {
     equipment,
