@@ -10,6 +10,7 @@ interface CompanyLogoProps {
   logoSize?: "sm" | "md" | "lg" | "xl" | "2xl";
   variant?: "full" | "avatar";
   forceDefaultLogo?: boolean;
+  textSize?: "xs" | "sm" | "base" | "lg";
 }
 
 const CompanyLogo: React.FC<CompanyLogoProps> = ({ 
@@ -17,7 +18,8 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
   showText = false, 
   logoSize = "lg", 
   variant = "avatar",
-  forceDefaultLogo = false
+  forceDefaultLogo = false,
+  textSize = "lg"
 }) => {
   const { settings, loading } = useSiteSettings();
 
@@ -27,6 +29,13 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
     lg: "w-32 h-32",
     xl: "w-40 h-40",
     "2xl": "w-48 h-48"
+  };
+
+  const textSizeClasses = {
+    xs: "text-xs",
+    sm: "text-sm",
+    base: "text-base",
+    lg: "text-lg"
   };
 
   // Si on charge encore, ne rien afficher pour éviter tout clignotement
@@ -55,7 +64,7 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
         />
       </div>
       {showText && settings.company_name && (
-        <span className="font-semibold text-lg">{settings.company_name}</span>
+        <span className={cn("font-semibold", textSizeClasses[textSize])}>{settings.company_name}</span>
       )}
     </div>
   );
