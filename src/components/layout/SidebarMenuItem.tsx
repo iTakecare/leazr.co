@@ -1,7 +1,7 @@
 
 import React, { memo, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -102,9 +102,8 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <a
-              href={item.href}
-              onClick={handleClick}
+            <Link
+              to={item.href}
               className={cn(
                 "flex items-center py-3 px-3 rounded-xl text-sm font-semibold transition-all duration-300 group relative",
                 collapsed ? "justify-center" : "",
@@ -161,7 +160,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
               {active && !collapsed && (
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-xl opacity-50" />
               )}
-            </a>
+            </Link>
           </TooltipTrigger>
           {collapsed && (
             <TooltipContent side="right" className="font-semibold bg-white/95 backdrop-blur-sm border-gray-200/60">

@@ -43,6 +43,10 @@ import CatalogManagement from "@/pages/CatalogManagement";
 import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
+import LeazrSaasClients from "@/pages/LeazrSaasClients";
+import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
+import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
+import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
 
 // Ambassador management pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -104,6 +108,10 @@ function App() {
                         {/* Admin routes with Layout */}
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
                         <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
+                        <Route path="leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
+                        <Route path="leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
+                        <Route path="leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
+                        <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
                         <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
                         <Route path="clients" element={<Layout><Clients /></Layout>} />
                         <Route path="offers" element={<Layout><Offers /></Layout>} />
