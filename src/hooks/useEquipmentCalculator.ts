@@ -4,7 +4,7 @@ import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 
 export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
-  const leaser = selectedLeaser || defaultLeasers[0];
+  const leaser = selectedLeaser || (defaultLeasers.length > 0 ? defaultLeasers[0] : null);
   const calculationsInProgressRef = useRef<Record<string, boolean>>({});
   
   const [equipment, setEquipment] = useState<Equipment>({
@@ -58,10 +58,10 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
   };
 
   const findCoefficient = (amount: number) => {
-    const currentLeaser = leaser || defaultLeasers[0];
+    const currentLeaser = leaser || (defaultLeasers.length > 0 ? defaultLeasers[0] : null);
     
     if (!currentLeaser || !currentLeaser.ranges || currentLeaser.ranges.length === 0) {
-      return defaultLeasers[0].ranges[0].coefficient || 3.55;
+      return 3.55; // Fallback coefficient
     }
     
     const range = currentLeaser.ranges.find(
@@ -119,9 +119,9 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     if (calculationsInProgressRef.current[calcKey]) return;
     calculationsInProgressRef.current[calcKey] = true;
 
-    const ranges = leaser?.ranges || defaultLeasers[0].ranges;
+    const ranges = leaser?.ranges || (defaultLeasers.length > 0 && defaultLeasers[0].ranges ? defaultLeasers[0].ranges : []);
     
-    let coef = ranges[0].coefficient;
+    let coef = ranges.length > 0 ? ranges[0].coefficient : 3.55;
     for (const range of ranges) {
       const financedAmountEstimate = (targetMonthlyPayment * 100) / range.coefficient;
       if (financedAmountEstimate >= range.min && financedAmountEstimate <= range.max) {
