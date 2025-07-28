@@ -17,8 +17,17 @@ import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 const AmbassadorCreateOffer = () => {
   const navigate = useNavigate();
   
-  console.log("🎯 AmbassadorCreateOffer - Component rendered, location:", window.location.pathname);
+  console.log("🎯 AmbassadorCreateOffer - Component rendered");
   
+  // Wrap hooks in try-catch for error handling
+  let hookStates = null;
+  try {
+    hookStates = useAmbassadorOfferState();
+  } catch (error) {
+    console.error("❌ Error in useAmbassadorOfferState:", error);
+    return <div className="p-8 text-red-600">Erreur de chargement des données ambassadeur</div>;
+  }
+
   const {
     client,
     loading,
@@ -37,16 +46,14 @@ const AmbassadorCreateOffer = () => {
     user,
     handleSelectClient,
     handleLeaserSelect
-  } = useAmbassadorOfferState();
+  } = hookStates;
 
-  console.log("🎯 AmbassadorCreateOffer - State loaded:", {
+  console.log("🎯 AmbassadorCreateOffer - Basic state:", {
     hasUser: !!user,
-    userEmail: user?.email,
     loading,
     loadingLeasers,
-    ambassadorId,
     hasAmbassador: !!ambassador,
-    ambassadorName: ambassador?.name
+    hasSelectedLeaser: !!selectedLeaser
   });
 
   // Protection : rediriger si pas d'utilisateur authentifié
@@ -57,6 +64,21 @@ const AmbassadorCreateOffer = () => {
       return;
     }
   }, [user, loading, navigate]);
+
+  // Early return if essential data is missing
+  if (!user && !loading) {
+    console.log("🎯 AmbassadorCreateOffer - No user and not loading, returning null");
+    return null;
+  }
+
+  // Wrap equipment calculator in try-catch
+  let equipmentHook = null;
+  try {
+    equipmentHook = useEquipmentCalculator(selectedLeaser);
+  } catch (error) {
+    console.error("❌ Error in useEquipmentCalculator:", error);
+    return <div className="p-8 text-red-600">Erreur de chargement du calculateur</div>;
+  }
 
   const {
     equipment,
@@ -78,24 +100,33 @@ const AmbassadorCreateOffer = () => {
     updateQuantity,
     toggleAdaptMonthlyPayment,
     calculations
-  } = useEquipmentCalculator(selectedLeaser);
+  } = equipmentHook;
 
   // Calculate the correct total margin from calculations
   const totalMargin = calculations?.normalMarginAmount || 0;
 
-  const { handleSaveOffer, commissionData } = useAmbassadorOfferSave({
-    client,
-    equipmentList,
-    globalMarginAdjustment,
-    coefficient,
-    remarks,
-    ambassadorId,
-    ambassador,
-    userId: user?.id,
-    setIsSubmitting,
-    totalMonthlyPayment,
-    totalMargin
-  });
+  // Wrap offer save hook in try-catch
+  let offerSaveHook = null;
+  try {
+    offerSaveHook = useAmbassadorOfferSave({
+      client,
+      equipmentList,
+      globalMarginAdjustment,
+      coefficient,
+      remarks,
+      ambassadorId,
+      ambassador,
+      userId: user?.id,
+      setIsSubmitting,
+      totalMonthlyPayment,
+      totalMargin
+    });
+  } catch (error) {
+    console.error("❌ Error in useAmbassadorOfferSave:", error);
+    return <div className="p-8 text-red-600">Erreur de sauvegarde</div>;
+  }
+
+  const { handleSaveOffer, commissionData } = offerSaveHook;
 
   const handleOpenClientSelector = () => {
     setClientSelectorOpen(true);
@@ -179,42 +210,53 @@ const AmbassadorCreateOffer = () => {
                 </div>
               </div>
 
-              {isPageLoading ? (
-                <OffersLoading />
-              ) : (
+              {/* Temporarily remove loading condition to force display */}
+              <div className="space-y-4">
+                {isPageLoading && (
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                    <p className="text-blue-700">Chargement en cours... (Debug: {loading ? 'ambassador' : ''} {loadingLeasers ? 'leasers' : ''})</p>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 px-2">
                   <div className="xl:col-span-1">
-                    <EquipmentForm
-                      equipment={equipment}
-                      setEquipment={setEquipment}
-                      selectedLeaser={selectedLeaser}
-                      addToList={addToList}
-                      editingId={editingId}
-                      cancelEditing={cancelEditing}
-                      onOpenCatalog={handleOpenCatalog}
-                      coefficient={coefficient}
-                      monthlyPayment={monthlyPayment}
-                      targetMonthlyPayment={targetMonthlyPayment}
-                      setTargetMonthlyPayment={setTargetMonthlyPayment}
-                      calculatedMargin={calculatedMargin}
-                      applyCalculatedMargin={applyCalculatedMargin}
-                      hideFinancialDetails={true}
-                    />
+                    {selectedLeaser ? (
+                      <EquipmentForm
+                        equipment={equipment || {}}
+                        setEquipment={setEquipment}
+                        selectedLeaser={selectedLeaser}
+                        addToList={addToList}
+                        editingId={editingId}
+                        cancelEditing={cancelEditing}
+                        onOpenCatalog={handleOpenCatalog}
+                        coefficient={coefficient || 0}
+                        monthlyPayment={monthlyPayment || 0}
+                        targetMonthlyPayment={targetMonthlyPayment || 0}
+                        setTargetMonthlyPayment={setTargetMonthlyPayment}
+                        calculatedMargin={calculatedMargin || 0}
+                        applyCalculatedMargin={applyCalculatedMargin}
+                        hideFinancialDetails={true}
+                      />
+                    ) : (
+                      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                        <p className="text-yellow-700">Pas de leaser sélectionné (Debug)</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="xl:col-span-1 space-y-8">
                     <EquipmentList
-                      equipmentList={equipmentList}
+                      equipmentList={equipmentList || []}
                       editingId={editingId}
                       startEditing={startEditing}
                       removeFromList={removeFromList}
                       updateQuantity={updateQuantity}
-                      totalMonthlyPayment={totalMonthlyPayment}
+                      totalMonthlyPayment={totalMonthlyPayment || 0}
                       globalMarginAdjustment={{
-                        amount: globalMarginAdjustment.amount,
-                        newCoef: globalMarginAdjustment.newCoef,
-                        active: globalMarginAdjustment.adaptMonthlyPayment,
-                        marginDifference: globalMarginAdjustment.marginDifference
+                        amount: globalMarginAdjustment?.amount || 0,
+                        newCoef: globalMarginAdjustment?.newCoef || 0,
+                        active: globalMarginAdjustment?.adaptMonthlyPayment || false,
+                        marginDifference: globalMarginAdjustment?.marginDifference || 0
                       }}
                       toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment}
                       hideFinancialDetails={false}
@@ -240,7 +282,7 @@ const AmbassadorCreateOffer = () => {
                     />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
