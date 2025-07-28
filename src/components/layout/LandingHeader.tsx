@@ -21,10 +21,11 @@ import { ArrowRight, Menu, X, ChevronDown, Globe,
          Server, Recycle, Share2, HelpCircle, Target, Calculator, Box } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import Logo from '@/components/layout/Logo';
+import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 
 const LandingHeader = () => {
   const navigate = useNavigate();
+  const { settings: platformSettings } = usePlatformSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
@@ -143,14 +144,30 @@ const LandingHeader = () => {
           {/* Logo avec transition de taille */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center group">
-              <Logo 
-                variant="full" 
-                showText={false} 
-                className={cn(
-                  "mr-4 transition-all duration-500 group-hover:scale-105",
-                  scrolled ? "scale-75" : "scale-125"
-                )} 
-              />
+              <div className={cn(
+                "mr-4 transition-all duration-500 group-hover:scale-105 flex items-center",
+                scrolled ? "scale-75" : "scale-125"
+              )}>
+                {platformSettings?.logo_url ? (
+                  <img 
+                    src={platformSettings.logo_url}
+                    alt={platformSettings.company_name || "Leazr"}
+                    className="h-12 w-12 object-contain"
+                    onError={(e) => {
+                      // En cas d'erreur de chargement, utiliser le logo par défaut
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/leazr-logo.png";
+                      target.alt = "Leazr";
+                    }}
+                  />
+                ) : (
+                  <img 
+                    src="/leazr-logo.png"
+                    alt="Leazr"
+                    className="h-12 w-12 object-contain"
+                  />
+                )}
+              </div>
             </Link>
             
             {/* Navigation principale pour desktop */}
