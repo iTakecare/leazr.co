@@ -109,8 +109,12 @@ export const PackPriceConfiguration = ({
     });
   };
 
-  const lowMarginItems = packItems.filter(item => item.margin_percentage < 10);
-  const highMarginItems = packItems.filter(item => item.margin_percentage > 100);
+  const lowMarginItems = packItems.filter(item => 
+    calculateRealTimeMargin(item.unit_monthly_price, item.unit_purchase_price) < 10
+  );
+  const highMarginItems = packItems.filter(item => 
+    calculateRealTimeMargin(item.unit_monthly_price, item.unit_purchase_price) > 100
+  );
 
   const handlePackMonthlyPriceChange = (value: string) => {
     const numValue = parseFloat(value) || 0;
