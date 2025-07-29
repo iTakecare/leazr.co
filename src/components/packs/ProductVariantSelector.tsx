@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,16 @@ interface ProductVariantSelectorProps {
   onVariantSelect: (variantId?: string, price?: number, monthlyPrice?: number) => void;
 }
 
-export const ProductVariantSelector = ({
+export interface ProductVariantSelectorRef {
+  getSelectedVariant: () => { variantId?: string; price?: number; monthlyPrice?: number } | null;
+}
+
+export const ProductVariantSelector = forwardRef<ProductVariantSelectorRef, ProductVariantSelectorProps>(({
   product,
   selectedOptions,
   onOptionChange,
   onVariantSelect,
-}: ProductVariantSelectorProps) => {
+}, ref) => {
   const { data: variants = [], isLoading } = useProductVariants(product.id);
   const [variationAttributes, setVariationAttributes] = useState<ProductVariationAttributes>({});
 
@@ -71,18 +75,19 @@ export const ProductVariantSelector = ({
 
   const selectedVariant = getSelectedVariant();
 
-  useEffect(() => {
-    if (selectedVariant) {
-      onVariantSelect(
-        selectedVariant.id,
-        selectedVariant.price,
-        selectedVariant.monthly_price
-      );
-    } else if (Object.keys(selectedOptions).length === 0) {
-      // No variant selected, use base product prices
-      onVariantSelect(undefined, product.price, product.monthly_price);
+  useImperativeHandle(ref, () => ({
+    getSelectedVariant: () => {
+      if (selectedVariant) {
+        return {
+          variantId: selectedVariant.id,
+          price: selectedVariant.price,
+          monthlyPrice: selectedVariant.monthly_price
+        };
+      }
+      return null;
     }
-  }, [selectedVariant, selectedOptions, onVariantSelect, product.price, product.monthly_price]);
+  }), [selectedVariant]);
+
 
   if (isLoading) {
     return (
@@ -174,4 +179,4 @@ export const ProductVariantSelector = ({
       )}
     </div>
   );
-};
+});

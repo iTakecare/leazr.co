@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { getProducts } from "@/services/catalogService";
 import { getProductVariantPrices } from "@/services/variantPriceService";
 import { Product } from "@/types/catalog";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
-import { ProductVariantSelector } from "./ProductVariantSelector";
+import { ProductVariantSelector, ProductVariantSelectorRef } from "./ProductVariantSelector";
 
 interface PackProductSelectionProps {
   packItems: PackItemFormData[];
@@ -34,6 +34,7 @@ export const PackProductSelection = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [variantOptions, setVariantOptions] = useState<Record<string, string>>({});
   const [showVariantSelector, setShowVariantSelector] = useState(false);
+  const variantSelectorRef = useRef<ProductVariantSelectorRef>(null);
 
   // Fetch all products (including inactive ones for packs)
   const { data: products = [], isLoading } = useQuery({
@@ -368,6 +369,7 @@ export const PackProductSelection = ({
           
           {selectedProduct && (
             <ProductVariantSelector
+              ref={variantSelectorRef}
               product={selectedProduct}
               selectedOptions={variantOptions}
               onOptionChange={handleVariantOptionChange}
@@ -384,9 +386,19 @@ export const PackProductSelection = ({
               Annuler
             </Button>
             <Button
-              onClick={() => handleVariantSelect()}
+              onClick={() => {
+                if (selectedProduct) {
+                  const variantData = variantSelectorRef.current?.getSelectedVariant();
+                  if (variantData) {
+                    handleVariantSelect(variantData.variantId, variantData.price, variantData.monthlyPrice);
+                  } else {
+                    // No variant selected, use base product
+                    handleVariantSelect(undefined, selectedProduct.price, selectedProduct.monthly_price);
+                  }
+                }
+              }}
               className="flex-1"
-              disabled={selectedProduct && Object.keys(variantOptions).length === 0}
+              disabled={!selectedProduct}
             >
               Ajouter au pack
             </Button>
