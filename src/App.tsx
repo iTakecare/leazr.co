@@ -17,9 +17,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 
 // Public pages
 import HomePage from "@/pages/HomePage";
-import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
-import PublicCartPage from "@/pages/PublicCartPage";
-import ProductDetailPage from "@/pages/ProductDetailPage";
+import PublicCatalogList from "@/components/public/PublicCatalogList";
 
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
@@ -92,13 +90,7 @@ function App() {
                       
                       {/* Public routes */}
                       <Route path="/" element={<HomePage />} />
-                      <Route path="/catalog/anonymous/:companyId" element={<PublicCatalogAnonymous />} />
-                      
-                      {/* Public company ID-based routes */}
-                      <Route path="/public/:companyId" element={<PublicCatalogAnonymous />} />
-                      <Route path="/public/:companyId/catalog" element={<PublicCatalogAnonymous />} />
-                      <Route path="/public/:companyId/products/:productId" element={<ProductDetailPage />} />
-                      <Route path="/public/:companyId/panier" element={<PublicCartPage />} />
+                      <Route path="/catalog" element={<PublicCatalogList />} />
                       
                       {/* Client offer signing route - needs access to providers */}
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
