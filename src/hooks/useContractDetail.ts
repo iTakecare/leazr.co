@@ -30,6 +30,7 @@ export const useContractDetail = (contractId: string) => {
       setError(null);
       
       console.log("🔍 Chargement des détails du contrat:", contractId);
+      console.log("🔐 Vérification de l'authentification...");
       
       // Charger toutes les données en parallèle
       const [contractData, equipmentData, documentsData, logsData] = await Promise.all([
@@ -50,9 +51,19 @@ export const useContractDetail = (contractId: string) => {
       setLogs(logsData);
       
       console.log("✅ Détails du contrat chargés avec succès");
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ Erreur lors du chargement des détails du contrat:", err);
-      setError("Erreur lors du chargement du contrat");
+      
+      // Gérer spécifiquement les erreurs d'authentification
+      if (err?.message?.includes('JWT') || err?.message?.includes('auth') || err?.code === 'PGRST301') {
+        console.error("🔐 Erreur d'authentification détectée:", err);
+        setError("Session expirée. Veuillez vous reconnecter.");
+      } else if (err?.message?.includes('RLS') || err?.message?.includes('policy')) {
+        console.error("🛡️ Erreur RLS détectée:", err);
+        setError("Accès refusé. Vous n'avez pas les permissions pour voir ce contrat.");
+      } else {
+        setError("Erreur lors du chargement du contrat");
+      }
     } finally {
       setLoading(false);
     }

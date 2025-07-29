@@ -1,5 +1,5 @@
-import React from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import ContractDetailHeader from "@/components/contracts/ContractDetailHeader";
 import ContractWorkflowPanel from "@/components/contracts/ContractWorkflowPanel";
@@ -7,15 +7,17 @@ import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
 import ContractEquipmentSection from "@/components/contracts/ContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import { useContractDetail } from "@/hooks/useContractDetail";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 const ContractDetail = () => {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+  
   const {
     contract,
     equipment,
@@ -25,21 +27,75 @@ const ContractDetail = () => {
     error,
     refetch
   } = useContractDetail(id || "");
-  if (loading) {
-    return <PageTransition>
+
+  useEffect(() => {
+    console.log("🔐 CONTRACT DETAIL - Vérification authentification:", { 
+      user: user?.email, 
+      authLoading,
+      contractId: id 
+    });
+    
+    if (!authLoading && !user) {
+      console.log("🔐 CONTRACT DETAIL - Utilisateur non authentifié, redirection vers login");
+      navigate("/login");
+    }
+  }, [user, authLoading, navigate, id]);
+  // Afficher un loader pendant la vérification d'authentification
+  if (authLoading) {
+    return (
+      <PageTransition>
         <div className="flex justify-center items-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <span className="ml-2">Vérification de l'authentification...</span>
         </div>
-      </PageTransition>;
+      </PageTransition>
+    );
   }
+
+  // Si pas d'utilisateur authentifié, on ne devrait pas arriver ici (useEffect redirige)
+  if (!user) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <span className="ml-2">Chargement du contrat...</span>
+        </div>
+      </PageTransition>
+    );
+  }
+
   if (error || !contract) {
-    return <PageTransition>
+    return (
+      <PageTransition>
         <div className="container mx-auto p-6">
           <div className="flex flex-col items-center justify-center h-96 gap-4">
-            <div className="text-destructive font-medium">{error || "Le contrat n'a pas été trouvé."}</div>
+            <div className="text-destructive font-medium text-center">
+              {error || "Le contrat n'a pas été trouvé."}
+            </div>
+            <Button 
+              onClick={() => navigate("/admin/contracts")}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour à la liste des contrats
+            </Button>
+            {error?.includes("reconnecter") && (
+              <Button 
+                onClick={() => navigate("/login")}
+                variant="default"
+              >
+                Se reconnecter
+              </Button>
+            )}
           </div>
         </div>
-      </PageTransition>;
+      </PageTransition>
+    );
   }
   return <PageTransition>
       <div className="min-h-screen bg-background">
