@@ -227,13 +227,23 @@ export const PackProductSelection = ({
                       />
                     </div>
                     
-                    <div className="text-sm">
-                      <p className="text-muted-foreground">Prix unitaire</p>
-                      <p className="font-medium">{formatPrice(item.unit_monthly_price)}</p>
+                    <div className="text-sm space-y-1">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Prix d'achat</p>
+                        <p className="font-medium">{formatPrice(item.unit_purchase_price)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Prix de vente</p>
+                        <p className="font-medium">{formatPrice(item.unit_purchase_price * (1 + item.margin_percentage / 100))}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Mensualité</p>
+                        <p className="font-medium">{formatPrice(item.unit_monthly_price)}</p>
+                      </div>
                     </div>
                     
                     <div className="text-sm">
-                      <p className="text-muted-foreground">Total</p>
+                      <p className="text-muted-foreground">Total mensuel</p>
                       <p className="font-medium">{formatPrice(item.unit_monthly_price * item.quantity)}</p>
                     </div>
                   </div>
