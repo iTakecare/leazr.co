@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types/catalog";
+import { Product, PublicPack } from "@/types/catalog";
 
 // Optimized service that loads only essential product data without variants
 export const getPublicProductsOptimized = async (companyId: string): Promise<Product[]> => {
@@ -190,5 +190,78 @@ export const getRelatedProducts = async (
   } catch (error) {
     console.error("Error loading related products:", error);
     return [];
+  }
+};
+
+// Optimized service to get public packs for a company
+export const getPublicPacksOptimized = async (companyId: string): Promise<PublicPack[]> => {
+  if (!companyId) {
+    throw new Error("Company ID requis");
+  }
+
+  try {
+    // Get active packs with their items
+    const { data: packsData, error } = await supabase
+      .from("product_packs")
+      .select(`
+        id,
+        name,
+        description,
+        image_url,
+        is_featured,
+        is_active,
+        pack_monthly_price,
+        pack_promo_price,
+        promo_active,
+        total_monthly_price,
+        slug,
+        product_pack_items(
+          quantity,
+          products(
+            id,
+            name,
+            image_url,
+            category_name,
+            categories(name, translation)
+          )
+        )
+      `)
+      .eq("company_id", companyId)
+      .eq("is_active", true)
+      .or("admin_only.is.null,admin_only.eq.false")
+      .order("is_featured", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    // Map to PublicPack format
+    const mappedPacks: PublicPack[] = (packsData || []).map(pack => ({
+      id: pack.id,
+      name: pack.name || "",
+      description: pack.description || "",
+      image_url: pack.image_url || "",
+      is_featured: pack.is_featured || false,
+      pack_monthly_price: pack.pack_monthly_price || 0,
+      pack_promo_price: pack.pack_promo_price || 0,
+      promo_active: pack.promo_active || false,
+      total_monthly_price: pack.total_monthly_price || 0,
+      slug: pack.slug || "",
+      items: (pack.product_pack_items || []).map(item => ({
+        quantity: item.quantity || 1,
+        product: {
+          id: item.products?.id || "",
+          name: item.products?.name || "",
+          image_url: item.products?.image_url || "",
+          category: item.products?.categories?.name || item.products?.category_name || ""
+        }
+      }))
+    }));
+
+    return mappedPacks;
+  } catch (error) {
+    console.error("Error loading public packs:", error);
+    throw error;
   }
 };

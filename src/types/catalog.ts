@@ -197,3 +197,28 @@ export interface Brand {
   created_at?: Date | string;
   updated_at?: Date | string;
 }
+
+// Public pack types for catalog display
+export interface PublicPackItem {
+  quantity: number;
+  product: {
+    id: string;
+    name: string;
+    image_url?: string;
+    category: string;
+  };
+}
+
+export interface PublicPack {
+  id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  is_featured: boolean;
+  pack_monthly_price?: number;
+  pack_promo_price?: number;
+  promo_active: boolean;
+  total_monthly_price: number;
+  slug: string;
+  items: PublicPackItem[];
+}

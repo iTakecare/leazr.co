@@ -4,12 +4,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
+import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
 import SortFilter from "@/components/catalog/public/filters/SortFilter";
-import { getPublicProductsOptimized } from "@/services/catalogServiceOptimized";
+import { getPublicProductsOptimized, getPublicPacksOptimized } from "@/services/catalogServiceOptimized";
 import { useQuery } from "@tanstack/react-query";
 import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,6 +38,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const location = useLocation();
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
   
   // Fetch company by slug if not provided (fallback for legacy routes)
   const { data: fetchedCompany, isLoading: isLoadingCompany, error: companyError } = useQuery({
@@ -95,6 +97,15 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: ['public-products-optimized', companyId],
     queryFn: () => getPublicProductsOptimized(companyId!),
+    enabled: !!companyId,
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: false
+  });
+
+  // Optimized packs fetch
+  const { data: packs = [], isLoading: isLoadingPacks, error: packsError } = useQuery({
+    queryKey: ['public-packs-optimized', companyId],
+    queryFn: () => getPublicPacksOptimized(companyId!),
     enabled: !!companyId,
     staleTime: 10 * 60 * 1000, // 10 minutes cache
     refetchOnWindowFocus: false
@@ -177,9 +188,9 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     );
   }
 
-  // Products loading
-  if (isLoadingProducts) {
-    console.log('📱 PUBLIC CATALOG - Showing products loading');
+  // Products and packs loading
+  if (isLoadingProducts || isLoadingPacks) {
+    console.log('📱 PUBLIC CATALOG - Showing catalog loading');
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
@@ -195,9 +206,9 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     );
   }
 
-  // Products error
-  if (productsError) {
-    console.error('📱 PUBLIC CATALOG - Products error:', productsError);
+  // Products or packs error
+  if (productsError || packsError) {
+    console.error('📱 PUBLIC CATALOG - Catalog error:', productsError || packsError);
     return (
       <div className="min-h-screen bg-white">
         <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
@@ -205,9 +216,9 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
           <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Erreur lors du chargement des produits.
+              Erreur lors du chargement du catalogue.
               <br />
-              <small>Erreur: {productsError.message}</small>
+              <small>Erreur: {(productsError || packsError)?.message}</small>
             </AlertDescription>
           </Alert>
         </Container>
@@ -262,9 +273,12 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                          (filters.inStockOnly ? 1 : 0)
                       }
                     />
-                    <div className="text-sm text-muted-foreground">
-                      {resultsCount} produit{resultsCount > 1 ? 's' : ''} trouvé{resultsCount > 1 ? 's' : ''}
-                    </div>
+                     <div className="text-sm text-muted-foreground">
+                       {activeTab === 'products' 
+                         ? `${resultsCount} produit${resultsCount > 1 ? 's' : ''} trouvé${resultsCount > 1 ? 's' : ''}` 
+                         : `${packs.length} pack${packs.length > 1 ? 's' : ''} disponible${packs.length > 1 ? 's' : ''}`
+                       }
+                     </div>
                   </div>
 
                   <SortFilter
@@ -275,22 +289,57 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                   />
                 </div>
 
-                {/* Active Filter Badges */}
-                <FilterBadges
-                  searchQuery={filters.searchQuery}
-                  selectedCategory={filters.selectedCategory}
-                  selectedBrands={filters.selectedBrands}
-                  inStockOnly={filters.inStockOnly}
-                  categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                  onRemoveSearch={() => updateFilter('searchQuery', '')}
-                  onRemoveCategory={() => updateFilter('selectedCategory', '')}
-                  onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                  onRemoveStock={() => updateFilter('inStockOnly', false)}
-                  onClearAll={resetFilters}
-                />
+                 {/* Tabs for Products and Packs */}
+                 <div className="flex border-b border-gray-200">
+                   <button
+                     onClick={() => setActiveTab('products')}
+                     className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                       activeTab === 'products'
+                         ? 'border-[#4ab6c4] text-[#4ab6c4]'
+                         : 'border-transparent text-gray-500 hover:text-gray-700'
+                     }`}
+                   >
+                     Produits ({products.length})
+                   </button>
+                   <button
+                     onClick={() => setActiveTab('packs')}
+                     className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                       activeTab === 'packs'
+                         ? 'border-[#4ab6c4] text-[#4ab6c4]'
+                         : 'border-transparent text-gray-500 hover:text-gray-700'
+                     }`}
+                   >
+                     Packs ({packs.length})
+                   </button>
+                 </div>
 
-                {/* Product Grid */}
-                <PublicProductGrid products={filteredProducts || []} />
+                 {activeTab === 'products' && (
+                   <>
+                     {/* Active Filter Badges */}
+                     <FilterBadges
+                       searchQuery={filters.searchQuery}
+                       selectedCategory={filters.selectedCategory}
+                       selectedBrands={filters.selectedBrands}
+                       inStockOnly={filters.inStockOnly}
+                       categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
+                       onRemoveSearch={() => updateFilter('searchQuery', '')}
+                       onRemoveCategory={() => updateFilter('selectedCategory', '')}
+                       onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
+                       onRemoveStock={() => updateFilter('inStockOnly', false)}
+                       onClearAll={resetFilters}
+                     />
+
+                     {/* Product Grid */}
+                     <PublicProductGrid products={filteredProducts || []} />
+                   </>
+                 )}
+
+                 {activeTab === 'packs' && (
+                   <div className="space-y-6">
+                     {/* Pack Grid */}
+                     <PublicPackGrid packs={packs || []} companySlug={companySlug} />
+                   </div>
+                 )}
               </div>
             </div>
           </div>
