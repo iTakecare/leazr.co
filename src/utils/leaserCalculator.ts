@@ -39,19 +39,16 @@ export const getCoefficientFromLeaser = (
 };
 
 /**
- * Calculate the sale price using the leaser's specific coefficient
+ * Calculate the financed amount (montant financé) using the leaser's specific coefficient
  */
 export const calculateSalePriceWithLeaser = (
   monthlyPrice: number,
   leaser: Leaser | null,
   duration: number = 36
 ): number => {
-  // Calculate total payments over the duration
-  const totalPayments = monthlyPrice * duration;
+  // Get coefficient based on a reasonable amount estimate (monthly price * 100)
+  const coefficient = getCoefficientFromLeaser(leaser, monthlyPrice * 100, duration);
   
-  // Get coefficient based on total payments amount
-  const coefficient = getCoefficientFromLeaser(leaser, totalPayments, duration);
-  
-  // Calculate sale price: total payments / coefficient
-  return totalPayments / coefficient;
+  // Calculate financed amount: (monthly_price * 100) / coefficient
+  return (monthlyPrice * 100) / coefficient;
 };
