@@ -6,8 +6,17 @@ interface PackItemsListProps {
 }
 
 const PackItemsList: React.FC<PackItemsListProps> = ({ items }) => {
+  console.log('PackItemsList - items received:', items);
+  
   if (!items || items.length === 0) {
-    return null;
+    return (
+      <div className="my-8">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">Produits inclus dans ce pack</h2>
+        <div className="bg-gray-50 rounded-xl p-6 text-center">
+          <p className="text-gray-500">Aucun produit trouvé dans ce pack</p>
+        </div>
+      </div>
+    );
   }
 
   return (

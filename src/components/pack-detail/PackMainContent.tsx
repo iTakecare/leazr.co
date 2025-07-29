@@ -38,11 +38,9 @@ const PackMainContent: React.FC<PackMainContentProps> = ({ pack }) => {
       </div>
 
       {/* Pack Items List */}
-      {pack.items && pack.items.length > 0 && (
-        <div className="mt-6">
-          <PackItemsList items={pack.items} />
-        </div>
-      )}
+      <div className="mt-6">
+        <PackItemsList items={pack.items || []} />
+      </div>
       
       <div className="mt-6">
         <PackBenefits />
