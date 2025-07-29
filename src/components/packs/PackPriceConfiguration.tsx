@@ -79,11 +79,15 @@ export const PackPriceConfiguration = ({
   const handleMarginChange = (index: number, marginPercentage: number) => {
     const item = packItems[index];
     if (item.unit_purchase_price > 0) {
+      // Use a fixed reference coefficient to avoid calculation loops
+      // Get coefficient based on current purchase price to maintain consistency
+      const referenceCoefficient = getCoefficientFromLeaser(selectedLeaser, item.unit_purchase_price, selectedDuration);
+      
       // Calculate the required sale price for the target margin
       const targetSalePrice = item.unit_purchase_price * (1 + marginPercentage / 100);
-      // Calculate the monthly price needed to achieve this sale price
-      const coefficient = getCoefficientFromLeaser(selectedLeaser, targetSalePrice, selectedDuration);
-      const newMonthlyPrice = (targetSalePrice * coefficient) / 100;
+      
+      // Calculate monthly price directly using the reference coefficient
+      const newMonthlyPrice = (targetSalePrice * referenceCoefficient) / 100;
       
       onUpdateItem(index, {
         margin_percentage: marginPercentage,
