@@ -8,6 +8,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calculator, TrendingUp, AlertTriangle } from "lucide-react";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
 import { PackCalculation } from "@/types/pack";
+import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
+import { useQuery } from "@tanstack/react-query";
+import { getLeasers } from "@/services/leaserService";
 
 interface PackPriceConfigurationProps {
   packItems: PackItemFormData[];
@@ -16,6 +19,8 @@ interface PackPriceConfigurationProps {
   onUpdateCalculations: () => void;
   packData: any;
   onUpdatePackData: (updates: any) => void;
+  selectedLeaserId?: string;
+  selectedDuration?: number;
 }
 
 export const PackPriceConfiguration = ({
@@ -25,7 +30,19 @@ export const PackPriceConfiguration = ({
   onUpdateCalculations,
   packData,
   onUpdatePackData,
+  selectedLeaserId,
+  selectedDuration = 36,
 }: PackPriceConfigurationProps) => {
+  // Fetch leasers data
+  const { data: leasers = [] } = useQuery({
+    queryKey: ["leasers"],
+    queryFn: getLeasers,
+  });
+
+  const selectedLeaser = selectedLeaserId 
+    ? leasers.find(leaser => leaser.id === selectedLeaserId)
+    : null;
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -43,7 +60,9 @@ export const PackPriceConfiguration = ({
       const monthlyPrice = field === 'unit_monthly_price' ? value : item.unit_monthly_price;
       
       if (purchasePrice > 0) {
-        updates.margin_percentage = ((monthlyPrice - purchasePrice) / purchasePrice) * 100;
+        // Calculate sale price using leaser coefficient, then calculate margin
+        const salePrice = calculateSalePriceWithLeaser(monthlyPrice, selectedLeaser, selectedDuration);
+        updates.margin_percentage = ((salePrice - purchasePrice) / purchasePrice) * 100;
       }
     }
     
@@ -53,7 +72,12 @@ export const PackPriceConfiguration = ({
   const handleMarginChange = (index: number, marginPercentage: number) => {
     const item = packItems[index];
     if (item.unit_purchase_price > 0) {
-      const newMonthlyPrice = item.unit_purchase_price * (1 + marginPercentage / 100);
+      // Calculate the required sale price for the target margin
+      const targetSalePrice = item.unit_purchase_price * (1 + marginPercentage / 100);
+      // Calculate the monthly price needed to achieve this sale price
+      const coefficient = getCoefficientFromLeaser(selectedLeaser, targetSalePrice, selectedDuration);
+      const newMonthlyPrice = (targetSalePrice * coefficient) / 100;
+      
       onUpdateItem(index, {
         margin_percentage: marginPercentage,
         unit_monthly_price: newMonthlyPrice,
@@ -64,7 +88,12 @@ export const PackPriceConfiguration = ({
   const applyGlobalMargin = (targetMargin: number) => {
     packItems.forEach((item, index) => {
       if (item.unit_purchase_price > 0) {
-        const newMonthlyPrice = item.unit_purchase_price * (1 + targetMargin / 100);
+        // Calculate the required sale price for the target margin
+        const targetSalePrice = item.unit_purchase_price * (1 + targetMargin / 100);
+        // Calculate the monthly price needed to achieve this sale price
+        const coefficient = getCoefficientFromLeaser(selectedLeaser, targetSalePrice, selectedDuration);
+        const newMonthlyPrice = (targetSalePrice * coefficient) / 100;
+        
         onUpdateItem(index, {
           margin_percentage: targetMargin,
           unit_monthly_price: newMonthlyPrice,
@@ -420,7 +449,7 @@ export const PackPriceConfiguration = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor={`purchase-${index}`}>Prix d'achat unitaire</Label>
                     <Input
@@ -443,6 +472,13 @@ export const PackPriceConfiguration = ({
                       value={item.unit_monthly_price}
                       onChange={(e) => handlePriceChange(index, 'unit_monthly_price', parseFloat(e.target.value) || 0)}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Prix de vente unitaire</Label>
+                    <div className="text-lg font-semibold text-green-600">
+                      {formatPrice(calculateSalePriceWithLeaser(item.unit_monthly_price, selectedLeaser, selectedDuration))}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
