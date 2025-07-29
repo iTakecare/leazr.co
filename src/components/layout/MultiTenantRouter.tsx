@@ -148,15 +148,15 @@ const MultiTenantRouter = () => {
           {/* Page d'accueil avec détection d'entreprise */}
           <Route path="/" element={<SmartLandingPage />} />
           
-          {/* FALLBACK POUR ROUTES NON RECONNUES */}
-          <Route path="/*" element={<RoleBasedRoutes />} />
-          
           {/* ROUTES PUBLIQUES AVEC SLUG - EN DERNIER POUR ÉVITER LES CONFLITS */}
           <Route path="/:companySlug/catalog" element={<PublicSlugCatalog />} />
           <Route path="/:companySlug/products/:id" element={<PublicSlugProductDetail />} />
           <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
           <Route path="/:companySlug/demande" element={<PublicSlugRequest />} />
           <Route path="/:companySlug" element={<PublicSlugCompany />} />
+          
+          {/* FALLBACK POUR ROUTES NON RECONNUES - EN TOUT DERNIER */}
+          <Route path="/*" element={<RoleBasedRoutes />} />
         </Routes>
   );
 };
