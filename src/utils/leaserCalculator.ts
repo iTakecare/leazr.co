@@ -46,6 +46,12 @@ export const calculateSalePriceWithLeaser = (
   leaser: Leaser | null,
   duration: number = 36
 ): number => {
-  const coefficient = getCoefficientFromLeaser(leaser, monthlyPrice * 100, duration);
-  return (monthlyPrice * 100) / coefficient;
+  // Calculate total payments over the duration
+  const totalPayments = monthlyPrice * duration;
+  
+  // Get coefficient based on total payments amount
+  const coefficient = getCoefficientFromLeaser(leaser, totalPayments, duration);
+  
+  // Calculate sale price: total payments / coefficient
+  return totalPayments / coefficient;
 };
