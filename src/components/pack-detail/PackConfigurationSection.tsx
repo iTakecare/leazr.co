@@ -1,11 +1,10 @@
 import React from "react";
 import { ProductPack } from "@/types/pack";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Minus, Plus, MessageSquare, Package } from "lucide-react";
+import { Minus, Plus, MessageSquare, HelpCircle } from "lucide-react";
 import PackCO2SavingsCalculator from "./PackCO2SavingsCalculator";
 
 interface PackConfigurationSectionProps {
@@ -30,71 +29,62 @@ const PackConfigurationSection: React.FC<PackConfigurationSectionProps> = ({
   onRequestQuote
 }) => {
   const regularPrice = pack.pack_monthly_price || pack.total_monthly_price;
+  const minMonthlyPrice = currentPrice;
 
   return (
-    <div className="space-y-6">
-      {/* Pack Info Card */}
-      <Card className="p-6">
-        <div className="space-y-4">
-          {/* Pack Name and Badge */}
+    <div className="lg:sticky lg:top-6 lg:self-start">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] text-white p-6 rounded-t-xl shadow-lg">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Package className="w-5 h-5 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">{pack.name}</h1>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {pack.is_featured && (
-                <Badge variant="default">Pack vedette</Badge>
-              )}
-              {hasActivePromo && (
-                <Badge variant="destructive">
-                  Promotion -{promoSavingsPercentage}%
-                </Badge>
-              )}
-              <Badge variant="secondary">
-                {pack.items?.length || 0} produit{(pack.items?.length || 0) > 1 ? 's' : ''}
+            <h2 className="text-xl font-bold">Leasing {pack.name}</h2>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                Pack
               </Badge>
+              <span className="text-sm opacity-90">{pack.items?.length || 0} produits inclus</span>
             </div>
           </div>
+        </div>
 
-          {/* Pricing */}
-          <div className="space-y-2">
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">
-                {currentPrice.toFixed(2)}€
-              </span>
-              <span className="text-sm text-muted-foreground">/mois</span>
-              
-              {hasActivePromo && regularPrice > currentPrice && (
-                <span className="text-lg text-muted-foreground line-through">
-                  {regularPrice.toFixed(2)}€
-                </span>
-              )}
-            </div>
-            
-            {hasActivePromo && pack.promo_valid_to && (
-              <p className="text-sm text-destructive">
-                Offre valable jusqu'au {new Date(pack.promo_valid_to).toLocaleDateString('fr-FR')}
-              </p>
-            )}
-            
-            <p className="text-xs text-muted-foreground">
-              Prix pour une durée de contrat de {pack.selected_duration || 36} mois
-            </p>
+        <div className="text-right">
+          <div className="text-sm opacity-80 mb-1">À partir de</div>
+          <div className="flex items-baseline justify-end gap-1">
+            <span className="text-3xl font-bold">{minMonthlyPrice.toFixed(2)}€</span>
+            <span className="text-sm opacity-90">/mois</span>
           </div>
+        </div>
+      </div>
 
-          {/* Quantity Selector */}
+      {/* Configuration Section */}
+      <div className="bg-white border-l border-r border-gray-200 p-6 space-y-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900">Configuration</h3>
+          
+          {/* Pack Items Count */}
+          <div className="flex justify-between items-center py-2 border-b border-gray-100">
+            <span className="text-sm text-gray-600">Produits inclus</span>
+            <span className="font-medium">{pack.items?.length || 0}</span>
+          </div>
+          
+          {/* Duration */}
+          <div className="flex justify-between items-center py-2 border-b border-gray-100">
+            <span className="text-sm text-gray-600">Durée</span>
+            <span className="font-medium">{pack.selected_duration || 36} mois</span>
+          </div>
+          
+          {/* Quantity */}
           <div className="space-y-2">
-            <Label htmlFor="quantity">Quantité</Label>
+            <Label htmlFor="quantity" className="text-sm text-gray-600">Quantité</Label>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
+                className="h-8 w-8"
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-3 h-3" />
               </Button>
               
               <Input
@@ -103,75 +93,101 @@ const PackConfigurationSection: React.FC<PackConfigurationSectionProps> = ({
                 min="1"
                 value={quantity}
                 onChange={(e) => onQuantityChange(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-20 text-center"
+                className="w-16 h-8 text-center text-sm"
               />
               
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => onQuantityChange(quantity + 1)}
+                className="h-8 w-8"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3" />
               </Button>
             </div>
           </div>
+        </div>
 
-          {/* Total Price */}
+        {/* CO2 Savings */}
+        {pack.items && pack.items.length > 0 && (
+          <PackCO2SavingsCalculator 
+            items={pack.items} 
+            packQuantity={quantity}
+          />
+        )}
+      </div>
+
+      {/* Price Section */}
+      <div className="bg-gray-50 border-l border-r border-gray-200 p-6">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Prix mensuel unitaire</span>
+            <div className="text-right">
+              {hasActivePromo && regularPrice > currentPrice ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400 line-through">
+                    {regularPrice.toFixed(2)}€
+                  </span>
+                  <span className="font-medium text-[#da2959]">
+                    {currentPrice.toFixed(2)}€
+                  </span>
+                </div>
+              ) : (
+                <span className="font-medium">{currentPrice.toFixed(2)}€</span>
+              )}
+            </div>
+          </div>
+          
           {quantity > 1 && (
-            <div className="pt-4 border-t">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-foreground">
-                  Total ({quantity} packs):
-                </span>
-                <span className="text-xl font-bold text-foreground">
-                  {totalPrice.toFixed(2)}€/mois
-                </span>
-              </div>
+            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+              <span className="font-medium text-gray-900">Total mensuel</span>
+              <span className="font-bold text-lg text-[#33638e]">
+                {totalPrice.toFixed(2)}€
+              </span>
             </div>
           )}
-
-          {/* Request Quote Button */}
-          <Button 
-            onClick={onRequestQuote}
-            className="w-full"
-            size="lg"
-          >
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Demander un devis
-          </Button>
+          
+          {hasActivePromo && pack.promo_valid_to && (
+            <p className="text-xs text-[#da2959]">
+              Promotion valable jusqu'au {new Date(pack.promo_valid_to).toLocaleDateString('fr-FR')}
+            </p>
+          )}
         </div>
-      </Card>
+      </div>
 
-      {/* CO2 Savings */}
-      {pack.items && pack.items.length > 0 && (
-        <PackCO2SavingsCalculator 
-          items={pack.items} 
-          packQuantity={quantity}
-        />
-      )}
-
-      {/* Pack Features */}
-      <Card className="p-4">
-        <h3 className="font-medium text-foreground mb-3">Avantages du pack</h3>
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-            Économie garantie par rapport à l'achat séparé
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-            Produits reconditionnés avec garantie
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-            Leasing sur {pack.selected_duration || 36} mois
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-            Support technique inclus
-          </li>
-        </ul>
-      </Card>
+      {/* Action Buttons */}
+      <div className="bg-white border border-gray-200 rounded-b-xl p-6 space-y-3">
+        <Button 
+          onClick={onRequestQuote}
+          className="w-full bg-[#da2959] hover:bg-[#da2959]/90 text-white"
+          size="lg"
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Demander un devis
+        </Button>
+        
+        <Button variant="outline" className="w-full" size="lg">
+          <HelpCircle className="w-4 h-4 mr-2" />
+          Conseiller
+        </Button>
+        
+        <div className="pt-4 border-t border-gray-100 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Livraison gratuite en Europe</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Pas d'augmentation de loyer</span>
+          </div>
+        </div>
+        
+        <div className="pt-2">
+          <button className="text-sm text-[#33638e] hover:text-[#da2959] font-medium">
+            Besoin d'aide ?
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
