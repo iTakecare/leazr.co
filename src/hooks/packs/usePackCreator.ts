@@ -30,6 +30,8 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     promo_active: editingPack?.promo_active ?? false,
     promo_valid_from: editingPack?.promo_valid_from ? new Date(editingPack.promo_valid_from) : undefined,
     promo_valid_to: editingPack?.promo_valid_to ? new Date(editingPack.promo_valid_to) : undefined,
+    leaser_id: editingPack?.leaser_id || undefined,
+    selected_duration: editingPack?.selected_duration || 36,
   });
   
   const [packItems, setPackItems] = useState<PackItemFormData[]>(() => {
@@ -105,6 +107,8 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
         promo_active: editingPack.promo_active ?? false,
         promo_valid_from: editingPack.promo_valid_from ? new Date(editingPack.promo_valid_from) : undefined,
         promo_valid_to: editingPack.promo_valid_to ? new Date(editingPack.promo_valid_to) : undefined,
+        leaser_id: editingPack.leaser_id || undefined,
+        selected_duration: editingPack.selected_duration || 36,
       });
       
       if (editingPack.items) {
@@ -270,6 +274,8 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       promo_active: false,
       promo_valid_from: undefined,
       promo_valid_to: undefined,
+      leaser_id: undefined,
+      selected_duration: 36,
     });
     setPackItems([]);
   }, []);

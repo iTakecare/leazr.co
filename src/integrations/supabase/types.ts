@@ -3695,12 +3695,14 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           is_featured: boolean
+          leaser_id: string | null
           name: string
           pack_monthly_price: number | null
           pack_promo_price: number | null
           promo_active: boolean
           promo_valid_from: string | null
           promo_valid_to: string | null
+          selected_duration: number | null
           total_margin: number
           total_monthly_price: number
           total_purchase_price: number
@@ -3717,12 +3719,14 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
+          leaser_id?: string | null
           name: string
           pack_monthly_price?: number | null
           pack_promo_price?: number | null
           promo_active?: boolean
           promo_valid_from?: string | null
           promo_valid_to?: string | null
+          selected_duration?: number | null
           total_margin?: number
           total_monthly_price?: number
           total_purchase_price?: number
@@ -3739,12 +3743,14 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
+          leaser_id?: string | null
           name?: string
           pack_monthly_price?: number | null
           pack_promo_price?: number | null
           promo_active?: boolean
           promo_valid_from?: string | null
           promo_valid_to?: string | null
+          selected_duration?: number | null
           total_margin?: number
           total_monthly_price?: number
           total_purchase_price?: number
@@ -3752,7 +3758,15 @@ export type Database = {
           valid_from?: string | null
           valid_to?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_packs_leaser_id_fkey"
+            columns: ["leaser_id"]
+            isOneToOne: false
+            referencedRelation: "leasers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_variant_prices: {
         Row: {

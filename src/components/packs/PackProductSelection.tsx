@@ -12,7 +12,9 @@ import { getProductVariantPrices } from "@/services/variantPriceService";
 import { Product } from "@/types/catalog";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
 import { ProductVariantSelector, ProductVariantSelectorRef } from "./ProductVariantSelector";
-import { getCoefficientRateSync } from "@/utils/calculator";
+import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
+import { Leaser } from "@/types/equipment";
+import { getLeasers } from "@/services/leaserService";
 
 interface PackProductSelectionProps {
   packItems: PackItemFormData[];
@@ -20,6 +22,8 @@ interface PackProductSelectionProps {
   onUpdateItem: (index: number, updates: Partial<PackItemFormData>) => void;
   onRemoveItem: (index: number) => void;
   onReorderItems: (startIndex: number, endIndex: number) => void;
+  selectedLeaserId?: string;
+  selectedDuration?: number;
 }
 
 export const PackProductSelection = ({
@@ -28,6 +32,8 @@ export const PackProductSelection = ({
   onUpdateItem,
   onRemoveItem,
   onReorderItems,
+  selectedLeaserId,
+  selectedDuration = 36,
 }: PackProductSelectionProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -42,6 +48,14 @@ export const PackProductSelection = ({
     queryKey: ["products", "admin"],
     queryFn: () => getProducts({ includeAdminOnly: true }),
   });
+
+  // Fetch leasers and find the selected one
+  const { data: leasers = [] } = useQuery({
+    queryKey: ["leasers"],
+    queryFn: getLeasers,
+  });
+
+  const selectedLeaser = leasers.find(leaser => leaser.id === selectedLeaserId);
 
   // Filter products
   const filteredProducts = products.filter(product => {
@@ -141,9 +155,9 @@ export const PackProductSelection = ({
     }).format(price);
   };
 
-  // Calculate the sale price using the same formula as the offer calculator
-  const calculateSalePrice = (monthlyPrice: number, totalPackMonthlyPrice: number) => {
-    const coefficient = getCoefficientRateSync(totalPackMonthlyPrice);
+  // Calculate the sale price using the selected leaser's coefficient
+  const calculateSalePrice = (monthlyPrice: number) => {
+    const coefficient = getCoefficientFromLeaser(selectedLeaser || null, monthlyPrice * 100, selectedDuration);
     return (monthlyPrice * 100) / coefficient;
   };
 
@@ -241,7 +255,7 @@ export const PackProductSelection = ({
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Prix de vente</p>
-                        <p className="font-medium">{formatPrice(calculateSalePrice(item.unit_monthly_price, packItems.reduce((sum, item) => sum + (item.unit_monthly_price * item.quantity), 0)))}</p>
+                        <p className="font-medium">{formatPrice(calculateSalePrice(item.unit_monthly_price))}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Mensualité</p>

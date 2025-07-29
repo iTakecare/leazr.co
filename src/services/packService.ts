@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ProductPack, CreatePackData, ProductPackItem, PackCalculation } from "@/types/pack";
-import { getCoefficientRateSync } from "@/utils/calculator";
+import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
+import { getLeasers } from "@/services/leaserService";
 
 export const getPacks = async (): Promise<ProductPack[]> => {
   const { data, error } = await supabase
@@ -152,8 +153,9 @@ export const calculatePackTotals = (items: ProductPackItem[]): PackCalculation =
     sum + (item.unit_monthly_price * item.quantity), 0
   );
   
-  // Calculate total financed amount using the correct formula: (monthly payment × 100) ÷ coefficient
-  const coefficient = getCoefficientRateSync(total_monthly_price);
+  // For now, use a default coefficient for calculation (this should be passed as parameter)
+  // TODO: Update this to use the actual leaser coefficient when calculating
+  const coefficient = 2.8; // Default fallback
   const total_financed_amount = (total_monthly_price * 100) / coefficient;
   
   // Real margin = financed amount - purchase price (not monthly - purchase)

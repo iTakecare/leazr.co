@@ -121,6 +121,8 @@ export const PackCreator = ({ open, onOpenChange, editingPack }: PackCreatorProp
             onUpdateItem={updatePackItem}
             onRemoveItem={removePackItem}
             onReorderItems={reorderPackItems}
+            selectedLeaserId={packData.leaser_id}
+            selectedDuration={packData.selected_duration}
           />
         );
       case 2:

@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,9 +8,15 @@ import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { Leaser } from "@/types/equipment";
+import { useQuery } from "@tanstack/react-query";
+import { getLeasers } from "@/services/leaserService";
+import LeaserSelector from "@/components/ui/LeaserSelector";
+import LeaserButton from "@/components/offer/LeaserButton";
 
 interface PackGeneralInfoProps {
   packData: {
@@ -21,13 +28,28 @@ interface PackGeneralInfoProps {
     admin_only: boolean;
     valid_from?: Date;
     valid_to?: Date;
+    leaser_id?: string;
+    selected_duration?: number;
   };
   onUpdate: (updates: Partial<PackGeneralInfoProps['packData']>) => void;
 }
 
 export const PackGeneralInfo = ({ packData, onUpdate }: PackGeneralInfoProps) => {
+  const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
+  
+  const { data: leasers = [] } = useQuery({
+    queryKey: ["leasers"],
+    queryFn: getLeasers,
+  });
+
+  const selectedLeaser = leasers.find(leaser => leaser.id === packData.leaser_id);
+
   const handleChange = (field: string, value: any) => {
     onUpdate({ [field]: value });
+  };
+
+  const handleLeaserSelect = (leaser: Leaser) => {
+    handleChange("leaser_id", leaser.id);
   };
 
   return (
@@ -71,6 +93,46 @@ export const PackGeneralInfo = ({ packData, onUpdate }: PackGeneralInfoProps) =>
               placeholder="Décrivez le contenu et les avantages de ce pack..."
               rows={3}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Configuration financière</CardTitle>
+          <CardDescription>
+            Sélectionnez le bailleur et la durée de financement pour ce pack
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Bailleur *</Label>
+              <LeaserButton
+                selectedLeaser={selectedLeaser || null}
+                onOpen={() => setIsLeaserSelectorOpen(true)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration">Durée de financement</Label>
+              <Select
+                value={packData.selected_duration?.toString() || "36"}
+                onValueChange={(value) => handleChange("selected_duration", parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner la durée" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="12">12 mois</SelectItem>
+                  <SelectItem value="18">18 mois</SelectItem>
+                  <SelectItem value="24">24 mois</SelectItem>
+                  <SelectItem value="36">36 mois</SelectItem>
+                  <SelectItem value="48">48 mois</SelectItem>
+                  <SelectItem value="60">60 mois</SelectItem>
+                  <SelectItem value="72">72 mois</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -198,6 +260,13 @@ export const PackGeneralInfo = ({ packData, onUpdate }: PackGeneralInfoProps) =>
           </div>
         </CardContent>
       </Card>
+
+      <LeaserSelector
+        isOpen={isLeaserSelectorOpen}
+        onClose={() => setIsLeaserSelectorOpen(false)}
+        selectedLeaser={selectedLeaser || null}
+        onSelect={handleLeaserSelect}
+      />
     </div>
   );
 };

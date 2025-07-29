@@ -17,6 +17,8 @@ export interface ProductPack {
   promo_active: boolean;
   promo_valid_from?: Date | string;
   promo_valid_to?: Date | string;
+  leaser_id?: string;
+  selected_duration?: number;
   created_at: Date | string;
   updated_at: Date | string;
   items?: ProductPackItem[];
@@ -67,6 +69,8 @@ export interface CreatePackData {
   promo_active?: boolean;
   promo_valid_from?: Date;
   promo_valid_to?: Date;
+  leaser_id?: string;
+  selected_duration?: number;
 }
 
 export interface CreatePackItemData {
