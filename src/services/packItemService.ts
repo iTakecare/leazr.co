@@ -6,7 +6,7 @@ export const getPackItems = async (packId: string): Promise<ProductPackItem[]> =
     .from('product_pack_items')
     .select(`
       *,
-      product:products(id, name, description, image_url, brand, category),
+      product:products(id, name, description, image_url, brand_name, category_name),
       variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
     `)
     .eq('pack_id', packId)
@@ -26,7 +26,7 @@ export const createPackItem = async (itemData: CreatePackItemData & { pack_id: s
     .insert(itemData)
     .select(`
       *,
-      product:products(id, name, description, image_url, brand, category),
+      product:products(id, name, description, image_url, brand_name, category_name),
       variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
     `)
     .single();
@@ -49,7 +49,7 @@ export const createPackItems = async (itemsData: (CreatePackItemData & { pack_id
     .insert(itemsData)
     .select(`
       *,
-      product:products(id, name, description, image_url, brand, category),
+      product:products(id, name, description, image_url, brand_name, category_name),
       variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
     `);
 
@@ -76,7 +76,7 @@ export const updatePackItem = async (id: string, itemData: Partial<CreatePackIte
     .eq('id', id)
     .select(`
       *,
-      product:products(id, name, description, image_url, brand, category),
+      product:products(id, name, description, image_url, brand_name, category_name),
       variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
     `)
     .single();
