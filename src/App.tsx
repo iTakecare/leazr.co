@@ -53,6 +53,8 @@ import Settings from "@/pages/Settings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
+import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
+import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
@@ -146,6 +148,8 @@ function App() {
                         <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
                         <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
                         <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
+                        <Route path="invoicing/:id" element={<Layout><InvoiceDetailPage /></Layout>} />
+                        <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
                         <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
