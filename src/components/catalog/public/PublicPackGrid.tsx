@@ -21,12 +21,7 @@ const PublicPackGrid: React.FC<PublicPackGridProps> = ({ packs, companySlug }) =
   const handlePackClick = (pack: PublicPack) => {
     if (companySlug) {
       // Navigate to pack details page (when implemented)
-      // For now, we could navigate to a pack details route
-      if (pack.slug) {
-        navigate(`/${companySlug}/pack/${pack.slug}`);
-      } else {
-        navigate(`/${companySlug}/pack/${pack.id}`);
-      }
+      navigate(`/${companySlug}/pack/${pack.id}`);
     }
   };
 

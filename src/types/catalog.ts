@@ -219,6 +219,5 @@ export interface PublicPack {
   pack_promo_price?: number;
   promo_active: boolean;
   total_monthly_price: number;
-  slug: string;
   items: PublicPackItem[];
 }

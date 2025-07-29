@@ -214,7 +214,6 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
         pack_promo_price,
         promo_active,
         total_monthly_price,
-        slug,
         product_pack_items(
           quantity,
           products(
@@ -247,7 +246,6 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
       pack_promo_price: pack.pack_promo_price || 0,
       promo_active: pack.promo_active || false,
       total_monthly_price: pack.total_monthly_price || 0,
-      slug: pack.slug || "",
       items: (pack.product_pack_items || []).map(item => ({
         quantity: item.quantity || 1,
         product: {
