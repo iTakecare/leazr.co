@@ -12,7 +12,7 @@ import { getProductVariantPrices } from "@/services/variantPriceService";
 import { Product } from "@/types/catalog";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
 import { ProductVariantSelector, ProductVariantSelectorRef } from "./ProductVariantSelector";
-import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
+import { calculateSalePriceWithLeaser } from "@/utils/leaserCalculator";
 import { Leaser } from "@/types/equipment";
 import { getLeasers } from "@/services/leaserService";
 
@@ -155,13 +155,6 @@ export const PackProductSelection = ({
     }).format(price);
   };
 
-  // Calculate the sale price using the selected leaser's coefficient
-  const calculateSalePrice = (monthlyPrice: number) => {
-    // Get coefficient based on a reasonable amount (we'll use monthly price * 100 as estimate)
-    const coefficient = getCoefficientFromLeaser(selectedLeaser || null, monthlyPrice * 100, selectedDuration);
-    // Formula: sale_price = (monthly_price * 100) / coefficient
-    return (monthlyPrice * 100) / coefficient;
-  };
 
   if (isLoading) {
     return (
@@ -257,7 +250,7 @@ export const PackProductSelection = ({
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Prix de vente</p>
-                        <p className="font-medium">{formatPrice(calculateSalePrice(item.unit_monthly_price))}</p>
+                        <p className="font-medium">{formatPrice(calculateSalePriceWithLeaser(item.unit_monthly_price, selectedLeaser, selectedDuration))}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Mensualité</p>
