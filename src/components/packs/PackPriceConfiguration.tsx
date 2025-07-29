@@ -50,6 +50,13 @@ export const PackPriceConfiguration = ({
     }).format(price);
   };
 
+  // Calculate real-time margin percentage based on current prices
+  const calculateRealTimeMargin = (monthlyPrice: number, purchasePrice: number) => {
+    if (purchasePrice <= 0) return 0;
+    const salePrice = calculateSalePriceWithLeaser(monthlyPrice, selectedLeaser, selectedDuration);
+    return ((salePrice - purchasePrice) / purchasePrice) * 100;
+  };
+
   const handlePriceChange = (index: number, field: 'unit_purchase_price' | 'unit_monthly_price', value: number) => {
     const item = packItems[index];
     const updates: Partial<PackItemFormData> = { [field]: value };
@@ -431,10 +438,10 @@ export const PackPriceConfiguration = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge 
-                      variant={item.margin_percentage < 10 ? "destructive" : 
-                              item.margin_percentage > 100 ? "secondary" : "default"}
+                      variant={calculateRealTimeMargin(item.unit_monthly_price, item.unit_purchase_price) < 10 ? "destructive" : 
+                              calculateRealTimeMargin(item.unit_monthly_price, item.unit_purchase_price) > 100 ? "secondary" : "default"}
                     >
-                      Marge: {item.margin_percentage.toFixed(1)}%
+                      Marge: {calculateRealTimeMargin(item.unit_monthly_price, item.unit_purchase_price).toFixed(1)}%
                     </Badge>
                     <div className="flex items-center gap-2">
                       <Label htmlFor={`override-${index}`} className="text-sm">
@@ -488,7 +495,7 @@ export const PackPriceConfiguration = ({
                       type="number"
                       step="0.1"
                       min="0"
-                      value={item.margin_percentage.toFixed(1)}
+                      value={calculateRealTimeMargin(item.unit_monthly_price, item.unit_purchase_price).toFixed(1)}
                       onChange={(e) => handleMarginChange(index, parseFloat(e.target.value) || 0)}
                     />
                   </div>
