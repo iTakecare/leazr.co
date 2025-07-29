@@ -14,6 +14,8 @@ interface PackPriceConfigurationProps {
   calculations: PackCalculation;
   onUpdateItem: (index: number, updates: Partial<PackItemFormData>) => void;
   onUpdateCalculations: () => void;
+  packData: any;
+  onUpdatePackData: (updates: any) => void;
 }
 
 export const PackPriceConfiguration = ({
@@ -21,6 +23,8 @@ export const PackPriceConfiguration = ({
   calculations,
   onUpdateItem,
   onUpdateCalculations,
+  packData,
+  onUpdatePackData,
 }: PackPriceConfigurationProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -72,6 +76,34 @@ export const PackPriceConfiguration = ({
   const lowMarginItems = packItems.filter(item => item.margin_percentage < 10);
   const highMarginItems = packItems.filter(item => item.margin_percentage > 100);
 
+  const handlePackMonthlyPriceChange = (value: string) => {
+    const numValue = parseFloat(value) || 0;
+    onUpdatePackData({ pack_monthly_price: numValue });
+  };
+
+  const handlePackPromoPriceChange = (value: string) => {
+    const numValue = parseFloat(value) || 0;
+    onUpdatePackData({ pack_promo_price: numValue });
+  };
+
+  const handlePromoActiveChange = (checked: boolean) => {
+    onUpdatePackData({ promo_active: checked });
+  };
+
+  const handlePromoDateChange = (field: 'promo_valid_from' | 'promo_valid_to', value: string) => {
+    const dateValue = value ? new Date(value) : undefined;
+    onUpdatePackData({ [field]: dateValue });
+  };
+
+  const calculatePackSavings = () => {
+    if (!packData.pack_monthly_price || packData.pack_monthly_price === 0) return 0;
+    return calculations.total_monthly_price - packData.pack_monthly_price;
+  };
+
+  const effectivePackPrice = packData.promo_active && packData.pack_promo_price 
+    ? packData.pack_promo_price 
+    : packData.pack_monthly_price;
+
   return (
     <div className="space-y-6">
       {/* Summary Card */}
@@ -92,7 +124,7 @@ export const PackPriceConfiguration = ({
               <p className="text-lg font-semibold">{formatPrice(calculations.total_purchase_price)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Prix de vente total</p>
+              <p className="text-sm text-muted-foreground">Somme prix mensuels individuels</p>
               <p className="text-lg font-semibold">{formatPrice(calculations.total_monthly_price)}</p>
             </div>
             <div className="space-y-1">
@@ -106,6 +138,168 @@ export const PackPriceConfiguration = ({
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Pack Monthly Pricing Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Configuration des mensualités du pack
+          </CardTitle>
+          <CardDescription>
+            Définissez le prix mensuel final du pack et les promotions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Pack Monthly Price */}
+          <div className="space-y-2">
+            <Label htmlFor="pack-monthly-price">Mensualité du pack (€)</Label>
+            <Input
+              id="pack-monthly-price"
+              type="number"
+              step="0.01"
+              value={packData.pack_monthly_price || ""}
+              onChange={(e) => handlePackMonthlyPriceChange(e.target.value)}
+              placeholder="Prix mensuel du pack"
+            />
+            {packData.pack_monthly_price && (
+              <div className="text-sm space-y-1 bg-muted/50 p-3 rounded-lg">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Somme des prix individuels:</span>
+                  <span>{formatPrice(calculations.total_monthly_price)}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Économie pour le client:</span>
+                  <span className={calculatePackSavings() > 0 ? "text-green-600" : "text-red-600"}>
+                    {formatPrice(calculatePackSavings())}
+                    {calculatePackSavings() !== 0 && (
+                      <span className="ml-1 text-xs">
+                        ({((calculatePackSavings() / calculations.total_monthly_price) * 100).toFixed(1)}%)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Promotional Pricing */}
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="promo-active" className="text-base font-medium">
+                  Activer la promotion
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Proposez un prix promotionnel temporaire
+                </p>
+              </div>
+              <Switch
+                id="promo-active"
+                checked={packData.promo_active || false}
+                onCheckedChange={handlePromoActiveChange}
+              />
+            </div>
+
+            {packData.promo_active && (
+              <div className="space-y-4 pl-4 border-l-2 border-primary/20 bg-primary/5 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="pack-promo-price">Mensualité promotionnelle (€)</Label>
+                  <Input
+                    id="pack-promo-price"
+                    type="number"
+                    step="0.01"
+                    value={packData.pack_promo_price || ""}
+                    onChange={(e) => handlePackPromoPriceChange(e.target.value)}
+                    placeholder="Prix promotionnel"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="promo-valid-from">Date de début</Label>
+                    <Input
+                      id="promo-valid-from"
+                      type="date"
+                      value={packData.promo_valid_from ? 
+                        (packData.promo_valid_from instanceof Date ? 
+                          packData.promo_valid_from.toISOString().split('T')[0] : 
+                          new Date(packData.promo_valid_from).toISOString().split('T')[0]
+                        ) : ""
+                      }
+                      onChange={(e) => handlePromoDateChange('promo_valid_from', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="promo-valid-to">Date de fin</Label>
+                    <Input
+                      id="promo-valid-to"
+                      type="date"
+                      value={packData.promo_valid_to ? 
+                        (packData.promo_valid_to instanceof Date ? 
+                          packData.promo_valid_to.toISOString().split('T')[0] : 
+                          new Date(packData.promo_valid_to).toISOString().split('T')[0]
+                        ) : ""
+                      }
+                      onChange={(e) => handlePromoDateChange('promo_valid_to', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {packData.pack_promo_price && packData.pack_monthly_price && (
+                  <div className="bg-green-50 p-3 rounded-lg text-sm border border-green-200">
+                    <div className="flex justify-between">
+                      <span>Réduction promotionnelle:</span>
+                      <span className="font-semibold text-green-600">
+                        -{formatPrice(packData.pack_monthly_price - packData.pack_promo_price)}
+                        ({(((packData.pack_monthly_price - packData.pack_promo_price) / packData.pack_monthly_price) * 100).toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Final Pack Price Summary */}
+          {packData.pack_monthly_price && (
+            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <Calculator className="h-4 w-4" />
+                Résumé des prix du pack
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Prix mensuel standard:</span>
+                  <span>{formatPrice(packData.pack_monthly_price)}</span>
+                </div>
+                {packData.promo_active && packData.pack_promo_price && (
+                  <div className="flex justify-between">
+                    <span>Prix promotionnel:</span>
+                    <span className="text-green-600 font-semibold">
+                      {formatPrice(packData.pack_promo_price)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-2 font-semibold">
+                  <span>Prix effectif client:</span>
+                  <span className="text-lg text-primary">
+                    {formatPrice(effectivePackPrice || packData.pack_monthly_price)}
+                  </span>
+                </div>
+                {effectivePackPrice && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Économie vs prix individuels:</span>
+                    <span className="font-semibold">
+                      {formatPrice(calculations.total_monthly_price - effectivePackPrice)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -168,6 +362,20 @@ export const PackPriceConfiguration = ({
               size="sm"
             >
               30%
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => applyGlobalMargin(35)}
+              size="sm"
+            >
+              35%
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => applyGlobalMargin(40)}
+              size="sm"
+            >
+              40%
             </Button>
           </div>
         </CardContent>

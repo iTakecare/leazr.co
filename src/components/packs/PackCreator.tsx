@@ -130,6 +130,8 @@ export const PackCreator = ({ open, onOpenChange, editingPack }: PackCreatorProp
             calculations={calculations}
             onUpdateItem={updatePackItem}
             onUpdateCalculations={updateCalculations}
+            packData={packData}
+            onUpdatePackData={updatePackData}
           />
         );
       case 3:

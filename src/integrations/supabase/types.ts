@@ -3696,6 +3696,11 @@ export type Database = {
           is_active: boolean
           is_featured: boolean
           name: string
+          pack_monthly_price: number | null
+          pack_promo_price: number | null
+          promo_active: boolean
+          promo_valid_from: string | null
+          promo_valid_to: string | null
           total_margin: number
           total_monthly_price: number
           total_purchase_price: number
@@ -3713,6 +3718,11 @@ export type Database = {
           is_active?: boolean
           is_featured?: boolean
           name: string
+          pack_monthly_price?: number | null
+          pack_promo_price?: number | null
+          promo_active?: boolean
+          promo_valid_from?: string | null
+          promo_valid_to?: string | null
           total_margin?: number
           total_monthly_price?: number
           total_purchase_price?: number
@@ -3730,6 +3740,11 @@ export type Database = {
           is_active?: boolean
           is_featured?: boolean
           name?: string
+          pack_monthly_price?: number | null
+          pack_promo_price?: number | null
+          promo_active?: boolean
+          promo_valid_from?: string | null
+          promo_valid_to?: string | null
           total_margin?: number
           total_monthly_price?: number
           total_purchase_price?: number

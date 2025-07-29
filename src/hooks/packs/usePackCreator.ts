@@ -25,6 +25,11 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     admin_only: editingPack?.admin_only ?? false,
     valid_from: editingPack?.valid_from ? new Date(editingPack.valid_from) : undefined,
     valid_to: editingPack?.valid_to ? new Date(editingPack.valid_to) : undefined,
+    pack_monthly_price: editingPack?.pack_monthly_price || undefined,
+    pack_promo_price: editingPack?.pack_promo_price || undefined,
+    promo_active: editingPack?.promo_active ?? false,
+    promo_valid_from: editingPack?.promo_valid_from ? new Date(editingPack.promo_valid_from) : undefined,
+    promo_valid_to: editingPack?.promo_valid_to ? new Date(editingPack.promo_valid_to) : undefined,
   });
   
   const [packItems, setPackItems] = useState<PackItemFormData[]>(() => {
@@ -95,6 +100,11 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
         admin_only: editingPack.admin_only ?? false,
         valid_from: editingPack.valid_from ? new Date(editingPack.valid_from) : undefined,
         valid_to: editingPack.valid_to ? new Date(editingPack.valid_to) : undefined,
+        pack_monthly_price: editingPack.pack_monthly_price || undefined,
+        pack_promo_price: editingPack.pack_promo_price || undefined,
+        promo_active: editingPack.promo_active ?? false,
+        promo_valid_from: editingPack.promo_valid_from ? new Date(editingPack.promo_valid_from) : undefined,
+        promo_valid_to: editingPack.promo_valid_to ? new Date(editingPack.promo_valid_to) : undefined,
       });
       
       if (editingPack.items) {
@@ -255,6 +265,11 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       admin_only: false,
       valid_from: undefined,
       valid_to: undefined,
+      pack_monthly_price: undefined,
+      pack_promo_price: undefined,
+      promo_active: false,
+      promo_valid_from: undefined,
+      promo_valid_to: undefined,
     });
     setPackItems([]);
   }, []);
