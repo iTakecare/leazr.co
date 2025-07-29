@@ -12,6 +12,7 @@ import { getProductVariantPrices } from "@/services/variantPriceService";
 import { Product } from "@/types/catalog";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
 import { ProductVariantSelector, ProductVariantSelectorRef } from "./ProductVariantSelector";
+import { getCoefficientRateSync } from "@/utils/calculator";
 
 interface PackProductSelectionProps {
   packItems: PackItemFormData[];
@@ -140,6 +141,12 @@ export const PackProductSelection = ({
     }).format(price);
   };
 
+  // Calculate the sale price using the same formula as the offer calculator
+  const calculateSalePrice = (monthlyPrice: number, totalPackMonthlyPrice: number) => {
+    const coefficient = getCoefficientRateSync(totalPackMonthlyPrice);
+    return (monthlyPrice * 100) / coefficient;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -234,7 +241,7 @@ export const PackProductSelection = ({
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Prix de vente</p>
-                        <p className="font-medium">{formatPrice(item.unit_purchase_price * (1 + item.margin_percentage / 100))}</p>
+                        <p className="font-medium">{formatPrice(calculateSalePrice(item.unit_monthly_price, packItems.reduce((sum, item) => sum + (item.unit_monthly_price * item.quantity), 0)))}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Mensualité</p>
