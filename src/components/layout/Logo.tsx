@@ -28,12 +28,8 @@ const Logo: React.FC<LogoProps> = ({
       <div className={cn("relative flex-shrink-0", sizeClasses[logoSize])}>
         <img 
           src="/leazr-logo.png"
-          alt="Leazr"
+          alt="Leazr Logo"
           className="w-full h-full object-contain"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = "/placeholder.svg";
-          }}
         />
       </div>
     </div>
