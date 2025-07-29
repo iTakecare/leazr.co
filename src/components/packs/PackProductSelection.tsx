@@ -157,7 +157,9 @@ export const PackProductSelection = ({
 
   // Calculate the sale price using the selected leaser's coefficient
   const calculateSalePrice = (monthlyPrice: number) => {
+    // Get coefficient based on a reasonable amount (we'll use monthly price * 100 as estimate)
     const coefficient = getCoefficientFromLeaser(selectedLeaser || null, monthlyPrice * 100, selectedDuration);
+    // Formula: sale_price = (monthly_price * 100) / coefficient
     return (monthlyPrice * 100) / coefficient;
   };
 
