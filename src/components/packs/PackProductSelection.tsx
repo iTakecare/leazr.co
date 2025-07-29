@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, GripVertical, Package } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Search, Trash2, GripVertical, Package, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/catalogService";
 import { getProductVariantPrices } from "@/services/variantPriceService";
 import { Product } from "@/types/catalog";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
+import { ProductVariantSelector } from "./ProductVariantSelector";
 
 interface PackProductSelectionProps {
   packItems: PackItemFormData[];
@@ -29,6 +31,9 @@ export const PackProductSelection = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [variantOptions, setVariantOptions] = useState<Record<string, string>>({});
+  const [showVariantSelector, setShowVariantSelector] = useState(false);
 
   // Fetch all products (including inactive ones for packs)
   const { data: products = [], isLoading } = useQuery({
@@ -68,17 +73,34 @@ export const PackProductSelection = ({
       console.log("No variants for product:", product.id);
     }
 
-    // Use base product prices or first variant
-    const basePrice = variants.length > 0 ? variants[0].price : (product.price || 0);
-    const baseMonthlyPrice = variants.length > 0 ? variants[0].monthly_price : (product.monthly_price || 0);
+    // If product has variants, show variant selector
+    if (variants.length > 0) {
+      setSelectedProduct(product);
+      setVariantOptions({});
+      setShowVariantSelector(true);
+      return;
+    }
+
+    // No variants, add product directly
+    addProductToPackDirect(product, undefined, product.price, product.monthly_price);
+  };
+
+  const addProductToPackDirect = (
+    product: Product, 
+    variantId?: string, 
+    price?: number, 
+    monthlyPrice?: number
+  ) => {
+    const basePrice = price || product.price || 0;
+    const baseMonthlyPrice = monthlyPrice || product.monthly_price || basePrice * 1.2;
 
     const newItem: PackItemFormData = {
       product_id: product.id,
-      variant_price_id: variants.length > 0 ? variants[0].id : undefined,
+      variant_price_id: variantId,
       quantity: 1,
       unit_purchase_price: basePrice,
-      unit_monthly_price: baseMonthlyPrice || basePrice * 1.2, // Default 20% margin
-      margin_percentage: basePrice > 0 ? ((baseMonthlyPrice || basePrice * 1.2) - basePrice) / basePrice * 100 : 20,
+      unit_monthly_price: baseMonthlyPrice,
+      margin_percentage: basePrice > 0 ? ((baseMonthlyPrice - basePrice) / basePrice) * 100 : 20,
       custom_price_override: false,
       position: packItems.length,
       product: product,
@@ -87,6 +109,27 @@ export const PackProductSelection = ({
 
     onAddItem(newItem);
     setShowAddProduct(false);
+    setShowVariantSelector(false);
+    setSelectedProduct(null);
+    setVariantOptions({});
+  };
+
+  const handleVariantSelect = (variantId?: string, price?: number, monthlyPrice?: number) => {
+    if (selectedProduct) {
+      addProductToPackDirect(selectedProduct, variantId, price, monthlyPrice);
+    }
+  };
+
+  const handleVariantOptionChange = (optionName: string, value: string) => {
+    setVariantOptions(prev => ({ ...prev, [optionName]: value }));
+  };
+
+  const openVariantSelector = (item: PackItemFormData, index: number) => {
+    if (item.product) {
+      setSelectedProduct(item.product);
+      setVariantOptions({});
+      setShowVariantSelector(true);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -143,11 +186,31 @@ export const PackProductSelection = ({
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
                   
                   <div className="flex-1 grid grid-cols-4 gap-4 items-center">
-                    <div>
-                      <p className="font-medium">{item.product?.name}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{item.product?.name}</p>
+                        {item.variant_price_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openVariantSelector(item, index)}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Settings className="h-3 w-3 mr-1" />
+                            Variante
+                          </Button>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {item.product?.brand} • {item.product?.category}
                       </p>
+                      {item.variant_price_id && (
+                        <div className="flex gap-1 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            Variante sélectionnée
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -292,6 +355,44 @@ export const PackProductSelection = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Variant Selector Dialog */}
+      <Dialog open={showVariantSelector} onOpenChange={setShowVariantSelector}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choisir une variante</DialogTitle>
+            <DialogDescription>
+              Sélectionnez les options pour {selectedProduct?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedProduct && (
+            <ProductVariantSelector
+              product={selectedProduct}
+              selectedOptions={variantOptions}
+              onOptionChange={handleVariantOptionChange}
+              onVariantSelect={handleVariantSelect}
+            />
+          )}
+
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowVariantSelector(false)}
+              className="flex-1"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={() => handleVariantSelect()}
+              className="flex-1"
+              disabled={selectedProduct && Object.keys(variantOptions).length === 0}
+            >
+              Ajouter au pack
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

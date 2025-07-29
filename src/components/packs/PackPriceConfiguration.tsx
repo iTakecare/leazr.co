@@ -434,7 +434,7 @@ export const PackPriceConfiguration = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`monthly-${index}`}>Prix de vente unitaire</Label>
+                    <Label htmlFor={`monthly-${index}`}>Mensualité unitaire</Label>
                     <Input
                       id={`monthly-${index}`}
                       type="number"
