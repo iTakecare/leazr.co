@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getLeasers } from "@/services/leaserService";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import LeaserButton from "@/components/offer/LeaserButton";
+import { PackImageUploader } from "./PackImageUploader";
 
 interface PackGeneralInfoProps {
   packData: {
@@ -74,12 +75,10 @@ export const PackGeneralInfo = ({ packData, onUpdate }: PackGeneralInfoProps) =>
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="image_url">URL de l'image</Label>
-              <Input
-                id="image_url"
-                value={packData.image_url || ""}
-                onChange={(e) => handleChange("image_url", e.target.value)}
-                placeholder="https://example.com/image.jpg"
+              <Label>Image du pack</Label>
+              <PackImageUploader
+                imageUrl={packData.image_url || undefined}
+                onImageUpdate={(imageUrl) => handleChange("image_url", imageUrl)}
               />
             </div>
           </div>
