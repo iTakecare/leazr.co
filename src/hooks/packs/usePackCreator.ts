@@ -207,7 +207,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
   const prevStep = () => setCurrentStep(prev => prev - 1);
   const goToStep = (step: number) => setCurrentStep(step);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setCurrentStep(0);
     setPackData({
       name: "",
@@ -220,7 +220,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       valid_to: undefined,
     });
     setPackItems([]);
-  };
+  }, []);
 
   const canGoNext = () => {
     switch (currentStep) {
