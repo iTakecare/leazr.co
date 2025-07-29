@@ -38,9 +38,9 @@ const CompanyLogo: React.FC<CompanyLogoProps> = ({
     lg: "text-lg"
   };
 
-  // Si on charge encore, ne rien afficher pour éviter tout clignotement
+  // Si on charge encore, afficher le logo par défaut pour éviter tout clignotement
   if (loading) {
-    return null;
+    return <Logo className={className} showText={showText} logoSize={logoSize} variant={variant} />;
   }
 
   // Si forceDefaultLogo est true ou s'il n'y a pas de logo d'entreprise, utiliser le logo par défaut

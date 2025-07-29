@@ -224,7 +224,7 @@ const Login = () => {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => navigate('/home')}
+                    onClick={() => navigate('/')}
                     className="text-sm text-gray-600 hover:text-blue-600 hover:underline flex items-center justify-center w-full"
                   >
                     <Home className="mr-1 h-4 w-4" />
