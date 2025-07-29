@@ -6,7 +6,7 @@ const CompanySlugGuard = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   
   // Reserved keywords that should not be treated as company slugs
-  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register', 'solutions', 'services', 'about', 'contact', 'support', 'help', 'catalog', 'products', 'pricing', 'features', 'blog', 'news'];
+  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register', 'solutions', 'services', 'ressources', 'about', 'a-propos', 'contact', 'support', 'help', 'catalog', 'products', 'pricing', 'tarifs', 'features', 'blog', 'news'];
   
   console.log('🛡️ COMPANY SLUG GUARD - Checking slug:', companySlug, {
     pathname: window.location.pathname,

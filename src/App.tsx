@@ -20,6 +20,18 @@ import HomePage from "@/pages/HomePage";
 import PublicCatalogList from "@/components/public/PublicCatalogList";
 import DebugSlugs from "@/pages/DebugSlugs";
 
+// Public information pages
+import SolutionsPage from "@/pages/SolutionsPage";
+import ServicesPage from "@/pages/ServicesPage";
+import ResourcesPage from "@/pages/ResourcesPage";
+import AboutPage from "@/pages/AboutPage";
+import ContactPage from "@/pages/ContactPage";
+import EnterprisesSolutionsPage from "@/pages/EnterprisesSolutionsPage";
+import ProfessionalsSolutionsPage from "@/pages/ProfessionalsSolutionsPage";
+import CRMFeaturePage from "@/pages/CRMFeaturePage";
+import CalculatorPage from "@/pages/CalculatorPage";
+import PricingPage from "@/pages/PricingPage";
+
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
 import PublicSlugProductDetails from "@/components/public/PublicSlugProductDetails";
@@ -88,6 +100,19 @@ function App() {
                       {/* Authentication routes */}
                       <Route path="/login" element={<Login />} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
+                      
+                      {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}
+                      <Route path="/solutions" element={<SolutionsPage />} />
+                      <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
+                      <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
+                      <Route path="/solutions/crm" element={<CRMFeaturePage />} />
+                      <Route path="/solutions/calculateur" element={<CalculatorPage />} />
+                      <Route path="/services" element={<ServicesPage />} />
+                      <Route path="/ressources" element={<ResourcesPage />} />
+                      <Route path="/a-propos" element={<AboutPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/blog" element={<ResourcesPage />} />
+                      <Route path="/tarifs" element={<PricingPage />} />
                       
                       {/* Public routes */}
                       <Route path="/" element={<HomePage />} />
