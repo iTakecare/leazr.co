@@ -8,6 +8,7 @@ import { Contract } from "@/services/contractService";
 import ContractStatusBadge from "./ContractStatusBadge";
 import { areAllSerialNumbersComplete, generateLocalInvoice, getBillitIntegration } from "@/services/invoiceService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useInvoices } from "@/hooks/useInvoices";
 import { toast } from "sonner";
 
 interface ContractDetailHeaderProps {
@@ -18,9 +19,11 @@ interface ContractDetailHeaderProps {
 const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, onRefresh }) => {
   const navigate = useNavigate();
   const { companyId } = useMultiTenant();
+  const { getInvoiceByContractId } = useInvoices();
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [billitEnabled, setBillitEnabled] = useState(false);
   const [canGenerateInvoice, setCanGenerateInvoice] = useState(false);
+  const [existingInvoice, setExistingInvoice] = useState<any>(null);
 
   useEffect(() => {
     const checkBillitIntegration = async () => {
@@ -34,20 +37,34 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   }, [companyId]);
 
   useEffect(() => {
-    // Pour maintenant, simplifier la vérification - on ajoutera invoice_generated dans useContractDetail
-    const canGenerate = billitEnabled && 
-                       contract.status === 'active';
-    
-    setCanGenerateInvoice(canGenerate);
-  }, [billitEnabled, contract]);
+    const checkExistingInvoice = async () => {
+      if (!companyId) return;
+      
+      const invoice = await getInvoiceByContractId(contract.id);
+      setExistingInvoice(invoice);
+      
+      const canGenerate = billitEnabled && 
+                         contract.status === 'active' && 
+                         !invoice;
+      
+      setCanGenerateInvoice(canGenerate);
+    };
+
+    checkExistingInvoice();
+  }, [billitEnabled, contract, companyId, getInvoiceByContractId]);
 
   const handleGenerateInvoice = async () => {
-    if (!companyId || !canGenerateInvoice) return;
+    if (!companyId) return;
 
     setIsGeneratingInvoice(true);
     try {
       const invoice = await generateLocalInvoice(contract.id, companyId);
-      toast.success("Facture générée en brouillon avec succès !");
+      
+      if (invoice.id === existingInvoice?.id) {
+        toast.success("Redirection vers la facture existante");
+      } else {
+        toast.success("Facture générée en brouillon avec succès !");
+      }
       
       // Rediriger vers la page de facturation
       navigate(`/admin/invoicing/${invoice.id}`);
@@ -58,6 +75,12 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
       toast.error(error.message || "Erreur lors de la génération de la facture");
     } finally {
       setIsGeneratingInvoice(false);
+    }
+  };
+
+  const handleViewInvoice = () => {
+    if (existingInvoice) {
+      navigate(`/admin/invoicing/${existingInvoice.id}`);
     }
   };
 
@@ -88,7 +111,16 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
           </div>
           
           <div className="flex items-center gap-4">
-            {canGenerateInvoice && (
+            {existingInvoice ? (
+              <Button 
+                onClick={handleViewInvoice}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Receipt className="h-4 w-4" />
+                Voir la facture
+              </Button>
+            ) : canGenerateInvoice && (
               <Button 
                 onClick={handleGenerateInvoice}
                 disabled={isGeneratingInvoice}

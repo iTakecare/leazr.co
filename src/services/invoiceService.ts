@@ -63,6 +63,19 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
   try {
     console.log('📝 Génération facture locale - contractId:', contractId, 'companyId:', companyId);
     
+    // Vérifier si une facture existe déjà pour ce contrat
+    const { data: existingInvoice, error: existingInvoiceError } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('contract_id', contractId)
+      .eq('company_id', companyId)
+      .single();
+
+    if (existingInvoice) {
+      console.log('✅ Facture existante trouvée:', existingInvoice.id);
+      return existingInvoice;
+    }
+    
     // Récupérer les données du contrat
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
