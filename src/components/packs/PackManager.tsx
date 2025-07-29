@@ -199,7 +199,12 @@ export const PackManager = () => {
       {/* Pack Creator Dialog */}
       <PackCreator
         open={isCreatePackOpen}
-        onOpenChange={setIsCreatePackOpen}
+        onOpenChange={(open) => {
+          setIsCreatePackOpen(open);
+          if (!open) {
+            setEditingPack(null);
+          }
+        }}
         editingPack={editingPack}
       />
     </div>

@@ -239,10 +239,6 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     return packData.name.trim().length > 0 && packItems.length > 0;
   };
 
-  // Update calculations when items change
-  useCallback(() => {
-    updateCalculations();
-  }, [updateCalculations]);
 
   return {
     // State

@@ -49,6 +49,7 @@ export const usePackManagement = () => {
       queryClient.invalidateQueries({ queryKey: ["packs"] });
       toast.success("Pack mis à jour avec succès");
       setEditingPack(null);
+      setIsCreatePackOpen(false);
     },
     onError: (error: any) => {
       console.error("Error updating pack:", error);
@@ -89,6 +90,7 @@ export const usePackManagement = () => {
 
   const handleEditPack = (pack: ProductPack) => {
     setEditingPack(pack);
+    setIsCreatePackOpen(true);
   };
 
   const handleDeletePack = (pack: ProductPack) => {
