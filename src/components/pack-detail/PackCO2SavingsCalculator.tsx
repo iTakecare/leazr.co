@@ -51,8 +51,13 @@ const getCO2Savings = (category: string): number => {
     case "mouse":
     case "souris":
     case "bureautique": // Office equipment
-    case "software":
       return 15;
+    // Software categories - no physical CO2 impact
+    case "software":
+    case "logiciel":
+    case "licence":
+    case "license":
+      return 0;
     case "other":
     case "autre":
       return 25; // Default for miscellaneous tech products
@@ -124,7 +129,19 @@ const PackCO2SavingsCalculator: React.FC<PackCO2SavingsCalculatorProps> = ({
   const carKilometers = Math.round(totalSavings * 6); // ~6km per kg CO2
   const treeMonths = Math.round(totalSavings / 20); // ~20kg CO2 per tree per month
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0) * packQuantity;
+  // Count only physical devices (exclude software with 0 CO2 impact)
+  const totalItems = items.reduce((sum, item) => {
+    const standardizedCategory = item.product?.category?.name || '';
+    const fallbackCategory = item.product?.category_name || '';
+    const category = standardizedCategory || fallbackCategory;
+    const co2Impact = getCO2Savings(category);
+    
+    // Only count items that have CO2 impact (physical devices)
+    if (co2Impact > 0) {
+      return sum + item.quantity;
+    }
+    return sum;
+  }, 0) * packQuantity;
 
   return (
     <div className="bg-gradient-to-br from-[#f2fcfa] to-[#e8f7f9] border border-[#4ab6c4]/30 rounded-lg p-3 shadow-sm">
