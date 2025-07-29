@@ -136,8 +136,8 @@ const PlatformIdentitySettings = () => {
             <AvatarUploader 
               initialImageUrl={settings?.logo_url || ''}
               onImageUploaded={handleLogoUploaded}
-              bucketName="platform-assets"
-              folderPath="logos"
+              bucketName="site-settings"
+              folderPath="platform-logos"
             />
           </div>
           
