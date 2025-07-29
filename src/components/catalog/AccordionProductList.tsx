@@ -86,51 +86,49 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    {/* Price info */}
-                    <div className="text-right">
-                      <div className="font-medium">
-                        {formatCurrency(product.monthly_price || 0)}/mois
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Achat: {formatCurrency(product.price || 0)}
-                      </div>
+                  {/* Price info */}
+                  <div className="text-right">
+                    <div className="font-medium">
+                      {formatCurrency(product.monthly_price || 0)}/mois
                     </div>
-                    
-                    {!readOnly && (
-                      <div className="flex items-center gap-1 ml-auto">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            window.location.href = `/catalog/form/${product.id}`;
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteProduct(product.id, product.name);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                    <div className="text-sm text-muted-foreground">
+                      Achat: {formatCurrency(product.price || 0)}
+                    </div>
                   </div>
                 </div>
               </AccordionTrigger>
 
               <AccordionContent className="px-4 pb-4">
-                <p className="text-sm text-muted-foreground">{product.description}</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">{product.description}</p>
+                  
+                  {!readOnly && (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => {
+                          window.location.href = `/catalog/form/${product.id}`;
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Modifier
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          handleDeleteProduct(product.id, product.name);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Supprimer
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </AccordionContent>
             </AccordionItem>
           );
