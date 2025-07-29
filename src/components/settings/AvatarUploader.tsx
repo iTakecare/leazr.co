@@ -23,6 +23,16 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Debug logs
+  console.log("🔍 AvatarUploader - Render state:", {
+    imageUrl,
+    isUploading,
+    error,
+    bucketName,
+    folderPath,
+    initialImageUrl
+  });
+
   useEffect(() => {
     // Update the image URL when the initialImageUrl prop changes
     if (initialImageUrl) {
@@ -117,13 +127,16 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         <p className="text-destructive text-sm">{error}</p>
       )}
       
-      <div className="flex flex-col items-center">
-        <Label 
-          htmlFor="avatar-upload" 
-          className="cursor-pointer px-4 py-2 text-sm font-medium text-center bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
+      <div className="flex flex-col items-center space-y-2">
+        {/* Simplified button approach - direct Button instead of Label */}
+        <Button
+          onClick={() => document.getElementById('avatar-upload')?.click()}
+          disabled={isUploading}
+          className="w-full"
         >
-          {isUploading ? "Téléchargement..." : "Changer l'image"}
-        </Label>
+          {isUploading ? "Téléchargement..." : "📷 Changer l'image"}
+        </Button>
+        
         <input
           id="avatar-upload"
           type="file"
@@ -132,6 +145,11 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({
           onChange={handleFileChange}
           disabled={isUploading}
         />
+        
+        {/* Debug info */}
+        <div className="text-xs text-muted-foreground">
+          Bucket: {bucketName} | Folder: {folderPath}
+        </div>
         {imageUrl && (
           <Button 
             variant="outline" 
