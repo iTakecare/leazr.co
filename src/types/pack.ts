@@ -45,6 +45,9 @@ export interface ProductPackItem {
     image_url?: string;
     brand_name?: string;
     category_name?: string;
+    category?: {
+      name: string;
+    };
   };
   variant_price?: {
     id: string;

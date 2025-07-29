@@ -46,7 +46,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
         margin_percentage: item.margin_percentage,
         custom_price_override: item.custom_price_override,
         position: item.position,
-        product: item.product as Product,
+        product: item.product as any,
         isNew: false,
       }));
     }
@@ -122,7 +122,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
           margin_percentage: item.margin_percentage,
           custom_price_override: item.custom_price_override,
           position: item.position,
-          product: item.product as Product,
+          product: item.product as any,
           isNew: false,
         }));
         setPackItems(formattedItems);

@@ -10,7 +10,7 @@ export const getPacks = async (): Promise<ProductPack[]> => {
       *,
       items:product_pack_items!fk_product_pack_items_pack_id(
         *,
-        product:products(id, name, description, image_url, brand_name, category_name),
+        product:products(id, name, description, image_url, brand_name, category_name, category:categories(name)),
         variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
       )
     `)
@@ -31,7 +31,7 @@ export const getPackById = async (id: string): Promise<ProductPack | null> => {
       *,
       items:product_pack_items!fk_product_pack_items_pack_id(
         *,
-        product:products(id, name, description, image_url, brand_name, category_name),
+        product:products(id, name, description, image_url, brand_name, category_name, category:categories(name)),
         variant_price:product_variant_prices(id, attributes, price, monthly_price, stock)
       )
     `)

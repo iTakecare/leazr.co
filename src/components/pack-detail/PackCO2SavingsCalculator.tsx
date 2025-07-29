@@ -6,41 +6,56 @@ const getCO2Savings = (category: string): number => {
   const categoryLower = category.toLowerCase();
   
   switch (categoryLower) {
+    // Standardized categories (from categories table)
     case "laptop":
+    case "laptops":
     case "ordinateur portable":
     case "pc portable":
       return 170;
     case "desktop":
+    case "desktops":
     case "ordinateur fixe":
     case "pc fixe":
     case "ordinateur de bureau":
       return 170;
     case "smartphone":
+    case "smartphones":
     case "téléphone":
     case "mobile":
       return 45;
     case "tablet":
+    case "tablets":
     case "tablette":
     case "ipad":
+    case "ipad m4": // Specific case for iPad M4
       return 87;
     case "monitor":
+    case "monitors":
     case "écran":
     case "moniteur":
     case "display":
       return 85;
     case "printer":
+    case "printers":
     case "imprimante":
       return 65;
     case "server":
+    case "servers":
     case "serveur":
       return 300;
     case "accessory":
+    case "accessories":
     case "accessoire":
     case "keyboard":
     case "clavier":
     case "mouse":
     case "souris":
+    case "bureautique": // Office equipment
+    case "software":
       return 15;
+    case "other":
+    case "autre":
+      return 25; // Default for miscellaneous tech products
     default:
       // Log unrecognized categories for debugging
       if (category) {
@@ -55,6 +70,9 @@ interface PackCO2SavingsCalculatorProps {
     quantity: number;
     product?: {
       category_name?: string;
+      category?: {
+        name: string;
+      };
     };
   }>;
   packQuantity: number;
@@ -66,12 +84,15 @@ const PackCO2SavingsCalculator: React.FC<PackCO2SavingsCalculatorProps> = ({
 }) => {
   // Calculate total CO2 savings for all items in the pack
   const totalSavings = items.reduce((total, item) => {
-    const category = item.product?.category_name || '';
+    // Use the standardized category first, then fallback to category_name
+    const standardizedCategory = item.product?.category?.name || '';
+    const fallbackCategory = item.product?.category_name || '';
+    const category = standardizedCategory || fallbackCategory;
     const itemQuantity = item.quantity || 1;
     
     // Debug logging
     if (category) {
-      console.log(`PackCO2Calculator: Item avec catégorie "${category}", quantité: ${itemQuantity}, CO2: ${getCO2Savings(category)}kg`);
+      console.log(`PackCO2Calculator: Item avec catégorie "${category}" (${standardizedCategory ? 'standardisée' : 'fallback'}), quantité: ${itemQuantity}, CO2: ${getCO2Savings(category)}kg`);
     }
     
     return total + (getCO2Savings(category) * itemQuantity * packQuantity);
