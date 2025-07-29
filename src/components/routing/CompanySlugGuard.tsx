@@ -6,7 +6,7 @@ const CompanySlugGuard = () => {
   const { companySlug } = useParams<{ companySlug: string }>();
   
   // Reserved keywords that should not be treated as company slugs
-  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register'];
+  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register', 'solutions', 'services', 'about', 'contact', 'support', 'help', 'catalog', 'products', 'pricing', 'features', 'blog', 'news'];
   
   console.log('🛡️ COMPANY SLUG GUARD - Checking slug:', companySlug, {
     pathname: window.location.pathname,
@@ -23,8 +23,9 @@ const CompanySlugGuard = () => {
     console.error('🛡️ COMPANY SLUG GUARD - Reserved keyword detected:', companySlug);
     return (
       <PublicNotFound 
-        title="Accès non autorisé"
-        message={`"${companySlug}" est un mot-clé réservé du système. Veuillez utiliser un nom d'entreprise valide.`}
+        title="Page non disponible"
+        message={`"${companySlug}" est un mot-clé réservé du système. Cette URL ne correspond pas à un catalogue d'entreprise.`}
+        showCatalogLink={true}
       />
     );
   }

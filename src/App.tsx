@@ -18,6 +18,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 // Public pages
 import HomePage from "@/pages/HomePage";
 import PublicCatalogList from "@/components/public/PublicCatalogList";
+import DebugSlugs from "@/pages/DebugSlugs";
 
 // Public slug-based pages
 import PublicSlugCatalog from "@/components/public/PublicSlugCatalog";
@@ -91,6 +92,7 @@ function App() {
                       {/* Public routes */}
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalog" element={<PublicCatalogList />} />
+                      <Route path="/debug-slugs" element={<DebugSlugs />} />
                       
                       {/* Client offer signing route - needs access to providers */}
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
