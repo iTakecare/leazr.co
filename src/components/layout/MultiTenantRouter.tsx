@@ -15,6 +15,9 @@ import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 
+// Import PrivateRoute pour les routes contracts
+import { PrivateRoute } from "@/components/PrivateRoute";
+
 // Pages publiques (sans authentification)
 import LandingPage from "@/pages/LandingPage";
 import PublicCompanyLanding from "@/pages/PublicCompanyLanding";
@@ -105,6 +108,10 @@ const MultiTenantRouter = () => {
           <Route path="/client/*" element={<RoleBasedRoutes />} />
           <Route path="/partner/*" element={<RoleBasedRoutes />} />
           <Route path="/dashboard/*" element={<RoleBasedRoutes />} />
+          
+          {/* Routes contracts - Accès direct protégé */}
+          <Route path="/contracts/:id" element={<PrivateRoute><ContractDetail /></PrivateRoute>} />
+          <Route path="/contracts" element={<PrivateRoute><Contracts /></PrivateRoute>} />
           
           {/* Routes d'authentification accessibles à tous */}
           <Route path="/login" element={<Login />} />
