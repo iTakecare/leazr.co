@@ -80,11 +80,11 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       throw new Error('Contrat non trouvé');
     }
 
-    // Récupérer les données complètes du leaser en utilisant company_name pour la correspondance
+    // Récupérer les données complètes du leaser en utilisant name pour la correspondance
     const { data: leaser, error: leaserError } = await supabase
       .from('leasers')
       .select('*')
-      .ilike('company_name', contract.leaser_name)
+      .ilike('name', contract.leaser_name)
       .single();
 
     if (leaserError || !leaser) {
