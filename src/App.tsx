@@ -38,6 +38,7 @@ import PublicSlugProductDetails from "@/components/public/PublicSlugProductDetai
 import PublicSlugProductBySlug from "@/components/public/PublicSlugProductBySlug";
 import PublicSlugCart from "@/components/public/PublicSlugCart";
 import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
+import PackDetailPage from "@/pages/PackDetailPage";
 
 // Routing guards
 import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
@@ -193,6 +194,7 @@ function App() {
                         <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
                         <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
                         <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
+                        <Route path="/:companySlug/pack/:packId" element={<PackDetailPage />} />
                         <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
                         <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
                         
