@@ -46,9 +46,22 @@ export const calculateSalePriceWithLeaser = (
   leaser: Leaser | null,
   duration: number = 36
 ): number => {
-  // Get coefficient based on a reasonable amount estimate (monthly price * 100)
-  const coefficient = getCoefficientFromLeaser(leaser, monthlyPrice * 100, duration);
+  // Start with a reasonable estimate for the financed amount to find the correct coefficient
+  // We estimate the financed amount first, then iterate to find the precise coefficient
+  let estimatedAmount = (monthlyPrice * 100) / 2.8; // Use default coefficient for initial estimate
   
-  // Calculate financed amount: (monthly_price * 100) / coefficient
-  return (monthlyPrice * 100) / coefficient;
+  // Get coefficient based on the estimated financed amount
+  let coefficient = getCoefficientFromLeaser(leaser, estimatedAmount, duration);
+  
+  // Calculate the actual financed amount with the correct coefficient
+  let financedAmount = (monthlyPrice * 100) / coefficient;
+  
+  // If the calculated amount is significantly different from our estimate, 
+  // recalculate the coefficient with the new amount to ensure we're in the right range
+  if (Math.abs(financedAmount - estimatedAmount) > estimatedAmount * 0.1) {
+    coefficient = getCoefficientFromLeaser(leaser, financedAmount, duration);
+    financedAmount = (monthlyPrice * 100) / coefficient;
+  }
+  
+  return financedAmount;
 };
