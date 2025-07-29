@@ -12,6 +12,11 @@ export interface ProductPack {
   total_purchase_price: number;
   total_monthly_price: number;
   total_margin: number;
+  pack_monthly_price?: number;
+  pack_promo_price?: number;
+  promo_active: boolean;
+  promo_valid_from?: Date | string;
+  promo_valid_to?: Date | string;
   created_at: Date | string;
   updated_at: Date | string;
   items?: ProductPackItem[];
@@ -57,6 +62,11 @@ export interface CreatePackData {
   admin_only?: boolean;
   valid_from?: Date;
   valid_to?: Date;
+  pack_monthly_price?: number;
+  pack_promo_price?: number;
+  promo_active?: boolean;
+  promo_valid_from?: Date;
+  promo_valid_to?: Date;
 }
 
 export interface CreatePackItemData {
