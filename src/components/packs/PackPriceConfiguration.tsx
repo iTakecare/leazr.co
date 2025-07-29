@@ -76,7 +76,7 @@ export const PackPriceConfiguration = ({
       const targetSalePrice = item.unit_purchase_price * (1 + marginPercentage / 100);
       // Calculate the monthly price needed to achieve this sale price
       const coefficient = getCoefficientFromLeaser(selectedLeaser, targetSalePrice, selectedDuration);
-      const newMonthlyPrice = (targetSalePrice * coefficient) / 100;
+      const newMonthlyPrice = (targetSalePrice * coefficient) / selectedDuration;
       
       onUpdateItem(index, {
         margin_percentage: marginPercentage,
@@ -92,7 +92,7 @@ export const PackPriceConfiguration = ({
         const targetSalePrice = item.unit_purchase_price * (1 + targetMargin / 100);
         // Calculate the monthly price needed to achieve this sale price
         const coefficient = getCoefficientFromLeaser(selectedLeaser, targetSalePrice, selectedDuration);
-        const newMonthlyPrice = (targetSalePrice * coefficient) / 100;
+        const newMonthlyPrice = (targetSalePrice * coefficient) / selectedDuration;
         
         onUpdateItem(index, {
           margin_percentage: targetMargin,
