@@ -131,7 +131,7 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       .insert({
         contract_id: contractId,
         company_id: companyId,
-        leaser_name: contract.leaser_name,
+        leaser_name: leaser.company_name || leaser.name,
         amount: totalSellingPrice,
         status: 'draft',
         integration_type: 'billit',
@@ -139,7 +139,7 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
           contract_data: contract,
           equipment_data: enrichedEquipment,
           leaser_data: {
-            name: leaser.name,
+            name: leaser.company_name || leaser.name,
             address: leaser.address,
             city: leaser.city,
             postal_code: leaser.postal_code,
