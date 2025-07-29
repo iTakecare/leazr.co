@@ -76,6 +76,7 @@ import CreateOffer from "@/pages/CreateOffer";
 import SignOffer from "@/pages/client/SignOffer";
 
 import ProductFormPage from "@/pages/ProductFormPage";
+import ContractDetail from "@/pages/ContractDetail";
 import Layout from "@/components/layout/Layout";
 
 const queryClient = new QueryClient({
@@ -121,6 +122,10 @@ function App() {
                       
                       {/* Client offer signing route - needs access to providers */}
                       <Route path="/client/offer/:id/sign" element={<SignOffer />} />
+                      
+                      {/* CONTRACT ROUTES - Must be before system routes to avoid slug interception */}
+                      <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
+                      <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
                       
                       {/* System routes with explicit paths - HIGHEST PRIORITY */}
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
