@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
@@ -82,6 +82,43 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     const newCalculations = calculatePackTotals(itemsForCalculation);
     setCalculations(newCalculations);
   }, [packItems, editingPack?.id]);
+
+  // Initialize form data when editingPack changes
+  useEffect(() => {
+    if (editingPack) {
+      setPackData({
+        name: editingPack.name || "",
+        description: editingPack.description || "",
+        image_url: editingPack.image_url || "",
+        is_active: editingPack.is_active ?? true,
+        is_featured: editingPack.is_featured ?? false,
+        admin_only: editingPack.admin_only ?? false,
+        valid_from: editingPack.valid_from ? new Date(editingPack.valid_from) : undefined,
+        valid_to: editingPack.valid_to ? new Date(editingPack.valid_to) : undefined,
+      });
+      
+      if (editingPack.items) {
+        const formattedItems = editingPack.items.map((item) => ({
+          id: item.id,
+          product_id: item.product_id,
+          variant_price_id: item.variant_price_id,
+          quantity: item.quantity,
+          unit_purchase_price: item.unit_purchase_price,
+          unit_monthly_price: item.unit_monthly_price,
+          margin_percentage: item.margin_percentage,
+          custom_price_override: item.custom_price_override,
+          position: item.position,
+          product: item.product as Product,
+          isNew: false,
+        }));
+        setPackItems(formattedItems);
+      } else {
+        setPackItems([]);
+      }
+      
+      setCurrentStep(0);
+    }
+  }, [editingPack]);
 
   // Create pack mutation
   const createPackMutation = useMutation({
