@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus, MessageSquare, HelpCircle } from "lucide-react";
 import PackCO2SavingsCalculator from "./PackCO2SavingsCalculator";
+import PackAddToCartButton from "./PackAddToCartButton";
 
 interface PackConfigurationSectionProps {
   pack: ProductPack;
@@ -157,9 +158,17 @@ const PackConfigurationSection: React.FC<PackConfigurationSectionProps> = ({
 
       {/* Action Buttons */}
       <div className="bg-white border border-gray-200 rounded-b-xl p-6 space-y-3">
+        <PackAddToCartButton
+          pack={pack}
+          quantity={quantity}
+          currentPrice={currentPrice}
+          duration={pack.selected_duration || 36}
+        />
+        
         <Button 
           onClick={onRequestQuote}
-          className="w-full bg-[#da2959] hover:bg-[#da2959]/90 text-white"
+          variant="outline"
+          className="w-full"
           size="lg"
         >
           <MessageSquare className="w-4 h-4 mr-2" />
