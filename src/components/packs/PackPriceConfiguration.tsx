@@ -33,6 +33,12 @@ export const PackPriceConfiguration = ({
   selectedLeaserId,
   selectedDuration = 36,
 }: PackPriceConfigurationProps) => {
+  const getDisplayText = (value: any): string => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value?.name) return String(value.name);
+    return 'Non disponible';
+  };
+
   // Fetch leasers data
   const { data: leasers = [] } = useQuery({
     queryKey: ["leasers"],
@@ -360,7 +366,7 @@ export const PackPriceConfiguration = ({
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>{lowMarginItems.length} produit(s)</strong> ont une marge inférieure à 10% : {lowMarginItems.map(item => item.product?.name).join(', ')}
+                <strong>{lowMarginItems.length} produit(s)</strong> ont une marge inférieure à 10% : {lowMarginItems.map(item => getDisplayText(item.product?.name)).join(', ')}
               </AlertDescription>
             </Alert>
           )}
@@ -368,7 +374,7 @@ export const PackPriceConfiguration = ({
             <Alert>
               <TrendingUp className="h-4 w-4" />
               <AlertDescription>
-                <strong>{highMarginItems.length} produit(s)</strong> ont une marge supérieure à 100% : {highMarginItems.map(item => item.product?.name).join(', ')}
+                <strong>{highMarginItems.length} produit(s)</strong> ont une marge supérieure à 100% : {highMarginItems.map(item => getDisplayText(item.product?.name)).join(', ')}
               </AlertDescription>
             </Alert>
           )}

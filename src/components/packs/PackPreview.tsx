@@ -23,6 +23,12 @@ interface PackPreviewProps {
 }
 
 export const PackPreview = ({ packData, packItems, calculations }: PackPreviewProps) => {
+  const getDisplayText = (value: any): string => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value?.name) return String(value.name);
+    return 'Non disponible';
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -129,9 +135,9 @@ export const PackPreview = ({ packData, packItems, calculations }: PackPreviewPr
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-primary rounded-full"></div>
                       <div>
-                        <p className="font-medium">{item.product?.name}</p>
+                        <p className="font-medium">{getDisplayText(item.product?.name)}</p>
                         <p className="text-sm text-muted-foreground">
-                          {item.product?.brand} • {item.product?.category}
+                          {getDisplayText(item.product?.brand)} • {getDisplayText(item.product?.category)}
                         </p>
                       </div>
                     </div>
