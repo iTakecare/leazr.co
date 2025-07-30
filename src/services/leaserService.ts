@@ -197,6 +197,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         vat_number: leaser.vat_number || null,
         phone: leaser.phone || null,
         email: leaser.email || null,
+        available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
         company_id: companyId
       })
       .select()
@@ -263,7 +264,8 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         country: leaser.country || null,
         vat_number: leaser.vat_number || null,
         phone: leaser.phone || null,
-        email: leaser.email || null
+        email: leaser.email || null,
+        available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72]
       })
       .eq('id', id);
     
