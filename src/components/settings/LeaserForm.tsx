@@ -3,17 +3,21 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Image as ImageIcon, Loader2, X, Plus, Trash2, Search, Check, AlertCircle } from "lucide-react";
-import { Leaser } from "@/types/equipment";
+import { Leaser, DurationCoefficient } from "@/types/equipment";
 import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { verifyVatNumber } from "@/services/clientService";
+import LeaserDurationMatrix from "@/components/leasers/LeaserDurationMatrix";
 
-interface Range {
+interface ExtendedRange {
   id: string;
   min: number;
   max: number;
   coefficient: number;
+  duration_coefficients?: DurationCoefficient[];
 }
 
 interface LeaserFormProps {
@@ -24,15 +28,22 @@ interface LeaserFormProps {
 }
 
 const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormProps) => {
-  const [tempRanges, setTempRanges] = useState<Range[]>(
+  const [tempRanges, setTempRanges] = useState<ExtendedRange[]>(
     currentLeaser?.ranges && currentLeaser.ranges.length > 0
       ? currentLeaser.ranges.map(r => ({ 
           id: r.id, 
           min: r.min, 
           max: r.max, 
-          coefficient: r.coefficient || 3.55 
+          coefficient: r.coefficient || 3.55,
+          duration_coefficients: r.duration_coefficients
         }))
       : [{ id: crypto.randomUUID(), min: 0, max: 0, coefficient: 0 }]
+  );
+  const [useDurationBasedCoefficients, setUseDurationBasedCoefficients] = useState(
+    currentLeaser?.ranges?.some(r => r.duration_coefficients && r.duration_coefficients.length > 0) || false
+  );
+  const [availableDurations, setAvailableDurations] = useState<number[]>(
+    currentLeaser?.available_durations || [12, 18, 24, 36, 48, 60, 72]
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -42,7 +53,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const handleRangeChange = (index: number, field: keyof Range, value: number) => {
+  const handleRangeChange = (index: number, field: keyof ExtendedRange, value: number) => {
     const newRanges = [...tempRanges];
     
     if (field === 'min' || field === 'max' || field === 'coefficient') {
@@ -71,6 +82,34 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       newRanges.splice(index, 1);
       setTempRanges(newRanges);
     }
+  };
+
+  const handleDurationChange = (duration: number, checked: boolean) => {
+    if (checked) {
+      setAvailableDurations([...availableDurations, duration].sort((a, b) => a - b));
+    } else {
+      setAvailableDurations(availableDurations.filter(d => d !== duration));
+    }
+  };
+
+  const handleDurationCoefficientChange = (rangeId: string, duration: number, coefficient: number) => {
+    setTempRanges(prevRanges => 
+      prevRanges.map(range => {
+        if (range.id === rangeId) {
+          const durationCoeffs = range.duration_coefficients || [];
+          const existingIndex = durationCoeffs.findIndex(dc => dc.duration_months === duration);
+          
+          if (existingIndex >= 0) {
+            durationCoeffs[existingIndex].coefficient = coefficient;
+          } else {
+            durationCoeffs.push({ duration_months: duration, coefficient });
+          }
+          
+          return { ...range, duration_coefficients: durationCoeffs };
+        }
+        return range;
+      })
+    );
   };
 
   const handleLogoClick = () => {
@@ -251,6 +290,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         vat_number: formData.get("vat_number") as string || undefined,
         phone: formData.get("phone") as string || undefined,
         email: formData.get("email") as string || undefined,
+        available_durations: availableDurations,
         ranges: tempRanges
       };
       
@@ -443,70 +483,121 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
           </div>
         </div>
         
-        <div className="space-y-2 pt-2">
-          <div className="flex items-center justify-between">
-            <Label>Tranches de coefficients</Label>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              onClick={handleAddRange}
-              className="h-8"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Ajouter
-            </Button>
+        {/* Configuration des coefficients */}
+        <div className="space-y-4 pt-2">
+          <div className="space-y-3">
+            <Label className="text-lg font-medium">Configuration des coefficients</Label>
+            
+            {/* Toggle pour choisir le type de coefficients */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="duration-coefficients"
+                checked={useDurationBasedCoefficients}
+                onCheckedChange={setUseDurationBasedCoefficients}
+              />
+              <Label htmlFor="duration-coefficients">Utiliser des coefficients différents selon la durée</Label>
+            </div>
+            
+            {useDurationBasedCoefficients && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/10">
+                <div className="space-y-3">
+                  <Label className="font-medium">Durées de financement disponibles</Label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[12, 18, 24, 36, 48, 60, 72, 84].map((duration) => (
+                      <div key={duration} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`duration-${duration}`}
+                          checked={availableDurations.includes(duration)}
+                          onCheckedChange={(checked) => handleDurationChange(duration, checked as boolean)}
+                        />
+                        <Label htmlFor={`duration-${duration}`} className="text-sm">
+                          {duration} mois
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
-          <div className="space-y-3 mt-3">
-            {tempRanges.map((range, index) => (
-              <div key={range.id} className="flex gap-2">
-                <div className="flex flex-col space-y-1 w-1/3">
-                  <label className="text-xs text-muted-foreground">Min (€)</label>
-                  <Input 
-                    type="number"
-                    value={range.min}
-                    onChange={(e) => handleRangeChange(index, 'min', parseFloat(e.target.value))}
-                    min="0"
-                    step="0.01"
-                    required
-                  />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Tranches de montants</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddRange}
+                className="h-8"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Ajouter
+              </Button>
+            </div>
+            
+            <div className="space-y-3 mt-3">
+              {tempRanges.map((range, index) => (
+                <div key={range.id} className="flex gap-2">
+                  <div className="flex flex-col space-y-1 w-1/3">
+                    <label className="text-xs text-muted-foreground">Min (€)</label>
+                    <Input 
+                      type="number"
+                      value={range.min}
+                      onChange={(e) => handleRangeChange(index, 'min', parseFloat(e.target.value))}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1 w-1/3">
+                    <label className="text-xs text-muted-foreground">Max (€)</label>
+                    <Input 
+                      type="number"
+                      value={range.max}
+                      onChange={(e) => handleRangeChange(index, 'max', parseFloat(e.target.value))}
+                      min={range.min + 0.01}
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  {!useDurationBasedCoefficients && (
+                    <div className="flex flex-col space-y-1 w-1/3">
+                      <label className="text-xs text-muted-foreground">Coefficient</label>
+                      <Input 
+                        type="number"
+                        value={range.coefficient}
+                        onChange={(e) => handleRangeChange(index, 'coefficient', parseFloat(e.target.value))}
+                        min="0"
+                        step="0.001"
+                        required
+                      />
+                    </div>
+                  )}
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleRemoveRange(index)}
+                    disabled={tempRanges.length <= 1}
+                    className="mt-auto h-10 w-10 flex-shrink-0"
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </div>
-                <div className="flex flex-col space-y-1 w-1/3">
-                  <label className="text-xs text-muted-foreground">Max (€)</label>
-                  <Input 
-                    type="number"
-                    value={range.max}
-                    onChange={(e) => handleRangeChange(index, 'max', parseFloat(e.target.value))}
-                    min={range.min + 0.01}
-                    step="0.01"
-                    required
-                  />
-                </div>
-                <div className="flex flex-col space-y-1 w-1/3">
-                  <label className="text-xs text-muted-foreground">Coefficient</label>
-                  <Input 
-                    type="number"
-                    value={range.coefficient}
-                    onChange={(e) => handleRangeChange(index, 'coefficient', parseFloat(e.target.value))}
-                    min="0"
-                    step="0.001"
-                    required
-                  />
-                </div>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => handleRemoveRange(index)}
-                  disabled={tempRanges.length <= 1}
-                  className="mt-auto h-10 w-10 flex-shrink-0"
-                >
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          
+          {useDurationBasedCoefficients && availableDurations.length > 0 && (
+            <div className="mt-6">
+              <LeaserDurationMatrix
+                ranges={tempRanges}
+                availableDurations={availableDurations}
+                onCoefficientChange={handleDurationCoefficientChange}
+              />
+            </div>
+          )}
         </div>
       </div>
       
