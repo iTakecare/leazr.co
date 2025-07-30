@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ProductPack, CreatePackData, ProductPackItem, PackCalculation } from "@/types/pack";
-import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
-import { getLeasers } from "@/services/leaserService";
+import { calculateSalePriceWithLeaser } from "@/utils/leaserCalculator";
+import { Leaser } from "@/types/equipment";
 
 export const getPacks = async (): Promise<ProductPack[]> => {
   const { data, error } = await supabase
@@ -133,7 +133,11 @@ export const duplicatePack = async (id: string): Promise<ProductPack> => {
   return await getPackById(newPack.id) || newPack;
 };
 
-export const calculatePackTotals = (items: ProductPackItem[]): PackCalculation => {
+export const calculatePackTotals = (
+  items: ProductPackItem[], 
+  leaser?: Leaser | null, 
+  duration: number = 36
+): PackCalculation => {
   if (!items || items.length === 0) {
     return {
       total_purchase_price: 0,
@@ -153,10 +157,12 @@ export const calculatePackTotals = (items: ProductPackItem[]): PackCalculation =
     sum + (item.unit_monthly_price * item.quantity), 0
   );
   
-  // Calculate margin as sum of individual product margins (monthly - purchase) * quantity
-  const total_margin = items.reduce((sum, item) => 
-    sum + ((item.unit_monthly_price - item.unit_purchase_price) * item.quantity), 0
-  );
+  // Calculate margin using real sale price from leaser coefficient
+  const total_margin = items.reduce((sum, item) => {
+    const salePrice = calculateSalePriceWithLeaser(item.unit_monthly_price, leaser, duration);
+    const itemMargin = (salePrice - item.unit_purchase_price) * item.quantity;
+    return sum + itemMargin;
+  }, 0);
   
   const average_margin_percentage = total_purchase_price > 0 ? 
     (total_margin / total_purchase_price) * 100 : 0;
@@ -185,7 +191,25 @@ export const updatePackCalculations = async (packId: string): Promise<void> => {
     throw error;
   }
 
-  const calculations = calculatePackTotals(items || []);
+  // Get pack data to retrieve leaser and duration
+  const { data: packData } = await supabase
+    .from('product_packs')
+    .select('leaser_id, selected_duration')
+    .eq('id', packId)
+    .single();
+  
+  // Get leaser data if specified
+  let leaser = null;
+  if (packData?.leaser_id) {
+    const { data: leaserData } = await supabase
+      .from('leasers')
+      .select('*, ranges:leaser_ranges(*)')
+      .eq('id', packData.leaser_id)
+      .single();
+    leaser = leaserData;
+  }
+  
+  const calculations = calculatePackTotals(items || [], leaser, packData?.selected_duration || 36);
 
   // Update pack with calculated values
   const { error: updateError } = await supabase

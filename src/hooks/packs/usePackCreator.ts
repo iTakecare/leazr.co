@@ -86,7 +86,18 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       position: item.position,
       created_at: new Date().toISOString(),
     }));
-    const newCalculations = calculatePackTotals(itemsForCalculation);
+    // Get leaser data if selected
+    let leaser = null;
+    if (packData.leaser_id) {
+      // For now, use null - the leaser data would need to be fetched
+      // In a production app, we'd want to cache this or pass it down
+    }
+    
+    const newCalculations = calculatePackTotals(
+      itemsForCalculation, 
+      leaser, 
+      packData.selected_duration || 36
+    );
     setCalculations(newCalculations);
   }, [packItems, editingPack?.id]);
 
