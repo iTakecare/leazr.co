@@ -164,8 +164,9 @@ export const calculatePackTotals = (
     return sum + itemMargin;
   }, 0);
   
-  const average_margin_percentage = total_purchase_price > 0 ? 
-    (total_margin / total_purchase_price) * 100 : 0;
+  // Calculate simple arithmetic average of individual margin percentages
+  const average_margin_percentage = items.length > 0 ?
+    items.reduce((sum, item) => sum + (item.margin_percentage || 0), 0) / items.length : 0;
   
   const total_quantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
