@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { ProductPack, CreatePackItemData, PackCalculation } from "@/types/pack";
 import { createPack, updatePack } from "@/services/packService";
-import { createPackItems, deletePackItem, updatePackItemsPositions } from "@/services/packItemService";
+import { createPackItems, deletePackItem, updatePackItem, updatePackItemsPositions } from "@/services/packItemService";
 import { calculatePackTotals } from "@/services/packService";
 import { getLeasers } from "@/services/leaserService";
 
@@ -201,6 +201,23 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
         await deletePackItem(itemId);
       }
       
+      // Update existing items that have been modified
+      for (const item of existingItems) {
+        if (item.id) {
+          const itemData = {
+            product_id: item.product_id,
+            variant_price_id: item.variant_price_id,
+            quantity: item.quantity,
+            unit_purchase_price: item.unit_purchase_price,
+            unit_monthly_price: item.unit_monthly_price,
+            margin_percentage: item.margin_percentage,
+            custom_price_override: item.custom_price_override,
+            position: item.position,
+          };
+          await updatePackItem(item.id as string, itemData);
+        }
+      }
+
       // Create new items
       if (newItems.length > 0) {
         const itemsData = newItems.map((item, index) => ({
@@ -245,7 +262,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     setPackItems(prev => [...prev, { ...item, position: prev.length, isNew: true }]);
   };
 
-  const updatePackItem = (index: number, updates: Partial<PackItemFormData>) => {
+  const updatePackItemInState = (index: number, updates: Partial<PackItemFormData>) => {
     setPackItems(prev => prev.map((item, i) => 
       i === index ? { ...item, ...updates } : item
     ));
@@ -327,7 +344,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     
     // Actions
     addPackItem,
-    updatePackItem,
+    updatePackItem: updatePackItemInState,
     removePackItem,
     reorderPackItems,
     updatePackData,
