@@ -17,10 +17,29 @@ export const getProductPrice = (
   let monthlyPrice = 0;
   let purchasePrice = 0;
 
+  // Safety check for product
+  if (!product) {
+    console.warn('getProductPrice: Product is null or undefined');
+    return { monthlyPrice: 0, purchasePrice: 0 };
+  }
+
   console.log(`getProductPrice: Processing ${product.name}`, {
     selectedOptions,
-    hasVariantCombinationPrices: !!(product.variant_combination_prices && product.variant_combination_prices.length > 0)
+    hasVariantCombinationPrices: !!(product.variant_combination_prices && product.variant_combination_prices.length > 0),
+    productType: product.specifications?.type || 'product'
   });
+
+  // Special handling for packs
+  if (product.specifications?.type === 'pack') {
+    monthlyPrice = product.currentPrice || product.monthly_price || product.price || 0;
+    purchasePrice = product.currentPrice || product.price || product.monthly_price || 0;
+    
+    console.log(`getProductPrice: Pack pricing - Monthly: ${monthlyPrice}, Purchase: ${purchasePrice}`);
+    return {
+      monthlyPrice: typeof monthlyPrice === 'number' ? monthlyPrice : 0,
+      purchasePrice: typeof purchasePrice === 'number' ? purchasePrice : 0
+    };
+  }
 
   // 1. Try to get price from variant combination prices (highest priority)
   if (product.variant_combination_prices && product.variant_combination_prices.length > 0 && selectedOptions) {
@@ -37,16 +56,18 @@ export const getProductPrice = (
 
     if (matchingCombo) {
       if (matchingCombo.monthly_price && matchingCombo.monthly_price > 0) {
-        monthlyPrice = typeof matchingCombo.monthly_price === 'number' ? 
+        const parsed = typeof matchingCombo.monthly_price === 'number' ? 
                       matchingCombo.monthly_price : 
                       parseFloat(String(matchingCombo.monthly_price) || '0');
+        if (!isNaN(parsed)) monthlyPrice = parsed;
       }
       
       // Le champ pour le prix d'achat s'appelle 'price' dans product_variant_prices
       if (matchingCombo.price && matchingCombo.price > 0) {
-        purchasePrice = typeof matchingCombo.price === 'number' ? 
-                       matchingCombo.price : 
-                       parseFloat(String(matchingCombo.price) || '0');
+        const parsed = typeof matchingCombo.price === 'number' ? 
+                      matchingCombo.price : 
+                      parseFloat(String(matchingCombo.price) || '0');
+        if (!isNaN(parsed)) purchasePrice = parsed;
       }
       
       console.log(`getProductPrice: From variant combo - Monthly: ${monthlyPrice}, Purchase: ${purchasePrice}`);
@@ -63,9 +84,10 @@ export const getProductPrice = (
     });
     
     if (matchingVariant && matchingVariant.monthly_price) {
-      monthlyPrice = typeof matchingVariant.monthly_price === 'number' ? 
-                     matchingVariant.monthly_price : 
-                     parseFloat(String(matchingVariant.monthly_price) || '0');
+      const parsed = typeof matchingVariant.monthly_price === 'number' ? 
+                    matchingVariant.monthly_price : 
+                    parseFloat(String(matchingVariant.monthly_price) || '0');
+      if (!isNaN(parsed)) monthlyPrice = parsed;
     }
   }
 
@@ -76,9 +98,10 @@ export const getProductPrice = (
 
   // 4. Fallback to base product monthly_price
   if (monthlyPrice <= 0 && product.monthly_price) {
-    monthlyPrice = typeof product.monthly_price === 'number' ? 
-                   product.monthly_price : 
-                   parseFloat(String(product.monthly_price) || '0');
+    const parsed = typeof product.monthly_price === 'number' ? 
+                  product.monthly_price : 
+                  parseFloat(String(product.monthly_price) || '0');
+    if (!isNaN(parsed)) monthlyPrice = parsed;
   }
 
   // 5. Purchase price fallbacks
@@ -86,15 +109,22 @@ export const getProductPrice = (
     if (product.currentPrice && product.currentPrice > 0) {
       purchasePrice = product.currentPrice;
     } else if (product.price) {
-      purchasePrice = typeof product.price === 'number' ? 
-                     product.price : 
-                     parseFloat(String(product.price) || '0');
+      const parsed = typeof product.price === 'number' ? 
+                    product.price : 
+                    parseFloat(String(product.price) || '0');
+      if (!isNaN(parsed)) purchasePrice = parsed;
     }
   }
 
-  // Ensure valid numbers
-  if (isNaN(monthlyPrice) || monthlyPrice < 0) monthlyPrice = 0;
-  if (isNaN(purchasePrice) || purchasePrice < 0) purchasePrice = 0;
+  // Ensure valid numbers with final fallback
+  if (isNaN(monthlyPrice) || monthlyPrice <= 0) {
+    console.warn(`getProductPrice: Invalid monthly price for ${product.name}, falling back to 0`);
+    monthlyPrice = 0;
+  }
+  if (isNaN(purchasePrice) || purchasePrice <= 0) {
+    console.warn(`getProductPrice: Invalid purchase price for ${product.name}, falling back to monthly price or 0`);
+    purchasePrice = monthlyPrice > 0 ? monthlyPrice : 0;
+  }
 
   return {
     monthlyPrice,
