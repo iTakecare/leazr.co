@@ -81,6 +81,7 @@ import SignOffer from "@/pages/client/SignOffer";
 import ProductFormPage from "@/pages/ProductFormPage";
 import ContractDetail from "@/pages/ContractDetail";
 import Layout from "@/components/layout/Layout";
+import CartPage from "@/pages/CartPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -152,6 +153,7 @@ function App() {
                         <Route path="invoicing/:id" element={<Layout><InvoiceDetailPage /></Layout>} />
                         <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
                         <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
+                        <Route path="panier" element={<Layout><CartPage /></Layout>} />
                         
                         {/* Unified product form routes - handles both creation and editing */}
                         <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />

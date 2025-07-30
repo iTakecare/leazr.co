@@ -4,7 +4,7 @@ import { ShoppingCart, Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useSafeNavigate } from "@/hooks/useSafeNavigate";
 import { ProductPack } from "@/types/pack";
 import { Product } from "@/types/catalog";
 
@@ -21,23 +21,18 @@ const convertPackToProduct = (pack: ProductPack, currentPrice: number): Product 
   return {
     id: pack.id,
     name: pack.name,
-    brand: "Pack",
-    category: "Pack",
     description: pack.description || "",
+    brand: 'Pack',
+    category: 'pack',
     price: currentPrice,
     monthly_price: currentPrice,
     currentPrice: currentPrice,
-    imageUrl: pack.image_url,
-    image_url: pack.image_url,
+    image_url: pack.image_url || '',
     active: pack.is_active,
+    company_id: pack.company_id,
+    specifications: { type: 'pack' }, // Mark as pack type for pricing logic
     createdAt: pack.created_at,
-    updatedAt: pack.updated_at,
-    // Pack-specific metadata
-    specifications: {
-      type: "pack",
-      items_count: pack.items?.length || 0,
-      pack_id: pack.id
-    }
+    updatedAt: pack.updated_at
   };
 };
 
@@ -51,7 +46,7 @@ const PackAddToCartButton: React.FC<PackAddToCartButtonProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const { addToCart } = useCart();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const safeNavigate = useSafeNavigate();
 
   const handleAddToCart = async () => {
     if (!pack) return;
@@ -82,7 +77,17 @@ const PackAddToCartButton: React.FC<PackAddToCartButtonProps> = ({
         
         // Navigate to cart if requested
         if (navigateToCart) {
-          navigate("/panier");
+          // Smart navigation based on current context
+          const currentPath = window.location.pathname;
+          const companyMatch = currentPath.match(/^\/([^\/]+)\/pack\//);
+          
+          if (companyMatch && companyMatch[1]) {
+            // We're in a company context, navigate to company cart
+            safeNavigate(`/${companyMatch[1]}/panier`);
+          } else {
+            // We're in admin context, navigate to admin cart
+            safeNavigate('/admin/panier');
+          }
         }
       }, 1500);
 
