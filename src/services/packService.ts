@@ -157,12 +157,10 @@ export const calculatePackTotals = (
     sum + (item.unit_monthly_price * item.quantity), 0
   );
   
-  // Calculate margin using real sale price from leaser coefficient
-  const total_margin = items.reduce((sum, item) => {
-    const salePrice = calculateSalePriceWithLeaser(item.unit_monthly_price, leaser, duration);
-    const itemMargin = (salePrice - item.unit_purchase_price) * item.quantity;
-    return sum + itemMargin;
-  }, 0);
+  // Calculate margin using direct percentage calculation (same as offer calculator)
+  const total_margin = items.reduce((sum, item) => 
+    sum + (item.unit_purchase_price * item.quantity * (item.margin_percentage || 0) / 100), 0
+  );
   
   // Calculate simple arithmetic average of individual margin percentages
   const average_margin_percentage = items.length > 0 ?
