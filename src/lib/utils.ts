@@ -104,3 +104,10 @@ export function formatDate(date: string | Date): string {
 export function generateTemplateId(): string {
   return `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export function getCategoryName(category: string | { name: string } | undefined): string {
+  if (!category) return '';
+  if (typeof category === 'string') return category;
+  if (typeof category === 'object' && category.name) return category.name;
+  return '';
+}

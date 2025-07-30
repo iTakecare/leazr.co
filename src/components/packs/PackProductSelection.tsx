@@ -15,6 +15,7 @@ import { ProductVariantSelector, ProductVariantSelectorRef } from "./ProductVari
 import { calculateSalePriceWithLeaser } from "@/utils/leaserCalculator";
 import { Leaser } from "@/types/equipment";
 import { getLeasers } from "@/services/leaserService";
+import { getCategoryName } from "@/lib/utils";
 
 interface PackProductSelectionProps {
   packItems: PackItemFormData[];
@@ -63,13 +64,13 @@ export const PackProductSelection = ({
                          product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.brand?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || getCategoryName(product.category) === selectedCategory;
     
     return matchesSearch && matchesCategory;
   });
 
   // Get unique categories
-  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const categories = Array.from(new Set(products.map(p => getCategoryName(p.category)).filter(Boolean)));
 
   const handleAddProduct = async (product: Product) => {
     // Check if product is already in the pack
@@ -219,7 +220,7 @@ export const PackProductSelection = ({
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {item.product?.brand} • {item.product?.category}
+                        {item.product?.brand} • {getCategoryName(item.product?.category)}
                       </p>
                       {item.variant_price_id && (
                         <div className="flex gap-1 mt-1">
@@ -355,7 +356,7 @@ export const PackProductSelection = ({
                         </div>
                         
                         <div className="text-xs text-muted-foreground">
-                          {product.brand} • {product.category}
+                          {product.brand} • {getCategoryName(product.category)}
                         </div>
                         
                         <div className="text-sm font-medium">
