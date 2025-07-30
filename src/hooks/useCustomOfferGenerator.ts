@@ -124,67 +124,35 @@ export const useCustomOfferGenerator = () => {
   }, []);
 
   const validateStep = useCallback((step: string): boolean => {
-    console.log(`🔍 DEBUG - Validating step: ${step}`, formData);
-    
     switch (step) {
       case 'client':
-        const clientValid = !!(
+        return !!(
           formData.clientInfo.name &&
           formData.clientInfo.email &&
           formData.clientInfo.company
         );
-        console.log(`📋 Client step validation:`, { 
-          valid: clientValid, 
-          name: formData.clientInfo.name,
-          email: formData.clientInfo.email,
-          company: formData.clientInfo.company 
-        });
-        return clientValid;
       
       case 'profile':
-        const profileValid = !!(
+        return !!(
           formData.businessProfile.sector &&
           formData.businessProfile.teamSize > 0 &&
           formData.businessProfile.budget > 0
         );
-        console.log(`🏢 Profile step validation:`, { 
-          valid: profileValid, 
-          sector: formData.businessProfile.sector,
-          teamSize: formData.businessProfile.teamSize,
-          budget: formData.businessProfile.budget 
-        });
-        return profileValid;
       
       case 'equipment':
-        const equipmentValid = formData.equipment.length > 0;
-        console.log(`💻 Equipment step validation:`, { 
-          valid: equipmentValid, 
-          count: formData.equipment.length,
-          equipment: formData.equipment 
-        });
-        return equipmentValid;
+        return formData.equipment.length > 0;
       
       case 'financing':
-        const financingValid = !!(
+        return !!(
           formData.financing.leaserId &&
           formData.financing.coefficient > 0 &&
           formData.financing.monthlyPayment > 0
         );
-        console.log(`💰 Financing step validation:`, { 
-          valid: financingValid, 
-          leaserId: formData.financing.leaserId,
-          coefficient: formData.financing.coefficient,
-          monthlyPayment: formData.financing.monthlyPayment,
-          financing: formData.financing 
-        });
-        return financingValid;
       
       case 'preview':
-        console.log(`📋 Preview step validation: always true`);
         return true;
       
       default:
-        console.log(`❌ Unknown step: ${step}`);
         return false;
     }
   }, [formData]);

@@ -54,16 +54,8 @@ export const CustomOfferGenerator: React.FC<CustomOfferGeneratorProps> = ({
   const isLastStep = currentStep === 'preview';
 
   const handleNext = async () => {
-    console.log(`🚀 DEBUG - Attempting to navigate next from step: ${currentStep}`, {
-      currentStepIndex,
-      canProceed,
-      isLastStep,
-      formData
-    });
-    
     if (isLastStep) {
       try {
-        console.log('🎯 Generating offer...');
         const offerId = await generateOffer();
         if (offerId && onComplete) {
           onComplete(offerId);
@@ -74,20 +66,15 @@ export const CustomOfferGenerator: React.FC<CustomOfferGeneratorProps> = ({
     } else {
       const nextIndex = currentStepIndex + 1;
       if (nextIndex < STEPS.length) {
-        const nextStep = STEPS[nextIndex].id;
-        console.log(`➡️ Moving to next step: ${nextStep} (index: ${nextIndex})`);
-        setCurrentStep(nextStep);
+        setCurrentStep(STEPS[nextIndex].id);
       }
     }
   };
 
   const handlePrevious = () => {
     const prevIndex = currentStepIndex - 1;
-    console.log(`⬅️ DEBUG - Moving to previous step. Current: ${currentStep}, Previous index: ${prevIndex}`);
     if (prevIndex >= 0) {
-      const prevStep = STEPS[prevIndex].id;
-      console.log(`⬅️ Moving to previous step: ${prevStep} (index: ${prevIndex})`);
-      setCurrentStep(prevStep);
+      setCurrentStep(STEPS[prevIndex].id);
     }
   };
 

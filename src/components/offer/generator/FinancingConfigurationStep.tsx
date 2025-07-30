@@ -10,21 +10,18 @@ import { OfferFormData } from '@/hooks/useCustomOfferGenerator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import FinancialSummary from '@/components/offer/FinancialSummary';
-import { getCoefficientFromLeaser } from '@/utils/leaserCalculator';
 
 interface FinancingConfigurationStepProps {
   formData: OfferFormData;
   updateFormData: (section: keyof OfferFormData, data: any) => void;
 }
 
-const DEFAULT_DURATION_OPTIONS = [
+const DURATION_OPTIONS = [
   { value: 12, label: '12 mois', description: 'Court terme' },
-  { value: 18, label: '18 mois', description: 'Court-moyen terme' },
   { value: 24, label: '24 mois', description: 'Moyen terme' },
   { value: 36, label: '36 mois', description: 'Standard' },
   { value: 48, label: '48 mois', description: 'Long terme' },
-  { value: 60, label: '60 mois', description: 'Très long terme' },
-  { value: 72, label: '72 mois', description: 'Maximum' }
+  { value: 60, label: '60 mois', description: 'Très long terme' }
 ];
 
 export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProps> = ({
@@ -34,10 +31,7 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
   const { financing, equipment } = formData;
   const [selectedLeaser, setSelectedLeaser] = useState<any>(null);
 
-  console.log('🔍 DEBUG - selectedLeaser:', selectedLeaser);
-  console.log('🔍 DEBUG - financing.leaserId:', financing.leaserId);
-
-  // Fetch leasers avec leurs durées disponibles et coefficients
+  // Fetch leasers
   const { data: leasers = [], isLoading: leasersLoading, error: leasersError } = useQuery({
     queryKey: ['leasers'],
     queryFn: async () => {
@@ -45,44 +39,13 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
         .from('leasers')
         .select(`
           *,
-          leaser_ranges (
-            *,
-            leaser_duration_coefficients (*)
-          )
+          leaser_ranges (*)
         `);
 
       if (error) throw error;
       return data || [];
     }
   });
-
-  // Obtenir les durées disponibles selon le leaser sélectionné
-  const getAvailableDurations = () => {
-    if (selectedLeaser && selectedLeaser.available_durations && selectedLeaser.available_durations.length > 0) {
-      return selectedLeaser.available_durations;
-    }
-    // Durées par défaut si aucun leaser ou pas de durées définies
-    return [12, 18, 24, 36, 48, 60, 72];
-  };
-
-  const availableDurations = getAvailableDurations();
-
-  // Créer les options de durée basées sur les durées disponibles
-  const getDurationOptions = () => {
-    return availableDurations.map(duration => {
-      const defaultOption = DEFAULT_DURATION_OPTIONS.find(opt => opt.value === duration);
-      return defaultOption || { 
-        value: duration, 
-        label: `${duration} mois`, 
-        description: duration === 36 ? 'Standard' : 'Personnalisé' 
-      };
-    });
-  };
-
-  const durationOptions = getDurationOptions();
-  
-  console.log('🔍 DEBUG - availableDurations:', availableDurations);
-  console.log('🔍 DEBUG - durationOptions:', durationOptions);
 
   // Calculate totals
   const totalPurchasePrice = equipment.reduce((sum, eq) => 
@@ -101,15 +64,6 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
     if (!coefficient || coefficient <= 0) return 0;
     return (financedAmount * coefficient) / 100;
   };
-
-  // Initialize selectedLeaser when leasers are loaded or financing.leaserId changes
-  useEffect(() => {
-    if (leasers.length > 0 && financing.leaserId) {
-      const leaser = leasers.find(l => l.id === financing.leaserId);
-      console.log('🔍 DEBUG - Initializing selectedLeaser:', leaser);
-      setSelectedLeaser(leaser);
-    }
-  }, [leasers, financing.leaserId]);
 
   // Update financing when values change
   useEffect(() => {
@@ -138,28 +92,28 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
     const leaser = leasers.find(l => l.id === leaserId);
     setSelectedLeaser(leaser);
     
-    // Obtenir la durée par défaut (36 mois ou première disponible)
-    const defaultDuration = leaser?.available_durations?.includes(36) ? 36 : leaser?.available_durations?.[0] || 36;
-    
-    // Calculer le coefficient avec la nouvelle fonction
-    const coefficient = getCoefficientFromLeaser(leaser, totalFinancedAmount, defaultDuration);
+    // Find appropriate coefficient based on financed amount
+    let coefficient = 0;
+    if (leaser?.leaser_ranges) {
+      const range = leaser.leaser_ranges.find((r: any) => 
+        totalFinancedAmount >= r.min && totalFinancedAmount <= r.max
+      );
+      if (range) {
+        coefficient = range.coefficient;
+      }
+    }
 
     updateFormData('financing', {
       ...financing,
       leaserId,
-      coefficient,
-      duration: defaultDuration
+      coefficient
     });
   };
 
   const handleDurationChange = (duration: number) => {
-    // Recalculer le coefficient avec la nouvelle durée
-    const coefficient = getCoefficientFromLeaser(selectedLeaser, totalFinancedAmount, duration);
-    
     updateFormData('financing', {
       ...financing,
-      duration,
-      coefficient
+      duration
     });
   };
 
@@ -282,11 +236,11 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
           </div>
         </div>
 
-        {/* Durée de financement - Toujours visible */}
+        {/* Durée de financement */}
         <div className="space-y-4">
           <h3 className="font-medium">Durée de Financement</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {durationOptions.map((option) => (
+            {DURATION_OPTIONS.map((option) => (
               <Button
                 key={option.value}
                 variant={financing.duration === option.value ? 'default' : 'outline'}
@@ -298,16 +252,6 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
               </Button>
             ))}
           </div>
-          {selectedLeaser && availableDurations.length < 7 && (
-            <p className="text-xs text-muted-foreground">
-              Durées disponibles pour {selectedLeaser.name}: {availableDurations.join(', ')} mois
-            </p>
-          )}
-          {!selectedLeaser && (
-            <p className="text-xs text-muted-foreground">
-              Durées par défaut disponibles. Sélectionnez un bailleur pour voir ses durées spécifiques.
-            </p>
-          )}
         </div>
 
         {/* Coefficient personnalisé */}
