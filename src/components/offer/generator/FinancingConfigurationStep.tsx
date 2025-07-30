@@ -104,12 +104,12 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
 
   // Initialize selectedLeaser when leasers are loaded or financing.leaserId changes
   useEffect(() => {
-    if (leasers.length > 0 && financing.leaserId && !selectedLeaser) {
+    if (leasers.length > 0 && financing.leaserId) {
       const leaser = leasers.find(l => l.id === financing.leaserId);
       console.log('🔍 DEBUG - Initializing selectedLeaser:', leaser);
       setSelectedLeaser(leaser);
     }
-  }, [leasers, financing.leaserId, selectedLeaser]);
+  }, [leasers, financing.leaserId]);
 
   // Update financing when values change
   useEffect(() => {
