@@ -34,6 +34,9 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
   const { financing, equipment } = formData;
   const [selectedLeaser, setSelectedLeaser] = useState<any>(null);
 
+  console.log('🔍 DEBUG - selectedLeaser:', selectedLeaser);
+  console.log('🔍 DEBUG - financing.leaserId:', financing.leaserId);
+
   // Fetch leasers avec leurs durées disponibles et coefficients
   const { data: leasers = [], isLoading: leasersLoading, error: leasersError } = useQuery({
     queryKey: ['leasers'],
@@ -77,6 +80,9 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
   };
 
   const durationOptions = getDurationOptions();
+  
+  console.log('🔍 DEBUG - availableDurations:', availableDurations);
+  console.log('🔍 DEBUG - durationOptions:', durationOptions);
 
   // Calculate totals
   const totalPurchasePrice = equipment.reduce((sum, eq) => 
@@ -95,6 +101,15 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
     if (!coefficient || coefficient <= 0) return 0;
     return (financedAmount * coefficient) / 100;
   };
+
+  // Initialize selectedLeaser when leasers are loaded or financing.leaserId changes
+  useEffect(() => {
+    if (leasers.length > 0 && financing.leaserId && !selectedLeaser) {
+      const leaser = leasers.find(l => l.id === financing.leaserId);
+      console.log('🔍 DEBUG - Initializing selectedLeaser:', leaser);
+      setSelectedLeaser(leaser);
+    }
+  }, [leasers, financing.leaserId, selectedLeaser]);
 
   // Update financing when values change
   useEffect(() => {
@@ -267,7 +282,7 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
           </div>
         </div>
 
-        {/* Durée de financement */}
+        {/* Durée de financement - Toujours visible */}
         <div className="space-y-4">
           <h3 className="font-medium">Durée de Financement</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -286,6 +301,11 @@ export const FinancingConfigurationStep: React.FC<FinancingConfigurationStepProp
           {selectedLeaser && availableDurations.length < 7 && (
             <p className="text-xs text-muted-foreground">
               Durées disponibles pour {selectedLeaser.name}: {availableDurations.join(', ')} mois
+            </p>
+          )}
+          {!selectedLeaser && (
+            <p className="text-xs text-muted-foreground">
+              Durées par défaut disponibles. Sélectionnez un bailleur pour voir ses durées spécifiques.
             </p>
           )}
         </div>
