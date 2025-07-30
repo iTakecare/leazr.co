@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { ProductPack, CreatePackItemData, PackCalculation } from "@/types/pack";
 import { createPack, updatePack } from "@/services/packService";
 import { createPackItems, deletePackItem, updatePackItemsPositions } from "@/services/packItemService";
 import { calculatePackTotals } from "@/services/packService";
+import { getLeasers } from "@/services/leaserService";
 
 export interface PackItemFormData extends CreatePackItemData {
   id?: string; // For editing existing items
@@ -16,6 +17,12 @@ export interface PackItemFormData extends CreatePackItemData {
 export const usePackCreator = (editingPack?: ProductPack | null) => {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Fetch leasers for calculations
+  const { data: leasers = [] } = useQuery({
+    queryKey: ["leasers"],
+    queryFn: getLeasers,
+  });
   const [packData, setPackData] = useState({
     name: editingPack?.name || "",
     description: editingPack?.description || "",
@@ -87,11 +94,9 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       created_at: new Date().toISOString(),
     }));
     // Get leaser data if selected
-    let leaser = null;
-    if (packData.leaser_id) {
-      // For now, use null - the leaser data would need to be fetched
-      // In a production app, we'd want to cache this or pass it down
-    }
+    const leaser = packData.leaser_id 
+      ? leasers.find(l => l.id === packData.leaser_id) || null
+      : null;
     
     const newCalculations = calculatePackTotals(
       itemsForCalculation, 
@@ -99,7 +104,7 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       packData.selected_duration || 36
     );
     setCalculations(newCalculations);
-  }, [packItems, editingPack?.id]);
+  }, [packItems, editingPack?.id, packData.leaser_id, packData.selected_duration, leasers]);
 
   // Initialize form data when editingPack changes
   useEffect(() => {
