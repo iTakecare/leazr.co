@@ -24,7 +24,7 @@ const DurationSelector: React.FC<DurationSelectorProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       <Label htmlFor="duration">Durée de financement</Label>
-      <Select value={value.toString()} onValueChange={(val) => onChange(parseInt(val))}>
+      <Select value={value?.toString() || "36"} onValueChange={(val) => onChange(parseInt(val))}>
         <SelectTrigger>
           <SelectValue placeholder="Sélectionnez une durée" />
         </SelectTrigger>
