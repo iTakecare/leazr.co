@@ -75,19 +75,9 @@ const PackAddToCartButton: React.FC<PackAddToCartButtonProps> = ({
       setTimeout(() => {
         setIsAnimating(false);
         
-        // Navigate to cart if requested
+        // Navigate to cart if requested (same logic as AddToCartButton)
         if (navigateToCart) {
-          // Smart navigation based on current context
-          const currentPath = window.location.pathname;
-          const companyMatch = currentPath.match(/^\/([^\/]+)\/pack\//);
-          
-          if (companyMatch && companyMatch[1]) {
-            // We're in a company context, navigate to company cart
-            safeNavigate(`/${companyMatch[1]}/panier`);
-          } else {
-            // We're in admin context, navigate to admin cart
-            safeNavigate('/admin/panier');
-          }
+          safeNavigate('/panier');
         }
       }, 1500);
 
