@@ -5,7 +5,7 @@ import { Building2 } from "lucide-react";
 import CompactInternalOfferToggle from "./CompactInternalOfferToggle";
 import AmbassadorButton from "./AmbassadorButton";
 import LeaserButton from "./LeaserButton";
-import DurationSelector from "@/components/equipment/DurationSelector";
+import DurationButton from "./DurationButton";
 import { Leaser } from "@/types/equipment";
 import { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
@@ -87,12 +87,19 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
 
           {/* Durée de financement */}
           <div className="space-y-1">
-            <DurationSelector
-              value={selectedDuration}
-              onChange={onDurationChange}
+            <label className="text-xs font-medium text-gray-700">
+              Durée de financement
+            </label>
+            <DurationButton
+              selectedDuration={selectedDuration}
+              onDurationChange={onDurationChange}
               leaser={selectedLeaser}
-              className="w-full"
             />
+            {!selectedLeaser && (
+              <p className="text-xs text-muted-foreground">
+                Sélectionnez d'abord un prestataire
+              </p>
+            )}
           </div>
         </div>
       </CardContent>
