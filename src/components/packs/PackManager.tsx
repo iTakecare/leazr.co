@@ -145,17 +145,21 @@ export const PackManager = () => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Prix d'achat:</span>
-                    <span className="font-medium">{pack.total_purchase_price}€</span>
+                    <span className="font-medium">{pack.total_purchase_price.toFixed(2)}€</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Prix mensuel:</span>
-                    <span className="font-medium">{pack.total_monthly_price}€</span>
+                    <span className="text-muted-foreground">Prix de vente:</span>
+                    <span className="font-medium">{(pack.total_purchase_price + pack.total_margin).toFixed(2)}€</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Marge:</span>
                     <span className="font-medium text-green-600">
-                      +{pack.total_margin}€
+                      +{pack.total_margin.toFixed(2)}€ ({pack.total_purchase_price > 0 ? ((pack.total_margin / pack.total_purchase_price) * 100).toFixed(1) : 0}%)
                     </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Prix mensuel:</span>
+                    <span className="font-medium">{pack.total_monthly_price.toFixed(2)}€</span>
                   </div>
                   {pack.items && (
                     <div className="flex justify-between text-sm">
