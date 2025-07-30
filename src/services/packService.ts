@@ -153,13 +153,11 @@ export const calculatePackTotals = (items: ProductPackItem[]): PackCalculation =
     sum + (item.unit_monthly_price * item.quantity), 0
   );
   
-  // For now, use a default coefficient for calculation (this should be passed as parameter)
-  // TODO: Update this to use the actual leaser coefficient when calculating
-  const coefficient = 2.8; // Default fallback
-  const total_financed_amount = (total_monthly_price * 100) / coefficient;
+  // Calculate margin as sum of individual product margins (monthly - purchase) * quantity
+  const total_margin = items.reduce((sum, item) => 
+    sum + ((item.unit_monthly_price - item.unit_purchase_price) * item.quantity), 0
+  );
   
-  // Real margin = financed amount - purchase price (not monthly - purchase)
-  const total_margin = total_financed_amount - total_purchase_price;
   const average_margin_percentage = total_purchase_price > 0 ? 
     (total_margin / total_purchase_price) * 100 : 0;
   
