@@ -44,6 +44,7 @@ const CreateOffer = () => {
   // Priorité: URL parameter > query parameter pour l'ID d'édition
   const offerId = editId || offerIdParam;
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(defaultLeasers[0]);
+  const [selectedDuration, setSelectedDuration] = useState<number>(36);
   const [leasersLoaded, setLeasersLoaded] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -361,6 +362,11 @@ const CreateOffer = () => {
     setSelectedLeaser(leaser);
     setIsLeaserSelectorOpen(false);
   };
+
+  const handleDurationChange = (duration: number) => {
+    setSelectedDuration(duration);
+    console.log("🕐 Duration changed:", duration);
+  };
   const handleOpenLeaserSelector = () => {
     setIsLeaserSelectorOpen(true);
   };
@@ -591,7 +597,7 @@ const CreateOffer = () => {
                     <span className="ml-2">Chargement...</span>
                   </div> : <div className="space-y-4">
                     {/* Configuration de l'offre */}
-                    <OfferConfiguration isInternalOffer={isInternalOffer} setIsInternalOffer={handleInternalOfferChange} selectedAmbassador={selectedAmbassador} onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} selectedLeaser={selectedLeaser} onOpenLeaserSelector={handleOpenLeaserSelector} />
+                    <OfferConfiguration isInternalOffer={isInternalOffer} setIsInternalOffer={handleInternalOfferChange} selectedAmbassador={selectedAmbassador} onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} selectedLeaser={selectedLeaser} onOpenLeaserSelector={handleOpenLeaserSelector} selectedDuration={selectedDuration} onDurationChange={handleDurationChange} />
 
                     {/* Contenu principal */}
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">

@@ -5,6 +5,7 @@ import { Building2 } from "lucide-react";
 import CompactInternalOfferToggle from "./CompactInternalOfferToggle";
 import AmbassadorButton from "./AmbassadorButton";
 import LeaserButton from "./LeaserButton";
+import DurationSelector from "@/components/equipment/DurationSelector";
 import { Leaser } from "@/types/equipment";
 import { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
@@ -15,6 +16,8 @@ interface OfferConfigurationProps {
   onOpenAmbassadorSelector: () => void;
   selectedLeaser: Leaser | null;
   onOpenLeaserSelector: () => void;
+  selectedDuration: number;
+  onDurationChange: (duration: number) => void;
 }
 
 const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
@@ -23,7 +26,9 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
   selectedAmbassador,
   onOpenAmbassadorSelector,
   selectedLeaser,
-  onOpenLeaserSelector
+  onOpenLeaserSelector,
+  selectedDuration,
+  onDurationChange
 }) => {
   return (
     <Card className="mb-4">
@@ -34,7 +39,7 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Type d'offre */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-700">
@@ -77,6 +82,16 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
             <LeaserButton 
               selectedLeaser={selectedLeaser} 
               onOpen={onOpenLeaserSelector}
+            />
+          </div>
+
+          {/* Durée de financement */}
+          <div className="space-y-1">
+            <DurationSelector
+              value={selectedDuration}
+              onChange={onDurationChange}
+              leaser={selectedLeaser}
+              className="w-full"
             />
           </div>
         </div>
