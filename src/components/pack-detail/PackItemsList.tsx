@@ -83,11 +83,6 @@ const PackItemsList: React.FC<PackItemsListProps> = ({ items }) => {
                       <div className="text-lg font-bold text-[#33638e]">
                         ×{item.quantity}
                       </div>
-                      {item.unit_monthly_price > 0 && (
-                        <div className="text-xs text-gray-500">
-                          {item.unit_monthly_price.toFixed(2)}€/mois
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
