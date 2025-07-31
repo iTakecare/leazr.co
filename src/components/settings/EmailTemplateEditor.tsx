@@ -264,6 +264,7 @@ const EmailTemplateEditor: React.FC = () => {
               <Label htmlFor="subject">Sujet de l'email</Label>
               <Input
                 id="subject"
+                key={`subject-${currentTemplate.id}-${currentTemplate.subject}`}
                 value={currentTemplate.subject}
                 onChange={handleSubjectChange}
                 placeholder="Sujet de l'email"
