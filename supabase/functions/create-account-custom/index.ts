@@ -33,9 +33,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Création d'un compte pour ${email} (${entityType})`);
 
-    // 1. Vérifier si l'utilisateur existe déjà
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email);
-    if (existingUser.user) {
+    // 1. Vérifier si l'utilisateur existe déjà via la table profiles
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('email', email)
+      .single();
+    
+    if (existingProfile) {
       return new Response(
         JSON.stringify({ error: 'Un utilisateur avec cet email existe déjà' }),
         { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
