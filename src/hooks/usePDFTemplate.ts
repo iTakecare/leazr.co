@@ -3,8 +3,10 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { loadPDFModel, savePDFModel, DEFAULT_MODEL_TEMPLATE, getCurrentCompanyId } from "@/utils/pdfModelUtils";
 import { PDFModel } from "@/utils/pdfModelUtils";
+import { useAuth } from "@/context/AuthContext";
 
 export const usePDFTemplate = (templateId: string = 'default') => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<PDFModel | null>(null);
@@ -14,6 +16,15 @@ export const usePDFTemplate = (templateId: string = 'default') => {
 
   const loadTemplate = useCallback(async (id: string = 'default') => {
     console.log("loadTemplate appelé avec id:", id, "loading actuel:", loading);
+    
+    // Vérifier l'authentification avant tout
+    if (!user) {
+      setLoading(false);
+      setError("Vous devez être connecté pour accéder aux modèles PDF");
+      setTemplate(null);
+      setTemplateName(undefined);
+      return;
+    }
     
     // Éviter les chargements multiples simultanés seulement si déjà en cours de chargement
     if (loading && template !== null) {
@@ -55,7 +66,7 @@ export const usePDFTemplate = (templateId: string = 'default') => {
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, [loading, user]);
 
   const saveTemplate = useCallback(async (updatedTemplate: PDFModel): Promise<void> => {
     setSaving(true);
