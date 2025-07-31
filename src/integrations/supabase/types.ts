@@ -2337,6 +2337,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           updated_at: string | null
+          use_duration_coefficients: boolean
           vat_number: string | null
         }
         Insert: {
@@ -2354,6 +2355,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
+          use_duration_coefficients?: boolean
           vat_number?: string | null
         }
         Update: {
@@ -2371,6 +2373,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           updated_at?: string | null
+          use_duration_coefficients?: boolean
           vat_number?: string | null
         }
         Relationships: [

@@ -40,7 +40,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
       : [{ id: crypto.randomUUID(), min: 0, max: 0, coefficient: 0 }]
   );
   const [useDurationBasedCoefficients, setUseDurationBasedCoefficients] = useState(
-    currentLeaser?.ranges?.some(r => r.duration_coefficients && r.duration_coefficients.length > 0) || false
+    (currentLeaser as any)?.use_duration_coefficients || false
   );
   const [availableDurations, setAvailableDurations] = useState<number[]>(
     currentLeaser?.available_durations || [12, 18, 24, 36, 48, 60, 72]
@@ -279,7 +279,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     try {
       setIsSaving(true);
       
-      const leaserData: Omit<Leaser, "id"> = {
+      const leaserData: Omit<Leaser, "id"> & { use_duration_coefficients: boolean } = {
         name: formData.get("name") as string,
         company_name: formData.get("company_name") as string || undefined,
         logo_url: previewUrl,
@@ -291,7 +291,8 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         phone: formData.get("phone") as string || undefined,
         email: formData.get("email") as string || undefined,
         available_durations: availableDurations,
-        ranges: tempRanges
+        ranges: tempRanges,
+        use_duration_coefficients: useDurationBasedCoefficients
       };
       
       await onSave(leaserData);

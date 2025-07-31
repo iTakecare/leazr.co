@@ -27,6 +27,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
         phone,
         email,
         available_durations,
+        use_duration_coefficients,
         ranges:leaser_ranges(
           id,
           min,
@@ -66,7 +67,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     }
     
     // Transformer les données de la base de données au format attendu par l'application
-    const formattedLeasers: Leaser[] = data.map((leaser) => ({
+    const formattedLeasers: (Leaser & { use_duration_coefficients?: boolean })[] = data.map((leaser) => ({
       id: leaser.id,
       name: leaser.name,
       company_name: leaser.company_name,
@@ -79,6 +80,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       phone: leaser.phone,
       email: leaser.email,
       available_durations: leaser.available_durations || [12,18,24,36,48,60,72],
+      use_duration_coefficients: leaser.use_duration_coefficients || false,
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -114,6 +116,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
         phone,
         email,
         available_durations,
+        use_duration_coefficients,
         ranges:leaser_ranges(
           id,
           min,
@@ -150,8 +153,9 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       phone: data.phone,
       email: data.email,
       available_durations: data.available_durations || [12,18,24,36,48,60,72],
+      use_duration_coefficients: data.use_duration_coefficients || false,
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
-    };
+    } as Leaser & { use_duration_coefficients?: boolean };
   } catch (error) {
     console.error('Exception during leaser loading:', error);
     return null;
@@ -198,6 +202,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         phone: leaser.phone || null,
         email: leaser.email || null,
         available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
+        use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
         company_id: companyId
       })
       .select()
@@ -265,7 +270,8 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         vat_number: leaser.vat_number || null,
         phone: leaser.phone || null,
         email: leaser.email || null,
-        available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72]
+        available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
+        use_duration_coefficients: (leaser as any).use_duration_coefficients || false
       })
       .eq('id', id);
     
