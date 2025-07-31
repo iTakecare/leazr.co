@@ -291,6 +291,15 @@ const UpdatePassword = () => {
           .eq('token', customToken);
 
         sessionStorage.removeItem('custom_token_data');
+        
+        // Rediriger vers la page de connexion pour le flux d'invitation
+        console.log("Mot de passe défini avec succès pour invitation");
+        toast.success("Mot de passe défini avec succès ! Redirection vers la page de connexion...");
+        
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+        return;
       } else {
         // Cas normal avec session Supabase
         const { error } = await supabase.auth.updateUser({
@@ -302,10 +311,10 @@ const UpdatePassword = () => {
           toast.error('Erreur lors de la mise à jour du mot de passe: ' + error.message);
           return;
         }
+        
+        console.log("Mot de passe mis à jour avec succès");
+        toast.success('Mot de passe mis à jour avec succès');
       }
-
-      console.log("Mot de passe mis à jour avec succès");
-      toast.success('Mot de passe mis à jour avec succès');
       
       // Déconnecter l'utilisateur pour qu'il se reconnecte avec le nouveau mot de passe
       await supabase.auth.signOut();

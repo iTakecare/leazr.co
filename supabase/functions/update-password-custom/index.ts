@@ -67,12 +67,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // 3. Mettre à jour le mot de passe avec l'API Admin
+    // 3. Mettre à jour le mot de passe et confirmer l'email avec l'API Admin
     console.log(`Tentative de mise à jour du mot de passe pour l'utilisateur ID: ${user.id}`);
     
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       user.id,
-      { password: password }
+      { 
+        password: password,
+        email_confirm: true  // Confirmer automatiquement l'email lors de la définition du mot de passe
+      }
     );
 
     if (updateError) {
@@ -106,6 +109,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log("Mot de passe mis à jour et email confirmé avec succès pour:", email);
+
     // 4. Marquer le token comme utilisé
     const { error: tokenUpdateError } = await supabase
       .from('custom_auth_tokens')
@@ -116,12 +121,11 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Erreur lors de la mise à jour du token:", tokenUpdateError);
     }
 
-    console.log("Mot de passe mis à jour avec succès pour:", email);
-
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Mot de passe mis à jour avec succès'
+        message: 'Mot de passe défini et email confirmé avec succès. Vous pouvez maintenant vous connecter.',
+        email_confirmed: true
       }),
       {
         status: 200,
