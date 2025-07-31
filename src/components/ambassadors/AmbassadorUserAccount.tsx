@@ -43,13 +43,14 @@ const AmbassadorUserAccount = ({
 
       setCheckingEmailStatus(true);
       try {
-        const { data: userData, error } = await supabase.auth.admin.getUserById(ambassador.user_id);
+        const { data: allUsers, error } = await supabase.functions.invoke('get-all-users');
         
         if (error) {
           console.error('Erreur lors de la vérification du statut email:', error);
           setEmailConfirmed(null);
         } else {
-          setEmailConfirmed(!!userData.user?.email_confirmed_at);
+          const user = allUsers?.find((u: any) => u.id === ambassador.user_id);
+          setEmailConfirmed(user ? !!user.email_confirmed_at : false);
         }
       } catch (error) {
         console.error('Erreur lors de la vérification du statut email:', error);
