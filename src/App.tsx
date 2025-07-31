@@ -103,10 +103,11 @@ function App() {
               <CompanyBrandingProvider>
                 <CartProvider>
                     <Routes>
-                      {/* Authentication routes */}
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/forgot-password" element={<ForgotPassword />} />
-                      <Route path="/signup" element={<Signup />} />
+                       {/* AUTHENTICATION ROUTES - HIGHEST PRIORITY */}
+                       <Route path="/login" element={<Login />} />
+                       <Route path="/signup" element={<Signup />} />
+                       <Route path="/forgot-password" element={<ForgotPassword />} />
+                       <Route path="/register" element={<Signup />} />
                       
                       {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}
                       <Route path="/solutions" element={<SolutionsPage />} />
