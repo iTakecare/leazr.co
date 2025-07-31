@@ -158,17 +158,22 @@ const handler = async (req: Request): Promise<Response> => {
     let fromEmail = 'noreply@leazr.co';
     let fromName = 'Leazr';
 
-    if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
+    // Traitement spécial pour iTakecare - utiliser ITAKECARE_RESEND_API
+    if (companyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0') {
+      console.log('Utilisation de la clé API Resend spéciale iTakecare (ITAKECARE_RESEND_API)');
+      resendApiKey = Deno.env.get("ITAKECARE_RESEND_API");
+      console.log('Clé API iTakecare (masquée):', resendApiKey ? resendApiKey.substring(0, 8) + '...' : 'non définie');
+      fromEmail = 'noreply@itakecare.be';
+      fromName = 'iTakecare';
+    } else if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
       console.log('Utilisation de la clé API Resend de l\'entreprise');
       console.log('Clé API entreprise (masquée):', smtpSettings.resend_api_key.substring(0, 8) + '...');
-      console.log('Clé API entreprise (complète):', smtpSettings.resend_api_key); // Log complet pour debug
       resendApiKey = smtpSettings.resend_api_key.trim(); // Nettoyer les espaces
       fromEmail = smtpSettings.from_email || fromEmail;
       fromName = smtpSettings.from_name || fromName;
     } else {
       console.log('Utilisation de la clé API Resend de fallback (LEAZR_RESEND_API)');
       console.log('Clé API fallback (masquée):', resendApiKey ? resendApiKey.substring(0, 8) + '...' : 'non définie');
-      console.log('Clé API fallback (complète):', resendApiKey); // Log complet pour debug
     }
 
     if (!resendApiKey) {
