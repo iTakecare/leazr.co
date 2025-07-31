@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Loader2 } from "lucide-react";
 import ClientsView from "./ClientsView";
 import CommissionsView from "./CommissionsView";
+import { AmbassadorActivityHistory } from "@/components/ambassadors/AmbassadorActivityHistory";
 import { 
   CommissionLevel, 
   getCommissionLevelWithRates, 
@@ -148,10 +149,11 @@ const AmbassadorDetail = ({
         </SheetHeader>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="mb-4 grid w-full grid-cols-3">
+          <TabsList className="mb-4 grid w-full grid-cols-4">
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
             <TabsTrigger value="clients">Clients</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
+            <TabsTrigger value="activity">Historique</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -203,6 +205,10 @@ const AmbassadorDetail = ({
               isOpen={tab === "commissions"}
               onClose={() => setTab("overview")}
             />
+          </TabsContent>
+
+          <TabsContent value="activity">
+            <AmbassadorActivityHistory ambassadorId={ambassador.id} />
           </TabsContent>
         </Tabs>
 

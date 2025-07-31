@@ -74,6 +74,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ambassador_activity_logs: {
+        Row: {
+          action_type: string
+          ambassador_id: string
+          created_at: string
+          description: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          ambassador_id: string
+          created_at?: string
+          description: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          ambassador_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ambassador_clients: {
         Row: {
           ambassador_id: string
@@ -5252,6 +5288,16 @@ export type Database = {
       link_client_to_ambassador_secure: {
         Args: { p_user_id: string; p_client_id: string }
         Returns: boolean
+      }
+      log_ambassador_activity: {
+        Args: {
+          p_ambassador_id: string
+          p_action_type: string
+          p_description: string
+          p_metadata?: Json
+          p_user_id?: string
+        }
+        Returns: string
       }
       mark_clients_as_duplicates: {
         Args: { client_ids: string[]; main_client_id: string }

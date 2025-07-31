@@ -17,6 +17,7 @@ import AmbassadorCommissionLevelSelector from "@/components/crm/forms/Ambassador
 import AmbassadorClientsSection from "@/components/crm/forms/AmbassadorClientsSection";
 import AmbassadorCommissionsSection from "@/components/crm/forms/AmbassadorCommissionsSection";
 import AmbassadorUserAccount from "@/components/ambassadors/AmbassadorUserAccount";
+import { AmbassadorActivityHistory } from "@/components/ambassadors/AmbassadorActivityHistory";
 
 export default function AmbassadorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -277,9 +278,10 @@ export default function AmbassadorDetail() {
       </div>
 
       {/* Sections en pleine largeur */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid gap-6">
         <AmbassadorClientsSection ambassadorId={ambassador.id} />
         <AmbassadorCommissionsSection ambassadorId={ambassador.id} />
+        <AmbassadorActivityHistory ambassadorId={ambassador.id} />
       </div>
     </div>
   );

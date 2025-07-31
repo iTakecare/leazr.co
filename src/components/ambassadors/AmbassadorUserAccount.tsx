@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { UserPlus, KeyRound, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
+import { UserPlus, KeyRound, CheckCircle, AlertCircle, Trash2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { createUserAccount, resetPassword, deleteUserAccount } from "@/services/accountService";
 import { Ambassador } from "@/services/ambassadorService";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 interface AmbassadorUserAccountProps {
   ambassador: Ambassador;
@@ -19,6 +20,8 @@ const AmbassadorUserAccount = ({
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [emailConfirmed, setEmailConfirmed] = useState<boolean | null>(null);
+  const [checkingEmailStatus, setCheckingEmailStatus] = useState(false);
   const formatDate = (date: Date | string | undefined) => {
     if (!date) return "N/A";
     try {
@@ -29,6 +32,36 @@ const AmbassadorUserAccount = ({
       return "Date invalide";
     }
   };
+
+  // Vérifier le statut de confirmation de l'email
+  useEffect(() => {
+    const checkEmailConfirmationStatus = async () => {
+      if (!ambassador.user_id) {
+        setEmailConfirmed(null);
+        return;
+      }
+
+      setCheckingEmailStatus(true);
+      try {
+        const { data: userData, error } = await supabase.auth.admin.getUserById(ambassador.user_id);
+        
+        if (error) {
+          console.error('Erreur lors de la vérification du statut email:', error);
+          setEmailConfirmed(null);
+        } else {
+          setEmailConfirmed(!!userData.user?.email_confirmed_at);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification du statut email:', error);
+        setEmailConfirmed(null);
+      } finally {
+        setCheckingEmailStatus(false);
+      }
+    };
+
+    checkEmailConfirmationStatus();
+  }, [ambassador.user_id]);
+
   const hasUserAccount = Boolean(ambassador?.has_user_account);
   const handleCreateAccount = async () => {
     if (!ambassador) return;
@@ -94,14 +127,51 @@ const AmbassadorUserAccount = ({
   };
   return <div className="space-y-4">
       {hasUserAccount ? <div className="space-y-4">
-          <div className="flex items-center gap-2 bg-green-50 p-4 rounded-md border border-green-200">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+          <div className={`flex items-center gap-2 p-4 rounded-md border ${
+            checkingEmailStatus 
+              ? 'bg-gray-50 border-gray-200' 
+              : emailConfirmed === false 
+                ? 'bg-amber-50 border-amber-200' 
+                : 'bg-green-50 border-green-200'
+          }`}>
+            {checkingEmailStatus ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
+            ) : emailConfirmed === false ? (
+              <Clock className="h-5 w-5 text-amber-600" />
+            ) : (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            )}
             <div>
-              <div className="font-medium text-green-800">Compte actif</div>
-              {ambassador.user_account_created_at && <span className="text-xs text-green-700">
+              <div className={`font-medium ${
+                checkingEmailStatus 
+                  ? 'text-gray-800' 
+                  : emailConfirmed === false 
+                    ? 'text-amber-800' 
+                    : 'text-green-800'
+              }`}>
+                {checkingEmailStatus 
+                  ? 'Vérification...' 
+                  : emailConfirmed === false 
+                    ? 'En attente de validation' 
+                    : 'Compte actif'
+                }
+              </div>
+              {ambassador.user_account_created_at && <span className={`text-xs ${
+                checkingEmailStatus 
+                  ? 'text-gray-700' 
+                  : emailConfirmed === false 
+                    ? 'text-amber-700' 
+                    : 'text-green-700'
+              }`}>
                   Créé le {formatDate(ambassador.user_account_created_at)}
                 </span>}
-              {ambassador.user_id && <span className="block text-xs text-green-700">
+              {ambassador.user_id && <span className={`block text-xs ${
+                checkingEmailStatus 
+                  ? 'text-gray-700' 
+                  : emailConfirmed === false 
+                    ? 'text-amber-700' 
+                    : 'text-green-700'
+              }`}>
                   ID: {ambassador.user_id}
                 </span>}
             </div>
