@@ -138,7 +138,7 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
         .eq('company_id', companyId)
         .eq('is_default', true)
         .limit(1)
-        .single();
+        .maybeSingle();
       
       data = defaultData;
       error = defaultError;
@@ -151,7 +151,7 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
           .eq('company_id', companyId)
           .eq('is_active', true)
           .limit(1)
-          .single();
+          .maybeSingle();
         
         data = fallbackData;
         error = fallbackError;
@@ -163,7 +163,7 @@ export const loadPDFModel = async (templateId: string = 'default'): Promise<PDFM
         .select('*')
         .eq('company_id', companyId)
         .eq('id', templateId)
-        .single();
+        .maybeSingle();
       
       data = specificData;
       error = specificError;
