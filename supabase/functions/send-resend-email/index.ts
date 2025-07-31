@@ -154,7 +154,7 @@ serve(async (req) => {
     let htmlContent = cleanupHtmlContent(reqData.html);
     
     // Log Deno env variables pour le débogage
-    console.log("RESEND_API environment variable check:", !!Deno.env.get("RESEND_API"));
+    console.log("ITAKECARE_RESEND_API environment variable check:", !!Deno.env.get("ITAKECARE_RESEND_API"));
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({

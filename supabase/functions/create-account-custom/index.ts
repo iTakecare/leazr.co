@@ -23,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    const resend = new Resend(Deno.env.get("ITAKECARE_RESEND_API"));
     
     // Créer un client Supabase avec la clé de service pour accès admin
     const supabase = createClient(

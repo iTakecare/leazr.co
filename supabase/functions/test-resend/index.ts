@@ -21,7 +21,7 @@ serve(async (req) => {
     console.log("Environment variables check:");
     console.log("SUPABASE_URL exists:", !!Deno.env.get('SUPABASE_URL'));
     console.log("SUPABASE_SERVICE_ROLE_KEY exists:", !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    console.log("RESEND_API exists:", !!Deno.env.get('RESEND_API'));
+    console.log("ITAKECARE_RESEND_API exists:", !!Deno.env.get('ITAKECARE_RESEND_API'));
     
     // Créer un client Supabase avec la clé de service
     const supabaseAdmin = createClient(
