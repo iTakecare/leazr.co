@@ -77,12 +77,20 @@ const EmailTemplateEditor: React.FC = () => {
       }
       
       console.log("✅ Templates chargés:", data?.length || 0, "templates trouvés");
-      console.log("📄 Templates:", data?.map(t => ({ id: t.id, type: t.type, name: t.name, company_id: t.company_id })));
+      console.log("📄 Templates:", data?.map(t => ({ id: t.id, type: t.type, name: t.name, subject: t.subject })));
       
       setTemplates(data || []);
       
-      // Si des modèles sont disponibles, sélectionner le premier par défaut
-      if (data && data.length > 0) {
+      // Mettre à jour le template courant si un type est déjà sélectionné
+      if (selectedTemplateType && data && data.length > 0) {
+        const updatedCurrentTemplate = data.find(t => t.type === selectedTemplateType);
+        if (updatedCurrentTemplate) {
+          console.log("🔄 Mise à jour du template courant avec nouvelles données:", updatedCurrentTemplate.subject);
+          setCurrentTemplate(updatedCurrentTemplate);
+        }
+      }
+      // Si aucun modèle n'est sélectionné et qu'il y a des modèles disponibles, sélectionner le premier par défaut
+      else if (data && data.length > 0 && !selectedTemplateType) {
         console.log("🎯 Sélection du premier template:", data[0].type);
         setSelectedTemplateType(data[0].type);
         setCurrentTemplate(data[0]);
