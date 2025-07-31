@@ -22,6 +22,39 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
       { auth: { persistSession: false } }
     );
+
+    // Get the authorization header to extract user info
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authorization header is required');
+    }
+
+    // Create a regular Supabase client for user context
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_ANON_KEY') || '',
+      { 
+        global: { 
+          headers: { Authorization: authHeader } 
+        } 
+      }
+    );
+
+    // Get the current user's company_id
+    const { data: profileData, error: profileError } = await supabase
+      .rpc('get_current_user_profile');
+
+    if (profileError || !profileData || profileData.length === 0) {
+      console.error("Erreur lors de la récupération du profil utilisateur:", profileError);
+      throw new Error('Impossible de récupérer le profil utilisateur');
+    }
+
+    const companyId = profileData[0].company_id;
+    if (!companyId) {
+      throw new Error('Aucune entreprise associée à cet utilisateur');
+    }
+
+    console.log("Company ID récupéré:", companyId);
     
     // Modèles d'email à initialiser avec design responsive et optimisé (450px max)
     const templates = [
@@ -267,11 +300,11 @@ serve(async (req) => {
     
     console.log(`Forçage de la mise à jour de ${templates.length} modèles d'email...`);
     
-    // FORCER L'ÉCRASEMENT : Supprimer TOUS les templates existants
+    // Supprimer les templates existants de cette entreprise
     const { error: deleteError } = await supabaseAdmin
       .from('email_templates')
       .delete()
-      .gte('id', 0); // Supprime vraiment tous les enregistrements
+      .eq('company_id', companyId);
       
     if (deleteError) {
       console.error('Erreur lors de la suppression des anciens modèles:', deleteError);
@@ -294,6 +327,7 @@ serve(async (req) => {
           subject: template.subject,
           html_content: template.html_content,
           active: template.active,
+          company_id: companyId,
           created_at: new Date(),
           updated_at: new Date()
         });
