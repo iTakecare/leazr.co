@@ -221,9 +221,18 @@ const handler = async (req: Request): Promise<Response> => {
     let emailSubject;
 
     if (emailTemplate) {
-      // Utiliser le template personnalisé
+      // Utiliser le template personnalisé et traiter les conditions Handlebars
       emailContent = emailTemplate.html_content;
       emailSubject = emailTemplate.subject;
+      
+      // Traiter les conditions {{#if company_logo}} dans le template
+      const hasLogo = company?.logo_url && company.logo_url.trim() !== '';
+      
+      // Remplacer les conditions Handlebars par le contenu approprié
+      emailContent = emailContent.replace(
+        /{{#if\s+company_logo}}([\s\S]*?){{\/if}}/g,
+        hasLogo ? '$1' : ''
+      );
       
       // Remplacer les variables dans le template personnalisé
       emailContent = emailContent
@@ -238,62 +247,178 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (entityType === 'ambassador') {
         emailSubject = `Bienvenue dans l'équipe ${company?.name || ''} - Activez votre compte ambassadeur`;
+        
+        // Template HTML compatible email avec styles inline et tables
         emailContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
-            <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 40px 20px; text-align: center;">
-              ${company?.logo_url ? `<img src="${company.logo_url}" alt="${company.name}" style="max-height: 60px; margin-bottom: 20px;">` : ''}
-              <h1 style="color: white; margin: 0;">${company?.name || 'Leazr'}</h1>
-            </div>
-            <div style="padding: 40px 20px;">
-              <h1 style="color: #1e293b;">Bienvenue dans l'équipe, ${firstName || ''} ${lastName || ''}!</h1>
-              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-                Nous sommes ravis de vous accueillir en tant qu'ambassadeur chez <strong>${company?.name || ''}</strong>.
-                Votre expertise et votre passion seront des atouts précieux pour notre équipe.
-              </p>
-              <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
-                <p style="color: #475569; margin: 0;">
-                  <strong>🎯 Votre mission :</strong> Développer notre réseau et accompagner nos clients 
-                  dans leurs projets de leasing avec excellence et professionnalisme.
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${emailSubject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header avec logo et titre -->
+        <tr>
+            <td style="padding: 40px 20px; text-align: center; background-color: #3b82f6;">
+                ${company?.logo_url ? `
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                    <tr>
+                        <td style="text-align: center; padding-bottom: 20px;">
+                            <img src="${company.logo_url}" alt="${company.name || 'Logo'}" style="max-height: 60px; max-width: 200px; height: auto; width: auto; display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+                </table>
+                ` : ''}
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">${company?.name || 'Leazr'}</h1>
+            </td>
+        </tr>
+        
+        <!-- Contenu principal -->
+        <tr>
+            <td style="padding: 40px 20px;">
+                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px;">Bienvenue dans l'équipe, ${firstName || ''} ${lastName || ''}!</h2>
+                
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Nous sommes ravis de vous accueillir en tant qu'ambassadeur chez <strong>${company?.name || ''}</strong>.
+                    Votre expertise et votre passion seront des atouts précieux pour notre équipe.
                 </p>
-              </div>
-              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-                Pour commencer, vous devez activer votre compte en cliquant sur le bouton ci-dessous :
-              </p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${activationUrl}" 
-                   style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; border: none;">
-                   Activer mon compte ambassadeur
-                </a>
-              </div>
-              <p style="color: #64748b; font-size: 14px; text-align: center;">
-                Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-                <a href="${activationUrl}" style="color: #3b82f6; word-break: break-all;">${activationUrl}</a>
-              </p>
-              <p style="color: #475569;">Une fois votre compte activé, vous aurez accès à votre tableau de bord personnalisé, à la gestion de vos clients, au suivi de vos commissions et aux outils de prospection.</p>
-              <p style="color: #475569;">Ce lien expirera dans 7 jours.</p>
-              <p style="color: #475569; font-weight: bold;">Bienvenue dans l'aventure ${company?.name || ''}!</p>
-            </div>
-          </div>
+                
+                <!-- Encadré mission -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 20px 0;">
+                    <tr>
+                        <td style="background-color: #f1f5f9; padding: 20px; border-left: 4px solid #3b82f6;">
+                            <p style="color: #475569; margin: 0; font-size: 14px;">
+                                <strong>🎯 Votre mission :</strong> Développer notre réseau et accompagner nos clients 
+                                dans leurs projets de leasing avec excellence et professionnalisme.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+                    Pour commencer, vous devez activer votre compte en cliquant sur le bouton ci-dessous :
+                </p>
+                
+                <!-- Bouton d'activation -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 30px 0;">
+                    <tr>
+                        <td style="text-align: center;">
+                            <a href="${activationUrl}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 16px; mso-hide: all;">
+                                Activer mon compte ambassadeur
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- Lien de secours -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 20px 0;">
+                    <tr>
+                        <td style="text-align: center; font-size: 14px; color: #64748b;">
+                            Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+                            <a href="${activationUrl}" style="color: #3b82f6; word-break: break-all;">${activationUrl}</a>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                    Une fois votre compte activé, vous aurez accès à votre tableau de bord personnalisé, à la gestion de vos clients, au suivi de vos commissions et aux outils de prospection.
+                </p>
+                
+                <p style="color: #475569; font-size: 14px; margin: 10px 0;">
+                    Ce lien expirera dans 7 jours.
+                </p>
+                
+                <p style="color: #475569; font-weight: bold; font-size: 16px; margin: 20px 0 0 0;">
+                    Bienvenue dans l'aventure ${company?.name || ''}!
+                </p>
+            </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+            <td style="padding: 20px; background-color: #f8fafc; text-align: center; font-size: 12px; color: #64748b;">
+                © ${new Date().getFullYear()} ${company?.name || 'Leazr'}. Tous droits réservés.
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
         `;
       } else {
+        // Template simple pour les autres types d'entités
         emailContent = `
-          <h1>Bienvenue !</h1>
-          <p>Bonjour ${firstName || ''},</p>
-          <p>Votre compte ${entityNames[entityType]} a été créé avec succès pour l'entreprise ${company?.name || ''}.</p>
-          <p>Pour activer votre compte et définir votre mot de passe, cliquez sur le lien ci-dessous :</p>
-          <p><a href="${activationUrl}" style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Activer mon compte</a></p>
-          <p>Ce lien expirera dans 7 jours.</p>
-          <p>Cordialement,<br>L'équipe ${company?.name || ''}</p>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${emailSubject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <h1 style="color: #1e293b; margin: 0 0 20px 0;">Bienvenue !</h1>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">Bonjour ${firstName || ''},</p>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 15px 0;">Votre compte ${entityNames[entityType]} a été créé avec succès pour l'entreprise ${company?.name || ''}.</p>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Pour activer votre compte et définir votre mot de passe, cliquez sur le lien ci-dessous :</p>
+                
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 20px 0;">
+                    <tr>
+                        <td>
+                            <a href="${activationUrl}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold;">Activer mon compte</a>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p style="color: #475569; font-size: 14px; margin: 15px 0;">Ce lien expirera dans 7 jours.</p>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 20px 0 0 0;">Cordialement,<br>L'équipe ${company?.name || ''}</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
         `;
       }
     }
 
-    // 10. Envoyer l'email via Resend
+    // 10. Créer une version texte pour l'email
+    const textContent = `
+Bonjour ${firstName || ''} ${lastName || ''},
+
+${entityType === 'ambassador' ? 
+  `Nous sommes ravis de vous accueillir en tant qu'ambassadeur chez ${company?.name || ''}.
+  
+  Votre mission : Développer notre réseau et accompagner nos clients dans leurs projets de leasing avec excellence et professionnalisme.` : 
+  `Votre compte ${entityNames[entityType]} a été créé avec succès pour l'entreprise ${company?.name || ''}.`
+}
+
+Pour activer votre compte et définir votre mot de passe, cliquez sur le lien ci-dessous :
+${activationUrl}
+
+Ce lien expirera dans 7 jours.
+
+${entityType === 'ambassador' ? 
+  `Une fois votre compte activé, vous aurez accès à votre tableau de bord personnalisé, à la gestion de vos clients, au suivi de vos commissions et aux outils de prospection.
+  
+  Bienvenue dans l'aventure ${company?.name || ''}!` : 
+  `Cordialement,
+  L'équipe ${company?.name || ''}`
+}
+
+---
+© ${new Date().getFullYear()} ${company?.name || 'Leazr'}. Tous droits réservés.
+    `.trim();
+
+    // 11. Envoyer l'email via Resend avec version HTML et texte
     const emailResult = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: [email],
       subject: emailSubject,
       html: emailContent,
+      text: textContent,
     });
 
     console.log('Email envoyé:', emailResult);
