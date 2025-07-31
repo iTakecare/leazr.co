@@ -125,13 +125,10 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Envoyer l'email d'invitation personnalisé
+    // Envoyer uniquement l'email d'invitation personnalisé (qui inclut le message de bienvenue)
     await sendInvitationEmail(entity.email, entity.name, userType, `${window.location.origin}/update-password`);
     
-    // Envoyer l'email de bienvenue
-    await sendWelcomeEmail(entity.email, entity.name, userType);
-    
-    toast.success(`Compte ${userType} créé et emails d'invitation envoyés`);
+    toast.success(`Compte ${userType} créé et invitation envoyée`);
     return true;
   } catch (error) {
     console.error(`Erreur dans createUserAccount:`, error);

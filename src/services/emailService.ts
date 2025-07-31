@@ -480,43 +480,74 @@ export const sendInvitationEmail = async (
       userType === "ambassador" ? "ambassadeur" : 
       "client";
     
-    const subject = `Invitation à créer votre compte ${typeDisplay} iTakecare`;
+    const subject = `🎉 Bienvenue chez iTakecare - Finalisation de votre compte ${typeDisplay}`;
     
     // Utiliser le lien d'invitation fourni ou un lien de réinitialisation par défaut
     const actionLink = inviteLink || `${window.location.origin}/update-password`;
     
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img src="{{site_logo}}" alt="Logo iTakecare" style="max-width: 200px; height: auto;" />
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 25px;">
+            <img src="{{site_logo}}" alt="Logo iTakecare" style="max-width: 200px; height: auto;" />
+          </div>
+          
+          <h2 style="color: #1f2937; margin-bottom: 20px; text-align: center;">🎉 Bienvenue chez iTakecare !</h2>
+          
+          <p style="font-size: 16px; color: #374151; margin-bottom: 15px;">Bonjour ${name},</p>
+          
+          <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+            Félicitations ! Votre compte ${typeDisplay} a été créé avec succès. Nous sommes ravis de vous accueillir dans notre équipe.
+          </p>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">🔐 Finalisation de votre compte</h3>
+            <p style="color: #374151; margin-bottom: 15px;">
+              Pour accéder à votre espace personnel et commencer à utiliser la plateforme, 
+              veuillez cliquer sur le bouton ci-dessous pour définir votre mot de passe :
+            </p>
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${actionLink}" style="background-color: #3b82f6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
+                Définir mon mot de passe
+              </a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
+              ⏰ Ce lien est valable pendant 24 heures pour des raisons de sécurité.
+            </p>
+          </div>
+          
+          <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; margin: 25px 0;">
+            <h4 style="color: #065f46; margin-top: 0; margin-bottom: 15px;">🚀 Ce que vous pourrez faire :</h4>
+            <ul style="color: #047857; margin: 0; padding-left: 20px;">
+              ${userType === "partner" ? `
+                <li style="margin-bottom: 8px;">Créer et gérer des offres de leasing</li>
+                <li style="margin-bottom: 8px;">Suivre vos commissions en temps réel</li>
+                <li style="margin-bottom: 8px;">Gérer votre portefeuille clients</li>
+                <li style="margin-bottom: 8px;">Accéder aux rapports détaillés</li>
+              ` : userType === "ambassador" ? `
+                <li style="margin-bottom: 8px;">Suivre vos recommandations et leur statut</li>
+                <li style="margin-bottom: 8px;">Consulter vos commissions détaillées</li>
+                <li style="margin-bottom: 8px;">Gérer votre profil d'ambassadeur</li>
+                <li style="margin-bottom: 8px;">Accéder à vos outils de promotion</li>
+              ` : `
+                <li style="margin-bottom: 8px;">Consulter tous vos contrats</li>
+                <li style="margin-bottom: 8px;">Suivre vos équipements en temps réel</li>
+                <li style="margin-bottom: 8px;">Effectuer des demandes de service</li>
+                <li style="margin-bottom: 8px;">Gérer votre profil client</li>
+              `}
+            </ul>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">
+              Si vous avez des questions ou rencontrez des difficultés, n'hésitez pas à nous contacter.
+            </p>
+            <p style="color: #1f2937; margin-bottom: 0;">
+              Cordialement,<br>
+              <strong>L'équipe iTakecare</strong>
+            </p>
+          </div>
         </div>
-        <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${name},</h2>
-        <p>Un compte ${typeDisplay} a été créé pour vous sur la plateforme iTakecare.</p>
-        <p>Pour activer votre compte et définir votre mot de passe, veuillez cliquer sur le bouton ci-dessous :</p>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="${actionLink}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-            Créer mon mot de passe
-          </a>
-        </p>
-        <p>Une fois votre mot de passe créé, vous pourrez accéder à votre espace ${typeDisplay} et :</p>
-        <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-          ${userType === "partner" ? `
-            <li>Créer et gérer des offres de leasing</li>
-            <li>Suivre vos commissions</li>
-            <li>Gérer vos clients</li>
-          ` : userType === "ambassador" ? `
-            <li>Suivre vos recommandations</li>
-            <li>Consulter vos commissions</li>
-            <li>Gérer votre profil</li>
-          ` : `
-            <li>Consulter vos contrats</li>
-            <li>Suivre vos équipements</li>
-            <li>Effectuer des demandes</li>
-          `}
-        </ul>
-        <p><strong>Important :</strong> Ce lien est valide pendant 24 heures. Si vous rencontrez un problème, contactez-nous.</p>
-        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-        <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
       </div>
     `;
     
