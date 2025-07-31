@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.analyze-itakecare-catalog]
 verify_jwt = true
+
+[functions.generate-auth-link]
+verify_jwt = false
