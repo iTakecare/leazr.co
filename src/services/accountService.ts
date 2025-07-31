@@ -69,15 +69,13 @@ export const createUserAccount = async (
       metadata.client_id = entity.id;
     }
     
-    // Créer l'utilisateur avec signUp (aucun email automatique envoyé)
-    const { data, error: createError } = await supabase.auth.signUp({
+    // Utiliser l'API Admin pour créer l'utilisateur sans envoyer d'email automatique
+    const adminClient = getAdminSupabaseClient();
+    const { data, error: createError } = await adminClient.auth.admin.createUser({
       email: entity.email,
       password: tempPassword,
-      options: {
-        data: metadata,
-        email_confirm: false, // Désactiver complètement l'envoi d'email de confirmation
-        emailRedirectTo: undefined
-      }
+      user_metadata: metadata,
+      email_confirm: false // L'utilisateur n'a pas besoin de confirmer son email
     });
     
     if (createError) {
