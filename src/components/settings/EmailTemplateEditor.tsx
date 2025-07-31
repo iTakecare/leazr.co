@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -123,7 +123,7 @@ const EmailTemplateEditor: React.FC = () => {
   }, [selectedTemplateType, templates]);
 
   // Gérer le changement de modèle
-  const handleTemplateChange = (type: string) => {
+  const handleTemplateChange = useCallback((type: string) => {
     console.log("🔧 handleTemplateChange appelé avec type:", type);
     setSelectedTemplateType(type);
     
@@ -135,10 +135,11 @@ const EmailTemplateEditor: React.FC = () => {
         setCurrentTemplate(template);
       }
     }
-  };
+  }, [templates]);
 
   // Mettre à jour le sujet
   const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("📝 Sujet modifié:", e.target.value, "Template actuel:", currentTemplate?.subject);
     if (currentTemplate) {
       setCurrentTemplate({
         ...currentTemplate,
@@ -243,7 +244,7 @@ const EmailTemplateEditor: React.FC = () => {
       <div className="space-y-4">
         <div className="flex flex-col space-y-1.5">
           <Label htmlFor="templateType">Type de modèle</Label>
-          <Select value={selectedTemplateType} onValueChange={handleTemplateChange}>
+          <Select value={selectedTemplateType} onValueChange={handleTemplateChange} key={templates.length}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionnez un modèle" />
             </SelectTrigger>
