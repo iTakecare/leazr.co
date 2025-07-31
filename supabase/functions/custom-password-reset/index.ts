@@ -133,7 +133,8 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     // 7. Préparer le contenu de l'email
-    const resetUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/update-password?token=${resetToken}&type=password_reset`;
+    const APP_URL = Deno.env.get('APP_URL') || 'https://preview--leazr.lovable.app';
+    const resetUrl = `${APP_URL}/update-password?token=${resetToken}&type=password_reset`;
     
     let emailContent = emailTemplate?.content || `
       <h1>Réinitialisation de votre mot de passe</h1>

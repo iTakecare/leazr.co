@@ -208,7 +208,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 9. Préparer le contenu de l'email
-    const activationUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/update-password?token=${activationToken}&type=invitation`;
+    const APP_URL = Deno.env.get('APP_URL') || 'https://preview--leazr.lovable.app';
+    const activationUrl = `${APP_URL}/update-password?token=${activationToken}&type=invitation`;
     
     const entityNames = {
       'partner': 'partenaire',
