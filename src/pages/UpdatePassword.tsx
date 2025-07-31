@@ -64,6 +64,8 @@ const UpdatePassword = () => {
         refreshToken: !!refreshToken,
         type,
         token: !!token,
+        customToken: !!customToken,
+        url: window.location.href,
         allParams: Object.fromEntries(params.entries())
       });
 
@@ -119,8 +121,8 @@ const UpdatePassword = () => {
           toast.error("Erreur lors de la vérification du token");
           navigate('/login');
         }
-      } else if (customToken && (type === 'invitation' || type === 'password_reset' || type === 'recovery')) {
-        console.log("UpdatePassword - Token personnalisé détecté");
+      } else if (customToken) {
+        console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
         // Vérifier notre token personnalisé dans la base de données
         try {
           const { data: tokenData, error: tokenError } = await supabase
@@ -132,13 +134,17 @@ const UpdatePassword = () => {
             .single();
 
           if (tokenError || !tokenData) {
-            console.error("Token personnalisé invalide ou expiré:", tokenError);
-            toast.error("Lien de réinitialisation invalide ou expiré");
+            console.error("Token personnalisé invalide ou expiré:", { tokenError, tokenData });
+            toast.error("Lien d'activation invalide ou expiré");
             navigate('/login');
             return;
           }
 
-          console.log("Token personnalisé valide:", tokenData);
+          console.log("Token personnalisé valide:", { 
+            tokenType: tokenData.token_type, 
+            userEmail: tokenData.user_email,
+            metadata: tokenData.metadata 
+          });
           // Stocker les données du token pour utilisation lors de la mise à jour
           sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
           setSessionReady(true);
@@ -207,7 +213,7 @@ const UpdatePassword = () => {
           body: {
             token: customToken,
             password: password,
-            email: tokenData.email
+            email: tokenData.user_email
           }
         });
 

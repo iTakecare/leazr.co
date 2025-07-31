@@ -142,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
     // 6. Récupérer les informations de l'entreprise
     const { data: company } = await supabase
       .from('companies')
-      .select('name')
+      .select('name, logo_url')
       .eq('id', companyId)
       .single();
 
@@ -230,7 +230,7 @@ const handler = async (req: Request): Promise<Response> => {
         .replace(/{{user_name}}/g, `${firstName || ''} ${lastName || ''}`.trim())
         .replace(/{{activation_url}}/g, activationUrl)
         .replace(/{{company_name}}/g, company?.name || '')
-        .replace(/{{company_logo}}/g, emailTemplate.company_logo || '')
+        .replace(/{{company_logo}}/g, company?.logo_url || '')
         .replace(/{{company_address}}/g, emailTemplate.company_address || '');
     } else {
       // Template par défaut amélioré selon le type d'entité
@@ -239,8 +239,9 @@ const handler = async (req: Request): Promise<Response> => {
       if (entityType === 'ambassador') {
         emailSubject = `Bienvenue dans l'équipe ${company?.name || ''} - Activez votre compte ambassadeur`;
         emailContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: white;">
             <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 40px 20px; text-align: center;">
+              ${company?.logo_url ? `<img src="${company.logo_url}" alt="${company.name}" style="max-height: 60px; margin-bottom: 20px;">` : ''}
               <h1 style="color: white; margin: 0;">${company?.name || 'Leazr'}</h1>
             </div>
             <div style="padding: 40px 20px;">
@@ -259,8 +260,15 @@ const handler = async (req: Request): Promise<Response> => {
                 Pour commencer, vous devez activer votre compte en cliquant sur le bouton ci-dessous :
               </p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${activationUrl}" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold;">Activer mon compte ambassadeur</a>
+                <a href="${activationUrl}" 
+                   style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; border: none;">
+                   Activer mon compte ambassadeur
+                </a>
               </div>
+              <p style="color: #64748b; font-size: 14px; text-align: center;">
+                Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+                <a href="${activationUrl}" style="color: #3b82f6; word-break: break-all;">${activationUrl}</a>
+              </p>
               <p style="color: #475569;">Une fois votre compte activé, vous aurez accès à votre tableau de bord personnalisé, à la gestion de vos clients, au suivi de vos commissions et aux outils de prospection.</p>
               <p style="color: #475569;">Ce lien expirera dans 7 jours.</p>
               <p style="color: #475569; font-weight: bold;">Bienvenue dans l'aventure ${company?.name || ''}!</p>
