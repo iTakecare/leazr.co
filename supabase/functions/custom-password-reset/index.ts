@@ -89,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
     // 4. Récupérer les informations de l'entreprise
     const { data: company } = await supabase
       .from('companies')
-      .select('name')
+      .select('name, logo_url')
       .eq('id', userCompanyId)
       .single();
 
@@ -136,24 +136,62 @@ const handler = async (req: Request): Promise<Response> => {
     const APP_URL = Deno.env.get('APP_URL') || 'https://preview--leazr.lovable.app';
     const resetUrl = `${APP_URL}/update-password?token=${resetToken}&type=password_reset`;
     
-    let emailContent = emailTemplate?.content || `
-      <h1>Réinitialisation de votre mot de passe</h1>
-      <p>Bonjour ${profile?.first_name || ''},</p>
-      <p>Vous avez demandé à réinitialiser votre mot de passe pour votre compte ${company?.name || ''}.</p>
-      <p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p>
-      <p><a href="${resetUrl}" style="background-color: #dc2626; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p>
-      <p>Ce lien expirera dans 1 heure.</p>
-      <p>Si vous n'avez pas demandé cette réinitialisation, ignorez ce message.</p>
-      <p>Cordialement,<br>L'équipe ${company?.name || ''}</p>
+    let emailContent = emailTemplate?.html_content || `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Réinitialisation de votre mot de passe</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              <!-- Header avec logo -->
+              <tr>
+                  <td style="padding: 40px 20px; text-align: center; background-color: #3b82f6;">
+                      ${company?.logo_url ? `
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                          <tr>
+                              <td style="text-align: center; padding-bottom: 20px;">
+                                  <img src="${company.logo_url}" alt="${company.name || 'Logo'}" style="max-height: 60px; max-width: 200px; height: auto; width: auto; display: block; margin: 0 auto;">
+                              </td>
+                          </tr>
+                      </table>
+                      ` : ''}
+                      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">${company?.name || 'Leazr'}</h1>
+                  </td>
+              </tr>
+              
+              <!-- Contenu principal -->
+              <tr>
+                  <td style="padding: 40px 20px;">
+                      <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Réinitialisation de votre mot de passe</h2>
+                      <p>Bonjour ${profile?.first_name || ''},</p>
+                      <p>Vous avez demandé à réinitialiser votre mot de passe pour votre compte ${company?.name || ''}.</p>
+                      <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
+                      <div style="text-align: center; margin: 30px 0;">
+                          <a href="${resetUrl}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
+                      </div>
+                      <p>Ce lien expirera dans 1 heure.</p>
+                      <p>Si vous n'avez pas demandé cette réinitialisation, ignorez ce message.</p>
+                      <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe ${company?.name || ''}</p>
+                  </td>
+              </tr>
+          </table>
+      </body>
+      </html>
     `;
 
     // Remplacer les variables dans le template
     emailContent = emailContent
       .replace(/\{\{first_name\}\}/g, profile?.first_name || '')
       .replace(/\{\{last_name\}\}/g, profile?.last_name || '')
+      .replace(/\{\{client_name\}\}/g, `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || email)
       .replace(/\{\{email\}\}/g, email)
       .replace(/\{\{company_name\}\}/g, company?.name || '')
-      .replace(/\{\{reset_url\}\}/g, resetUrl);
+      .replace(/\{\{company_logo\}\}/g, company?.logo_url || '')
+      .replace(/\{\{reset_url\}\}/g, resetUrl)
+      .replace(/\{\{reset_link\}\}/g, resetUrl);
 
     // 8. Envoyer l'email via Resend
     const emailResult = await resend.emails.send({
