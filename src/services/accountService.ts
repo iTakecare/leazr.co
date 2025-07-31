@@ -75,8 +75,8 @@ export const createUserAccount = async (
       password: tempPassword,
       options: {
         data: metadata,
-        emailRedirectTo: undefined, // Désactiver complètement l'email de confirmation
-        captcha: undefined
+        email_confirm: false, // Désactiver complètement l'envoi d'email de confirmation
+        emailRedirectTo: undefined
       }
     });
     

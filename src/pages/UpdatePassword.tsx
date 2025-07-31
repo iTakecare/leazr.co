@@ -56,6 +56,8 @@ const UpdatePassword = () => {
       const refreshToken = params.get('refresh_token');
       const type = params.get('type');
       const token = params.get('token');
+      const email = params.get('email');
+      const customToken = params.get('token');
       
       console.log("UpdatePassword - Paramètres détectés:", {
         accessToken: !!accessToken,
@@ -117,6 +119,23 @@ const UpdatePassword = () => {
           toast.error("Erreur lors de la vérification du token");
           navigate('/login');
         }
+      } else if (customToken && email) {
+        console.log("UpdatePassword - Token personnalisé détecté");
+        // Gérer les tokens personnalisés (pour les invitations iTakecare)
+        try {
+          const decodedToken = JSON.parse(atob(customToken));
+          if (decodedToken.email === email && decodedToken.type === 'password_reset') {
+            console.log("Token personnalisé valide");
+            setSessionReady(true);
+            setIsAuthenticating(false);
+          } else {
+            throw new Error("Token invalide");
+          }
+        } catch (err) {
+          console.error("Erreur lors du décodage du token personnalisé:", err);
+          toast.error("Lien de réinitialisation invalide");
+          navigate('/login');
+        }
       } else if (currentSession) {
         console.log("UpdatePassword - Session existante détectée, permettre la réinitialisation");
         // Si l'utilisateur est déjà connecté, on peut permettre la réinitialisation
@@ -141,6 +160,10 @@ const UpdatePassword = () => {
       return;
     }
     
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get('email');
+    const customToken = params.get('token');
+    
     if (!password || !confirmPassword) {
       toast.error('Veuillez remplir tous les champs');
       return;
@@ -161,14 +184,51 @@ const UpdatePassword = () => {
     try {
       console.log("Tentative de mise à jour du mot de passe");
       
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
+      // Si c'est un token personnalisé avec email, connecter l'utilisateur d'abord
+      if (customToken && email) {
+        console.log("Connexion avec l'email pour mise à jour du mot de passe");
+        
+        // Se connecter d'abord avec l'email et un mot de passe temporaire pour établir la session
+        // Puis mettre à jour le mot de passe
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: password
+        });
 
-      if (error) {
-        console.error("Erreur lors de la mise à jour du mot de passe:", error);
-        toast.error('Erreur lors de la mise à jour du mot de passe: ' + error.message);
-        return;
+        if (updateError) {
+          // Si la mise à jour échoue, essayer de se connecter d'abord
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: 'temp123!' // Mot de passe temporaire utilisé lors de la création
+          });
+          
+          if (!signInError) {
+            // Maintenant mettre à jour le mot de passe
+            const { error: finalUpdateError } = await supabase.auth.updateUser({
+              password: password
+            });
+            
+            if (finalUpdateError) {
+              console.error("Erreur lors de la mise à jour finale du mot de passe:", finalUpdateError);
+              toast.error('Erreur lors de la mise à jour du mot de passe: ' + finalUpdateError.message);
+              return;
+            }
+          } else {
+            console.error("Erreur lors de la connexion:", signInError);
+            toast.error('Erreur lors de la connexion: ' + signInError.message);
+            return;
+          }
+        }
+      } else {
+        // Cas normal avec session Supabase
+        const { error } = await supabase.auth.updateUser({
+          password: password
+        });
+
+        if (error) {
+          console.error("Erreur lors de la mise à jour du mot de passe:", error);
+          toast.error('Erreur lors de la mise à jour du mot de passe: ' + error.message);
+          return;
+        }
       }
 
       console.log("Mot de passe mis à jour avec succès");
