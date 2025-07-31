@@ -17,6 +17,7 @@ interface CreateAccountRequest {
   role?: string;
 }
 
+// Force redéploiement - Fix getUserByEmail error 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
