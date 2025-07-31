@@ -122,7 +122,7 @@ const AmbassadorUserAccount = ({
             <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm">Cet ambassadeur n'a pas encore de compte utilisateur pour accéder au portail.</p>
           </div>
-          {ambassador.email ? <Button onClick={handleCreateAccount} disabled={isCreatingAccount} className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm text-leazr-turquoise">
+          {ambassador.email ? <Button onClick={handleCreateAccount} disabled={isCreatingAccount} className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm text-leazr-turquoise bg-pdf-grid">
               <UserPlus className="h-4 w-4 mr-2" />
               {isCreatingAccount ? "Création en cours..." : "Créer un compte ambassadeur"}
             </Button> : <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
