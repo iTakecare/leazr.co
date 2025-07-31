@@ -61,7 +61,7 @@ serve(async (req) => {
       {
         type: 'new_account',
         name: 'Création de compte',
-        subject: 'Votre compte iTakecare a été créé',
+        subject: 'Votre compte a été créé avec succès',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -91,7 +91,7 @@ serve(async (req) => {
       {
         type: 'password_reset',
         name: 'Réinitialisation de mot de passe',
-        subject: 'Réinitialisation de votre mot de passe iTakecare',
+        subject: 'Réinitialisez votre mot de passe iTakecare',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -114,7 +114,7 @@ serve(async (req) => {
       {
         type: 'welcome',
         name: 'Email de bienvenue',
-        subject: 'Bienvenue sur iTakecare',
+        subject: 'Bienvenue dans l\'univers iTakecare !',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -137,7 +137,7 @@ serve(async (req) => {
       {
         type: 'ambassador_account',
         name: 'Création de compte ambassadeur',
-        subject: 'Bienvenue en tant qu\'ambassadeur iTakecare',
+        subject: 'Félicitations ! Vous êtes maintenant ambassadeur iTakecare',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -173,7 +173,7 @@ serve(async (req) => {
       {
         type: 'client_account',
         name: 'Création de compte client',
-        subject: 'Votre compte client iTakecare est prêt',
+        subject: 'Bienvenue ! Votre espace client est maintenant actif',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -209,7 +209,7 @@ serve(async (req) => {
       {
         type: 'collaborator_account',
         name: 'Création de compte collaborateur',
-        subject: 'Bienvenue dans l\'équipe iTakecare',
+        subject: 'Accès accordé : Bienvenue dans l\'équipe iTakecare',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -245,7 +245,7 @@ serve(async (req) => {
       {
         type: 'offer_notification',
         name: 'Notification d\'offre',
-        subject: 'Nouvelle offre de leasing personnalisée',
+        subject: '📄 Votre offre de leasing personnalisée est prête',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
@@ -272,7 +272,7 @@ serve(async (req) => {
       {
         type: 'contract_signed',
         name: 'Contrat signé',
-        subject: 'Contrat signé avec succès',
+        subject: '✅ Votre contrat a été signé avec succès',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
