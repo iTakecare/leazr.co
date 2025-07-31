@@ -112,9 +112,11 @@ const EmailTemplateEditor: React.FC = () => {
 
   // Mettre à jour le modèle courant lorsque le type sélectionné change
   useEffect(() => {
+    console.log("🔄 useEffect déclenché - selectedTemplateType:", selectedTemplateType, "templates.length:", templates.length);
     if (selectedTemplateType && templates.length > 0) {
       const template = templates.find(t => t.type === selectedTemplateType);
       if (template) {
+        console.log("🎯 Template trouvé dans useEffect:", template.subject);
         setCurrentTemplate(template);
       }
     }
@@ -122,7 +124,17 @@ const EmailTemplateEditor: React.FC = () => {
 
   // Gérer le changement de modèle
   const handleTemplateChange = (type: string) => {
+    console.log("🔧 handleTemplateChange appelé avec type:", type);
     setSelectedTemplateType(type);
+    
+    // Mise à jour directe du template courant pour éviter les problèmes de timing
+    if (templates.length > 0) {
+      const template = templates.find(t => t.type === type);
+      if (template) {
+        console.log("✅ Template mis à jour directement:", template.subject);
+        setCurrentTemplate(template);
+      }
+    }
   };
 
   // Mettre à jour le sujet
