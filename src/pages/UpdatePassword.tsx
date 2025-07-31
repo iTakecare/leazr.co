@@ -149,8 +149,23 @@ const UpdatePassword = () => {
           // Stocker les données du token pour utilisation lors de la mise à jour
           sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
           
-          // Extraire le company_id depuis les métadonnées si disponible
-          if (tokenData.metadata && tokenData.metadata.company_id) {
+          // Extraire l'entity_id (ambassador ID) depuis les métadonnées et récupérer le company_id
+          if (tokenData.metadata && tokenData.metadata.entity_id) {
+            try {
+              const { data: ambassadorData, error: ambassadorError } = await supabase
+                .from('ambassadors')
+                .select('company_id')
+                .eq('id', tokenData.metadata.entity_id)
+                .single();
+              
+              if (!ambassadorError && ambassadorData) {
+                setCompanyId(ambassadorData.company_id);
+              }
+            } catch (err) {
+              console.error("Erreur lors de la récupération de l'entreprise de l'ambassadeur:", err);
+            }
+          } else if (tokenData.metadata && tokenData.metadata.company_id) {
+            // Fallback pour les anciens tokens qui pourraient avoir company_id directement
             setCompanyId(tokenData.metadata.company_id);
           }
           
