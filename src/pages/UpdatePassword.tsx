@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import Logo from '@/components/layout/Logo';
+import CompanyLogoForToken from '@/components/layout/CompanyLogoForToken';
 
 const UpdatePassword = () => {
   const [password, setPassword] = useState('');
@@ -18,6 +18,7 @@ const UpdatePassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -147,6 +148,12 @@ const UpdatePassword = () => {
           });
           // Stocker les données du token pour utilisation lors de la mise à jour
           sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
+          
+          // Extraire le company_id depuis les métadonnées si disponible
+          if (tokenData.metadata && tokenData.metadata.company_id) {
+            setCompanyId(tokenData.metadata.company_id);
+          }
+          
           setSessionReady(true);
           setIsAuthenticating(false);
         } catch (err) {
@@ -278,7 +285,12 @@ const UpdatePassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-blue-50 px-6 py-12">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center justify-center mb-6">
-          <Logo showText={false} logoSize="lg" className="scale-[2] mb-8" />
+          <CompanyLogoForToken 
+            companyId={companyId} 
+            showText={false} 
+            logoSize="lg" 
+            className="scale-[2] mb-8" 
+          />
         </div>
         
         <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
