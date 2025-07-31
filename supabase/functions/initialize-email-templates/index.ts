@@ -428,16 +428,16 @@ serve(async (req) => {
     
     console.log(`Forçage de la mise à jour de ${templates.length} modèles d'email...`);
     
-    // FORCER L'ÉCRASEMENT : Supprimer tous les templates existants pour cette entreprise
+    // FORCER L'ÉCRASEMENT : Supprimer TOUS les templates existants
     const { error: deleteError } = await supabaseAdmin
       .from('email_templates')
       .delete()
-      .neq('id', 0); // Supprime tous les enregistrements
+      .gte('id', 0); // Supprime vraiment tous les enregistrements
       
     if (deleteError) {
       console.error('Erreur lors de la suppression des anciens modèles:', deleteError);
     } else {
-      console.log('Anciens modèles supprimés avec succès');
+      console.log('Tous les anciens modèles supprimés avec succès');
     }
     
     // Insérer tous les nouveaux modèles
