@@ -15,6 +15,7 @@ import { PrivateRoute } from "@/components/PrivateRoute";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Signup from "@/pages/Signup";
+import UpdatePassword from "@/pages/UpdatePassword";
 
 // Public pages
 import HomePage from "@/pages/HomePage";
@@ -107,6 +108,7 @@ function App() {
                        <Route path="/login" element={<Login />} />
                        <Route path="/signup" element={<Signup />} />
                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                       <Route path="/update-password" element={<UpdatePassword />} />
                        <Route path="/register" element={<Signup />} />
                       
                       {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}

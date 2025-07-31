@@ -75,7 +75,8 @@ export const createUserAccount = async (
       password: tempPassword,
       options: {
         data: metadata,
-        emailRedirectTo: `${window.location.origin}/login`
+        emailRedirectTo: undefined, // Désactiver complètement l'email de confirmation
+        captcha: undefined
       }
     });
     
@@ -111,20 +112,18 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Générer un lien de réinitialisation de mot de passe
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
-      redirectTo: `${window.location.origin}/update-password`
-    });
+    // Générer un lien personnalisé sans déclencher d'email Supabase
+    // Utiliser un token personnalisé pour la réinitialisation
+    const resetToken = btoa(JSON.stringify({
+      email: entity.email,
+      timestamp: Date.now(),
+      type: 'password_reset'
+    }));
     
-    if (resetError) {
-      console.error("Erreur lors de la génération du lien de réinitialisation:", resetError);
-      toast.error("Erreur lors de l'envoi de l'invitation");
-      return false;
-    }
+    const resetLink = `${window.location.origin}/update-password?token=${resetToken}&email=${encodeURIComponent(entity.email)}`;
     
-    // Envoyer uniquement l'email d'invitation personnalisé
-    // Note: Le lien sera inclus dans l'email automatique de Supabase pour la réinitialisation
-    await sendInvitationEmail(entity.email, entity.name, userType, `${window.location.origin}/update-password`);
+    // Envoyer uniquement l'email d'invitation personnalisé avec le lien de réinitialisation
+    await sendInvitationEmail(entity.email, entity.name, userType, resetLink);
     
     toast.success(`Compte ${userType} créé et invitation envoyée`);
     return true;
