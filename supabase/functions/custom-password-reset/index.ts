@@ -1,11 +1,10 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 interface PasswordResetRequest {
@@ -13,235 +12,165 @@ interface PasswordResetRequest {
   companyId?: string;
 }
 
-serve(async (req: Request) => {
-  console.log("Custom password reset - Request received:", req.method);
-
-  // Handle CORS preflight requests
+const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse request body
-    const { email, companyId }: PasswordResetRequest = await req.json();
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
-    if (!email) {
+    // Créer un client Supabase avec la clé de service pour accès admin
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { email, companyId }: PasswordResetRequest = await req.json();
+
+    console.log(`Demande de réinitialisation de mot de passe pour ${email}`);
+
+    // 1. Vérifier si l'utilisateur existe
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+    
+    if (userError || !userData.user) {
+      // Pour des raisons de sécurité, on retourne toujours success même si l'utilisateur n'existe pas
       return new Response(
-        JSON.stringify({ error: 'Email requis' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // First, check if user exists
-    const { data: existingUser } = await supabase.auth.admin.listUsers({
-      filters: { email }
-    });
-
-    if (!existingUser?.users || existingUser.users.length === 0) {
-      // For security, we don't reveal if the email exists or not
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Si cette adresse email existe, vous recevrez un lien de réinitialisation.'
+        JSON.stringify({ 
+          success: true, 
+          message: 'Si cet email existe, un lien de réinitialisation a été envoyé'
         }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    const user = existingUser.users[0];
-
-    // Get user's company from profile
-    const { data: profile, error: profileError } = await supabase
+    // 2. Récupérer le profil pour obtenir company_id
+    const { data: profile } = await supabase
       .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
+      .select('company_id, first_name, last_name')
+      .eq('id', userData.user.id)
       .single();
 
-    let userCompanyId = profile?.company_id;
-
-    // If no company in profile, try to detect from request origin
-    if (!userCompanyId) {
-      const origin = req.headers.get('origin') || req.headers.get('referer') || '';
-      console.log("Origin for company detection:", origin);
-      
-      const { data: companyFromDomain } = await supabase.rpc('detect_company_from_domain', {
-        request_origin: origin
-      });
-      
-      userCompanyId = companyFromDomain || companyId;
-    }
+    const userCompanyId = companyId || profile?.company_id;
 
     if (!userCompanyId) {
-      return new Response(
-        JSON.stringify({ error: 'Impossible de déterminer l\'entreprise' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Get company information
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('id, name, primary_color, logo_url')
-      .eq('id', userCompanyId)
-      .single();
-
-    if (companyError || !company) {
-      console.error("Erreur lors de la récupération de l'entreprise:", companyError);
       return new Response(
         JSON.stringify({ error: 'Entreprise non trouvée' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    // Generate custom token for password reset
-    const token = crypto.randomUUID();
+    // 3. Générer un token personnalisé pour la réinitialisation
+    const resetToken = crypto.randomUUID();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 2); // Expire in 2 hours (more secure)
+    expiresAt.setHours(expiresAt.getHours() + 1); // Expire dans 1 heure
 
     const { error: tokenError } = await supabase
       .from('custom_auth_tokens')
       .insert({
-        company_id: userCompanyId,
-        user_email: email,
-        token,
+        email,
+        token: resetToken,
         token_type: 'password_reset',
+        company_id: userCompanyId,
         expires_at: expiresAt.toISOString(),
         metadata: {
-          user_id: user.id
+          user_id: userData.user.id,
+          first_name: profile?.first_name,
+          last_name: profile?.last_name
         }
       });
 
     if (tokenError) {
-      console.error("Erreur lors de la création du token:", tokenError);
+      console.error('Erreur création token:', tokenError);
       return new Response(
-        JSON.stringify({ error: 'Erreur lors de la génération du lien' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Erreur lors de la génération du token' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    // Get email template for password reset
-    const { data: emailTemplate, error: templateError } = await supabase
+    // 4. Récupérer les informations de l'entreprise
+    const { data: company } = await supabase
+      .from('companies')
+      .select('name')
+      .eq('id', userCompanyId)
+      .single();
+
+    // 5. Récupérer les paramètres SMTP/Email de l'entreprise
+    const { data: smtpSettings } = await supabase
+      .from('smtp_settings')
+      .select('*')
+      .eq('company_id', userCompanyId)
+      .single();
+
+    if (!smtpSettings) {
+      console.error('Pas de paramètres SMTP trouvés pour l\'entreprise');
+      return new Response(
+        JSON.stringify({ error: 'Configuration email manquante' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // 6. Récupérer le template d'email
+    const { data: emailTemplate } = await supabase
       .from('email_templates')
-      .select('subject, html_content')
+      .select('*')
       .eq('company_id', userCompanyId)
       .eq('type', 'password_reset')
-      .eq('active', true)
       .single();
 
-    if (templateError || !emailTemplate) {
-      console.error("Template d'email non trouvé:", templateError);
-      return new Response(
-        JSON.stringify({ error: 'Configuration email manquante' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Get SMTP settings for the company
-    const { data: smtpSettings, error: smtpError } = await supabase
-      .from('smtp_settings')
-      .select('resend_api_key, from_email, from_name')
-      .eq('company_id', userCompanyId)
-      .eq('enabled', true)
-      .single();
-
-    if (smtpError || !smtpSettings) {
-      console.error("Configuration SMTP non trouvée:", smtpError);
-      return new Response(
-        JSON.stringify({ error: 'Configuration email manquante' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Prepare template variables
-    const origin = req.headers.get('origin') || req.headers.get('referer') || '';
-    const baseUrl = origin.replace(/\/$/, '');
-    const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
+    // 7. Préparer le contenu de l'email
+    const resetUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/update-password?token=${resetToken}&type=password_reset`;
     
-    const userName = user.user_metadata?.first_name 
-      ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`.trim()
-      : email.split('@')[0];
+    let emailContent = emailTemplate?.content || `
+      <h1>Réinitialisation de votre mot de passe</h1>
+      <p>Bonjour ${profile?.first_name || ''},</p>
+      <p>Vous avez demandé à réinitialiser votre mot de passe pour votre compte ${company?.name || ''}.</p>
+      <p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p>
+      <p><a href="${resetUrl}" style="background-color: #dc2626; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p>
+      <p>Ce lien expirera dans 1 heure.</p>
+      <p>Si vous n'avez pas demandé cette réinitialisation, ignorez ce message.</p>
+      <p>Cordialement,<br>L'équipe ${company?.name || ''}</p>
+    `;
 
-    const templateVariables = {
-      user_name: userName,
-      client_name: userName, // For backward compatibility
-      company_name: company.name,
-      primary_color: company.primary_color || '#3b82f6',
-      company_logo: company.logo_url || '',
-      reset_link: resetLink,
-      login_url: `${baseUrl}/login`
-    };
+    // Remplacer les variables dans le template
+    emailContent = emailContent
+      .replace(/\{\{first_name\}\}/g, profile?.first_name || '')
+      .replace(/\{\{last_name\}\}/g, profile?.last_name || '')
+      .replace(/\{\{email\}\}/g, email)
+      .replace(/\{\{company_name\}\}/g, company?.name || '')
+      .replace(/\{\{reset_url\}\}/g, resetUrl);
 
-    // Render email content
-    const { data: renderedSubject } = await supabase.rpc('render_email_template', {
-      template_content: emailTemplate.subject,
-      variables: templateVariables
-    });
-
-    const { data: renderedContent } = await supabase.rpc('render_email_template', {
-      template_content: emailTemplate.html_content,
-      variables: templateVariables
-    });
-
-    // Send email using Resend
-    const resend = new Resend(smtpSettings.resend_api_key);
-    
-    const emailResponse = await resend.emails.send({
-      from: `${smtpSettings.from_name} <${smtpSettings.from_email}>`,
+    // 8. Envoyer l'email via Resend
+    const emailResult = await resend.emails.send({
+      from: smtpSettings.from_email || 'noreply@leazr.co',
       to: [email],
-      subject: renderedSubject || emailTemplate.subject,
-      html: renderedContent || emailTemplate.html_content
+      subject: emailTemplate?.subject || 'Réinitialisation de votre mot de passe',
+      html: emailContent,
     });
 
-    console.log("Email de réinitialisation envoyé:", emailResponse);
+    console.log('Email de réinitialisation envoyé:', emailResult);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Si cette adresse email existe, vous recevrez un lien de réinitialisation.'
+      JSON.stringify({ 
+        success: true, 
+        message: 'Un email de réinitialisation a été envoyé via Resend'
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       }
     );
 
-  } catch (error) {
-    console.error("Erreur dans custom-password-reset:", error);
+  } catch (error: any) {
+    console.error('Erreur dans custom-password-reset:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Erreur interne du serveur',
-        details: error.message 
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       }
     );
   }
-});
+};
+
+serve(handler);

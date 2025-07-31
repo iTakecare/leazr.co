@@ -14,3 +14,15 @@ verify_jwt = true
 
 [functions.generate-auth-link]
 verify_jwt = false
+
+[functions.create-account-custom]
+verify_jwt = false
+
+[functions.custom-login]
+verify_jwt = false
+
+[functions.custom-password-reset] 
+verify_jwt = false
+
+[functions.update-password-custom]
+verify_jwt = false

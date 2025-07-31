@@ -69,13 +69,17 @@ export const createUserAccount = async (
       metadata.client_id = entity.id;
     }
     
-    // Utiliser l'API Admin pour créer l'utilisateur sans envoyer d'email automatique
-    const adminClient = getAdminSupabaseClient();
-    const { data, error: createError } = await adminClient.auth.admin.createUser({
-      email: entity.email,
-      password: tempPassword,
-      user_metadata: metadata,
-      email_confirm: false // L'utilisateur n'a pas besoin de confirmer son email
+    // Utiliser notre edge function personnalisée pour créer le compte avec Resend
+    const { data, error: createError } = await supabase.functions.invoke('create-account-custom', {
+      body: {
+        email: entity.email,
+        entityType: userType,
+        entityId: entity.id,
+        companyId: (entity as any).company_id,
+        firstName: entity.name?.split(' ')[0] || '',
+        lastName: entity.name?.split(' ').slice(1).join(' ') || '',
+        role: userType
+      }
     });
     
     if (createError) {
@@ -84,44 +88,16 @@ export const createUserAccount = async (
       return false;
     }
     
-    if (!data || !data.user) {
-      console.error("Création de l'utilisateur n'a pas retourné les données attendues");
-      toast.error("Erreur lors de la création du compte");
+    if (!data || !data.success) {
+      console.error("Erreur lors de la création du compte:", data?.error || "Réponse inattendue");
+      toast.error(`Erreur: ${data?.error || "Erreur lors de la création du compte"}`);
       return false;
     }
     
-    console.log("Utilisateur créé avec succès (sans email automatique):", data.user.id);
+    console.log("Utilisateur créé avec succès via notre edge function:", data.user_id);
     
-    // Update the entity with the user ID in the database
-    const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
-    
-    const { error: updateError } = await supabase
-      .from(tableName)
-      .update({
-        has_user_account: true,
-        user_account_created_at: new Date().toISOString(),
-        user_id: data.user.id
-      })
-      .eq('id', entity.id);
-    
-    if (updateError) {
-      console.error(`Erreur lors de la mise à jour du ${userType}:`, updateError);
-      toast.error(`Erreur lors de la mise à jour: ${updateError.message}`);
-      return false;
-    }
-    
-    // Générer un lien personnalisé sans déclencher d'email Supabase
-    // Utiliser un token personnalisé pour la réinitialisation
-    const resetToken = btoa(JSON.stringify({
-      email: entity.email,
-      timestamp: Date.now(),
-      type: 'password_reset'
-    }));
-    
-    const resetLink = `${window.location.origin}/update-password?token=${resetToken}&email=${encodeURIComponent(entity.email)}`;
-    
-    // Envoyer uniquement l'email d'invitation personnalisé avec le lien de réinitialisation
-    await sendInvitationEmail(entity.email, entity.name, userType, resetLink);
+    // L'edge function s'occupe déjà de mettre à jour l'entité et d'envoyer l'email
+    // Pas besoin de faire des opérations supplémentaires ici
     
     toast.success(`Compte ${userType} créé et invitation envoyée`);
     return true;
@@ -137,20 +113,24 @@ export const createUserAccount = async (
  */
 export const resetPassword = async (email: string): Promise<boolean> => {
   try {
-    // Utiliser l'URL complète pour la redirection vers la page de mise à jour du mot de passe
-    const redirectUrl = `${window.location.origin}/update-password`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
+    // Utiliser notre edge function personnalisée pour la réinitialisation via Resend
+    const { data, error } = await supabase.functions.invoke('custom-password-reset', {
+      body: { email }
     });
     
     if (error) {
-      console.error("Error sending reset password email:", error);
+      console.error("Error sending custom reset password email:", error);
       toast.error(`Erreur: ${error.message}`);
       return false;
     }
     
-    toast.success("Email de réinitialisation envoyé avec succès");
+    if (!data || !data.success) {
+      console.error("Erreur lors de la réinitialisation:", data?.error || "Réponse inattendue");
+      toast.error(`Erreur: ${data?.error || "Erreur lors de la réinitialisation"}`);
+      return false;
+    }
+    
+    toast.success("Email de réinitialisation envoyé avec succès via Resend");
     return true;
   } catch (error) {
     console.error("Error in resetPassword:", error);

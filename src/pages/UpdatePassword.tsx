@@ -119,21 +119,33 @@ const UpdatePassword = () => {
           toast.error("Erreur lors de la vérification du token");
           navigate('/login');
         }
-      } else if (customToken && email) {
+      } else if (customToken) {
         console.log("UpdatePassword - Token personnalisé détecté");
-        // Gérer les tokens personnalisés (pour les invitations iTakecare)
+        // Vérifier notre token personnalisé dans la base de données
         try {
-          const decodedToken = JSON.parse(atob(customToken));
-          if (decodedToken.email === email && decodedToken.type === 'password_reset') {
-            console.log("Token personnalisé valide");
-            setSessionReady(true);
-            setIsAuthenticating(false);
-          } else {
-            throw new Error("Token invalide");
+          const { data: tokenData, error: tokenError } = await supabase
+            .from('custom_auth_tokens')
+            .select('*')
+            .eq('token', customToken)
+            .eq('used_at', null)
+            .gt('expires_at', new Date().toISOString())
+            .single();
+
+          if (tokenError || !tokenData) {
+            console.error("Token personnalisé invalide ou expiré:", tokenError);
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            navigate('/login');
+            return;
           }
+
+          console.log("Token personnalisé valide:", tokenData);
+          // Stocker les données du token pour utilisation lors de la mise à jour
+          sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
+          setSessionReady(true);
+          setIsAuthenticating(false);
         } catch (err) {
-          console.error("Erreur lors du décodage du token personnalisé:", err);
-          toast.error("Lien de réinitialisation invalide");
+          console.error("Erreur lors de la vérification du token personnalisé:", err);
+          toast.error("Erreur lors de la vérification du token");
           navigate('/login');
         }
       } else if (currentSession) {
@@ -184,40 +196,34 @@ const UpdatePassword = () => {
     try {
       console.log("Tentative de mise à jour du mot de passe");
       
-      // Si c'est un token personnalisé avec email, connecter l'utilisateur d'abord
-      if (customToken && email) {
-        console.log("Connexion avec l'email pour mise à jour du mot de passe");
+      // Si c'est un token personnalisé, utiliser notre edge function pour mettre à jour le mot de passe
+      if (customToken) {
+        console.log("Mise à jour mot de passe avec token personnalisé");
         
-        // Se connecter d'abord avec l'email et un mot de passe temporaire pour établir la session
-        // Puis mettre à jour le mot de passe
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: password
+        const tokenData = JSON.parse(sessionStorage.getItem('custom_token_data') || '{}');
+        
+        // Utiliser notre edge function pour mettre à jour le mot de passe
+        const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
+          body: {
+            token: customToken,
+            password: password,
+            email: tokenData.email
+          }
         });
 
-        if (updateError) {
-          // Si la mise à jour échoue, essayer de se connecter d'abord
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: 'temp123!' // Mot de passe temporaire utilisé lors de la création
-          });
-          
-          if (!signInError) {
-            // Maintenant mettre à jour le mot de passe
-            const { error: finalUpdateError } = await supabase.auth.updateUser({
-              password: password
-            });
-            
-            if (finalUpdateError) {
-              console.error("Erreur lors de la mise à jour finale du mot de passe:", finalUpdateError);
-              toast.error('Erreur lors de la mise à jour du mot de passe: ' + finalUpdateError.message);
-              return;
-            }
-          } else {
-            console.error("Erreur lors de la connexion:", signInError);
-            toast.error('Erreur lors de la connexion: ' + signInError.message);
-            return;
-          }
+        if (updateError || !updateData?.success) {
+          console.error("Erreur lors de la mise à jour du mot de passe:", updateError);
+          toast.error(`Erreur: ${updateData?.error || updateError?.message || 'Erreur inconnue'}`);
+          return;
         }
+
+        // Marquer le token comme utilisé
+        await supabase
+          .from('custom_auth_tokens')
+          .update({ used_at: new Date().toISOString() })
+          .eq('token', customToken);
+
+        sessionStorage.removeItem('custom_token_data');
       } else {
         // Cas normal avec session Supabase
         const { error } = await supabase.auth.updateUser({
