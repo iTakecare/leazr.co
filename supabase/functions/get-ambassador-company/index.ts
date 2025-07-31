@@ -44,7 +44,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('custom_auth_tokens')
       .select('*')
       .eq('token', token)
-      .eq('token_type', 'password_reset')
+      .in('token_type', ['password_reset', 'invitation'])
       .is('used_at', null)
       .gt('expires_at', new Date().toISOString())
       .single();
