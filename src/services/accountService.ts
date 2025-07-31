@@ -114,19 +114,24 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Générer un lien de réinitialisation de mot de passe
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
-      redirectTo: `${window.location.origin}/update-password`
+    // Générer un lien de réinitialisation avec l'API Admin (sans email automatique)
+    const adminClient = getAdminSupabaseClient();
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'recovery',
+      email: entity.email,
+      options: {
+        redirectTo: `${window.location.origin}/update-password`
+      }
     });
     
-    if (resetError) {
-      console.error("Erreur lors de la génération du lien de réinitialisation:", resetError);
+    if (linkError || !linkData?.properties?.action_link) {
+      console.error("Erreur lors de la génération du lien d'authentification:", linkError);
       toast.error("Erreur lors de l'envoi de l'invitation");
       return false;
     }
     
-    // Envoyer uniquement l'email d'invitation personnalisé 
-    await sendInvitationEmail(entity.email, entity.name, userType, `${window.location.origin}/update-password`);
+    // Envoyer uniquement l'email d'invitation personnalisé avec le lien généré
+    await sendInvitationEmail(entity.email, entity.name, userType, linkData.properties.action_link);
     
     toast.success(`Compte ${userType} créé et invitation envoyée`);
     return true;
