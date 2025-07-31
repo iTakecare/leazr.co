@@ -114,53 +114,24 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Générer un lien de création de mot de passe au lieu d'envoyer un email de bienvenue
-    try {
-      const { data: authLink, error: linkError } = await supabase.functions.invoke('generate-auth-link', {
-        body: {
-          email: entity.email,
-          type: 'invite',
-          redirectTo: `${window.location.origin}/login`
-        }
-      });
-      
-      if (linkError) {
-        console.error("Erreur lors de la génération du lien d'invitation:", linkError);
-        // En cas d'erreur, envoyer un email de réinitialisation
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
-          redirectTo: `${window.location.origin}/update-password`,
-        });
-        
-        if (resetError) {
-          console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
-          toast.error("Erreur lors de l'envoi de l'invitation");
-          return false;
-        }
-        
-        toast.success(`Compte ${userType} créé et email d'invitation envoyé`);
-      } else {
-        console.log("Lien d'invitation généré:", authLink);
-        
-        // Envoyer l'email d'invitation avec le lien personnalisé
-        await sendInvitationEmail(entity.email, entity.name, userType, authLink?.properties?.action_link);
-        
-        toast.success(`Compte ${userType} créé et invitation envoyée`);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la génération du lien:", error);
-      // Fallback: envoyer un email de réinitialisation
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
-      
-      if (resetError) {
-        console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
-        toast.error("Erreur lors de l'envoi de l'invitation");
-        return false;
-      }
-      
-      toast.success(`Compte ${userType} créé et email d'invitation envoyé`);
+    // Générer un lien de réinitialisation et envoyer les emails personnalisés
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    });
+    
+    if (resetError) {
+      console.error("Erreur lors de l'envoi de l'email de réinitialisation:", resetError);
+      toast.error("Erreur lors de l'envoi de l'invitation");
+      return false;
     }
+    
+    // Envoyer l'email d'invitation personnalisé
+    await sendInvitationEmail(entity.email, entity.name, userType, `${window.location.origin}/update-password`);
+    
+    // Envoyer l'email de bienvenue
+    await sendWelcomeEmail(entity.email, entity.name, userType);
+    
+    toast.success(`Compte ${userType} créé et emails d'invitation envoyés`);
     return true;
   } catch (error) {
     console.error(`Erreur dans createUserAccount:`, error);
