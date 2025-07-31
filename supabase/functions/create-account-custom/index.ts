@@ -124,14 +124,14 @@ const handler = async (req: Request): Promise<Response> => {
         user_email: email,
         token: activationToken,
         token_type: 'invitation',
+        company_id: companyId, // Colonne obligatoire dans la table
         expires_at: expiresAt.toISOString(),
         metadata: {
           user_id: userData.user.id,
           first_name: firstName,
           last_name: lastName,
           entity_type: entityType,
-          entity_id: entityId,
-          company_id: companyId
+          entity_id: entityId
         }
       });
 
@@ -161,12 +161,14 @@ const handler = async (req: Request): Promise<Response> => {
     if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
       console.log('Utilisation de la clé API Resend de l\'entreprise');
       console.log('Clé API entreprise (masquée):', smtpSettings.resend_api_key.substring(0, 8) + '...');
-      resendApiKey = smtpSettings.resend_api_key;
+      console.log('Clé API entreprise (complète):', smtpSettings.resend_api_key); // Log complet pour debug
+      resendApiKey = smtpSettings.resend_api_key.trim(); // Nettoyer les espaces
       fromEmail = smtpSettings.from_email || fromEmail;
       fromName = smtpSettings.from_name || fromName;
     } else {
       console.log('Utilisation de la clé API Resend de fallback (LEAZR_RESEND_API)');
       console.log('Clé API fallback (masquée):', resendApiKey ? resendApiKey.substring(0, 8) + '...' : 'non définie');
+      console.log('Clé API fallback (complète):', resendApiKey); // Log complet pour debug
     }
 
     if (!resendApiKey) {
