@@ -129,7 +129,7 @@ const UpdatePassword = () => {
             .from('custom_auth_tokens')
             .select('*')
             .eq('token', customToken)
-            .eq('used_at', null)
+            .is('used_at', null)
             .gt('expires_at', new Date().toISOString())
             .single();
 
