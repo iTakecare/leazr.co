@@ -46,10 +46,19 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 2. Récupérer l'utilisateur par email
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+    const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
     
-    if (userError || !userData.user) {
-      console.error("Utilisateur non trouvé:", userError);
+    if (userError || !usersData.users) {
+      console.error("Erreur lors de la récupération des utilisateurs:", userError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur lors de la récupération des utilisateurs' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    const user = usersData.users.find(u => u.email === email);
+    if (!user) {
+      console.error("Utilisateur non trouvé avec l'email:", email);
       return new Response(
         JSON.stringify({ error: 'Utilisateur non trouvé' }),
         { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -58,7 +67,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 3. Mettre à jour le mot de passe avec l'API Admin
     const { error: updateError } = await supabase.auth.admin.updateUserById(
-      userData.user.id,
+      user.id,
       { password: password }
     );
 

@@ -39,6 +39,14 @@ const handler = async (req: Request): Promise<Response> => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // First, let's check if the token exists at all
+    const { data: tokenCheck, error: tokenCheckError } = await supabase
+      .from('custom_auth_tokens')
+      .select('*')
+      .eq('token', token);
+
+    console.log('🔍 get-ambassador-company: Token check result:', { tokenCheck, tokenCheckError });
+
     // Verify the custom token
     const { data: tokenData, error: tokenError } = await supabase
       .from('custom_auth_tokens')
@@ -48,6 +56,8 @@ const handler = async (req: Request): Promise<Response> => {
       .is('used_at', null)
       .gt('expires_at', new Date().toISOString())
       .single();
+
+    console.log('🔍 get-ambassador-company: Full token validation result:', { tokenData, tokenError });
 
     if (tokenError || !tokenData) {
       console.error('❌ get-ambassador-company: Invalid or expired token:', tokenError);
