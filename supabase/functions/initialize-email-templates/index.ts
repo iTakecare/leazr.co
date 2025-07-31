@@ -23,189 +23,405 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
     
-    // Modèles d'email à initialiser
+    // Modèles d'email à initialiser avec design responsive et optimisé
     const templates = [
+      {
+        type: 'password_reset',
+        name: 'Réinitialisation de mot de passe',
+        subject: 'Réinitialisation de votre mot de passe',
+        html_content: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réinitialisation de mot de passe</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .email-content { padding: 20px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <img src="{{company_logo}}" alt="iTakecare" style="max-height: 50px; width: auto; margin-bottom: 15px;">
+              <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 300;">Réinitialisation de mot de passe</h1>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-content" style="padding: 40px 30px;">
+              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                Bonjour,<br><br>
+                Vous avez demandé la réinitialisation de votre mot de passe. Pour des raisons de sécurité, ce lien expire dans 24 heures.
+              </p>
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="{{reset_link}}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">Réinitialiser mon mot de passe</a>
+              </div>
+              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #667eea;">
+                <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.5;">
+                  <strong>Lien de secours :</strong><br>
+                  Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+                  <span style="word-break: break-all; color: #667eea;">{{reset_link}}</span>
+                </p>
+              </div>
+              <p style="color: #888888; font-size: 14px; line-height: 1.5; margin-top: 30px;">
+                Si vous n'avez pas demandé cette réinitialisation, ignorez simplement cet email. Votre mot de passe restera inchangé.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 25px 30px; text-align: center; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+              <p style="color: #888888; font-size: 12px; margin: 0;">
+                © 2024 iTakecare. Tous droits réservés.<br>
+                Plateforme de gestion de leasing professionnel
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+        active: true
+      },
       {
         type: 'welcome',
         name: 'Email de bienvenue',
-        subject: 'Bienvenue sur iTakecare, {{client_name}} !',
+        subject: 'Bienvenue sur iTakecare - Votre plateforme de leasing',
         html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue sur iTakecare !</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Nous sommes ravis de vous accueillir sur la plateforme iTakecare.</p>
-          <p>Votre compte a été créé avec succès. Vous recevrez prochainement un email pour définir votre mot de passe.</p>
-          <p>Une fois connecté, vous pourrez suivre vos demandes de financement, consulter vos équipements et gérer vos contrats.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bienvenue sur iTakecare</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .email-content { padding: 20px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+              <img src="{{company_logo}}" alt="iTakecare" style="max-height: 50px; width: auto; margin-bottom: 15px;">
+              <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 300;">Bienvenue sur iTakecare !</h1>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-content" style="padding: 40px 30px;">
+              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                Bonjour {{user_name}},<br><br>
+                Félicitations ! Votre compte iTakecare a été créé avec succès. Vous avez maintenant accès à notre plateforme complète de gestion de leasing.
+              </p>
+              <div style="background-color: #f0fdf4; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #10b981;">
+                <h3 style="color: #059669; margin-top: 0; font-size: 18px;">🎉 Votre compte est prêt !</h3>
+                <ul style="color: #047857; margin: 15px 0; padding-left: 20px;">
+                  <li>Créez et gérez vos offres de leasing</li>
+                  <li>Suivez vos contrats en temps réel</li>
+                  <li>Accédez aux outils de gestion client</li>
+                  <li>Consultez vos rapports et statistiques</li>
+                </ul>
+              </div>
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="{{platform_url}}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">Accéder à ma plateforme</a>
+              </div>
+              <p style="color: #888888; font-size: 14px; line-height: 1.5; margin-top: 30px;">
+                Besoin d'aide ? Notre équipe support est disponible à <a href="mailto:support@itakecare.be" style="color: #10b981;">support@itakecare.be</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 25px 30px; text-align: center; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+              <p style="color: #888888; font-size: 12px; margin: 0;">
+                © 2024 iTakecare. Tous droits réservés.<br>
+                Votre partenaire de confiance en leasing professionnel
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
         active: true
       },
       {
-        type: 'password_reset',
-        name: 'Réinitialisation du mot de passe',
-        subject: 'Réinitialisation de votre mot de passe iTakecare',
+        type: 'offer_notification',
+        name: 'Notification d\'offre de leasing',
+        subject: 'Votre offre de leasing personnalisée est prête',
         html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Réinitialisation de mot de passe</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte iTakecare.</p>
-          <p>Veuillez cliquer sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="{{reset_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Réinitialiser mon mot de passe</a>
-          </div>
-          <p>Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.</p>
-          <p>Ce lien est valable pour une durée de 24 heures.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nouvelle offre de leasing</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .email-content { padding: 20px !important; }
+      .offer-details { padding: 15px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+              <img src="{{company_logo}}" alt="iTakecare" style="max-height: 50px; width: auto; margin-bottom: 15px;">
+              <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 300;">Votre offre de leasing</h1>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-content" style="padding: 40px 30px;">
+              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                Bonjour {{client_name}},<br><br>
+                Excellente nouvelle ! Nous avons préparé une offre de leasing personnalisée qui correspond parfaitement à vos besoins.
+              </p>
+              <div class="offer-details" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #cbd5e1;">
+                <h3 style="color: #1e293b; margin-top: 0; font-size: 20px; text-align: center;">📋 Détails de votre offre</h3>
+                <table width="100%" style="border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #475569; font-weight: 600;">💰 Montant total :</td>
+                    <td style="padding: 8px 0; color: #1e293b; font-weight: 700; text-align: right;">{{offer_amount}}€</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #475569; font-weight: 600;">📅 Paiement mensuel :</td>
+                    <td style="padding: 8px 0; color: #059669; font-weight: 700; text-align: right;">{{monthly_payment}}€/mois</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #475569; font-weight: 600;">🔧 Équipement :</td>
+                    <td style="padding: 8px 0; color: #1e293b; text-align: right;">{{equipment_description}}</td>
+                  </tr>
+                </table>
+              </div>
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="{{offer_url}}" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">Consulter mon offre</a>
+              </div>
+              <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+                <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.5;">
+                  ⏰ <strong>Offre valide 30 jours</strong> - N'attendez pas pour en profiter !
+                </p>
+              </div>
+              <p style="color: #888888; font-size: 14px; line-height: 1.5; margin-top: 30px;">
+                Des questions ? Contactez directement votre conseiller ou notre équipe support.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 25px 30px; text-align: center; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+              <p style="color: #888888; font-size: 12px; margin: 0;">
+                © 2024 iTakecare. Tous droits réservés.<br>
+                Solutions de leasing sur mesure pour votre entreprise
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
         active: true
       },
       {
-        type: 'new_account',
-        name: 'Création de compte',
-        subject: 'Votre compte iTakecare a été créé',
+        type: 'contract_signed',
+        name: 'Confirmation de signature de contrat',
+        subject: '✅ Contrat signé avec succès - Bienvenue chez iTakecare',
         html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre compte iTakecare est prêt !</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Nous sommes heureux de vous informer que votre compte iTakecare a été créé avec succès.</p>
-          <p>Pour définir votre mot de passe et accéder à votre espace personnel, veuillez cliquer sur le bouton ci-dessous :</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="{{account_creation_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Activer mon compte</a>
-          </div>
-          <p>Une fois connecté, vous pourrez suivre vos demandes de financement et gérer vos équipements en leasing.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrat signé avec succès</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .email-content { padding: 20px !important; }
+      .contract-details { padding: 15px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+              <img src="{{company_logo}}" alt="iTakecare" style="max-height: 50px; width: auto; margin-bottom: 15px;">
+              <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 300;">✅ Contrat validé !</h1>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-content" style="padding: 40px 30px;">
+              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                Bonjour {{client_name}},<br><br>
+                Félicitations ! Votre contrat de leasing a été signé électroniquement avec succès le {{signature_date}}. Nous vous remercions de votre confiance.
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <div style="display: inline-block; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 20px; border-radius: 50px; margin-bottom: 20px;">
+                  <div style="font-size: 48px;">🎉</div>
+                </div>
+                <h2 style="color: #059669; margin: 0; font-size: 24px;">Contrat activé</h2>
+              </div>
+              <div class="contract-details" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #10b981;">
+                <h3 style="color: #047857; margin-top: 0; font-size: 18px; text-align: center;">📄 Récapitulatif du contrat</h3>
+                <table width="100%" style="border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #065f46; font-weight: 600;">📋 Numéro :</td>
+                    <td style="padding: 8px 0; color: #047857; font-weight: 700; text-align: right;">{{contract_number}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #065f46; font-weight: 600;">💰 Montant total :</td>
+                    <td style="padding: 8px 0; color: #047857; font-weight: 700; text-align: right;">{{contract_amount}}€</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #065f46; font-weight: 600;">📅 Durée :</td>
+                    <td style="padding: 8px 0; color: #047857; font-weight: 700; text-align: right;">{{contract_duration}} mois</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #065f46; font-weight: 600;">✍️ Signé le :</td>
+                    <td style="padding: 8px 0; color: #047857; font-weight: 700; text-align: right;">{{signature_date}}</td>
+                  </tr>
+                </table>
+              </div>
+              <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+                <h4 style="color: #1e40af; margin-top: 0; font-size: 16px;">📬 Prochaines étapes</h4>
+                <ul style="color: #1e3a8a; margin: 10px 0; padding-left: 20px; line-height: 1.6;">
+                  <li>Vous recevrez une copie PDF du contrat signé</li>
+                  <li>Notre équipe vous contactera pour organiser la livraison</li>
+                  <li>Votre espace client sera mis à jour avec les détails</li>
+                </ul>
+              </div>
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="{{contract_url}}" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">Consulter mon contrat</a>
+              </div>
+              <p style="color: #888888; font-size: 14px; line-height: 1.5; margin-top: 30px;">
+                Questions ? Contactez votre conseiller ou notre support à <a href="mailto:support@itakecare.be" style="color: #10b981;">support@itakecare.be</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 25px 30px; text-align: center; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+              <p style="color: #888888; font-size: 12px; margin: 0;">
+                © 2024 iTakecare. Tous droits réservés.<br>
+                Merci de votre confiance pour vos solutions de leasing
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
         active: true
       },
       {
-        type: 'offer_ready',
-        name: 'Offre prête à consulter',
-        subject: 'Votre offre de financement est prête - iTakecare',
+        type: 'invoice_reminder',
+        name: 'Rappel d\'échéance de paiement',
+        subject: '⏰ Rappel : Échéance de paiement dans 3 jours',
         html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre offre de financement est prête</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Nous avons le plaisir de vous informer que votre offre de financement pour <strong>{{equipment_description}}</strong> est maintenant prête à être consultée.</p>
-          
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin-top: 0;"><strong>Récapitulatif de l'offre :</strong></p>
-            <p>- Équipement : {{equipment_description}}</p>
-            <p>- Montant total : {{amount}} €</p>
-            <p>- Paiement mensuel : {{monthly_payment}} €</p>
-          </div>
-          
-          <p>Pour consulter les détails complets de votre offre et la valider, veuillez cliquer sur le bouton ci-dessous :</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="{{offer_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Consulter mon offre</a>
-          </div>
-          <p>Si vous avez des questions concernant cette offre, n'hésitez pas à nous contacter.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      },
-      {
-        type: 'document_request',
-        name: 'Demande de documents',
-        subject: 'Documents requis pour finaliser votre offre iTakecare',
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Documents complémentaires requis</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Afin de finaliser l'analyse de votre dossier pour le financement de <strong>{{equipment_description}}</strong>, nous avons besoin des documents suivants :</p>
-          
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin-top: 0;"><strong>Documents à fournir :</strong></p>
-            <ul style="padding-left: 20px;">
-              {{requested_documents}}
-            </ul>
-          </div>
-          
-          <p>{{custom_message}}</p>
-          
-          <p>Vous pouvez nous transmettre ces documents en répondant directement à cet email ou en les téléchargeant dans votre espace client.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="{{client_portal_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accéder à mon espace client</a>
-          </div>
-          <p>Nous vous remercions pour votre coopération et restons à votre disposition pour toute question.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      },
-      {
-        type: 'offer_accepted',
-        name: 'Offre acceptée',
-        subject: 'Confirmation - Votre offre iTakecare a été acceptée',
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre offre a été acceptée !</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Nous avons le plaisir de vous informer que votre offre de financement pour <strong>{{equipment_description}}</strong> a été acceptée par notre équipe.</p>
-          
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin-top: 0;"><strong>Détails de l'offre :</strong></p>
-            <p>- Équipement : {{equipment_description}}</p>
-            <p>- Montant total : {{amount}} €</p>
-            <p>- Paiement mensuel : {{monthly_payment}} €</p>
-            <p>- Date d'acceptation : {{date}}</p>
-          </div>
-          
-          <p>Les prochaines étapes pour finaliser votre contrat vous seront communiquées très prochainement.</p>
-          <p>Vous pouvez suivre l'avancement de votre dossier dans votre espace client :</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="{{client_portal_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accéder à mon espace client</a>
-          </div>
-          <p>Nous vous remercions pour votre confiance et restons à votre disposition pour toute question.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      },
-      {
-        type: 'offer_rejected',
-        name: 'Offre refusée',
-        subject: 'Information concernant votre demande de financement iTakecare',
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Statut de votre demande de financement</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Suite à l'étude de votre dossier pour le financement de <strong>{{equipment_description}}</strong>, nous regrettons de vous informer que nous ne sommes pas en mesure de donner une suite favorable à votre demande actuelle.</p>
-          <p>Nos conseillers restent à votre disposition pour discuter des alternatives possibles ou pour étudier une nouvelle demande avec des conditions différentes.</p>
-          <p>N'hésitez pas à nous contacter pour plus d'informations.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
-        active: true
-      },
-      {
-        type: 'contract_ready',
-        name: 'Contrat prêt à signer',
-        subject: 'Votre contrat de financement est prêt à signer - iTakecare',
-        html_content: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Votre contrat est prêt à signer</h2>
-          <p>Bonjour {{client_name}},</p>
-          <p>Nous avons le plaisir de vous informer que votre contrat de financement pour <strong>{{equipment_description}}</strong> est maintenant prêt à être signé.</p>
-          
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin-top: 0;"><strong>Récapitulatif du contrat :</strong></p>
-            <p>- Équipement : {{equipment_description}}</p>
-            <p>- Montant total : {{amount}} €</p>
-            <p>- Paiement mensuel : {{monthly_payment}} €</p>
-          </div>
-          
-          <p>Pour consulter et signer votre contrat, veuillez cliquer sur le bouton ci-dessous :</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="{{contract_link}}" style="background-color: #2d618f; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Consulter et signer mon contrat</a>
-          </div>
-          <p>Si vous avez des questions concernant ce contrat, n'hésitez pas à nous contacter.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
-        </div>
-        `,
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rappel échéance de paiement</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .email-content { padding: 20px !important; }
+      .invoice-details { padding: 15px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+              <img src="{{company_logo}}" alt="iTakecare" style="max-height: 50px; width: auto; margin-bottom: 15px;">
+              <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 300;">⏰ Rappel de paiement</h1>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-content" style="padding: 40px 30px;">
+              <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                Bonjour {{client_name}},<br><br>
+                Nous vous rappelons qu'une échéance de paiement arrive bientôt. Pour éviter tout frais de retard, merci de procéder au règlement avant la date limite.
+              </p>
+              <div class="invoice-details" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+                <h3 style="color: #92400e; margin-top: 0; font-size: 18px; text-align: center;">📄 Facture à régler</h3>
+                <table width="100%" style="border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #78350f; font-weight: 600;">📋 Numéro :</td>
+                    <td style="padding: 8px 0; color: #92400e; font-weight: 700; text-align: right;">{{invoice_number}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #78350f; font-weight: 600;">💰 Montant :</td>
+                    <td style="padding: 8px 0; color: #92400e; font-weight: 700; text-align: right;">{{invoice_amount}}€</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #78350f; font-weight: 600;">📅 Échéance :</td>
+                    <td style="padding: 8px 0; color: #dc2626; font-weight: 700; text-align: right;">{{due_date}}</td>
+                  </tr>
+                </table>
+              </div>
+              <div style="background-color: #fee2e2; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ef4444;">
+                <p style="color: #dc2626; font-size: 14px; margin: 0; line-height: 1.5;">
+                  ⚠️ <strong>Important :</strong> Des frais de retard peuvent s'appliquer après la date d'échéance.
+                </p>
+              </div>
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="{{payment_url}}" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);">Régler maintenant</a>
+              </div>
+              <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0ea5e9;">
+                <h4 style="color: #0c4a6e; margin-top: 0; font-size: 16px;">💳 Moyens de paiement acceptés</h4>
+                <p style="color: #075985; margin: 10px 0; line-height: 1.6;">
+                  • Virement bancaire • Prélèvement automatique • Paiement en ligne sécurisé
+                </p>
+              </div>
+              <p style="color: #888888; font-size: 14px; line-height: 1.5; margin-top: 30px;">
+                Paiement déjà effectué ? Merci d'ignorer ce message. Pour toute question : <a href="mailto:finance@itakecare.be" style="color: #f59e0b;">finance@itakecare.be</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 25px 30px; text-align: center; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+              <p style="color: #888888; font-size: 12px; margin: 0;">
+                © 2024 iTakecare. Tous droits réservés.<br>
+                Service comptabilité et recouvrement
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
         active: true
       }
     ];
