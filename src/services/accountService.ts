@@ -51,10 +51,8 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Au lieu de créer directement un compte, on va utiliser le système de génération de lien auth
-    // pour permettre au client de créer son propre mot de passe
-    
-    // D'abord, créer un utilisateur temporaire avec un mot de passe aléatoire
+    // Créer le compte utilisateur avec l'API Admin (sans email automatique)
+    const adminClient = getAdminSupabaseClient();
     const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
     
     // Important: Set proper role in user_metadata 
@@ -72,14 +70,12 @@ export const createUserAccount = async (
       metadata.client_id = entity.id;
     }
     
-    // Create the user account with temporary password
-    const { data, error: createError } = await supabase.auth.signUp({
+    // Créer l'utilisateur avec l'API Admin (aucun email automatique envoyé)
+    const { data, error: createError } = await adminClient.auth.admin.createUser({
       email: entity.email,
       password: tempPassword,
-      options: {
-        data: metadata,
-        emailRedirectTo: `${window.location.origin}/login`
-      }
+      email_confirm: true, // Confirmer l'email directement
+      user_metadata: metadata
     });
     
     if (createError) {
@@ -94,7 +90,7 @@ export const createUserAccount = async (
       return false;
     }
     
-    console.log("Utilisateur créé avec succès:", data.user.id);
+    console.log("Utilisateur créé avec succès (sans email automatique):", data.user.id);
     
     // Update the entity with the user ID in the database
     const tableName = userType === "partner" ? "partners" : userType === "ambassador" ? "ambassadors" : "clients";
@@ -115,7 +111,6 @@ export const createUserAccount = async (
     }
     
     // Générer un lien de réinitialisation avec l'API Admin (sans email automatique)
-    const adminClient = getAdminSupabaseClient();
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'recovery',
       email: entity.email,
