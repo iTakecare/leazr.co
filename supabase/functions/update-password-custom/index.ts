@@ -66,15 +66,26 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 3. Mettre à jour le mot de passe avec l'API Admin
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
       user.id,
       { password: password }
     );
 
     if (updateError) {
       console.error("Erreur lors de la mise à jour du mot de passe:", updateError);
+      
+      // Gestion spécifique de l'erreur de mot de passe faible
+      if (updateError.message?.includes('weak') || updateError.message?.includes('pwned')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Le mot de passe est trop faible ou compromis. Veuillez choisir un mot de passe plus complexe avec au moins 8 caractères, incluant majuscules, minuscules, chiffres et caractères spéciaux.' 
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Erreur lors de la mise à jour du mot de passe' }),
+        JSON.stringify({ error: 'Erreur lors de la mise à jour du mot de passe: ' + updateError.message }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }

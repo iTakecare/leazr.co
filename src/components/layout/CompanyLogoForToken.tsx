@@ -54,22 +54,25 @@ const CompanyLogoForToken: React.FC<CompanyLogoForTokenProps> = ({
       }
 
       try {
-        console.log("📡 CompanyLogoForToken - Fetching company customizations...");
-        const { data, error } = await supabase
-          .from('company_customizations')
-          .select('logo_url, company_name')
-          .eq('company_id', companyId)
-          .single();
+        console.log("📡 CompanyLogoForToken - Using edge function to fetch company logo...");
+        const { data, error } = await supabase.functions.invoke('get-company-logo', {
+          body: { company_id: companyId }
+        });
 
-        console.log("📊 CompanyLogoForToken - Query result:", { data, error });
+        console.log("📊 CompanyLogoForToken - Edge function result:", { data, error });
 
         if (error) {
-          console.error('❌ CompanyLogoForToken - Error fetching company data:', error);
+          console.error('❌ CompanyLogoForToken - Error from edge function:', error);
           setCompanyData(null);
-        } else {
+        } else if (data?.success && (data.logo_url || data.company_name)) {
           console.log("✅ CompanyLogoForToken - Company data received:", data);
-          console.log("🖼️ CompanyLogoForToken - Logo URL:", data?.logo_url);
-          setCompanyData(data);
+          setCompanyData({
+            logo_url: data.logo_url,
+            company_name: data.company_name
+          });
+        } else {
+          console.log("⚠️ CompanyLogoForToken - No valid data returned");
+          setCompanyData(null);
         }
       } catch (err) {
         console.error('💥 CompanyLogoForToken - Exception fetching company data:', err);

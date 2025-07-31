@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.send-account-deleted-email]
 verify_jwt = false
+
+[functions.get-company-logo]
+verify_jwt = false
+
+[functions.get-ambassador-company]
+verify_jwt = false
