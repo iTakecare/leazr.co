@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.update-password-custom]
 verify_jwt = false
+
+[functions.send-account-deleted-email]
+verify_jwt = false

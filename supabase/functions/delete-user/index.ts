@@ -42,6 +42,35 @@ serve(async (req) => {
 
     console.log(`Tentative de suppression de l'utilisateur: ${user_id}`);
     
+    // Récupérer les informations de l'utilisateur avant suppression pour l'email
+    let userEmail = null;
+    let userName = null;
+    let companyId = null;
+    let entityType = null;
+    
+    try {
+      // Récupérer les infos du profil
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('first_name, last_name, company_id, role')
+        .eq('id', user_id)
+        .single();
+      
+      if (profile) {
+        userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        companyId = profile.company_id;
+        entityType = profile.role;
+      }
+      
+      // Récupérer l'email depuis auth.users
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(user_id);
+      if (userData?.user) {
+        userEmail = userData.user.email;
+      }
+    } catch (error) {
+      console.log('Erreur lors de la récupération des infos utilisateur:', error);
+    }
+    
     // First clean up related entities
     // Update related tables to remove user_id references
     const tables = ['clients', 'partners', 'ambassadors'];
@@ -116,6 +145,29 @@ serve(async (req) => {
       }
     } else {
       console.log(`Utilisateur ${user_id} supprimé avec succès`);
+    }
+    
+    // Envoyer l'email de notification de suppression
+    if (userEmail && userName && companyId && entityType) {
+      try {
+        console.log('Envoi de l\'email de notification de suppression...');
+        const { error: emailError } = await supabaseAdmin.functions.invoke('send-account-deleted-email', {
+          body: {
+            userEmail,
+            userName,
+            companyId,
+            entityType
+          }
+        });
+        
+        if (emailError) {
+          console.log('Erreur lors de l\'envoi de l\'email de suppression:', emailError);
+        } else {
+          console.log('Email de suppression envoyé avec succès');
+        }
+      } catch (emailErr) {
+        console.log('Exception lors de l\'envoi de l\'email:', emailErr);
+      }
     }
     
     return new Response(
