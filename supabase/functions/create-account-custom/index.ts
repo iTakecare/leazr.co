@@ -23,8 +23,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resend = new Resend(Deno.env.get("ITAKECARE_RESEND_API"));
-    
     // Créer un client Supabase avec la clé de service pour accès admin
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -149,13 +147,29 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('company_id', companyId)
       .single();
 
-    if (!smtpSettings) {
-      console.error('Pas de paramètres SMTP trouvés pour l\'entreprise');
+    // Déterminer quelle clé API Resend utiliser
+    let resendApiKey = Deno.env.get("LEAZR_RESEND_API");
+    let fromEmail = 'noreply@leazr.co';
+    let fromName = 'Leazr';
+
+    if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
+      console.log('Utilisation de la clé API Resend de l\'entreprise');
+      resendApiKey = smtpSettings.resend_api_key;
+      fromEmail = smtpSettings.from_email || fromEmail;
+      fromName = smtpSettings.from_name || fromName;
+    } else {
+      console.log('Utilisation de la clé API Resend de fallback (LEAZR_RESEND_API)');
+    }
+
+    if (!resendApiKey) {
+      console.error('Aucune clé API Resend disponible');
       return new Response(
-        JSON.stringify({ error: 'Configuration email manquante' }),
+        JSON.stringify({ error: 'Configuration API Resend manquante' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
+
+    const resend = new Resend(resendApiKey);
 
     // 8. Récupérer le template d'email
     const { data: emailTemplate } = await supabase
@@ -195,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 10. Envoyer l'email via Resend
     const emailResult = await resend.emails.send({
-      from: smtpSettings.from_email || 'noreply@leazr.co',
+      from: `${fromName} <${fromEmail}>`,
       to: [email],
       subject: emailTemplate?.subject || `Activation de votre compte ${entityNames[entityType]}`,
       html: emailContent,

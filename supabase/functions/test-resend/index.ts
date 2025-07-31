@@ -21,7 +21,7 @@ serve(async (req) => {
     console.log("Environment variables check:");
     console.log("SUPABASE_URL exists:", !!Deno.env.get('SUPABASE_URL'));
     console.log("SUPABASE_SERVICE_ROLE_KEY exists:", !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    console.log("ITAKECARE_RESEND_API exists:", !!Deno.env.get('ITAKECARE_RESEND_API'));
+    console.log("LEAZR_RESEND_API exists:", !!Deno.env.get('LEAZR_RESEND_API'));
     
     // Créer un client Supabase avec la clé de service
     const supabaseAdmin = createClient(
@@ -30,43 +30,17 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Récupérer les paramètres SMTP depuis la base de données
-    const { data: smtpSettings, error: smtpError } = await supabaseAdmin
-      .from('smtp_settings')
-      .select('resend_api_key, from_email, from_name')
-      .eq('id', 1)
-      .single();
-    
-    if (smtpError) {
-      console.error("Erreur lors de la récupération des paramètres SMTP:", smtpError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `Erreur de configuration: ${smtpError.message}`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-    
-    if (!smtpSettings || !smtpSettings.resend_api_key) {
-      console.error("Clé API Resend non configurée");
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Clé API Resend non configurée. Veuillez configurer les paramètres d'envoi d'emails."
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
+    // Utiliser directement la clé API de fallback pour le test global
+    let apiKey = Deno.env.get('LEAZR_RESEND_API');
+    let fromName = "Leazr";
+    let fromEmail = "noreply@leazr.co";
 
-    // Vérifier si la clé API est valide
-    const apiKey = smtpSettings.resend_api_key.trim();
-    if (apiKey === "" || apiKey.includes("YOUR_API_KEY") || apiKey.includes("RESEND_API_KEY")) {
-      console.error("Clé API Resend invalide ou non configurée correctement");
+    if (!apiKey) {
+      console.error("Clé API Resend LEAZR_RESEND_API non configurée");
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Clé API Resend invalide. Veuillez configurer une clé API valide."
+          message: "Clé API Resend globale non configurée. Veuillez configurer LEAZR_RESEND_API."
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
@@ -74,10 +48,6 @@ serve(async (req) => {
 
     // Initialiser Resend avec la clé API
     const resend = new Resend(apiKey);
-    
-    // Format d'expéditeur
-    const fromName = smtpSettings.from_name || "iTakecare";
-    const fromEmail = smtpSettings.from_email || "noreply@itakecare.app";
     const from = `${fromName} <${fromEmail}>`;
     
     // Récupérer l'email de l'utilisateur depuis les headers d'autorisation
@@ -111,11 +81,13 @@ serve(async (req) => {
     
     console.log(`Tentative d'envoi d'email de test à ${userEmail}`);
     
+    const from = `${fromName} <${fromEmail}>`;
+    
     // Envoyer l'email de test
     const { data, error } = await resend.emails.send({
       from,
       to: userEmail,
-      subject: "Test d'envoi d'email depuis iTakecare",
+      subject: "Test d'envoi d'email depuis Leazr",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
           <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Test d'envoi d'email</h2>
@@ -125,7 +97,7 @@ serve(async (req) => {
             Envoyé depuis : ${from}<br>
             Date : ${new Date().toLocaleString()}
           </p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe Leazr</p>
         </div>
       `,
     });

@@ -118,29 +118,38 @@ serve(async (req) => {
       .single();
     
     if (settingsError) {
-      console.error("Erreur lors de la récupération des paramètres SMTP:", settingsError);
-      throw new Error(`Erreur de base de données: ${settingsError.message}`);
+      console.log("Paramètres SMTP spécifiques non trouvés, utilisation du fallback:", settingsError.message);
     }
     
-    if (!smtpSettings || !smtpSettings.resend_api_key) {
-      console.error("Clé API Resend non configurée dans la base de données");
-      throw new Error("Clé API Resend non configurée");
+    // Déterminer quelle clé API Resend utiliser
+    let apiKey = Deno.env.get("LEAZR_RESEND_API");
+    let fromEmailDefault = 'noreply@leazr.co';
+    let fromNameDefault = 'Leazr';
+
+    if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
+      const companyApiKey = smtpSettings.resend_api_key.trim();
+      if (!companyApiKey.includes("YOUR_API_KEY") && !companyApiKey.includes("RESEND_API_KEY")) {
+        console.log("Utilisation de la clé API Resend de l'entreprise");
+        apiKey = companyApiKey;
+        fromEmailDefault = smtpSettings.from_email || fromEmailDefault;
+        fromNameDefault = smtpSettings.from_name || fromNameDefault;
+      } else {
+        console.log("Clé API entreprise invalide, utilisation du fallback");
+      }
+    } else {
+      console.log("Utilisation de la clé API Resend de fallback (LEAZR_RESEND_API)");
     }
 
-    console.log("Clé API Resend récupérée avec succès");
-    
-    // Vérifier si la clé API n'est pas vide et ne contient pas de placeholder comme "YOUR_API_KEY"
-    const apiKey = smtpSettings.resend_api_key.trim();
-    if (apiKey === "" || apiKey.includes("YOUR_API_KEY") || apiKey.includes("RESEND_API_KEY")) {
-      console.error("Clé API Resend invalide ou non configurée correctement");
-      throw new Error("Clé API Resend invalide");
+    if (!apiKey) {
+      console.error("Aucune clé API Resend disponible");
+      throw new Error("Configuration API Resend manquante");
     }
     
     const resend = new Resend(apiKey);
 
     // Format d'expéditeur par défaut si non fourni
-    const fromName = reqData.from?.name || smtpSettings.from_name || "iTakecare";
-    const fromEmail = reqData.from?.email || smtpSettings.from_email || "noreply@itakecare.app";
+    const fromName = reqData.from?.name || fromNameDefault;
+    const fromEmail = reqData.from?.email || fromEmailDefault;
     
     // Format de from pour resend
     const from = `${fromName} <${fromEmail}>`;
@@ -154,7 +163,7 @@ serve(async (req) => {
     let htmlContent = cleanupHtmlContent(reqData.html);
     
     // Log Deno env variables pour le débogage
-    console.log("ITAKECARE_RESEND_API environment variable check:", !!Deno.env.get("ITAKECARE_RESEND_API"));
+    console.log("LEAZR_RESEND_API environment variable check:", !!Deno.env.get("LEAZR_RESEND_API"));
     
     // Envoyer l'email avec Resend
     const { data, error } = await resend.emails.send({
