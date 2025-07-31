@@ -426,69 +426,44 @@ serve(async (req) => {
       }
     ];
     
-    console.log(`Tentative d'initialisation de ${templates.length} modèles d'email...`);
+    console.log(`Forçage de la mise à jour de ${templates.length} modèles d'email...`);
     
-    // Vérifier quels modèles existent déjà
+    // FORCER L'ÉCRASEMENT : Supprimer tous les templates existants pour cette entreprise
+    const { error: deleteError } = await supabaseAdmin
+      .from('email_templates')
+      .delete()
+      .neq('id', 0); // Supprime tous les enregistrements
+      
+    if (deleteError) {
+      console.error('Erreur lors de la suppression des anciens modèles:', deleteError);
+    } else {
+      console.log('Anciens modèles supprimés avec succès');
+    }
+    
+    // Insérer tous les nouveaux modèles
     let insertedCount = 0;
-    let totalCount = 0;
+    let totalCount = templates.length;
     
     for (const template of templates) {
-      // Vérifier si le modèle existe déjà
-      const { data: existingTemplate, error: checkError } = await supabaseAdmin
-        .from('email_templates')
-        .select('id')
-        .eq('type', template.type)
-        .single();
-        
-      if (checkError && checkError.code !== 'PGRST116') {  // PGRST116 = not found
-        console.error(`Erreur lors de la vérification du modèle ${template.type}:`, checkError);
-        continue;
-      }
+      console.log(`Création forcée du modèle ${template.type}...`);
       
-      if (existingTemplate) {
-        console.log(`Le modèle ${template.type} existe déjà. Mise à jour...`);
-        totalCount++;
+      const { error: insertError } = await supabaseAdmin
+        .from('email_templates')
+        .insert({
+          type: template.type,
+          name: template.name,
+          subject: template.subject,
+          html_content: template.html_content,
+          active: template.active,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
         
-        // Mettre à jour le modèle existant
-        const { error: updateError } = await supabaseAdmin
-          .from('email_templates')
-          .update({
-            name: template.name,
-            subject: template.subject,
-            html_content: template.html_content,
-            active: template.active,
-            updated_at: new Date()
-          })
-          .eq('id', existingTemplate.id);
-          
-        if (updateError) {
-          console.error(`Erreur lors de la mise à jour du modèle ${template.type}:`, updateError);
-        } else {
-          console.log(`Modèle ${template.type} mis à jour avec succès`);
-        }
+      if (insertError) {
+        console.error(`Erreur lors de la création du modèle ${template.type}:`, insertError);
       } else {
-        console.log(`Le modèle ${template.type} n'existe pas. Création...`);
-        
-        // Créer le nouveau modèle
-        const { error: insertError } = await supabaseAdmin
-          .from('email_templates')
-          .insert({
-            type: template.type,
-            name: template.name,
-            subject: template.subject,
-            html_content: template.html_content,
-            active: template.active,
-            created_at: new Date(),
-            updated_at: new Date()
-          });
-          
-        if (insertError) {
-          console.error(`Erreur lors de la création du modèle ${template.type}:`, insertError);
-        } else {
-          console.log(`Modèle ${template.type} créé avec succès`);
-          insertedCount++;
-          totalCount++;
-        }
+        console.log(`Modèle ${template.type} créé avec succès`);
+        insertedCount++;
       }
     }
     

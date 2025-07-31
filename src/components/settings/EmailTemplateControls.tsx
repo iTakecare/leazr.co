@@ -13,11 +13,6 @@ const EmailTemplateControls: React.FC<EmailTemplateControlsProps> = ({ onRefresh
   const [isInitializing, setIsInitializing] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   
-  // Auto-initialize templates on component mount to implement the plan
-  React.useEffect(() => {
-    initializeTemplates();
-  }, []);
-  
   const initializeTemplates = async () => {
     try {
       setIsInitializing(true);
