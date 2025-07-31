@@ -114,23 +114,19 @@ export const createUserAccount = async (
       return false;
     }
     
-    // Générer un lien de réinitialisation sans déclencher l'email automatique de Supabase
-    const { data: linkData, error: linkError } = await supabase.functions.invoke('generate-auth-link', {
-      body: {
-        type: 'recovery',
-        email: entity.email,
-        redirectTo: `${window.location.origin}/update-password`
-      }
+    // Générer un lien de réinitialisation de mot de passe
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(entity.email, {
+      redirectTo: `${window.location.origin}/update-password`
     });
     
-    if (linkError || !linkData?.link) {
-      console.error("Erreur lors de la génération du lien d'authentification:", linkError);
+    if (resetError) {
+      console.error("Erreur lors de la génération du lien de réinitialisation:", resetError);
       toast.error("Erreur lors de l'envoi de l'invitation");
       return false;
     }
     
-    // Envoyer uniquement l'email d'invitation personnalisé avec le lien généré
-    await sendInvitationEmail(entity.email, entity.name, userType, linkData.link);
+    // Envoyer uniquement l'email d'invitation personnalisé 
+    await sendInvitationEmail(entity.email, entity.name, userType, `${window.location.origin}/update-password`);
     
     toast.success(`Compte ${userType} créé et invitation envoyée`);
     return true;
