@@ -119,7 +119,7 @@ const UpdatePassword = () => {
           toast.error("Erreur lors de la vérification du token");
           navigate('/login');
         }
-      } else if (customToken) {
+      } else if (customToken && (type === 'invitation' || type === 'password_reset' || type === 'recovery')) {
         console.log("UpdatePassword - Token personnalisé détecté");
         // Vérifier notre token personnalisé dans la base de données
         try {
