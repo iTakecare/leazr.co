@@ -75,6 +75,15 @@ const EmailTemplateControls: React.FC<EmailTemplateControlsProps> = ({ onRefresh
     <div className="flex justify-end gap-2 mb-4">
       <Button 
         variant="outline"
+        onClick={onRefresh}
+        className="flex items-center gap-2"
+      >
+        <RefreshCw className="h-4 w-4" />
+        Actualiser
+      </Button>
+      
+      <Button 
+        variant="outline"
         onClick={testEmailSetup}
         disabled={isTesting}
         className="flex items-center gap-2"
@@ -89,7 +98,13 @@ const EmailTemplateControls: React.FC<EmailTemplateControlsProps> = ({ onRefresh
       
       <Button 
         variant="outline"
-        onClick={initializeTemplates}
+        onClick={async () => {
+          await initializeTemplates();
+          // Rafraîchir automatiquement après l'initialisation
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
+        }}
         disabled={isInitializing}
         className="flex items-center gap-2"
       >
