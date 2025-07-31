@@ -226,8 +226,8 @@ const UpdatePassword = () => {
     }
 
     // Validation renforcée du mot de passe
-    if (password.length < 8) {
-      toast.error('Le mot de passe doit contenir au moins 8 caractères');
+    if (password.length < 12) {
+      toast.error('Le mot de passe doit contenir au moins 12 caractères');
       return;
     }
 
@@ -263,8 +263,24 @@ const UpdatePassword = () => {
         });
 
         if (updateError || !updateData?.success) {
-          console.error("Erreur lors de la mise à jour du mot de passe:", updateError);
-          toast.error(`Erreur: ${updateData?.error || updateError?.message || 'Erreur inconnue'}`);
+          console.error("Erreur détaillée lors de la mise à jour du mot de passe:", {
+            updateError,
+            updateData,
+            context: updateError?.context
+          });
+          
+          // Essayer d'extraire le message d'erreur détaillé
+          let errorMessage = 'Erreur inconnue';
+          
+          if (updateData?.error) {
+            errorMessage = updateData.error;
+          } else if (updateError?.context?.body?.error) {
+            errorMessage = updateError.context.body.error;
+          } else if (updateError?.message) {
+            errorMessage = updateError.message;
+          }
+          
+          toast.error(errorMessage);
           return;
         }
 
