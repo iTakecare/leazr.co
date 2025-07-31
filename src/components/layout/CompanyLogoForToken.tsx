@@ -20,6 +20,8 @@ const CompanyLogoForToken: React.FC<CompanyLogoForTokenProps> = ({
   variant = "avatar",
   textSize = "lg"
 }) => {
+  console.log("🎯 CompanyLogoForToken - Received companyId:", companyId);
+  
   const [companyData, setCompanyData] = useState<{
     logo_url?: string;
     company_name?: string;
@@ -43,26 +45,34 @@ const CompanyLogoForToken: React.FC<CompanyLogoForTokenProps> = ({
 
   useEffect(() => {
     const fetchCompanyData = async () => {
+      console.log("🔍 CompanyLogoForToken - Starting fetch for companyId:", companyId);
+      
       if (!companyId) {
+        console.log("⚠️ CompanyLogoForToken - No companyId provided, using default logo");
         setLoading(false);
         return;
       }
 
       try {
+        console.log("📡 CompanyLogoForToken - Fetching company customizations...");
         const { data, error } = await supabase
           .from('company_customizations')
           .select('logo_url, company_name')
           .eq('company_id', companyId)
           .single();
 
+        console.log("📊 CompanyLogoForToken - Query result:", { data, error });
+
         if (error) {
-          console.error('Erreur lors de la récupération des données de l\'entreprise:', error);
+          console.error('❌ CompanyLogoForToken - Error fetching company data:', error);
           setCompanyData(null);
         } else {
+          console.log("✅ CompanyLogoForToken - Company data received:", data);
+          console.log("🖼️ CompanyLogoForToken - Logo URL:", data?.logo_url);
           setCompanyData(data);
         }
       } catch (err) {
-        console.error('Exception lors de la récupération des données de l\'entreprise:', err);
+        console.error('💥 CompanyLogoForToken - Exception fetching company data:', err);
         setCompanyData(null);
       } finally {
         setLoading(false);
@@ -74,8 +84,11 @@ const CompanyLogoForToken: React.FC<CompanyLogoForTokenProps> = ({
 
   // Si on charge encore ou s'il n'y a pas de données d'entreprise, afficher le logo par défaut
   if (loading || !companyData?.logo_url) {
+    console.log("🔄 CompanyLogoForToken - Using default logo. Loading:", loading, "Has logo URL:", !!companyData?.logo_url);
     return <Logo className={className} showText={showText} logoSize={logoSize} variant={variant} />;
   }
+  
+  console.log("🎨 CompanyLogoForToken - Rendering company logo:", companyData.logo_url);
 
   return (
     <div className={cn("flex items-center gap-2", className)}>

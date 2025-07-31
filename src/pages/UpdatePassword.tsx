@@ -150,7 +150,11 @@ const UpdatePassword = () => {
           sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
           
           // Extraire l'entity_id (ambassador ID) depuis les métadonnées et récupérer le company_id
+          console.log("🔍 UpdatePassword - Token metadata:", tokenData.metadata);
+          
           if (tokenData.metadata && tokenData.metadata.entity_id) {
+            console.log("🎯 UpdatePassword - Found entity_id:", tokenData.metadata.entity_id);
+            
             try {
               const { data: ambassadorData, error: ambassadorError } = await supabase
                 .from('ambassadors')
@@ -158,15 +162,23 @@ const UpdatePassword = () => {
                 .eq('id', tokenData.metadata.entity_id)
                 .single();
               
+              console.log("🏢 UpdatePassword - Ambassador query result:", { ambassadorData, ambassadorError });
+              
               if (!ambassadorError && ambassadorData) {
+                console.log("✅ UpdatePassword - Setting company_id:", ambassadorData.company_id);
                 setCompanyId(ambassadorData.company_id);
+              } else {
+                console.error("❌ UpdatePassword - Failed to get ambassador data:", ambassadorError);
               }
             } catch (err) {
-              console.error("Erreur lors de la récupération de l'entreprise de l'ambassadeur:", err);
+              console.error("💥 UpdatePassword - Exception getting ambassador:", err);
             }
           } else if (tokenData.metadata && tokenData.metadata.company_id) {
             // Fallback pour les anciens tokens qui pourraient avoir company_id directement
+            console.log("🔄 UpdatePassword - Using direct company_id:", tokenData.metadata.company_id);
             setCompanyId(tokenData.metadata.company_id);
+          } else {
+            console.log("⚠️ UpdatePassword - No entity_id or company_id in metadata");
           }
           
           setSessionReady(true);
