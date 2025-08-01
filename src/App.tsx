@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
@@ -72,9 +72,15 @@ import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 
 // Ambassador components
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
-import AmbassadorRoutes from "@/components/layout/AmbassadorRoutes";
+import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
 import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
+import CustomOfferGeneratorPage from "@/pages/CustomOfferGeneratorPage";
+import AmbassadorClientsPage from "@/pages/AmbassadorPages/AmbassadorClientsPage";
+import AmbassadorOffersPage from "@/pages/AmbassadorPages/AmbassadorOffersPage";
+import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClientCreatePage";
+import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
+import AmbassadorProductDetailPage from "@/pages/AmbassadorPages/AmbassadorProductDetailPage";
 import CreateOffer from "@/pages/CreateOffer";
 
 // Client offer signing
@@ -136,8 +142,17 @@ function App() {
                       <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
                       <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
                       
-                      {/* ⚠️ AMBASSADOR ROUTES - MUST BE BEFORE SLUG ROUTES ⚠️ */}
-                      <Route path="/ambassador/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
+                      {/* ⚠️ AMBASSADOR ROUTES - FLAT STRUCTURE FOR PRECISE CONTROL ⚠️ */}
+                      <Route path="/ambassador/dashboard" element={<PrivateRoute><AmbassadorLayout><AmbassadorDashboardPage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/products/:id" element={<PrivateRoute><AmbassadorLayout><AmbassadorProductDetailPage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/custom-offer-generator" element={<PrivateRoute><AmbassadorLayout><CustomOfferGeneratorPage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/create-offer" element={<PrivateRoute><AmbassadorLayout><AmbassadorCreateOffer /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/clients" element={<PrivateRoute><AmbassadorLayout><AmbassadorClientsPage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/clients/create" element={<PrivateRoute><AmbassadorLayout><AmbassadorClientCreatePage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/offers" element={<PrivateRoute><AmbassadorLayout><AmbassadorOffersPage /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador/offers/:id" element={<PrivateRoute><AmbassadorLayout><AmbassadorOfferDetail /></AmbassadorLayout></PrivateRoute>} />
+                      <Route path="/ambassador" element={<Navigate to="/ambassador/dashboard" replace />} />
                       
                       {/* System routes with explicit paths - HIGHEST PRIORITY */}
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
