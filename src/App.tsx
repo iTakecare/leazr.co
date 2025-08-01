@@ -136,6 +136,9 @@ function App() {
                       <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
                       <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
                       
+                      {/* ⚠️ AMBASSADOR ROUTES - MUST BE BEFORE SLUG ROUTES ⚠️ */}
+                      <Route path="/ambassador/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
+                      
                       {/* System routes with explicit paths - HIGHEST PRIORITY */}
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Admin routes with Layout */}
@@ -167,9 +170,6 @@ function App() {
                         <Route path="catalog/create" element={<Layout><ProductFormPage /></Layout>} />
                         <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
                       </Route>
-                      
-                      {/* Ambassador routes */}
-                      <Route path="/ambassador/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       
                       {/* Ambassador management routes */}
                       <Route path="/ambassadors/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
