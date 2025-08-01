@@ -193,17 +193,20 @@ function App() {
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                       </Route>
                       
-                        {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
-                        {/* Validation is handled in CompanySlugGuard component */}
-                        <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
-                        <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
-                        <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
-                        <Route path="/:companySlug/pack/:packId" element={<PackDetailPage />} />
-                        <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
-                        <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
-                        
-                        {/* Catch-all company slug route - fallback for company pages */}
-                        <Route path="/:companySlug" element={<CompanySlugGuard />} />
+                      {/* ⚠️ COMPANY SLUG-BASED ROUTES MUST BE LAST ⚠️ */}
+                      {/* These routes are generic and will match any pattern, so they must come */}
+                      {/* after ALL system routes (/ambassador/*, /admin/*, etc.) */}
+                      {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
+                      {/* Validation is handled in CompanySlugGuard component */}
+                      <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
+                      <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
+                      <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
+                      <Route path="/:companySlug/pack/:packId" element={<PackDetailPage />} />
+                      <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+                      <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
+                      
+                      {/* Catch-all company slug route - fallback for company pages */}
+                      <Route path="/:companySlug" element={<CompanySlugGuard />} />
                      </Routes>
                 </CartProvider>
               </CompanyBrandingProvider>
