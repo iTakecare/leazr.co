@@ -209,7 +209,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 9. Préparer le contenu de l'email
     const APP_URL = Deno.env.get('APP_URL') || 'https://preview--leazr.lovable.app';
-    const activationUrl = `${APP_URL}/update-password?token=${activationToken}&type=invitation`;
+    const encodedToken = encodeURIComponent(activationToken);
+    const encodedType = encodeURIComponent('invitation');
+    const activationUrl = `${APP_URL}/update-password?token=${encodedToken}&type=${encodedType}`;
+    
+    console.log('URL d\'activation générée:', activationUrl);
+    console.log('Token brut:', activationToken);
     
     const entityNames = {
       'partner': 'partenaire',
