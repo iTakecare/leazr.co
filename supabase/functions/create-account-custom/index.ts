@@ -245,7 +245,8 @@ const handler = async (req: Request): Promise<Response> => {
         .replace(/{{activation_url}}/g, activationUrl)
         .replace(/{{company_name}}/g, company?.name || '')
         .replace(/{{company_logo}}/g, company?.logo_url || '')
-        .replace(/{{company_address}}/g, emailTemplate.company_address || '');
+        .replace(/{{company_address}}/g, emailTemplate.company_address || '')
+        .replace(/{{current_year}}/g, new Date().getFullYear().toString());
     } else {
       // Template par défaut amélioré selon le type d'entité
       emailSubject = `Activation de votre compte ${entityNames[entityType]}`;
