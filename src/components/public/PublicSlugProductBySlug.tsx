@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { findProductBySlugDirectly } from '@/services/productServiceOptimized';
@@ -13,6 +13,26 @@ const PublicSlugProductBySlug = () => {
   const { companySlug, productSlug } = useParams<{ companySlug: string; productSlug: string }>();
   
   console.log('🔗 PublicSlugProductBySlug rendered with:', { companySlug, productSlug });
+  
+  // Reserved keywords that should redirect to proper routes
+  const reservedKeywords = ['admin', 'ambassador', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register', 'signup', 'contracts', 'solutions', 'services', 'ressources', 'about', 'a-propos', 'contact', 'support', 'help', 'catalog', 'products', 'pricing', 'tarifs', 'features', 'blog', 'news', 'home', 'create-offer'];
+  
+  // Check if companySlug is a reserved keyword and redirect appropriately
+  if (companySlug && reservedKeywords.includes(companySlug.toLowerCase())) {
+    console.log('🔗 PublicSlugProductBySlug - Reserved keyword detected:', companySlug, 'redirecting to proper route');
+    
+    // Extract product ID from productSlug if it contains UUID pattern
+    const uuidMatch = productSlug?.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/);
+    const productId = uuidMatch ? uuidMatch[1] : productSlug;
+    
+    if (companySlug === 'ambassador' && productId) {
+      // Redirect to ambassador product route
+      return <Navigate to={`/ambassador/products/${productId}`} replace />;
+    }
+    
+    // For other reserved keywords, redirect to appropriate route or 404
+    return <Navigate to="/" replace />;
+  }
   
   // Fetch company by slug
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
