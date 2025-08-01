@@ -187,9 +187,9 @@ const handler = async (req: Request): Promise<Response> => {
     const resend = new Resend(resendApiKey);
 
     // 8. Récupérer le template d'email approprié selon le type d'entité
-    const templateType = entityType === 'ambassador' ? 'ambassador_invitation' : 
-                        entityType === 'partner' ? 'partner_invitation' : 
-                        'user_invitation';
+    const templateType = entityType === 'ambassador' ? 'ambassador_account' : 
+                        entityType === 'partner' ? 'partner_account' : 
+                        'client_account';
     
     console.log(`Recherche du template: ${templateType} pour l'entreprise ${companyId}`);
     
