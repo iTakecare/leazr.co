@@ -1,9 +1,9 @@
 
 import React, { useState, memo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useCompanyContext } from "@/context/CompanyContext";
 import CompanyLogo from "@/components/layout/CompanyLogo";
 import SidebarMenuItem from "./SidebarMenuItem";
 import SidebarUserSection from "./SidebarUserSection";
@@ -21,42 +21,43 @@ import {
 const AmbassadorSidebar = memo(() => {
   const { pathname } = useLocation();
   const { user } = useAuth();
-  const { companyId } = useMultiTenant();
+  const { company } = useCompanyContext();
+  const { companySlug } = useParams<{ companySlug: string }>();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  if (!user) return null;
+  if (!user || !companySlug) return null;
 
-  const companyName = "Leazr";
+  const companyName = company?.name || "Entreprise";
 
   const menuItems = [
     {
       label: "Tableau de bord",
       icon: BarChart,
-      href: "/ambassador/dashboard",
+      href: `/${companySlug}/ambassador/dashboard`,
       color: "blue",
     },
     {
       label: "Mes Clients", 
       icon: Users,
-      href: "/ambassador/clients",
+      href: `/${companySlug}/ambassador/clients`,
       color: "emerald",
     },
     {
       label: "Calculateur",
       icon: Calculator,
-      href: "/ambassador/create-offer",
+      href: `/${companySlug}/ambassador/create-offer`,
       color: "orange",
     },
     {
       label: "Offres",
       icon: FileText,
-      href: "/ambassador/offers",
+      href: `/${companySlug}/ambassador/offers`,
       color: "indigo",
     },
     {
       label: "Catalogue",
       icon: Package,
-      href: "/ambassador/catalog",
+      href: `/${companySlug}/ambassador/catalog`,
       color: "pink",
     },
   ];

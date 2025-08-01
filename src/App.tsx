@@ -72,6 +72,7 @@ import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 
 // Ambassador components
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
+import AmbassadorSlugGuard from "@/components/routing/AmbassadorSlugGuard";
 import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
 import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
@@ -142,17 +143,19 @@ function App() {
                       <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
                       <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
                       
-                      {/* ⚠️ AMBASSADOR ROUTES - FLAT STRUCTURE FOR PRECISE CONTROL ⚠️ */}
-                      <Route path="/ambassador/dashboard" element={<PrivateRoute><AmbassadorLayout><AmbassadorDashboardPage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/products/:id" element={<PrivateRoute><AmbassadorLayout><AmbassadorProductDetailPage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/custom-offer-generator" element={<PrivateRoute><AmbassadorLayout><CustomOfferGeneratorPage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/create-offer" element={<PrivateRoute><AmbassadorLayout><AmbassadorCreateOffer /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/clients" element={<PrivateRoute><AmbassadorLayout><AmbassadorClientsPage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/clients/create" element={<PrivateRoute><AmbassadorLayout><AmbassadorClientCreatePage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/offers" element={<PrivateRoute><AmbassadorLayout><AmbassadorOffersPage /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador/offers/:id" element={<PrivateRoute><AmbassadorLayout><AmbassadorOfferDetail /></AmbassadorLayout></PrivateRoute>} />
-                      <Route path="/ambassador" element={<Navigate to="/ambassador/dashboard" replace />} />
+                      {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
+                      <Route path="/:companySlug/ambassador" element={<PrivateRoute><AmbassadorSlugGuard /></PrivateRoute>}>
+                        <Route path="" element={<Navigate to="dashboard" replace />} />
+                        <Route path="dashboard" element={<AmbassadorLayout><AmbassadorDashboardPage /></AmbassadorLayout>} />
+                        <Route path="catalog" element={<AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout>} />
+                        <Route path="products/:id" element={<AmbassadorLayout><AmbassadorProductDetailPage /></AmbassadorLayout>} />
+                        <Route path="custom-offer-generator" element={<AmbassadorLayout><CustomOfferGeneratorPage /></AmbassadorLayout>} />
+                        <Route path="create-offer" element={<AmbassadorLayout><AmbassadorCreateOffer /></AmbassadorLayout>} />
+                        <Route path="clients" element={<AmbassadorLayout><AmbassadorClientsPage /></AmbassadorLayout>} />
+                        <Route path="clients/create" element={<AmbassadorLayout><AmbassadorClientCreatePage /></AmbassadorLayout>} />
+                        <Route path="offers" element={<AmbassadorLayout><AmbassadorOffersPage /></AmbassadorLayout>} />
+                        <Route path="offers/:id" element={<AmbassadorLayout><AmbassadorOfferDetail /></AmbassadorLayout>} />
+                      </Route>
                       
                       {/* System routes with explicit paths - HIGHEST PRIORITY */}
                       <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
