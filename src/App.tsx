@@ -182,9 +182,6 @@ function App() {
                       {/* Explicit create-offer route for ambassadors */}
                       <Route path="/create-offer/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       
-                      {/* Explicit route for ambassador catalog to avoid slug interception */}
-                      <Route path="/ambassador/catalog" element={<PrivateRoute><AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout></PrivateRoute>} />
-                      
                       {/* Other protected routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
                         {/* Legacy product form routes */}
