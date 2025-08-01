@@ -179,8 +179,6 @@ function App() {
                         <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
                       </Route>
                       
-                      {/* Explicit create-offer route for ambassadors */}
-                      <Route path="/create-offer/*" element={<PrivateRoute><AmbassadorLayout><AmbassadorRoutes /></AmbassadorLayout></PrivateRoute>} />
                       
                       {/* Other protected routes */}
                       <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
