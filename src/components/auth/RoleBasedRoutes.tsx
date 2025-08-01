@@ -24,6 +24,15 @@ export const RoleBasedRoutes = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // System routes like /ambassadors/* should not be redirected
+  const systemRoutes = ['/admin/', '/ambassador/', '/ambassadors/', '/client/', '/contracts/'];
+  const isSystemRoute = systemRoutes.some(route => location.pathname.startsWith(route));
+  
+  if (isSystemRoute) {
+    console.log('🔐 ROLE BASED ROUTES - System route detected, rendering outlet');
+    return <Outlet />;
+  }
+
   // Reserved keywords that should not be treated as company slugs
   const reservedKeywords = ['admin', 'ambassadors', 'client', 'api', 'dashboard', 'login', 'register', 'contracts', 'solutions', 'services', 'ressources', 'about', 'a-propos', 'contact', 'support', 'help', 'catalog', 'products', 'pricing', 'tarifs', 'features', 'blog', 'news', 'home', 'offers'];
   
