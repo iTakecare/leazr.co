@@ -2,7 +2,7 @@ import React from 'react';
 import { useClientData } from '@/hooks/useClientData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import PublicCatalogAnonymous from '@/pages/PublicCatalogAnonymous';
+import ClientCatalogAnonymous from '@/components/catalog/client/ClientCatalogAnonymous';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -71,8 +71,8 @@ const ClientCatalogPage: React.FC = () => {
 
   console.log('🏢 CLIENT CATALOG - Rendering catalog for company:', company.name);
 
-  // Use the existing PublicCatalogAnonymous but with company context
-  return <PublicCatalogAnonymous company={company} />;
+  // Use the client-specific catalog component
+  return <ClientCatalogAnonymous company={company} />;
 };
 
 export default ClientCatalogPage;

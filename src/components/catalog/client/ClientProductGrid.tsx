@@ -3,7 +3,7 @@ import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCardOptimized from "@/components/catalog/public/ProductGridCardOptimized";
-import { useSafeNavigate } from "@/hooks/useSafeNavigate";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useLocation } from "react-router-dom";
 
 interface ClientProductGridProps {
@@ -11,7 +11,7 @@ interface ClientProductGridProps {
 }
 
 const ClientProductGrid: React.FC<ClientProductGridProps> = ({ products }) => {
-  const safeNavigate = useSafeNavigate();
+  const { navigateToClient } = useRoleNavigation();
   const location = useLocation();
   
   const itemVariants = {
@@ -26,9 +26,8 @@ const ClientProductGrid: React.FC<ClientProductGridProps> = ({ products }) => {
       currentPath: location.pathname
     });
 
-    // Navigate to client product detail page
-    const targetUrl = `/client/products/${product.id}`;
-    safeNavigate(targetUrl);
+    // Navigate to client product detail page using role navigation
+    navigateToClient(`products/${product.id}`);
   };
 
   if (!products) {
