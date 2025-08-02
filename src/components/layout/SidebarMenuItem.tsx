@@ -33,9 +33,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
     if (onLinkClick) {
       onLinkClick();
     }
-    
-    navigate(item.href);
-  }, [navigate, item.href, onLinkClick]);
+  }, [onLinkClick]);
 
   const active = isActive(item.href);
 
@@ -102,9 +100,10 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link
-              to={item.href}
+            <button
+              onClick={handleClick}
               className={cn(
+                "w-full",
                 "flex items-center py-3 px-3 rounded-xl text-sm font-semibold transition-all duration-300 group relative",
                 collapsed ? "justify-center" : "",
                 active
@@ -160,7 +159,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
               {active && !collapsed && (
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-xl opacity-50" />
               )}
-            </Link>
+            </button>
           </TooltipTrigger>
           {collapsed && (
             <TooltipContent side="right" className="font-semibold bg-white/95 backdrop-blur-sm border-gray-200/60">

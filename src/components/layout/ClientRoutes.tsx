@@ -25,7 +25,7 @@ const ClientRoutes = () => {
           <Route path="requests" element={<ClientRequestsPage />} />
           <Route path="requests/:id" element={<ClientRequestDetailPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />
-          <Route path="catalog" element={<PublicCatalogAnonymous />} />
+          <Route path="products" element={<PublicCatalogAnonymous />} />
           <Route path="support" element={<ClientSupportPage />} />
           <Route path="settings" element={<ClientSettingsPage />} />
           {/* Redirection par défaut vers le dashboard */}

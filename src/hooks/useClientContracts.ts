@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { useMultiTenant } from "./useMultiTenant";
 
 const supabase = getSupabaseClient();
 
@@ -24,8 +25,10 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
   const [contracts, setContracts] = useState<ClientContract[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { services } = useMultiTenant();
 
   const fetchContracts = async (specificClientId?: string) => {
+    console.log('🔍 CLIENT CONTRACTS - fetchContracts démarré avec:', { clientEmail, clientId, specificClientId });
     setLoading(true);
     setError(null);
 
@@ -33,8 +36,8 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
       const idToUse = specificClientId || clientId;
       console.log(`Fetching contracts for: ${clientEmail || ''} / Client ID: ${idToUse || ''}`);
       
-      let query = supabase
-        .from('contracts')
+      // Utiliser le service multi-tenant au lieu d'une requête directe
+      let query = services.contracts.query()
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -45,8 +48,7 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
         query = query.eq('client_id', idToUse);
       } else if (clientEmail) {
         // If only email is provided, filter by client using client related info
-        const { data: clientData } = await supabase
-          .from('clients')
+        const { data: clientData } = await services.clients.query()
           .select('id')
           .eq('email', clientEmail)
           .single();

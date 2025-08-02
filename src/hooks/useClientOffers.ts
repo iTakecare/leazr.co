@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { useMultiTenant } from "./useMultiTenant";
 
 const supabase = getSupabaseClient();
 
@@ -28,16 +29,18 @@ export const useClientOffers = (clientEmail?: string, clientId?: string | null) 
   const [offers, setOffers] = useState<ClientOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { services } = useMultiTenant();
 
   const fetchOffers = async () => {
+    console.log('🔍 CLIENT OFFERS - fetchOffers démarré avec:', { clientEmail, clientId });
     setLoading(true);
     setError(null);
 
     try {
       console.log("Fetching offers for:", clientEmail, clientId);
       
-      let query = supabase
-        .from('offers')
+      // Utiliser le service multi-tenant au lieu d'une requête directe
+      let query = services.offers.query()
         .select('*')
         .eq('converted_to_contract', false) // Exclure les offres converties en contrats
         .order('created_at', { ascending: false });
@@ -108,6 +111,7 @@ export const useClientOffers = (clientEmail?: string, clientId?: string | null) 
   };
 
   useEffect(() => {
+    console.log('🔍 CLIENT OFFERS - Hook démarré avec:', { clientEmail, clientId });
     fetchOffers();
   }, [clientEmail, clientId]);
 

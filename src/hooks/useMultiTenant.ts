@@ -39,6 +39,7 @@ export const useMultiTenant = () => {
       fetchingRef.current = true;
       
       if (!user) {
+        console.log('🏢 MULTI TENANT - Pas d\'utilisateur connecté');
         setCompanyId(null);
         setLoading(false);
         fetchingRef.current = false;
@@ -46,7 +47,9 @@ export const useMultiTenant = () => {
       }
 
       try {
+        console.log('🏢 MULTI TENANT - Récupération company_id pour utilisateur:', user.id);
         const id = await getCurrentUserCompanyId();
+        console.log('🏢 MULTI TENANT - Company ID récupéré:', id);
         setCompanyId(id);
       } catch (error) {
         console.error('🏢 MULTI TENANT - Erreur:', error);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import {
   LayoutDashboard,
   FileText,
@@ -40,7 +41,7 @@ interface MenuItem {
 
 const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigateToClient, companySlug } = useRoleNavigation();
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -51,13 +52,13 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
 
   // Tous les éléments de menu possibles avec leurs modules associés
   const allSidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "/client/dashboard", color: "blue" },
-    { label: "Équipements", icon: Laptop, href: "/client/equipment", color: "slate" },
-    { label: "Contrats", icon: FileText, href: "/client/contracts", moduleSlug: "contracts", color: "emerald" },
-    { label: "Demandes en cours", icon: Clock, href: "/client/requests", badge: "3", isNew: true, moduleSlug: "crm", color: "orange" },
-    { label: "Catalogue", icon: Package, href: "/client/catalog", moduleSlug: "catalog", color: "violet" },
-    { label: "Support", icon: HelpCircle, href: "/client/support", moduleSlug: "support", color: "pink" },
-    { label: "Paramètres", icon: Settings, href: "/client/settings", color: "gray" },
+    { label: "Tableau de bord", icon: LayoutDashboard, href: "dashboard", color: "blue" },
+    { label: "Équipements", icon: Laptop, href: "equipment", color: "slate" },
+    { label: "Contrats", icon: FileText, href: "contracts", moduleSlug: "contracts", color: "emerald" },
+    { label: "Demandes en cours", icon: Clock, href: "requests", badge: "3", isNew: true, moduleSlug: "crm", color: "orange" },
+    { label: "Catalogue", icon: Package, href: "products", moduleSlug: "catalog", color: "violet" },
+    { label: "Support", icon: HelpCircle, href: "support", moduleSlug: "support", color: "pink" },
+    { label: "Paramètres", icon: Settings, href: "settings", color: "gray" },
   ];
 
   useEffect(() => {
@@ -163,12 +164,14 @@ const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
 
 
   const isActive = (path: string) => {
-    return location.pathname === path;
+    if (!companySlug) return false;
+    const fullPath = `/${companySlug}/client/${path}`;
+    return location.pathname === fullPath;
   };
 
   const handleNavigation = (href: string) => {
-    console.log("Navigation vers:", href, "depuis:", location.pathname);
-    navigate(href);
+    console.log("🚀 CLIENT SIDEBAR - Navigation vers:", href, "depuis:", location.pathname);
+    navigateToClient(href);
     onLinkClick?.();
     if (isMobile) {
       setMobileOpen(false);

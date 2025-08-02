@@ -43,7 +43,7 @@ const ClientDashboard = () => {
       title: "Catalogue",
       description: "Découvrez notre catalogue d'équipements",
       icon: Eye,
-      href: "catalog",
+      href: "products",
       color: "bg-purple-500"
     },
     {

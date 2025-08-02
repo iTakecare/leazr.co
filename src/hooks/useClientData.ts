@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useMultiTenant } from './useMultiTenant';
 import { Client } from '@/types/client';
 
 interface RecentActivity {
@@ -14,6 +15,7 @@ interface RecentActivity {
 
 export const useClientData = () => {
   const { user } = useAuth();
+  const { services } = useMultiTenant();
   const [clientData, setClientData] = useState<Client | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,16 +24,17 @@ export const useClientData = () => {
   useEffect(() => {
     const fetchClientData = async () => {
       if (!user?.id) {
+        console.log('🔍 CLIENT DATA - Pas d\'utilisateur connecté');
         setLoading(false);
         return;
       }
 
       try {
-        console.log('Récupération des données client pour l\'utilisateur:', user.id);
+        console.log('🔍 CLIENT DATA - Récupération des données client pour l\'utilisateur:', user.id);
+        console.log('🔍 CLIENT DATA - Email utilisateur:', user.email);
 
         // Récupérer les informations du client associé à cet utilisateur
-        const { data: client, error: clientError } = await supabase
-          .from('clients')
+        const { data: client, error: clientError } = await services.clients.query()
           .select('*')
           .eq('user_id', user.id)
           .maybeSingle();
@@ -45,16 +48,15 @@ export const useClientData = () => {
 
         if (client) {
           setClientData(client);
-          console.log('Données client récupérées:', client);
+          console.log('🔍 CLIENT DATA - Données client récupérées par user_id:', client);
 
           // Récupérer l'activité récente du client
           await fetchRecentActivity(client.id);
         } else {
-          console.log('Aucun client trouvé pour user_id:', user.id);
+          console.log('🔍 CLIENT DATA - Aucun client trouvé pour user_id:', user.id);
           
           // Essayer aussi de chercher par email si aucun client n'est trouvé par user_id
-          const { data: clientByEmail, error: emailError } = await supabase
-            .from('clients')
+          const { data: clientByEmail, error: emailError } = await services.clients.query()
             .select('*')
             .eq('email', user.email)
             .maybeSingle();
@@ -64,9 +66,10 @@ export const useClientData = () => {
             setError('Impossible de récupérer les informations du client');
           } else if (clientByEmail) {
             setClientData(clientByEmail);
-            console.log('Client trouvé par email:', clientByEmail);
+            console.log('🔍 CLIENT DATA - Client trouvé par email:', clientByEmail);
             await fetchRecentActivity(clientByEmail.id);
           } else {
+            console.log('🔍 CLIENT DATA - Aucun client trouvé par email non plus');
             setError('Aucun client associé à ce compte. Veuillez contacter l\'administrateur pour créer votre fiche client.');
           }
         }
@@ -83,8 +86,7 @@ export const useClientData = () => {
         const activities: RecentActivity[] = [];
 
         // Récupérer les offres récentes
-        const { data: offers, error: offersError } = await supabase
-          .from('offers')
+        const { data: offers, error: offersError } = await services.offers.query()
           .select('id, client_name, status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
@@ -134,8 +136,7 @@ export const useClientData = () => {
         }
 
         // Récupérer les contrats récents
-        const { data: contracts, error: contractsError } = await supabase
-          .from('contracts')
+        const { data: contracts, error: contractsError } = await services.contracts.query()
           .select('id, client_name, status, created_at, equipment_description')
           .eq('client_id', clientId)
           .order('created_at', { ascending: false })
