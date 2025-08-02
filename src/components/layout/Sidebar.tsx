@@ -39,17 +39,28 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Get company slug for navigation links
+  const getCompanySlugFromPath = () => {
+    const pathMatch = location.pathname.match(/^\/([^\/]+)\/admin/);
+    return pathMatch?.[1] || null;
+  };
+
+  const companySlug = getCompanySlugFromPath();
+
   // Mémoriser les éléments de menu avec des couleurs améliorées
-  const menuItems = useMemo(() => [
-    { icon: BarChart3, label: "Dashboard", href: "/admin/dashboard", color: "blue" },
-    { icon: UserCheck, label: "CRM", href: "/admin/clients", color: "orange" },
-    { icon: FileText, label: "Contrats", href: "/admin/contracts", color: "red" },
-    { icon: ClipboardList, label: "Offres", href: "/admin/offers", color: "indigo" },
-    { icon: Calculator, label: "Factures", href: "/admin/invoicing", color: "pink" },
-    { icon: Package, label: "Catalogue", href: "/admin/catalog", color: "emerald" },
-    { icon: Mail, label: "Chat Admin", href: "/admin/chat", color: "violet" },
-    { icon: Settings, label: "Paramètres", href: "/admin/settings", color: "gray" },
-  ], []);
+  const menuItems = useMemo(() => {
+    const basePrefix = companySlug ? `/${companySlug}` : '';
+    return [
+      { icon: BarChart3, label: "Dashboard", href: `${basePrefix}/admin/dashboard`, color: "blue" },
+      { icon: UserCheck, label: "CRM", href: `${basePrefix}/admin/clients`, color: "orange" },
+      { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, color: "red" },
+      { icon: ClipboardList, label: "Offres", href: `${basePrefix}/admin/offers`, color: "indigo" },
+      { icon: Calculator, label: "Factures", href: `${basePrefix}/admin/invoicing`, color: "pink" },
+      { icon: Package, label: "Catalogue", href: `${basePrefix}/admin/catalog`, color: "emerald" },
+      { icon: Mail, label: "Chat Admin", href: `${basePrefix}/admin/chat`, color: "violet" },
+      { icon: Settings, label: "Paramètres", href: `${basePrefix}/admin/settings`, color: "gray" },
+    ];
+  }, [companySlug]);
 
   // Mémoriser la fonction isActive
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);

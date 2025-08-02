@@ -39,45 +39,72 @@ const Login = () => {
       console.log("🔀 LOGIN REDIRECT - Utilisateur/Session détecté, redirection...", userEmail, "Role:", userRole);
       
       // Utiliser setTimeout pour éviter les conflits de rendu
-      const timer = setTimeout(() => {
-        // Redirection basée sur le rôle et l'email
+      const timer = setTimeout(async () => {
+        // Récupérer le slug d'entreprise de l'utilisateur
+        const getUserCompanySlug = async () => {
+          try {
+            const userId = user?.id || session?.user?.id;
+            if (!userId) return null;
+
+            const { data } = await supabase
+              .from('profiles')
+              .select(`
+                company_id,
+                companies!inner (
+                  slug
+                )
+              `)
+              .eq('user_id', userId)
+              .single();
+
+            return data?.companies?.slug || null;
+          } catch (error) {
+            console.error('Erreur lors de la récupération du slug d\'entreprise:', error);
+            return null;
+          }
+        };
+
+        // Redirection basée sur le rôle et l'email avec slug d'entreprise
         if (userEmail === "ecommerce@itakecare.be") {
           console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
-          navigate('/admin/leazr-saas-dashboard', { replace: true });
+          const companySlug = await getUserCompanySlug();
+          if (companySlug) {
+            navigate(`/${companySlug}/admin/leazr-saas-dashboard`, { replace: true });
+          } else {
+            navigate('/admin/leazr-saas-dashboard', { replace: true }); // Fallback pour compatibilité
+          }
         } else if (userEmail === "hello@itakecare.be" || userRole === 'admin') {
           console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
-          navigate('/admin/dashboard', { replace: true });
+          const companySlug = await getUserCompanySlug();
+          if (companySlug) {
+            navigate(`/${companySlug}/admin/dashboard`, { replace: true });
+          } else {
+            navigate('/admin/dashboard', { replace: true }); // Fallback pour compatibilité
+          }
         } else if (isClient()) {
           console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
-          navigate('/client/dashboard', { replace: true });
+          const companySlug = await getUserCompanySlug();
+          if (companySlug) {
+            navigate(`/${companySlug}/client/dashboard`, { replace: true });
+          } else {
+            navigate('/client/dashboard', { replace: true }); // Fallback pour compatibilité
+          }
         } else if (isAmbassador()) {
           console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
-          // Récupérer le slug de l'entreprise pour l'ambassadeur
-          const fetchAmbassadorCompany = async () => {
-            try {
-              const userId = user?.id || session?.user?.id;
-              if (!userId) return navigate('/ambassador/dashboard', { replace: true });
-              
-              const { data } = await supabase
-                .from('ambassadors')
-                .select('companies!inner(slug)')
-                .eq('user_id', userId)
-                .single();
-              
-              if (data?.companies?.slug) {
-                navigate(`/${data.companies.slug}/ambassador/dashboard`, { replace: true });
-              } else {
-                navigate('/ambassador/dashboard', { replace: true });
-              }
-            } catch (error) {
-              console.error('Erreur lors de la récupération du slug:', error);
-              navigate('/ambassador/dashboard', { replace: true });
-            }
-          };
-          fetchAmbassadorCompany();
+          const companySlug = await getUserCompanySlug();
+          if (companySlug) {
+            navigate(`/${companySlug}/ambassador/dashboard`, { replace: true });
+          } else {
+            navigate('/ambassador/dashboard', { replace: true }); // Fallback pour compatibilité
+          }
         } else if (isPartner()) {
           console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
-          navigate('/partner/dashboard', { replace: true });
+          const companySlug = await getUserCompanySlug();
+          if (companySlug) {
+            navigate(`/${companySlug}/partner/dashboard`, { replace: true });
+          } else {
+            navigate('/partner/dashboard', { replace: true }); // Fallback pour compatibilité
+          }
         } else {
           console.log("🔀 LOGIN REDIRECT - Redirection par défaut vers admin dashboard");
           navigate('/admin/dashboard', { replace: true });

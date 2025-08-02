@@ -64,6 +64,11 @@ import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
 import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
 import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
 
+// Route guards
+import AdminPrivateRoute from "@/components/routing/AdminPrivateRoute";
+import ClientPrivateRoute from "@/components/routing/ClientPrivateRoute";
+import PartnerPrivateRoute from "@/components/routing/PartnerPrivateRoute";
+
 // Ambassador management pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
 import AmbassadorDetail from "@/pages/AmbassadorDetail";
@@ -159,8 +164,8 @@ function App() {
                         </Route>
                       </Route>
                       
-                      {/* System routes with explicit paths - HIGHEST PRIORITY */}
-                      <Route path="/admin/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+                      {/* ⚠️ MULTI-TENANT ADMIN ROUTES ⚠️ */}
+                      <Route path="/:companySlug/admin/*" element={<AdminPrivateRoute />}>
                         {/* Admin routes with Layout */}
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
                         <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
@@ -190,6 +195,17 @@ function App() {
                         <Route path="catalog/create" element={<Layout><ProductFormPage /></Layout>} />
                         <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
                       </Route>
+
+                      {/* ⚠️ MULTI-TENANT CLIENT & PARTNER ROUTES ⚠️ */}
+                      <Route path="/:companySlug/client/*" element={<ClientPrivateRoute />}>
+                        <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+                      </Route>
+                      <Route path="/:companySlug/partner/*" element={<PartnerPrivateRoute />}>
+                        <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+                      </Route>
+                      
+                      {/* Legacy routes - redirect to home for slug-based routing */}
+                      <Route path="/admin/*" element={<Navigate to="/" replace />} />
                       
                       {/* Ambassador management routes */}
                       <Route path="/ambassadors/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>

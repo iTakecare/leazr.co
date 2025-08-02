@@ -47,25 +47,12 @@ export const RoleBasedRoutes = () => {
     }
   }
 
-  // Default redirection based on role
+  // For old system routes without company slug, redirect to home
   const currentPath = location.pathname;
   
   if (currentPath === "/" || currentPath === "/dashboard") {
-    console.log('🔐 ROLE BASED ROUTES - Redirecting based on role:', user.role);
-    
-    switch (user.role) {
-      case 'admin':
-      case 'super_admin':
-        return <Navigate to="/admin/dashboard" replace />;
-      case 'ambassador':
-        return <Navigate to="/ambassador" replace />;
-      case 'client':
-        return <Navigate to="/client" replace />;
-      case 'partner':
-        return <Navigate to="/partner" replace />;
-      default:
-        return <Navigate to="/admin/dashboard" replace />;
-    }
+    console.log('🔐 ROLE BASED ROUTES - Redirecting to home for slug-based routing');
+    return <Navigate to="/" replace />;
   }
 
   console.log('🔐 ROLE BASED ROUTES - Rendering outlet');
