@@ -3,7 +3,7 @@ import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
-import ClientProductRequestForm from './ClientProductRequestForm';
+import ClientRequestSummary from './ClientRequestSummary';
 
 const ClientRequestSteps: React.FC = () => {
   const { navigateToClient } = useRoleNavigation();
@@ -48,7 +48,7 @@ const ClientRequestSteps: React.FC = () => {
           </Button>
         </div>
         
-        <ClientProductRequestForm />
+        <ClientRequestSummary />
       </div>
     </div>
   );
