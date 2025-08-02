@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Client } from '@/types/client';
 import ClientList from '@/components/clients/ClientList';
 import ClientsLoading from '@/components/clients/ClientsLoading';
@@ -32,7 +32,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
   refreshClients,
   allClients
 }) => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [showDuplicates, setShowDuplicates] = React.useState(false);
   const [debugView, setDebugView] = React.useState(false);
@@ -88,11 +88,11 @@ const ClientsList: React.FC<ClientsListProps> = ({
   };
 
   const handleEditClient = (id: string) => {
-    navigate(`/clients/edit/${id}`);
+    navigateToAdmin(`clients/edit/${id}`);
   };
 
   const handleViewClient = (id: string) => {
-    navigate(`/clients/${id}`);
+    navigateToAdmin(`clients/${id}`);
   };
 
   const handleRefresh = async () => {

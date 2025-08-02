@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,14 +26,14 @@ const ClientList: React.FC<ClientListProps> = ({
   onViewClient,
   onForceRefresh,
 }) => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   const handleViewClient = (client: Client) => {
     console.log("Viewing client:", client);
     if (client.id) {
-      console.log("Navigating to client detail:", `/clients/${client.id}`);
-      navigate(`/clients/${client.id}`);
+      console.log("Navigating to client detail:", `clients/${client.id}`);
+      navigateToAdmin(`clients/${client.id}`);
       onViewClient(client.id);
     } else {
       console.error("Client ID is missing:", client);
@@ -43,8 +43,8 @@ const ClientList: React.FC<ClientListProps> = ({
   const handleEditClient = (client: Client) => {
     console.log("Editing client:", client);
     if (client.id) {
-      console.log("Navigating to client edit:", `/clients/edit/${client.id}`);
-      navigate(`/clients/edit/${client.id}`);
+      console.log("Navigating to client edit:", `clients/edit/${client.id}`);
+      navigateToAdmin(`clients/edit/${client.id}`);
       onEditClient(client.id);
     } else {
       console.error("Client ID is missing:", client);
@@ -68,7 +68,7 @@ const ClientList: React.FC<ClientListProps> = ({
           Aucun client trouvé pour votre entreprise. Commencez par ajouter votre premier client.
         </p>
         <div className="space-x-2">
-          <Button onClick={() => navigate('/clients/new')}>
+          <Button onClick={() => navigateToAdmin('clients/new')}>
             Ajouter un client
           </Button>
           {onForceRefresh && (
