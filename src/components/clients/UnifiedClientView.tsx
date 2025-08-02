@@ -50,11 +50,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     contact_name: client.contact_name || "",
     notes: client.notes || "",
     status: client.status || "active",
-    has_different_shipping_address: client.has_different_shipping_address || false,
-    shipping_address: client.shipping_address || "",
-    shipping_city: client.shipping_city || "",
-    shipping_postal_code: client.shipping_postal_code || "",
-    shipping_country: client.shipping_country || "",
   });
 
   useEffect(() => {
@@ -72,11 +67,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       contact_name: initialClient.contact_name || "",
       notes: initialClient.notes || "",
       status: initialClient.status || "active",
-      has_different_shipping_address: initialClient.has_different_shipping_address || false,
-      shipping_address: initialClient.shipping_address || "",
-      shipping_city: initialClient.shipping_city || "",
-      shipping_postal_code: initialClient.shipping_postal_code || "",
-      shipping_country: initialClient.shipping_country || "",
     });
   }, [initialClient]);
 
@@ -119,11 +109,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       contact_name: client.contact_name || "",
       notes: client.notes || "",
       status: client.status || "active",
-      has_different_shipping_address: client.has_different_shipping_address || false,
-      shipping_address: client.shipping_address || "",
-      shipping_city: client.shipping_city || "",
-      shipping_postal_code: client.shipping_postal_code || "",
-      shipping_country: client.shipping_country || "",
     });
     setIsEditing(false);
   };
@@ -193,7 +178,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
             <div className="flex items-center space-x-2">
               <Switch
                 id={field}
-                checked={formData[field as keyof typeof formData] as boolean}
+                checked={Boolean(formData[field as keyof typeof formData])}
                 onCheckedChange={(checked) => handleInputChange(field, checked)}
               />
               <Label htmlFor={field}>{label}</Label>
@@ -341,28 +326,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                     {renderField("Code postal", "postal_code", client.postal_code)}
                     {renderField("Pays", "country", client.country)}
                   </div>
-                </div>
-
-                {/* Adresse de livraison */}
-                <div className="border-t pt-4">
-                  <div className="mb-3">
-                    {renderField("Adresse de livraison différente", "has_different_shipping_address", client.has_different_shipping_address, "switch")}
-                  </div>
-                  
-                  {(isEditing ? formData.has_different_shipping_address : client.has_different_shipping_address) && (
-                    <>
-                      <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
-                        Adresse de livraison
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {renderField("Adresse de livraison", "shipping_address", client.shipping_address)}
-                        {renderField("Ville de livraison", "shipping_city", client.shipping_city)}
-                        {renderField("Code postal de livraison", "shipping_postal_code", client.shipping_postal_code)}
-                        {renderField("Pays de livraison", "shipping_country", client.shipping_country)}
-                      </div>
-                    </>
-                  )}
                 </div>
 
                 {/* Notes */}

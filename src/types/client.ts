@@ -1,4 +1,5 @@
 
+// Updated to remove shipping address fields
 export interface Collaborator {
   id: string;
   name: string;
@@ -31,11 +32,6 @@ export interface Client {
   createdAt?: string;
   totalValue?: number;
   ambassador_client_id?: string;
-  shipping_address?: string;
-  shipping_city?: string;
-  shipping_postal_code?: string;
-  shipping_country?: string;
-  has_different_shipping_address?: boolean;
   contact_name?: string;
 }
 
@@ -55,10 +51,5 @@ export interface CreateClientData {
   country?: string;
   collaborators?: Collaborator[];
   is_ambassador_client?: boolean;
-  shipping_address?: string;
-  shipping_city?: string;
-  shipping_postal_code?: string;
-  shipping_country?: string;
-  has_different_shipping_address?: boolean;
   contact_name?: string;
 }

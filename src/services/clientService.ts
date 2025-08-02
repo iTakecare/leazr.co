@@ -129,9 +129,19 @@ export const updateClient = async (id: string, updates: Partial<Client>): Promis
   try {
     console.log(`Mise à jour du client ID: ${id}`, updates);
     
+    // Filter out shipping address properties that don't exist in the database
+    const {
+      shipping_address,
+      shipping_city,
+      shipping_postal_code,
+      shipping_country,
+      has_different_shipping_address,
+      ...validUpdates
+    } = updates as any;
+    
     const { data, error } = await supabase
       .from('clients')
-      .update(updates)
+      .update(validUpdates)
       .eq('id', id)
       .select()
       .single();
