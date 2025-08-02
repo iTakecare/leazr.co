@@ -13,9 +13,10 @@ import { getPublicProductsOptimized, getPublicPacksOptimized } from "@/services/
 import { useQuery } from "@tanstack/react-query";
 import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
 import { useParams, useLocation } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
+import { useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -38,6 +39,7 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
+  const { cartCount } = useCart();
   
   const companyId = company?.id;
 
@@ -105,8 +107,7 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
     console.log('📱 CLIENT CATALOG - Showing catalog loading');
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
-        <Container className="max-w-[1320px]">
+        <Container className="max-w-[1320px] pt-6">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -123,8 +124,7 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
     console.error('📱 CLIENT CATALOG - Catalog error:', productsError || packsError);
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
-        <Container className="max-w-[1320px]">
+        <Container className="max-w-[1320px] pt-6">
           <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -145,15 +145,9 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
 
   return (
     <CompanyProvider company={company}>
-      <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
-        
+      <div className="min-h-screen bg-white">        
         <Container className="py-6 max-w-[1320px]">
           <div className="space-y-8">
-            <CatalogHeader 
-              companyName={company?.name}
-              companyLogo={company?.logo_url}
-            />
             
             <div className="flex gap-6">
               {/* Filter Sidebar */}
@@ -201,27 +195,42 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                   />
                 </div>
 
-                 {/* Tabs for Products and Packs */}
-                 <div className="flex border-b border-gray-200">
+                 {/* Tabs for Products and Packs with Cart Icon */}
+                 <div className="flex border-b border-gray-200 justify-between items-center">
+                   <div className="flex">
+                     <button
+                       onClick={() => setActiveTab('products')}
+                       className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                         activeTab === 'products'
+                           ? 'border-[#4ab6c4] text-[#4ab6c4]'
+                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                       }`}
+                     >
+                       Produits ({products.length})
+                     </button>
+                     <button
+                       onClick={() => setActiveTab('packs')}
+                       className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                         activeTab === 'packs'
+                           ? 'border-[#4ab6c4] text-[#4ab6c4]'
+                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                       }`}
+                     >
+                       Packs ({packs.length})
+                     </button>
+                   </div>
+                   
+                   {/* Cart Icon */}
                    <button
-                     onClick={() => setActiveTab('products')}
-                     className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                       activeTab === 'products'
-                         ? 'border-[#4ab6c4] text-[#4ab6c4]'
-                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                     }`}
+                     onClick={() => window.location.href = `/client/${companySlug}/cart`}
+                     className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
                    >
-                     Produits ({products.length})
-                   </button>
-                   <button
-                     onClick={() => setActiveTab('packs')}
-                     className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                       activeTab === 'packs'
-                         ? 'border-[#4ab6c4] text-[#4ab6c4]'
-                         : 'border-transparent text-gray-500 hover:text-gray-700'
-                     }`}
-                   >
-                     Packs ({packs.length})
+                     <ShoppingCart className="h-6 w-6" />
+                     {cartCount > 0 && (
+                       <span className="absolute -top-1 -right-1 bg-[#4ab6c4] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                         {cartCount}
+                       </span>
+                     )}
                    </button>
                  </div>
 
