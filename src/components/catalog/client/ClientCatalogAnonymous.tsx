@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import ClientProductGrid from "@/components/catalog/client/ClientProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
-import PublicProductDetail from "@/components/public/PublicProductDetail";
+import ClientProductDetail from "@/components/catalog/client/ClientProductDetail";
 import { ArrowLeft } from "lucide-react";
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
@@ -257,11 +257,12 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                             <ArrowLeft className="h-4 w-4" />
                             Retour au catalogue
                           </button>
-                          <PublicProductDetail
+                          <ClientProductDetail
                             companyId={company.id}
                             companySlug={company.slug}
                             productId={selectedProductId}
                             company={company}
+                            onBackToCatalog={handleBackToGrid}
                           />
                         </div>
                       ) : (
