@@ -15,9 +15,11 @@ import { useAuth } from "@/context/AuthContext";
 import Container from "@/components/layout/Container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const AmbassadorOffersPage = () => {
   const { user } = useAuth();
+  const { navigateToAmbassador } = useRoleNavigation();
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const [loading, setLoading] = useState(true);
   const [offers, setOffers] = useState([]);
@@ -227,11 +229,9 @@ const AmbassadorOffersPage = () => {
                 Gérez vos offres clients
               </p>
             </div>
-            <Button asChild>
-              <Link to="/ambassador/create-offer" className="flex items-center">
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvelle offre
-              </Link>
+            <Button onClick={() => navigateToAmbassador("create-offer")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle offre
             </Button>
           </div>
           

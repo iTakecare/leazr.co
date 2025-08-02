@@ -131,9 +131,9 @@ const NotFound = () => {
               <p className="text-amber-700 text-sm mb-4">
                 Si vous cherchez votre tableau de bord ambassadeur, utilisez le lien ci-dessous:
               </p>
-              <Link to="/ambassador/dashboard">
+              <Link to="/login">
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <HeartHandshake className="h-4 w-4" /> Tableau de bord ambassadeur
+                  <HeartHandshake className="h-4 w-4" /> Se connecter
                 </Button>
               </Link>
             </div>

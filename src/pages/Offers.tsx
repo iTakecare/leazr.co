@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const Offers = () => {
   const {
@@ -46,6 +47,7 @@ const Offers = () => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
   const location = useLocation();
   const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   
   // Référence pour le défilement horizontal
   const scrollContainer = React.useRef<HTMLDivElement>(null);
@@ -68,11 +70,9 @@ const Offers = () => {
       <div className="w-full p-4 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <OffersHeader />
-          <Button asChild>
-            <Link to="/admin/create-offer" className="flex items-center">
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle offre
-            </Link>
+          <Button onClick={() => navigateToAdmin("create-offer")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle offre
           </Button>
         </div>
         

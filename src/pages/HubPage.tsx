@@ -1,8 +1,10 @@
 
 import React from "react";
 import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import { useNavigate } from "react-router-dom";
 
 const HubPage = () => {
+  const navigate = useNavigate();
   return (
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
       <SimpleHeader />
@@ -16,12 +18,12 @@ const HubPage = () => {
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-3">Plateforme Client</h3>
                 <p className="text-gray-600 mb-4">Accédez à votre espace client pour gérer vos contrats et services.</p>
-                <a 
-                  href="/client/dashboard" 
+                <button 
+                  onClick={() => navigate("/login")}
                   className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
                 >
-                  Accéder
-                </a>
+                  Se connecter
+                </button>
               </div>
             </div>
             
@@ -29,12 +31,12 @@ const HubPage = () => {
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-3">Plateforme Partenaire</h3>
                 <p className="text-gray-600 mb-4">Espace dédié à nos partenaires pour collaborer sur des projets communs.</p>
-                <a 
-                  href="/partner/dashboard" 
+                <button 
+                  onClick={() => navigate("/login")}
                   className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
                 >
-                  Accéder
-                </a>
+                  Se connecter
+                </button>
               </div>
             </div>
             
@@ -42,12 +44,12 @@ const HubPage = () => {
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-3">Espace Ambassadeur</h3>
                 <p className="text-gray-600 mb-4">Portail pour nos ambassadeurs pour promouvoir nos solutions et services.</p>
-                <a 
-                  href="/ambassador/dashboard" 
+                <button 
+                  onClick={() => navigate("/login")}
                   className="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
                 >
-                  Accéder
-                </a>
+                  Se connecter
+                </button>
               </div>
             </div>
             
@@ -81,12 +83,12 @@ const HubPage = () => {
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-3">Administration</h3>
                 <p className="text-gray-600 mb-4">Accès réservé aux administrateurs pour la gestion de la plateforme.</p>
-                <a 
-                  href="/dashboard" 
+                <button 
+                  onClick={() => navigate("/login")}
                   className="inline-block bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 transition-colors"
                 >
-                  Admin
-                </a>
+                  Se connecter
+                </button>
               </div>
             </div>
           </div>

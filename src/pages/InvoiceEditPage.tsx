@@ -12,11 +12,13 @@ import { getCompanyInvoices, type Invoice } from "@/services/invoiceService";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const InvoiceEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { companyId } = useMultiTenant();
+  const { navigateToAdmin } = useRoleNavigation();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,7 +52,7 @@ const InvoiceEditPage = () => {
           });
         } else {
           toast.error("Facture non trouvée");
-          navigate("/admin/invoicing");
+          navigateToAdmin("invoicing");
         }
       } catch (error) {
         console.error("Erreur lors du chargement de la facture:", error);
@@ -98,7 +100,7 @@ const InvoiceEditPage = () => {
       }
 
       toast.success("Facture mise à jour avec succès");
-      navigate(`/admin/invoicing/${invoice.id}`);
+      navigateToAdmin(`invoicing/${invoice.id}`);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error("Erreur lors de la sauvegarde de la facture");
@@ -108,7 +110,7 @@ const InvoiceEditPage = () => {
   };
 
   const handleCancel = () => {
-    navigate(`/admin/invoicing/${id}`);
+    navigateToAdmin(`invoicing/${id}`);
   };
 
   if (loading) {
@@ -123,12 +125,10 @@ const InvoiceEditPage = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold mb-4">Facture non trouvée</h2>
-        <Link to="/admin/invoicing">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour aux factures
-          </Button>
-        </Link>
+        <Button variant="outline" onClick={() => navigateToAdmin("invoicing")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour aux factures
+        </Button>
       </div>
     );
   }
@@ -138,13 +138,13 @@ const InvoiceEditPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <Link 
-            to={`/admin/invoicing/${invoice.id}`} 
+          <button 
+            onClick={() => navigateToAdmin(`invoicing/${invoice.id}`)}
             className="inline-flex items-center text-muted-foreground hover:text-foreground mb-2"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour au détail
-          </Link>
+          </button>
           <h1 className="text-3xl font-bold tracking-tight">
             Modifier la facture {invoice.invoice_number || `FAC-${invoice.id.slice(0, 8)}`}
           </h1>

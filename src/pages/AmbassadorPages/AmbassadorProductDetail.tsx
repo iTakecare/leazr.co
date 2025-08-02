@@ -16,10 +16,12 @@ import { motion } from "framer-motion";
 import CO2SavingsCalculator from "@/components/product-detail/CO2SavingsCalculator";
 import MainNavigation from "@/components/layout/MainNavigation";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const AmbassadorProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
   const [activeTab, setActiveTab] = useState("details");
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
@@ -71,7 +73,7 @@ const AmbassadorProductDetail = () => {
           <div className="text-center p-8 border rounded-md">
             <p className="text-lg font-medium mb-2">Produit non trouvé</p>
             <p className="text-muted-foreground mb-4">Le produit que vous recherchez n'existe pas ou a été supprimé.</p>
-            <Button onClick={() => navigate('/ambassador/catalog')}>Retour au catalogue</Button>
+            <Button onClick={() => navigateToAmbassador('catalog')}>Retour au catalogue</Button>
           </div>
         </div>
       </Container>
@@ -105,15 +107,15 @@ const AmbassadorProductDetail = () => {
           <div className="bg-white py-2 mb-4">
             <Breadcrumb>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/ambassador/catalog">Catalogue Ambassadeur</BreadcrumbLink>
+                <BreadcrumbLink onClick={() => navigateToAmbassador('catalog')}>Catalogue Ambassadeur</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/ambassador/catalog?category=${product.category}`}>
+                <BreadcrumbLink onClick={() => navigateToAmbassador(`catalog?category=${product.category}`)}>
                   {product.category === "laptop" ? "Ordinateurs" : product.category}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/ambassador/catalog?brand=${product.brand}`}>
+                <BreadcrumbLink onClick={() => navigateToAmbassador(`catalog?brand=${product.brand}`)}>
                   {product.brand}
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -310,7 +312,7 @@ const AmbassadorProductDetail = () => {
         <div className="py-8">
           <div className="max-w-md mx-auto">
             <Button
-              onClick={() => navigate('/ambassador/catalog')}
+              onClick={() => navigateToAmbassador('catalog')}
               className="w-full"
             >
               Retour au catalogue
