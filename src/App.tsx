@@ -72,7 +72,7 @@ import AmbassadorCreatePage from "@/pages/AmbassadorCreatePage";
 
 // Ambassador components
 import AmbassadorLayout from "@/components/layout/AmbassadorLayout";
-import AmbassadorSlugGuard from "@/components/routing/AmbassadorSlugGuard";
+import AmbassadorPrivateRoute from "@/components/routing/AmbassadorPrivateRoute";
 import AmbassadorDashboardPage from "@/pages/AmbassadorPages/AmbassadorDashboardPage";
 import AmbassadorCatalogPage from "@/pages/AmbassadorPages/AmbassadorCatalogPage";
 import AmbassadorCreateOffer from "@/pages/AmbassadorCreateOffer";
@@ -144,17 +144,19 @@ function App() {
                       <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
                       
                       {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
-                      <Route path="/:companySlug/ambassador" element={<PrivateRoute><AmbassadorSlugGuard /></PrivateRoute>}>
-                        <Route path="" element={<Navigate to="dashboard" replace />} />
-                        <Route path="dashboard" element={<AmbassadorLayout><AmbassadorDashboardPage /></AmbassadorLayout>} />
-                        <Route path="catalog" element={<AmbassadorLayout><AmbassadorCatalogPage /></AmbassadorLayout>} />
-                        <Route path="products/:id" element={<AmbassadorLayout><AmbassadorProductDetailPage /></AmbassadorLayout>} />
-                        <Route path="custom-offer-generator" element={<AmbassadorLayout><CustomOfferGeneratorPage /></AmbassadorLayout>} />
-                        <Route path="create-offer" element={<AmbassadorLayout><AmbassadorCreateOffer /></AmbassadorLayout>} />
-                        <Route path="clients" element={<AmbassadorLayout><AmbassadorClientsPage /></AmbassadorLayout>} />
-                        <Route path="clients/create" element={<AmbassadorLayout><AmbassadorClientCreatePage /></AmbassadorLayout>} />
-                        <Route path="offers" element={<AmbassadorLayout><AmbassadorOffersPage /></AmbassadorLayout>} />
-                        <Route path="offers/:id" element={<AmbassadorLayout><AmbassadorOfferDetail /></AmbassadorLayout>} />
+                      <Route path="/:companySlug/ambassador/*" element={<AmbassadorPrivateRoute />}>
+                        <Route path="" element={<AmbassadorLayout />}>
+                          <Route index element={<Navigate to="dashboard" replace />} />
+                          <Route path="dashboard" element={<AmbassadorDashboardPage />} />
+                          <Route path="catalog" element={<AmbassadorCatalogPage />} />
+                          <Route path="products/:id" element={<AmbassadorProductDetailPage />} />
+                          <Route path="custom-offer-generator" element={<CustomOfferGeneratorPage />} />
+                          <Route path="create-offer" element={<AmbassadorCreateOffer />} />
+                          <Route path="clients" element={<AmbassadorClientsPage />} />
+                          <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
+                          <Route path="offers" element={<AmbassadorOffersPage />} />
+                          <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
+                        </Route>
                       </Route>
                       
                       {/* System routes with explicit paths - HIGHEST PRIORITY */}

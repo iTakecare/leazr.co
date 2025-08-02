@@ -1,33 +1,10 @@
 
-import React, { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import React from "react";
+import { Outlet } from "react-router-dom";
 import AmbassadorSidebar from "./AmbassadorSidebar";
-import { toast } from "sonner";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      console.log("[AmbassadorLayout] Utilisateur non authentifié, redirection vers login");
-      navigate("/login", { replace: true });
-    }
-  }, [user, isLoading, navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Ne rendre le contenu que si l'utilisateur est connecté
-  if (!user) {
-    return null;
-  }
+  console.log('🏠 AMBASSADOR LAYOUT - Rendering layout');
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
