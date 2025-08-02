@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
@@ -15,10 +15,15 @@ interface SimpleHeaderProps {
 const SimpleHeader = ({ companyId, companyLogo, companyName }: SimpleHeaderProps) => {
   const { cartCount } = useCart();
   const { companySlug } = useParams<{ companySlug: string }>();
+  const location = useLocation();
   
   // Determine the correct cart URL based on context
   const getCartUrl = () => {
-    if (companySlug) {
+    const isInClientSpace = location.pathname.includes('/client/');
+    
+    if (isInClientSpace && companySlug) {
+      return `/${companySlug}/client/panier`;
+    } else if (companySlug) {
       return `/${companySlug}/panier`;
     } else if (companyId) {
       return `/public/${companyId}/panier`;
