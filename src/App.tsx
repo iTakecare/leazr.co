@@ -49,6 +49,8 @@ import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
 import Dashboard from "@/pages/Dashboard";
 import AdminChatPage from "@/pages/AdminChatPage";
 import Clients from "@/pages/Clients";
+import ClientDetail from "@/pages/ClientDetail";
+import ClientEditPage from "@/pages/ClientEditPage";
 import Offers from "@/pages/Offers";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import Contracts from "@/pages/Contracts";
@@ -175,6 +177,8 @@ function App() {
                         <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
                         <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
                         <Route path="clients" element={<Layout><Clients /></Layout>} />
+                        <Route path="clients/:id" element={<Layout><ClientDetail /></Layout>} />
+                        <Route path="clients/edit/:id" element={<Layout><ClientEditPage /></Layout>} />
                         <Route path="offers" element={<Layout><Offers /></Layout>} />
                         <Route path="offers/:id" element={<Layout><AdminOfferDetail /></Layout>} />
                         <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
