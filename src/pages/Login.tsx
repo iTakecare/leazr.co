@@ -52,7 +52,29 @@ const Login = () => {
           navigate('/client/dashboard', { replace: true });
         } else if (isAmbassador()) {
           console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
-          navigate('/ambassador/dashboard', { replace: true });
+          // Récupérer le slug de l'entreprise pour l'ambassadeur
+          const fetchAmbassadorCompany = async () => {
+            try {
+              const userId = user?.id || session?.user?.id;
+              if (!userId) return navigate('/ambassador/dashboard', { replace: true });
+              
+              const { data } = await supabase
+                .from('ambassadors')
+                .select('companies!inner(slug)')
+                .eq('user_id', userId)
+                .single();
+              
+              if (data?.companies?.slug) {
+                navigate(`/${data.companies.slug}/ambassador/dashboard`, { replace: true });
+              } else {
+                navigate('/ambassador/dashboard', { replace: true });
+              }
+            } catch (error) {
+              console.error('Erreur lors de la récupération du slug:', error);
+              navigate('/ambassador/dashboard', { replace: true });
+            }
+          };
+          fetchAmbassadorCompany();
         } else if (isPartner()) {
           console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
           navigate('/partner/dashboard', { replace: true });
