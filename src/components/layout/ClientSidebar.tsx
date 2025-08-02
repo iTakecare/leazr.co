@@ -5,6 +5,7 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLocation } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { useClientRequestsCount } from "@/hooks/useClientRequests";
 import { 
   LayoutDashboard,
   FileText,
@@ -34,17 +35,24 @@ const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
   const { navigateToClient, companySlug } = useRoleNavigation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { count: requestsCount } = useClientRequestsCount();
 
   // Mémoriser les éléments de menu
   const menuItems = useMemo(() => [
     { icon: LayoutDashboard, label: "Tableau de bord", href: "dashboard", color: "blue" },
     { icon: Laptop, label: "Équipements", href: "equipment", color: "slate" },
     { icon: FileText, label: "Contrats", href: "contracts", color: "emerald" },
-    { icon: Clock, label: "Demandes en cours", href: "requests", color: "orange", badge: "3" },
+    { 
+      icon: Clock, 
+      label: "Demandes", 
+      href: "requests", 
+      color: "orange", 
+      badge: requestsCount > 0 ? requestsCount.toString() : undefined 
+    },
     { icon: Package, label: "Catalogue", href: "products", color: "violet" },
     { icon: HelpCircle, label: "Support", href: "support", color: "pink" },
     { icon: Settings, label: "Paramètres", href: "settings", color: "gray" },
-  ], []);
+  ], [requestsCount]);
 
   // Mémoriser la fonction isActive
   const isActive = useCallback((href: string) => {
