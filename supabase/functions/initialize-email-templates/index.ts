@@ -173,35 +173,49 @@ serve(async (req) => {
       {
         type: 'client_account',
         name: 'Création de compte client',
-        subject: 'Bienvenue ! Votre espace client est maintenant actif',
+        subject: 'Bienvenue chez {{company_name}} - Activez votre compte client',
         html_content: `
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
   <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-    <h1 style="color: #1f2937; font-size: 20px; margin-bottom: 16px; text-align: center;">Votre compte client est prêt !</h1>
+    {{#if company_logo}}
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="{{company_logo}}" alt="{{company_name}}" style="max-height: 50px; max-width: 150px;">
+    </div>
+    {{/if}}
+    <h1 style="color: #1f2937; font-size: 20px; margin-bottom: 16px; text-align: center;">Bienvenue chez {{company_name}}</h1>
     <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
       Bonjour {{user_name}},
     </p>
     <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
-      Votre compte client a été créé avec succès. Vous pouvez maintenant :
+      Nous sommes ravis de vous compter parmi nos clients. Votre compte client a été créé avec succès et vous donne accès à nos services exclusifs.
     </p>
-    <ul style="color: #374151; font-size: 14px; line-height: 1.4; margin-bottom: 16px; padding-left: 18px;">
-      <li>Consulter vos offres de leasing</li>
-      <li>Suivre vos contrats en cours</li>
-      <li>Télécharger vos documents</li>
-      <li>Contacter votre conseiller</li>
-    </ul>
-    <div style="background-color: #f3f4f6; padding: 12px; border-radius: 6px; margin: 16px 0;">
-      <p style="margin: 0; color: #374151; font-size: 14px;"><strong>Email :</strong> {{user_email}}</p>
-      <p style="margin: 8px 0 0 0; color: #374151; font-size: 14px;"><strong>Mot de passe :</strong> {{temp_password}}</p>
+    <div style="background-color: #f0fdf4; border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin: 16px 0;">
+      <p style="margin: 0; color: #047857; font-size: 14px;">
+        <strong>🌟 Vos avantages :</strong> Accès privilégié à nos solutions, suivi personnalisé de vos dossiers et support dédié.
+      </p>
     </div>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 16px;">
+      Pour accéder à votre espace personnel, activez votre compte :
+    </p>
     <div style="text-align: center; margin: 20px 0;">
-      <a href="{{login_link}}" style="background-color: #3b82f6; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
-        Accéder à mon espace client
+      <a href="{{activation_url}}" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+        Activer mon compte client
       </a>
     </div>
-    <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
-      Changez votre mot de passe lors de votre première connexion.
+    <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 20px 0 0 0;">
+      Ce lien d'activation expirera dans 7 jours.
     </p>
+    <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 16px 0 0 0;">
+      {{company_name}} - {{current_year}}
+    </p>
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+      <a href="#" style="display: inline-block; color: #059669; text-decoration: none; font-size: 13px; margin-right: 15px;">
+        📋 Nos conditions générales
+      </a>
+      <a href="#" style="display: inline-block; color: #059669; text-decoration: none; font-size: 13px;">
+        📄 Télécharger le contrat
+      </a>
+    </div>
   </div>
 </div>`,
         active: true

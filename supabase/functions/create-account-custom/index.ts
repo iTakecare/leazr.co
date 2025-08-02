@@ -352,8 +352,109 @@ const handler = async (req: Request): Promise<Response> => {
 </body>
 </html>
         `;
+      } else if (entityType === 'client') {
+        emailSubject = `Bienvenue chez ${company?.name || ''} - Activez votre compte client`;
+        
+        // Template HTML élégant pour les clients (identique au design des ambassadeurs)
+        emailContent = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${emailSubject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header avec logo et titre -->
+        <tr>
+            <td style="padding: 40px 20px; text-align: center; background-color: #10b981;">
+                ${company?.logo_url ? `
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%;">
+                    <tr>
+                        <td style="text-align: center; padding-bottom: 20px;">
+                            <img src="${company.logo_url}" alt="${company.name || 'Logo'}" style="max-height: 60px; max-width: 200px; height: auto; width: auto; display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+                </table>
+                ` : ''}
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">${company?.name || 'Leazr'}</h1>
+            </td>
+        </tr>
+        
+        <!-- Contenu principal -->
+        <tr>
+            <td style="padding: 40px 20px;">
+                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px;">Bienvenue, ${firstName || ''} ${lastName || ''}!</h2>
+                
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Nous sommes ravis de vous compter parmi nos clients chez <strong>${company?.name || ''}</strong>.
+                    Votre compte client a été créé avec succès et vous donne accès à nos services.
+                </p>
+                
+                <!-- Encadré avantages -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 20px 0;">
+                    <tr>
+                        <td style="background-color: #f0fdf4; padding: 20px; border-left: 4px solid #10b981;">
+                            <p style="color: #475569; margin: 0; font-size: 14px;">
+                                <strong>🌟 Vos avantages :</strong> Accès privilégié à nos solutions, suivi personnalisé 
+                                de vos dossiers et support dédié pour tous vos besoins.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+                    Pour accéder à votre espace personnel, vous devez activer votre compte en cliquant sur le bouton ci-dessous :
+                </p>
+                
+                <!-- Bouton d'activation -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 30px 0;">
+                    <tr>
+                        <td style="text-align: center;">
+                            <a href="${activationUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 16px; mso-hide: all;">
+                                Activer mon compte client
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- Lien de secours -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 20px 0;">
+                    <tr>
+                        <td style="text-align: center; font-size: 14px; color: #64748b;">
+                            Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+                            <a href="${activationUrl}" style="color: #10b981; word-break: break-all;">${activationUrl}</a>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                    Une fois votre compte activé, vous aurez accès à votre espace client personnalisé, au suivi de vos dossiers, à l'historique de vos transactions et à nos services exclusifs.
+                </p>
+                
+                <p style="color: #475569; font-size: 14px; margin: 10px 0;">
+                    Ce lien expirera dans 7 jours.
+                </p>
+                
+                <p style="color: #475569; font-weight: bold; font-size: 16px; margin: 20px 0 0 0;">
+                    Merci de votre confiance en ${company?.name || ''}!
+                </p>
+            </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+            <td style="padding: 20px; background-color: #f8fafc; text-align: center; font-size: 12px; color: #64748b;">
+                © ${new Date().getFullYear()} ${company?.name || 'Leazr'}. Tous droits réservés.
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+        `;
       } else {
-        // Template simple pour les autres types d'entités
+        // Template simple pour les autres types d'entités (partners)
         emailContent = `
 <!DOCTYPE html>
 <html lang="fr">
