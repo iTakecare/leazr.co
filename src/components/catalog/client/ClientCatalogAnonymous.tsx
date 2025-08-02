@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
-import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import ClientProductGrid from "@/components/catalog/client/ClientProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
@@ -14,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +34,7 @@ interface ClientCatalogAnonymousProps {
 const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company }) => {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
@@ -220,11 +219,11 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                      </button>
                    </div>
                    
-                   {/* Cart Icon */}
-                   <button
-                     onClick={() => window.location.href = `/client/${companySlug}/cart`}
-                     className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
-                   >
+                    {/* Cart Icon */}
+                    <button
+                      onClick={() => navigate(`/${companySlug}/client/cart`)}
+                      className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
+                    >
                      <ShoppingCart className="h-6 w-6" />
                      {cartCount > 0 && (
                        <span className="absolute -top-1 -right-1 bg-[#4ab6c4] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
