@@ -5,6 +5,8 @@ import AmbassadorSidebar from "./AmbassadorSidebar";
 
 export const AmbassadorLayout = ({ children }: { children?: React.ReactNode }) => {
   console.log('🏠 AMBASSADOR LAYOUT - Rendering layout');
+  console.log('🏠 AMBASSADOR LAYOUT - Children:', !!children);
+  console.log('🏠 AMBASSADOR LAYOUT - Current pathname:', window.location.pathname);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

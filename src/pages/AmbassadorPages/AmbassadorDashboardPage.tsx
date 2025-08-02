@@ -7,8 +7,6 @@ import { Loader2, Plus, User, Calendar, BarChart, FileText, RefreshCw } from "lu
 import { formatCurrency } from "@/utils/formatters";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import PageTransition from "@/components/layout/PageTransition";
-import Container from "@/components/layout/Container";
 import { toast } from "sonner";
 import { getAmbassadorClients } from "@/services/ambassador/ambassadorClients";
 
@@ -258,25 +256,19 @@ const AmbassadorDashboardPage = () => {
   if (loading) {
     console.log("🔄 Rendering loading state");
     return (
-      <PageTransition>
-        <Container>
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Chargement du tableau de bord...</p>
-            </div>
-          </div>
-        </Container>
-      </PageTransition>
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Chargement du tableau de bord...</p>
+        </div>
+      </div>
     );
   }
 
   console.log("🏠 Rendering main dashboard content");
 
   return (
-    <PageTransition>
-      <Container>
-        <div className="p-6">
+    <div className="p-6">
           {/* Affichage des erreurs pour le débogage (uniquement en développement) */}
           {errors.length > 0 && process.env.NODE_ENV === 'development' && (
             <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -375,7 +367,7 @@ const AmbassadorDashboardPage = () => {
                 </div>
                 <Button 
                   variant="outline"
-                  onClick={() => navigate("/ambassador/clients")}
+                  onClick={() => navigate("clients")}
                 >
                   Voir tout
                 </Button>
@@ -392,7 +384,7 @@ const AmbassadorDashboardPage = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => navigate(`/ambassador/clients/${client.id}`)}
+                          onClick={() => navigate(`clients/${client.id}`)}
                         >
                           Détails
                         </Button>
@@ -405,7 +397,7 @@ const AmbassadorDashboardPage = () => {
                   </p>
                 )}
                 <div className="mt-6">
-                  <Button className="w-full" onClick={() => navigate("/ambassador/clients/create")}>
+                  <Button className="w-full" onClick={() => navigate("clients/create")}>
                     <Plus className="mr-2 h-4 w-4" />
                     Ajouter un client
                   </Button>
@@ -423,7 +415,7 @@ const AmbassadorDashboardPage = () => {
                 </div>
                 <Button 
                   variant="outline"
-                  onClick={() => navigate("/ambassador/offers")}
+                  onClick={() => navigate("offers")}
                 >
                   Voir tout
                 </Button>
@@ -442,7 +434,7 @@ const AmbassadorDashboardPage = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => navigate(`/ambassador/offers/${offer.id}`)}
+                          onClick={() => navigate(`offers/${offer.id}`)}
                         >
                           Détails
                         </Button>
@@ -455,7 +447,7 @@ const AmbassadorDashboardPage = () => {
                   </p>
                 )}
                 <div className="mt-6">
-                  <Button className="w-full" onClick={() => navigate("/ambassador/create-offer")}>
+                  <Button className="w-full" onClick={() => navigate("create-offer")}>
                     <Plus className="mr-2 h-4 w-4" />
                     Créer une offre
                   </Button>
@@ -464,8 +456,6 @@ const AmbassadorDashboardPage = () => {
             </Card>
           </div>
         </div>
-      </Container>
-    </PageTransition>
   );
 };
 
