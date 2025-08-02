@@ -84,13 +84,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       )}>
         {isCollapsed ? (
           // Mode collapsed : logo + nom de l'entreprise en compact
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-start gap-1">
             <CompanyLogo 
               logoSize="sm"
               className="transition-all duration-300 w-8 h-8"
             />
             {!settingsLoading && companyName && (
-              <div className="text-center">
+              <div className="text-left">
                 <p className="text-xs font-bold text-gray-900 truncate max-w-12 leading-tight">
                   {companyName}
                 </p>

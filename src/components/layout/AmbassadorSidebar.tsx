@@ -82,7 +82,7 @@ const AmbassadorSidebar = memo(() => {
       <div className={cn(
         "flex h-16 items-center border-b border-gray-200/60 transition-all duration-300",
         "bg-gradient-to-r from-blue-50/80 to-purple-50/80",
-        isCollapsed ? "justify-center px-2" : "justify-between px-6"
+        isCollapsed ? "justify-start px-2" : "justify-between px-6"
       )}>
         {isCollapsed ? (
           <CompanyLogo showText={false} logoSize="sm" />
