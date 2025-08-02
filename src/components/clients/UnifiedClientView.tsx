@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Client } from "@/types/client";
 import { updateClient } from "@/services/clientService";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
   AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe
@@ -113,9 +114,29 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     setIsEditing(false);
   };
 
-  const handleAccountUpdate = () => {
-    // Refresh the client data to get updated account information
-    onClientUpdate?.(client);
+  const handleAccountUpdate = async () => {
+    // Recharger les données du client depuis la base de données
+    try {
+      const { data: updatedClient, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', client.id)
+        .single();
+      
+      if (error) {
+        console.error('Erreur lors du rechargement des données client:', error);
+        return;
+      }
+      
+      if (updatedClient) {
+        // Mettre à jour le state local
+        setClient(updatedClient);
+        // Notifier le parent
+        onClientUpdate?.(updatedClient);
+      }
+    } catch (error) {
+      console.error('Erreur lors du rechargement:', error);
+    }
   };
 
   const formatDate = (date: Date | string | undefined) => {

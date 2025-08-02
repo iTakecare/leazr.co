@@ -208,7 +208,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 9. Préparer le contenu de l'email
-    const APP_URL = Deno.env.get('APP_URL') || 'https://preview--leazr.lovable.app';
+    // Utiliser l'URL Lovable actuelle
+    const APP_URL = 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com';
     const encodedToken = encodeURIComponent(activationToken);
     const encodedType = encodeURIComponent('invitation');
     const activationUrl = `${APP_URL}/update-password?token=${encodedToken}&type=${encodedType}`;
@@ -355,7 +356,7 @@ const handler = async (req: Request): Promise<Response> => {
       } else if (entityType === 'client') {
         emailSubject = `Bienvenue chez ${company?.name || ''} - Activez votre compte client`;
         
-        // Template HTML élégant pour les clients (identique au design des ambassadeurs)
+        // Template HTML identique aux ambassadeurs mais avec couleur verte pour les clients
         emailContent = `
 <!DOCTYPE html>
 <html lang="fr">
@@ -389,7 +390,7 @@ const handler = async (req: Request): Promise<Response> => {
                 
                 <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
                     Nous sommes ravis de vous compter parmi nos clients chez <strong>${company?.name || ''}</strong>.
-                    Votre compte client a été créé avec succès et vous donne accès à nos services.
+                    Votre compte client a été créé avec succès et vous donne accès à notre portail.
                 </p>
                 
                 <!-- Encadré avantages -->
@@ -405,7 +406,7 @@ const handler = async (req: Request): Promise<Response> => {
                 </table>
                 
                 <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 20px 0;">
-                    Pour accéder à votre espace personnel, vous devez activer votre compte en cliquant sur le bouton ci-dessous :
+                    Pour commencer, vous devez activer votre compte en cliquant sur le bouton ci-dessous :
                 </p>
                 
                 <!-- Bouton d'activation -->
@@ -430,7 +431,7 @@ const handler = async (req: Request): Promise<Response> => {
                 </table>
                 
                 <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-                    Une fois votre compte activé, vous aurez accès à votre espace client personnalisé, au suivi de vos dossiers, à l'historique de vos transactions et à nos services exclusifs.
+                    Une fois votre compte activé, vous aurez accès à votre espace personnel, au suivi de vos dossiers et à toutes nos fonctionnalités.
                 </p>
                 
                 <p style="color: #475569; font-size: 14px; margin: 10px 0;">
@@ -438,7 +439,7 @@ const handler = async (req: Request): Promise<Response> => {
                 </p>
                 
                 <p style="color: #475569; font-weight: bold; font-size: 16px; margin: 20px 0 0 0;">
-                    Merci de votre confiance en ${company?.name || ''}!
+                    Bienvenue chez ${company?.name || ''}!
                 </p>
             </td>
         </tr>
