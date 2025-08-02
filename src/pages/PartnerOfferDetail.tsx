@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOfferDetail } from "@/hooks/offers/useOfferDetail";
@@ -20,7 +21,7 @@ import { hasCommission } from "@/utils/offerTypeTranslator";
 
 const PartnerOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateToPartner } = useRoleNavigation();
   const { user } = useAuth();
   const { offer, loading, error } = useOfferDetail(id || '');
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -39,9 +40,9 @@ const PartnerOfferDetail = () => {
   useEffect(() => {
     if (error) {
       toast.error("Erreur lors du chargement des détails de l'offre");
-      navigate('/partner/dashboard');
+      navigateToPartner('dashboard');
     }
-  }, [error, navigate]);
+  }, [error, navigateToPartner]);
 
   const handleSendToClient = async () => {
     if (!offer) return;
@@ -157,7 +158,7 @@ const PartnerOfferDetail = () => {
       <PageTransition>
         <Container>
           <div className="py-8">
-            <Button variant="outline" onClick={() => navigate("/partner/dashboard")}>
+            <Button variant="outline" onClick={() => navigateToPartner("dashboard")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour au tableau de bord
             </Button>
@@ -183,7 +184,7 @@ const PartnerOfferDetail = () => {
           {/* En-tête */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={() => navigate("/partner/dashboard")}>
+              <Button variant="outline" onClick={() => navigateToPartner("dashboard")}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour
               </Button>

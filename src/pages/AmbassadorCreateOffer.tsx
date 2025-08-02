@@ -1,7 +1,7 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
@@ -15,7 +15,7 @@ import { useAmbassadorOfferSave } from "@/components/ambassador/AmbassadorOfferS
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
 
 const AmbassadorCreateOffer = () => {
-  const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
   
   console.log("🎯 AmbassadorCreateOffer - Component rendered");
   
@@ -60,10 +60,10 @@ const AmbassadorCreateOffer = () => {
   React.useEffect(() => {
     if (!loading && !user) {
       console.log("🎯 AmbassadorCreateOffer - No user, redirecting to login");
-      navigate('/auth');
+      window.location.href = '/login';
       return;
     }
-  }, [user, loading, navigate]);
+  }, [user, loading]);
 
   // Early return if essential data is missing
   if (!user && !loading) {
@@ -203,7 +203,7 @@ const AmbassadorCreateOffer = () => {
                 <div className="flex gap-4">
                   <Button
                     variant="outline"
-                    onClick={() => navigate('/ambassador/offers')}
+                    onClick={() => navigateToAmbassador('offers')}
                   >
                     Retour
                   </Button>

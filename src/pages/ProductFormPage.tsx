@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import Container from "@/components/layout/Container";
@@ -14,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ProductFormPage = () => {
   const { id } = useParams<{ id?: string }>();
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const [activeTab, setActiveTab] = useState("info");
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
@@ -42,13 +43,13 @@ const ProductFormPage = () => {
 
   const handleBack = () => {
     console.log("📄 ProductFormPage - Navigating back to catalog");
-    navigate("/admin/catalog");
+    navigateToAdmin("catalog");
   };
 
   const handleSuccess = () => {
     console.log("📄 ProductFormPage - Operation successful");
     toast.success(isEditMode ? "Produit mis à jour avec succès" : "Produit créé avec succès");
-    navigate("/admin/catalog");
+    navigateToAdmin("catalog");
   };
 
   const handleImageUpdate = (imageUrl: string) => {
@@ -109,7 +110,7 @@ const ProductFormPage = () => {
             </Alert>
 
             <div className="mt-6 space-x-2">
-              <Button variant="outline" onClick={() => navigate("/admin/catalog")}>
+              <Button variant="outline" onClick={() => navigateToAdmin("catalog")}>
                 Retour au catalogue
               </Button>
               {id && (

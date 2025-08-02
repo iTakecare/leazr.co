@@ -20,12 +20,12 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { calculateFinancedAmount } from "@/utils/calculator";
 
 const PartnerOffersTable = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigateToPartner } = useRoleNavigation();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,11 +106,11 @@ const PartnerOffersTable = () => {
   }, [user]);
 
   const createNewOffer = () => {
-    navigate('/partner/offers/create');
+    navigateToPartner('offers/create');
   };
 
   const viewOfferDetails = (id: string) => {
-    navigate(`/partner/offers/${id}`);
+    navigateToPartner(`offers/${id}`);
   };
 
   const getStatusBadge = (status: string) => {

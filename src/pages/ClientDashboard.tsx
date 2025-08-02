@@ -7,28 +7,28 @@ import { useAuth } from "@/context/AuthContext";
 import { useClientData } from "@/hooks/useClientData";
 import { BarChart3, Package, FileText, Clock, Settings, Eye, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
   const { clientData, recentActivity, loading, error } = useClientData();
-  const navigate = useNavigate();
+  const { navigateToClient } = useRoleNavigation();
 
   const quickActions = [
     {
       title: "Mon Équipement",
       description: "Consultez vos équipements en cours de financement",
       icon: Package,
-      href: "/client/equipment",
+      href: "equipment",
       color: "bg-blue-500"
     },
     {
       title: "Mes Demandes",
       description: "Suivez l'état de vos demandes",
       icon: Clock,
-      href: "/client/requests",
+      href: "requests",
       color: "bg-orange-500",
       badge: "3"
     },
@@ -36,21 +36,21 @@ const ClientDashboard = () => {
       title: "Mes Contrats",
       description: "Accédez à vos contrats de financement",
       icon: FileText,
-      href: "/client/contracts",
+      href: "contracts",
       color: "bg-green-500"
     },
     {
       title: "Catalogue",
       description: "Découvrez notre catalogue d'équipements",
       icon: Eye,
-      href: "/client/catalog",
+      href: "catalog",
       color: "bg-purple-500"
     },
     {
       title: "Paramètres",
       description: "Gérez votre profil, collaborateurs et équipements",
       icon: Settings,
-      href: "/client/settings",
+      href: "settings",
       color: "bg-gray-500"
     }
   ];
@@ -146,7 +146,7 @@ const ClientDashboard = () => {
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate('/client/settings')}
+            onClick={() => navigateToClient('settings')}
             className="gap-2"
           >
             <Settings className="h-4 w-4" />
@@ -160,7 +160,7 @@ const ClientDashboard = () => {
           <motion.div key={action.title} variants={itemVariants}>
             <Card 
               className="hover:shadow-lg transition-all duration-200 cursor-pointer group"
-              onClick={() => navigate(action.href)}
+              onClick={() => navigateToClient(action.href)}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="flex items-center space-x-2">
@@ -204,9 +204,9 @@ const ClientDashboard = () => {
                     className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
                     onClick={() => {
                       if (activity.type === 'offer') {
-                        navigate('/client/requests');
+                        navigateToClient('requests');
                       } else if (activity.type === 'contract') {
-                        navigate('/client/contracts');
+                        navigateToClient('contracts');
                       }
                     }}
                   >

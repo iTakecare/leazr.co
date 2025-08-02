@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { getOfferById, getWorkflowLogs, getOfferNotes } from "@/services/offerService";
 import { formatCurrency } from "@/utils/formatters";
@@ -32,7 +33,7 @@ import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 const AmbassadorOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
   
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -258,7 +259,7 @@ const AmbassadorOfferDetail = () => {
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h2 className="text-xl font-semibold mb-2">Erreur</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => navigate("/ambassador/offers")}>
+            <Button onClick={() => navigateToAmbassador("offers")}>
               Retour aux offres
             </Button>
           </div>
@@ -275,7 +276,7 @@ const AmbassadorOfferDetail = () => {
             <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
             <h2 className="text-xl font-semibold mb-2">Offre introuvable</h2>
             <p className="text-gray-600 mb-4">Cette offre n'existe pas ou a été supprimée.</p>
-            <Button onClick={() => navigate("/ambassador/offers")}>
+            <Button onClick={() => navigateToAmbassador("offers")}>
               Retour aux offres
             </Button>
           </div>
@@ -300,7 +301,7 @@ const AmbassadorOfferDetail = () => {
             {/* En-tête de l'offre */}
             <AmbassadorOfferHeader 
               offer={offer}
-              onBack={() => navigate("/ambassador/offers")}
+              onBack={() => navigateToAmbassador("offers")}
               onRefresh={() => window.location.reload()}
             />
 

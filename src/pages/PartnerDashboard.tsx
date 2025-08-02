@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Container from "@/components/layout/Container";
@@ -15,7 +15,7 @@ import PartnerOffersTable from "@/components/partners/PartnerOffersTable";
 import PartnerCommissionsTable from "@/components/partners/PartnerCommissionsTable";
 
 const PartnerDashboard = () => {
-  const navigate = useNavigate();
+  const { navigateToPartner } = useRoleNavigation();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -104,7 +104,7 @@ const PartnerDashboard = () => {
             </div>
             <Button 
               className="mt-4 md:mt-0" 
-              onClick={() => navigate("/partner/create-offer")}
+              onClick={() => navigateToPartner("create-offer")}
             >
               <Plus className="mr-2 h-4 w-4" /> Nouvelle offre
             </Button>

@@ -185,10 +185,10 @@ const InvoiceDetailPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <Link to="/admin/invoicing" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-2">
+          <button onClick={() => navigateToAdmin("invoicing")} className="inline-flex items-center text-muted-foreground hover:text-foreground mb-2">
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour aux factures
-          </Link>
+          </button>
           <h1 className="text-3xl font-bold tracking-tight">
             Facture {invoice.invoice_number || `FAC-${invoice.id.slice(0, 8)}`}
           </h1>
@@ -215,12 +215,10 @@ const InvoiceDetailPage = () => {
             Générer PDF
           </Button>
           
-          <Link to={`/admin/invoicing/${invoice.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier
-            </Button>
-          </Link>
+          <Button variant="outline" onClick={() => navigateToAdmin(`invoicing/${invoice.id}/edit`)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Modifier
+          </Button>
         </div>
       </div>
 

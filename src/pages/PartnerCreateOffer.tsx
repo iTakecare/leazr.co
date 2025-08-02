@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Leaser } from "@/types/equipment";
@@ -28,7 +29,7 @@ function useQuery() {
 
 const PartnerCreateOffer = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const { navigateToPartner } = useRoleNavigation();
   const { user } = useAuth();
   const query = useQuery();
   const clientIdParam = query.get("client");
@@ -196,7 +197,7 @@ const PartnerCreateOffer = () => {
             toast.success("Offre chargée avec succès");
           } else {
             toast.error("Impossible de trouver cette offre");
-            navigate("/partner/offers");
+            navigateToPartner("offers");
           }
         } catch (error) {
           console.error("Error loading offer:", error);
@@ -208,7 +209,7 @@ const PartnerCreateOffer = () => {
     };
     
     loadOfferData();
-  }, [offerId, navigate, setEquipmentList, setTargetMonthlyPayment]);
+  }, [offerId, navigateToPartner, setEquipmentList, setTargetMonthlyPayment]);
 
   const handleProductSelect = (product: any) => {
     if (!selectedLeaser) return;
@@ -330,7 +331,7 @@ const PartnerCreateOffer = () => {
         }
       }
       
-      navigate("/partner/dashboard");
+      navigateToPartner("dashboard");
     } catch (error) {
       console.error("Error saving offer:", error);
       toast.error("Une erreur s'est produite lors de l'enregistrement de l'offre");
@@ -354,7 +355,7 @@ const PartnerCreateOffer = () => {
               <div className="flex gap-4">
                 <Button
                   variant="outline"
-                  onClick={() => navigate('/partner/dashboard')}
+                  onClick={() => navigateToPartner('dashboard')}
                 >
                   Retour
                 </Button>
