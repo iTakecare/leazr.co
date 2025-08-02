@@ -8,12 +8,10 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
 interface ClientUserAccountProps {
   client: Client;
   onAccountCreated: () => void;
 }
-
 const ClientUserAccount = ({
   client,
   onAccountCreated
@@ -24,7 +22,6 @@ const ClientUserAccount = ({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState<boolean | null>(null);
   const [checkingEmailStatus, setCheckingEmailStatus] = useState(false);
-
   const formatDate = (date: Date | string | undefined) => {
     if (!date) return "N/A";
     try {
@@ -43,11 +40,12 @@ const ClientUserAccount = ({
         setEmailConfirmed(null);
         return;
       }
-
       setCheckingEmailStatus(true);
       try {
-        const { data: allUsers, error } = await supabase.functions.invoke('get-all-users');
-        
+        const {
+          data: allUsers,
+          error
+        } = await supabase.functions.invoke('get-all-users');
         if (error) {
           console.error('Erreur lors de la vérification du statut email:', error);
           setEmailConfirmed(null);
@@ -62,19 +60,15 @@ const ClientUserAccount = ({
         setCheckingEmailStatus(false);
       }
     };
-
     checkEmailConfirmationStatus();
   }, [client.user_id]);
-
   const hasUserAccount = Boolean(client?.has_user_account);
-
   const handleCreateAccount = async () => {
     if (!client) return;
     if (!client.email) {
       toast.error("Ce client n'a pas d'adresse email");
       return;
     }
-
     setIsCreatingAccount(true);
     try {
       const success = await createUserAccount(client, "client");
@@ -89,13 +83,11 @@ const ClientUserAccount = ({
       setIsCreatingAccount(false);
     }
   };
-
   const handleResetPassword = async () => {
     if (!client?.email) {
       toast.error("Ce client n'a pas d'adresse email");
       return;
     }
-
     setIsResettingPassword(true);
     try {
       const success = await resetPassword(client.email);
@@ -111,13 +103,11 @@ const ClientUserAccount = ({
       setIsResettingPassword(false);
     }
   };
-
   const handleDeleteAccount = async () => {
     if (!client?.user_id) {
       toast.error("Ce client n'a pas de compte utilisateur associé");
       return;
     }
-
     setIsDeletingAccount(true);
     try {
       const success = await deleteUserAccount(client.user_id);
@@ -135,110 +125,45 @@ const ClientUserAccount = ({
       setShowDeleteConfirmation(false);
     }
   };
-
-  return (
-    <div className="space-y-4">
-      {hasUserAccount ? (
-        <div className="space-y-4">
-          <div className={`flex items-center gap-2 p-4 rounded-md border ${
-            checkingEmailStatus 
-              ? 'bg-gray-50 border-gray-200' 
-              : emailConfirmed === false 
-                ? 'bg-amber-50 border-amber-200' 
-                : 'bg-green-50 border-green-200'
-          }`}>
-            {checkingEmailStatus ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
-            ) : emailConfirmed === false ? (
-              <Clock className="h-5 w-5 text-amber-600" />
-            ) : (
-              <CheckCircle className="h-5 w-5 text-green-600" />
-            )}
+  return <div className="space-y-4">
+      {hasUserAccount ? <div className="space-y-4">
+          <div className={`flex items-center gap-2 p-4 rounded-md border ${checkingEmailStatus ? 'bg-gray-50 border-gray-200' : emailConfirmed === false ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+            {checkingEmailStatus ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div> : emailConfirmed === false ? <Clock className="h-5 w-5 text-amber-600" /> : <CheckCircle className="h-5 w-5 text-green-600" />}
             <div>
-              <div className={`font-medium ${
-                checkingEmailStatus 
-                  ? 'text-gray-800' 
-                  : emailConfirmed === false 
-                    ? 'text-amber-800' 
-                    : 'text-green-800'
-              }`}>
-                {checkingEmailStatus 
-                  ? 'Vérification...' 
-                  : emailConfirmed === false 
-                    ? 'En attente de validation' 
-                    : 'Compte actif'
-                }
+              <div className={`font-medium ${checkingEmailStatus ? 'text-gray-800' : emailConfirmed === false ? 'text-amber-800' : 'text-green-800'}`}>
+                {checkingEmailStatus ? 'Vérification...' : emailConfirmed === false ? 'En attente de validation' : 'Compte actif'}
               </div>
-              {client.user_account_created_at && (
-                <span className={`text-xs ${
-                  checkingEmailStatus 
-                    ? 'text-gray-700' 
-                    : emailConfirmed === false 
-                      ? 'text-amber-700' 
-                      : 'text-green-700'
-                }`}>
+              {client.user_account_created_at && <span className={`text-xs ${checkingEmailStatus ? 'text-gray-700' : emailConfirmed === false ? 'text-amber-700' : 'text-green-700'}`}>
                   Créé le {formatDate(client.user_account_created_at)}
-                </span>
-              )}
-              {client.user_id && (
-                <span className={`block text-xs ${
-                  checkingEmailStatus 
-                    ? 'text-gray-700' 
-                    : emailConfirmed === false 
-                      ? 'text-amber-700' 
-                      : 'text-green-700'
-                }`}>
+                </span>}
+              {client.user_id && <span className={`block text-xs ${checkingEmailStatus ? 'text-gray-700' : emailConfirmed === false ? 'text-amber-700' : 'text-green-700'}`}>
                   ID: {client.user_id}
-                </span>
-              )}
+                </span>}
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full flex items-center justify-center" 
-              onClick={handleResetPassword} 
-              disabled={isResettingPassword || !client.email}
-            >
+            <Button variant="outline" size="sm" className="w-full flex items-center justify-center" onClick={handleResetPassword} disabled={isResettingPassword || !client.email}>
               <KeyRound className="h-4 w-4 mr-2" />
               {isResettingPassword ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
             </Button>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" 
-              onClick={() => setShowDeleteConfirmation(true)} 
-              disabled={isDeletingAccount || !client.user_id}
-            >
+            <Button variant="outline" size="sm" className="w-full flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => setShowDeleteConfirmation(true)} disabled={isDeletingAccount || !client.user_id}>
               <Trash2 className="h-4 w-4 mr-2" />
               {isDeletingAccount ? "Suppression en cours..." : "Supprimer le compte utilisateur"}
             </Button>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
+        </div> : <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-md flex items-start gap-2">
             <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm">Ce client n'a pas encore de compte utilisateur pour accéder au portail.</p>
           </div>
-          {client.email ? (
-            <Button 
-              onClick={handleCreateAccount} 
-              disabled={isCreatingAccount} 
-              className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
-            >
+          {client.email ? <Button onClick={handleCreateAccount} disabled={isCreatingAccount} className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm bg-sky-800 hover:bg-sky-700">
               <UserPlus className="h-4 w-4 mr-2" />
               {isCreatingAccount ? "Création en cours..." : "Créer un compte client"}
-            </Button>
-          ) : (
-            <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
+            </Button> : <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-md">
               Une adresse email est nécessaire pour créer un compte utilisateur.
-            </div>
-          )}
-        </div>
-      )}
+            </div>}
+        </div>}
       
       <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
         <AlertDialogContent>
@@ -256,8 +181,6 @@ const ClientUserAccount = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+    </div>;
 };
-
 export default ClientUserAccount;
