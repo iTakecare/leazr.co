@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { getOfferById, updateOfferStatus } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +30,7 @@ import ScoringModal from "@/components/offers/detail/ScoringModal";
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
 
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -170,7 +171,7 @@ const AdminOfferDetail = () => {
   };
 
   const handleEditOffer = () => {
-    navigate(`/admin/edit-offer/${id}`);
+    navigateToAdmin(`edit-offer/${id}`);
   };
 
   const handlePreview = () => {
@@ -279,7 +280,7 @@ const AdminOfferDetail = () => {
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h2 className="text-xl font-semibold mb-2">Erreur</h2>
             <p className="text-gray-600 mb-4">{error || "Offre introuvable"}</p>
-            <Button onClick={() => navigate("/admin/offers")}>
+            <Button onClick={() => navigateToAdmin("offers")}>
               Retour aux offres
             </Button>
           </div>
@@ -298,7 +299,7 @@ const AdminOfferDetail = () => {
               <div className="flex items-center gap-4">
                 <Button 
                   variant="ghost" 
-                  onClick={() => navigate("/admin/offers")}
+                  onClick={() => navigateToAdmin("offers")}
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />

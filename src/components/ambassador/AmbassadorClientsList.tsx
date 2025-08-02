@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,7 @@ const AmbassadorClientsList = ({
   onDeleteClient
 }: AmbassadorClientsListProps) => {
   const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -79,7 +81,7 @@ const AmbassadorClientsList = ({
           <p className="font-medium">Aucun client trouvé</p>
           <p className="text-sm">Vous n'avez pas encore de clients associés</p>
         </div>
-        <Button onClick={() => navigate("/ambassador/clients/create")}>
+        <Button onClick={() => navigateToAmbassador("clients/create")}>
           Créer votre premier client
         </Button>
       </div>

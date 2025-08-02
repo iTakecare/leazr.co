@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -34,6 +35,7 @@ const CreateOffer = () => {
     id: editId
   } = useParams();
   const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const {
     user
   } = useAuth();
@@ -320,7 +322,7 @@ const CreateOffer = () => {
             toast.success("Offre chargée avec succès");
           } else {
             toast.error("Impossible de trouver cette offre");
-            navigate("/admin/offers");
+            navigateToAdmin("offers");
           }
         } catch (error) {
           console.error("❌ STEP 3: Error loading offer:", error);
@@ -554,7 +556,7 @@ const CreateOffer = () => {
 
       // Attendre un peu avant de rediriger pour s'assurer que l'offre est bien enregistrée
       setTimeout(() => {
-        navigate("/admin/offers");
+        navigateToAdmin("offers");
       }, 1000);
     } catch (error) {
       console.error("❌ ERREUR lors de l'enregistrement de l'offre:", error);
@@ -579,7 +581,7 @@ const CreateOffer = () => {
                       {!isInternalOffer && commissionData.amount > 0}
                     </h1>
                   </div>
-                  <Button variant="outline" onClick={() => navigate('/admin/offers')} className="flex items-center gap-2 h-8 px-3" size="sm">
+                  <Button variant="outline" onClick={() => navigateToAdmin('offers')} className="flex items-center gap-2 h-8 px-3" size="sm">
                     <ArrowLeft className="h-3 w-3" />
                     Retour
                   </Button>

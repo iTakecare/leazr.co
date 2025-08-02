@@ -13,11 +13,11 @@ import ProductsViewOptions from "@/components/catalog/management/ProductsViewOpt
 import CatalogContent from "@/components/catalog/management/CatalogContent";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const CatalogManagement = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   
   // Use catalog management hook
   const {
@@ -36,7 +36,7 @@ const CatalogManagement = () => {
   
   // Handle new product creation
   const handleAddNewProduct = () => {
-    navigate("/catalog/form");
+    navigateToAdmin("catalog/form");
   };
   
   return (
@@ -57,7 +57,7 @@ const CatalogManagement = () => {
               <Package className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Packs" : <span>Packs</span>}
             </TabsTrigger>
-            <TabsTrigger value="import" onClick={() => navigate("/admin/catalog/import")}>
+            <TabsTrigger value="import" onClick={() => navigateToAdmin("catalog/import")}>
               <Download className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Import" : <span>Import</span>}
             </TabsTrigger>

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import PageTransition from "@/components/layout/PageTransition";
 import ContractDetailHeader from "@/components/contracts/ContractDetailHeader";
 import ContractWorkflowPanel from "@/components/contracts/ContractWorkflowPanel";
@@ -16,6 +17,7 @@ import { ArrowLeft } from "lucide-react";
 const ContractDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const { user, isLoading: authLoading } = useAuth();
   
   const {
@@ -77,7 +79,7 @@ const ContractDetail = () => {
               {error || "Le contrat n'a pas été trouvé."}
             </div>
             <Button 
-              onClick={() => navigate("/admin/contracts")}
+              onClick={() => navigateToAdmin("contracts")}
               variant="outline"
               className="flex items-center gap-2"
             >

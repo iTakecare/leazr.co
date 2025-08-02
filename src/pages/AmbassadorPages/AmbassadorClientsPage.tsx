@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
@@ -10,11 +10,11 @@ import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AmbassadorClientsPage = () => {
-  const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
   const { clients, isLoading, error, loadClients, deleteClient } = useAmbassadorClients();
 
   const handleCreateClient = () => {
-    navigate("/ambassador/clients/create");
+    navigateToAmbassador("clients/create");
   };
 
   return (

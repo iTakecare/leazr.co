@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import EditableBillingDataTable from "@/components/invoices/EditableBillingDataT
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const { companyId } = useMultiTenant();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ const InvoiceDetailPage = () => {
           setInvoice(foundInvoice);
         } else {
           toast.error("Facture non trouvée");
-          navigate("/admin/invoicing");
+          navigateToAdmin("invoicing");
         }
       } catch (error) {
         console.error("Erreur lors du chargement de la facture:", error);
@@ -149,7 +151,7 @@ const InvoiceDetailPage = () => {
     try {
       await deleteInvoice(invoice.id);
       toast.success("Facture supprimée avec succès");
-      navigate("/admin/invoicing");
+      navigateToAdmin("invoicing");
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
@@ -170,12 +172,10 @@ const InvoiceDetailPage = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold mb-4">Facture non trouvée</h2>
-        <Link to="/admin/invoicing">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour aux factures
-          </Button>
-        </Link>
+          <Button variant="outline" onClick={() => navigateToAdmin("invoicing")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour aux factures
+            </Button>
       </div>
     );
   }

@@ -6,6 +6,7 @@ import { calculateFinancedAmount } from "@/utils/calculator";
 import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { Client } from "@/types/client";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 interface AmbassadorOfferSaveLogicProps {
   client: Client | null;
@@ -35,6 +36,7 @@ export const useAmbassadorOfferSave = ({
   totalMargin = 0
 }: AmbassadorOfferSaveLogicProps) => {
   const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
 
   // Calcul de commission unifié pour les offres ambassadeur
   const commissionData = useOfferCommissionCalculator({
@@ -172,7 +174,7 @@ export const useAmbassadorOfferSave = ({
       }
       
       toast.success("Offre créée avec succès!");
-      navigate("/ambassador/offers");
+      navigateToAmbassador("offers");
       
     } catch (error) {
       console.error("❌ AmbassadorOfferSaveLogic - Erreur lors de la sauvegarde de l'offre:", error);

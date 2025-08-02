@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import Container from "@/components/layout/Container";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import PageTransition from "@/components/layout/PageTransition";
 import { Loader2, ArrowLeft, Check, AlertCircle, Search } from "lucide-react";
 import { verifyVatNumber } from "@/services/clientService";
@@ -70,8 +71,10 @@ const AmbassadorClientForm = () => {
     },
   });
 
+  const { navigateToAmbassador } = useRoleNavigation();
+  
   const navigateBack = () => {
-    navigate("/ambassador/clients");
+    navigateToAmbassador("clients");
   };
 
   const handleVerifyVatNumber = async () => {

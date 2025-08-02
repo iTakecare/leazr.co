@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -10,16 +10,16 @@ import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 
 const AmbassadorClientCreatePage = () => {
-  const navigate = useNavigate();
+  const { navigateToAmbassador } = useRoleNavigation();
   const { createClientAsAmbassador } = useAmbassadorClients();
 
   const handleClientCreated = () => {
     toast.success("Client créé avec succès");
-    navigate("/ambassador/clients");
+    navigateToAmbassador("clients");
   };
 
   const handleCancel = () => {
-    navigate("/ambassador/clients");
+    navigateToAmbassador("clients");
   };
 
   return (
