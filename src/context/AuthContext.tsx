@@ -215,6 +215,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
 
+      // Récupérer le client_id depuis la table clients si l'utilisateur est un client
+      let clientId = profile?.client_id || '';
+      if (profile?.role === 'client') {
+        console.log("📝 ENRICH - Utilisateur client détecté, récupération du client_id");
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', baseUser.id)
+          .single();
+        
+        if (!clientError && clientData) {
+          clientId = clientData.id;
+          console.log("📝 ENRICH - Client ID trouvé:", clientId);
+        } else {
+          console.log("📝 ENRICH - Erreur ou pas de client_id trouvé:", clientError?.message);
+        }
+      }
+
       const enrichedUser = {
         ...baseUser,
         first_name: profile?.first_name || '',
@@ -223,7 +241,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         company: profile?.company || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: ambassadorId,
-        client_id: profile?.client_id || '',
+        client_id: clientId,
       };
       
       console.log("📝 ENRICH - Données enrichies:", {
