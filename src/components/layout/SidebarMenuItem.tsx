@@ -1,7 +1,7 @@
 
 import React, { memo, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -21,7 +21,7 @@ interface SidebarMenuItemProps {
   };
   isActive: (href: string) => boolean;
   collapsed: boolean;
-  onLinkClick?: () => void;
+  onLinkClick?: (href?: string) => void;
 }
 
 const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: SidebarMenuItemProps) => {
@@ -29,11 +29,14 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
   
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    
-    if (onLinkClick) {
-      onLinkClick();
+    if (item.href.startsWith('/')) {
+      // Absolute path - navigate directly
+      navigate(item.href);
+    } else if (onLinkClick) {
+      // Relative path - use callback
+      onLinkClick(item.href);
     }
-  }, [onLinkClick]);
+  }, [navigate, onLinkClick, item.href]);
 
   const active = isActive(item.href);
 
@@ -105,7 +108,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
               className={cn(
                 "w-full",
                 "flex items-center py-3 px-3 rounded-xl text-sm font-semibold transition-all duration-300 group relative",
-                collapsed ? "justify-start" : "justify-start", // Force left alignment
+                "justify-start", // Always left aligned
                 active
                   ? finalColor.active
                   : cn(
