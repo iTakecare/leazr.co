@@ -295,6 +295,64 @@ serve(async (req) => {
   </div>
 </div>`,
         active: true
+      },
+      {
+        type: 'ambassador_account_deleted',
+        name: 'Suppression de compte ambassadeur',
+        subject: 'Votre compte ambassadeur a été supprimé',
+        html_content: `
+<div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
+  <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <h1 style="color: #1f2937; font-size: 20px; margin-bottom: 16px; text-align: center;">Compte ambassadeur supprimé</h1>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Bonjour {{user_name}},
+    </p>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Nous vous informons que votre compte ambassadeur iTakecare a été supprimé le {{deletion_date}}.
+    </p>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Cette action a été effectuée à votre demande ou par l'administrateur de votre organisation.
+    </p>
+    <div style="background-color: #fef3cd; border: 1px solid #fbbf24; border-radius: 6px; padding: 12px; margin: 16px 0;">
+      <p style="margin: 0; color: #92400e; font-size: 14px;">
+        <strong>⚠️ Important :</strong> Toutes vos données personnelles ont été supprimées de manière sécurisée.
+      </p>
+    </div>
+    <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 20px 0 0 0;">
+      Merci pour votre collaboration en tant qu'ambassadeur {{company_name}}.
+    </p>
+  </div>
+</div>`,
+        active: true
+      },
+      {
+        type: 'client_account_deleted',
+        name: 'Suppression de compte client',
+        subject: 'Votre compte client a été supprimé',
+        html_content: `
+<div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
+  <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <h1 style="color: #1f2937; font-size: 20px; margin-bottom: 16px; text-align: center;">Compte client supprimé</h1>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Bonjour {{user_name}},
+    </p>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Nous vous informons que votre compte client iTakecare a été supprimé le {{deletion_date}}.
+    </p>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Cette action a été effectuée à votre demande ou par l'administrateur de votre organisation.
+    </p>
+    <div style="background-color: #fef3cd; border: 1px solid #fbbf24; border-radius: 6px; padding: 12px; margin: 16px 0;">
+      <p style="margin: 0; color: #92400e; font-size: 14px;">
+        <strong>⚠️ Important :</strong> Toutes vos données personnelles ont été supprimées de manière sécurisée.
+      </p>
+    </div>
+    <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 20px 0 0 0;">
+      Merci pour votre confiance envers {{company_name}}.
+    </p>
+  </div>
+</div>`,
+        active: true
       }
     ];
     
