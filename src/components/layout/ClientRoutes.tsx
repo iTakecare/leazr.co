@@ -11,8 +11,8 @@ import ClientSupportPage from "@/pages/ClientSupportPage";
 import ClientSettingsPage from "@/pages/ClientSettingsPage";
 import ClientCartPage from "@/pages/ClientCartPage";
 import ClientCartRequestPage from "@/pages/ClientCartRequestPage";
-
-import PublicCatalogAnonymous from "@/pages/PublicCatalogAnonymous";
+import ClientCatalogPage from "@/pages/ClientCatalogPage";
+import ClientProductDetailPage from "@/pages/ClientProductDetailPage";
 import ClientContractDetailPage from "@/pages/ClientContractDetailPage";
 
 const ClientRoutes = () => {
@@ -27,7 +27,8 @@ const ClientRoutes = () => {
           <Route path="requests" element={<ClientRequestsPage />} />
           <Route path="requests/:id" element={<ClientRequestDetailPage />} />
           <Route path="equipment" element={<ClientEquipmentPage />} />
-          <Route path="products" element={<PublicCatalogAnonymous />} />
+          <Route path="products" element={<ClientCatalogPage />} />
+          <Route path="products/:productId" element={<ClientProductDetailPage />} />
           <Route path="panier" element={<ClientCartPage />} />
           <Route path="panier/demande" element={<ClientCartRequestPage />} />
           <Route path="support" element={<ClientSupportPage />} />

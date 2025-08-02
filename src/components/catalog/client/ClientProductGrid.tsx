@@ -3,18 +3,15 @@ import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCardOptimized from "@/components/catalog/public/ProductGridCardOptimized";
-import { useCompanyContext } from "@/context/CompanyContext";
-import { generateProductSlug } from "@/lib/utils";
 import { useSafeNavigate } from "@/hooks/useSafeNavigate";
 import { useLocation } from "react-router-dom";
 
-interface PublicProductGridProps {
+interface ClientProductGridProps {
   products: Product[];
 }
 
-const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
+const ClientProductGrid: React.FC<ClientProductGridProps> = ({ products }) => {
   const safeNavigate = useSafeNavigate();
-  const { companyId, companySlug } = useCompanyContext();
   const location = useLocation();
   
   const itemVariants = {
@@ -23,45 +20,19 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
   };
 
   const handleProductClick = (product: Product) => {
-    console.log('🎯 PUBLIC PRODUCT GRID - Product clicked:', {
+    console.log('🎯 CLIENT PRODUCT GRID - Product clicked:', {
       productId: product.id,
       productName: product.name,
-      productBrand: product.brand,
-      companySlug,
-      companyId,
       currentPath: location.pathname
     });
 
-    // Check if we're in client space
-    const isInClientSpace = location.pathname.startsWith('/client');
-    
-    if (isInClientSpace) {
-      // Navigate to client product detail page
-      const targetUrl = `/client/products/${product.id}`;
-      console.log('🔗 CLIENT SPACE - Navigating to:', targetUrl);
-      safeNavigate(targetUrl);
-      return;
-    }
-
-    // Public space navigation (existing logic)
-    const productSlug = product.slug || generateProductSlug(product.name, product.brand);
-    console.log('🔗 Using product slug:', productSlug, product.slug ? '(pre-calculated)' : '(generated)');
-
-    // Navigate based on context - slug-based takes priority with SEO-friendly URLs
-    if (companySlug) {
-      const targetUrl = `/${companySlug}/products/${productSlug}`;
-      safeNavigate(targetUrl);
-    } else if (companyId) {
-      // Fallback to company-id-based URL with original format
-      const targetUrl = `/public/${companyId}/products/${product.id}`;
-      safeNavigate(targetUrl);
-    } else {
-      console.error('🎯 No valid navigation context found');
-    }
+    // Navigate to client product detail page
+    const targetUrl = `/client/products/${product.id}`;
+    safeNavigate(targetUrl);
   };
 
   if (!products) {
-    console.error("PublicProductGrid: products prop is undefined");
+    console.error("ClientProductGrid: products prop is undefined");
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-md p-6">
         <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
@@ -74,7 +45,7 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
   }
 
   if (products.length === 0) {
-    console.log("PublicProductGrid: empty products array");
+    console.log("ClientProductGrid: empty products array");
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-md p-6">
         <AlertCircle className="h-10 w-10 text-muted-foreground mb-3" />
@@ -85,8 +56,6 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
       </div>
     );
   }
-
-  // Simplified logging for production
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
@@ -102,4 +71,4 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
   );
 };
 
-export default PublicProductGrid;
+export default ClientProductGrid;
