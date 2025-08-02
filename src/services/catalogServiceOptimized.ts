@@ -121,21 +121,190 @@ export const getRelatedProducts = async (
       .eq("active", true)
       .or("admin_only.is.null,admin_only.eq.false");
 
-    // Filter by brand first (higher priority), then category
+    // Use separate queries to avoid multiple or= clauses issue
+    let allProducts: any[] = [];
+
     if (brand) {
-      query = query.filter(`brand_name.eq."${brand}" or brands.name.eq."${brand}"`);
+      // Query 1: Search by brand_name
+      let brandQuery1 = supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          admin_only,
+          brands(name, translation),
+          categories(name, translation)
+        `)
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .or("admin_only.is.null,admin_only.eq.false")
+        .eq("brand_name", brand);
+
+      if (currentProductId) {
+        brandQuery1 = brandQuery1.neq("id", currentProductId);
+      }
+
+      const { data: brandData1 } = await brandQuery1
+        .limit(limit)
+        .order("created_at", { ascending: false });
+
+      // Query 2: Search by brands.name
+      let brandQuery2 = supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          admin_only,
+          brands(name, translation),
+          categories(name, translation)
+        `)
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .or("admin_only.is.null,admin_only.eq.false")
+        .eq("brands.name", brand);
+
+      if (currentProductId) {
+        brandQuery2 = brandQuery2.neq("id", currentProductId);
+      }
+
+      const { data: brandData2 } = await brandQuery2
+        .limit(limit)
+        .order("created_at", { ascending: false });
+
+      // Merge results and remove duplicates
+      const combined = [...(brandData1 || []), ...(brandData2 || [])];
+      const uniqueProducts = combined.filter((product, index, self) => 
+        index === self.findIndex(p => p.id === product.id)
+      );
+      allProducts = uniqueProducts.slice(0, limit);
+
     } else if (category) {
-      query = query.filter(`category_name.eq."${category}" or categories.name.eq."${category}"`);
+      // Query 1: Search by category_name
+      let categoryQuery1 = supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          admin_only,
+          brands(name, translation),
+          categories(name, translation)
+        `)
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .or("admin_only.is.null,admin_only.eq.false")
+        .eq("category_name", category);
+
+      if (currentProductId) {
+        categoryQuery1 = categoryQuery1.neq("id", currentProductId);
+      }
+
+      const { data: categoryData1 } = await categoryQuery1
+        .limit(limit)
+        .order("created_at", { ascending: false });
+
+      // Query 2: Search by categories.name
+      let categoryQuery2 = supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          admin_only,
+          brands(name, translation),
+          categories(name, translation)
+        `)
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .or("admin_only.is.null,admin_only.eq.false")
+        .eq("categories.name", category);
+
+      if (currentProductId) {
+        categoryQuery2 = categoryQuery2.neq("id", currentProductId);
+      }
+
+      const { data: categoryData2 } = await categoryQuery2
+        .limit(limit)
+        .order("created_at", { ascending: false });
+
+      // Merge results and remove duplicates
+      const combined = [...(categoryData1 || []), ...(categoryData2 || [])];
+      const uniqueProducts = combined.filter((product, index, self) => 
+        index === self.findIndex(p => p.id === product.id)
+      );
+      allProducts = uniqueProducts.slice(0, limit);
+
+    } else {
+      // Fallback: get any products from the same company
+      let fallbackQuery = supabase
+        .from("products")
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          admin_only,
+          brands(name, translation),
+          categories(name, translation)
+        `)
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .or("admin_only.is.null,admin_only.eq.false");
+
+      if (currentProductId) {
+        fallbackQuery = fallbackQuery.neq("id", currentProductId);
+      }
+
+      const { data } = await fallbackQuery
+        .limit(limit)
+        .order("created_at", { ascending: false });
+      
+      allProducts = data || [];
     }
 
-    // Exclude current product
-    if (currentProductId) {
-      query = query.neq("id", currentProductId);
-    }
-
-    const { data: productsData, error } = await query
-      .limit(limit)
-      .order("created_at", { ascending: false });
+    const productsData = allProducts;
+    const error = null;
 
     if (error) {
       throw error;
@@ -181,6 +350,8 @@ export const getRelatedProducts = async (
         has_variants: minVariantPrice > 0,
         variants_count: 0,
         active: item.active || false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         variants: [],
         variant_combination_prices: []
       };
