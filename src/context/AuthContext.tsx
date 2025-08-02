@@ -176,14 +176,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         console.log("📝 ENRICH - Pas de profil trouvé, utilisation des valeurs par défaut:", error.message);
         
-        // Pour hello@itakecare.be, assigner le rôle admin par défaut
+        // Préserver les métadonnées de base si aucun profil trouvé
+        const metaRole = baseUser.user_metadata?.role || 'client';
         const isItakecareUser = baseUser.email === 'hello@itakecare.be';
         
         const defaultUser = {
           ...baseUser,
-          first_name: '',
-          last_name: '',
-          role: isItakecareUser ? 'admin' : 'admin',
+          first_name: baseUser.user_metadata?.first_name || '',
+          last_name: baseUser.user_metadata?.last_name || '',
+          role: isItakecareUser ? 'admin' : metaRole,
           company: '',
           partner_id: '',
           ambassador_id: '',
@@ -256,14 +257,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('📝 ENRICH - Erreur lors de l\'enrichissement:', error);
       
-      // Pour hello@itakecare.be, assigner le rôle admin par défaut
+      // Préserver les métadonnées de base en cas d'erreur
+      const metaRole = baseUser.user_metadata?.role || 'client';
       const isItakecareUser = baseUser.email === 'hello@itakecare.be';
       
       const fallbackUser = {
         ...baseUser,
-        first_name: '',
-        last_name: '',
-        role: isItakecareUser ? 'admin' : 'admin',
+        first_name: baseUser.user_metadata?.first_name || '',
+        last_name: baseUser.user_metadata?.last_name || '',
+        role: isItakecareUser ? 'admin' : metaRole,
         company: '',
         partner_id: '',
         ambassador_id: '',
@@ -331,11 +333,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 } catch (error) {
                   console.log("🔄 AUTH EVENT - Enrichissement échoué, utilisation des données de base");
                   if (isMounted) {
-                    // Fallback vers les données de base avec rôle admin pour iTakecare
+                    // Fallback vers les données de base en préservant les métadonnées
                     const isItakecareUser = newSession.user.email === 'hello@itakecare.be';
+                    const metaRole = newSession.user.user_metadata?.role || 'client';
                     setUser({
                       ...newSession.user,
-                      role: isItakecareUser ? 'admin' : 'admin'
+                      role: isItakecareUser ? 'admin' : metaRole
                     } as ExtendedUser);
                     setIsLoading(false);
                   }
@@ -390,11 +393,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             } catch (error) {
               console.log("🚀 AUTH CONTEXT - Enrichissement initial échoué, utilisation des données de base");
               if (isMounted) {
-                // Fallback vers les données de base avec rôle admin pour iTakecare
+                // Fallback vers les données de base en préservant les métadonnées
                 const isItakecareUser = currentSession.user.email === 'hello@itakecare.be';
+                const metaRole = currentSession.user.user_metadata?.role || 'client';
                 setUser({
                   ...currentSession.user,
-                  role: isItakecareUser ? 'admin' : 'admin'
+                  role: isItakecareUser ? 'admin' : metaRole
                 } as ExtendedUser);
                 setIsLoading(false);
               }
