@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShoppingCart, ChevronDown, Menu, X, Globe, Server, Recycle, Briefcase, HelpCircle, Cpu, Monitor, Share2, Building, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,8 @@ import {
 const MainNavigation = () => {
   const { cartCount } = useCart();
   const location = useLocation();
-  const { navigateToClient } = useRoleNavigation();
+  const navigate = useNavigate();
+  const { navigateToClient, companySlug } = useRoleNavigation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -64,7 +65,7 @@ const MainNavigation = () => {
     if (isInClientSpace) {
       navigateToClient('panier');
     } else {
-      window.location.href = '/panier';
+      navigate(`/${companySlug}/panier`);
     }
   };
 
