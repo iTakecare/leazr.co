@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { generateSlug } from "@/utils/slugs";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
@@ -12,13 +12,14 @@ interface AmbassadorProductGridProps {
 
 const AmbassadorProductGrid: React.FC<AmbassadorProductGridProps> = ({ products }) => {
   const navigate = useNavigate();
+  const { companySlug } = useParams<{ companySlug: string }>();
   const { companyId } = useMultiTenant();
 
   const handleProductClick = (product: Product) => {
     const productSlug = generateSlug(product.name);
     
-    // Navigate to product detail page within ambassador context
-    navigate(`/ambassador/products/${product.id}-${productSlug}`);
+    // Navigate to product detail page within ambassador context with company slug
+    navigate(`/${companySlug}/ambassador/products/${product.id}-${productSlug}`);
   };
 
   // Handle case where products is undefined or null

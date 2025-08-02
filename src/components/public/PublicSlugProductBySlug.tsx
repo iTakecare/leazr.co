@@ -26,8 +26,8 @@ const PublicSlugProductBySlug = () => {
     const productId = uuidMatch ? uuidMatch[1] : productSlug;
     
     if (companySlug === 'ambassador' && productId) {
-      // Redirect to ambassador product route
-      return <Navigate to={`/ambassador/products/${productId}`} replace />;
+      // Redirect to ambassador product route with company slug
+      return <Navigate to={`/${companySlug}/ambassador/products/${productId}`} replace />;
     }
     
     // For other reserved keywords, redirect to appropriate route or 404
