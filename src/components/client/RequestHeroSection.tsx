@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Share2, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 interface RequestHeroSectionProps {
   offer: any;
@@ -19,7 +19,7 @@ export const RequestHeroSection: React.FC<RequestHeroSectionProps> = ({
   statusInfo,
   formatAmount
 }) => {
-  const navigate = useNavigate();
+  const { navigateToClient } = useRoleNavigation();
 
   const getGradientByStatus = (status: string) => {
     switch (status) {
@@ -52,7 +52,7 @@ export const RequestHeroSection: React.FC<RequestHeroSectionProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/client/requests')}
+              onClick={() => navigateToClient('requests')}
               className="gap-2 hover:bg-background/80"
             >
               <ArrowLeft className="h-4 w-4" />

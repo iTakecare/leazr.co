@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Eye, Trash, Calculator } from "lucide-react";
 import { Client } from "@/types/client";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Badge } from "@/components/ui/badge";
 
 interface ClientTableRowProps {
@@ -23,7 +23,7 @@ interface ClientTableRowProps {
 }
 
 const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProps) => {
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   
   const formatDate = (date: string | Date | undefined) => {
     if (!date) return "Date incorrecte";
@@ -51,7 +51,7 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
   };
 
   const handleViewClient = () => {
-    navigate(`/clients/${client.id}`);
+    navigateToAdmin(`clients/${client.id}`);
   };
 
   return (
@@ -78,7 +78,7 @@ const ClientTableRow = ({ client, onDelete, onEdit, onView }: ClientTableRowProp
               <Pencil className="mr-2 h-4 w-4" />
               Modifier
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate(`/admin/create-offer?client=${client.id}`)}>
+            <DropdownMenuItem onClick={() => navigateToAdmin(`create-offer?client=${client.id}`)}>
               <Calculator className="mr-2 h-4 w-4" />
               Créer une offre
             </DropdownMenuItem>

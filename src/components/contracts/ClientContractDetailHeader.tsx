@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Calendar, User, Package, Euro } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract } from "@/services/contractService";
 import { getEquipmentSummary } from "@/utils/clientEquipmentFormatter";
@@ -13,7 +13,7 @@ interface ClientContractDetailHeaderProps {
 }
 
 const ClientContractDetailHeader: React.FC<ClientContractDetailHeaderProps> = ({ contract }) => {
-  const navigate = useNavigate();
+  const { navigateToClient } = useRoleNavigation();
   const equipmentSummary = getEquipmentSummary(contract.equipment_description);
 
   return (
@@ -24,7 +24,7 @@ const ClientContractDetailHeader: React.FC<ClientContractDetailHeaderProps> = ({
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => navigate('/client/contracts')}
+              onClick={() => navigateToClient('contracts')}
               className="hover:bg-background/80"
             >
               <ChevronLeft className="h-5 w-5" />

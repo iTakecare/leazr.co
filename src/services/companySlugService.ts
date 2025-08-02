@@ -22,7 +22,7 @@ export const getCompanySlugForUser = async (): Promise<string | null> => {
           slug
         )
       `)
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single();
 
     if (profileError || !profileData) {
