@@ -105,7 +105,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
               className={cn(
                 "w-full",
                 "flex items-center py-3 px-3 rounded-xl text-sm font-semibold transition-all duration-300 group relative",
-                collapsed ? "justify-center" : "",
+                collapsed ? "justify-start" : "justify-start", // Force left alignment
                 active
                   ? finalColor.active
                   : cn(
@@ -134,7 +134,7 @@ const SidebarMenuItem = memo(({ item, isActive, collapsed, onLinkClick }: Sideba
               
               {!collapsed && (
                 <>
-                  <span className="flex-1 font-medium tracking-wide">
+                  <span className="flex-1 font-medium tracking-wide text-left">
                     {item.label}
                   </span>
                   {item.badge && (
