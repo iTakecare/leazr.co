@@ -1,307 +1,195 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLocation } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
-import {
+import { 
   LayoutDashboard,
   FileText,
   Laptop,
   Clock,
   Package,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
+  Menu, 
   X,
+  ChevronRight,
   Settings,
   HelpCircle
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
-import Logo from "./Logo";
-import SidebarMenuItem from "./SidebarMenuItem";
+import CompanyLogo from "./CompanyLogo";
 import SidebarUserSection from "./SidebarUserSection";
+import SidebarMenuItem from "./SidebarMenuItem";
 
 interface SidebarProps {
   className?: string;
   onLinkClick?: () => void;
 }
 
-interface MenuItem {
-  label: string;
-  icon: React.ElementType;
-  href: string;
-  color: string;
-  badge?: string;
-  isNew?: boolean;
-  moduleSlug?: string;
-}
-
-const ClientSidebar = ({ className, onLinkClick }: SidebarProps) => {
+const ClientSidebar = memo(({ className, onLinkClick }: SidebarProps) => {
+  const { user } = useAuth();
+  const { companyId } = useMultiTenant();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const location = useLocation();
   const { navigateToClient, companySlug } = useRoleNavigation();
-  const { user, signOut } = useAuth();
-  const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = React.useState(false);
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [enabledModules, setEnabledModules] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Tous les éléments de menu possibles avec leurs modules associés
-  const allSidebarItems: MenuItem[] = [
-    { label: "Tableau de bord", icon: LayoutDashboard, href: "dashboard", color: "blue" },
-    { label: "Équipements", icon: Laptop, href: "equipment", color: "slate" },
-    { label: "Contrats", icon: FileText, href: "contracts", moduleSlug: "contracts", color: "emerald" },
-    { label: "Demandes en cours", icon: Clock, href: "requests", badge: "3", isNew: true, moduleSlug: "crm", color: "orange" },
-    { label: "Catalogue", icon: Package, href: "products", moduleSlug: "catalog", color: "violet" },
-    { label: "Support", icon: HelpCircle, href: "support", moduleSlug: "support", color: "pink" },
-    { label: "Paramètres", icon: Settings, href: "settings", color: "gray" },
-  ];
+  // Mémoriser les éléments de menu
+  const menuItems = useMemo(() => [
+    { icon: LayoutDashboard, label: "Tableau de bord", href: "dashboard", color: "blue" },
+    { icon: Laptop, label: "Équipements", href: "equipment", color: "slate" },
+    { icon: FileText, label: "Contrats", href: "contracts", color: "emerald" },
+    { icon: Clock, label: "Demandes en cours", href: "requests", color: "orange", badge: "3" },
+    { icon: Package, label: "Catalogue", href: "products", color: "violet" },
+    { icon: HelpCircle, label: "Support", href: "support", color: "pink" },
+    { icon: Settings, label: "Paramètres", href: "settings", color: "gray" },
+  ], []);
 
-  useEffect(() => {
-    const fetchAvatar = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Erreur lors de la récupération de l'avatar:", error);
-          return;
-        }
-        
-        if (data?.avatar_url) {
-          setAvatarUrl(data.avatar_url);
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement de l'avatar:", err);
-      }
-    };
-    
-    fetchAvatar();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchEnabledModules = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        console.log("Récupération des modules activés pour l'utilisateur:", user.id);
-        
-        // Récupérer d'abord le profil de l'utilisateur pour obtenir company_id
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Erreur lors de la récupération du profil:", profileError);
-          setLoading(false);
-          return;
-        }
-        
-        if (!profile?.company_id) {
-          console.warn("Aucune entreprise associée à cet utilisateur");
-          setLoading(false);
-          return;
-        }
-        
-        // Récupérer les modules activés pour l'entreprise
-        const { data: companyModules, error: modulesError } = await supabase
-          .from('company_modules')
-          .select(`
-            enabled,
-            modules (
-              slug
-            )
-          `)
-          .eq('company_id', profile.company_id)
-          .eq('enabled', true);
-        
-        if (modulesError) {
-          console.error("Erreur lors de la récupération des modules:", modulesError);
-          // En cas d'erreur, afficher tous les modules pour les clients
-          setEnabledModules(['contracts', 'catalog', 'crm', 'support']);
-        } else {
-          const modulesSlugs = companyModules?.map(cm => cm.modules?.slug).filter(Boolean) || [];
-          console.log("Modules activés:", modulesSlugs);
-          // Si aucun module configuré, afficher tous les modules essentiels
-          if (modulesSlugs.length === 0) {
-            setEnabledModules(['contracts', 'catalog', 'crm', 'support']);
-          } else {
-            setEnabledModules(modulesSlugs);
-          }
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement des modules:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchEnabledModules();
-  }, [user]);
-
-  // Filtrer les éléments de menu en fonction des modules activés
-  const sidebarItems = allSidebarItems.filter(item => {
-    // Toujours afficher les éléments sans moduleSlug (dashboard, paramètres)
-    if (!item.moduleSlug) return true;
-    
-    // Afficher seulement si le module est activé
-    return enabledModules.includes(item.moduleSlug);
-  });
-
-
-  const isActive = (path: string) => {
+  // Mémoriser la fonction isActive
+  const isActive = useCallback((href: string) => {
     if (!companySlug) return false;
-    const fullPath = `/${companySlug}/client/${path}`;
+    const fullPath = `/${companySlug}/client/${href}`;
     return location.pathname === fullPath;
-  };
+  }, [location.pathname, companySlug]);
 
-  const handleNavigation = (href: string) => {
+  // Mémoriser les handlers
+  const toggleCollapsed = useCallback(() => setIsCollapsed(prev => !prev), []);
+  const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), []);
+  const closeMobile = useCallback(() => setIsMobileOpen(false), []);
+
+  // Mémoriser le handler de navigation
+  const handleNavigation = useCallback((href: string) => {
     console.log("🚀 CLIENT SIDEBAR - Navigation vers:", href, "depuis:", location.pathname);
     navigateToClient(href);
     onLinkClick?.();
-    if (isMobile) {
-      setMobileOpen(false);
-    }
-  };
+    closeMobile();
+  }, [navigateToClient, onLinkClick, closeMobile, location.pathname]);
 
-  // Afficher un loader pendant le chargement des modules
-  if (loading) {
-    return (
-      <aside className={cn(
-        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
-        collapsed ? "w-[80px]" : "w-[280px]",
-        className
+  // Mémoriser le nom de l'entreprise
+  const companyName = useMemo(() => settings?.company_name || "Leazr", [settings?.company_name]);
+
+  if (!user || !companyId) return null;
+
+  const SidebarContent = memo(() => (
+    <div className="flex flex-col h-full bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl">
+      {/* Header avec logo - layout adapté pour collapsed */}
+      <div className={cn(
+        "border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
+        isCollapsed ? "p-2" : "p-4"
       )}>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </aside>
-    );
-  }
-
-  if (isMobile) {
-    return (
-      <>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(true)}
-          className="fixed top-4 left-4 z-50 md:hidden bg-background/90 backdrop-blur-sm shadow-lg rounded-full hover:bg-primary/20 transition-all"
-          aria-label="Menu"
-        >
-          <Menu className="h-5 w-5 text-primary" />
-          <span className="sr-only">Menu</span>
-        </Button>
-        
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 w-[280px] border-0 bg-gradient-to-br from-background via-background/95 to-primary/5">
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-center p-4 border-b">
-                <Logo showText={true} logoSize="md" />
-                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="rounded-full ml-auto">
-                  <X className="h-5 w-5" />
-                </Button>
+        {isCollapsed ? (
+          // Mode collapsed : logo + nom de l'entreprise en compact
+          <div className="flex flex-col items-center gap-1">
+            <CompanyLogo 
+              logoSize="sm"
+              className="transition-all duration-300 w-8 h-8"
+            />
+            {!settingsLoading && companyName && (
+              <div className="text-center">
+                <p className="text-xs font-bold text-gray-900 truncate max-w-12 leading-tight">
+                  {companyName}
+                </p>
               </div>
-              
-              <nav className="flex-1 px-2 py-4">
-                <ul className="space-y-2">
-                  {sidebarItems.map((item) => (
-                    <SidebarMenuItem
-                      key={item.href}
-                      item={item}
-                      isActive={isActive}
-                      collapsed={false}
-                      onLinkClick={() => {
-                        onLinkClick?.();
-                        setMobileOpen(false);
-                      }}
-                    />
-                  ))}
-                </ul>
-              </nav>
-              
-              <SidebarUserSection />
+            )}
+          </div>
+        ) : (
+          // Mode étendu : layout complet avec logo d'entreprise
+          <div className="flex items-center gap-3">
+            <CompanyLogo 
+              logoSize="sm"
+              className="transition-all duration-300"
+            />
+            <div className="min-w-0 flex-1">
+              {!settingsLoading && (
+                <>
+                  <h1 className="text-lg font-bold text-gray-900 truncate">{companyName}</h1>
+                  <p className="text-xs text-gray-600 truncate font-medium">Espace Client</p>
+                </>
+              )}
             </div>
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
-  
-  return (
-    <aside
-      className={cn(
-        "h-screen sticky top-0 transition-all duration-500 border-r border-r-primary/5 shadow-xl shadow-primary/5 bg-gradient-to-br from-background via-background/95 to-primary/5",
-        collapsed ? "w-[80px]" : "w-[280px]",
-        className
-      )}
-    >
-      <div className="flex flex-col h-full">
-        <div className={cn(
-          "flex items-center p-4 mb-2 transition-all duration-300",
-          collapsed ? "justify-center" : "px-6 justify-start"
-        )}>
-          <Logo showText={!collapsed} logoSize="md" />
-          
-          {!collapsed && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(true)} 
-              className="rounded-full hover:bg-primary/10 ml-auto"
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
             >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          )}
-        </div>
-        
-        <nav className="flex-1 px-2 py-4">
-          <ul className="space-y-2">
-            {sidebarItems.map((item) => (
-              <SidebarMenuItem
-                key={item.href}
-                item={item}
-                isActive={isActive}
-                collapsed={collapsed}
-                onLinkClick={() => {
-                  handleNavigation(item.href);
-                }}
-              />
-            ))}
-          </ul>
-        </nav>
-        
-        <SidebarUserSection />
-        
-        {collapsed && (
-          <div className="p-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setCollapsed(false)} 
-              className="w-full flex justify-center items-center h-10 rounded-xl hover:bg-primary/10"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+              <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200 rotate-180" />
+            </button>
           </div>
         )}
       </div>
-    </aside>
+
+      {/* Navigation avec espacement adapté */}
+      <nav className={cn(
+        "flex-1 overflow-y-auto",
+        isCollapsed ? "px-1 py-2" : "p-4"
+      )}>
+        <ul className={cn("space-y-1", isCollapsed ? "" : "space-y-2")}>
+          {menuItems.map((item) => (
+            <SidebarMenuItem
+              key={item.href}
+              item={item}
+              isActive={(href) => isActive(href)}
+              collapsed={isCollapsed}
+              onLinkClick={() => handleNavigation(item.href)}
+            />
+          ))}
+        </ul>
+      </nav>
+
+      {/* Bouton de collapse en bas en mode collapsed */}
+      {isCollapsed && (
+        <div className="p-2 border-t border-gray-200/60">
+          <button
+            onClick={toggleCollapsed}
+            className="hidden lg:flex w-full justify-center p-2 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+          >
+            <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200" />
+          </button>
+        </div>
+      )}
+
+      {/* User Section avec meilleur contraste */}
+      <div className="border-t border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-blue-50/80">
+        <SidebarUserSection collapsed={isCollapsed} />
+      </div>
+    </div>
+  ));
+
+  return (
+    <>
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={toggleMobile}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-all duration-200"
+      >
+        {isMobileOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
+      </button>
+
+      {/* Desktop Sidebar avec largeurs fixes */}
+      <div className={cn(
+        "hidden lg:flex flex-col transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-16" : "w-64",
+        className
+      )}>
+        <SidebarContent />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div 
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={closeMobile}
+          />
+          <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
+            <SidebarContent />
+          </div>
+        </div>
+      )}
+    </>
   );
-};
+});
+
+ClientSidebar.displayName = 'ClientSidebar';
 
 export default ClientSidebar;
