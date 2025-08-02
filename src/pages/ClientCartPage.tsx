@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
@@ -10,6 +11,7 @@ import ClientRequestSteps from '@/components/checkout/ClientRequestSteps';
 
 const ClientCartPage: React.FC = () => {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { navigateToClient } = useRoleNavigation();
   
   const handleRemoveItem = (productId: string) => {
     removeFromCart(productId);
@@ -161,11 +163,13 @@ const ClientCartPage: React.FC = () => {
                     </p>
                   </div>
                   
-                  <Button className="w-full mt-6" size="lg" asChild>
-                    <Link to="panier/demande">
-                      Valider ma demande
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                  <Button 
+                    className="w-full mt-6" 
+                    size="lg" 
+                    onClick={() => navigateToClient('panier/demande')}
+                  >
+                    Valider ma demande
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               </div>
