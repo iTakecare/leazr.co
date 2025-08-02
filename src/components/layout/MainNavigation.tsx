@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { cn } from "@/lib/utils";
 import { 
   DropdownMenu, 
@@ -16,6 +17,7 @@ import {
 const MainNavigation = () => {
   const { cartCount } = useCart();
   const location = useLocation();
+  const { navigateToClient } = useRoleNavigation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -55,6 +57,15 @@ const MainNavigation = () => {
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleCartClick = () => {
+    const isInClientSpace = location.pathname.includes('/client/');
+    if (isInClientSpace) {
+      navigateToClient('panier');
+    } else {
+      window.location.href = '/panier';
+    }
   };
 
   return (
@@ -324,7 +335,7 @@ const MainNavigation = () => {
         </nav>
 
         <div className="hidden md:flex items-center space-x-4">
-          <Link to="/panier" className="relative group">
+          <button onClick={handleCartClick} className="relative group">
             <ShoppingCart className="w-6 h-6 text-gray-700 group-hover:text-[#33638E] transition-colors" />
             {cartCount > 0 && (
               <Badge 
@@ -336,7 +347,7 @@ const MainNavigation = () => {
                 <span className="font-bold text-white text-xs">{cartCount}</span>
               </Badge>
             )}
-          </Link>
+          </button>
 
           <Link to="/login">
             <Button
