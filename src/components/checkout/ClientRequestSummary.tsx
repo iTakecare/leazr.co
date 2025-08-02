@@ -62,7 +62,6 @@ const ClientRequestSummary: React.FC = () => {
       type: 'client_request',
       client_name: clientData.name || 'Client',
       client_email: clientData.email || '',
-      client_company: clientData.company || '',
       client_contact_email: clientData.email || '',
       equipment_description: equipmentDescription,
       amount: Number(cartTotal) || 0,
