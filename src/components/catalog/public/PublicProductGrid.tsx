@@ -6,6 +6,7 @@ import ProductGridCardOptimized from "@/components/catalog/public/ProductGridCar
 import { useCompanyContext } from "@/context/CompanyContext";
 import { generateProductSlug } from "@/lib/utils";
 import { useSafeNavigate } from "@/hooks/useSafeNavigate";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useLocation } from "react-router-dom";
 
 interface PublicProductGridProps {
@@ -14,6 +15,7 @@ interface PublicProductGridProps {
 
 const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
   const safeNavigate = useSafeNavigate();
+  const { navigateToClient } = useRoleNavigation();
   const { companyId, companySlug } = useCompanyContext();
   const location = useLocation();
   
@@ -32,14 +34,14 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
       currentPath: location.pathname
     });
 
-    // Check if we're in client space
-    const isInClientSpace = location.pathname.startsWith('/client');
+    // Check if we're in client space - fix detection for multi-tenant URLs
+    const isInClientSpace = location.pathname.includes('/client/');
     
     if (isInClientSpace) {
-      // Navigate to client product detail page
-      const targetUrl = `/client/products/${product.id}`;
-      console.log('🔗 CLIENT SPACE - Navigating to:', targetUrl);
-      safeNavigate(targetUrl);
+      // Navigate to client product detail page using role navigation
+      const targetPath = `products/${product.id}`;
+      console.log('🔗 CLIENT SPACE - Navigating to client product:', targetPath);
+      navigateToClient(targetPath);
       return;
     }
 
