@@ -231,11 +231,11 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                      </button>
                    </div>
                    
-                    {/* Cart Icon */}
-                    <button
-                      onClick={() => navigate(`/${companySlug}/client/cart`)}
-                      className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
-                    >
+                     {/* Cart Icon */}
+                     <button
+                       onClick={() => navigate(`/${companySlug}/client/panier`)}
+                       className="relative p-2 text-gray-600 hover:text-[#4ab6c4] transition-colors"
+                     >
                      <ShoppingCart className="h-6 w-6" />
                      {cartCount > 0 && (
                        <span className="absolute -top-1 -right-1 bg-[#4ab6c4] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
