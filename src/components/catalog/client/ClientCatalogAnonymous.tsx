@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
 import ClientProductGrid from "@/components/catalog/client/ClientProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
+import PublicProductDetail from "@/components/public/PublicProductDetail";
+import { ArrowLeft } from "lucide-react";
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
@@ -38,6 +40,7 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const { cartCount } = useCart();
   
   const companyId = company?.id;
@@ -100,6 +103,15 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Product selection handlers
+  const handleProductSelect = (productId: string) => {
+    setSelectedProductId(productId);
+  };
+
+  const handleBackToGrid = () => {
+    setSelectedProductId(null);
+  };
 
   // Products and packs loading
   if (isLoadingProducts || isLoadingPacks) {
@@ -233,26 +245,51 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                    </button>
                  </div>
 
-                 {activeTab === 'products' && (
-                   <>
-                     {/* Active Filter Badges */}
-                     <FilterBadges
-                       searchQuery={filters.searchQuery}
-                       selectedCategory={filters.selectedCategory}
-                       selectedBrands={filters.selectedBrands}
-                       inStockOnly={filters.inStockOnly}
-                       categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                       onRemoveSearch={() => updateFilter('searchQuery', '')}
-                       onRemoveCategory={() => updateFilter('selectedCategory', '')}
-                       onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                       onRemoveStock={() => updateFilter('inStockOnly', false)}
-                       onClearAll={resetFilters}
-                     />
+                  {activeTab === 'products' && (
+                    <>
+                      {selectedProductId ? (
+                        /* Product Detail View */
+                        <div className="space-y-4">
+                          <button
+                            onClick={handleBackToGrid}
+                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                            Retour au catalogue
+                          </button>
+                          <PublicProductDetail
+                            companyId={company.id}
+                            companySlug={company.slug}
+                            productId={selectedProductId}
+                            company={company}
+                          />
+                        </div>
+                      ) : (
+                        /* Product Grid View */
+                        <>
+                          {/* Active Filter Badges */}
+                          <FilterBadges
+                            searchQuery={filters.searchQuery}
+                            selectedCategory={filters.selectedCategory}
+                            selectedBrands={filters.selectedBrands}
+                            inStockOnly={filters.inStockOnly}
+                            categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
+                            onRemoveSearch={() => updateFilter('searchQuery', '')}
+                            onRemoveCategory={() => updateFilter('selectedCategory', '')}
+                            onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
+                            onRemoveStock={() => updateFilter('inStockOnly', false)}
+                            onClearAll={resetFilters}
+                          />
 
-                     {/* Client Product Grid - Use ClientProductGrid instead of PublicProductGrid */}
-                     <ClientProductGrid products={filteredProducts || []} />
-                   </>
-                 )}
+                          {/* Client Product Grid */}
+                          <ClientProductGrid 
+                            products={filteredProducts || []} 
+                            onProductSelect={handleProductSelect}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
 
                  {activeTab === 'packs' && (
                    <div className="space-y-6">
