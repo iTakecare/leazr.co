@@ -21,6 +21,7 @@ import CollaboratorForm from "./CollaboratorForm";
 import CollaboratorsList from "./CollaboratorsList";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import ClientSubdomainManager from "./ClientSubdomainManager";
+import ClientUserAccount from "./ClientUserAccount";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -125,6 +126,11 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       shipping_country: client.shipping_country || "",
     });
     setIsEditing(false);
+  };
+
+  const handleAccountUpdate = () => {
+    // Refresh the client data to get updated account information
+    onClientUpdate?.(client);
   };
 
   const formatDate = (date: Date | string | undefined) => {
@@ -392,22 +398,16 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                   </div>
                 </div>
 
-                {client.has_user_account && (
-                  <div className="flex items-start space-x-3 bg-green-50 p-3 rounded-md border border-green-200">
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                    <div>
-                      <h3 className="text-sm font-medium text-green-800">Compte utilisateur actif</h3>
-                      {client.user_account_created_at && (
-                        <p className="text-xs text-green-700">
-                          Créé le {formatDate(client.user_account_created_at)}
-                        </p>
-                      )}
-                      {client.user_id && (
-                        <p className="text-xs text-green-700">
-                          ID: {client.user_id}
-                        </p>
-                      )}
-                    </div>
+                {!readOnly && (
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <User className="h-4 w-4 text-primary" />
+                      Compte utilisateur
+                    </h3>
+                    <ClientUserAccount 
+                      client={client} 
+                      onAccountCreated={handleAccountUpdate} 
+                    />
                   </div>
                 )}
               </CardContent>
