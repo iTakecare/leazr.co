@@ -11,19 +11,33 @@ import AmbassadorProductConfigurationSection from "@/components/product-detail/A
 import AmbassadorProductMainContent from "@/components/product-detail/AmbassadorProductMainContent";
 import RelatedProducts from "@/components/product-detail/RelatedProducts";
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
-import { useAmbassadorCompanyContext } from "@/hooks/useAmbassadorCompanyContext";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Container from "@/components/layout/Container";
-import PageTransition from "@/components/layout/PageTransition";
 import { extractUuidFromSlug } from "@/utils/slugs";
 
 const AmbassadorProductDetailPage: React.FC = () => {
-  const { id: productIdWithSlug } = useParams<{ id: string }>();
+  const { companySlug, id: productIdWithSlug } = useParams<{ companySlug: string; id: string }>();
   const navigate = useNavigate();
   
-  // Get company context for ambassador
-  const { companyId, loading: companyLoading, error: companyError } = useAmbassadorCompanyContext();
+  // Get company info using the slug
+  const { data: companyData, isLoading: companyLoading, error: companyError } = useQuery({
+    queryKey: ['company', companySlug],
+    queryFn: async () => {
+      if (!companySlug) throw new Error('Company slug is required');
+      
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, logo_url')
+        .eq('slug', companySlug)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companySlug,
+  });
+  
+  const companyId = companyData?.id;
 
   // Extract clean UUID from URL parameter that might contain slug
   const productId = productIdWithSlug ? extractUuidFromSlug(productIdWithSlug) : undefined;
@@ -89,126 +103,117 @@ const AmbassadorProductDetailPage: React.FC = () => {
   const productBrand = brandInfo?.translation || product?.brand || '';
   const productCategory = product?.category || '';
 
-  // Handle back navigation - simplified for ambassador context
+  // Handle back navigation - use relative path
   const handleBackToCatalog = () => {
-    navigate('/ambassador/catalog');
+    navigate('../catalog');
   };
 
   if (isLoading || companyLoading) {
-    return (
-      <PageTransition>
-        <Container className="max-w-[1320px] py-8">
-          <ProductLoadingState />
-        </Container>
-      </PageTransition>
-    );
+    return <ProductLoadingState />;
   }
 
   if (error || !product || companyError || !companyId) {
     return (
-      <PageTransition>
-        <Container className="max-w-[1320px] py-8">
-          <ProductErrorState 
-            onBackToCatalog={handleBackToCatalog}
-          />
-        </Container>
-      </PageTransition>
+      <ProductErrorState 
+        onBackToCatalog={handleBackToCatalog}
+        companyId={companyId}
+        companyLogo={companyData?.logo_url}
+        companyName={companyData?.name}
+      />
     );
   }
 
   return (
-    <PageTransition>
-      <Container className="py-6 max-w-[1320px]">
-        {/* Breadcrumb Navigation */}
-        <div className="mb-6 flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleBackToCatalog}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour au catalogue
-          </Button>
-          
-          <Breadcrumb>
-            <BreadcrumbItem>
-              <BreadcrumbLink onClick={handleBackToCatalog}>
-                Catalogue Ambassador
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <span>{productName}</span>
-            </BreadcrumbItem>
-          </Breadcrumb>
-        </div>
+    <div className="py-6 max-w-[1320px] mx-auto px-4">
+      {/* Breadcrumb Navigation */}
+      <div className="mb-6 flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleBackToCatalog}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour au catalogue
+        </Button>
+        
+        <Breadcrumb>
+          <BreadcrumbItem>
+            <BreadcrumbLink onClick={handleBackToCatalog}>
+              Catalogue Ambassador
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbItem>
+            <span>{productName}</span>
+          </BreadcrumbItem>
+        </Breadcrumb>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Product Images and Description */}
-          <div className="space-y-6">
-            <AmbassadorProductMainContent
-              product={product}
-              productName={productName}
-              productDescription={productDescription}
-              currentImage={currentImage}
-              productBrand={productBrand}
-            />
-          </div>
-
-          {/* Right Column - Product Configuration */}
-          <div className="space-y-6">
-            <AmbassadorProductConfigurationSection
-              product={product}
-              productBrand={productBrand}
-              productCategory={productCategory}
-              productName={productName}
-              currentPrice={currentPrice}
-              quantity={quantity}
-              handleQuantityChange={handleQuantityChange}
-              selectedOptions={selectedOptions}
-              handleOptionChange={handleOptionChange}
-              variationAttributes={variationAttributes}
-              configAttributes={configAttributes}
-              getDisplayName={getDisplayName}
-              getCurrentValue={getCurrentValue}
-              hasAttributeOptions={hasAttributeOptions}
-              getOptionsForAttribute={getOptionsForAttribute}
-              isOptionAvailable={isOptionAvailable}
-              specifications={specifications}
-              duration={duration}
-              totalPrice={totalPrice}
-              minMonthlyPrice={minMonthlyPrice}
-            />
-          </div>
-        </div>
-
-        {/* Related Products */}
-        <div className="mt-16">
-          {companyId && (
-            <RelatedProducts 
-              companyId={companyId}
-              currentProductId={productId} 
-              category={productCategory}
-              brand={productBrand}
-              limit={6}
-            />
-          )}
-        </div>
-
-        {/* Request Form Modal */}
-        {isRequestFormOpen && (
-          <ProductRequestForm
-            isOpen={isRequestFormOpen}
-            onClose={() => setIsRequestFormOpen(false)}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column - Product Images and Description */}
+        <div className="space-y-6">
+          <AmbassadorProductMainContent
             product={product}
+            productName={productName}
+            productDescription={productDescription}
+            currentImage={currentImage}
+            productBrand={productBrand}
+          />
+        </div>
+
+        {/* Right Column - Product Configuration */}
+        <div className="space-y-6">
+          <AmbassadorProductConfigurationSection
+            product={product}
+            productBrand={productBrand}
+            productCategory={productCategory}
+            productName={productName}
+            currentPrice={currentPrice}
             quantity={quantity}
+            handleQuantityChange={handleQuantityChange}
             selectedOptions={selectedOptions}
+            handleOptionChange={handleOptionChange}
+            variationAttributes={variationAttributes}
+            configAttributes={configAttributes}
+            getDisplayName={getDisplayName}
+            getCurrentValue={getCurrentValue}
+            hasAttributeOptions={hasAttributeOptions}
+            getOptionsForAttribute={getOptionsForAttribute}
+            isOptionAvailable={isOptionAvailable}
+            specifications={specifications}
             duration={duration}
-            monthlyPrice={currentPrice}
+            totalPrice={totalPrice}
+            minMonthlyPrice={minMonthlyPrice}
+          />
+        </div>
+      </div>
+
+      {/* Related Products */}
+      <div className="mt-16">
+        {companyId && (
+          <RelatedProducts 
+            companyId={companyId}
+            currentProductId={productId} 
+            category={productCategory}
+            brand={productBrand}
+            limit={6}
           />
         )}
-      </Container>
-    </PageTransition>
+      </div>
+
+      {/* Request Form Modal */}
+      {isRequestFormOpen && (
+        <ProductRequestForm
+          isOpen={isRequestFormOpen}
+          onClose={() => setIsRequestFormOpen(false)}
+          product={product}
+          quantity={quantity}
+          selectedOptions={selectedOptions}
+          duration={duration}
+          monthlyPrice={currentPrice}
+        />
+      )}
+    </div>
   );
 };
 
