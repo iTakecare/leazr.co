@@ -9,7 +9,7 @@ import ProductErrorState from "@/components/product-detail/ProductErrorState";
 import ProductLoadingState from "@/components/product-detail/ProductLoadingState";
 import AmbassadorProductConfigurationSection from "@/components/product-detail/AmbassadorProductConfigurationSection";
 import AmbassadorProductMainContent from "@/components/product-detail/AmbassadorProductMainContent";
-import RelatedProducts from "@/components/product-detail/RelatedProducts";
+
 import { useAttributeHelpers } from "@/components/product-detail/ProductAttributeHelpers";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -188,18 +188,6 @@ const AmbassadorProductDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Related Products */}
-      <div className="mt-16">
-        {companyId && (
-          <RelatedProducts 
-            companyId={companyId}
-            currentProductId={productId} 
-            category={productCategory}
-            brand={productBrand}
-            limit={6}
-          />
-        )}
-      </div>
 
       {/* Request Form Modal */}
       {isRequestFormOpen && (
