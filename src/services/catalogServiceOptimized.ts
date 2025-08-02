@@ -123,9 +123,9 @@ export const getRelatedProducts = async (
 
     // Filter by brand first (higher priority), then category
     if (brand) {
-      query = query.or(`brand_name.eq."${brand}",brands.name.eq."${brand}"`);
+      query = query.filter(`brand_name.eq."${brand}" or brands.name.eq."${brand}"`);
     } else if (category) {
-      query = query.or(`category_name.eq."${category}",categories.name.eq."${category}"`);
+      query = query.filter(`category_name.eq."${category}" or categories.name.eq."${category}"`);
     }
 
     // Exclude current product
