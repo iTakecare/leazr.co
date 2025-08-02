@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Product } from "@/types/catalog";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import ProductGridCardOptimized from "@/components/catalog/public/ProductGridCardOptimized";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import PublicProductDetail from "@/components/public/PublicProductDetail";
 
 interface ClientProductGridProps {
   products: Product[];
@@ -13,6 +15,9 @@ interface ClientProductGridProps {
 const ClientProductGrid: React.FC<ClientProductGridProps> = ({ products }) => {
   const { navigateToClient } = useRoleNavigation();
   const location = useLocation();
+  const { companySlug } = useParams<{ companySlug: string }>();
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -26,8 +31,14 @@ const ClientProductGrid: React.FC<ClientProductGridProps> = ({ products }) => {
       currentPath: location.pathname
     });
 
-    // Navigate to client product detail page using role navigation
-    navigateToClient(`products/${product.id}`);
+    // Open modal with product details instead of navigating
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
   };
 
   if (!products) {
@@ -57,16 +68,44 @@ const ClientProductGrid: React.FC<ClientProductGridProps> = ({ products }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-      {products.map((product) => (
-        <motion.div key={product.id} variants={itemVariants}>
-          <ProductGridCardOptimized 
-            product={product} 
-            onClick={() => handleProductClick(product)}
-          />
-        </motion.div>
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+        {products.map((product) => (
+          <motion.div key={product.id} variants={itemVariants}>
+            <ProductGridCardOptimized 
+              product={product} 
+              onClick={() => handleProductClick(product)}
+            />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Product Detail Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>
+              {selectedProduct?.name || "Détails du produit"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto">
+            {selectedProduct && companySlug && (
+              <PublicProductDetail
+                companyId={selectedProduct.company_id || ""}
+                companySlug={companySlug}
+                productId={selectedProduct.id}
+                company={{
+                  id: selectedProduct.company_id || "",
+                  name: "",
+                  slug: companySlug,
+                  logo_url: ""
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
