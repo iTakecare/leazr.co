@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSafeNavigate } from "@/hooks/useSafeNavigate";
+import { useLocation } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { ProductPack } from "@/types/pack";
 import { Product } from "@/types/catalog";
 
@@ -47,6 +49,8 @@ const PackAddToCartButton: React.FC<PackAddToCartButtonProps> = ({
   const { addToCart } = useCart();
   const { toast } = useToast();
   const safeNavigate = useSafeNavigate();
+  const location = useLocation();
+  const { navigateToClient } = useRoleNavigation();
 
   const handleAddToCart = async () => {
     if (!pack) return;
@@ -75,9 +79,14 @@ const PackAddToCartButton: React.FC<PackAddToCartButtonProps> = ({
       setTimeout(() => {
         setIsAnimating(false);
         
-        // Navigate to cart if requested (same logic as AddToCartButton)
+        // Navigate to cart if requested with proper space detection
         if (navigateToCart) {
-          safeNavigate('/panier');
+          const isInClientSpace = location.pathname.includes('/client/');
+          if (isInClientSpace) {
+            navigateToClient('panier');
+          } else {
+            safeNavigate('/panier');
+          }
         }
       }, 1500);
 

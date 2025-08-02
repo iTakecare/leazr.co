@@ -5,8 +5,9 @@ import { ShoppingCart, Check } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/types/catalog";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 interface AddToCartButtonProps {
   product: Product;
@@ -29,6 +30,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { navigateToClient } = useRoleNavigation();
   const [isAnimating, setIsAnimating] = useState(false);
   
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -88,7 +91,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       
       // Only navigate if explicitly requested
       if (navigateToCart) {
-        navigate('/panier');
+        // Check if we're in client space and navigate accordingly
+        const isInClientSpace = location.pathname.includes('/client/');
+        if (isInClientSpace) {
+          navigateToClient('panier');
+        } else {
+          navigate('/panier');
+        }
       }
     }, 1000);
   };
