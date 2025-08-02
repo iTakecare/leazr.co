@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -8,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { useClientData } from '@/hooks/useClientData';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
+import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { createClientRequest } from '@/services/offers/clientRequests';
 import { formatCurrency } from '@/utils/formatters';
 import { getProductPrice } from '@/utils/productPricing';
@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { Check, User, Mail, Building, Package, Euro, Loader2, Send } from 'lucide-react';
 
 const ClientRequestSummary: React.FC = () => {
-  const navigate = useNavigate();
+  const { navigateToClient } = useRoleNavigation();
   const { items, cartTotal, clearCart } = useCart();
   const { clientData, loading: clientLoading } = useClientData();
   const { companyId } = useMultiTenant();
@@ -34,65 +34,93 @@ const ClientRequestSummary: React.FC = () => {
       toast.error("Votre panier est vide");
       return;
     }
+
+    if (!companyId) {
+      toast.error("Erreur de configuration : ID de l'entreprise manquant");
+      console.error("Company ID is missing:", { companyId, clientData });
+      return;
+    }
     
     setIsSubmitting(true);
     
+    // Build equipment description from cart items
+    const equipmentLines = items.map(item => {
+      const price = getProductPrice(item.product, item.selectedOptions);
+      const options = item.selectedOptions && Object.keys(item.selectedOptions).length > 0 
+        ? ` (${Object.entries(item.selectedOptions).map(([key, value]) => `${key}: ${value}`).join(', ')})`
+        : '';
+      return `- ${item.product.name}${options} - Quantité: ${item.quantity} - Durée: ${item.duration} mois - Prix mensuel: ${formatCurrency(price.monthlyPrice)}`;
+    });
+    
+    const equipmentDescription = `Demande client pour les équipements suivants:\n\n${equipmentLines.join('\n')}\n\nTotal mensuel: ${formatCurrency(cartTotal)}`;
+    
+    // Calculate total financed amount (assuming 36 months default)
+    const defaultDuration = 36;
+    const financedAmount = cartTotal * defaultDuration;
+    
+    const requestData = {
+      type: 'client_request',
+      client_name: clientData.name || 'Client',
+      client_email: clientData.email || '',
+      client_company: clientData.company || '',
+      client_contact_email: clientData.email || '',
+      equipment_description: equipmentDescription,
+      amount: Number(cartTotal) || 0,
+      monthly_payment: Number(cartTotal) || 0,
+      financed_amount: Number(financedAmount) || 0,
+      coefficient: 1,
+      margin: 0,
+      status: 'pending',
+      workflow_status: 'draft',
+      company_id: companyId,
+      client_id: clientData.id || null,
+      remarks: message || 'Demande envoyée depuis l\'espace client'
+    };
+
+    console.log("Submitting client request with data:", requestData);
+    
     try {
-      // Build equipment description from cart items
-      const equipmentLines = items.map(item => {
-        const price = getProductPrice(item.product, item.selectedOptions);
-        const options = item.selectedOptions && Object.keys(item.selectedOptions).length > 0 
-          ? ` (${Object.entries(item.selectedOptions).map(([key, value]) => `${key}: ${value}`).join(', ')})`
-          : '';
-        return `- ${item.product.name}${options} - Quantité: ${item.quantity} - Durée: ${item.duration} mois - Prix mensuel: ${formatCurrency(price.monthlyPrice)}`;
-      });
-      
-      const equipmentDescription = `Demande client pour les équipements suivants:\n\n${equipmentLines.join('\n')}\n\nTotal mensuel: ${formatCurrency(cartTotal)}`;
-      
-      // Calculate total financed amount (assuming 36 months default)
-      const defaultDuration = 36;
-      const financedAmount = cartTotal * defaultDuration;
-      
-      const requestData = {
-        type: 'client_request',
-        client_name: clientData.name,
-        client_email: clientData.email || '',
-        client_company: clientData.company || '',
-        client_contact_email: clientData.email || '',
-        equipment_description: equipmentDescription,
-        amount: cartTotal,
-        monthly_payment: cartTotal,
-        financed_amount: financedAmount,
-        coefficient: 1,
-        margin: 0,
-        status: 'pending',
-        workflow_status: 'draft',
-        company_id: companyId,
-        client_id: clientData.id,
-        remarks: message || 'Demande envoyée depuis l\'espace client'
-      };
-      
       const response = await createClientRequest(requestData);
       
       if (response.error) {
-        throw new Error(response.error.message || 'Erreur lors de la création de la demande');
+        console.error("Error from createClientRequest:", response.error);
+        const errorMessage = response.error.message || 'Erreur lors de la création de la demande';
+        throw new Error(errorMessage);
       }
+
+      if (!response.data) {
+        console.error("No data returned from createClientRequest:", response);
+        throw new Error('Aucune donnée retournée lors de la création de la demande');
+      }
+      
+      console.log("Client request created successfully:", response.data);
       
       // Clear cart and navigate to success page
       clearCart();
       toast.success("Votre demande a été envoyée avec succès !");
       
       // Navigate to client dashboard with success message
-      navigate('/client/dashboard', { 
-        state: { 
-          message: "Votre demande a été envoyée avec succès ! Vous recevrez une réponse sous peu.",
-          requestId: response.data?.id 
-        }
-      });
+      navigateToClient('dashboard');
       
     } catch (error: any) {
       console.error("Error submitting request:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer.");
+      console.error("Request data that failed:", requestData);
+      
+      let errorMessage = "Une erreur est survenue lors de l'envoi de votre demande.";
+      
+      if (error.message) {
+        if (error.message.includes('company_id')) {
+          errorMessage = "Erreur de configuration de l'entreprise. Contactez le support.";
+        } else if (error.message.includes('client_name')) {
+          errorMessage = "Nom client requis. Vérifiez vos informations de profil.";
+        } else if (error.message.includes('amount')) {
+          errorMessage = "Montant invalide. Vérifiez votre panier.";
+        } else {
+          errorMessage = `Erreur: ${error.message}`;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +142,7 @@ const ClientRequestSummary: React.FC = () => {
       <div className="bg-card rounded-lg border p-6">
         <div className="text-center py-8">
           <p className="text-destructive">Impossible de charger vos informations client.</p>
-          <Button onClick={() => navigate('/client/dashboard')} className="mt-4">
+          <Button onClick={() => navigateToClient('dashboard')} className="mt-4">
             Retour au tableau de bord
           </Button>
         </div>
