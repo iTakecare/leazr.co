@@ -98,6 +98,7 @@ import ProductFormPage from "@/pages/ProductFormPage";
 import ContractDetail from "@/pages/ContractDetail";
 import Layout from "@/components/layout/Layout";
 import CartPage from "@/pages/CartPage";
+import ClientRoutes from "@/components/layout/ClientRoutes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -202,7 +203,7 @@ function App() {
 
                       {/* ⚠️ MULTI-TENANT CLIENT & PARTNER ROUTES ⚠️ */}
                       <Route path="/:companySlug/client/*" element={<ClientPrivateRoute />}>
-                        <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+                        <Route path="*" element={<ClientRoutes />} />
                       </Route>
                       <Route path="/:companySlug/partner/*" element={<PartnerPrivateRoute />}>
                         <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
