@@ -5,11 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useClientOffers } from "@/hooks/useClientOffers";
-import { useNavigate } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const ClientRequestsPage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { navigateToClient } = useRoleNavigation();
   const { offers, loading, error } = useClientOffers(user?.email);
 
   const formatAmount = (amount: number) => {
@@ -116,7 +116,7 @@ const ClientRequestsPage = () => {
             <Card 
               key={offer.id} 
               className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/client/requests/${offer.id}`)}
+              onClick={() => navigateToClient(`requests/${offer.id}`)}
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
