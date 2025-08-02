@@ -41,7 +41,7 @@ const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
   if (collapsed) {
     return (
       <div className="p-2">
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-start gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-xs font-semibold text-primary">
               {getUserInitials()}
@@ -62,7 +62,7 @@ const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-start mb-3">
         <NavbarUserProfile 
           user={user}
           avatarUrl={null}
