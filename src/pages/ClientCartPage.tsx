@@ -162,7 +162,7 @@ const ClientCartPage: React.FC = () => {
                   </div>
                   
                   <Button className="w-full mt-6" size="lg" asChild>
-                    <Link to="/client/panier/demande">
+                    <Link to="panier/demande">
                       Valider ma demande
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
