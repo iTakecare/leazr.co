@@ -98,6 +98,7 @@ import CreateOffer from "@/pages/CreateOffer";
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
 import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
+import RedirectToUpload from "@/components/RedirectToUpload";
 
 import ProductFormPage from "@/pages/ProductFormPage";
 import ContractDetail from "@/pages/ContractDetail";
@@ -149,6 +150,9 @@ const AppRoutes = () => (
     
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
+    
+    {/* Redirect route for email links */}
+    <Route path="/r/:token" element={<RedirectToUpload />} />
     
     {/* Document upload routes */}
     <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
