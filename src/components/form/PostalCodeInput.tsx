@@ -72,9 +72,11 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   // Helper function to detect if input looks like a complete postal code
   const isLikelyPostalCode = (query: string): boolean => {
-    // Check if it's mostly numbers and appropriate length for EU postal codes
+    // Check if it's mostly numbers and appropriate length for EU postal codes (2-5 digits)
     const cleanQuery = query.trim();
-    return /^\d{3,5}$/.test(cleanQuery) && cleanQuery.length >= 3;
+    const isPostalPattern = /^\d{2,5}$/.test(cleanQuery);
+    console.log('🔍 isLikelyPostalCode check:', { query: cleanQuery, isPostalPattern });
+    return isPostalPattern;
   };
 
   // Search postal codes - use unlimited search for postal code patterns
