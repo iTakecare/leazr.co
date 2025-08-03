@@ -5038,6 +5038,10 @@ export type Database = {
           entity_id: string
         }[]
       }
+      get_company_slug_by_upload_token: {
+        Args: { upload_token: string }
+        Returns: string
+      }
       get_company_users: {
         Args: { p_company_id: string; role_filter?: string }
         Returns: {
