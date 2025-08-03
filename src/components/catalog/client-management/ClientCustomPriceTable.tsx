@@ -58,7 +58,7 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
           client_custom_prices!inner (
             id,
             margin_rate,
-            negotiated_monthly_price,
+            custom_monthly_price,
             custom_purchase_price
           ),
           product_variant_prices (
@@ -69,7 +69,7 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
             client_custom_variant_prices!left (
               id,
               margin_rate,
-              negotiated_monthly_price,
+              custom_monthly_price,
               custom_purchase_price
             )
           )
@@ -89,8 +89,8 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
         let finalPrice = product.monthly_price;
         
         if (customPrice) {
-          if (customPrice.negotiated_monthly_price) {
-            finalPrice = customPrice.negotiated_monthly_price;
+          if (customPrice.custom_monthly_price) {
+            finalPrice = customPrice.custom_monthly_price;
           } else if (customPrice.margin_rate && product.price) {
             finalPrice = product.price * (1 + (customPrice.margin_rate / 100));
           }
