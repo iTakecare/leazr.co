@@ -47,80 +47,78 @@ Deno.serve(async (req) => {
 
     console.log(`Starting import for country: ${country}`)
 
-    let content: string;
+    let content: string = '';
     
-    // Check if we should use uploaded file first
-    if (useUploadedFile) {
-      console.log(`Trying to read uploaded file for ${country}`)
+    // Always try to read uploaded file first (regardless of useUploadedFile flag)
+    console.log(`Trying to read uploaded file for ${country}`)
+    
+    try {
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('postal-code-imports')
+        .download(`${country}.txt`)
       
-      try {
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from('postal-code-imports')
-          .download(`${country}.txt`)
-        
-        if (downloadError) {
-          console.log(`No uploaded file found for ${country}, falling back to download`)
-          throw new Error('No uploaded file found')
-        }
-        
-        content = await fileData.text()
-        console.log(`Successfully loaded uploaded file for ${country}`)
-      } catch (uploadError) {
-        console.log(`Failed to load uploaded file: ${uploadError.message}`)
-        // Fall through to download logic
+      if (downloadError) {
+        console.log(`Storage download error for ${country}:`, downloadError)
+        throw new Error(`Storage error: ${downloadError.message}`)
       }
-    }
-    
-    // If no content from uploaded file, try downloading
-    if (!content) {
+      
+      if (!fileData) {
+        console.log(`No file data returned for ${country}`)
+        throw new Error('No file data returned')
+      }
+      
+      content = await fileData.text()
+      console.log(`Successfully loaded uploaded file for ${country}, content length: ${content.length} characters`)
+      
+      // Count lines to verify content
+      const lineCount = content.split('\n').filter(line => line.trim()).length
+      console.log(`File contains ${lineCount} lines of data`)
+      
+    } catch (uploadError) {
+      console.log(`Failed to load uploaded file: ${uploadError.message}`)
+      
+      // If no uploaded file, try GeoNames web service (without row limit)
       try {
-        // Try GeoNames web service API first
-        const webServiceUrl = `http://api.geonames.org/postalCodeSearchJSON?country=${country}&maxRows=1000&username=demo`
+        console.log(`Trying GeoNames web service for ${country} (no row limit)`)
+        const webServiceUrl = `http://api.geonames.org/postalCodeSearchJSON?country=${country}&username=demo`
         
-        console.log(`Trying GeoNames web service: ${webServiceUrl}`)
+        console.log(`Fetching from: ${webServiceUrl}`)
         const webServiceResponse = await fetch(webServiceUrl)
         
         if (webServiceResponse.ok) {
           const jsonData = await webServiceResponse.json()
+          console.log(`GeoNames API response status: OK, postal codes count: ${jsonData.postalCodes?.length || 0}`)
           
           if (jsonData.postalCodes && jsonData.postalCodes.length > 0) {
-            // Convert JSON response to our expected format
+            // Convert JSON response to tab-separated format
             content = jsonData.postalCodes.map((pc: any) => 
-              [country, pc.postalCode, pc.placeName, pc.adminName1 || '', '', pc.adminName2 || '', '', '', '', pc.lat || '', pc.lng || '', ''].join('\t')
+              [
+                country, 
+                pc.postalCode || '', 
+                pc.placeName || '', 
+                pc.adminName1 || '', 
+                pc.adminCode1 || '', 
+                pc.adminName2 || '', 
+                pc.adminCode2 || '', 
+                pc.adminName3 || '', 
+                pc.adminCode3 || '', 
+                pc.lat || '', 
+                pc.lng || '', 
+                pc.accuracy || ''
+              ].join('\t')
             ).join('\n')
+            console.log(`Converted ${jsonData.postalCodes.length} postal codes from GeoNames API`)
           } else {
-            throw new Error('No postal codes found in web service response')
+            throw new Error('No postal codes found in GeoNames API response')
           }
         } else {
-          throw new Error(`Web service failed: ${webServiceResponse.statusText}`)
+          const errorText = await webServiceResponse.text()
+          console.log(`GeoNames API failed with status ${webServiceResponse.status}: ${errorText}`)
+          throw new Error(`GeoNames API failed: ${webServiceResponse.status} ${webServiceResponse.statusText}`)
         }
       } catch (webServiceError) {
-        console.log('Web service failed, trying fallback approach')
-        
-        // Fallback: use a minimal dataset for demo purposes
-        const fallbackData = {
-          'BE': [
-            ['BE', '1000', 'Bruxelles', 'Brussels', '', '', '', '', '', '50.8503', '4.3517', ''],
-            ['BE', '2000', 'Antwerpen', 'Antwerp', '', '', '', '', '', '51.2194', '4.4025', ''],
-            ['BE', '9000', 'Gent', 'East Flanders', '', '', '', '', '', '51.0543', '3.7174', ''],
-            ['BE', '4000', 'Liège', 'Liège', '', '', '', '', '', '50.6292', '5.5797', ''],
-          ],
-          'FR': [
-            ['FR', '75001', 'Paris', 'Île-de-France', '', '', '', '', '', '48.8566', '2.3522', ''],
-            ['FR', '69001', 'Lyon', 'Auvergne-Rhône-Alpes', '', '', '', '', '', '45.7640', '4.8357', ''],
-          ],
-          'LU': [
-            ['LU', '1009', 'Luxembourg', 'Luxembourg', '', '', '', '', '', '49.6116', '6.1319', ''],
-          ]
-        }
-        
-        if (fallbackData[country as keyof typeof fallbackData]) {
-          content = fallbackData[country as keyof typeof fallbackData]
-            .map(fields => fields.join('\t')).join('\n')
-          console.log(`Using fallback data for ${country}`)
-        } else {
-          throw new Error(`No fallback data available for country: ${country}`)
-        }
+        console.log(`GeoNames web service error: ${webServiceError.message}`)
+        throw new Error(`No data source available for ${country}. Please upload a GeoNames file or check internet connectivity.`)
       }
     }
     const lines = content.split('\n').filter(line => line.trim())
