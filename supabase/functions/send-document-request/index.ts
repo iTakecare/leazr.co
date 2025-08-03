@@ -336,7 +336,9 @@ serve(async (req) => {
         const docNameMap: {[key: string]: string} = {
           balance_sheet: "Bilan financier",
           tax_notice: "Avertissement extrait de rôle",
-          id_card: "Copie de la carte d'identité",
+          id_card_front: "Carte d'identité - Recto",
+          id_card_back: "Carte d'identité - Verso",
+          id_card: "Copie de la carte d'identité (recto et verso)",
           company_register: "Extrait de registre d'entreprise",
           vat_certificate: "Attestation TVA",
           bank_statement: "Relevé bancaire des 3 derniers mois"
@@ -370,7 +372,9 @@ serve(async (req) => {
                 const docNameMap: {[key: string]: string} = {
                   balance_sheet: "Bilan financier",
                   tax_notice: "Avertissement extrait de rôle",
-                  id_card: "Copie de la carte d'identité",
+                  id_card_front: "Carte d'identité - Recto",
+                  id_card_back: "Carte d'identité - Verso", 
+                  id_card: "Copie de la carte d'identité (recto et verso)",
                   company_register: "Extrait de registre d'entreprise",
                   vat_certificate: "Attestation TVA",
                   bank_statement: "Relevé bancaire des 3 derniers mois"

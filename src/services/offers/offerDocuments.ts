@@ -32,6 +32,9 @@ export interface OfferUploadLink {
 export const DOCUMENT_TYPES = {
   balance_sheet: "Bilan financier",
   tax_notice: "Avertissement extrait de rôle",
+  id_card_front: "Carte d'identité - Recto",
+  id_card_back: "Carte d'identité - Verso",
+  // Backward compatibility
   id_card: "Carte d'identité",
   company_register: "Extrait de registre d'entreprise",
   vat_certificate: "Attestation TVA",

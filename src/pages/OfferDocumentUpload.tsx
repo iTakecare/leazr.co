@@ -25,6 +25,7 @@ import {
   getOfferDocuments,
   OfferDocument
 } from "@/services/offers/offerDocuments";
+import { getCompanyByOfferId, CompanyInfo } from "@/services/companyService";
 
 interface DocumentStatus {
   docType: string;
@@ -38,6 +39,7 @@ const OfferDocumentUpload = () => {
   const { token } = useParams<{ token: string }>();
   const [uploadLink, setUploadLink] = useState<OfferUploadLink | null>(null);
   const [existingDocuments, setExistingDocuments] = useState<OfferDocument[]>([]);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
@@ -65,8 +67,13 @@ const OfferDocumentUpload = () => {
           const documents = await getOfferDocuments(link.offer_id);
           setExistingDocuments(documents);
           
+          // Récupérer les informations de l'entreprise
+          const company = await getCompanyByOfferId(link.offer_id);
+          setCompanyInfo(company);
+          
           console.log('Lien d\'upload validé:', link);
           console.log('Documents existants:', documents);
+          console.log('Informations entreprise:', company);
         } else {
           setError("Lien invalide ou expiré");
           console.error('Token invalide ou expiré');
@@ -211,6 +218,28 @@ const OfferDocumentUpload = () => {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
+          {/* Company Header */}
+          {companyInfo && (
+            <div className="mb-8 text-center">
+              <div className="flex items-center justify-center mb-4">
+                {companyInfo.logo_url && (
+                  <img 
+                    src={companyInfo.logo_url} 
+                    alt={`Logo ${companyInfo.name}`}
+                    className="h-16 w-auto mr-4"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+                <h1 className="text-3xl font-bold text-gray-900">{companyInfo.name}</h1>
+              </div>
+              <div className="w-32 h-1 mx-auto rounded-full" 
+                   style={{ backgroundColor: companyInfo.primary_color || '#3b82f6' }}>
+              </div>
+            </div>
+          )}
+
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center text-green-600">
@@ -262,6 +291,28 @@ const OfferDocumentUpload = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
+        {/* Company Header */}
+        {companyInfo && (
+          <div className="mb-8 text-center">
+            <div className="flex items-center justify-center mb-4">
+              {companyInfo.logo_url && (
+                <img 
+                  src={companyInfo.logo_url} 
+                  alt={`Logo ${companyInfo.name}`}
+                  className="h-16 w-auto mr-4"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
+              <h1 className="text-3xl font-bold text-gray-900">{companyInfo.name}</h1>
+            </div>
+            <div className="w-32 h-1 mx-auto rounded-full" 
+                 style={{ backgroundColor: companyInfo.primary_color || '#3b82f6' }}>
+            </div>
+          </div>
+        )}
+
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center">
