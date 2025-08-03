@@ -43,6 +43,15 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSaving, setIsSaving] = useState(false);
 
+  console.log('🎯 UNIFIED CLIENT VIEW - Component rendering:', {
+    isEditing,
+    readOnly,
+    initialEditMode,
+    clientId: client.id,
+    clientName: client.name,
+    timestamp: new Date().toISOString()
+  });
+
   // Fetch leasers for the default leaser selector
   const { data: leasers = [] } = useQuery({
     queryKey: ["leasers"],
@@ -356,7 +365,17 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                 </Button>
               </>
             ) : (
-              <Button onClick={() => setIsEditing(true)}>
+              <Button onClick={() => {
+                console.log('🔥 MODIFY BUTTON CLICKED - Before:', {
+                  isEditing,
+                  timestamp: new Date().toISOString()
+                });
+                setIsEditing(true);
+                console.log('🔥 MODIFY BUTTON CLICKED - After setIsEditing(true):', {
+                  newIsEditing: true,
+                  timestamp: new Date().toISOString()
+                });
+              }}>
                 <Edit3 className="h-4 w-4 mr-2" />
                 Modifier
               </Button>
@@ -440,7 +459,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                     <MapPin className="h-4 w-4 text-primary" />
                     Adresse de facturation
                   </h3>
-                  {isEditing ? (
+                   {isEditing ? (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="address">Adresse</Label>
@@ -451,6 +470,10 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                           placeholder="Adresse complète"
                         />
                       </div>
+                      {(() => {
+                        console.log('🚨 ABOUT TO RENDER POSTAL CODE INPUT - isEditing:', isEditing, 'timestamp:', new Date().toISOString());
+                        return null;
+                      })()}
                       <PostalCodeInput
                         postalCode={formData.postal_code}
                         city={formData.city}
