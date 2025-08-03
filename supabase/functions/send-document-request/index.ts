@@ -157,19 +157,24 @@ serve(async (req) => {
     console.log("Token d'upload:", uploadToken);
     
     // Construire l'URL d'upload avec l'URL de base de l'application
-    const appUrl = Deno.env.get("APP_URL");
+    let appUrl = Deno.env.get("APP_URL");
+    
+    // Fallback : construire l'URL depuis les headers de la requête si APP_URL n'est pas définie
     if (!appUrl) {
-      console.error("APP_URL non configurée dans les variables d'environnement");
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "URL de l'application non configurée. Veuillez configurer APP_URL dans les secrets Supabase.",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+      const origin = req.headers.get('origin') || req.headers.get('referer');
+      if (origin) {
+        try {
+          const url = new URL(origin);
+          appUrl = `${url.protocol}//${url.host}`;
+          console.log("APP_URL non définie, utilisation de l'origin:", appUrl);
+        } catch (e) {
+          console.warn("Impossible de parser l'origin, utilisation URL par défaut");
+          appUrl = 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com';
         }
-      );
+      } else {
+        console.warn("APP_URL et origin non disponibles, utilisation URL par défaut");
+        appUrl = 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com';
+      }
     }
     
     // Construire l'URL d'upload avec le company slug (sera déplacé après récupération de l'offre)
