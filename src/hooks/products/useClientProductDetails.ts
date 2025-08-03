@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useProductById } from './useProductById';
+import { useProductVariants } from './useProductVariants';
 import { Product } from '@/types/catalog';
 import { getClientProductPrice, getClientMinimumMonthlyPrice } from '@/utils/clientProductPricing';
+import { getClientCustomVariantPrices } from '@/services/clientVariantPriceService';
 
 export const useClientProductDetails = (productId: string | undefined, clientId: string) => {
   const { product, isLoading, error } = useProductById(productId);
+  const { data: variantPrices } = useProductVariants(productId);
   const [quantity, setQuantity] = useState(1);
   const [duration] = useState(36);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
@@ -146,7 +149,33 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
   }, [product]);
 
   const isOptionAvailable = (optionName: string, value: string) => {
-    return true;
+    if (!product || !clientId) return false;
+    
+    // Create a test option combination with the new value
+    const testOptions = {
+      ...selectedOptions,
+      [optionName]: value
+    };
+
+    // Check if this combination has variant pricing (standard or custom)
+    const hasStandardVariant = variantPrices?.some(vp => {
+      const attrs = typeof vp.attributes === 'string' 
+        ? JSON.parse(vp.attributes) 
+        : vp.attributes;
+      
+      return Object.entries(testOptions).every(([key, val]) => 
+        attrs[key] && String(attrs[key]).toLowerCase() === String(val).toLowerCase()
+      );
+    });
+
+    if (hasStandardVariant) {
+      console.log(`Option ${optionName}=${value} is available (standard variant)`);
+      return true;
+    }
+
+    // Check if variation attributes support this option value
+    const availableValues = variationAttributes[optionName] || [];
+    return availableValues.includes(value);
   };
 
   const hasAttributeOptions = (attributeName: string) => {
@@ -182,6 +211,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     getOptionsForAttribute,
     availableDurations,
     hasCustomPricing,
-    originalPrice
+    originalPrice,
+    variantPrices
   };
 };

@@ -60,28 +60,38 @@ const findMatchingCustomPrice = (
   selectedOptions?: Record<string, string>,
   product?: Product
 ) => {
-  if (!selectedOptions || !product?.variant_combination_prices) {
-    // If no options selected, try to find a base price or return first custom price
-    return customPrices[0] || null;
+  if (!selectedOptions || !customPrices || customPrices.length === 0) {
+    return customPrices?.[0] || null;
   }
 
-  // Find the variant price ID that matches the selected options
-  const matchingVariantPrice = product.variant_combination_prices.find(combo => {
-    if (!combo.attributes) return false;
+  console.log('Finding matching custom price:', {
+    customPrices,
+    selectedOptions,
+    productId: product?.id
+  });
+
+  // Find custom price that matches the selected options
+  const matchingCustomPrice = customPrices.find(customPrice => {
+    if (!customPrice.variant_attributes) return false;
+    
+    const variantAttrs = typeof customPrice.variant_attributes === 'string'
+      ? JSON.parse(customPrice.variant_attributes)
+      : customPrice.variant_attributes;
+
+    console.log('Comparing variant attributes:', {
+      variantAttrs,
+      selectedOptions
+    });
+
+    // Check if all selected options match this custom price's variant attributes
     return Object.entries(selectedOptions).every(([key, value]) => 
-      combo.attributes[key] === value
+      variantAttrs[key] && 
+      String(variantAttrs[key]).toLowerCase() === String(value).toLowerCase()
     );
   });
 
-  if (matchingVariantPrice) {
-    // Find custom price for this specific variant
-    return customPrices.find(customPrice => 
-      customPrice.variant_price_id === matchingVariantPrice.id
-    );
-  }
-
-  // Fallback to first custom price if no exact match
-  return customPrices[0] || null;
+  console.log('Matching custom price found:', matchingCustomPrice);
+  return matchingCustomPrice || null;
 };
 
 /**
