@@ -447,37 +447,21 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
   try {
     console.log('🛒 CATALOGUE PERSONNALISÉ - Chargement pour client:', clientId);
 
-    // Récupérer uniquement les produits avec prix personnalisés pour ce client
+    // Étape 1: Récupérer les prix personnalisés avec les IDs des produits
     const { data: customPricesData, error } = await supabase
       .from("client_custom_prices")
       .select(`
+        product_id,
         custom_monthly_price,
         custom_purchase_price,
         margin_rate,
         is_active,
         valid_from,
         valid_to,
-        notes,
-        products (
-          id,
-          name,
-          description,
-          brand_name,
-          category_name,
-          price,
-          monthly_price,
-          image_url,
-          imageurls,
-          slug,
-          active,
-          admin_only,
-          brands(name, translation),
-          categories(name, translation)
-        )
+        notes
       `)
       .eq("client_id", clientId)
-      .eq("is_active", true)
-      .eq("products.active", true);
+      .eq("is_active", true);
 
     if (error) {
       console.error('Erreur lors du chargement des prix personnalisés:', error);
@@ -489,10 +473,55 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       return [];
     }
 
-    console.log('🛒 CATALOGUE PERSONNALISÉ - Produits personnalisés trouvés:', customPricesData.length);
+    // Filtrer les prix valides (sans date d'expiration ou pas encore expirés)
+    const now = new Date().toISOString();
+    const validPrices = customPricesData.filter(price => 
+      !price.valid_to || new Date(price.valid_to).toISOString() >= now
+    );
+
+    if (validPrices.length === 0) {
+      console.log('🛒 CATALOGUE PERSONNALISÉ - Aucun prix personnalisé valide trouvé');
+      return [];
+    }
+
+    console.log('🛒 CATALOGUE PERSONNALISÉ - Prix personnalisés valides trouvés:', validPrices.length);
+
+    // Extraire les IDs des produits
+    const productIds = validPrices.map(item => item.product_id).filter(Boolean);
+
+    // Étape 2: Récupérer les détails des produits
+    const { data: productsData, error: productsError } = await supabase
+      .from("products")
+      .select(`
+        id,
+        name,
+        description,
+        brand_name,
+        category_name,
+        price,
+        monthly_price,
+        image_url,
+        imageurls,
+        slug,
+        active,
+        admin_only,
+        brands(name, translation),
+        categories(name, translation)
+      `)
+      .in("id", productIds)
+      .eq("active", true);
+
+    if (productsError) {
+      console.error('Erreur lors du chargement des produits:', productsError);
+      throw productsError;
+    }
+
+    if (!productsData || productsData.length === 0) {
+      console.log('🛒 CATALOGUE PERSONNALISÉ - Aucun produit actif trouvé');
+      return [];
+    }
 
     // Récupérer les prix personnalisés des variants pour ces produits
-    const productIds = customPricesData.map(item => item.products?.id).filter(Boolean);
     const { data: customVariantPrices } = await supabase
       .from("client_custom_variant_prices")
       .select(`
@@ -534,24 +563,25 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       }
     });
 
-    // Mapper les produits avec leurs prix personnalisés
-    const mappedProducts: Product[] = customPricesData.map(item => {
-      const product = item.products;
-      if (!product) return null;
+    // Étape 3: Mapper les produits avec leurs prix personnalisés
+    const mappedProducts: Product[] = productsData.map(product => {
+      // Trouver le prix personnalisé correspondant à ce produit
+      const customPrice = validPrices.find(price => price.product_id === product.id);
+      if (!customPrice) return null;
 
       // Calculer le prix personnalisé selon la logique définie
       let customMonthlyPrice = product.monthly_price || 0;
       let customPurchasePrice = product.price || 0;
 
       // Priorité : custom_monthly_price > calcul par margin_rate > prix standard
-      if (item.custom_monthly_price) {
-        customMonthlyPrice = item.custom_monthly_price;
-      } else if (item.margin_rate && product.price) {
-        customMonthlyPrice = product.price * (1 + item.margin_rate);
+      if (customPrice.custom_monthly_price) {
+        customMonthlyPrice = customPrice.custom_monthly_price;
+      } else if (customPrice.margin_rate && product.price) {
+        customMonthlyPrice = product.price * (1 + customPrice.margin_rate);
       }
 
-      if (item.custom_purchase_price) {
-        customPurchasePrice = item.custom_purchase_price;
+      if (customPrice.custom_purchase_price) {
+        customPurchasePrice = customPrice.custom_purchase_price;
       }
 
       // Récupérer les variants personnalisés pour ce produit
@@ -578,12 +608,14 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
         has_variants: customVariants.length > 0,
         variants_count: customVariants.length,
         active: product.active || false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         // Ajouter les variants personnalisés
         variants: [],
         variant_combination_prices: customVariants,
         // Marquer comme prix personnalisé pour l'affichage
         is_custom_pricing: true,
-        custom_pricing_notes: item.notes
+        custom_pricing_notes: customPrice.notes
       };
     }).filter(Boolean) as Product[];
 
