@@ -97,6 +97,7 @@ import CreateOffer from "@/pages/CreateOffer";
 
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
+import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
 
 import ProductFormPage from "@/pages/ProductFormPage";
 import ContractDetail from "@/pages/ContractDetail";
@@ -148,6 +149,9 @@ const AppRoutes = () => (
     
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
+    
+    {/* Document upload routes */}
+    <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
     
     {/* LEAZR SAAS ADMIN ROUTES - Dedicated routes for SaaS administration */}
     <Route path="/admin/leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
@@ -255,6 +259,9 @@ const AppRoutes = () => (
     <Route path="/:companySlug/pack/:packId" element={<PackDetailPage />} />
     <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
     <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
+    
+    {/* Document upload routes with company slug */}
+    <Route path="/:companySlug/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
     
     {/* Catch-all company slug route - fallback for company pages */}
     <Route path="/:companySlug" element={<CompanySlugGuard />} />

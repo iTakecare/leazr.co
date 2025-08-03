@@ -172,15 +172,19 @@ serve(async (req) => {
       );
     }
     
-    // Construire l'URL d'upload correcte
-    const uploadUrl = `${appUrl.replace(/\/$/, '')}/offer/documents/upload/${uploadToken}`;
-    console.log("URL d'upload générée:", uploadUrl);
+    // Construire l'URL d'upload avec le company slug (sera déplacé après récupération de l'offre)
+    // Cette variable sera définie plus tard une fois qu'on aura le slug de l'entreprise
     
     // Récupérer l'offre pour obtenir le company_id
-    console.log("Récupération de l'offre pour obtenir le company_id...");
+    console.log("Récupération de l'offre et du company slug...");
     const { data: offer, error: offerError } = await supabase
       .from('offers')
-      .select('company_id')
+      .select(`
+        company_id,
+        companies!inner (
+          slug
+        )
+      `)
       .eq('id', offerId)
       .single();
       
@@ -200,6 +204,14 @@ serve(async (req) => {
     }
     
     console.log("Company ID de l'offre:", offer.company_id);
+    const companySlug = (offer.companies as any)?.slug;
+    console.log("Company slug de l'offre:", companySlug);
+    
+    // Construire l'URL d'upload avec le company slug
+    const uploadUrl = companySlug 
+      ? `${appUrl.replace(/\/$/, '')}/${companySlug}/offer/documents/upload/${uploadToken}`
+      : `${appUrl.replace(/\/$/, '')}/offer/documents/upload/${uploadToken}`;
+    console.log("URL d'upload générée:", uploadUrl);
     
     // Récupérer les paramètres email spécifiques à l'entreprise de l'offre
     console.log("Récupération de la configuration email pour company_id:", offer.company_id);
