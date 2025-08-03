@@ -634,6 +634,137 @@ export type Database = {
           },
         ]
       }
+      client_custom_prices: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          custom_monthly_price: number | null
+          custom_purchase_price: number | null
+          id: string
+          is_active: boolean | null
+          margin_rate: number | null
+          notes: string | null
+          product_id: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          notes?: string | null
+          product_id: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          notes?: string | null
+          product_id?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_custom_prices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_custom_variant_prices: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          custom_monthly_price: number | null
+          custom_purchase_price: number | null
+          id: string
+          is_active: boolean | null
+          margin_rate: number | null
+          updated_at: string | null
+          variant_price_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          updated_at?: string | null
+          variant_price_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          updated_at?: string | null
+          variant_price_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_custom_variant_prices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_variant_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_custom_variant_prices_variant_price_id_fkey"
+            columns: ["variant_price_id"]
+            isOneToOne: false
+            referencedRelation: "product_variant_prices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -646,6 +777,7 @@ export type Database = {
           default_leaser_id: string | null
           email: string | null
           first_name: string | null
+          has_custom_catalog: boolean | null
           has_user_account: boolean | null
           id: string
           last_name: string | null
@@ -670,6 +802,7 @@ export type Database = {
           default_leaser_id?: string | null
           email?: string | null
           first_name?: string | null
+          has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
           id?: string
           last_name?: string | null
@@ -694,6 +827,7 @@ export type Database = {
           default_leaser_id?: string | null
           email?: string | null
           first_name?: string | null
+          has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
           id?: string
           last_name?: string | null
