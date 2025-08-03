@@ -43,7 +43,7 @@ const OfferDocumentUpload = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
-  const [clientEmail, setClientEmail] = useState("");
+  
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -154,7 +154,7 @@ const OfferDocumentUpload = () => {
         offerId: uploadLink.offer_id
       });
       
-      const success = await uploadDocument(token, documentType, file, clientEmail);
+      const success = await uploadDocument(token, documentType, file, "");
       
       if (success) {
         // Refresh existing documents to get updated status
@@ -226,7 +226,7 @@ const OfferDocumentUpload = () => {
                   <img 
                     src={companyInfo.logo_url} 
                     alt={`Logo ${companyInfo.name}`}
-                    className="h-16 w-auto mr-4"
+                   className="h-24 w-auto mr-4"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
@@ -299,7 +299,7 @@ const OfferDocumentUpload = () => {
                 <img 
                   src={companyInfo.logo_url} 
                   alt={`Logo ${companyInfo.name}`}
-                  className="h-16 w-auto mr-4"
+                  className="h-24 w-auto mr-4"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
@@ -353,19 +353,6 @@ const OfferDocumentUpload = () => {
               </Alert>
             )}
 
-            <div className="mb-6">
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
-                Votre adresse email (optionnel)
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="votre.email@exemple.com"
-              />
-            </div>
 
             <div className="space-y-6">
               {documentStatuses.map((docStatus) => {
