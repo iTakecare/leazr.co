@@ -58,17 +58,25 @@ const ClientRequestSummary: React.FC = () => {
     const defaultDuration = 36;
     const financedAmount = cartTotal * defaultDuration;
     
+    // Calculate total purchase price from cart items
+    const totalPurchasePrice = items.reduce((total, item) => {
+      const price = getProductPrice(item.product, item.selectedOptions);
+      // Estimate purchase price as 80% of monthly price * duration (common leasing ratio)
+      const estimatedPurchasePrice = price.monthlyPrice * defaultDuration * 0.8;
+      return total + (estimatedPurchasePrice * item.quantity);
+    }, 0);
+    
     const requestData = {
       type: 'client_request',
       client_name: clientData.name || 'Client',
       client_email: clientData.email || '',
       client_contact_email: clientData.email || '',
       equipment_description: equipmentDescription,
-      amount: Number(cartTotal) || 0,
+      amount: Number(totalPurchasePrice) || 0, // Use calculated purchase price
       monthly_payment: Number(cartTotal) || 0,
       financed_amount: Number(financedAmount) || 0,
       coefficient: 1,
-      margin: 0,
+      margin: Number(financedAmount - totalPurchasePrice) || 0, // Calculate margin
       status: 'pending',
       workflow_status: 'draft',
       company_id: companyId,
@@ -76,10 +84,16 @@ const ClientRequestSummary: React.FC = () => {
       remarks: message || 'Demande envoyée depuis l\'espace client'
     };
 
+    // Prepare cart items with pricing for equipment creation
+    const cartItemsWithPricing = items.map(item => ({
+      ...item,
+      price: getProductPrice(item.product, item.selectedOptions)
+    }));
+
     console.log("Submitting client request with data:", requestData);
     
     try {
-      const response = await createClientRequest(requestData);
+      const response = await createClientRequest(requestData, cartItemsWithPricing);
       
       if (response.error) {
         console.error("Error from createClientRequest:", response.error);

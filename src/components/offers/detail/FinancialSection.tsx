@@ -4,18 +4,38 @@ import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react"
 import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
+import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 interface FinancialSectionProps {
   offer: any;
 }
 const FinancialSection: React.FC<FinancialSectionProps> = ({
   offer
 }) => {
+  // Use the equipment hook to get structured data
+  const { equipment: offerEquipment, loading: equipmentLoading } = useOfferEquipment(offer.id);
+  
   // Vérifier si ce type d'offre a une commission
   const shouldShowCommission = hasCommission(offer.type);
 
   // Calculer les totaux des équipements si disponibles
   const calculateEquipmentTotals = () => {
-    // Essayer de parser les équipements depuis equipment_description
+    // Use structured equipment data if available
+    if (offerEquipment && offerEquipment.length > 0) {
+      return offerEquipment.reduce((acc: any, item: any) => {
+        const purchasePrice = parseFloat(item.purchase_price) || 0;
+        const quantity = parseInt(item.quantity) || 1;
+        const monthlyPayment = parseFloat(item.monthly_payment) || 0;
+        return {
+          totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
+          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment * quantity
+        };
+      }, {
+        totalPurchasePrice: 0,
+        totalMonthlyPayment: 0
+      });
+    }
+
+    // Fallback: Try to parse equipment from equipment_description
     let equipmentList = [];
     if (offer.equipment_description) {
       try {
@@ -46,10 +66,10 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
       });
     }
 
-    // Fallback: essayer d'extraire le prix d'achat depuis les données de l'offre
-    // Si on n'a pas d'équipements détaillés, utiliser 0 pour éviter les erreurs
+    // Fallback: Use offer amount as purchase price for client requests
+    // For client requests, the 'amount' field now contains the estimated purchase price
     return {
-      totalPurchasePrice: 0,
+      totalPurchasePrice: offer.amount || 0,
       totalMonthlyPayment: offer.monthly_payment || 0
     };
   };
