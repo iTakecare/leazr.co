@@ -176,15 +176,10 @@ serve(async (req) => {
     // Cette variable sera définie plus tard une fois qu'on aura le slug de l'entreprise
     
     // Récupérer l'offre pour obtenir le company_id
-    console.log("Récupération de l'offre et du company slug...");
+    console.log("Récupération de l'offre pour obtenir le company_id...");
     const { data: offer, error: offerError } = await supabase
       .from('offers')
-      .select(`
-        company_id,
-        companies!inner (
-          slug
-        )
-      `)
+      .select('company_id')
       .eq('id', offerId)
       .single();
       
@@ -194,7 +189,10 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           message: "Offre non trouvée",
-          details: offerError,
+          debug: {
+            offerId,
+            error: offerError?.message || 'Offer not found'
+          }
         }),
         {
           status: 404,
@@ -204,7 +202,22 @@ serve(async (req) => {
     }
     
     console.log("Company ID de l'offre:", offer.company_id);
-    const companySlug = (offer.companies as any)?.slug;
+    
+    // Récupérer le slug de l'entreprise séparément
+    console.log("Récupération du company slug...");
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('slug')
+      .eq('id', offer.company_id)
+      .single();
+      
+    if (companyError) {
+      console.error("Erreur lors de la récupération du company:", companyError);
+      // Continuer sans le slug si erreur - fallback sur URL sans slug
+      console.log("Continuant sans company slug - utilisation URL par défaut");
+    }
+    
+    const companySlug = company?.slug;
     console.log("Company slug de l'offre:", companySlug);
     
     // Construire l'URL d'upload avec le company slug
