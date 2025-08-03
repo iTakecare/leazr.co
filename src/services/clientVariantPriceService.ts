@@ -5,11 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const getClientCustomVariantPrices = async (clientId: string, productId: string) => {
   try {
+    // First get variant price IDs for this product
+    const { data: variantPrices, error: variantError } = await supabase
+      .from('product_variant_prices')
+      .select('id')
+      .eq('product_id', productId);
+
+    if (variantError) throw variantError;
+    
+    if (!variantPrices || variantPrices.length === 0) {
+      return [];
+    }
+
+    const variantPriceIds = variantPrices.map(vp => vp.id);
+
+    // Then get custom prices for these variants
     const { data, error } = await supabase
       .from('client_custom_variant_prices')
       .select('*')
       .eq('client_id', clientId)
-      .eq('product_id', productId);
+      .in('variant_price_id', variantPriceIds);
     
     if (error) {
       console.error('Error fetching client custom variant prices:', error);
@@ -28,7 +43,6 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
  */
 export const upsertClientCustomVariantPrice = async (variantPrice: {
   client_id: string;
-  product_id: string;
   variant_price_id: string;
   custom_purchase_price?: number;
   custom_monthly_price?: number;

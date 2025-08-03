@@ -133,7 +133,6 @@ export const ClientVariantCustomPriceEditor = ({
 
     const data = {
       client_id: clientId,
-      product_id: productId,
       variant_price_id: variantPriceId,
       custom_purchase_price: preview.customPrice,
       custom_monthly_price: preview.monthlyPrice,

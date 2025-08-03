@@ -714,6 +714,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           margin_rate: number | null
+          notes: string | null
           updated_at: string | null
           variant_price_id: string
         }
@@ -726,6 +727,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           margin_rate?: number | null
+          notes?: string | null
           updated_at?: string | null
           variant_price_id: string
         }
@@ -738,6 +740,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           margin_rate?: number | null
+          notes?: string | null
           updated_at?: string | null
           variant_price_id?: string
         }
