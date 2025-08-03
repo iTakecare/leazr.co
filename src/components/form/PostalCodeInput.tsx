@@ -218,27 +218,50 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
             <MapPin className="h-4 w-4" />
             Code postal
           </Label>
-          <Combobox
-            options={postalCodeOptions}
-            value={postalCode}
-            onValueChange={(value) => {
-              console.log('🎯 COMBOBOX POSTAL - onValueChange triggered:', {
-                value,
-                length: value.length,
-                timestamp: new Date().toISOString()
-              });
-              
-              handlePostalCodeChange(value);
-              const selectedResult = postalCodeResults.find(r => r.postal_code === value);
-              if (selectedResult) {
-                onCityChange(selectedResult.city);
-              }
-            }}
-            placeholder="Tapez votre code postal..."
-            searchPlaceholder="Rechercher un code postal..."
-            emptyMessage="Tapez au moins 2 chiffres pour voir les suggestions."
-            disabled={disabled}
-          />
+          <div className="relative">
+            <Input
+              value={postalCode}
+              onChange={(e) => {
+                console.log('🎯 INPUT POSTAL - onChange triggered:', {
+                  value: e.target.value,
+                  length: e.target.value.length,
+                  timestamp: new Date().toISOString()
+                });
+                handlePostalCodeChange(e.target.value);
+              }}
+              placeholder="Tapez votre code postal..."
+              disabled={disabled}
+            />
+            {/* Show suggestions dropdown if we have postal code options */}
+            {postalCodeOptions.length > 0 && postalCode.length >= 2 && (
+              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                {postalCodeOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground text-sm"
+                    onClick={() => {
+                      console.log('🎯 SUGGESTION CLICKED:', {
+                        value: option.value,
+                        extra: option.extra,
+                        timestamp: new Date().toISOString()
+                      });
+                      handlePostalCodeChange(option.value);
+                      // Auto-fill city if available
+                      const selectedResult = postalCodeResults.find(r => r.postal_code === option.value);
+                      if (selectedResult) {
+                        onCityChange(selectedResult.city);
+                      }
+                    }}
+                  >
+                    <div className="font-medium">{option.label}</div>
+                    {option.extra && (
+                      <div className="text-xs text-muted-foreground">{option.extra}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* City */}
