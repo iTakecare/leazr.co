@@ -156,6 +156,19 @@ serve(async (req) => {
     console.log("Documents demandés:", requestedDocs);
     console.log("Token d'upload:", uploadToken);
     
+    // Fonction pour s'assurer que l'URL a le protocole https://
+    const ensureHttpsUrl = (url: string): string => {
+      if (!url) return 'https://preview--leazr.lovable.app';
+      
+      // Si l'URL commence déjà par http:// ou https://, la retourner telle quelle
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+      
+      // Sinon, ajouter https://
+      return `https://${url}`;
+    };
+
     // Construire l'URL d'upload avec l'URL de base de l'application
     let appUrl = Deno.env.get("APP_URL");
     
@@ -169,13 +182,17 @@ serve(async (req) => {
           console.log("APP_URL non définie, utilisation de l'origin:", appUrl);
         } catch (e) {
           console.warn("Impossible de parser l'origin, utilisation URL par défaut");
-          appUrl = 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com';
+          appUrl = 'https://preview--leazr.lovable.app';
         }
       } else {
         console.warn("APP_URL et origin non disponibles, utilisation URL par défaut");
-        appUrl = 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com';
+        appUrl = 'https://preview--leazr.lovable.app';
       }
     }
+    
+    // S'assurer que l'URL a le protocole https://
+    appUrl = ensureHttpsUrl(appUrl);
+    console.log("URL de base avec protocole:", appUrl);
     
     // Construire l'URL d'upload avec le company slug (sera déplacé après récupération de l'offre)
     // Cette variable sera définie plus tard une fois qu'on aura le slug de l'entreprise
