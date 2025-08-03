@@ -345,58 +345,82 @@ serve(async (req) => {
       }
     }).join('\n');
     
+    // Récupérer le template d'email pour la demande de documents
+    console.log("Récupération du template email 'document_request'...");
+    const { data: emailTemplate, error: templateError } = await supabase
+      .from('email_templates')
+      .select('subject, html_content')
+      .eq('company_id', offer.company_id)
+      .eq('type', 'document_request')
+      .eq('active', true)
+      .maybeSingle();
+
+    if (templateError || !emailTemplate) {
+      console.error("Template email 'document_request' non trouvé:", templateError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Template d'email 'document_request' non configuré pour cette entreprise",
+          details: templateError,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Template email trouvé avec succès");
+
+    // Récupérer le nom de l'entreprise pour les variables du template
+    const { data: companyInfo, error: companyInfoError } = await supabase
+      .from('companies')
+      .select('name')
+      .eq('id', offer.company_id)
+      .maybeSingle();
+
+    const companyName = companyInfo?.name || emailConfig.from_name || 'iTakecare';
+
+    // Préparer les variables pour le template
+    const templateVariables = {
+      client_name: clientName,
+      company_name: companyName,
+      upload_link: shortUrl,
+      requested_documents: formattedDocs,
+      custom_message: customMessage || ''
+    };
+
+    // Fonction pour remplacer les variables dans le template
+    const renderTemplate = (template: string, variables: Record<string, string>) => {
+      let rendered = template;
+      
+      // Remplacer les variables simples {{variable}}
+      Object.entries(variables).forEach(([key, value]) => {
+        const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+        rendered = rendered.replace(regex, value || '');
+      });
+      
+      // Gérer les conditions {{#if custom_message}}...{{/if}}
+      if (variables.custom_message && variables.custom_message.trim()) {
+        rendered = rendered.replace(/{{#if custom_message}}([\s\S]*?){{\/if}}/g, '$1');
+      } else {
+        rendered = rendered.replace(/{{#if custom_message}}([\s\S]*?){{\/if}}/g, '');
+      }
+      
+      return rendered;
+    };
+
+    // Rendre le template avec les variables
+    const emailSubject = renderTemplate(emailTemplate.subject, templateVariables);
+    const htmlBody = renderTemplate(emailTemplate.html_content, templateVariables);
+    
+    // Créer une version texte simplifiée
+    const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${shortUrl}`;
+
     // Initialiser Resend
     const resend = new Resend(resendApiKey);
     
     try {
-      // Préparer le contenu de l'email
-      const emailSubject = "Documents requis - Offre de leasing";
-      
-      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${shortUrl}`;
-      const htmlBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
-          <p>Nous avons besoin des documents suivants pour traiter votre demande de financement :</p>
-          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-            ${requestedDocs.map(doc => {
-              if (doc.startsWith('custom:')) {
-                return `<li>${doc.substring(7)}</li>`;
-              } else {
-                const docNameMap: {[key: string]: string} = {
-                  balance_sheet: "Bilan financier",
-                  tax_notice: "Avertissement extrait de rôle",
-                  id_card_front: "Carte d'identité - Recto",
-                  id_card_back: "Carte d'identité - Verso", 
-                  id_card: "Copie de la carte d'identité (recto et verso)",
-                  company_register: "Extrait de registre d'entreprise",
-                  vat_certificate: "Attestation TVA",
-                  bank_statement: "Relevé bancaire des 3 derniers mois"
-                };
-                return `<li>${docNameMap[doc] || doc}</li>`;
-              }
-            }).join('')}
-          </ul>
-          ${customMessage ? `<p><strong>Message personnalisé :</strong><br>${customMessage}</p>` : ''}
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${shortUrl}" 
-               target="_blank" 
-               rel="noopener noreferrer"
-               style="display: inline-block; background-color: #2d618f; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px; word-wrap: break-word;">
-              📎 Uploader mes documents
-            </a>
-          </div>
-          
-          <p style="font-size: 14px; color: #666;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-          <span style="color: #2d618f; word-break: break-all; font-family: monospace; background: #f5f5f5; padding: 2px 4px; border-radius: 3px;">${shortUrl}</span></p>
-          
-          <p>Merci de nous faire parvenir ces documents dans les meilleurs délais.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">
-            Cordialement,<br>
-            L'équipe ${emailConfig.from_name || 'iTakecare'}
-          </p>
-        </div>
-      `;
       
       console.log("Préparation de l'email pour:", clientEmail);
       console.log("Sujet:", emailSubject);
