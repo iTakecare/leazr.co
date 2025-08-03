@@ -39,6 +39,7 @@ import {
 import OfferStatusBadge from "./OfferStatusBadge";
 import OfferTypeTag from "./OfferTypeTag";
 import { useAuth } from "@/context/AuthContext";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
 import { calculateOfferMargin, formatMarginDisplay, getFinancedAmount } from "@/utils/marginCalculations";
@@ -62,6 +63,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
+  const { navigateToAdmin } = useRoleNavigation();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
   if (!offers.length) {
@@ -84,7 +86,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
     if (isAmbassador()) {
       navigate(`/ambassador/offers/${offerId}`);
     } else {
-      navigate(`/admin/offers/${offerId}`);
+      navigateToAdmin(`offers/${offerId}`);
     }
   };
 
