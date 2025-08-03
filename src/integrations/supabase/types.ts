@@ -4914,10 +4914,13 @@ export type Database = {
         }[]
       }
       get_cities_by_postal_code: {
-        Args: { p_country_code: string; p_postal_code: string }
+        Args: { p_postal_code: string; p_country_code?: string }
         Returns: {
-          city_name: string
+          postal_code: string
+          city: string
           region: string
+          country_code: string
+          country_name: string
         }[]
       }
       get_company_ambassadors_secure: {
@@ -5187,6 +5190,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_postal_code_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          country_code: string
+          country_name: string
+          postal_code_count: number
+          last_updated: string
+        }[]
+      }
       get_prospects_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5430,16 +5442,16 @@ export type Database = {
       }
       search_postal_codes: {
         Args: {
-          p_country_code: string
-          p_search_term: string
-          p_limit?: number
+          search_query: string
+          country_filter?: string
+          result_limit?: number
         }
         Returns: {
           postal_code: string
-          city_name: string
+          city: string
           region: string
-          latitude: number
-          longitude: number
+          country_code: string
+          country_name: string
         }[]
       }
       sign_offer_public: {
