@@ -151,8 +151,7 @@ const AppRoutes = () => (
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
     
-    {/* Redirect route for email links */}
-    <Route path="/r/:token" element={<RedirectToUpload />} />
+    {/* Redirect route removed - now handled by edge function redirect-upload */}
     
     {/* Document upload routes */}
     <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />

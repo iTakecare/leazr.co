@@ -1,5 +1,8 @@
 project_id = "cifbetjefyfocafanlhv"
 
+[functions.redirect-upload]
+verify_jwt = false
+
 [functions.live-chat]
 verify_jwt = false
 
