@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Package } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -23,6 +24,8 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   onProductDeleted,
   readOnly = false,
 }) => {
+  const { navigateToAdmin } = useRoleNavigation();
+
   const handleDeleteProduct = (productId: string, productName: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer "${productName}" ?`)) {
       onProductDeleted(productId);
@@ -109,7 +112,7 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         size="sm" 
                         className="flex items-center gap-2"
                         onClick={() => {
-                          window.location.href = `/catalog/form/${product.id}`;
+                          navigateToAdmin(`catalog/form/${product.id}`);
                         }}
                       >
                         <Edit className="h-4 w-4" />
