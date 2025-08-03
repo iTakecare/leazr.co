@@ -36,6 +36,14 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
   disabled = false,
   className,
 }) => {
+  console.log('🚀 POSTAL CODE INPUT - Component rendering with props:', {
+    postalCode,
+    city,
+    country,
+    disabled,
+    timestamp: new Date().toISOString()
+  });
+
   const [postalCodeQuery, setPostalCodeQuery] = useState('');
   const [cityQuery, setCityQuery] = useState('');
 
@@ -110,6 +118,12 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   // Handle postal code input change
   const handlePostalCodeChange = (value: string) => {
+    console.log('📝 POSTAL CODE CHANGE - handlePostalCodeChange called:', {
+      value,
+      length: value.length,
+      timestamp: new Date().toISOString()
+    });
+    
     onPostalCodeChange(value);
     debouncedPostalCodeSearch(value);
     
@@ -180,7 +194,13 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
             options={postalCodeOptions}
             value={postalCode}
             onValueChange={(value) => {
-              onPostalCodeChange(value);
+              console.log('🎯 COMBOBOX POSTAL - onValueChange triggered:', {
+                value,
+                length: value.length,
+                timestamp: new Date().toISOString()
+              });
+              
+              handlePostalCodeChange(value);
               const selectedResult = postalCodeResults.find(r => r.postal_code === value);
               if (selectedResult) {
                 onCityChange(selectedResult.city);
