@@ -6,33 +6,37 @@ import { getCurrentUserCompanyId } from "@/services/multiTenantService";
  */
 export const getClientCustomVariantPrices = async (clientId: string, productId: string) => {
   try {
-    // First get variant price IDs for this product
-    const { data: variantPrices, error: variantError } = await supabase
-      .from('product_variant_prices')
-      .select('id')
-      .eq('product_id', productId);
-
-    if (variantError) throw variantError;
-    
-    if (!variantPrices || variantPrices.length === 0) {
-      return [];
-    }
-
-    const variantPriceIds = variantPrices.map(vp => vp.id);
-
-    // Then get custom prices for these variants
+    // Get custom prices with variant attributes in a single query
     const { data, error } = await supabase
       .from('client_custom_variant_prices')
-      .select('*')
+      .select(`
+        *,
+        product_variant_prices!inner(
+          id,
+          attributes,
+          price,
+          monthly_price,
+          product_id
+        )
+      `)
       .eq('client_id', clientId)
-      .in('variant_price_id', variantPriceIds);
+      .eq('product_variant_prices.product_id', productId);
     
     if (error) {
       console.error('Error fetching client custom variant prices:', error);
       throw new Error(error.message);
     }
     
-    return data || [];
+    // Transform data to include variant attributes directly
+    const enrichedData = (data || []).map(customPrice => ({
+      ...customPrice,
+      variant_attributes: customPrice.product_variant_prices?.attributes,
+      standard_price: customPrice.product_variant_prices?.price,
+      standard_monthly_price: customPrice.product_variant_prices?.monthly_price
+    }));
+    
+    console.log('Enriched client custom variant prices:', enrichedData);
+    return enrichedData;
   } catch (error) {
     console.error('Error in getClientCustomVariantPrices:', error);
     throw error;

@@ -17,8 +17,24 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
   const [minMonthlyPrice, setMinMonthlyPrice] = useState(0);
   const [hasCustomPricing, setHasCustomPricing] = useState(false);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
+  const [clientCustomPrices, setClientCustomPrices] = useState<any[]>([]);
 
   const availableDurations = [36];
+
+  // Load client custom prices
+  useEffect(() => {
+    if (productId && clientId) {
+      getClientCustomVariantPrices(clientId, productId)
+        .then(customPrices => {
+          console.log('Loaded client custom prices:', customPrices);
+          setClientCustomPrices(customPrices);
+        })
+        .catch(error => {
+          console.error('Failed to load client custom prices:', error);
+          setClientCustomPrices([]);
+        });
+    }
+  }, [productId, clientId]);
 
   // Set initial image when product loads
   useEffect(() => {
@@ -149,7 +165,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
   }, [product]);
 
   const isOptionAvailable = (optionName: string, value: string) => {
-    if (!product || !clientId) return false;
+    if (!product) return false;
     
     // Create a test option combination with the new value
     const testOptions = {
@@ -157,15 +173,52 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       [optionName]: value
     };
 
-    // Check if this combination has variant pricing (standard or custom)
+    console.log(`Checking availability for ${optionName}=${value}`, {
+      testOptions,
+      clientCustomPrices,
+      variantPrices
+    });
+
+    // First priority: Check if this combination has a custom price
+    const hasCustomVariant = clientCustomPrices.some(customPrice => {
+      if (!customPrice.variant_attributes) return false;
+      
+      const variantAttrs = typeof customPrice.variant_attributes === 'string'
+        ? JSON.parse(customPrice.variant_attributes)
+        : customPrice.variant_attributes;
+
+      const matches = Object.entries(testOptions).every(([key, val]) => 
+        variantAttrs[key] && 
+        String(variantAttrs[key]).toLowerCase() === String(val).toLowerCase()
+      );
+
+      if (matches) {
+        console.log(`✓ Custom variant found for ${optionName}=${value}:`, customPrice);
+      }
+      
+      return matches;
+    });
+
+    if (hasCustomVariant) {
+      console.log(`Option ${optionName}=${value} is available (custom variant)`);
+      return true;
+    }
+
+    // Second priority: Check if this combination has standard variant pricing
     const hasStandardVariant = variantPrices?.some(vp => {
       const attrs = typeof vp.attributes === 'string' 
         ? JSON.parse(vp.attributes) 
         : vp.attributes;
       
-      return Object.entries(testOptions).every(([key, val]) => 
+      const matches = Object.entries(testOptions).every(([key, val]) => 
         attrs[key] && String(attrs[key]).toLowerCase() === String(val).toLowerCase()
       );
+
+      if (matches) {
+        console.log(`✓ Standard variant found for ${optionName}=${value}:`, vp);
+      }
+      
+      return matches;
     });
 
     if (hasStandardVariant) {
@@ -173,9 +226,17 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       return true;
     }
 
-    // Check if variation attributes support this option value
+    // Third priority: Check if variation attributes support this option value
     const availableValues = variationAttributes[optionName] || [];
-    return availableValues.includes(value);
+    const isInAttributes = availableValues.includes(value);
+    
+    console.log(`Option ${optionName}=${value} availability check:`, {
+      availableValues,
+      isInAttributes,
+      fallbackToAttributes: true
+    });
+    
+    return isInAttributes;
   };
 
   const hasAttributeOptions = (attributeName: string) => {
