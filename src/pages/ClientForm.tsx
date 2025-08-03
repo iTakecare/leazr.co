@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PostalCodeInput } from '@/components/form/PostalCodeInput';
 import { linkClientToAmbassador } from '@/services/ambassador/ambassadorClients';
 import { createClient, getClientById, updateClient } from '@/services/clientService';
+import { formatPhoneWithCountry } from '@/services/postalCodeService';
 import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Phone } from 'lucide-react';
 
 const ClientForm = () => {
   const { id } = useParams();
@@ -113,6 +115,16 @@ const ClientForm = () => {
     }));
   };
 
+  // Handle phone formatting when country changes
+  const handleCountryChange = (countryCode: string) => {
+    const formattedPhone = formatPhoneWithCountry(formData.phone, countryCode);
+    setFormData(prev => ({
+      ...prev,
+      country: countryCode,
+      phone: formattedPhone
+    }));
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -177,11 +189,15 @@ const ClientForm = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="phone">Téléphone</Label>
+                  <Label htmlFor="phone" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Téléphone
+                  </Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
+                    placeholder="Ex: +32 2 123 45 67"
                   />
                 </div>
                 
@@ -194,30 +210,14 @@ const ClientForm = () => {
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="city">Ville</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="postal_code">Code postal</Label>
-                  <Input
-                    id="postal_code"
-                    value={formData.postal_code}
-                    onChange={(e) => handleInputChange('postal_code', e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="country">Pays</Label>
-                  <Input
-                    id="country"
-                    value={formData.country}
-                    onChange={(e) => handleInputChange('country', e.target.value)}
+                <div className="md:col-span-2">
+                  <PostalCodeInput
+                    postalCode={formData.postal_code}
+                    city={formData.city}
+                    country={formData.country}
+                    onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
+                    onCityChange={(value) => handleInputChange('city', value)}
+                    onCountryChange={handleCountryChange}
                   />
                 </div>
                 

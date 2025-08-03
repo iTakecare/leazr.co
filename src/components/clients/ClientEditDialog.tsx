@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Client } from "@/types/client";
 import { updateClient, verifyVatNumber } from "@/services/clientService";
+import { PostalCodeInput } from "@/components/form/PostalCodeInput";
+import { formatPhoneWithCountry } from "@/services/postalCodeService";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Check, AlertCircle, Search } from "lucide-react";
+import { Loader2, Check, AlertCircle, Search, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { getLeasers } from "@/services/leaserService";
 import { useQuery } from "@tanstack/react-query";
@@ -169,6 +171,14 @@ const ClientEditDialog = ({
     }
   };
 
+  // Handle country change and phone formatting
+  const handleCountryChange = (countryCode: string) => {
+    const currentPhone = form.getValues("phone");
+    const formattedPhone = formatPhoneWithCountry(currentPhone, countryCode);
+    form.setValue("country", countryCode);
+    form.setValue("phone", formattedPhone);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -214,9 +224,12 @@ const ClientEditDialog = ({
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Téléphone</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        Téléphone
+                      </FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="Ex: +32 2 123 45 67" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -326,47 +339,14 @@ const ClientEditDialog = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ville</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="postal_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code postal</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pays</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              <div className="mt-4">
+                <PostalCodeInput
+                  postalCode={form.watch("postal_code") || ""}
+                  city={form.watch("city") || ""}
+                  country={form.watch("country") || ""}
+                  onPostalCodeChange={(value) => form.setValue("postal_code", value)}
+                  onCityChange={(value) => form.setValue("city", value)}
+                  onCountryChange={handleCountryChange}
                 />
               </div>
             </div>
