@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 
 /**
  * Get client custom variant prices for a product
@@ -50,9 +51,18 @@ export const upsertClientCustomVariantPrice = async (variantPrice: {
   notes?: string;
 }) => {
   try {
+    // Get the company_id for the current user
+    const companyId = await getCurrentUserCompanyId();
+    
+    // Add company_id to the variant price data
+    const variantPriceWithCompany = {
+      ...variantPrice,
+      company_id: companyId
+    };
+    
     const { data, error } = await supabase
       .from('client_custom_variant_prices')
-      .upsert([variantPrice], {
+      .upsert([variantPriceWithCompany], {
         onConflict: 'client_id,variant_price_id'
       })
       .select();
