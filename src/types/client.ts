@@ -12,6 +12,8 @@ export interface Collaborator {
 export interface Client {
   id: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   email?: string;
   company?: string;
   phone?: string;
@@ -39,6 +41,8 @@ export interface Client {
 export interface CreateClientData {
   id?: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   email?: string;
   company?: string;
   phone?: string;

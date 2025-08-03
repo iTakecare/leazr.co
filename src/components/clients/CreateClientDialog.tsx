@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useAmbassadorClients } from "@/hooks/useAmbassadorClients";
+import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 
 interface CreateClientDialogProps {
   onClientCreated?: () => void;
@@ -41,14 +42,15 @@ const CreateClientDialog = ({
   const setOpen = isControlled ? (onOpenChange || (() => {})) : setInternalOpen;
   
   const [formData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     company: '',
     phone: '',
     address: '',
     city: '',
     postal_code: '',
-    country: 'France',
+    country: '',
     vat_number: '',
     status: 'active' as 'active' | 'inactive' | 'lead',
     notes: '',
@@ -57,14 +59,15 @@ const CreateClientDialog = ({
 
   const resetForm = () => {
     setFormData({
-      name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       company: '',
       phone: '',
       address: '',
       city: '',
       postal_code: '',
-      country: 'France',
+      country: '',
       vat_number: '',
       status: 'active',
       notes: '',
@@ -75,8 +78,10 @@ const CreateClientDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name) {
-      toast.error("Le nom est obligatoire");
+    const fullName = `${formData.first_name || ""} ${formData.last_name || ""}`.trim();
+    
+    if (!fullName) {
+      toast.error("Le prénom ou le nom de famille est obligatoire");
       return;
     }
 
@@ -86,7 +91,9 @@ const CreateClientDialog = ({
       if (isAmbassadorMode) {
         // Mode ambassadeur - utiliser le service spécialisé
         const success = await createClientAsAmbassador({
-          name: formData.name,
+          name: fullName,
+          first_name: formData.first_name || undefined,
+          last_name: formData.last_name || undefined,
           email: formData.email || undefined,
           company: formData.company || undefined,
           phone: formData.phone || undefined,
@@ -137,6 +144,7 @@ const CreateClientDialog = ({
           .from('clients')
           .insert([{
             ...formData,
+            name: fullName,
             company_id: profile.company_id
           }])
           .select()
@@ -181,37 +189,35 @@ const CreateClientDialog = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nom *</Label>
+            <Label htmlFor="first_name">Prénom *</Label>
             <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Nom du client"
-              required
+              id="first_name"
+              value={formData.first_name}
+              onChange={(e) => handleInputChange('first_name', e.target.value)}
+              placeholder="Prénom"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="last_name">Nom de famille *</Label>
             <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              placeholder="email@exemple.com"
-              required
+              id="last_name"
+              value={formData.last_name}
+              onChange={(e) => handleInputChange('last_name', e.target.value)}
+              placeholder="Nom de famille"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="contact_name">Nom du contact</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="contact_name"
-              value={formData.contact_name}
-              onChange={(e) => handleInputChange('contact_name', e.target.value)}
-              placeholder="Nom de la personne de contact"
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="email@exemple.com"
             />
           </div>
           
@@ -232,7 +238,7 @@ const CreateClientDialog = ({
             id="phone"
             value={formData.phone}
             onChange={(e) => handleInputChange('phone', e.target.value)}
-            placeholder="+33 1 23 45 67 89"
+            placeholder="+32 123 456 789"
           />
         </div>
 
@@ -246,37 +252,14 @@ const CreateClientDialog = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="city">Ville</Label>
-            <Input
-              id="city"
-              value={formData.city}
-              onChange={(e) => handleInputChange('city', e.target.value)}
-              placeholder="Ville"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="postal_code">Code postal</Label>
-            <Input
-              id="postal_code"
-              value={formData.postal_code}
-              onChange={(e) => handleInputChange('postal_code', e.target.value)}
-              placeholder="75001"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="country">Pays</Label>
-            <Input
-              id="country"
-              value={formData.country}
-              onChange={(e) => handleInputChange('country', e.target.value)}
-              placeholder="France"
-            />
-          </div>
-        </div>
+        <PostalCodeInput
+          postalCode={formData.postal_code}
+          city={formData.city}
+          country={formData.country}
+          onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
+          onCityChange={(value) => handleInputChange('city', value)}
+          onCountryChange={(value) => handleInputChange('country', value)}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">

@@ -639,8 +639,10 @@ export type Database = {
           created_at: string
           default_leaser_id: string | null
           email: string | null
+          first_name: string | null
           has_user_account: boolean | null
           id: string
+          last_name: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -661,8 +663,10 @@ export type Database = {
           created_at?: string
           default_leaser_id?: string | null
           email?: string | null
+          first_name?: string | null
           has_user_account?: boolean | null
           id?: string
+          last_name?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -683,8 +687,10 @@ export type Database = {
           created_at?: string
           default_leaser_id?: string | null
           email?: string | null
+          first_name?: string | null
           has_user_account?: boolean | null
           id?: string
+          last_name?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
