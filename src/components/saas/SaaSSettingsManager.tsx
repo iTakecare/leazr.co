@@ -12,11 +12,13 @@ import {
   Server,
   BarChart3,
   Package,
-  Building2
+  Building2,
+  MapPin
 } from "lucide-react";
 import SaaSPlansManager from "./SaaSPlansManager";
 import NetlifyDeploymentTab from "./NetlifyDeploymentTab";
 import PlatformIdentitySettings from "./PlatformIdentitySettings";
+import { PostalCodeImport } from "@/components/admin/PostalCodeImport";
 
 const SaaSSettingsManager = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -26,6 +28,7 @@ const SaaSSettingsManager = () => {
     { id: "identity", label: "Identité", icon: Building2 },
     { id: "netlify", label: "Netlify", icon: Globe },
     { id: "plans", label: "Plans & Tarifs", icon: Package },
+    { id: "postal-codes", label: "Codes Postaux", icon: MapPin },
     { id: "users", label: "Utilisateurs", icon: Users },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "billing", label: "Facturation", icon: CreditCard },
@@ -45,7 +48,7 @@ const SaaSSettingsManager = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
@@ -92,6 +95,10 @@ const SaaSSettingsManager = () => {
 
         <TabsContent value="plans" className="space-y-6">
           <SaaSPlansManager />
+        </TabsContent>
+
+        <TabsContent value="postal-codes" className="space-y-6">
+          <PostalCodeImport />
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
