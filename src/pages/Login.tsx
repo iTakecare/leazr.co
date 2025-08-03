@@ -42,8 +42,8 @@ const Login = () => {
       const timer = setTimeout(async () => {
         // Gestion spéciale pour l'admin SaaS
         if (userEmail === "ecommerce@itakecare.be") {
-          console.log("🔀 LOGIN REDIRECT - Admin SaaS détecté, redirection directe");
-          navigate(`/admin/leazr-saas-dashboard`, { replace: true });
+          console.log("🔀 LOGIN REDIRECT - Admin SaaS détecté, redirection vers iTakecare dashboard");
+          navigate(`/itakecare/admin/leazr-saas-dashboard`, { replace: true });
           return;
         }
 
