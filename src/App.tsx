@@ -266,6 +266,9 @@ const AppRoutes = () => (
     {/* Document upload routes with company slug */}
     <Route path="/:companySlug/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
     
+    {/* Direct redirect route for upload links */}
+    <Route path="/r/:token" element={<RedirectToUpload />} />
+    
     {/* Catch-all company slug route - fallback for company pages */}
     <Route path="/:companySlug" element={<CompanySlugGuard />} />
   </Routes>

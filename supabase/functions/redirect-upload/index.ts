@@ -74,7 +74,7 @@ serve(async (req) => {
       .maybeSingle();
 
     // Construire l'URL de redirection
-    let appUrl = Deno.env.get("APP_URL") || "https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com";
+    let appUrl = Deno.env.get("APP_URL") || "https://preview--leazr.lovable.app";
     const companySlug = company?.slug;
     
     const redirectUrl = companySlug 
