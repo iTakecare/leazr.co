@@ -249,10 +249,16 @@ serve(async (req) => {
     
     // Récupérer la clé API Resend (avec fallback)
     console.log("=== RÉCUPÉRATION CLÉ API RESEND ===");
-    let resendApiKey = Deno.env.get("RESEND_API_KEY");
-    console.log("Clé API depuis env:", !!resendApiKey);
+    let resendApiKey = Deno.env.get("ITAKECARE_RESEND_API");
+    console.log("Clé API ITAKECARE_RESEND_API depuis env:", !!resendApiKey);
     
-    // Fallback: récupérer depuis la base de données
+    // Fallback: essayer RESEND_API_KEY générique
+    if (!resendApiKey) {
+      resendApiKey = Deno.env.get("RESEND_API_KEY");
+      console.log("Clé API RESEND_API_KEY générique depuis env:", !!resendApiKey);
+    }
+    
+    // Fallback final: récupérer depuis la base de données
     if (!resendApiKey && emailConfig.resend_api_key) {
       console.log("Utilisation de la clé API depuis la base de données");
       resendApiKey = emailConfig.resend_api_key;
@@ -263,9 +269,10 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Clé API Resend non configurée. Veuillez configurer RESEND_API_KEY dans les secrets Supabase ou dans les paramètres SMTP.",
+          message: "Clé API Resend non configurée. Veuillez configurer ITAKECARE_RESEND_API dans les secrets Supabase ou dans les paramètres SMTP.",
           debug: {
-            env_available: !!Deno.env.get("RESEND_API_KEY"),
+            itakecare_env_available: !!Deno.env.get("ITAKECARE_RESEND_API"),
+            generic_env_available: !!Deno.env.get("RESEND_API_KEY"),
             db_available: !!emailConfig.resend_api_key,
             env_keys: Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"))
           }
