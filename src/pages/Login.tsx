@@ -40,7 +40,14 @@ const Login = () => {
       
       // Utiliser setTimeout pour éviter les conflits de rendu
       const timer = setTimeout(async () => {
-        // Récupérer le slug d'entreprise de l'utilisateur
+        // Gestion spéciale pour l'admin SaaS
+        if (userEmail === "ecommerce@itakecare.be") {
+          console.log("🔀 LOGIN REDIRECT - Admin SaaS détecté, redirection directe");
+          navigate(`/admin/leazr-saas-dashboard`, { replace: true });
+          return;
+        }
+
+        // Pour les autres utilisateurs, récupérer le slug d'entreprise
         const companySlug = await getCompanySlugForUser();
         
         if (!companySlug) {
@@ -50,10 +57,7 @@ const Login = () => {
         }
 
         // Redirection basée sur le rôle et l'email avec slug d'entreprise
-        if (userEmail === "ecommerce@itakecare.be") {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers SaaS dashboard");
-          navigate(`/${companySlug}/admin/leazr-saas-dashboard`, { replace: true });
-        } else if (userEmail === "hello@itakecare.be" || userRole === 'admin') {
+        if (userEmail === "hello@itakecare.be" || userRole === 'admin') {
           console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
           navigate(`/${companySlug}/admin/dashboard`, { replace: true });
         } else if (isClient()) {
