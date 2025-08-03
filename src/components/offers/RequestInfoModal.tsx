@@ -40,6 +40,9 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
   const [customMessage, setCustomMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
+  // Debug: Log when selectedDocs changes
+  console.log('📋 Current selectedDocs:', selectedDocs);
+
   const handleCheckboxChange = (docId: string, checked: boolean) => {
     console.log('🔲 Checkbox change:', { docId, checked, type: typeof checked });
     
