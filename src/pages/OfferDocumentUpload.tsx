@@ -220,34 +220,6 @@ const OfferDocumentUpload = () => {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
-          {/* Company Header */}
-          {companyInfo && (
-            <div className="mb-8 text-center">
-              <div className="flex items-center justify-center mb-4">
-                <div className="logo-container">
-                  {companyInfo.logo_url ? (
-                    <img 
-                      src={companyInfo.logo_url} 
-                      alt={`Logo ${companyInfo.name}`}
-                      className="h-12 w-auto"
-                      onError={(e) => {
-                        console.error('🔍 DEBUG - Erreur de chargement du logo (succès):', e);
-                        console.error('🔍 DEBUG - URL du logo qui a échoué (succès):', companyInfo.logo_url);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                      onLoad={() => {
-                        console.log('🔍 DEBUG - Logo chargé avec succès (succès):', companyInfo.logo_url);
-                      }}
-                    />
-                  ) : (
-                    <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-                      Pas de logo
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           <Card className="mb-8">
             <CardHeader>
@@ -300,34 +272,6 @@ const OfferDocumentUpload = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        {/* Company Header */}
-        {companyInfo && (
-          <div className="mb-8 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <div className="logo-container">
-                {companyInfo.logo_url ? (
-                  <img 
-                    src={companyInfo.logo_url} 
-                    alt={`Logo ${companyInfo.name}`}
-                    className="h-12 w-auto"
-                    onError={(e) => {
-                      console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
-                      console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    onLoad={() => {
-                      console.log('🔍 DEBUG - Logo chargé avec succès:', companyInfo.logo_url);
-                    }}
-                  />
-                ) : (
-                  <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-                    Pas de logo
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         <Card className="mb-8">
           <CardHeader>
