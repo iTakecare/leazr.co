@@ -138,7 +138,8 @@ const ClientRequestDetailPage = () => {
     );
   }
 
-  const statusInfo = getStatusInfo(offer.status);
+  const mappedStatus = mapWorkflowStatusToClientStatus(offer.workflow_status, offer.status);
+  const statusInfo = getStatusInfo(mappedStatus);
   const equipmentList = formatEquipmentDescription(offer.equipment_description);
 
   return (
