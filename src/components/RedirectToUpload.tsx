@@ -8,10 +8,8 @@ const RedirectToUpload = () => {
   const navigate = useSafeNavigate();
 
   useEffect(() => {
-    const handleRedirect = async () => {
-      console.log('🔗 REDIRECT - Starting redirect process with token:', token);
-      console.log('🔗 REDIRECT - Current location:', window.location.href);
-      console.log('🔗 REDIRECT - Current pathname:', window.location.pathname);
+    const handleRedirect = () => {
+      console.log('🔗 REDIRECT - Starting direct redirect with token:', token);
       
       if (!token) {
         console.error('❌ REDIRECT - No token provided in URL');
@@ -19,87 +17,11 @@ const RedirectToUpload = () => {
         return;
       }
 
-      try {
-        console.log('🔍 REDIRECT - Searching for upload link with token:', token);
-        
-        // Récupérer le lien d'upload complet depuis la base
-        const { data: uploadLink, error } = await supabase
-          .from('offer_upload_links')
-          .select('*')
-          .eq('token', token)
-          .gt('expires_at', new Date().toISOString())
-          .is('used_at', null)
-          .maybeSingle();
-
-        console.log('📊 REDIRECT - Upload link query result:', { uploadLink, error });
-
-        if (error) {
-          console.error('❌ REDIRECT - Database error:', error);
-          navigate('/', { replace: true });
-          return;
-        }
-
-        if (!uploadLink) {
-          console.error('❌ REDIRECT - Link not found, expired, or already used');
-          navigate('/', { replace: true });
-          return;
-        }
-
-        console.log('✅ REDIRECT - Valid upload link found, offer_id:', uploadLink.offer_id);
-
-        // Récupérer l'offre pour le company slug
-        const { data: offer, error: offerError } = await supabase
-          .from('offers')
-          .select('company_id')
-          .eq('id', uploadLink.offer_id)
-          .maybeSingle();
-
-        console.log('📊 REDIRECT - Offer query result:', { offer, offerError });
-
-        if (offerError) {
-          console.error('❌ REDIRECT - Error fetching offer:', offerError);
-          navigate('/', { replace: true });
-          return;
-        }
-
-        if (!offer) {
-          console.error('❌ REDIRECT - Offer not found for ID:', uploadLink.offer_id);
-          navigate('/', { replace: true });
-          return;
-        }
-
-        console.log('✅ REDIRECT - Offer found, company_id:', offer.company_id);
-
-        // Récupérer le company slug
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select('slug')
-          .eq('id', offer.company_id)
-          .maybeSingle();
-
-        console.log('📊 REDIRECT - Company query result:', { company, companyError });
-
-        if (companyError) {
-          console.warn('⚠️ REDIRECT - Error fetching company (proceeding without slug):', companyError);
-        }
-
-        // Simplifier la redirection - toujours aller vers la route sans company slug
-        const redirectPath = `/offer/documents/upload/${token}`;
-
-        console.log('🎯 REDIRECT - Final redirect path:', redirectPath);
-        console.log('🎯 REDIRECT - Company slug found:', company?.slug || 'none');
-        console.log('⏰ REDIRECT - Adding 500ms delay before redirect for stability');
-        
-        // Ajouter un délai pour éviter les problèmes de timing
-        setTimeout(() => {
-          console.log('🚀 REDIRECT - Executing navigation now to:', redirectPath);
-          navigate(redirectPath, { replace: true });
-        }, 500);
-
-      } catch (error) {
-        console.error('💥 REDIRECT - Unexpected error during redirect:', error);
-        navigate('/', { replace: true });
-      }
+      // Redirection directe sans validation - OfferDocumentUpload s'occupera de la validation
+      const redirectPath = `/offer/documents/upload/${token}`;
+      
+      console.log('🚀 REDIRECT - Direct redirect to:', redirectPath);
+      navigate(redirectPath, { replace: true });
     };
 
     handleRedirect();
