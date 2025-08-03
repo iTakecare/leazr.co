@@ -217,8 +217,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
               <div className="mt-2 text-center space-y-1">
                  <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
-                   className={`text-xs whitespace-nowrap px-2 py-1 ${
-                     step.key === 'financed' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''
+                   className={`text-xs whitespace-nowrap px-2 py-1 text-black ${
+                     step.key === 'financed' ? 'bg-orange-100 border-orange-200' : ''
                    }`}
                 >
                   {step.label}
