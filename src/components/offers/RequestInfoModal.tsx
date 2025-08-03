@@ -43,22 +43,23 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
   // Debug: Log when selectedDocs changes
   console.log('📋 Current selectedDocs:', selectedDocs);
 
-  const handleCheckboxChange = (docId: string, checked: boolean) => {
+  const handleCheckboxChange = (docId: string, checked: boolean | "indeterminate") => {
     console.log('🔲 Checkbox change:', { docId, checked, type: typeof checked });
     
-    if (checked) {
+    if (checked === true) {
       setSelectedDocs(prev => {
         const newDocs = [...prev, docId];
         console.log('📋 Adding document:', { docId, newDocs });
         return newDocs;
       });
-    } else {
+    } else if (checked === false) {
       setSelectedDocs(prev => {
         const newDocs = prev.filter(id => id !== docId);
         console.log('📋 Removing document:', { docId, newDocs });
         return newDocs;
       });
     }
+    // Ignore "indeterminate" state
   };
 
   const handleSendRequest = async () => {
@@ -143,7 +144,7 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
                   id={`doc-${doc.id}`} 
                   checked={selectedDocs.includes(doc.id)}
                   onCheckedChange={(checked) => 
-                    handleCheckboxChange(doc.id, !!checked)
+                    handleCheckboxChange(doc.id, checked)
                   }
                 />
                 <label 
