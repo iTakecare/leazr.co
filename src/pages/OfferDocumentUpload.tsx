@@ -229,7 +229,7 @@ const OfferDocumentUpload = () => {
                     <img 
                       src={companyInfo.logo_url} 
                       alt={`Logo ${companyInfo.name}`}
-                      className="h-8 w-auto"
+                      className="h-12 w-auto"
                       onError={(e) => {
                         console.error('🔍 DEBUG - Erreur de chargement du logo (succès):', e);
                         console.error('🔍 DEBUG - URL du logo qui a échoué (succès):', companyInfo.logo_url);
@@ -240,14 +240,11 @@ const OfferDocumentUpload = () => {
                       }}
                     />
                   ) : (
-                    <div className="h-8 w-8 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+                    <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
                       Pas de logo
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="w-32 h-1 mx-auto rounded-full" 
-                   style={{ backgroundColor: companyInfo.primary_color || '#3b82f6' }}>
               </div>
             </div>
           )}
@@ -312,7 +309,7 @@ const OfferDocumentUpload = () => {
                   <img 
                     src={companyInfo.logo_url} 
                     alt={`Logo ${companyInfo.name}`}
-                    className="h-8 w-auto"
+                    className="h-12 w-auto"
                     onError={(e) => {
                       console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
                       console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
@@ -323,14 +320,11 @@ const OfferDocumentUpload = () => {
                     }}
                   />
                 ) : (
-                  <div className="h-8 w-8 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+                  <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
                     Pas de logo
                   </div>
                 )}
               </div>
-            </div>
-            <div className="w-32 h-1 mx-auto rounded-full" 
-                 style={{ backgroundColor: companyInfo.primary_color || '#3b82f6' }}>
             </div>
           </div>
         )}
