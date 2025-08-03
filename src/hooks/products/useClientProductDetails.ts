@@ -23,16 +23,21 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
 
   // Load client custom prices
   useEffect(() => {
+    console.log('🎯 Custom prices useEffect triggered:', { productId, clientId });
+    
     if (productId && clientId) {
+      console.log('🎯 Calling getClientCustomVariantPrices with:', { clientId, productId });
       getClientCustomVariantPrices(clientId, productId)
         .then(customPrices => {
-          console.log('Loaded client custom prices:', customPrices);
+          console.log('🎯 Loaded client custom prices:', customPrices);
           setClientCustomPrices(customPrices);
         })
         .catch(error => {
-          console.error('Failed to load client custom prices:', error);
+          console.error('❌ Failed to load client custom prices:', error);
           setClientCustomPrices([]);
         });
+    } else {
+      console.log('🎯 Not loading custom prices - missing data:', { productId, clientId });
     }
   }, [productId, clientId]);
 
