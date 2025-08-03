@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { country } = await req.json()
+    const { country, useUploadedFile } = await req.json()
     
     if (!country || !['BE', 'FR', 'LU'].includes(country)) {
       return new Response(
@@ -47,69 +47,80 @@ Deno.serve(async (req) => {
 
     console.log(`Starting import for country: ${country}`)
 
-    // Download postal codes from GeoNames - use the direct .txt file
-    // GeoNames provides postal codes in tab-separated format
-    const geonamesUrl = `https://download.geonames.org/export/zip/${country}.zip`
-    
-    console.log(`Downloading from: ${geonamesUrl}`)
-    
-    // Try the direct text file first, which is more reliable
-    const txtUrl = `https://download.geonames.org/export/zip/allCountries.txt`
-    
     let content: string;
     
-    try {
-      // First try country-specific file
-      const countryUrl = `https://download.geonames.org/export/zip/${country}.zip`
-      console.log(`Trying country-specific URL: ${countryUrl}`)
+    // Check if we should use uploaded file first
+    if (useUploadedFile) {
+      console.log(`Trying to read uploaded file for ${country}`)
       
-      // Since we can't easily extract ZIP in Deno edge functions, let's try alternative approaches
-      // GeoNames also provides data via their web service API
-      const webServiceUrl = `http://api.geonames.org/postalCodeSearchJSON?country=${country}&maxRows=1000&username=demo`
-      
-      console.log(`Trying GeoNames web service: ${webServiceUrl}`)
-      const webServiceResponse = await fetch(webServiceUrl)
-      
-      if (webServiceResponse.ok) {
-        const jsonData = await webServiceResponse.json()
+      try {
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('postal-code-imports')
+          .download(`${country}.txt`)
         
-        if (jsonData.postalCodes && jsonData.postalCodes.length > 0) {
-          // Convert JSON response to our expected format
-          content = jsonData.postalCodes.map((pc: any) => 
-            [country, pc.postalCode, pc.placeName, pc.adminName1 || '', '', pc.adminName2 || '', '', '', '', pc.lat || '', pc.lng || '', ''].join('\t')
-          ).join('\n')
-        } else {
-          throw new Error('No postal codes found in web service response')
+        if (downloadError) {
+          console.log(`No uploaded file found for ${country}, falling back to download`)
+          throw new Error('No uploaded file found')
         }
-      } else {
-        throw new Error(`Web service failed: ${webServiceResponse.statusText}`)
+        
+        content = await fileData.text()
+        console.log(`Successfully loaded uploaded file for ${country}`)
+      } catch (uploadError) {
+        console.log(`Failed to load uploaded file: ${uploadError.message}`)
+        // Fall through to download logic
       }
-    } catch (webServiceError) {
-      console.log('Web service failed, trying fallback approach')
-      
-      // Fallback: use a minimal dataset for demo purposes
-      const fallbackData = {
-        'BE': [
-          ['BE', '1000', 'Bruxelles', 'Brussels', '', '', '', '', '', '50.8503', '4.3517', ''],
-          ['BE', '2000', 'Antwerpen', 'Antwerp', '', '', '', '', '', '51.2194', '4.4025', ''],
-          ['BE', '9000', 'Gent', 'East Flanders', '', '', '', '', '', '51.0543', '3.7174', ''],
-          ['BE', '4000', 'Liège', 'Liège', '', '', '', '', '', '50.6292', '5.5797', ''],
-        ],
-        'FR': [
-          ['FR', '75001', 'Paris', 'Île-de-France', '', '', '', '', '', '48.8566', '2.3522', ''],
-          ['FR', '69001', 'Lyon', 'Auvergne-Rhône-Alpes', '', '', '', '', '', '45.7640', '4.8357', ''],
-        ],
-        'LU': [
-          ['LU', '1009', 'Luxembourg', 'Luxembourg', '', '', '', '', '', '49.6116', '6.1319', ''],
-        ]
-      }
-      
-      if (fallbackData[country as keyof typeof fallbackData]) {
-        content = fallbackData[country as keyof typeof fallbackData]
-          .map(fields => fields.join('\t')).join('\n')
-        console.log(`Using fallback data for ${country}`)
-      } else {
-        throw new Error(`No fallback data available for country: ${country}`)
+    }
+    
+    // If no content from uploaded file, try downloading
+    if (!content) {
+      try {
+        // Try GeoNames web service API first
+        const webServiceUrl = `http://api.geonames.org/postalCodeSearchJSON?country=${country}&maxRows=1000&username=demo`
+        
+        console.log(`Trying GeoNames web service: ${webServiceUrl}`)
+        const webServiceResponse = await fetch(webServiceUrl)
+        
+        if (webServiceResponse.ok) {
+          const jsonData = await webServiceResponse.json()
+          
+          if (jsonData.postalCodes && jsonData.postalCodes.length > 0) {
+            // Convert JSON response to our expected format
+            content = jsonData.postalCodes.map((pc: any) => 
+              [country, pc.postalCode, pc.placeName, pc.adminName1 || '', '', pc.adminName2 || '', '', '', '', pc.lat || '', pc.lng || '', ''].join('\t')
+            ).join('\n')
+          } else {
+            throw new Error('No postal codes found in web service response')
+          }
+        } else {
+          throw new Error(`Web service failed: ${webServiceResponse.statusText}`)
+        }
+      } catch (webServiceError) {
+        console.log('Web service failed, trying fallback approach')
+        
+        // Fallback: use a minimal dataset for demo purposes
+        const fallbackData = {
+          'BE': [
+            ['BE', '1000', 'Bruxelles', 'Brussels', '', '', '', '', '', '50.8503', '4.3517', ''],
+            ['BE', '2000', 'Antwerpen', 'Antwerp', '', '', '', '', '', '51.2194', '4.4025', ''],
+            ['BE', '9000', 'Gent', 'East Flanders', '', '', '', '', '', '51.0543', '3.7174', ''],
+            ['BE', '4000', 'Liège', 'Liège', '', '', '', '', '', '50.6292', '5.5797', ''],
+          ],
+          'FR': [
+            ['FR', '75001', 'Paris', 'Île-de-France', '', '', '', '', '', '48.8566', '2.3522', ''],
+            ['FR', '69001', 'Lyon', 'Auvergne-Rhône-Alpes', '', '', '', '', '', '45.7640', '4.8357', ''],
+          ],
+          'LU': [
+            ['LU', '1009', 'Luxembourg', 'Luxembourg', '', '', '', '', '', '49.6116', '6.1319', ''],
+          ]
+        }
+        
+        if (fallbackData[country as keyof typeof fallbackData]) {
+          content = fallbackData[country as keyof typeof fallbackData]
+            .map(fields => fields.join('\t')).join('\n')
+          console.log(`Using fallback data for ${country}`)
+        } else {
+          throw new Error(`No fallback data available for country: ${country}`)
+        }
       }
     }
     const lines = content.split('\n').filter(line => line.trim())
