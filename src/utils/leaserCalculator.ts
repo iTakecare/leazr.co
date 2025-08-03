@@ -9,8 +9,8 @@ export const getCoefficientFromLeaser = (
   duration: number = 36
 ): number => {
   if (!leaser || !leaser.ranges || leaser.ranges.length === 0) {
-    // Fallback to default coefficient if no leaser or ranges
-    return 2.8;
+    // Use Grenke coefficient as fallback (3.24 for 2500-5000 range)
+    return 3.24;
   }
 
   // Find the range that contains the amount

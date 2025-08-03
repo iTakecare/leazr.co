@@ -637,6 +637,7 @@ export type Database = {
           contact_name: string | null
           country: string | null
           created_at: string
+          default_leaser_id: string | null
           email: string | null
           has_user_account: boolean | null
           id: string
@@ -658,6 +659,7 @@ export type Database = {
           contact_name?: string | null
           country?: string | null
           created_at?: string
+          default_leaser_id?: string | null
           email?: string | null
           has_user_account?: boolean | null
           id?: string
@@ -679,6 +681,7 @@ export type Database = {
           contact_name?: string | null
           country?: string | null
           created_at?: string
+          default_leaser_id?: string | null
           email?: string | null
           has_user_account?: boolean | null
           id?: string
@@ -698,6 +701,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_default_leaser_id_fkey"
+            columns: ["default_leaser_id"]
+            isOneToOne: false
+            referencedRelation: "leasers"
             referencedColumns: ["id"]
           },
         ]
@@ -2987,6 +2997,7 @@ export type Database = {
           financed_amount: number | null
           id: string
           internal_score: string | null
+          leaser_id: string | null
           leaser_score: string | null
           margin: number | null
           margin_difference: number | null
@@ -3021,6 +3032,7 @@ export type Database = {
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
+          leaser_id?: string | null
           leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
@@ -3055,6 +3067,7 @@ export type Database = {
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
+          leaser_id?: string | null
           leaser_score?: string | null
           margin?: number | null
           margin_difference?: number | null
@@ -3085,6 +3098,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_leaser_id_fkey"
+            columns: ["leaser_id"]
+            isOneToOne: false
+            referencedRelation: "leasers"
             referencedColumns: ["id"]
           },
         ]
@@ -5018,6 +5038,7 @@ export type Database = {
           financed_amount: number | null
           id: string
           internal_score: string | null
+          leaser_id: string | null
           leaser_score: string | null
           margin: number | null
           margin_difference: number | null

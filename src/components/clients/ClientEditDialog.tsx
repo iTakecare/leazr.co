@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Check, AlertCircle, Search } from "lucide-react";
 import { toast } from "sonner";
+import { getLeasers } from "@/services/leaserService";
+import { useQuery } from "@tanstack/react-query";
 
 // Schéma de validation pour l'édition d'un client
 const clientSchema = z.object({
@@ -46,6 +48,7 @@ const clientSchema = z.object({
   vat_number: z.string().optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),
   status: z.enum(["active", "inactive", "lead", "duplicate"]).optional(),
+  default_leaser_id: z.string().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -67,6 +70,12 @@ const ClientEditDialog = ({
   const [verifyingVat, setVerifyingVat] = useState(false);
   const [vatValid, setVatValid] = useState<boolean | null>(null);
 
+  // Fetch leasers for selection
+  const { data: leasers = [], isLoading: leasersLoading } = useQuery({
+    queryKey: ['leasers'],
+    queryFn: getLeasers,
+  });
+
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -81,6 +90,7 @@ const ClientEditDialog = ({
       vat_number: client.vat_number || "",
       notes: client.notes || "",
       status: client.status || "active",
+      default_leaser_id: client.default_leaser_id || "",
     },
   });
 
@@ -359,6 +369,38 @@ const ClientEditDialog = ({
                   )}
                 />
               </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium mb-4">Paramètres financiers</h3>
+              <FormField
+                control={form.control}
+                name="default_leaser_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Leaser par défaut</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={leasersLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un leaser" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {leasers.map((leaser) => (
+                          <SelectItem key={leaser.id} value={leaser.id}>
+                            {leaser.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <FormField

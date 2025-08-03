@@ -33,6 +33,7 @@ export interface Client {
   totalValue?: number;
   ambassador_client_id?: string;
   contact_name?: string;
+  default_leaser_id?: string;
 }
 
 export interface CreateClientData {
@@ -52,4 +53,5 @@ export interface CreateClientData {
   collaborators?: Collaborator[];
   is_ambassador_client?: boolean;
   contact_name?: string;
+  default_leaser_id?: string;
 }

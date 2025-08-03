@@ -1,6 +1,9 @@
 
 import { getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { saveEquipment } from "@/services/offers/offerEquipment";
+import { supabase } from "@/integrations/supabase/client";
+import { getLeaserById } from "@/services/leaserService";
+import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
 
 /**
  * Crée une nouvelle demande client (offre) avec équipements structurés
@@ -15,6 +18,52 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
     // Vérification du client administrateur
     console.log("Client admin pour createClientRequest disponible");
     
+    // Get client's default leaser
+    let defaultLeaserId = 'd60b86d7-a129-4a17-a877-e8e5caa66949'; // Grenke by default
+    
+    if (data.client_id) {
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('default_leaser_id')
+        .eq('id', data.client_id)
+        .single();
+      
+      if (clientData?.default_leaser_id) {
+        defaultLeaserId = clientData.default_leaser_id;
+      }
+    }
+
+    // Get leaser to calculate proper coefficient
+    const leaser = await getLeaserById(defaultLeaserId);
+    
+    // Calculate totals from cart items with proper leaser coefficient
+    let totalPurchasePrice = 0;
+    let totalMonthlyPayment = 0;
+    
+    if (cartItems && cartItems.length > 0) {
+      for (const item of cartItems) {
+        const price = item.price || { monthlyPrice: 0, purchasePrice: 0 };
+        const actualPurchasePrice = price.purchasePrice > 0 ? price.purchasePrice : (price.monthlyPrice * 2.0);
+        const quantity = item.quantity || 1;
+        totalPurchasePrice += actualPurchasePrice * quantity;
+      }
+    }
+    
+    const totalMargin = totalPurchasePrice * 0.15; // 15% margin
+    const totalFinancedAmount = totalPurchasePrice + totalMargin;
+    
+    // Get proper coefficient from leaser for this amount
+    const coefficient = getCoefficientFromLeaser(leaser, totalFinancedAmount, 36);
+    totalMonthlyPayment = (totalFinancedAmount * coefficient) / 100;
+
+    // Update data with calculated values
+    data.amount = totalPurchasePrice;
+    data.financed_amount = totalFinancedAmount;
+    data.margin = totalMargin;
+    data.monthly_payment = totalMonthlyPayment;
+    data.coefficient = coefficient;
+    data.leaser_id = defaultLeaserId;
+
     // Définir les champs valides pour la table offers
     const validOfferFields = [
       'id', 'user_id', 'amount', 'coefficient', 'monthly_payment', 'commission',
@@ -23,7 +72,7 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
       'total_margin_with_difference', 'company_id', 'client_name', 'client_email',
       'equipment_description', 'status', 'workflow_status', 'type', 'previous_status',
       'remarks', 'signature_data', 'signer_name', 'commission_status', 'signer_ip',
-      'internal_score', 'leaser_score'
+      'internal_score', 'leaser_score', 'leaser_id'
     ];
     
     // Filtrer les données pour ne garder que les champs valides
@@ -65,13 +114,17 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
           // Use actual purchase price, with fallback to monthly price * realistic coefficient
           const actualPurchasePrice = price.purchasePrice > 0 ? price.purchasePrice : (price.monthlyPrice * 2.0);
           
+          const itemMargin = actualPurchasePrice * 0.15; // 15% margin
+          const itemFinancedAmount = actualPurchasePrice + itemMargin;
+          const itemMonthlyPayment = (itemFinancedAmount * coefficient) / 100;
+          
           const equipment = {
             offer_id: result.id,
             title: item.product.name,
             purchase_price: actualPurchasePrice,
             quantity: item.quantity,
-            margin: actualPurchasePrice * 0.15, // 15% margin
-            monthly_payment: price.monthlyPrice,
+            margin: itemMargin,
+            monthly_payment: itemMonthlyPayment,
             serial_number: null
           };
           
