@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { PostalCodeInput } from '@/components/form/PostalCodeInput';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { linkClientToAmbassador } from '@/services/ambassador/ambassadorClients';
 import { createClient, getClientById, updateClient } from '@/services/clientService';
-import { formatPhoneWithCountry } from '@/services/postalCodeService';
+import { formatPhoneWithCountry, getCountries, getDefaultCountryForCompany, CountryOption } from '@/services/postalCodeService';
 import { toast } from 'sonner';
-import { ArrowLeft, Phone } from 'lucide-react';
+import { ArrowLeft, Phone, Flag } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 const ClientForm = () => {
   const { id } = useParams();
@@ -36,6 +38,28 @@ const ClientForm = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Fetch available countries
+  const { data: countries = [] } = useQuery<CountryOption[]>({
+    queryKey: ['countries'],
+    queryFn: getCountries,
+  });
+
+  // Get default country for company
+  const { data: defaultCountry } = useQuery({
+    queryKey: ['default-country'],
+    queryFn: getDefaultCountryForCompany,
+  });
+
+  // Set default country when available
+  useEffect(() => {
+    if (defaultCountry && !formData.country) {
+      setFormData(prev => ({
+        ...prev,
+        country: defaultCountry
+      }));
+    }
+  }, [defaultCountry, formData.country]);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -167,6 +191,13 @@ const ClientForm = () => {
     }));
   };
 
+  // Prepare country options for combobox
+  const countryOptions: ComboboxOption[] = countries.map(country => ({
+    value: country.code,
+    label: `${country.flag} ${country.name_fr}`,
+    extra: country.name_en
+  }));
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -255,6 +286,21 @@ const ClientForm = () => {
                   />
                 </div>
                 
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Flag className="h-4 w-4" />
+                    Pays
+                  </Label>
+                  <Combobox
+                    options={countryOptions}
+                    value={formData.country}
+                    onValueChange={handleCountryChange}
+                    placeholder="Sélectionner un pays..."
+                    searchPlaceholder="Rechercher un pays..."
+                    emptyMessage="Aucun pays trouvé."
+                  />
+                </div>
+                
                 <div className="md:col-span-2">
                   <Label htmlFor="address">Adresse</Label>
                   <Input
@@ -271,7 +317,6 @@ const ClientForm = () => {
                     country={formData.country}
                     onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
                     onCityChange={(value) => handleInputChange('city', value)}
-                    onCountryChange={handleCountryChange}
                   />
                 </div>
                 
