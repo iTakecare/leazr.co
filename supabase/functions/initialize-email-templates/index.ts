@@ -59,6 +59,50 @@ serve(async (req) => {
     // Modèles d'email à initialiser avec design responsive et optimisé (450px max)
     const templates = [
       {
+        type: 'document_request',
+        name: 'Demande de documents',
+        subject: 'Documents requis - {{company_name}}',
+        html_content: `
+<div style="font-family: Arial, sans-serif; max-width: 450px; margin: 0 auto; padding: 15px; background-color: #f9fafb;">
+  <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <h1 style="color: #1f2937; font-size: 20px; margin-bottom: 16px; text-align: center;">Documents requis pour votre dossier</h1>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 14px;">
+      Bonjour {{client_name}},
+    </p>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 16px;">
+      Nous avons besoin de documents supplémentaires pour traiter votre demande de leasing avec <strong>{{company_name}}</strong>.
+    </p>
+    <div style="background-color: #f3f4f6; padding: 12px; border-radius: 6px; margin: 16px 0;">
+      <h3 style="margin: 0 0 8px 0; color: #374151; font-size: 14px;">Documents demandés :</h3>
+      <div style="color: #374151; font-size: 14px;">{{requested_documents}}</div>
+    </div>
+    {{#if custom_message}}
+    <div style="background-color: #e3f2fd; padding: 12px; border-radius: 6px; margin: 16px 0;">
+      <h4 style="margin: 0 0 8px 0; color: #1976d2; font-size: 14px;">Message personnalisé :</h4>
+      <p style="margin: 0; color: #374151; font-size: 14px;">{{custom_message}}</p>
+    </div>
+    {{/if}}
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 16px;">
+      Veuillez cliquer sur le lien ci-dessous pour télécharger vos documents :
+    </p>
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="{{upload_link}}" style="background-color: #3b82f6; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">
+        Télécharger mes documents
+      </a>
+    </div>
+    <div style="background-color: #fef3cd; border: 1px solid #fbbf24; border-radius: 6px; padding: 12px; margin: 16px 0;">
+      <p style="margin: 0; color: #92400e; font-size: 13px;">
+        <strong>⚠️ Important :</strong> Ce lien est sécurisé et expire après 7 jours. Formats acceptés : PDF, JPG, PNG, DOCX.
+      </p>
+    </div>
+    <p style="color: #374151; font-size: 15px; line-height: 1.5; margin-bottom: 0;">
+      Cordialement,<br>L'équipe {{company_name}}
+    </p>
+  </div>
+</div>`,
+        active: true
+      },
+      {
         type: 'new_account',
         name: 'Création de compte',
         subject: 'Votre compte a été créé avec succès',
