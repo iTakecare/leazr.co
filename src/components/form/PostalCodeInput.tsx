@@ -5,6 +5,7 @@ import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { useQuery } from '@tanstack/react-query';
 import { 
   searchPostalCodes, 
+  searchPostalCodesUnlimited,
   getCitiesByPostalCode, 
   getCountries,
   getDefaultCountryForCompany,
@@ -69,10 +70,22 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     []
   );
 
-  // Search postal codes
+  // Helper function to detect if input looks like a complete postal code
+  const isLikelyPostalCode = (query: string): boolean => {
+    // Check if it's mostly numbers and appropriate length for EU postal codes
+    const cleanQuery = query.trim();
+    return /^\d{3,5}$/.test(cleanQuery) && cleanQuery.length >= 3;
+  };
+
+  // Search postal codes - use unlimited search for postal code patterns
   const { data: postalCodeResults = [] } = useQuery<PostalCodeResult[]>({
     queryKey: ['postal-codes', postalCodeQuery, country],
-    queryFn: () => searchPostalCodes(postalCodeQuery, country),
+    queryFn: () => {
+      if (isLikelyPostalCode(postalCodeQuery)) {
+        return searchPostalCodesUnlimited(postalCodeQuery, country);
+      }
+      return searchPostalCodes(postalCodeQuery, country, 50);
+    },
     enabled: postalCodeQuery.length >= 2,
   });
 
@@ -83,10 +96,10 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     enabled: postalCode.length >= 3,
   });
 
-  // Search cities directly
+  // Search cities directly - use higher limit for city searches
   const { data: cityResults = [] } = useQuery<PostalCodeResult[]>({
     queryKey: ['cities', cityQuery, country],
-    queryFn: () => searchPostalCodes(cityQuery, country),
+    queryFn: () => searchPostalCodes(cityQuery, country, 100),
     enabled: cityQuery.length >= 2,
   });
 

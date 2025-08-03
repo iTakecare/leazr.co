@@ -44,6 +44,32 @@ export const searchPostalCodes = async (
 };
 
 /**
+ * Search postal codes and cities without limit
+ */
+export const searchPostalCodesUnlimited = async (
+  query: string,
+  countryCode?: string
+): Promise<PostalCodeResult[]> => {
+  try {
+    const { data, error } = await supabase.rpc('search_postal_codes', {
+      search_query: query,
+      country_filter: countryCode,
+      result_limit: 1000 // Very high limit for unlimited search
+    });
+
+    if (error) {
+      console.error('Error searching postal codes unlimited:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in searchPostalCodesUnlimited:', error);
+    return [];
+  }
+};
+
+/**
  * Get cities by postal code
  */
 export const getCitiesByPostalCode = async (
