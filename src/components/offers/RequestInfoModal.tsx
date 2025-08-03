@@ -139,21 +139,28 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             {DOCUMENT_OPTIONS.map((doc) => (
-              <div key={doc.id} className="flex items-center space-x-2">
-                <Checkbox 
-                  id={`doc-${doc.id}`} 
-                  checked={selectedDocs.includes(doc.id)}
-                  onCheckedChange={(checked) => 
-                    handleCheckboxChange(doc.id, checked)
-                  }
-                />
-                <label 
-                  htmlFor={`doc-${doc.id}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {doc.label}
-                </label>
-              </div>
+              <React.Fragment key={doc.id}>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`doc-${doc.id}`} 
+                    checked={selectedDocs.includes(doc.id)}
+                    onCheckedChange={(checked) => 
+                      handleCheckboxChange(doc.id, checked)
+                    }
+                  />
+                  <label 
+                    htmlFor={`doc-${doc.id}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {doc.label}
+                  </label>
+                </div>
+                {doc.id === "id_card_front" && (
+                  <div className="ml-6 text-xs text-muted-foreground italic">
+                    Si vous n'avez qu'un seul document reprenant le recto et le verso, téléchargez-le ici !
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
 
