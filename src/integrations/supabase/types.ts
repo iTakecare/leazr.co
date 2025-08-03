@@ -4913,6 +4913,13 @@ export type Database = {
           website_url: string | null
         }[]
       }
+      get_cities_by_postal_code: {
+        Args: { p_country_code: string; p_postal_code: string }
+        Returns: {
+          city_name: string
+          region: string
+        }[]
+      }
       get_company_ambassadors_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5039,6 +5046,10 @@ export type Database = {
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_default_country_for_company: {
+        Args: { p_company_id: string }
         Returns: string
       }
       get_featured_blog_posts: {
@@ -5343,6 +5354,10 @@ export type Database = {
         Args: { p_equipment_id: string; p_specifications: Json }
         Returns: undefined
       }
+      insert_postal_codes_bulk: {
+        Args: { p_country_code: string; p_postal_codes: Json }
+        Returns: undefined
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -5412,6 +5427,20 @@ export type Database = {
       render_email_template: {
         Args: { template_content: string; variables: Json }
         Returns: string
+      }
+      search_postal_codes: {
+        Args: {
+          p_country_code: string
+          p_search_term: string
+          p_limit?: number
+        }
+        Returns: {
+          postal_code: string
+          city_name: string
+          region: string
+          latitude: number
+          longitude: number
+        }[]
       }
       sign_offer_public: {
         Args: {
