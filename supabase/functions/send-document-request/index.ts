@@ -247,38 +247,50 @@ serve(async (req) => {
       );
     }
     
-    // Récupérer la clé API Resend (avec fallback)
+    // Récupérer la clé API Resend spécifique à l'entreprise
     console.log("=== RÉCUPÉRATION CLÉ API RESEND ===");
-    let resendApiKey = Deno.env.get("ITAKECARE_RESEND_API");
-    console.log("Clé API ITAKECARE_RESEND_API depuis env:", !!resendApiKey);
+    let resendApiKey: string | undefined;
+    const companyId = offer.company_id;
     
-    // Fallback: essayer RESEND_API_KEY générique
-    if (!resendApiKey) {
-      resendApiKey = Deno.env.get("RESEND_API_KEY");
-      console.log("Clé API RESEND_API_KEY générique depuis env:", !!resendApiKey);
-    }
-    
-    // Fallback final: récupérer depuis la base de données
-    if (!resendApiKey && emailConfig.resend_api_key) {
-      console.log("Utilisation de la clé API depuis la base de données");
+    // 1. Priorité à la clé API de l'entreprise stockée en BDD
+    if (emailConfig.resend_api_key) {
+      console.log("Utilisation de la clé API depuis les paramètres SMTP de l'entreprise");
       resendApiKey = emailConfig.resend_api_key;
     }
+    // 2. Fallback pour iTakecare uniquement
+    else if (companyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0') {
+      resendApiKey = Deno.env.get("ITAKECARE_RESEND_API");
+      console.log("Utilisation de la clé API iTakecare depuis les secrets:", !!resendApiKey);
+    }
     
+    // Validation de la clé API
     if (!resendApiKey) {
-      console.error("Clé API Resend non configurée - ni dans les secrets ni dans la BDD");
+      console.error("Clé API Resend non configurée pour cette entreprise");
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Clé API Resend non configurée. Veuillez configurer ITAKECARE_RESEND_API dans les secrets Supabase ou dans les paramètres SMTP.",
-          debug: {
-            itakecare_env_available: !!Deno.env.get("ITAKECARE_RESEND_API"),
-            generic_env_available: !!Deno.env.get("RESEND_API_KEY"),
-            db_available: !!emailConfig.resend_api_key,
-            env_keys: Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"))
-          }
+          message: "Clé API Resend non configurée. Veuillez configurer vos paramètres SMTP dans les paramètres de l'application.",
+          error: "MISSING_RESEND_API_KEY",
+          guidance: "Allez dans Paramètres > Email > Configuration d'envoi pour configurer votre clé API Resend"
         }),
         {
-          status: 500,
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    // Vérifier le format de la clé API Resend
+    if (!resendApiKey.startsWith('re_')) {
+      console.log("Clé API Resend invalide: ne commence pas par 're_'");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Clé API Resend invalide. Veuillez vérifier votre configuration dans les paramètres SMTP.",
+          error: "INVALID_RESEND_API_KEY_FORMAT"
+        }),
+        {
+          status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
