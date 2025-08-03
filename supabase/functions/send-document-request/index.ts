@@ -351,7 +351,13 @@ serve(async (req) => {
     try {
       // Préparer le contenu de l'email
       const emailSubject = "Documents requis - Offre de leasing";
-      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${uploadUrl}`;
+      
+      // Encoder l'URL pour éviter les problèmes avec les clients email (erreur -50 sur Mac)
+      const encodedUploadUrl = encodeURI(uploadUrl);
+      console.log("URL avant encodage:", uploadUrl);
+      console.log("URL après encodage:", encodedUploadUrl);
+      
+      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${encodedUploadUrl}`;
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
           <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
@@ -376,13 +382,19 @@ serve(async (req) => {
           ${customMessage ? `<p><strong>Message personnalisé :</strong><br>${customMessage}</p>` : ''}
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${uploadUrl}" style="display: inline-block; background-color: #2d618f; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">
+            <a href="${encodedUploadUrl}" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               style="display: inline-block; background-color: #2d618f; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">
               📎 Uploader mes documents
             </a>
           </div>
           
           <p style="font-size: 14px; color: #666;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-          <a href="${uploadUrl}" style="color: #2d618f; word-break: break-all;">${uploadUrl}</a></p>
+          <a href="${encodedUploadUrl}" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             style="color: #2d618f; word-break: break-all;">${encodedUploadUrl}</a></p>
           
           <p>Merci de nous faire parvenir ces documents dans les meilleurs délais.</p>
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">
