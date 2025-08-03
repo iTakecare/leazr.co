@@ -41,10 +41,20 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
   const [isSending, setIsSending] = useState(false);
 
   const handleCheckboxChange = (docId: string, checked: boolean) => {
+    console.log('🔲 Checkbox change:', { docId, checked, type: typeof checked });
+    
     if (checked) {
-      setSelectedDocs(prev => [...prev, docId]);
+      setSelectedDocs(prev => {
+        const newDocs = [...prev, docId];
+        console.log('📋 Adding document:', { docId, newDocs });
+        return newDocs;
+      });
     } else {
-      setSelectedDocs(prev => prev.filter(id => id !== docId));
+      setSelectedDocs(prev => {
+        const newDocs = prev.filter(id => id !== docId);
+        console.log('📋 Removing document:', { docId, newDocs });
+        return newDocs;
+      });
     }
   };
 
@@ -130,7 +140,7 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
                   id={`doc-${doc.id}`} 
                   checked={selectedDocs.includes(doc.id)}
                   onCheckedChange={(checked) => 
-                    handleCheckboxChange(doc.id, checked === true)
+                    handleCheckboxChange(doc.id, !!checked)
                   }
                 />
                 <label 
