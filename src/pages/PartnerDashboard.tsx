@@ -8,11 +8,12 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Award, AlertCircle } from "lucide-react";
+import { Plus, FileText, Award, AlertCircle, Users } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "sonner";
 import PartnerOffersTable from "@/components/partners/PartnerOffersTable";
 import PartnerCommissionsTable from "@/components/partners/PartnerCommissionsTable";
+import PartnerClientsList from "@/components/partners/PartnerClientsList";
 
 const PartnerDashboard = () => {
   const { navigateToPartner } = useRoleNavigation();
@@ -159,6 +160,7 @@ const PartnerDashboard = () => {
             <TabsList className="mb-4">
               <TabsTrigger value="offers">Mes offres</TabsTrigger>
               <TabsTrigger value="commissions">Mes commissions</TabsTrigger>
+              <TabsTrigger value="clients">Mes clients</TabsTrigger>
             </TabsList>
             
             <TabsContent value="offers" className="mt-0">
@@ -167,6 +169,10 @@ const PartnerDashboard = () => {
             
             <TabsContent value="commissions" className="mt-0">
               <PartnerCommissionsTable />
+            </TabsContent>
+            
+            <TabsContent value="clients" className="mt-0">
+              <PartnerClientsList />
             </TabsContent>
           </Tabs>
         </div>

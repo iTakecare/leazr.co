@@ -2,6 +2,8 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import PartnerDashboard from "@/pages/PartnerDashboard";
 import PartnerCreateOffer from "@/pages/PartnerCreateOffer";
+import PartnerClientsPage from "@/pages/PartnerPages/PartnerClientsPage";
+import PartnerClientCreatePage from "@/pages/PartnerPages/PartnerClientCreatePage";
 
 const PartnerRoutes = () => {
   return (
@@ -17,6 +19,8 @@ const PartnerRoutes = () => {
         <Routes>
           <Route path="dashboard" element={<PartnerDashboard />} />
           <Route path="create-offer" element={<PartnerCreateOffer />} />
+          <Route path="clients" element={<PartnerClientsPage />} />
+          <Route path="clients/create" element={<PartnerClientCreatePage />} />
           {/* Redirection par défaut vers le dashboard */}
           <Route path="" element={<PartnerDashboard />} />
           <Route path="*" element={<PartnerDashboard />} />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -18,19 +17,19 @@ import { toast } from "sonner";
 import { updateClient } from "@/services/clientService";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 
-interface AmbassadorClientEditDialogProps {
+interface PartnerClientEditDialogProps {
   client: Client | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClientUpdated: (client: Client) => void;
 }
 
-const AmbassadorClientEditDialog = ({
+const PartnerClientEditDialog = ({
   client,
   open,
   onOpenChange,
   onClientUpdated,
-}: AmbassadorClientEditDialogProps) => {
+}: PartnerClientEditDialogProps) => {
   const [formData, setFormData] = useState<CreateClientData>({
     name: "",
     email: "",
@@ -246,4 +245,4 @@ const AmbassadorClientEditDialog = ({
   );
 };
 
-export default AmbassadorClientEditDialog;
+export default PartnerClientEditDialog;
