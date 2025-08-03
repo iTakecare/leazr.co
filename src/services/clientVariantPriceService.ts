@@ -6,6 +6,8 @@ import { getCurrentUserCompanyId } from "@/services/multiTenantService";
  */
 export const getClientCustomVariantPrices = async (clientId: string, productId: string) => {
   try {
+    console.log(`Fetching custom variant prices for client ${clientId} and product ${productId}`);
+    
     // Get custom prices with variant attributes in a single query
     const { data, error } = await supabase
       .from('client_custom_variant_prices')
@@ -14,7 +16,7 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
         product_variant_prices!inner(
           id,
           attributes,
-          price,
+          purchase_price,
           monthly_price,
           product_id
         )
@@ -27,11 +29,13 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
       throw new Error(error.message);
     }
     
+    console.log('Raw client custom variant prices from DB:', data);
+    
     // Transform data to include variant attributes directly
     const enrichedData = (data || []).map(customPrice => ({
       ...customPrice,
       variant_attributes: customPrice.product_variant_prices?.attributes,
-      standard_price: customPrice.product_variant_prices?.price,
+      standard_purchase_price: customPrice.product_variant_prices?.purchase_price,
       standard_monthly_price: customPrice.product_variant_prices?.monthly_price
     }));
     

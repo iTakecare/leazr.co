@@ -164,6 +164,18 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     return Object.keys(product.variation_attributes).length > 0;
   }, [product]);
 
+  // Mapping between French and English attribute names
+  const attributeMapping = {
+    'storage': 'Capacité du disque dur',
+    'stockage': 'Capacité du disque dur', 
+    'memory': 'Mémoire vive (RAM)',
+    'ram': 'Mémoire vive (RAM)',
+    'processor': 'Processeur',
+    'processeur': 'Processeur',
+    'screen_size': 'Taille écran',
+    'taille_ecran': 'Taille écran'
+  };
+
   const isOptionAvailable = (optionName: string, value: string) => {
     if (!product) return false;
     
@@ -175,22 +187,41 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
 
     console.log(`Checking availability for ${optionName}=${value}`, {
       testOptions,
-      clientCustomPrices,
-      variantPrices
+      clientCustomPrices: clientCustomPrices.length,
+      variantPrices: variantPrices?.length
     });
 
     // First priority: Check if this combination has a custom price
     const hasCustomVariant = clientCustomPrices.some(customPrice => {
-      if (!customPrice.variant_attributes) return false;
+      if (!customPrice.variant_attributes) {
+        console.log('No variant_attributes for custom price:', customPrice);
+        return false;
+      }
       
       const variantAttrs = typeof customPrice.variant_attributes === 'string'
         ? JSON.parse(customPrice.variant_attributes)
         : customPrice.variant_attributes;
 
-      const matches = Object.entries(testOptions).every(([key, val]) => 
-        variantAttrs[key] && 
-        String(variantAttrs[key]).toLowerCase() === String(val).toLowerCase()
-      );
+      console.log('Comparing with custom variant attributes:', variantAttrs);
+
+      // Check both direct match and mapped attribute names
+      const matches = Object.entries(testOptions).every(([key, val]) => {
+        const directMatch = variantAttrs[key] && 
+          String(variantAttrs[key]).toLowerCase().trim() === String(val).toLowerCase().trim();
+        
+        const mappedKey = attributeMapping[key] || attributeMapping[key.toLowerCase()];
+        const mappedMatch = mappedKey && variantAttrs[mappedKey] && 
+          String(variantAttrs[mappedKey]).toLowerCase().trim() === String(val).toLowerCase().trim();
+
+        console.log(`Checking ${key}=${val}:`, {
+          directMatch,
+          mappedKey,
+          mappedMatch,
+          variantValue: variantAttrs[key] || variantAttrs[mappedKey]
+        });
+
+        return directMatch || mappedMatch;
+      });
 
       if (matches) {
         console.log(`✓ Custom variant found for ${optionName}=${value}:`, customPrice);
@@ -210,9 +241,16 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
         ? JSON.parse(vp.attributes) 
         : vp.attributes;
       
-      const matches = Object.entries(testOptions).every(([key, val]) => 
-        attrs[key] && String(attrs[key]).toLowerCase() === String(val).toLowerCase()
-      );
+      const matches = Object.entries(testOptions).every(([key, val]) => {
+        const directMatch = attrs[key] && 
+          String(attrs[key]).toLowerCase().trim() === String(val).toLowerCase().trim();
+        
+        const mappedKey = attributeMapping[key] || attributeMapping[key.toLowerCase()];
+        const mappedMatch = mappedKey && attrs[mappedKey] && 
+          String(attrs[mappedKey]).toLowerCase().trim() === String(val).toLowerCase().trim();
+
+        return directMatch || mappedMatch;
+      });
 
       if (matches) {
         console.log(`✓ Standard variant found for ${optionName}=${value}:`, vp);
