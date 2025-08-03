@@ -19,7 +19,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading, session } = useAuth();
 
-  // Redirection automatique - améliorée pour gérer les problèmes d'enrichissement
+  // Redirection automatique - corrigée pour éviter les conflits
   useEffect(() => {
     console.log("🔀 LOGIN REDIRECT - Vérification redirection:", {
       isLoading,
@@ -29,55 +29,68 @@ const Login = () => {
       userRole: user?.role
     });
 
-    // Rediriger si on a un utilisateur OU une session valide (même sans enrichissement)
-    const shouldRedirect = (user && user.email) || (session && session.user && session.user.email);
+    // Ne rediriger que si on a un utilisateur enrichi avec un rôle
+    // ou si c'est un admin spécial reconnu par email
+    const hasEnrichedUser = user && user.email && user.role;
+    const isSpecialAdmin = session?.user?.email === "ecommerce@itakecare.be" || 
+                          session?.user?.email === "hello@itakecare.be";
     
-    if (shouldRedirect) {
+    const shouldRedirect = hasEnrichedUser || isSpecialAdmin;
+    
+    if (shouldRedirect && !isLoading) {
       const userEmail = user?.email || session?.user?.email;
-      const userRole = user?.role || 'admin'; // Fallback vers admin si pas de rôle
+      const userRole = user?.role || (isSpecialAdmin ? 'admin' : null);
       
-      console.log("🔀 LOGIN REDIRECT - Utilisateur/Session détecté, redirection...", userEmail, "Role:", userRole);
+      console.log("🔀 LOGIN REDIRECT - Redirection confirmée", { userEmail, userRole });
       
-      // Utiliser setTimeout pour éviter les conflits de rendu
+      // Délai plus long pour s'assurer que l'enrichissement est terminé
       const timer = setTimeout(async () => {
-        // Gestion spéciale pour l'admin SaaS
-        if (userEmail === "ecommerce@itakecare.be") {
-          console.log("🔀 LOGIN REDIRECT - Admin SaaS détecté, redirection vers dashboard central");
-          navigate(`/admin/leazr-saas-dashboard`, { replace: true });
-          return;
-        }
+        try {
+          // Gestion spéciale pour l'admin SaaS
+          if (userEmail === "ecommerce@itakecare.be") {
+            console.log("🔀 LOGIN REDIRECT - Admin SaaS détecté");
+            navigate(`/admin/leazr-saas-dashboard`, { replace: true });
+            return;
+          }
 
-        // Pour les autres utilisateurs, récupérer le slug d'entreprise
-        const companySlug = await getCompanySlugForUser();
-        
-        if (!companySlug) {
-          console.error("🔀 LOGIN REDIRECT - Impossible de récupérer le slug d'entreprise");
-          toast.error("Erreur: Impossible d'accéder à votre entreprise");
-          return;
-        }
+          // Pour les autres utilisateurs, récupérer le slug d'entreprise
+          console.log("🔀 LOGIN REDIRECT - Récupération du slug d'entreprise...");
+          const companySlug = await getCompanySlugForUser();
+          
+          if (!companySlug) {
+            console.error("🔀 LOGIN REDIRECT - Slug d'entreprise manquant");
+            toast.error("Erreur: Impossible d'accéder à votre entreprise");
+            return;
+          }
 
-        // Redirection basée sur le rôle et l'email avec slug d'entreprise
-        if (userEmail === "hello@itakecare.be" || userRole === 'admin') {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers admin dashboard");
-          navigate(`/${companySlug}/admin/dashboard`, { replace: true });
-        } else if (isClient()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers client dashboard");
-          navigate(`/${companySlug}/client/dashboard`, { replace: true });
-        } else if (isAmbassador()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers ambassador dashboard");
-          navigate(`/${companySlug}/ambassador/dashboard`, { replace: true });
-        } else if (isPartner()) {
-          console.log("🔀 LOGIN REDIRECT - Redirection vers partner dashboard");
-          navigate(`/${companySlug}/partner/dashboard`, { replace: true });
-        } else {
-          console.log("🔀 LOGIN REDIRECT - Redirection par défaut vers admin dashboard");
-          navigate(`/${companySlug}/admin/dashboard`, { replace: true });
+          console.log("🔀 LOGIN REDIRECT - Slug récupéré:", companySlug);
+
+          // Redirection basée sur le rôle
+          if (userEmail === "hello@itakecare.be" || userRole === 'admin') {
+            console.log("🔀 LOGIN REDIRECT - Redirection admin");
+            navigate(`/${companySlug}/admin/dashboard`, { replace: true });
+          } else if (userRole === 'client') {
+            console.log("🔀 LOGIN REDIRECT - Redirection client");
+            navigate(`/${companySlug}/client/dashboard`, { replace: true });
+          } else if (userRole === 'ambassador') {
+            console.log("🔀 LOGIN REDIRECT - Redirection ambassador");
+            navigate(`/${companySlug}/ambassador/dashboard`, { replace: true });
+          } else if (userRole === 'partner') {
+            console.log("🔀 LOGIN REDIRECT - Redirection partner");
+            navigate(`/${companySlug}/partner/dashboard`, { replace: true });
+          } else {
+            console.log("🔀 LOGIN REDIRECT - Redirection par défaut");
+            navigate(`/${companySlug}/admin/dashboard`, { replace: true });
+          }
+        } catch (error) {
+          console.error("🔀 LOGIN REDIRECT - Erreur lors de la redirection:", error);
+          toast.error("Erreur lors de la redirection");
         }
-      }, 100); // Délai légèrement plus long pour laisser le temps à l'enrichissement
+      }, 500); // Délai augmenté pour laisser le temps à l'enrichissement
 
       return () => clearTimeout(timer);
     }
-  }, [user, session, navigate, isClient, isPartner, isAmbassador]);
+  }, [user, session, isLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,14 +142,16 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  // Afficher un loader si l'utilisateur est déjà connecté ou si on a une session
-  if ((user && !isLoading) || (session && session.user)) {
-    console.log("🔀 LOGIN RENDER - Utilisateur/Session détecté, affichage du loader de redirection");
+  // Afficher un loader si l'utilisateur est connecté et enrichi
+  if ((user && user.role && !isLoading) || 
+      (session && session.user && (session.user.email === "ecommerce@itakecare.be" || session.user.email === "hello@itakecare.be"))) {
+    console.log("🔀 LOGIN RENDER - Redirection en cours...");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p>Redirection en cours...</p>
+          <p className="text-sm text-gray-500 mt-2">Chargement de votre espace...</p>
         </div>
       </div>
     );
