@@ -29,6 +29,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCustomPriceEditor } from "./ProductCustomPriceEditor";
+import { ClientVariantPriceManager } from "./ClientVariantPriceManager";
 import { addMultipleProductsToCustomCatalog } from "@/services/catalogService";
 
 interface ClientCustomPriceTableProps {
@@ -40,6 +41,7 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [managingVariants, setManagingVariants] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("assigned");
   const { toast } = useToast();
@@ -330,12 +332,16 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
                       </TableCell>
                       
                       <TableCell>
-                        {product.hasVariants && (
-                          <Button variant="outline" size="sm">
-                            <Settings className="mr-1 h-3 w-3" />
-                            Gérer ({product.product_variant_prices?.length})
-                          </Button>
-                        )}
+                         {product.hasVariants && (
+                           <Button 
+                             variant="outline" 
+                             size="sm"
+                             onClick={() => setManagingVariants(product.id)}
+                           >
+                             <Settings className="mr-1 h-3 w-3" />
+                             Gérer ({product.product_variant_prices?.length})
+                           </Button>
+                         )}
                       </TableCell>
                       
                       <TableCell>
@@ -489,6 +495,17 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
             queryClient.invalidateQueries({ queryKey: ['all-products-for-client'] });
             setEditingProduct(null);
           }}
+        />
+      )}
+
+      {/* Gestionnaire de variantes */}
+      {managingVariants && (
+        <ClientVariantPriceManager
+          open={!!managingVariants}
+          onOpenChange={(open) => !open && setManagingVariants(null)}
+          clientId={clientId}
+          productId={managingVariants}
+          productName={assignedProducts?.find(p => p.id === managingVariants)?.name || ""}
         />
       )}
     </Card>
