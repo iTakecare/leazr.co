@@ -1516,6 +1516,39 @@ export type Database = {
           },
         ]
       }
+      countries: {
+        Row: {
+          code: string
+          created_at: string | null
+          dial_code: string
+          flag: string
+          is_priority: boolean
+          name_en: string
+          name_fr: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          dial_code: string
+          flag: string
+          is_priority?: boolean
+          name_en: string
+          name_fr: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          dial_code?: string
+          flag?: string
+          is_priority?: boolean
+          name_en?: string
+          name_fr?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       custom_auth_tokens: {
         Row: {
           company_id: string
@@ -3620,6 +3653,50 @@ export type Database = {
           website_url?: string | null
         }
         Relationships: []
+      }
+      postal_codes: {
+        Row: {
+          city_name: string
+          country_code: string
+          created_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          postal_code: string
+          region: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city_name: string
+          country_code: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          postal_code: string
+          region?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city_name?: string
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string
+          region?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postal_codes_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       product_attribute_values: {
         Row: {
