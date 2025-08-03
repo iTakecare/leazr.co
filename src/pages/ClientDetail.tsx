@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getClientById } from "@/services/clientService";
@@ -9,7 +10,7 @@ import UnifiedClientView from "@/components/clients/UnifiedClientView";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateToAdmin } = useRoleNavigation();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export default function ClientDetail() {
       console.error("ClientDetail - No ID provided");
       setError("ID de client manquant");
       toast.error("ID de client manquant");
-      navigate("/clients");
+      navigateToAdmin("clients");
       return;
     }
     
@@ -51,7 +52,7 @@ export default function ClientDetail() {
 
   useEffect(() => {
     fetchClient();
-  }, [id, navigate]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -75,7 +76,7 @@ export default function ClientDetail() {
           Le client demandé n'existe pas ou a été supprimé.
         </p>
         <div className="space-x-2">
-          <Button variant="outline" onClick={() => navigate("/clients")}>
+          <Button variant="outline" onClick={() => navigateToAdmin("clients")}>
             <ChevronLeft className="mr-1 h-4 w-4" />
             Retour à la liste
           </Button>
@@ -92,7 +93,7 @@ export default function ClientDetail() {
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <Button variant="outline" onClick={() => navigate("/clients")} className="flex items-center">
+        <Button variant="outline" onClick={() => navigateToAdmin("clients")} className="flex items-center">
           <ChevronLeft className="mr-1 h-4 w-4" />
           Retour à la liste
         </Button>
