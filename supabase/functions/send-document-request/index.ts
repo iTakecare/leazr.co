@@ -225,11 +225,9 @@ serve(async (req) => {
     const companySlug = company?.slug;
     console.log("Company slug de l'offre:", companySlug);
     
-    // Construire l'URL d'upload avec le company slug
-    const uploadUrl = companySlug 
-      ? `${appUrl.replace(/\/$/, '')}/${companySlug}/offer/documents/upload/${uploadToken}`
-      : `${appUrl.replace(/\/$/, '')}/offer/documents/upload/${uploadToken}`;
-    console.log("URL d'upload générée:", uploadUrl);
+     // Créer une URL de redirection courte pour éviter les problèmes Mac
+     const shortUrl = `${appUrl.replace(/\/$/, '')}/r/${uploadToken}`;
+     console.log("URL courte générée:", shortUrl);
     
     // Récupérer les paramètres email spécifiques à l'entreprise de l'offre
     console.log("Récupération de la configuration email pour company_id:", offer.company_id);
@@ -354,12 +352,7 @@ serve(async (req) => {
       // Préparer le contenu de l'email
       const emailSubject = "Documents requis - Offre de leasing";
       
-      // Encoder l'URL pour éviter les problèmes avec les clients email (erreur -50 sur Mac)
-      const encodedUploadUrl = encodeURI(uploadUrl);
-      console.log("URL avant encodage:", uploadUrl);
-      console.log("URL après encodage:", encodedUploadUrl);
-      
-      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${encodedUploadUrl}`;
+      const emailBody = `Bonjour ${clientName},\n\nDocuments requis:\n${formattedDocs}\n\n${customMessage || ''}\n\nVeuillez utiliser ce lien pour uploader vos documents: ${shortUrl}`;
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
           <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
@@ -386,19 +379,16 @@ serve(async (req) => {
           ${customMessage ? `<p><strong>Message personnalisé :</strong><br>${customMessage}</p>` : ''}
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${encodedUploadUrl}" 
+            <a href="${shortUrl}" 
                target="_blank" 
                rel="noopener noreferrer"
-               style="display: inline-block; background-color: #2d618f; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px;">
+               style="display: inline-block; background-color: #2d618f; color: white; font-weight: bold; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px; word-wrap: break-word;">
               📎 Uploader mes documents
             </a>
           </div>
           
           <p style="font-size: 14px; color: #666;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-          <a href="${encodedUploadUrl}" 
-             target="_blank" 
-             rel="noopener noreferrer"
-             style="color: #2d618f; word-break: break-all;">${encodedUploadUrl}</a></p>
+          <span style="color: #2d618f; word-break: break-all; font-family: monospace; background: #f5f5f5; padding: 2px 4px; border-radius: 3px;">${shortUrl}</span></p>
           
           <p>Merci de nous faire parvenir ces documents dans les meilleurs délais.</p>
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">
