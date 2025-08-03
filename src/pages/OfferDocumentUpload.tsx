@@ -224,12 +224,12 @@ const OfferDocumentUpload = () => {
           {companyInfo && (
             <div className="mb-8 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="logo-container border-2 border-dashed border-red-500 p-2 mr-4" style={{ minWidth: '100px', minHeight: '96px' }}>
+                <div className="logo-container">
                   {companyInfo.logo_url ? (
                     <img 
                       src={companyInfo.logo_url} 
                       alt={`Logo ${companyInfo.name}`}
-                      className="h-24 w-auto"
+                      className="h-8 w-auto"
                       onError={(e) => {
                         console.error('🔍 DEBUG - Erreur de chargement du logo (succès):', e);
                         console.error('🔍 DEBUG - URL du logo qui a échoué (succès):', companyInfo.logo_url);
@@ -240,12 +240,11 @@ const OfferDocumentUpload = () => {
                       }}
                     />
                   ) : (
-                    <div className="h-24 w-24 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+                    <div className="h-8 w-8 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
                       Pas de logo
                     </div>
                   )}
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900">{companyInfo.name}</h1>
               </div>
               <div className="w-32 h-1 mx-auto rounded-full" 
                    style={{ backgroundColor: companyInfo.primary_color || '#3b82f6' }}>
@@ -308,12 +307,12 @@ const OfferDocumentUpload = () => {
         {companyInfo && (
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center mb-4">
-              <div className="logo-container border-2 border-dashed border-red-500 p-2 mr-4" style={{ minWidth: '100px', minHeight: '96px' }}>
+              <div className="logo-container">
                 {companyInfo.logo_url ? (
                   <img 
                     src={companyInfo.logo_url} 
                     alt={`Logo ${companyInfo.name}`}
-                    className="h-24 w-auto"
+                    className="h-8 w-auto"
                     onError={(e) => {
                       console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
                       console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
@@ -324,12 +323,11 @@ const OfferDocumentUpload = () => {
                     }}
                   />
                 ) : (
-                  <div className="h-24 w-24 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+                  <div className="h-8 w-8 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
                     Pas de logo
                   </div>
                 )}
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">{companyInfo.name}</h1>
             </div>
             <div className="w-32 h-1 mx-auto rounded-full" 
                  style={{ backgroundColor: companyInfo.primary_color || '#3b82f6' }}>
