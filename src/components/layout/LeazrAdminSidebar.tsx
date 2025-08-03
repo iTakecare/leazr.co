@@ -30,7 +30,7 @@ const LeazrAdminSidebar = ({ className }: LeazrAdminSidebarProps) => {
     { icon: Users, label: "Clients", href: "/admin/leazr-saas-clients", color: "emerald" },
     { icon: CreditCard, label: "Abonnements", href: "/admin/leazr-saas-subscriptions", color: "orange" },
     { icon: Package, label: "Plans & Tarifs", href: "/admin/leazr-saas-plans", color: "violet" },
-    { icon: Globe, label: "Gestion domaines", href: "/admin/cloudflare-domains", color: "indigo" },
+    { icon: Globe, label: "Gestion domaines", href: "/admin/leazr-saas-domains", color: "indigo" },
     { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support", color: "pink" },
     { icon: Settings, label: "Paramètres", href: "/admin/leazr-saas-settings", color: "gray" },
   ];

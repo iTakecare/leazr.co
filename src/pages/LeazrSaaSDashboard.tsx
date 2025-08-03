@@ -19,12 +19,12 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { useNavigate } from "react-router-dom";
 import { useSaaSData, useRecentActivity } from "@/hooks/useSaaSData";
 
 const LeazrSaaSDashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
-  const { navigateToAdmin } = useRoleNavigation();
+  const navigate = useNavigate();
 
   // Liste des utilisateurs autorisés à accéder au dashboard SaaS
   const authorizedUsers = ["ecommerce@itakecare.be"];
@@ -42,9 +42,9 @@ const LeazrSaaSDashboard = () => {
   useEffect(() => {
     if (user && !isLeazrSaaSAdmin && !authLoading) {
       console.log('🚫 SAAS DASHBOARD - Redirecting unauthorized user to dashboard');
-      navigateToAdmin("dashboard");
+      navigate("/dashboard");
     }
-  }, [user, isLeazrSaaSAdmin, authLoading, navigateToAdmin]);
+  }, [user, isLeazrSaaSAdmin, authLoading, navigate]);
   
   // Récupérer les vraies données SaaS
   const { metrics: dashboardData, loading: dataLoading } = useSaaSData();
@@ -208,7 +208,7 @@ const LeazrSaaSDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Button 
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigateToAdmin('leazr-saas-clients')}
+                    onClick={() => navigate('/admin/leazr-saas-clients')}
                   >
                     <Users className="h-6 w-6" />
                     Gérer les clients
@@ -216,7 +216,7 @@ const LeazrSaaSDashboard = () => {
                   <Button 
                     variant="outline"
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigateToAdmin('leazr-saas-subscriptions')}
+                    onClick={() => navigate('/admin/leazr-saas-subscriptions')}
                   >
                     <CreditCard className="h-6 w-6" />
                     Abonnements
@@ -224,7 +224,7 @@ const LeazrSaaSDashboard = () => {
                   <Button 
                     variant="outline"
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigateToAdmin('leazr-saas-support')}
+                    onClick={() => navigate('/admin/leazr-saas-support')}
                   >
                     <LifeBuoy className="h-6 w-6" />
                     Support client
@@ -232,7 +232,7 @@ const LeazrSaaSDashboard = () => {
                   <Button 
                     variant="outline"
                     className="h-20 flex-col gap-2"
-                    onClick={() => navigateToAdmin('leazr-saas-plans')}
+                    onClick={() => navigate('/admin/leazr-saas-plans')}
                   >
                     <BarChart3 className="h-6 w-6" />
                     Plans & tarifs

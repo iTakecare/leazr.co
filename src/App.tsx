@@ -66,6 +66,9 @@ import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
 import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
 import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
+import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
+import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
+import LeazrSaaSDeployments from "@/pages/LeazrSaaSDeployments";
 
 // Route guards
 import AdminPrivateRoute from "@/components/routing/AdminPrivateRoute";
@@ -145,6 +148,16 @@ const AppRoutes = () => (
     
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
+    
+    {/* LEAZR SAAS ADMIN ROUTES - Dedicated routes for SaaS administration */}
+    <Route path="/admin/leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
+    <Route path="/admin/leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
+    <Route path="/admin/leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
+    <Route path="/admin/leazr-saas-deployments" element={<Layout><LeazrSaaSDeployments /></Layout>} />
+    <Route path="/admin/leazr-saas-plans" element={<Layout><LeazrSaaSPlans /></Layout>} />
+    <Route path="/admin/leazr-saas-subscriptions" element={<Layout><LeazrSaaSSubscriptions /></Layout>} />
+    <Route path="/admin/leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
+    <Route path="/admin/leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
     
     {/* CONTRACT ROUTES - Must be before system routes to avoid slug interception */}
     <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
