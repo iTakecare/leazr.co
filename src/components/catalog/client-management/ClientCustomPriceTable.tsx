@@ -29,6 +29,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCustomPriceEditor } from "./ProductCustomPriceEditor";
+import { addMultipleProductsToCustomCatalog } from "@/services/catalogService";
 
 interface ClientCustomPriceTableProps {
   clientId: string;
@@ -169,25 +170,24 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
   // Mutation pour ajouter des produits au catalogue personnalisé
   const addProductsMutation = useMutation({
     mutationFn: async (productIds: string[]) => {
-      const inserts = productIds.map(productId => ({
-        client_id: clientId,
-        product_id: productId,
-        margin_rate: 0, // Taux par défaut, sera modifiable ensuite
-      }));
-
-      const { error } = await supabase
-        .from('client_custom_prices')
-        .insert(inserts);
-      
-      if (error) throw error;
+      return await addMultipleProductsToCustomCatalog(clientId, productIds, 15);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['client-assigned-products'] });
       queryClient.invalidateQueries({ queryKey: ['all-products-for-client'] });
+      const productsAddedCount = selectedProducts.length;
       setSelectedProducts([]);
       toast({
         title: "Produits ajoutés",
-        description: `${selectedProducts.length} produit(s) ajouté(s) au catalogue personnalisé.`,
+        description: `${productsAddedCount} produit(s) ajouté(s) au catalogue personnalisé avec un taux de marge par défaut de 15%.`,
+      });
+    },
+    onError: (error) => {
+      console.error("Erreur lors de l'ajout des produits:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter les produits au catalogue personnalisé.",
+        variant: "destructive",
       });
     },
   });

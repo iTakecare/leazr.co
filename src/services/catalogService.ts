@@ -413,3 +413,126 @@ export const convertProductToParent = async (productId: string, updateData: any)
   if (error) throw error;
   return data;
 };
+
+// ===== Client Custom Prices Management =====
+
+// Récupérer les prix personnalisés d'un client
+export const getClientCustomPrices = async (clientId: string) => {
+  const { data, error } = await supabase
+    .from('client_custom_prices')
+    .select(`
+      *,
+      products (
+        id,
+        name,
+        price,
+        monthly_price,
+        image_url,
+        brands (name, translation),
+        categories (name, translation)
+      )
+    `)
+    .eq('client_id', clientId);
+
+  if (error) throw error;
+  return data;
+};
+
+// Ajouter un prix personnalisé pour un produit
+export const addClientCustomPrice = async (
+  clientId: string, 
+  productId: string, 
+  priceData: {
+    margin_rate?: number;
+    negotiated_monthly_price?: number;
+    custom_purchase_price?: number;
+  }
+) => {
+  const { data, error } = await supabase
+    .from('client_custom_prices')
+    .insert({
+      client_id: clientId,
+      product_id: productId,
+      ...priceData
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Mettre à jour un prix personnalisé
+export const updateClientCustomPrice = async (
+  customPriceId: string, 
+  priceData: {
+    margin_rate?: number;
+    negotiated_monthly_price?: number;
+    custom_purchase_price?: number;
+  }
+) => {
+  const { data, error } = await supabase
+    .from('client_custom_prices')
+    .update(priceData)
+    .eq('id', customPriceId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Supprimer un prix personnalisé
+export const deleteClientCustomPrice = async (customPriceId: string) => {
+  const { error } = await supabase
+    .from('client_custom_prices')
+    .delete()
+    .eq('id', customPriceId);
+
+  if (error) throw error;
+};
+
+// Ajouter plusieurs produits en une fois au catalogue personnalisé
+export const addMultipleProductsToCustomCatalog = async (
+  clientId: string, 
+  productIds: string[], 
+  defaultMarginRate: number = 15
+) => {
+  const inserts = productIds.map(productId => ({
+    client_id: clientId,
+    product_id: productId,
+    margin_rate: defaultMarginRate,
+  }));
+
+  const { data, error } = await supabase
+    .from('client_custom_prices')
+    .insert(inserts)
+    .select();
+
+  if (error) throw error;
+  return data;
+};
+
+// Ajouter un prix personnalisé pour un variant
+export const addClientCustomVariantPrice = async (
+  clientId: string,
+  variantPriceId: string,
+  priceData: {
+    margin_rate?: number;
+    negotiated_monthly_price?: number;
+    custom_purchase_price?: number;
+  }
+) => {
+  const { data, error } = await supabase
+    .from('client_custom_variant_prices')
+    .insert({
+      client_id: clientId,
+      variant_price_id: variantPriceId,
+      ...priceData
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
