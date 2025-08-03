@@ -28,6 +28,7 @@ import { DocumentUploadSection } from "@/components/client/DocumentUploadSection
 import { ContractSignatureSection } from "@/components/client/ContractSignatureSection";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { useOfferDocuments } from "@/hooks/useOfferDocuments";
+import { mapWorkflowStatusToClientStatus } from "@/utils/statusMapping";
 
 const ClientRequestDetailPage = () => {
   const { id } = useParams();
@@ -172,12 +173,12 @@ const ClientRequestDetailPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RequestStatusTimeline 
-                    currentStatus={offer.status}
-                    workflowStatus={offer.workflow_status}
-                    createdAt={offer.created_at}
-                    signedAt={offer.signed_at}
-                  />
+              <RequestStatusTimeline
+                currentStatus={mapWorkflowStatusToClientStatus(offer.workflow_status, offer.status)}
+                workflowStatus={offer.workflow_status}
+                createdAt={offer.created_at}
+                signedAt={offer.signed_at}
+              />
                 </CardContent>
               </Card>
             </motion.div>

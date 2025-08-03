@@ -24,6 +24,9 @@ export const RequestStatusTimeline: React.FC<RequestStatusTimelineProps> = ({
   createdAt,
   signedAt
 }) => {
+  // Use workflow status as source of truth, fallback to current status
+  const effectiveStatus = workflowStatus || currentStatus;
+  
   const getSteps = (): TimelineStep[] => {
     const baseSteps: TimelineStep[] = [
       {
@@ -38,32 +41,31 @@ export const RequestStatusTimeline: React.FC<RequestStatusTimelineProps> = ({
         id: "review",
         title: "Examen en cours",
         description: "Notre équipe analyse votre demande",
-        status: currentStatus === "pending" ? "current" : currentStatus === "rejected" ? "error" : "completed",
+        status: getReviewStatus(),
         icon: Clock
       },
       {
         id: "decision",
-        title: currentStatus === "rejected" ? "Demande refusée" : "Demande approuvée",
-        description: currentStatus === "rejected" 
-          ? "Votre demande n'a pas pu être acceptée"
-          : "Félicitations ! Votre demande a été approuvée",
-        status: currentStatus === "pending" ? "pending" : 
-                currentStatus === "rejected" ? "error" : "completed",
-        icon: currentStatus === "rejected" ? X : CheckCircle
+        title: getDecisionTitle(),
+        description: getDecisionDescription(),
+        status: getDecisionStatus(),
+        icon: getDecisionIcon()
       }
     ];
 
-    if (currentStatus === "approved" || currentStatus === "sent") {
+    // Add contract preparation step if approved or sent
+    if (isApproved()) {
       baseSteps.push({
         id: "contract",
         title: "Contrat en préparation",
         description: "Préparation des documents contractuels",
-        status: workflowStatus === "contract_sent" ? "completed" : "current",
+        status: isContractSent() ? "completed" : "current",
         icon: FileText
       });
     }
 
-    if (workflowStatus === "contract_sent") {
+    // Add signature step if contract has been sent
+    if (isContractSent()) {
       baseSteps.push({
         id: "signature",
         title: "Signature du contrat",
@@ -75,6 +77,52 @@ export const RequestStatusTimeline: React.FC<RequestStatusTimelineProps> = ({
     }
 
     return baseSteps;
+  };
+
+  // Helper functions for status logic
+  const isRejected = () => {
+    return ['internal_rejected', 'leaser_rejected'].includes(effectiveStatus) || 
+           effectiveStatus === 'rejected';
+  };
+
+  const isApproved = () => {
+    return ['internal_approved', 'leaser_approved', 'financed', 'contract_sent', 'signed'].includes(effectiveStatus) ||
+           effectiveStatus === 'approved';
+  };
+
+  const isContractSent = () => {
+    return ['contract_sent', 'signed'].includes(effectiveStatus);
+  };
+
+  const isPending = () => {
+    return ['draft', 'pending', 'info_requested'].includes(effectiveStatus) ||
+           (!workflowStatus && effectiveStatus === 'pending');
+  };
+
+  const getReviewStatus = () => {
+    if (isPending()) return "current";
+    if (isRejected()) return "error";
+    return "completed";
+  };
+
+  const getDecisionStatus = () => {
+    if (isPending()) return "pending";
+    if (isRejected()) return "error";
+    return "completed";
+  };
+
+  const getDecisionTitle = () => {
+    return isRejected() ? "Demande refusée" : "Demande approuvée";
+  };
+
+  const getDecisionDescription = () => {
+    return isRejected() 
+      ? "Votre demande n'a pas pu être acceptée"
+      : "Félicitations ! Votre demande a été approuvée";
+  };
+
+  const getDecisionIcon = () => {
+    return isRejected() ? X : CheckCircle;
   };
 
   const steps = getSteps();
