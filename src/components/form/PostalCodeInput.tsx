@@ -79,12 +79,15 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   // Search postal codes - use unlimited search for postal code patterns
   const { data: postalCodeResults = [] } = useQuery<PostalCodeResult[]>({
-    queryKey: ['postal-codes', postalCodeQuery, country],
+    queryKey: ['postal-codes', postalCodeQuery, country || defaultCountry],
     queryFn: () => {
+      const countryCode = country || defaultCountry || 'BE';
+      console.log('🔍 Postal query:', { postalCodeQuery, countryCode });
+      
       if (isLikelyPostalCode(postalCodeQuery)) {
-        return searchPostalCodesUnlimited(postalCodeQuery, country);
+        return searchPostalCodesUnlimited(postalCodeQuery, countryCode);
       }
-      return searchPostalCodes(postalCodeQuery, country, 50);
+      return searchPostalCodes(postalCodeQuery, countryCode, 50);
     },
     enabled: postalCodeQuery.length >= 2,
   });
@@ -171,30 +174,21 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
             <MapPin className="h-4 w-4" />
             Code postal
           </Label>
-          {postalCodeOptions.length > 0 && postalCode.length >= 2 ? (
-            <Combobox
-              options={postalCodeOptions}
-              value={postalCode}
-              onValueChange={(value) => {
-                onPostalCodeChange(value);
-                const selectedResult = postalCodeResults.find(r => r.postal_code === value);
-                if (selectedResult) {
-                  onCityChange(selectedResult.city);
-                }
-              }}
-              placeholder="Sélectionner un code postal..."
-              searchPlaceholder="Rechercher un code postal..."
-              emptyMessage="Aucun code postal trouvé."
-              disabled={disabled}
-            />
-          ) : (
-            <Input
-              value={postalCode}
-              onChange={(e) => handlePostalCodeChange(e.target.value)}
-              placeholder="Ex: 1000"
-              disabled={disabled}
-            />
-          )}
+          <Combobox
+            options={postalCodeOptions}
+            value={postalCode}
+            onValueChange={(value) => {
+              onPostalCodeChange(value);
+              const selectedResult = postalCodeResults.find(r => r.postal_code === value);
+              if (selectedResult) {
+                onCityChange(selectedResult.city);
+              }
+            }}
+            placeholder="Tapez votre code postal..."
+            searchPlaceholder="Rechercher un code postal..."
+            emptyMessage="Tapez au moins 2 chiffres pour voir les suggestions."
+            disabled={disabled}
+          />
         </div>
 
         {/* City */}
