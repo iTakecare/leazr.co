@@ -448,11 +448,17 @@ export const addClientCustomPrice = async (
     custom_purchase_price?: number;
   }
 ) => {
+  const companyId = await getCurrentUserCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID not found');
+  }
+
   const { data, error } = await supabase
     .from('client_custom_prices')
     .insert({
       client_id: clientId,
       product_id: productId,
+      company_id: companyId,
       ...priceData
     })
     .select()
@@ -498,9 +504,15 @@ export const addMultipleProductsToCustomCatalog = async (
   productIds: string[], 
   defaultMarginRate: number = 15
 ) => {
+  const companyId = await getCurrentUserCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID not found');
+  }
+
   const inserts = productIds.map(productId => ({
     client_id: clientId,
     product_id: productId,
+    company_id: companyId,
     margin_rate: defaultMarginRate,
   }));
 
@@ -523,11 +535,17 @@ export const addClientCustomVariantPrice = async (
     custom_purchase_price?: number;
   }
 ) => {
+  const companyId = await getCurrentUserCompanyId();
+  if (!companyId) {
+    throw new Error('Company ID not found');
+  }
+
   const { data, error } = await supabase
     .from('client_custom_variant_prices')
     .insert({
       client_id: clientId,
       variant_price_id: variantPriceId,
+      company_id: companyId,
       ...priceData
     })
     .select()
