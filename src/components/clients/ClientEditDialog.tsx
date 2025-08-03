@@ -370,6 +370,7 @@ const ClientEditDialog = ({
                   country={form.watch("country") || ""}
                   onPostalCodeChange={(value) => form.setValue("postal_code", value)}
                   onCityChange={(value) => form.setValue("city", value)}
+                  onCountryChange={handleCountryChange}
                 />
               </div>
             </div>

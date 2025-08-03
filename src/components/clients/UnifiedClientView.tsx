@@ -480,6 +480,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                         country={formData.country}
                         onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
                         onCityChange={(value) => handleInputChange('city', value)}
+                        onCountryChange={(value) => handleInputChange('country', value)}
                       />
                     </div>
                   ) : (
