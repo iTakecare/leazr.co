@@ -5227,7 +5227,7 @@ export type Database = {
       }
       insert_offer_equipment_attributes_secure: {
         Args: { p_equipment_id: string; p_attributes: Json }
-        Returns: boolean
+        Returns: undefined
       }
       insert_offer_equipment_secure: {
         Args: {
@@ -5243,7 +5243,7 @@ export type Database = {
       }
       insert_offer_equipment_specifications_secure: {
         Args: { p_equipment_id: string; p_specifications: Json }
-        Returns: boolean
+        Returns: undefined
       }
       is_admin: {
         Args: Record<PropertyKey, never>

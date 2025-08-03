@@ -9,6 +9,7 @@ export interface OfferFinancialData {
   monthly_payment?: number | null;
   coefficient?: number | null;
   equipment_description?: string | null;
+  type?: string | null; // Added to identify client requests
 }
 
 /**
@@ -47,10 +48,11 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
     });
   }
 
-  // Fallback: essayer d'extraire le prix d'achat depuis les données de l'offre
-  // Si on n'a pas d'équipements détaillés, utiliser 0 pour éviter les erreurs
+  // Fallback: For client requests, use offer.amount as purchase price
+  // For other offers, return 0 to avoid incorrect calculations
+  const isClientRequest = offer.type === 'client_request';
   return {
-    totalPurchasePrice: 0,
+    totalPurchasePrice: isClientRequest ? (offer.amount || 0) : 0,
     totalMonthlyPayment: offer.monthly_payment || 0
   };
 };
