@@ -33,9 +33,9 @@ export const useClientData = () => {
         console.log('🔍 CLIENT DATA - Récupération des données client pour l\'utilisateur:', user.id);
         console.log('🔍 CLIENT DATA - Email utilisateur:', user.email);
 
-        // Récupérer les informations du client associé à cet utilisateur
+        // Récupérer les informations du client associé à cet utilisateur (avec flag catalogue personnalisé)
         const { data: client, error: clientError } = await services.clients.query()
-          .select('*')
+          .select('*, has_custom_catalog')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -57,7 +57,7 @@ export const useClientData = () => {
           
           // Essayer aussi de chercher par email si aucun client n'est trouvé par user_id
           const { data: clientByEmail, error: emailError } = await services.clients.query()
-            .select('*')
+            .select('*, has_custom_catalog')
             .eq('email', user.email)
             .maybeSingle();
 

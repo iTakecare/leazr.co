@@ -113,6 +113,10 @@ export interface Product {
   image_urls?: string[]; // Additional images
   imageUrls?: string[]; // Alternative property name
   image_alts?: string[]; // Alt text for additional images
+  
+  // Propriétés pour les prix personnalisés
+  is_custom_pricing?: boolean;
+  custom_pricing_notes?: string;
 }
 
 // Product attribute definition

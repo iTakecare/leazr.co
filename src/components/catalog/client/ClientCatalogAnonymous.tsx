@@ -9,7 +9,8 @@ import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilte
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
 import SortFilter from "@/components/catalog/public/filters/SortFilter";
-import { getPublicProductsOptimized, getPublicPacksOptimized } from "@/services/catalogServiceOptimized";
+import { getPublicProductsOptimized, getPublicPacksOptimized, getClientCustomCatalog } from "@/services/catalogServiceOptimized";
+import { Client } from "@/types/client";
 import { useQuery } from "@tanstack/react-query";
 import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -31,9 +32,10 @@ interface Company {
 
 interface ClientCatalogAnonymousProps {
   company: Company;
+  clientData?: Client | null;
 }
 
-const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company }) => {
+const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company, clientData }) => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,11 +64,17 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
     }
   }, [companyId, queryClient]);
 
-  // Optimized products fetch
+  // Détecter si le client a un catalogue personnalisé
+  const hasCustomCatalog = clientData?.has_custom_catalog === true;
+  const clientId = clientData?.id;
+
+  // Optimized products fetch - utilise le catalogue personnalisé si disponible
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
-    queryKey: ['public-products-optimized', companyId],
-    queryFn: () => getPublicProductsOptimized(companyId!),
-    enabled: !!companyId,
+    queryKey: hasCustomCatalog ? ['client-custom-catalog', clientId] : ['public-products-optimized', companyId],
+    queryFn: () => hasCustomCatalog && clientId 
+      ? getClientCustomCatalog(clientId) 
+      : getPublicProductsOptimized(companyId!),
+    enabled: !!companyId && (hasCustomCatalog ? !!clientId : true),
     staleTime: 10 * 60 * 1000, // 10 minutes cache
     refetchOnWindowFocus: false
   });
@@ -177,9 +185,9 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
 
               {/* Main Content */}
               <div className="flex-1 space-y-6">
-                {/* Header with mobile toggle and sort */}
+                 {/* Header with mobile toggle and sort */}
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     <FilterMobileToggle
                       isOpen={isMobileFilterOpen}
                       onToggle={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
@@ -196,6 +204,11 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                          : `${packs.length} pack${packs.length > 1 ? 's' : ''} disponible${packs.length > 1 ? 's' : ''}`
                        }
                      </div>
+                     {hasCustomCatalog && activeTab === 'products' && (
+                       <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded-full">
+                         ✨ Prix personnalisés
+                       </div>
+                     )}
                   </div>
 
                   <SortFilter

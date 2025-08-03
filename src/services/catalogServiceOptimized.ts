@@ -434,3 +434,165 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
     throw error;
   }
 };
+
+/**
+ * Service pour récupérer le catalogue personnalisé d'un client spécifique
+ * Ne retourne que les produits avec des prix personnalisés pour ce client
+ */
+export const getClientCustomCatalog = async (clientId: string): Promise<Product[]> => {
+  if (!clientId) {
+    throw new Error("Client ID requis pour le catalogue personnalisé");
+  }
+
+  try {
+    console.log('🛒 CATALOGUE PERSONNALISÉ - Chargement pour client:', clientId);
+
+    // Récupérer uniquement les produits avec prix personnalisés pour ce client
+    const { data: customPricesData, error } = await supabase
+      .from("client_custom_prices")
+      .select(`
+        custom_monthly_price,
+        custom_purchase_price,
+        margin_rate,
+        is_active,
+        valid_from,
+        valid_to,
+        notes,
+        products (
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          admin_only,
+          brands(name, translation),
+          categories(name, translation)
+        )
+      `)
+      .eq("client_id", clientId)
+      .eq("is_active", true)
+      .eq("products.active", true)
+      .or("valid_to.is.null,valid_to.gte.now()", { foreignTable: "client_custom_prices" });
+
+    if (error) {
+      console.error('Erreur lors du chargement des prix personnalisés:', error);
+      throw error;
+    }
+
+    if (!customPricesData || customPricesData.length === 0) {
+      console.log('🛒 CATALOGUE PERSONNALISÉ - Aucun produit personnalisé trouvé pour ce client');
+      return [];
+    }
+
+    console.log('🛒 CATALOGUE PERSONNALISÉ - Produits personnalisés trouvés:', customPricesData.length);
+
+    // Récupérer les prix personnalisés des variants pour ces produits
+    const productIds = customPricesData.map(item => item.products?.id).filter(Boolean);
+    const { data: customVariantPrices } = await supabase
+      .from("client_custom_variant_prices")
+      .select(`
+        custom_monthly_price,
+        custom_purchase_price,
+        margin_rate,
+        product_variant_prices (
+          id,
+          product_id,
+          attributes,
+          price,
+          monthly_price,
+          stock
+        )
+      `)
+      .eq("client_id", clientId)
+      .eq("is_active", true)
+      .in("product_variant_prices.product_id", productIds);
+
+    // Créer une map des prix personnalisés des variants par product_id
+    const customVariantPriceMap = new Map<string, any[]>();
+    customVariantPrices?.forEach(cvp => {
+      const productId = cvp.product_variant_prices?.product_id;
+      if (productId) {
+        if (!customVariantPriceMap.has(productId)) {
+          customVariantPriceMap.set(productId, []);
+        }
+        customVariantPriceMap.get(productId)?.push({
+          id: cvp.product_variant_prices?.id,
+          attributes: cvp.product_variant_prices?.attributes,
+          price: cvp.custom_purchase_price || cvp.product_variant_prices?.price,
+          monthly_price: cvp.custom_monthly_price || (
+            cvp.margin_rate 
+              ? (cvp.product_variant_prices?.price || 0) * (1 + cvp.margin_rate)
+              : cvp.product_variant_prices?.monthly_price
+          ),
+          stock: cvp.product_variant_prices?.stock
+        });
+      }
+    });
+
+    // Mapper les produits avec leurs prix personnalisés
+    const mappedProducts: Product[] = customPricesData.map(item => {
+      const product = item.products;
+      if (!product) return null;
+
+      // Calculer le prix personnalisé selon la logique définie
+      let customMonthlyPrice = product.monthly_price || 0;
+      let customPurchasePrice = product.price || 0;
+
+      // Priorité : custom_monthly_price > calcul par margin_rate > prix standard
+      if (item.custom_monthly_price) {
+        customMonthlyPrice = item.custom_monthly_price;
+      } else if (item.margin_rate && product.price) {
+        customMonthlyPrice = product.price * (1 + item.margin_rate);
+      }
+
+      if (item.custom_purchase_price) {
+        customPurchasePrice = item.custom_purchase_price;
+      }
+
+      // Récupérer les variants personnalisés pour ce produit
+      const customVariants = customVariantPriceMap.get(product.id) || [];
+
+      // Calculer le prix minimum des variants personnalisés
+      const minCustomVariantPrice = customVariants.length > 0 
+        ? Math.min(...customVariants.map(v => v.monthly_price).filter(p => p > 0))
+        : 0;
+
+      return {
+        id: product.id,
+        name: product.name || "",
+        description: product.description || "",
+        brand: product.brands?.name || product.brand_name || "",
+        category: product.categories?.name || product.category_name || "",
+        price: customPurchasePrice,
+        monthly_price: customMonthlyPrice,
+        min_variant_price: minCustomVariantPrice,
+        slug: product.slug || "",
+        image_url: product.image_url || "",
+        images: product.imageurls || [],
+        co2_savings: 0,
+        has_variants: customVariants.length > 0,
+        variants_count: customVariants.length,
+        active: product.active || false,
+        // Ajouter les variants personnalisés
+        variants: [],
+        variant_combination_prices: customVariants,
+        // Marquer comme prix personnalisé pour l'affichage
+        is_custom_pricing: true,
+        custom_pricing_notes: item.notes
+      };
+    }).filter(Boolean) as Product[];
+
+    console.log('🛒 CATALOGUE PERSONNALISÉ - Produits mappés:', mappedProducts.length);
+    return mappedProducts;
+
+  } catch (error) {
+    console.error("Erreur lors du chargement du catalogue personnalisé:", error);
+    throw error;
+  }
+};

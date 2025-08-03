@@ -70,9 +70,10 @@ const ClientCatalogPage: React.FC = () => {
   }
 
   console.log('🏢 CLIENT CATALOG - Rendering catalog for company:', company.name);
+  console.log('🏢 CLIENT CATALOG - Client has custom catalog:', clientData?.has_custom_catalog);
 
-  // Use the client-specific catalog component
-  return <ClientCatalogAnonymous company={company} />;
+  // Use the client-specific catalog component with client data
+  return <ClientCatalogAnonymous company={company} clientData={clientData} />;
 };
 
 export default ClientCatalogPage;
