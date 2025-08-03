@@ -5082,7 +5082,7 @@ export type Database = {
         Returns: string
       }
       get_default_country_for_company: {
-        Args: { p_company_id: string }
+        Args: Record<PropertyKey, never> | { p_company_id: string }
         Returns: string
       }
       get_featured_blog_posts: {
