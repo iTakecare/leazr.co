@@ -186,7 +186,7 @@ serve(async (req) => {
       .from('offers')
       .select('company_id')
       .eq('id', offerId)
-      .single();
+      .maybeSingle();
       
     if (offerError || !offer) {
       console.error("Erreur lors de la récupération de l'offre:", offerError);
@@ -214,7 +214,7 @@ serve(async (req) => {
       .from('companies')
       .select('slug')
       .eq('id', offer.company_id)
-      .single();
+      .maybeSingle();
       
     if (companyError) {
       console.error("Erreur lors de la récupération du company:", companyError);
@@ -238,7 +238,7 @@ serve(async (req) => {
       .select('*')
       .eq('company_id', offer.company_id)
       .eq('enabled', true)
-      .single();
+      .maybeSingle();
       
     if (emailError || !emailConfig) {
       console.error("Erreur lors de la récupération des paramètres email:", emailError);
