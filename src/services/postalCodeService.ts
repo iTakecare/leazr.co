@@ -24,33 +24,11 @@ export const searchPostalCodes = async (
   countryCode?: string,
   limit: number = 10
 ): Promise<PostalCodeResult[]> => {
-  console.log('🔍 POSTAL SERVICE - searchPostalCodes called:', {
-    query,
-    countryCode,
-    limit,
-    timestamp: new Date().toISOString()
-  });
-
   try {
-    console.log('🔍 POSTAL SERVICE - Calling supabase.rpc with params:', {
-      search_query: query,
-      country_filter: countryCode,
-      result_limit: limit
-    });
-
     const { data, error } = await supabase.rpc('search_postal_codes', {
       search_query: query,
       country_filter: countryCode,
       result_limit: limit
-    });
-
-    console.log('🔍 POSTAL SERVICE - RPC response:', {
-      hasData: !!data,
-      dataLength: data?.length || 0,
-      hasError: !!error,
-      error: error?.message || null,
-      firstResult: data?.[0] || null,
-      allResults: data // LOG ALL RESULTS TO SEE WHAT'S ACTUALLY RETURNED
     });
 
     if (error) {
@@ -58,7 +36,6 @@ export const searchPostalCodes = async (
       return [];
     }
 
-    console.log('🔍 POSTAL SERVICE - Final return data:', data);
     return data || [];
   } catch (error) {
     console.error('Error in searchPostalCodes:', error);

@@ -36,16 +36,10 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
   disabled = false,
   className,
 }) => {
-  console.log('🚀 POSTAL CODE INPUT - Component rendering with props:', {
-    postalCode,
-    city,
-    country,
-    disabled,
-    timestamp: new Date().toISOString()
-  });
 
   const [postalCodeQuery, setPostalCodeQuery] = useState('');
   const [cityQuery, setCityQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Fetch available countries
   const { data: countries = [] } = useQuery<CountryOption[]>({
@@ -174,26 +168,13 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     extra: country.name_en
   }));
 
-  // Prepare postal code options with debugging
+  // Prepare postal code options
   const postalCodeOptions: ComboboxOption[] = useMemo(() => {
-    console.log('🎯 COMPONENT - Processing postalCodeResults for options:', {
-      resultsCount: postalCodeResults?.length || 0,
-      firstResult: postalCodeResults?.[0] || null,
-      allResults: postalCodeResults
-    });
-    
-    const options = postalCodeResults.map(result => ({
+    return postalCodeResults.map(result => ({
       value: result.postal_code,
       label: result.postal_code,
       extra: `${result.city}, ${result.country_name}`
     }));
-    
-    console.log('🎯 COMPONENT - Final postalCodeOptions:', {
-      optionsCount: options.length,
-      options: options
-    });
-    
-    return options;
   }, [postalCodeResults]);
 
   // Prepare city options
@@ -209,17 +190,6 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* DEBUG TEST BUTTON */}
-      <button 
-        onClick={async () => {
-          console.log('🧪 TEST BUTTON - Testing direct service call');
-          const testResults = await searchPostalCodes('50', 'BE', 10);
-          console.log('🧪 TEST RESULTS:', testResults);
-        }}
-        className="bg-red-500 text-white px-4 py-2 text-xs rounded"
-      >
-        TEST DIRECT API CALL (50, BE)
-      </button>
 
       {/* Country Selection */}
       <div>
@@ -249,35 +219,28 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
             <Input
               value={postalCode}
               onChange={(e) => {
-                console.log('🎯 INPUT POSTAL - onChange triggered:', {
-                  value: e.target.value,
-                  length: e.target.value.length,
-                  timestamp: new Date().toISOString()
-                });
                 handlePostalCodeChange(e.target.value);
+                setShowSuggestions(true);
               }}
+              onFocus={() => setShowSuggestions(true)}
               placeholder="Tapez votre code postal..."
               disabled={disabled}
             />
             {/* Show suggestions dropdown if we have postal code options */}
-            {postalCodeOptions.length > 0 && postalCode.length >= 2 && (
+            {showSuggestions && postalCodeOptions.length > 0 && postalCode.length >= 2 && (
               <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
                 {postalCodeOptions.map((option) => (
                   <div
                     key={option.value}
                     className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground text-sm"
                     onClick={() => {
-                      console.log('🎯 SUGGESTION CLICKED:', {
-                        value: option.value,
-                        extra: option.extra,
-                        timestamp: new Date().toISOString()
-                      });
                       handlePostalCodeChange(option.value);
                       // Auto-fill city if available
                       const selectedResult = postalCodeResults.find(r => r.postal_code === option.value);
                       if (selectedResult) {
                         onCityChange(selectedResult.city);
                       }
+                      setShowSuggestions(false);
                     }}
                   >
                     <div className="font-medium">{option.label}</div>
