@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
-import { useProductDetails } from "@/hooks/products/useProductDetails";
+import { useClientProductDetails } from "@/hooks/products/useClientProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
 import ProductLoadingState from "@/components/product-detail/ProductLoadingState";
 import ProductConfigurationSection from "@/components/product-detail/ProductConfigurationSection";
@@ -14,6 +14,7 @@ interface ClientProductDetailProps {
   companyId: string;
   companySlug: string;
   productId: string;
+  clientId: string;
   company: {
     id: string;
     name: string;
@@ -30,10 +31,11 @@ const ClientProductDetail: React.FC<ClientProductDetailProps> = ({
   companyId,
   companySlug,
   productId,
+  clientId,
   company,
   onBackToCatalog
 }) => {
-  // Use the same hook as ProductDetailPage
+  // Use the client-specific hook for custom pricing
   const {
     product,
     isLoading,
@@ -55,7 +57,7 @@ const ClientProductDetail: React.FC<ClientProductDetailProps> = ({
     hasAttributeOptions,
     variationAttributes,
     getOptionsForAttribute
-  } = useProductDetails(productId);
+  } = useClientProductDetails(productId, clientId);
   
   const attributeHelpers = useAttributeHelpers(
     specifications,

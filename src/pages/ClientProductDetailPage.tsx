@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import PublicProductDetail from '@/components/public/PublicProductDetail';
+import ClientProductDetail from '@/components/catalog/client/ClientProductDetail';
 import { supabase } from '@/integrations/supabase/client';
 import { useClientData } from '@/hooks/useClientData';
 
@@ -108,11 +108,13 @@ const ClientProductDetailPage: React.FC = () => {
           </Button>
         </div>
         
-        <PublicProductDetail
+        <ClientProductDetail
           companyId={company.id}
           companySlug={company.slug}
           productId={productId}
+          clientId={clientData?.id || ''}
           company={company}
+          onBackToCatalog={() => navigate('/client/products')}
         />
       </div>
     </div>
