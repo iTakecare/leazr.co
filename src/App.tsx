@@ -153,8 +153,7 @@ const AppRoutes = () => (
     
     {/* Redirect route removed - now handled by edge function redirect-upload */}
     
-    {/* Document upload routes */}
-    <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
+    {/* Document upload routes - moved to proper position to avoid slug conflicts */}
     
     {/* LEAZR SAAS ADMIN ROUTES - Dedicated routes for SaaS administration */}
     <Route path="/admin/leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
@@ -263,7 +262,8 @@ const AppRoutes = () => (
     <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
     <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
     
-    {/* Document upload routes with company slug */}
+    {/* Document upload routes - both with and without company slug */}
+    <Route path="/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
     <Route path="/:companySlug/offer/documents/upload/:token" element={<OfferDocumentUpload />} />
     
     {/* Direct redirect route for upload links */}

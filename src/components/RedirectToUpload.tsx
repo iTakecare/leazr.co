@@ -10,6 +10,8 @@ const RedirectToUpload = () => {
   useEffect(() => {
     const handleRedirect = async () => {
       console.log('🔗 REDIRECT - Starting redirect process with token:', token);
+      console.log('🔗 REDIRECT - Current location:', window.location.href);
+      console.log('🔗 REDIRECT - Current pathname:', window.location.pathname);
       
       if (!token) {
         console.error('❌ REDIRECT - No token provided in URL');
@@ -81,18 +83,16 @@ const RedirectToUpload = () => {
           console.warn('⚠️ REDIRECT - Error fetching company (proceeding without slug):', companyError);
         }
 
-        // Construire l'URL de redirection
-        const companySlug = company?.slug;
-        const redirectPath = companySlug 
-          ? `/${companySlug}/offer/documents/upload/${token}`
-          : `/offer/documents/upload/${token}`;
+        // Simplifier la redirection - toujours aller vers la route sans company slug
+        const redirectPath = `/offer/documents/upload/${token}`;
 
         console.log('🎯 REDIRECT - Final redirect path:', redirectPath);
+        console.log('🎯 REDIRECT - Company slug found:', company?.slug || 'none');
         console.log('⏰ REDIRECT - Adding 500ms delay before redirect for stability');
         
         // Ajouter un délai pour éviter les problèmes de timing
         setTimeout(() => {
-          console.log('🚀 REDIRECT - Executing navigation now');
+          console.log('🚀 REDIRECT - Executing navigation now to:', redirectPath);
           navigate(redirectPath, { replace: true });
         }, 500);
 
