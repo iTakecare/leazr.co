@@ -477,8 +477,7 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       `)
       .eq("client_id", clientId)
       .eq("is_active", true)
-      .eq("products.active", true)
-      .or("valid_to.is.null,valid_to.gte.now()", { foreignTable: "client_custom_prices" });
+      .eq("products.active", true);
 
     if (error) {
       console.error('Erreur lors du chargement des prix personnalisés:', error);
