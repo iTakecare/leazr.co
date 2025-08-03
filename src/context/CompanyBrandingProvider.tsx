@@ -27,10 +27,10 @@ export const CompanyBrandingProvider: React.FC<CompanyBrandingProviderProps> = (
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.company_id) {
-      fetchCompanyBranding(user.company_id);
+    if (user?.company) {
+      fetchCompanyBranding(user.company);
     }
-  }, [user?.company_id]);
+  }, [user?.company]);
 
   const fetchCompanyBranding = async (companyId: string) => {
     try {
