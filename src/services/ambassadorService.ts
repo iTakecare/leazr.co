@@ -5,6 +5,8 @@ import { z } from "zod";
 export interface Ambassador {
   id: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone?: string;
   region?: string;
@@ -31,7 +33,9 @@ export interface Ambassador {
 
 // Zod schema for form validation
 export const ambassadorSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
+  first_name: z.string().min(1, "Le prénom est requis"),
+  last_name: z.string().min(1, "Le nom de famille est requis"),
+  name: z.string().optional(), // Généré automatiquement
   email: z.string().email("Email invalide").or(z.literal("")),
   phone: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),

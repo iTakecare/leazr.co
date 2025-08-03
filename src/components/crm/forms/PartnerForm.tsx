@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Save } from "lucide-react";
 import { partnerSchema, PartnerFormValues } from "@/services/partnerService";
+import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 
 interface PartnerFormProps {
   initialData?: PartnerFormValues;
@@ -39,22 +40,42 @@ const PartnerForm = ({
   // Default values for the form
   const defaultValues: PartnerFormValues = {
     name: "",
+    first_name: "",
+    last_name: "",
     contact_name: "",
     email: "",
     phone: "",
     type: "Revendeur",
     status: "active",
     notes: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    country: "",
   };
 
   const form = useForm<PartnerFormValues>({
     resolver: zodResolver(partnerSchema),
-    defaultValues: initialData || defaultValues,
+    defaultValues: initialData ? {
+      ...defaultValues,
+      ...initialData,
+      first_name: initialData.first_name || initialData.contact_name?.split(' ')[0] || "",
+      last_name: initialData.last_name || initialData.contact_name?.split(' ').slice(1).join(' ') || "",
+    } : defaultValues,
   });
+
+  const handleSubmit = (values: PartnerFormValues) => {
+    // Générer automatiquement le nom de contact
+    const submitValues = {
+      ...values,
+      contact_name: `${values.first_name} ${values.last_name}`.trim(),
+    };
+    onSubmit(submitValues);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-medium mb-4">Informations entreprise</h3>
@@ -103,12 +124,26 @@ const PartnerForm = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="contact_name"
+                name="first_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom du contact*</FormLabel>
+                    <FormLabel>Prénom*</FormLabel>
                     <FormControl>
-                      <Input placeholder="Exemple: Jean Dupont" {...field} />
+                      <Input placeholder="Jean" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom de famille*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dupont" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -167,6 +202,18 @@ const PartnerForm = ({
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+            </div>
+
+            <div className="mt-6">
+              <h4 className="text-md font-medium mb-4">Adresse</h4>
+              <PostalCodeInput
+                postalCode={form.watch("postal_code") || ""}
+                city={form.watch("city") || ""}
+                country={form.watch("country") || ""}
+                onPostalCodeChange={(value) => form.setValue("postal_code", value)}
+                onCityChange={(value) => form.setValue("city", value)}
+                onCountryChange={(value) => form.setValue("country", value)}
               />
             </div>
           </div>

@@ -158,9 +158,11 @@ export type Database = {
           country: string | null
           created_at: string | null
           email: string
+          first_name: string | null
           has_user_account: boolean | null
           id: string
           last_commission: number | null
+          last_name: string | null
           name: string
           notes: string | null
           pdf_template_id: string | null
@@ -184,9 +186,11 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           email: string
+          first_name?: string | null
           has_user_account?: boolean | null
           id?: string
           last_commission?: number | null
+          last_name?: string | null
           name: string
           notes?: string | null
           pdf_template_id?: string | null
@@ -210,9 +214,11 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           email?: string
+          first_name?: string | null
           has_user_account?: boolean | null
           id?: string
           last_commission?: number | null
+          last_name?: string | null
           name?: string
           notes?: string | null
           pdf_template_id?: string | null
@@ -3273,19 +3279,25 @@ export type Database = {
       }
       partners: {
         Row: {
+          address: string | null
+          city: string | null
           clients_count: number | null
           commission_level_id: string | null
           company_id: string
           contact_name: string
+          country: string | null
           created_at: string | null
           email: string
+          first_name: string | null
           has_user_account: boolean | null
           id: string
+          last_name: string | null
           last_transaction: number | null
           name: string
           notes: string | null
           pdf_template_id: string | null
           phone: string | null
+          postal_code: string | null
           revenue_total: number | null
           status: string
           type: string
@@ -3294,19 +3306,25 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           clients_count?: number | null
           commission_level_id?: string | null
           company_id: string
           contact_name: string
+          country?: string | null
           created_at?: string | null
           email: string
+          first_name?: string | null
           has_user_account?: boolean | null
           id?: string
+          last_name?: string | null
           last_transaction?: number | null
           name: string
           notes?: string | null
           pdf_template_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           revenue_total?: number | null
           status?: string
           type: string
@@ -3315,19 +3333,25 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
           clients_count?: number | null
           commission_level_id?: string | null
           company_id?: string
           contact_name?: string
+          country?: string | null
           created_at?: string | null
           email?: string
+          first_name?: string | null
           has_user_account?: boolean | null
           id?: string
+          last_name?: string | null
           last_transaction?: number | null
           name?: string
           notes?: string | null
           pdf_template_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           revenue_total?: number | null
           status?: string
           type?: string

@@ -26,9 +26,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { verifyVatNumber } from "@/services/clientService";
 import { Loader2, Check, AlertCircle, Search } from "lucide-react";
 import { toast } from "sonner";
+import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 
 const ambassadorSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  first_name: z.string().min(1, "Le prénom est requis"),
+  last_name: z.string().min(1, "Le nom de famille est requis"),
+  name: z.string().optional(),
   email: z.string().email("Veuillez entrer un email valide"),
   phone: z.string().min(5, "Veuillez entrer un numéro de téléphone valide"),
   status: z.enum(["active", "inactive"]).optional(),
@@ -61,7 +64,23 @@ const AmbassadorForm = ({
   
   const form = useForm<AmbassadorFormValues>({
     resolver: zodResolver(ambassadorSchema),
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      first_name: initialData.first_name || initialData.name?.split(' ')[0] || "",
+      last_name: initialData.last_name || initialData.name?.split(' ').slice(1).join(' ') || "",
+      name: initialData.name || "",
+      email: initialData.email || "",
+      phone: initialData.phone || "",
+      status: initialData.status || "active",
+      notes: initialData.notes || "",
+      company: initialData.company || "",
+      vat_number: initialData.vat_number || "",
+      address: initialData.address || "",
+      city: initialData.city || "",
+      postal_code: initialData.postal_code || "",
+      country: initialData.country || "",
+    } : {
+      first_name: "",
+      last_name: "",
       name: "",
       email: "",
       phone: "",
@@ -97,7 +116,7 @@ const AmbassadorForm = ({
         // Auto-remplissage des champs si les données sont disponibles
         if (result.companyName) {
           form.setValue("company", result.companyName);
-          form.setValue("name", result.companyName); // Utiliser le nom de société comme nom principal
+          // Ne pas écraser le nom avec le nom de société
         }
         
         if (result.address) {
@@ -127,9 +146,18 @@ const AmbassadorForm = ({
     }
   };
 
+  const handleSubmit = (values: AmbassadorFormValues) => {
+    // Générer automatiquement le nom complet
+    const submitValues = {
+      ...values,
+      name: `${values.first_name} ${values.last_name}`.trim(),
+    };
+    onSubmit(submitValues);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-6">
@@ -215,47 +243,14 @@ const AmbassadorForm = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ville</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ville" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="postal_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Code postal</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Code postal" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pays</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Pays" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div className="mt-4">
+                  <PostalCodeInput
+                    postalCode={form.watch("postal_code") || ""}
+                    city={form.watch("city") || ""}
+                    country={form.watch("country") || ""}
+                    onPostalCodeChange={(value) => form.setValue("postal_code", value)}
+                    onCityChange={(value) => form.setValue("city", value)}
+                    onCountryChange={(value) => form.setValue("country", value)}
                   />
                 </div>
               </div>
@@ -265,12 +260,26 @@ const AmbassadorForm = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="first_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nom complet*</FormLabel>
+                        <FormLabel>Prénom*</FormLabel>
                         <FormControl>
-                          <Input placeholder="Jean Dupont" {...field} />
+                          <Input placeholder="Jean" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="last_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom de famille*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Dupont" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

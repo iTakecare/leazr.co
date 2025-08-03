@@ -6,12 +6,18 @@ import { z } from "zod";
 // Définition du schéma pour les données de partenaire
 export const partnerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  contact_name: z.string().min(2, "Le nom de contact doit contenir au moins 2 caractères"),
+  first_name: z.string().min(1, "Le prénom est requis"),
+  last_name: z.string().min(1, "Le nom de famille est requis"),
+  contact_name: z.string().optional(), // Généré automatiquement
   email: z.string().email("Veuillez entrer un email valide"),
   phone: z.string().optional(),
   type: z.string().min(1, "Le type est requis"),
   status: z.enum(["active", "inactive"]).optional(),
   notes: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postal_code: z.string().optional(),
+  country: z.string().optional(),
   commission_level_id: z.string().optional(),
 });
 
@@ -22,12 +28,18 @@ export type PartnerFormValues = z.infer<typeof partnerSchema>;
 export interface Partner {
   id: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
   contact_name: string;
   email: string;
   phone?: string;
   type: string;
   status: string;
   notes?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
   created_at?: string;
   updated_at?: string;
   clients_count?: number;
