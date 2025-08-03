@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield, MapPin } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
@@ -19,6 +19,7 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
+import { PostalCodeImport } from '@/components/admin/PostalCodeImport';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -74,7 +75,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -110,6 +111,10 @@ const Settings: React.FC = () => {
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             Chat
+          </TabsTrigger>
+          <TabsTrigger value="postal-codes" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Codes Postaux
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -170,6 +175,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="chat" className="mt-6">
           <ChatSettings />
+        </TabsContent>
+
+        <TabsContent value="postal-codes" className="mt-6">
+          <PostalCodeImport />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
