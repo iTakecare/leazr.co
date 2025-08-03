@@ -44,11 +44,13 @@ export const getCompanyByOfferId = async (offerId: string): Promise<CompanyInfo 
       .single();
 
     if (offerError || !offer) {
-      console.error('Error fetching offer:', offerError);
+      console.error('🔍 DEBUG - Error fetching offer:', offerError);
       return null;
     }
 
-    // Then get the company info
+    console.log('🔍 DEBUG - Offer found, company_id:', offer.company_id);
+
+    // Get the company info with customizations
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .select('id, name, logo_url, primary_color, secondary_color, accent_color')
@@ -56,13 +58,38 @@ export const getCompanyByOfferId = async (offerId: string): Promise<CompanyInfo 
       .single();
 
     if (companyError || !company) {
-      console.error('Error fetching company:', companyError);
+      console.error('🔍 DEBUG - Error fetching company:', companyError);
       return null;
     }
 
-    return company as CompanyInfo;
+    console.log('🔍 DEBUG - Company data from companies table:', company);
+
+    // Also try to get customizations data
+    const { data: customizations, error: customError } = await supabase
+      .from('company_customizations')
+      .select('logo_url, primary_color, secondary_color, accent_color')
+      .eq('company_id', offer.company_id)
+      .single();
+
+    console.log('🔍 DEBUG - Company customizations data:', customizations);
+    console.log('🔍 DEBUG - Company customizations error:', customError);
+
+    // Merge data, prioritizing customizations over company table
+    const finalCompanyInfo = {
+      ...company,
+      ...(customizations && {
+        logo_url: customizations.logo_url || company.logo_url,
+        primary_color: customizations.primary_color || company.primary_color,
+        secondary_color: customizations.secondary_color || company.secondary_color,
+        accent_color: customizations.accent_color || company.accent_color,
+      })
+    };
+
+    console.log('🔍 DEBUG - Final company info:', finalCompanyInfo);
+
+    return finalCompanyInfo as CompanyInfo;
   } catch (error) {
-    console.error('Error in getCompanyByOfferId:', error);
+    console.error('🔍 DEBUG - Error in getCompanyByOfferId:', error);
     return null;
   }
 };
