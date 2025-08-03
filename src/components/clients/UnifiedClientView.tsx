@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Client } from "@/types/client";
 import { updateClient } from "@/services/clientService";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
   AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe
@@ -38,6 +39,20 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   const [client, setClient] = useState<Client>(initialClient);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch leasers for the default leaser selector
+  const { data: leasers = [] } = useQuery({
+    queryKey: ["leasers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leasers")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
   const [formData, setFormData] = useState({
     name: client.name || "",
     email: client.email || "",
@@ -51,6 +66,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     contact_name: client.contact_name || "",
     notes: client.notes || "",
     status: client.status || "active",
+    default_leaser_id: client.default_leaser_id || "",
   });
 
   useEffect(() => {
@@ -68,6 +84,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       contact_name: initialClient.contact_name || "",
       notes: initialClient.notes || "",
       status: initialClient.status || "active",
+      default_leaser_id: initialClient.default_leaser_id || "",
     });
   }, [initialClient]);
 
@@ -110,6 +127,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       contact_name: client.contact_name || "",
       notes: client.notes || "",
       status: client.status || "active",
+      default_leaser_id: client.default_leaser_id || "",
     });
     setIsEditing(false);
   };
@@ -333,6 +351,28 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                     { value: "inactive", label: "Inactif" },
                     { value: "lead", label: "Prospect" }
                   ])}
+                </div>
+
+                {/* Leaser par défaut */}
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <Package className="h-4 w-4 text-primary" />
+                    Configuration financière
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {renderField(
+                      "Leaser par défaut", 
+                      "default_leaser_id", 
+                      isEditing 
+                        ? formData.default_leaser_id
+                        : leasers.find(l => l.id === client.default_leaser_id)?.name || "Aucun",
+                      "select", 
+                      leasers.map(leaser => ({
+                        value: leaser.id,
+                        label: leaser.name
+                      }))
+                    )}
+                  </div>
                 </div>
                 
                 {/* Adresse de facturation */}
