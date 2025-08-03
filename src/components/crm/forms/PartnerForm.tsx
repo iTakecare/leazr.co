@@ -213,7 +213,6 @@ const PartnerForm = ({
                 country={form.watch("country") || ""}
                 onPostalCodeChange={(value) => form.setValue("postal_code", value)}
                 onCityChange={(value) => form.setValue("city", value)}
-                onCountryChange={(value) => form.setValue("country", value)}
               />
             </div>
           </div>

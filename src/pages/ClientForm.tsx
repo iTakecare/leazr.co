@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { PostalCodeInput } from '@/components/form/PostalCodeInput';
+import { Combobox } from '@/components/ui/combobox';
 import { linkClientToAmbassador } from '@/services/ambassador/ambassadorClients';
 import { createClient, getClientById, updateClient } from '@/services/clientService';
-import { formatPhoneWithCountry } from '@/services/postalCodeService';
+import { formatPhoneWithCountry, getCountries, getDefaultCountryForCompany } from '@/services/postalCodeService';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Phone } from 'lucide-react';
+import { ArrowLeft, Phone, Flag } from 'lucide-react';
 
 const ClientForm = () => {
   const { id } = useParams();
@@ -36,6 +38,28 @@ const ClientForm = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Fetch available countries
+  const { data: countries = [] } = useQuery({
+    queryKey: ['countries'],
+    queryFn: getCountries,
+  });
+
+  // Get default country for company
+  const { data: defaultCountry } = useQuery({
+    queryKey: ['default-country'],
+    queryFn: getDefaultCountryForCompany,
+  });
+
+  // Set default country when available
+  useEffect(() => {
+    if (defaultCountry && !formData.country) {
+      setFormData(prev => ({
+        ...prev,
+        country: defaultCountry
+      }));
+    }
+  }, [defaultCountry, formData.country]);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -242,38 +266,56 @@ const ClientForm = () => {
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="phone" className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    Téléphone
-                  </Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Ex: +32 2 123 45 67"
-                  />
-                </div>
+                 <div>
+                   <Label htmlFor="phone" className="flex items-center gap-2">
+                     <Phone className="h-4 w-4" />
+                     Téléphone
+                   </Label>
+                   <Input
+                     id="phone"
+                     value={formData.phone}
+                     onChange={(e) => handleInputChange('phone', e.target.value)}
+                     placeholder="Ex: +32 2 123 45 67"
+                   />
+                 </div>
+                 
+                 <div>
+                   <Label className="flex items-center gap-2">
+                     <Flag className="h-4 w-4" />
+                     Pays
+                   </Label>
+                   <Combobox
+                     options={countries.map(country => ({
+                       value: country.code,
+                       label: `${country.flag} ${country.name_fr}`,
+                       extra: country.name_en
+                     }))}
+                     value={formData.country}
+                     onValueChange={handleCountryChange}
+                     placeholder="Sélectionner un pays..."
+                     searchPlaceholder="Rechercher un pays..."
+                     emptyMessage="Aucun pays trouvé."
+                   />
+                 </div>
+                 
+                 <div className="md:col-span-2">
+                   <Label htmlFor="address">Adresse</Label>
+                   <Input
+                     id="address"
+                     value={formData.address}
+                     onChange={(e) => handleInputChange('address', e.target.value)}
+                   />
+                 </div>
                 
-                <div className="md:col-span-2">
-                  <Label htmlFor="address">Adresse</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <PostalCodeInput
-                    postalCode={formData.postal_code}
-                    city={formData.city}
-                    country={formData.country}
-                    onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
-                    onCityChange={(value) => handleInputChange('city', value)}
-                    onCountryChange={handleCountryChange}
-                  />
-                </div>
+                 <div className="md:col-span-2">
+                   <PostalCodeInput
+                     postalCode={formData.postal_code}
+                     city={formData.city}
+                     country={formData.country}
+                     onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
+                     onCityChange={(value) => handleInputChange('city', value)}
+                   />
+                 </div>
                 
                 <div>
                   <Label htmlFor="vat_number">Numéro de TVA</Label>
