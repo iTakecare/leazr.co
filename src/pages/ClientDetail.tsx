@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -10,10 +10,14 @@ import UnifiedClientView from "@/components/clients/UnifiedClientView";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { navigateToAdmin } = useRoleNavigation();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if we should start in edit mode
+  const shouldStartInEditMode = searchParams.get('edit') === 'true';
 
   const fetchClient = async () => {
     if (!id) {
@@ -104,7 +108,12 @@ export default function ClientDetail() {
         onClientUpdate={(updatedClient) => {
           setClient(updatedClient);
           toast.success("Client mis à jour avec succès");
+          // Remove edit parameter from URL after successful save
+          if (searchParams.get('edit') === 'true') {
+            setSearchParams({});
+          }
         }}
+        initialEditMode={shouldStartInEditMode}
       />
     </div>
   );

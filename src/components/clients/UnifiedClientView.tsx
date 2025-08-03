@@ -30,15 +30,17 @@ interface UnifiedClientViewProps {
   client: Client;
   onClientUpdate?: (updatedClient: Client) => void;
   readOnly?: boolean;
+  initialEditMode?: boolean;
 }
 
 const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   client: initialClient,
   onClientUpdate,
-  readOnly = false
+  readOnly = false,
+  initialEditMode = false
 }) => {
   const [client, setClient] = useState<Client>(initialClient);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch leasers for the default leaser selector

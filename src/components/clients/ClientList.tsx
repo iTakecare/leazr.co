@@ -43,8 +43,8 @@ const ClientList: React.FC<ClientListProps> = ({
   const handleEditClient = (client: Client) => {
     console.log("Editing client:", client);
     if (client.id) {
-      console.log("Navigating to client edit:", `clients/edit/${client.id}`);
-      navigateToAdmin(`clients/edit/${client.id}`);
+      console.log("Navigating to client detail with edit mode:", `clients/${client.id}?edit=true`);
+      navigateToAdmin(`clients/${client.id}?edit=true`);
       onEditClient(client.id);
     } else {
       console.error("Client ID is missing:", client);

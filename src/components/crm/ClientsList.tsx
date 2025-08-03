@@ -88,7 +88,7 @@ const ClientsList: React.FC<ClientsListProps> = ({
   };
 
   const handleEditClient = (id: string) => {
-    navigateToAdmin(`clients/edit/${id}`);
+    navigateToAdmin(`clients/${id}?edit=true`);
   };
 
   const handleViewClient = (id: string) => {
