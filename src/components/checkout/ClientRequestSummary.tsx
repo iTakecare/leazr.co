@@ -54,17 +54,18 @@ const ClientRequestSummary: React.FC = () => {
     
     const equipmentDescription = `Demande client pour les équipements suivants:\n\n${equipmentLines.join('\n')}\n\nTotal mensuel: ${formatCurrency(cartTotal)}`;
     
-    // Calculate total financed amount (assuming 36 months default)
-    const defaultDuration = 36;
-    const financedAmount = cartTotal * defaultDuration;
-    
-    // Calculate total purchase price from cart items
+    // Calculate total purchase price from cart items using actual product prices
     const totalPurchasePrice = items.reduce((total, item) => {
       const price = getProductPrice(item.product, item.selectedOptions);
-      // Estimate purchase price as 80% of monthly price * duration (common leasing ratio)
-      const estimatedPurchasePrice = price.monthlyPrice * defaultDuration * 0.8;
-      return total + (estimatedPurchasePrice * item.quantity);
+      // Use actual purchase price from product, with fallback to monthly price * realistic coefficient
+      const purchasePrice = price.purchasePrice > 0 ? price.purchasePrice : (price.monthlyPrice * 2.0);
+      return total + (purchasePrice * item.quantity);
     }, 0);
+    
+    // Calculate coefficient and financed amount
+    const defaultDuration = 36;
+    const coefficient = totalPurchasePrice > 0 ? (cartTotal * 100) / totalPurchasePrice : 2.8;
+    const financedAmount = totalPurchasePrice + (totalPurchasePrice * 0.15); // Purchase price + 15% margin
     
     const requestData = {
       type: 'client_request',
@@ -72,11 +73,11 @@ const ClientRequestSummary: React.FC = () => {
       client_email: clientData.email || '',
       client_contact_email: clientData.email || '',
       equipment_description: equipmentDescription,
-      amount: Number(totalPurchasePrice) || 0, // Use calculated purchase price
-      monthly_payment: Number(cartTotal) || 0,
-      financed_amount: Number(financedAmount) || 0,
-      coefficient: 1,
-      margin: Number(financedAmount - totalPurchasePrice) || 0, // Calculate margin
+      amount: Number(totalPurchasePrice) || 0, // Total purchase price
+      monthly_payment: Number(cartTotal) || 0, // Total monthly payment
+      financed_amount: Number(financedAmount) || 0, // Purchase price + margin
+      coefficient: Number(coefficient.toFixed(2)) || 2.8,
+      margin: Number(financedAmount - totalPurchasePrice) || 0, // Actual margin
       status: 'pending',
       workflow_status: 'draft',
       company_id: companyId,

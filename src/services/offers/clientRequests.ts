@@ -61,17 +61,16 @@ export const createClientRequest = async (data: any, cartItems?: any[]) => {
       
       for (const item of cartItems) {
         try {
-          const price = item.price || { monthlyPrice: 0 };
-          const defaultDuration = 36;
-          // Estimate purchase price as 80% of monthly price * duration
-          const estimatedPurchasePrice = price.monthlyPrice * defaultDuration * 0.8;
+          const price = item.price || { monthlyPrice: 0, purchasePrice: 0 };
+          // Use actual purchase price, with fallback to monthly price * realistic coefficient
+          const actualPurchasePrice = price.purchasePrice > 0 ? price.purchasePrice : (price.monthlyPrice * 2.0);
           
           const equipment = {
             offer_id: result.id,
             title: item.product.name,
-            purchase_price: estimatedPurchasePrice,
+            purchase_price: actualPurchasePrice,
             quantity: item.quantity,
-            margin: 0, // Will be calculated later by admin
+            margin: actualPurchasePrice * 0.15, // 15% margin
             monthly_payment: price.monthlyPrice,
             serial_number: null
           };
