@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
+import { CompanyBrandingProvider } from "@/context/CompanyBrandingProvider";
 import { CartProvider } from "@/context/CartContext";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -100,16 +100,156 @@ import Layout from "@/components/layout/Layout";
 import CartPage from "@/pages/CartPage";
 import ClientRoutes from "@/components/layout/ClientRoutes";
 
+// Create QueryClient instance outside component to prevent recreation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });
 
+// Main App Routes component
+const AppRoutes = () => (
+  <Routes>
+    {/* AUTHENTICATION ROUTES - HIGHEST PRIORITY */}
+    <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/update-password" element={<UpdatePassword />} />
+    <Route path="/register" element={<Signup />} />
+    
+    {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}
+    <Route path="/solutions" element={<SolutionsPage />} />
+    <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
+    <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
+    <Route path="/solutions/crm" element={<CRMFeaturePage />} />
+    <Route path="/solutions/calculateur" element={<CalculatorPage />} />
+    <Route path="/services" element={<ServicesPage />} />
+    <Route path="/ressources" element={<ResourcesPage />} />
+    <Route path="/a-propos" element={<AboutPage />} />
+    <Route path="/contact" element={<ContactPage />} />
+    <Route path="/blog" element={<ResourcesPage />} />
+    <Route path="/tarifs" element={<PricingPage />} />
+    
+    {/* Public routes */}
+    <Route path="/" element={<HomePage />} />
+    <Route path="/catalog" element={<PublicCatalogList />} />
+    <Route path="/debug-slugs" element={<DebugSlugs />} />
+    
+    {/* Client offer signing route - needs access to providers */}
+    <Route path="/client/offer/:id/sign" element={<SignOffer />} />
+    
+    {/* CONTRACT ROUTES - Must be before system routes to avoid slug interception */}
+    <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
+    <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
+    
+    {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
+    <Route path="/:companySlug/ambassador/*" element={<AmbassadorPrivateRoute />}>
+      <Route path="" element={<AmbassadorLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AmbassadorDashboardPage />} />
+        <Route path="catalog" element={<AmbassadorCatalogPage />} />
+        <Route path="products/:id" element={<AmbassadorProductDetailPage />} />
+        <Route path="custom-offer-generator" element={<CustomOfferGeneratorPage />} />
+        <Route path="create-offer" element={<AmbassadorCreateOffer />} />
+        <Route path="clients" element={<AmbassadorClientsPage />} />
+        <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
+        <Route path="offers" element={<AmbassadorOffersPage />} />
+        <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
+      </Route>
+    </Route>
+    
+    {/* ⚠️ MULTI-TENANT ADMIN ROUTES ⚠️ */}
+    <Route path="/:companySlug/admin/*" element={<AdminPrivateRoute />}>
+      {/* Admin routes with Layout */}
+      <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+      <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
+      <Route path="leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
+      <Route path="leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
+      <Route path="leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
+      <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
+      <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
+      <Route path="clients" element={<Layout><Clients /></Layout>} />
+      <Route path="clients/:id" element={<Layout><ClientDetail /></Layout>} />
+      <Route path="clients/edit/:id" element={<Layout><ClientEditPage /></Layout>} />
+      <Route path="offers" element={<Layout><Offers /></Layout>} />
+      <Route path="offers/:id" element={<Layout><AdminOfferDetail /></Layout>} />
+      <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
+      <Route path="contracts" element={<Layout><Contracts /></Layout>} />
+      <Route path="settings" element={<Layout><Settings /></Layout>} />
+      <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
+      <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
+      <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
+      <Route path="invoicing/:id" element={<Layout><InvoiceDetailPage /></Layout>} />
+      <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
+      <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
+      <Route path="panier" element={<Layout><CartPage /></Layout>} />
+      
+      {/* Unified product form routes - handles both creation and editing */}
+      <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
+      
+      {/* Legacy redirects for backward compatibility */}
+      <Route path="catalog/create" element={<Layout><ProductFormPage /></Layout>} />
+      <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
+    </Route>
+
+    {/* ⚠️ MULTI-TENANT CLIENT & PARTNER ROUTES ⚠️ */}
+    <Route path="/:companySlug/client/*" element={<ClientPrivateRoute />}>
+      <Route path="*" element={<ClientRoutes />} />
+    </Route>
+    <Route path="/:companySlug/partner/*" element={<PartnerPrivateRoute />}>
+      <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+    </Route>
+    
+    {/* Legacy routes - redirect to home for slug-based routing */}
+    <Route path="/admin/*" element={<Navigate to="/" replace />} />
+    
+    {/* Ambassador management routes */}
+    <Route path="/ambassadors/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+      <Route path="" element={<Layout><AmbassadorsList /></Layout>} />
+      <Route path=":id" element={<Layout><AmbassadorDetail /></Layout>} />
+      <Route path="edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
+      <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
+    </Route>
+    
+    
+    {/* Other protected routes */}
+    <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
+      {/* Legacy product form routes */}
+      <Route path="/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
+      <Route path="/catalog/create" element={<Layout><ProductFormPage /></Layout>} />
+      <Route path="/catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
+      
+      {/* Default dashboard route */}
+      <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+    </Route>
+    
+    {/* ⚠️ COMPANY SLUG-BASED ROUTES MUST BE LAST ⚠️ */}
+    {/* These routes are generic and will match any pattern, so they must come */}
+    {/* after ALL system routes (/ambassador/*, /admin/*, etc.) */}
+    {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
+    {/* Validation is handled in CompanySlugGuard component */}
+    <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
+    <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
+    <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
+    <Route path="/:companySlug/pack/:packId" element={<PackDetailPage />} />
+    <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
+    <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
+    
+    {/* Catch-all company slug route - fallback for company pages */}
+    <Route path="/:companySlug" element={<CompanySlugGuard />} />
+  </Routes>
+);
+
 function App() {
+  console.log('🚀 App component rendering...');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -118,135 +258,7 @@ function App() {
             <AuthProvider>
               <CompanyBrandingProvider>
                 <CartProvider>
-                    <Routes>
-                       {/* AUTHENTICATION ROUTES - HIGHEST PRIORITY */}
-                       <Route path="/login" element={<Login />} />
-                       <Route path="/signup" element={<Signup />} />
-                       <Route path="/forgot-password" element={<ForgotPassword />} />
-                       <Route path="/update-password" element={<UpdatePassword />} />
-                       <Route path="/register" element={<Signup />} />
-                      
-                      {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}
-                      <Route path="/solutions" element={<SolutionsPage />} />
-                      <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />
-                      <Route path="/solutions/professionnels" element={<ProfessionalsSolutionsPage />} />
-                      <Route path="/solutions/crm" element={<CRMFeaturePage />} />
-                      <Route path="/solutions/calculateur" element={<CalculatorPage />} />
-                      <Route path="/services" element={<ServicesPage />} />
-                      <Route path="/ressources" element={<ResourcesPage />} />
-                      <Route path="/a-propos" element={<AboutPage />} />
-                      <Route path="/contact" element={<ContactPage />} />
-                      <Route path="/blog" element={<ResourcesPage />} />
-                      <Route path="/tarifs" element={<PricingPage />} />
-                      
-                      {/* Public routes */}
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/catalog" element={<PublicCatalogList />} />
-                      <Route path="/debug-slugs" element={<DebugSlugs />} />
-                      
-                      {/* Client offer signing route - needs access to providers */}
-                      <Route path="/client/offer/:id/sign" element={<SignOffer />} />
-                      
-                      {/* CONTRACT ROUTES - Must be before system routes to avoid slug interception */}
-                      <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
-                      <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
-                      
-                      {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
-                      <Route path="/:companySlug/ambassador/*" element={<AmbassadorPrivateRoute />}>
-                        <Route path="" element={<AmbassadorLayout />}>
-                          <Route index element={<Navigate to="dashboard" replace />} />
-                          <Route path="dashboard" element={<AmbassadorDashboardPage />} />
-                          <Route path="catalog" element={<AmbassadorCatalogPage />} />
-                          <Route path="products/:id" element={<AmbassadorProductDetailPage />} />
-                          <Route path="custom-offer-generator" element={<CustomOfferGeneratorPage />} />
-                          <Route path="create-offer" element={<AmbassadorCreateOffer />} />
-                          <Route path="clients" element={<AmbassadorClientsPage />} />
-                          <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
-                          <Route path="offers" element={<AmbassadorOffersPage />} />
-                          <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
-                        </Route>
-                      </Route>
-                      
-                      {/* ⚠️ MULTI-TENANT ADMIN ROUTES ⚠️ */}
-                      <Route path="/:companySlug/admin/*" element={<AdminPrivateRoute />}>
-                        {/* Admin routes with Layout */}
-                        <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
-                        <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
-                        <Route path="leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
-                        <Route path="leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
-                        <Route path="leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
-                        <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
-                        <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
-                        <Route path="clients" element={<Layout><Clients /></Layout>} />
-                        <Route path="clients/:id" element={<Layout><ClientDetail /></Layout>} />
-                        <Route path="clients/edit/:id" element={<Layout><ClientEditPage /></Layout>} />
-                        <Route path="offers" element={<Layout><Offers /></Layout>} />
-                        <Route path="offers/:id" element={<Layout><AdminOfferDetail /></Layout>} />
-                        <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
-                        <Route path="contracts" element={<Layout><Contracts /></Layout>} />
-                        <Route path="settings" element={<Layout><Settings /></Layout>} />
-                        <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
-                        <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
-                        <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
-                        <Route path="invoicing/:id" element={<Layout><InvoiceDetailPage /></Layout>} />
-                        <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
-                        <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
-                        <Route path="panier" element={<Layout><CartPage /></Layout>} />
-                        
-                        {/* Unified product form routes - handles both creation and editing */}
-                        <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
-                        
-                        {/* Legacy redirects for backward compatibility */}
-                        <Route path="catalog/create" element={<Layout><ProductFormPage /></Layout>} />
-                        <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
-                      </Route>
-
-                      {/* ⚠️ MULTI-TENANT CLIENT & PARTNER ROUTES ⚠️ */}
-                      <Route path="/:companySlug/client/*" element={<ClientPrivateRoute />}>
-                        <Route path="*" element={<ClientRoutes />} />
-                      </Route>
-                      <Route path="/:companySlug/partner/*" element={<PartnerPrivateRoute />}>
-                        <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
-                      </Route>
-                      
-                      {/* Legacy routes - redirect to home for slug-based routing */}
-                      <Route path="/admin/*" element={<Navigate to="/" replace />} />
-                      
-                      {/* Ambassador management routes */}
-                      <Route path="/ambassadors/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
-                        <Route path="" element={<Layout><AmbassadorsList /></Layout>} />
-                        <Route path=":id" element={<Layout><AmbassadorDetail /></Layout>} />
-                        <Route path="edit/:id" element={<Layout><AmbassadorEditPage /></Layout>} />
-                        <Route path="create" element={<Layout><AmbassadorCreatePage /></Layout>} />
-                      </Route>
-                      
-                      
-                      {/* Other protected routes */}
-                      <Route element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
-                        {/* Legacy product form routes */}
-                        <Route path="/catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
-                        <Route path="/catalog/create" element={<Layout><ProductFormPage /></Layout>} />
-                        <Route path="/catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
-                        
-                        {/* Default dashboard route */}
-                        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-                      </Route>
-                      
-                      {/* ⚠️ COMPANY SLUG-BASED ROUTES MUST BE LAST ⚠️ */}
-                      {/* These routes are generic and will match any pattern, so they must come */}
-                      {/* after ALL system routes (/ambassador/*, /admin/*, etc.) */}
-                      {/* Company slug-based routes - MUST be at the end to avoid intercepting system routes */}
-                      {/* Validation is handled in CompanySlugGuard component */}
-                      <Route path="/:companySlug/catalog" element={<CompanySlugGuard />} />
-                      <Route path="/:companySlug/products/:productSlug" element={<PublicSlugProductBySlug />} />
-                      <Route path="/:companySlug/products/:productId" element={<PublicSlugProductDetails />} />
-                      <Route path="/:companySlug/pack/:packId" element={<PackDetailPage />} />
-                      <Route path="/:companySlug/panier" element={<PublicSlugCart />} />
-                      <Route path="/:companySlug/demande" element={<PublicSlugRequestSteps />} />
-                      
-                      {/* Catch-all company slug route - fallback for company pages */}
-                      <Route path="/:companySlug" element={<CompanySlugGuard />} />
-                     </Routes>
+                  <AppRoutes />
                 </CartProvider>
               </CompanyBrandingProvider>
             </AuthProvider>
