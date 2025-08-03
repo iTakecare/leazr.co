@@ -21,6 +21,8 @@ const ClientForm = () => {
   
   const [formData, setFormData] = useState({
     name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     company: '',
     phone: '',
@@ -46,8 +48,37 @@ const ClientForm = () => {
     try {
       const client = await getClientById(clientId);
       if (client) {
+        // Parse existing name if first_name/last_name don't exist
+        const parseExistingName = () => {
+          if (client.first_name || client.last_name) {
+            return {
+              first_name: client.first_name || "",
+              last_name: client.last_name || ""
+            };
+          }
+          
+          const nameToparse = client.contact_name || client.name || "";
+          const nameParts = nameToparse.trim().split(' ');
+          
+          if (nameParts.length >= 2) {
+            return {
+              first_name: nameParts[0],
+              last_name: nameParts.slice(1).join(' ')
+            };
+          } else {
+            return {
+              first_name: nameToparse,
+              last_name: ""
+            };
+          }
+        };
+
+        const parsedName = parseExistingName();
+
         setFormData({
           name: client.name || '',
+          first_name: parsedName.first_name,
+          last_name: parsedName.last_name,
           email: client.email || '',
           company: client.company || '',
           phone: client.phone || '',
@@ -70,19 +101,30 @@ const ClientForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
-      toast.error('Le nom du client est requis');
+    if (!formData.first_name.trim() && !formData.last_name.trim()) {
+      toast.error('Le prénom ou le nom de famille est requis');
       return;
     }
     
     setSaving(true);
     
     try {
+      // Generate the full name from first_name and last_name
+      const fullName = `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
+      
+      const clientData = { 
+        ...formData,
+        name: fullName,
+        contact_name: fullName,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim()
+      };
+
       if (isEdit && id) {
-        await updateClient(id, formData);
+        await updateClient(id, clientData);
         toast.success('Client mis à jour avec succès');
       } else {
-        const newClient = await createClient(formData);
+        const newClient = await createClient(clientData);
         
         // If we have an ambassador ID in the state, link the client to the ambassador
         const state = location.state as { ambassadorId?: string };
@@ -160,11 +202,23 @@ const ClientForm = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Nom *</Label>
+                  <Label htmlFor="first_name">Prénom *</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => handleInputChange('first_name', e.target.value)}
+                    placeholder="Prénom"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="last_name">Nom de famille *</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => handleInputChange('last_name', e.target.value)}
+                    placeholder="Nom de famille"
                     required
                   />
                 </div>

@@ -24,6 +24,7 @@ import CollaboratorsList from "./CollaboratorsList";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import ClientSubdomainManager from "./ClientSubdomainManager";
 import ClientUserAccount from "./ClientUserAccount";
+import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -53,8 +54,39 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       return data || [];
     },
   });
+  // Helper function to parse existing name into first/last name
+  const parseExistingName = (client: Client) => {
+    // If first_name and last_name exist, use them
+    if (client.first_name || client.last_name) {
+      return {
+        first_name: client.first_name || "",
+        last_name: client.last_name || ""
+      };
+    }
+    
+    // Otherwise, try to parse contact_name or name
+    const nameToparse = client.contact_name || client.name || "";
+    const nameParts = nameToparse.trim().split(' ');
+    
+    if (nameParts.length >= 2) {
+      return {
+        first_name: nameParts[0],
+        last_name: nameParts.slice(1).join(' ')
+      };
+    } else {
+      return {
+        first_name: nameToparse,
+        last_name: ""
+      };
+    }
+  };
+
+  const parsedName = parseExistingName(client);
+
   const [formData, setFormData] = useState({
     name: client.name || "",
+    first_name: parsedName.first_name,
+    last_name: parsedName.last_name,
     email: client.email || "",
     company: client.company || "",
     phone: client.phone || "",
@@ -71,8 +103,11 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
   useEffect(() => {
     setClient(initialClient);
+    const parsedName = parseExistingName(initialClient);
     setFormData({
       name: initialClient.name || "",
+      first_name: parsedName.first_name,
+      last_name: parsedName.last_name,
       email: initialClient.email || "",
       company: initialClient.company || "",
       phone: initialClient.phone || "",
@@ -98,7 +133,18 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const updatedClient = await updateClient(client.id, formData);
+      // Generate the full name from first_name and last_name
+      const fullName = `${formData.first_name.trim()} ${formData.last_name.trim()}`.trim();
+      
+      const updateData = {
+        ...formData,
+        name: fullName,
+        contact_name: fullName,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim()
+      };
+      
+      const updatedClient = await updateClient(client.id, updateData);
       if (updatedClient) {
         setClient(updatedClient);
         setIsEditing(false);
@@ -114,8 +160,11 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   };
 
   const handleCancel = () => {
+    const parsedName = parseExistingName(client);
     setFormData({
       name: client.name || "",
+      first_name: parsedName.first_name,
+      last_name: parsedName.last_name,
       email: client.email || "",
       company: client.company || "",
       phone: client.phone || "",
@@ -264,11 +313,15 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     <div className="space-y-6">
       {/* En-tête avec informations principales */}
       <div className="flex justify-between items-start bg-muted/30 p-4 rounded-lg">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
-          {client.company && (
-            <p className="text-muted-foreground text-lg">{client.company}</p>
-          )}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {client.first_name && client.last_name 
+            ? `${client.first_name} ${client.last_name}`
+            : client.contact_name || client.name}
+        </h1>
+        {client.company && (
+          <p className="text-muted-foreground text-lg">{client.company}</p>
+        )}
           <div className="flex items-center gap-2 mt-2">
             {getStatusBadge(client.status || 'active')}
             {client.has_user_account && (
@@ -340,11 +393,15 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
               </CardHeader>
               <CardContent className="pt-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {renderField("Nom", "name", client.name)}
+                  {renderField("Prénom", "first_name", 
+                    isEditing ? formData.first_name : (client.first_name || parseExistingName(client).first_name)
+                  )}
+                  {renderField("Nom de famille", "last_name", 
+                    isEditing ? formData.last_name : (client.last_name || parseExistingName(client).last_name)
+                  )}
                   {renderField("Email", "email", client.email, "email")}
                   {renderField("Société", "company", client.company)}
                   {renderField("Téléphone", "phone", client.phone, "tel")}
-                  {renderField("Nom du contact", "contact_name", client.contact_name)}
                   {renderField("Numéro de TVA", "vat_number", client.vat_number)}
                   {renderField("Statut", "status", client.status, "select", [
                     { value: "active", label: "Actif" },
@@ -381,12 +438,34 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                     <MapPin className="h-4 w-4 text-primary" />
                     Adresse de facturation
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderField("Adresse", "address", client.address)}
-                    {renderField("Ville", "city", client.city)}
-                    {renderField("Code postal", "postal_code", client.postal_code)}
-                    {renderField("Pays", "country", client.country)}
-                  </div>
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Adresse</Label>
+                        <Input
+                          id="address"
+                          value={formData.address}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                          placeholder="Adresse complète"
+                        />
+                      </div>
+                      <PostalCodeInput
+                        postalCode={formData.postal_code}
+                        city={formData.city}
+                        country={formData.country}
+                        onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
+                        onCityChange={(value) => handleInputChange('city', value)}
+                        onCountryChange={(value) => handleInputChange('country', value)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {renderField("Adresse", "address", client.address)}
+                      {renderField("Ville", "city", client.city)}
+                      {renderField("Code postal", "postal_code", client.postal_code)}
+                      {renderField("Pays", "country", client.country)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Notes */}
