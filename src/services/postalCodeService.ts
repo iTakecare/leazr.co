@@ -49,7 +49,8 @@ export const searchPostalCodes = async (
       dataLength: data?.length || 0,
       hasError: !!error,
       error: error?.message || null,
-      firstResult: data?.[0] || null
+      firstResult: data?.[0] || null,
+      allResults: data // LOG ALL RESULTS TO SEE WHAT'S ACTUALLY RETURNED
     });
 
     if (error) {
@@ -57,6 +58,7 @@ export const searchPostalCodes = async (
       return [];
     }
 
+    console.log('🔍 POSTAL SERVICE - Final return data:', data);
     return data || [];
   } catch (error) {
     console.error('Error in searchPostalCodes:', error);

@@ -174,12 +174,27 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     extra: country.name_en
   }));
 
-  // Prepare postal code options
-  const postalCodeOptions: ComboboxOption[] = postalCodeResults.map(result => ({
-    value: result.postal_code,
-    label: result.postal_code,
-    extra: `${result.city}, ${result.country_name}`
-  }));
+  // Prepare postal code options with debugging
+  const postalCodeOptions: ComboboxOption[] = useMemo(() => {
+    console.log('🎯 COMPONENT - Processing postalCodeResults for options:', {
+      resultsCount: postalCodeResults?.length || 0,
+      firstResult: postalCodeResults?.[0] || null,
+      allResults: postalCodeResults
+    });
+    
+    const options = postalCodeResults.map(result => ({
+      value: result.postal_code,
+      label: result.postal_code,
+      extra: `${result.city}, ${result.country_name}`
+    }));
+    
+    console.log('🎯 COMPONENT - Final postalCodeOptions:', {
+      optionsCount: options.length,
+      options: options
+    });
+    
+    return options;
+  }, [postalCodeResults]);
 
   // Prepare city options
   const cityOptions: ComboboxOption[] = [...citiesFromPostal, ...cityResults]
@@ -194,6 +209,18 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
+      {/* DEBUG TEST BUTTON */}
+      <button 
+        onClick={async () => {
+          console.log('🧪 TEST BUTTON - Testing direct service call');
+          const testResults = await searchPostalCodes('50', 'BE', 10);
+          console.log('🧪 TEST RESULTS:', testResults);
+        }}
+        className="bg-red-500 text-white px-4 py-2 text-xs rounded"
+      >
+        TEST DIRECT API CALL (50, BE)
+      </button>
+
       {/* Country Selection */}
       <div>
         <Label className="flex items-center gap-2 mb-2">
