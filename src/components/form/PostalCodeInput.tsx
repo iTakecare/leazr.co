@@ -68,13 +68,27 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   // Debounced postal code search
   const debouncedPostalCodeSearch = useMemo(
-    () => debounce((query: string) => setPostalCodeQuery(query), 300),
+    () => debounce((query: string) => {
+      console.log('🕐 DEBOUNCE - Postal code search triggered:', {
+        query,
+        length: query.length,
+        timestamp: new Date().toISOString()
+      });
+      setPostalCodeQuery(query);
+    }, 300),
     []
   );
 
   // Debounced city search
   const debouncedCitySearch = useMemo(
-    () => debounce((query: string) => setCityQuery(query), 300),
+    () => debounce((query: string) => {
+      console.log('🕐 DEBOUNCE - City search triggered:', {
+        query,
+        length: query.length,
+        timestamp: new Date().toISOString()
+      });
+      setCityQuery(query);
+    }, 300),
     []
   );
 
@@ -92,11 +106,18 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     queryKey: ['postal-codes', postalCodeQuery, country || defaultCountry],
     queryFn: () => {
       const countryCode = country || defaultCountry || 'BE';
-      console.log('🔍 Postal query:', { postalCodeQuery, countryCode });
+      console.log('🔍 USEQUERY - Postal codes query executing:', { 
+        postalCodeQuery, 
+        countryCode,
+        isLikelyPostalCode: isLikelyPostalCode(postalCodeQuery),
+        timestamp: new Date().toISOString()
+      });
       
       if (isLikelyPostalCode(postalCodeQuery)) {
+        console.log('🔍 USEQUERY - Using unlimited search for postal pattern');
         return searchPostalCodesUnlimited(postalCodeQuery, countryCode);
       }
+      console.log('🔍 USEQUERY - Using limited search for general query');
       return searchPostalCodes(postalCodeQuery, countryCode, 50);
     },
     enabled: postalCodeQuery.length >= 2,
@@ -125,10 +146,17 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     });
     
     onPostalCodeChange(value);
+    
+    console.log('📝 POSTAL CODE CHANGE - Calling debounced search:', {
+      value,
+      debouncedFunction: typeof debouncedPostalCodeSearch,
+      timestamp: new Date().toISOString()
+    });
     debouncedPostalCodeSearch(value);
     
     // Auto-fill city if we have a match
     if (citiesFromPostal.length === 1) {
+      console.log('📝 POSTAL CODE CHANGE - Auto-filling city:', citiesFromPostal[0].city);
       onCityChange(citiesFromPostal[0].city);
     }
   };

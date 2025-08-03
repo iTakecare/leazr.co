@@ -24,11 +24,32 @@ export const searchPostalCodes = async (
   countryCode?: string,
   limit: number = 10
 ): Promise<PostalCodeResult[]> => {
+  console.log('🔍 POSTAL SERVICE - searchPostalCodes called:', {
+    query,
+    countryCode,
+    limit,
+    timestamp: new Date().toISOString()
+  });
+
   try {
+    console.log('🔍 POSTAL SERVICE - Calling supabase.rpc with params:', {
+      search_query: query,
+      country_filter: countryCode,
+      result_limit: limit
+    });
+
     const { data, error } = await supabase.rpc('search_postal_codes', {
       search_query: query,
       country_filter: countryCode,
       result_limit: limit
+    });
+
+    console.log('🔍 POSTAL SERVICE - RPC response:', {
+      hasData: !!data,
+      dataLength: data?.length || 0,
+      hasError: !!error,
+      error: error?.message || null,
+      firstResult: data?.[0] || null
     });
 
     if (error) {
@@ -50,11 +71,31 @@ export const searchPostalCodesUnlimited = async (
   query: string,
   countryCode?: string
 ): Promise<PostalCodeResult[]> => {
+  console.log('🔍 POSTAL SERVICE - searchPostalCodesUnlimited called:', {
+    query,
+    countryCode,
+    timestamp: new Date().toISOString()
+  });
+
   try {
+    console.log('🔍 POSTAL SERVICE - Calling unlimited RPC with params:', {
+      search_query: query,
+      country_filter: countryCode,
+      result_limit: 1000
+    });
+
     const { data, error } = await supabase.rpc('search_postal_codes', {
       search_query: query,
       country_filter: countryCode,
       result_limit: 1000 // Very high limit for unlimited search
+    });
+
+    console.log('🔍 POSTAL SERVICE - Unlimited RPC response:', {
+      hasData: !!data,
+      dataLength: data?.length || 0,
+      hasError: !!error,
+      error: error?.message || null,
+      sampleResults: data?.slice(0, 3) || []
     });
 
     if (error) {
