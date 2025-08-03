@@ -39,7 +39,9 @@ import { useQuery } from "@tanstack/react-query";
 
 // Schéma de validation pour l'édition d'un client
 const clientSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
+  first_name: z.string().min(1, "Le prénom est requis"),
+  last_name: z.string().min(1, "Le nom de famille est requis"),
+  name: z.string().optional(), // Généré automatiquement
   email: z.string().email("Email invalide").optional().or(z.literal("")),
   company: z.string().optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
@@ -81,7 +83,9 @@ const ClientEditDialog = ({
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
-      name: client.name,
+      first_name: client.first_name || client.name?.split(' ')[0] || "",
+      last_name: client.last_name || client.name?.split(' ').slice(1).join(' ') || "",
+      name: client.name || "",
       email: client.email || "",
       company: client.company || "",
       phone: client.phone || "",
@@ -99,7 +103,13 @@ const ClientEditDialog = ({
   const onSubmit = async (values: ClientFormValues) => {
     setLoading(true);
     try {
-      const updatedClient = await updateClient(client.id, values);
+      // Générer automatiquement le nom complet
+      const submitValues = {
+        ...values,
+        name: `${values.first_name} ${values.last_name}`.trim(),
+      };
+      
+      const updatedClient = await updateClient(client.id, submitValues);
       if (updatedClient) {
         onClientUpdated(updatedClient);
         onOpenChange(false);
@@ -193,10 +203,24 @@ const ClientEditDialog = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="first_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nom du contact*</FormLabel>
+                      <FormLabel>Prénom*</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de famille*</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
