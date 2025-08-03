@@ -2,10 +2,11 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Download, Package } from "lucide-react";
+import { Award, Folder, Download, Package, Users } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
+import { ClientCatalogManager } from "@/components/catalog/client-management/ClientCatalogManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -57,6 +58,10 @@ const CatalogManagement = () => {
               <Package className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Packs" : <span>Packs</span>}
             </TabsTrigger>
+            <TabsTrigger value="client-catalogs">
+              <Users className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Clients" : <span>Catalogues Clients</span>}
+            </TabsTrigger>
             <TabsTrigger value="import" onClick={() => navigateToAdmin("catalog/import")}>
               <Download className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Import" : <span>Import</span>}
@@ -100,6 +105,10 @@ const CatalogManagement = () => {
 
         <TabsContent value="packs">
           <PackManager />
+        </TabsContent>
+
+        <TabsContent value="client-catalogs">
+          <ClientCatalogManager />
         </TabsContent>
         </Tabs>
       </div>
