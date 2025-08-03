@@ -258,6 +258,7 @@ const CreateClientDialog = ({
           country={formData.country}
           onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
           onCityChange={(value) => handleInputChange('city', value)}
+          onCountryChange={(value) => handleInputChange('country', value)}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

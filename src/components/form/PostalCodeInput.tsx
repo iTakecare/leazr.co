@@ -21,6 +21,7 @@ interface PostalCodeInputProps {
   country: string;
   onPostalCodeChange: (postalCode: string) => void;
   onCityChange: (city: string) => void;
+  onCountryChange: (country: string) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -31,6 +32,7 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
   country,
   onPostalCodeChange,
   onCityChange,
+  onCountryChange,
   disabled = false,
   className,
 }) => {
@@ -39,6 +41,24 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
   const [cityQuery, setCityQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Fetch available countries
+  const { data: countries = [] } = useQuery<CountryOption[]>({
+    queryKey: ['countries'],
+    queryFn: getCountries,
+  });
+
+  // Get default country for company
+  const { data: defaultCountry } = useQuery({
+    queryKey: ['default-country'],
+    queryFn: getDefaultCountryForCompany,
+  });
+
+  // Set default country when available
+  useEffect(() => {
+    if (defaultCountry && !country) {
+      onCountryChange(defaultCountry);
+    }
+  }, [defaultCountry, country, onCountryChange]);
 
   // Debounced postal code search
   const debouncedPostalCodeSearch = useMemo(
@@ -77,9 +97,9 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   // Search postal codes - use unlimited search for postal code patterns
   const { data: postalCodeResults = [] } = useQuery<PostalCodeResult[]>({
-    queryKey: ['postal-codes', postalCodeQuery, country],
+    queryKey: ['postal-codes', postalCodeQuery, country || defaultCountry],
     queryFn: () => {
-      const countryCode = country || 'BE';
+      const countryCode = country || defaultCountry || 'BE';
       console.log('🔍 USEQUERY - Postal codes query executing:', { 
         postalCodeQuery, 
         countryCode,
@@ -141,6 +161,12 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
     debouncedCitySearch(value);
   };
 
+  // Prepare country options for combobox
+  const countryOptions: ComboboxOption[] = countries.map(country => ({
+    value: country.code,
+    label: `${country.flag} ${country.name_fr}`,
+    extra: country.name_en
+  }));
 
   // Prepare postal code options
   const postalCodeOptions: ComboboxOption[] = useMemo(() => {
@@ -164,6 +190,24 @@ export const PostalCodeInput: React.FC<PostalCodeInputProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
+
+      {/* Country Selection */}
+      <div>
+        <Label className="flex items-center gap-2 mb-2">
+          <Flag className="h-4 w-4" />
+          Pays
+        </Label>
+        <Combobox
+          options={countryOptions}
+          value={country}
+          onValueChange={onCountryChange}
+          placeholder="Sélectionner un pays..."
+          searchPlaceholder="Rechercher un pays..."
+          emptyMessage="Aucun pays trouvé."
+          disabled={disabled}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Postal Code */}
         <div>
