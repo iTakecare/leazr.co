@@ -9,6 +9,8 @@ interface PDFTemplateControlsProps {
   onSave: () => void;
   onRefresh: () => void;
   hasTemplate: boolean;
+  canSave?: boolean;
+  saveErrorMessage?: string;
 }
 
 const PDFTemplateControls: React.FC<PDFTemplateControlsProps> = ({
@@ -16,7 +18,9 @@ const PDFTemplateControls: React.FC<PDFTemplateControlsProps> = ({
   loading,
   onSave,
   onRefresh,
-  hasTemplate
+  hasTemplate,
+  canSave = true,
+  saveErrorMessage
 }) => {
   return (
     <div className="flex gap-2">
@@ -33,7 +37,8 @@ const PDFTemplateControls: React.FC<PDFTemplateControlsProps> = ({
         variant="default" 
         size="sm" 
         onClick={onSave}
-        disabled={saving || loading || !hasTemplate}
+        disabled={saving || loading || !hasTemplate || !canSave}
+        title={!canSave && saveErrorMessage ? saveErrorMessage : undefined}
       >
         {saving ? (
           <>
@@ -47,6 +52,11 @@ const PDFTemplateControls: React.FC<PDFTemplateControlsProps> = ({
           </>
         )}
       </Button>
+      {!canSave && saveErrorMessage && (
+        <span className="text-sm text-muted-foreground ml-2">
+          {saveErrorMessage}
+        </span>
+      )}
     </div>
   );
 };

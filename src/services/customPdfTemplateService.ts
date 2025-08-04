@@ -70,25 +70,70 @@ const customPdfTemplateService = {
 
   // Créer un nouveau template
   async createTemplate(templateData: CreateCustomPdfTemplateData): Promise<CustomPdfTemplate> {
-    // D'abord désactiver tous les templates existants pour ce client
-    await this.deactivateClientTemplates(templateData.client_id);
+    console.log('🚀 Début de la création du template:', templateData.name);
+    
+    try {
+      // Validation des données
+      await this.validateTemplateData(templateData);
+      
+      // Récupérer le company_id
+      const companyId = await this.getCurrentUserCompanyId();
+      console.log('✅ Company ID pour le template:', companyId);
+      
+      // D'abord désactiver tous les templates existants pour ce client
+      console.log('🔄 Désactivation des templates existants pour le client:', templateData.client_id);
+      await this.deactivateClientTemplates(templateData.client_id);
 
-    const { data, error } = await supabase
-      .from('custom_pdf_templates')
-      .insert({
+      // Préparer les données d'insertion
+      const insertData = {
         ...templateData,
-        company_id: await this.getCurrentUserCompanyId(),
+        company_id: companyId,
         is_active: templateData.is_active ?? true
-      })
-      .select()
-      .single();
+      };
+      
+      console.log('📝 Données à insérer:', {
+        name: insertData.name,
+        client_id: insertData.client_id,
+        company_id: insertData.company_id,
+        is_active: insertData.is_active,
+        field_mappings_size: JSON.stringify(insertData.field_mappings || {}).length
+      });
 
-    if (error) {
-      console.error('Error creating template:', error);
+      const { data, error } = await supabase
+        .from('custom_pdf_templates')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Erreur lors de l\'insertion en base:', error);
+        
+        // Messages d'erreur plus spécifiques
+        if (error.code === '23505') {
+          throw new Error('Un template avec ce nom existe déjà pour ce client');
+        }
+        if (error.code === '23503') {
+          throw new Error('Référence invalide - vérifiez les données du client');
+        }
+        if (error.code === '42501') {
+          throw new Error('Permissions insuffisantes pour créer un template');
+        }
+        
+        throw new Error(`Erreur de base de données: ${error.message}`);
+      }
+
+      if (!data) {
+        console.error('❌ Aucune donnée retournée après insertion');
+        throw new Error('Template créé mais impossible de récupérer les données');
+      }
+
+      console.log('✅ Template créé avec succès - ID:', data.id);
+      return data;
+      
+    } catch (error) {
+      console.error('💥 Erreur lors de la création du template:', error);
       throw error;
     }
-
-    return data;
   },
 
   // Mettre à jour un template
@@ -153,16 +198,93 @@ const customPdfTemplateService = {
 
   // Fonction utilitaire pour récupérer l'ID de l'entreprise courante
   async getCurrentUserCompanyId(): Promise<string> {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .single();
+    console.log('🔍 Récupération du company_id de l\'utilisateur actuel...');
     
-    if (!profile?.company_id) {
-      throw new Error('Impossible de récupérer l\'ID de l\'entreprise');
+    try {
+      // Vérifier d'abord si l'utilisateur est connecté
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('❌ Erreur d\'authentification:', authError);
+        throw new Error('Utilisateur non authentifié');
+      }
+      
+      if (!user) {
+        console.error('❌ Aucun utilisateur connecté');
+        throw new Error('Aucun utilisateur connecté');
+      }
+      
+      console.log('✅ Utilisateur connecté:', user.email);
+      
+      // Récupérer le profil de l'utilisateur
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, company_id, role, first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('❌ Erreur lors de la récupération du profil:', profileError);
+        throw new Error('Impossible de récupérer le profil utilisateur');
+      }
+      
+      if (!profile) {
+        console.error('❌ Aucun profil trouvé pour l\'utilisateur');
+        throw new Error('Profil utilisateur non trouvé');
+      }
+      
+      console.log('👤 Profil utilisateur:', {
+        id: profile.id,
+        company_id: profile.company_id,
+        role: profile.role,
+        name: `${profile.first_name} ${profile.last_name}`
+      });
+      
+      if (!profile.company_id) {
+        console.error('❌ Aucun company_id dans le profil');
+        throw new Error('L\'utilisateur n\'est associé à aucune entreprise');
+      }
+      
+      console.log('✅ Company ID récupéré:', profile.company_id);
+      return profile.company_id;
+      
+    } catch (error) {
+      console.error('💥 Erreur dans getCurrentUserCompanyId:', error);
+      throw error;
+    }
+  },
+
+  // Validation des données avant sauvegarde
+  async validateTemplateData(templateData: CreateCustomPdfTemplateData): Promise<void> {
+    console.log('🔍 Validation des données du template...');
+    
+    if (!templateData.name || templateData.name.trim().length === 0) {
+      throw new Error('Le nom du template est obligatoire');
     }
     
-    return profile.company_id;
+    if (!templateData.client_id) {
+      throw new Error('L\'ID du client est obligatoire');
+    }
+    
+    if (!templateData.original_pdf_url || templateData.original_pdf_url.trim().length === 0) {
+      throw new Error('L\'URL du PDF original est obligatoire');
+    }
+    
+    // Vérifier que le client existe et appartient à la même entreprise
+    const companyId = await this.getCurrentUserCompanyId();
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('id, name, company_id')
+      .eq('id', templateData.client_id)
+      .eq('company_id', companyId)
+      .single();
+    
+    if (clientError || !client) {
+      console.error('❌ Client non trouvé ou appartient à une autre entreprise:', clientError);
+      throw new Error('Client non trouvé ou non autorisé');
+    }
+    
+    console.log('✅ Validation réussie - Client:', client.name);
   }
 };
 

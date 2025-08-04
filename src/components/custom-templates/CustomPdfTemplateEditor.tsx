@@ -199,12 +199,49 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     toast.success("Champ supprimé");
   }, [template]);
 
+  // Vérification préalable avant sauvegarde
+  const canSave = useMemo(() => {
+    if (!template) return false;
+    
+    // Vérifications de base
+    if (!template.name || template.name.trim().length === 0) return false;
+    if (!clientId) return false;
+    
+    // Pour un nouveau template, vérifier qu'il y a un PDF
+    if (template.id.startsWith('temp_') && (!template.original_pdf_url || template.original_pdf_url.trim().length === 0)) {
+      return false;
+    }
+    
+    return true;
+  }, [template, clientId]);
+
+  // Message d'erreur pour la sauvegarde
+  const getSaveErrorMessage = () => {
+    if (!template) return "Aucun template";
+    if (!template.name || template.name.trim().length === 0) return "Nom du template requis";
+    if (!clientId) return "Client ID manquant";
+    if (template.id.startsWith('temp_') && (!template.original_pdf_url || template.original_pdf_url.trim().length === 0)) {
+      return "PDF requis pour nouveau template";
+    }
+    return undefined;
+  };
+
   // Sauvegarde du template
   const handleSave = async () => {
-    if (!template) return;
+    if (!template) {
+      toast.error("Aucun template à sauvegarder");
+      return;
+    }
+
+    // Vérifications préalables
+    if (!canSave) {
+      toast.error("Veuillez compléter toutes les informations obligatoires");
+      return;
+    }
 
     try {
       setSaving(true);
+      console.log('💾 Début de la sauvegarde du template:', template.name);
       
       const templateToSave = CustomPdfTemplateAdapter.fromExtended({
         ...template,
@@ -213,7 +250,9 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
       
       // Si c'est un nouveau template (ID temporaire), créer, sinon mettre à jour
       if (template.id.startsWith('temp_')) {
-        const newTemplate = await customPdfTemplateService.createTemplate({
+        console.log('🆕 Création d\'un nouveau template...');
+        
+        const createData = {
           name: template.name,
           client_id: clientId,
           original_pdf_url: template.original_pdf_url || "",
@@ -223,14 +262,21 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           },
           template_metadata: template.template_metadata,
           is_active: false
-        });
+        };
+        
+        console.log('📋 Données de création:', createData);
+        
+        const newTemplate = await customPdfTemplateService.createTemplate(createData);
         
         // Mettre à jour l'état avec le nouveau template
         setTemplate(CustomPdfTemplateAdapter.toExtended(newTemplate));
         toast.success("Template créé avec succès");
+        console.log('✅ Template créé avec l\'ID:', newTemplate.id);
       } else {
+        console.log('📝 Mise à jour du template existant...');
         await customPdfTemplateService.updateTemplate(template.id, templateToSave);
         toast.success("Template sauvegardé avec succès");
+        console.log('✅ Template mis à jour:', template.id);
       }
       
       setHasUnsavedChanges(false);
@@ -238,9 +284,28 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
       if (onSave) {
         onSave(template);
       }
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
-      toast.error("Erreur lors de la sauvegarde");
+    } catch (error: any) {
+      console.error("💥 Erreur lors de la sauvegarde:", error);
+      
+      // Messages d'erreur plus spécifiques
+      let errorMessage = "Erreur lors de la sauvegarde";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Messages spécifiques selon le type d'erreur
+      if (errorMessage.includes('authentifié')) {
+        errorMessage = "Vous devez être connecté pour sauvegarder";
+      } else if (errorMessage.includes('entreprise')) {
+        errorMessage = "Problème d'association à votre entreprise";
+      } else if (errorMessage.includes('client')) {
+        errorMessage = "Problème avec les données du client";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -373,6 +438,9 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         gridVisible={gridVisible}
         activeTool={activeTool}
         onToolChange={setActiveTool}
+        canSave={canSave}
+        saving={saving}
+        saveErrorMessage={!canSave ? getSaveErrorMessage() : undefined}
       />
 
       {/* En-tête du template */}

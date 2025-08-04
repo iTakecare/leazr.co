@@ -15,7 +15,8 @@ import {
   MousePointer,
   Move,
   Copy,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,9 @@ interface AdvancedToolbarProps {
   gridVisible: boolean;
   activeTool: 'select' | 'move';
   onToolChange: (tool: 'select' | 'move') => void;
+  canSave?: boolean;
+  saving?: boolean;
+  saveErrorMessage?: string;
   className?: string;
 }
 
@@ -58,6 +62,9 @@ export const AdvancedToolbar: React.FC<AdvancedToolbarProps> = ({
   gridVisible,
   activeTool,
   onToolChange,
+  canSave = true,
+  saving = false,
+  saveErrorMessage,
   className
 }) => {
   return (
@@ -71,16 +78,27 @@ export const AdvancedToolbar: React.FC<AdvancedToolbarProps> = ({
           variant={hasUnsavedChanges ? "default" : "outline"}
           size="sm"
           onClick={onSave}
+          disabled={!canSave || saving}
           className="flex items-center gap-2"
+          title={!canSave && saveErrorMessage ? saveErrorMessage : undefined}
         >
-          <Save className="h-4 w-4" />
-          Sauvegarder
-          {hasUnsavedChanges && (
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {saving ? "Sauvegarde..." : "Sauvegarder"}
+          {hasUnsavedChanges && !saving && (
             <Badge variant="destructive" className="h-4 w-4 p-0 text-[10px]">
               •
             </Badge>
           )}
         </Button>
+        {!canSave && saveErrorMessage && (
+          <span className="text-xs text-muted-foreground ml-2">
+            {saveErrorMessage}
+          </span>
+        )}
       </div>
 
       <Separator orientation="vertical" className="h-6" />
