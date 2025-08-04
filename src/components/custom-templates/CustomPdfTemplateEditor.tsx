@@ -82,7 +82,6 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     const newTemplate: ExtendedCustomPdfTemplate = {
       id: `temp_${Date.now()}`,
       name: "Nouveau Template",
-      client_id: clientId,
       company_id: "", // Sera défini lors de la sauvegarde
       original_pdf_url: "", // Sera défini lors de l'upload
       fields: [],
@@ -272,7 +271,6 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         
         const createData = {
           name: template.name,
-          client_id: clientId,
           original_pdf_url: template.original_pdf_url || "",
           field_mappings: {
             fields: template.fields,

@@ -33,7 +33,6 @@ export interface CustomPdfTemplatePage {
 
 export interface ExtendedCustomPdfTemplate {
   id: string;
-  client_id: string;
   company_id: string;
   name: string;
   description?: string;

@@ -20,7 +20,7 @@ import {
   Edit,
   Share2
 } from 'lucide-react';
-import { CustomPdfTemplateManager } from './CustomPdfTemplateManager';
+
 import { TemplateLibrary } from './TemplateLibrary';
 import { TemplateAnalytics } from './TemplateAnalytics';
 import { templateSharingService } from '@/services/templateSharingService';
@@ -227,7 +227,11 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
           </TabsList>
 
           <TabsContent value="my-templates" className="h-full">
-            <CustomPdfTemplateManager clientId={clientId} />
+            <div className="flex items-center justify-center h-32">
+              <p className="text-muted-foreground">
+                Gestion des templates déplacée vers les paramètres de l'entreprise
+              </p>
+            </div>
           </TabsContent>
 
           <TabsContent value="shared" className="h-full">

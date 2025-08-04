@@ -1,7 +1,6 @@
 // Phase 5: Extended types for advanced features
 export interface CustomPdfTemplate {
   id: string;
-  client_id: string;
   company_id: string;
   name: string;
   description?: string;
@@ -173,7 +172,6 @@ export interface TemplatePerformanceMetric {
 }
 
 export interface CreateCustomPdfTemplateData {
-  client_id: string;
   name: string;
   description?: string;
   original_pdf_url: string;

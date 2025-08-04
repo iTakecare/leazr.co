@@ -19,7 +19,6 @@ export class CustomPdfTemplateAdapter {
     
     return {
       id: template.id,
-      client_id: template.client_id,
       company_id: template.company_id,
       name: template.name,
       description: template.description,
@@ -49,7 +48,6 @@ export class CustomPdfTemplateAdapter {
     
     return {
       id: extended.id,
-      client_id: extended.client_id,
       company_id: extended.company_id,
       name: extended.name,
       description: extended.description,
@@ -65,7 +63,7 @@ export class CustomPdfTemplateAdapter {
   /**
    * Convertit un PDFModel vers ExtendedCustomPdfTemplate (pour réutiliser les composants existants)
    */
-  static fromPDFModel(pdfModel: PDFModel, clientId: string): ExtendedCustomPdfTemplate {
+  static fromPDFModel(pdfModel: PDFModel): ExtendedCustomPdfTemplate {
     // Convertir les champs PDFModel vers CustomPdfTemplateField
     const fields: CustomPdfTemplateField[] = pdfModel.fields.map((field, index) => ({
       id: field.id || `field_${index}`,
@@ -103,7 +101,6 @@ export class CustomPdfTemplateAdapter {
     
     return {
       id: `pdf_${pdfModel.id}`,
-      client_id: clientId,
       company_id: pdfModel.company_id,
       name: pdfModel.name,
       description: `Converti depuis le modèle PDF: ${pdfModel.name}`,

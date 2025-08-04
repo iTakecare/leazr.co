@@ -1946,7 +1946,6 @@ export type Database = {
       custom_pdf_templates: {
         Row: {
           auto_save_data: Json | null
-          client_id: string
           collaboration_settings: Json | null
           company_id: string
           created_at: string
@@ -1965,7 +1964,6 @@ export type Database = {
         }
         Insert: {
           auto_save_data?: Json | null
-          client_id: string
           collaboration_settings?: Json | null
           company_id: string
           created_at?: string
@@ -1984,7 +1982,6 @@ export type Database = {
         }
         Update: {
           auto_save_data?: Json | null
-          client_id?: string
           collaboration_settings?: Json | null
           company_id?: string
           created_at?: string
@@ -2002,13 +1999,6 @@ export type Database = {
           version_number?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "custom_pdf_templates_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "custom_pdf_templates_company_id_fkey"
             columns: ["company_id"]

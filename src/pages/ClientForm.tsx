@@ -13,7 +13,7 @@ import { formatPhoneWithCountry } from '@/services/postalCodeService';
 import { toast } from 'sonner';
 import { ArrowLeft, Phone } from 'lucide-react';
 import { ClientLogoUploader } from '@/components/clients/ClientLogoUploader';
-import { CustomPdfTemplateManager } from '@/components/custom-templates/CustomPdfTemplateManager';
+
 
 const ClientForm = () => {
   const { id } = useParams();
@@ -308,18 +308,6 @@ const ClientForm = () => {
                    />
                  </div>
                  
-                 {/* Section Template PDF personnalisé */}
-                 {isEdit && (
-                   <div className="md:col-span-2">
-                     <div className="space-y-3">
-                       <Label className="text-base font-medium">Template PDF personnalisé</Label>
-                       <p className="text-sm text-muted-foreground">
-                         Configurez un template PDF personnalisé pour les offres de ce client
-                       </p>
-                       <CustomPdfTemplateManager clientId={id!} />
-                     </div>
-                   </div>
-                 )}
               </div>
               
               <div className="flex justify-end gap-4">
