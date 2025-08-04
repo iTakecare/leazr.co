@@ -1835,6 +1835,63 @@ export type Database = {
           },
         ]
       }
+      custom_pdf_templates: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          description: string | null
+          field_mappings: Json
+          id: string
+          is_active: boolean
+          name: string
+          original_pdf_url: string
+          template_metadata: Json
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          field_mappings?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          original_pdf_url: string
+          template_metadata?: Json
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          field_mappings?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          original_pdf_url?: string
+          template_metadata?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_pdf_templates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_pdf_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           active: boolean
