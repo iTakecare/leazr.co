@@ -30,8 +30,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCustomPriceEditor } from "./ProductCustomPriceEditor";
-import { ClientVariantPriceManager } from "./ClientVariantPriceManager";
-import ClientVariantCombinationsManager from "./ClientVariantCombinationsManager";
+import { ClientVariantPricingManager } from "./ClientVariantPricingManager";
 import { addMultipleProductsToCustomCatalog } from "@/services/catalogService";
 
 interface ClientCustomPriceTableProps {
@@ -411,10 +410,9 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <ClientVariantCombinationsManager
-                      clientId={clientId}
-                      productId={managingCombinations}
-                    />
+                    <p className="text-muted-foreground text-center py-8">
+                      Utilisez le gestionnaire unifié pour gérer les combinaisons de variantes.
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
@@ -549,35 +547,20 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
         />
       )}
 
-      {/* Gestionnaire de variantes */}
-      {managingVariants && (
-        <ClientVariantPriceManager
-          open={!!managingVariants}
-          onOpenChange={(open) => !open && setManagingVariants(null)}
+      {/* Gestionnaire unifié de pricing des variantes */}
+      {(managingVariants || managingCombinations) && (
+        <ClientVariantPricingManager
+          open={!!(managingVariants || managingCombinations)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setManagingVariants(null);
+              setManagingCombinations(null);
+            }
+          }}
           clientId={clientId}
-          productId={managingVariants}
-          productName={assignedProducts?.find(p => p.id === managingVariants)?.name || ""}
+          productId={managingVariants || managingCombinations || ""}
+          productName={assignedProducts?.find(p => p.id === (managingVariants || managingCombinations))?.name || ""}
         />
-      )}
-
-      {/* Gestionnaire de combinaisons */}
-      {managingCombinations && (
-        <Dialog open={!!managingCombinations} onOpenChange={(open) => !open && setManagingCombinations(null)}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                Gestion des combinaisons - {assignedProducts?.find(p => p.id === managingCombinations)?.name}
-              </DialogTitle>
-              <DialogDescription>
-                Configurez les prix pour toutes les combinaisons de variantes possibles
-              </DialogDescription>
-            </DialogHeader>
-            <ClientVariantCombinationsManager
-              clientId={clientId}
-              productId={managingCombinations}
-            />
-          </DialogContent>
-        </Dialog>
       )}
     </Card>
   );
