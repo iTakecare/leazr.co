@@ -5039,6 +5039,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_template_collaborators_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "template_collaborators_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
