@@ -4173,6 +4173,7 @@ export type Database = {
           company_id: string
           condition: string | null
           created_at: string | null
+          default_variant_attributes: Json | null
           description: string | null
           id: string
           image_alt: string | null
@@ -4220,6 +4221,7 @@ export type Database = {
           company_id: string
           condition?: string | null
           created_at?: string | null
+          default_variant_attributes?: Json | null
           description?: string | null
           id?: string
           image_alt?: string | null
@@ -4267,6 +4269,7 @@ export type Database = {
           company_id?: string
           condition?: string | null
           created_at?: string | null
+          default_variant_attributes?: Json | null
           description?: string | null
           id?: string
           image_alt?: string | null

@@ -23,14 +23,23 @@ export const useProductDetails = (productId: string | undefined) => {
     }
   }, [product]);
 
-  // Set initial options when product loads
+  // Set initial options when product loads - use default variant if available
   useEffect(() => {
     if (product && product.variation_attributes) {
       const initialOptions: Record<string, string> = {};
+      const defaultVariantAttributes = product.default_variant_attributes;
       
       Object.entries(product.variation_attributes).forEach(([key, values]) => {
         if (Array.isArray(values) && values.length > 0) {
-          initialOptions[key] = values[0];
+          // Use default variant value if available and valid, otherwise use first value
+          if (defaultVariantAttributes && 
+              defaultVariantAttributes[key] && 
+              typeof defaultVariantAttributes[key] === 'string' &&
+              values.includes(String(defaultVariantAttributes[key]))) {
+            initialOptions[key] = String(defaultVariantAttributes[key]);
+          } else {
+            initialOptions[key] = values[0];
+          }
         }
       });
       

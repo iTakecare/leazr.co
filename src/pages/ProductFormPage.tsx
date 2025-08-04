@@ -10,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductFormInfoTab from "@/components/catalog/ProductFormInfoTab";
 import ProductFormImagesTab from "@/components/catalog/ProductFormImagesTab";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
+import { DefaultVariantSelector } from "@/components/products/DefaultVariantSelector";
 import { useProductById } from "@/hooks/products/useProductById";
+import { Product } from "@/types/catalog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ProductFormPage = () => {
@@ -18,12 +20,20 @@ const ProductFormPage = () => {
   const { navigateToAdmin } = useRoleNavigation();
   const [activeTab, setActiveTab] = useState("info");
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   
   const isEditMode = !!id;
   console.log("📄 ProductFormPage - Mode:", isEditMode ? "EDIT" : "CREATE", { id });
 
   // Only fetch product if in edit mode
   const { product, isLoading, error } = useProductById(isEditMode ? id : undefined);
+
+  // Update current product when product changes
+  useEffect(() => {
+    if (product) {
+      setCurrentProduct(product);
+    }
+  }, [product]);
 
   console.log("📄 ProductFormPage - Data state", { 
     hasProduct: !!product, 
@@ -149,6 +159,7 @@ const ProductFormPage = () => {
               <TabsTrigger value="info">Informations</TabsTrigger>
               <TabsTrigger value="images">Images</TabsTrigger>
               <TabsTrigger value="variants">Variantes</TabsTrigger>
+              <TabsTrigger value="defaults">Variante par défaut</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info">
@@ -188,6 +199,30 @@ const ProductFormPage = () => {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Créez d'abord le produit, puis revenez ici pour configurer ses variantes et attributs.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="defaults">
+              {isEditMode && currentProduct ? (
+                <DefaultVariantSelector 
+                  product={currentProduct}
+                  onUpdate={(updatedProduct) => {
+                    console.log("📄 ProductFormPage - Default variant updated successfully");
+                    setCurrentProduct(updatedProduct);
+                  }}
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-lg font-medium mb-2">Configuration non disponible</h3>
+                    <p className="text-muted-foreground mb-4">
+                      La variante par défaut ne peut être configurée qu'après la création du produit.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Créez d'abord le produit et configurez ses variantes, puis revenez ici pour définir la variante par défaut.
                     </p>
                   </div>
                 </div>

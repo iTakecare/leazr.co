@@ -117,6 +117,9 @@ export interface Product {
   // Propriétés pour les prix personnalisés
   is_custom_pricing?: boolean;
   custom_pricing_notes?: string;
+  
+  // Default variant attributes for initial selection
+  default_variant_attributes?: ProductAttributes;
 }
 
 // Product attribute definition
