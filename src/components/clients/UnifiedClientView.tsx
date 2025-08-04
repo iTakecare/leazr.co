@@ -253,7 +253,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                   <SelectValue placeholder={`Sélectionner ${label.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {options?.map((option) => (
+                  {options?.filter(option => option.value && option.value.trim() !== "").map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -451,10 +451,12 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                         ? formData.default_leaser_id
                         : leasers.find(l => l.id === client.default_leaser_id)?.name || "Aucun",
                       "select", 
-                      leasers.map(leaser => ({
-                        value: leaser.id,
-                        label: leaser.name
-                      }))
+                      leasers
+                        .filter(leaser => leaser.id && leaser.id.trim() !== "")
+                        .map(leaser => ({
+                          value: leaser.id,
+                          label: leaser.name
+                        }))
                     )}
                   </div>
                 </div>
