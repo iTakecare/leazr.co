@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProductVariantPrices } from "@/services/variantPriceService";
-import { getClientCustomVariantPrices } from "@/services/clientVariantPriceService";
+import { getClientCustomVariantPrices, hideVariantFromClient, showVariantForClient, getClientHiddenVariants } from "@/services/clientVariantPriceService";
 import { getClientCustomVariants, deleteClientCustomVariant } from "@/services/clientCustomVariantService";
 import { ClientVariantCustomPriceEditor } from "./ClientVariantCustomPriceEditor";
 import ClientCustomVariantEditor from "./ClientCustomVariantEditor";
 import { formatCurrency } from "@/lib/utils";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, EyeOff, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ClientVariantPriceManagerProps {
@@ -56,9 +56,55 @@ export const ClientVariantPriceManager = ({
     enabled: open && !!clientId && !!productId,
   });
 
+  // Récupérer les variantes masquées
+  const { data: hiddenVariants, refetch: refetchHiddenVariants } = useQuery({
+    queryKey: ['client-hidden-variants', clientId],
+    queryFn: () => getClientHiddenVariants(clientId),
+    enabled: open && !!clientId,
+  });
+
   const getCustomPriceForVariant = (variantId: string) => {
     return customVariantPrices?.find(cp => cp.variant_price_id === variantId);
   };
+
+  // Mutations pour gérer la visibilité des variantes
+  const hideVariantMutation = useMutation({
+    mutationFn: ({ variantId }: { variantId: string }) => hideVariantFromClient(clientId, variantId),
+    onSuccess: () => {
+      toast({
+        title: "Variante masquée",
+        description: "La variante a été masquée du catalogue client.",
+      });
+      refetchHiddenVariants();
+    },
+    onError: (error) => {
+      console.error("Error hiding variant:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de masquer la variante.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const showVariantMutation = useMutation({
+    mutationFn: ({ variantId }: { variantId: string }) => showVariantForClient(clientId, variantId),
+    onSuccess: () => {
+      toast({
+        title: "Variante affichée",
+        description: "La variante est maintenant visible dans le catalogue client.",
+      });
+      refetchHiddenVariants();
+    },
+    onError: (error) => {
+      console.error("Error showing variant:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'afficher la variante.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Mutation pour supprimer une variante personnalisée
   const deleteCustomVariantMutation = useMutation({
@@ -142,41 +188,54 @@ export const ClientVariantPriceManager = ({
                 <h3 className="text-lg font-semibold">Variantes standard</h3>
               </div>
               
-              {variantPrices.map((variant) => {
-                const customPrice = getCustomPriceForVariant(variant.id);
-                const hasCustomPrice = !!customPrice;
+              {variantPrices
+                .filter(variant => !hiddenVariants?.includes(variant.id))
+                .map((variant) => {
+                  const customPrice = getCustomPriceForVariant(variant.id);
+                  const hasCustomPrice = !!customPrice;
 
-                return (
-                  <Card key={variant.id} className="relative">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-base">
-                            Variante
-                            {hasCustomPrice && (
-                              <Badge variant="secondary" className="ml-2">
-                                Prix personnalisé
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <div className="flex flex-wrap gap-2">
-                            {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
-                              <Badge key={key} variant="outline">
-                                {key}: {String(value)}
-                              </Badge>
-                            ))}
+                  return (
+                    <Card key={variant.id} className="relative">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base">
+                              Variante
+                              {hasCustomPrice && (
+                                <Badge variant="secondary" className="ml-2">
+                                  Prix personnalisé
+                                </Badge>
+                              )}
+                            </CardTitle>
+                            <div className="flex flex-wrap gap-2">
+                              {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
+                                <Badge key={key} variant="outline">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingVariant(variant.id)}
+                            >
+                              {hasCustomPrice ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                              {hasCustomPrice ? 'Modifier' : 'Ajouter prix'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => hideVariantMutation.mutate({ variantId: variant.id })}
+                              disabled={hideVariantMutation.isPending}
+                              title="Masquer du catalogue client"
+                            >
+                              <EyeOff className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingVariant(variant.id)}
-                        >
-                          {hasCustomPrice ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                          {hasCustomPrice ? 'Modifier' : 'Ajouter prix'}
-                        </Button>
-                      </div>
-                    </CardHeader>
+                      </CardHeader>
                     
                     <CardContent className="pt-0">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -220,6 +279,78 @@ export const ClientVariantPriceManager = ({
                 );
               })}
             </div>
+
+            {/* Section des variantes masquées */}
+            {hiddenVariants && hiddenVariants.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-muted-foreground">Variantes masquées</h3>
+                </div>
+                
+                {variantPrices
+                  .filter(variant => hiddenVariants.includes(variant.id))
+                  .map((variant) => {
+                    const customPrice = getCustomPriceForVariant(variant.id);
+                    const hasCustomPrice = !!customPrice;
+
+                    return (
+                      <Card key={variant.id} className="relative opacity-60 border-dashed">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <CardTitle className="text-base text-muted-foreground">
+                                Variante (masquée)
+                                {hasCustomPrice && (
+                                  <Badge variant="outline" className="ml-2">
+                                    Prix personnalisé
+                                  </Badge>
+                                )}
+                              </CardTitle>
+                              <div className="flex flex-wrap gap-2">
+                                {variant.attributes && Object.entries(variant.attributes).map(([key, value]) => (
+                                  <Badge key={key} variant="outline" className="opacity-60">
+                                    {key}: {String(value)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => showVariantMutation.mutate({ variantId: variant.id })}
+                              disabled={showVariantMutation.isPending}
+                              title="Afficher dans le catalogue client"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Afficher
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm opacity-60">
+                            <div>
+                              <div className="font-medium text-muted-foreground">Prix standard</div>
+                              <div className="text-lg font-semibold">
+                                {formatCurrency(variant.monthly_price)}/mois
+                              </div>
+                            </div>
+                            
+                            {hasCustomPrice && (
+                              <div>
+                                <div className="font-medium text-muted-foreground">Prix personnalisé</div>
+                                <div className="text-lg font-semibold text-primary">
+                                  {customPrice.custom_monthly_price ? `${formatCurrency(customPrice.custom_monthly_price)}/mois` : 'Non défini'}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            )}
 
             {/* Section des variantes personnalisées */}
             <div className="space-y-4">

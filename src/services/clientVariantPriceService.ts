@@ -133,3 +133,104 @@ export const deleteClientCustomVariantPrice = async (clientId: string, variantPr
     throw error;
   }
 };
+
+/**
+ * Hide a standard variant from client catalog
+ */
+export const hideVariantFromClient = async (clientId: string, variantPriceId: string) => {
+  try {
+    // Get current hidden variants
+    const { data: client, error: fetchError } = await supabase
+      .from('clients')
+      .select('hidden_variants')
+      .eq('id', clientId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching client hidden variants:', fetchError);
+      throw new Error(fetchError.message);
+    }
+
+    // Add variant to hidden list if not already hidden
+    const currentHidden = client.hidden_variants || [];
+    if (!currentHidden.includes(variantPriceId)) {
+      const updatedHidden = [...currentHidden, variantPriceId];
+      
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ hidden_variants: updatedHidden })
+        .eq('id', clientId);
+
+      if (updateError) {
+        console.error('Error hiding variant:', updateError);
+        throw new Error(updateError.message);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in hideVariantFromClient:', error);
+    throw error;
+  }
+};
+
+/**
+ * Show a hidden variant in client catalog
+ */
+export const showVariantForClient = async (clientId: string, variantPriceId: string) => {
+  try {
+    // Get current hidden variants
+    const { data: client, error: fetchError } = await supabase
+      .from('clients')
+      .select('hidden_variants')
+      .eq('id', clientId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching client hidden variants:', fetchError);
+      throw new Error(fetchError.message);
+    }
+
+    // Remove variant from hidden list
+    const currentHidden = client.hidden_variants || [];
+    const updatedHidden = currentHidden.filter(id => id !== variantPriceId);
+    
+    const { error: updateError } = await supabase
+      .from('clients')
+      .update({ hidden_variants: updatedHidden })
+      .eq('id', clientId);
+
+    if (updateError) {
+      console.error('Error showing variant:', updateError);
+      throw new Error(updateError.message);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in showVariantForClient:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get hidden variants for a client
+ */
+export const getClientHiddenVariants = async (clientId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('hidden_variants')
+      .eq('id', clientId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching client hidden variants:', error);
+      throw new Error(error.message);
+    }
+
+    return data.hidden_variants || [];
+  } catch (error) {
+    console.error('Error in getClientHiddenVariants:', error);
+    throw error;
+  }
+};

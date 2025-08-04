@@ -827,6 +827,7 @@ export type Database = {
           first_name: string | null
           has_custom_catalog: boolean | null
           has_user_account: boolean | null
+          hidden_variants: string[] | null
           id: string
           last_name: string | null
           name: string
@@ -852,6 +853,7 @@ export type Database = {
           first_name?: string | null
           has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
+          hidden_variants?: string[] | null
           id?: string
           last_name?: string | null
           name: string
@@ -877,6 +879,7 @@ export type Database = {
           first_name?: string | null
           has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
+          hidden_variants?: string[] | null
           id?: string
           last_name?: string | null
           name?: string
