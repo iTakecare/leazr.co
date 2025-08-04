@@ -46,13 +46,29 @@ export const getClientProductPrice = async (
           .eq('product_id', product.id)
           .in('id', hiddenVariants);
         
+        console.log('🔍 Checking if selected options match hidden variants:', {
+          selectedOptions,
+          hiddenVariantsCount: variantPrices?.length || 0,
+          variantPrices: variantPrices?.map(vp => ({ 
+            id: vp.id, 
+            attributes: vp.attributes 
+          }))
+        });
+
         // Check if selected options match any hidden variant
         const isHiddenVariant = variantPrices?.some(vp => {
           const attrs = typeof vp.attributes === 'string' 
             ? JSON.parse(vp.attributes) 
             : vp.attributes;
           
-          return Object.entries(selectedOptions).every(([key, val]) => {
+          console.log('🔍 Checking variant:', {
+            variantId: vp.id,
+            variantAttrs: attrs,
+            selectedOptions
+          });
+          
+          const optionEntries = Object.entries(selectedOptions);
+          const matchResults = optionEntries.map(([key, val]) => {
             const directMatch = attrs[key] && 
               String(attrs[key]).toLowerCase().trim() === String(val).toLowerCase().trim();
             
@@ -72,8 +88,33 @@ export const getClientProductPrice = async (
             const mappedMatch = mappedKey && attrs[mappedKey] && 
               String(attrs[mappedKey]).toLowerCase().trim() === String(val).toLowerCase().trim();
 
-            return directMatch || mappedMatch;
+            const finalMatch = directMatch || mappedMatch;
+            
+            console.log('🔍 Attribute comparison:', {
+              key,
+              val,
+              directMatch,
+              mappedKey,
+              mappedMatch,
+              finalMatch,
+              variantValue: attrs[key] || attrs[mappedKey]
+            });
+
+            return finalMatch;
           });
+          
+          const allMatch = matchResults.every(result => result === true);
+          const hasRequiredAttributes = optionEntries.length > 0;
+          
+          console.log('🔍 Variant match result:', {
+            variantId: vp.id,
+            matchResults,
+            allMatch,
+            hasRequiredAttributes,
+            finalResult: allMatch && hasRequiredAttributes
+          });
+
+          return allMatch && hasRequiredAttributes;
         });
         
         if (isHiddenVariant) {
