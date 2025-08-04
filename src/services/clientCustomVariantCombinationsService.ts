@@ -172,19 +172,35 @@ export const findClientCustomVariantCombination = async (
   productId: string,
   selectedOptions: Record<string, string>
 ): Promise<ClientCustomVariantCombination | null> => {
-  const { data, error } = await supabase
-    .from('client_custom_variant_combinations')
-    .select('*')
-    .eq('client_id', clientId)
-    .eq('product_id', productId)
-    .eq('attributes', selectedOptions)
-    .eq('is_available', true)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    // Get all combinations for this client/product and filter locally
+    const combinations = await getClientCustomVariantCombinations(clientId, productId);
+    
+    // Find matching combination by comparing attributes
+    const matchingCombination = combinations.find(combination => {
+      if (!combination.is_available) return false;
+      
+      // Deep compare the attributes objects
+      const combinationAttrs = combination.attributes as Record<string, string>;
+      const selectedAttrs = selectedOptions;
+      
+      // Convert both to normalized JSON strings for comparison
+      const normalizeForComparison = (obj: Record<string, string>) => {
+        const sorted = Object.keys(obj)
+          .sort()
+          .reduce((result, key) => {
+            result[key] = obj[key];
+            return result;
+          }, {} as Record<string, string>);
+        return JSON.stringify(sorted);
+      };
+      
+      return normalizeForComparison(combinationAttrs) === normalizeForComparison(selectedAttrs);
+    });
+    
+    return matchingCombination || null;
+  } catch (error) {
     console.error('Error finding client custom variant combination:', error);
-    throw error;
+    return null;
   }
-
-  return data;
 };
