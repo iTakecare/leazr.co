@@ -345,15 +345,8 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
                       </TableCell>
                       
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingProduct(product.id)}
-                          >
-                            Modifier
-                          </Button>
-                          <Button
+                         <div className="flex items-center gap-1">
+                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => deletePriceMutation.mutate(product.id)}
