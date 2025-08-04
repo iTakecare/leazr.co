@@ -56,6 +56,10 @@ const ClientCustomVariantEditor: React.FC<ClientCustomVariantEditorProps> = ({
   const [newAttributeKey, setNewAttributeKey] = useState("");
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [creationMode, setCreationMode] = useState<"existing" | "new">("existing");
+  const [currentAttributeValues, setCurrentAttributeValues] = useState<Array<{
+    value: string;
+    priceAdjustment?: number;
+  }>>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -86,6 +90,7 @@ const ClientCustomVariantEditor: React.FC<ClientCustomVariantEditorProps> = ({
     }
     setNewAttributeKey("");
     setNewAttributeValue("");
+    setCurrentAttributeValues([]);
   }, [variant, open]);
 
   // Get available variant combinations and existing attributes
@@ -175,6 +180,42 @@ const ClientCustomVariantEditor: React.FC<ClientCustomVariantEditorProps> = ({
       delete updated[key];
       return updated;
     });
+  };
+
+  // Multi-value attribute functions
+  const handleAddValueToCurrentAttribute = () => {
+    if (newAttributeValue.trim()) {
+      setCurrentAttributeValues(prev => [
+        ...prev,
+        { value: newAttributeValue.trim() }
+      ]);
+      setNewAttributeValue("");
+    }
+  };
+
+  const handleRemoveValueFromCurrent = (index: number) => {
+    setCurrentAttributeValues(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddMultiValueAttribute = () => {
+    if (newAttributeKey.trim() && currentAttributeValues.length > 0) {
+      // For now, we'll store the first value in the attributes
+      // This maintains compatibility with the current system
+      // Later we can enhance the backend to support multiple values
+      setAttributes(prev => ({
+        ...prev,
+        [newAttributeKey]: currentAttributeValues.map(v => v.value).join(", ")
+      }));
+      
+      // Reset the form
+      setNewAttributeKey("");
+      setCurrentAttributeValues([]);
+      
+      toast({
+        title: "Attribut ajouté",
+        description: `L'attribut "${newAttributeKey}" avec ${currentAttributeValues.length} valeur(s) a été ajouté.`,
+      });
+    }
   };
 
   const handleSubmit = () => {
@@ -390,35 +431,80 @@ const ClientCustomVariantEditor: React.FC<ClientCustomVariantEditorProps> = ({
                   </Card>
                 )}
 
-                {/* Add custom attribute */}
+                {/* Add custom attribute with multiple values */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm">Ajouter un nouvel attribut</CardTitle>
+                    <CardTitle className="text-sm">Ajouter un nouvel attribut avec options</CardTitle>
                     <CardDescription>
-                      Créez un attribut spécifique pour ce client (ex: Type de clavier, Taille d'écran)
+                      Créez un attribut avec plusieurs valeurs (ex: Type de clavier : AZERTY, QWERTY)
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Nom de l'attribut</Label>
                       <Input
-                        placeholder="Nom de l'attribut (ex: Type de clavier)"
+                        placeholder="Ex: Type de clavier"
                         value={newAttributeKey}
                         onChange={(e) => setNewAttributeKey(e.target.value)}
                       />
-                      <Input
-                        placeholder="Valeur (ex: AZERTY)"
-                        value={newAttributeValue}
-                        onChange={(e) => setNewAttributeValue(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddAttribute}
-                        disabled={!newAttributeKey || !newAttributeValue}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Ajouter des valeurs</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Ex: AZERTY"
+                          value={newAttributeValue}
+                          onChange={(e) => setNewAttributeValue(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && newAttributeValue.trim()) {
+                              handleAddValueToCurrentAttribute();
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleAddValueToCurrentAttribute}
+                          disabled={!newAttributeValue.trim()}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Show current values being added */}
+                      {currentAttributeValues.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Valeurs pour cet attribut:</div>
+                          <div className="flex flex-wrap gap-2">
+                            {currentAttributeValues.map((item, index) => (
+                              <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                {item.value}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0"
+                                  onClick={() => handleRemoveValueFromCurrent(index)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddMultiValueAttribute}
+                      disabled={!newAttributeKey.trim() || currentAttributeValues.length === 0}
+                      className="w-full"
+                    >
+                      Ajouter l'attribut avec {currentAttributeValues.length} valeur(s)
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
