@@ -155,14 +155,14 @@ export const ClientVariantPriceManager = ({
                         </div>
                       )}
                       
-                      {hasCustomPrice && customPrice.custom_purchase_price && (
+                      {hasCustomPrice && customPrice.custom_monthly_price && variant.monthly_price && (
                         <div>
                           <div className="font-medium text-muted-foreground">Économie</div>
                           <div className="text-lg font-semibold text-green-600">
-                            {formatCurrency(variant.price - customPrice.custom_purchase_price)}
+                            {formatCurrency(variant.monthly_price - customPrice.custom_monthly_price)}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {(((variant.price - customPrice.custom_purchase_price) / variant.price) * 100).toFixed(1)}% d'économie
+                            {(((variant.monthly_price - customPrice.custom_monthly_price) / variant.monthly_price) * 100).toFixed(1)}% d'économie
                           </div>
                         </div>
                       )}
