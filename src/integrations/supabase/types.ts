@@ -1835,45 +1835,117 @@ export type Database = {
           },
         ]
       }
+      custom_pdf_template_versions: {
+        Row: {
+          changes_description: string | null
+          created_at: string
+          created_by: string | null
+          field_mappings: Json
+          id: string
+          is_major_version: boolean
+          parent_version_id: string | null
+          template_id: string
+          template_metadata: Json
+          version_number: number
+        }
+        Insert: {
+          changes_description?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_mappings?: Json
+          id?: string
+          is_major_version?: boolean
+          parent_version_id?: string | null
+          template_id: string
+          template_metadata?: Json
+          version_number: number
+        }
+        Update: {
+          changes_description?: string | null
+          created_at?: string
+          created_by?: string | null
+          field_mappings?: Json
+          id?: string
+          is_major_version?: boolean
+          parent_version_id?: string | null
+          template_id?: string
+          template_metadata?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_pdf_template_versions_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_pdf_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_pdf_templates: {
         Row: {
+          auto_save_data: Json | null
           client_id: string
+          collaboration_settings: Json | null
           company_id: string
           created_at: string
           description: string | null
           field_mappings: Json
           id: string
           is_active: boolean
+          is_locked: boolean | null
+          locked_at: string | null
+          locked_by: string | null
           name: string
           original_pdf_url: string
           template_metadata: Json
           updated_at: string
+          version_number: number | null
         }
         Insert: {
+          auto_save_data?: Json | null
           client_id: string
+          collaboration_settings?: Json | null
           company_id: string
           created_at?: string
           description?: string | null
           field_mappings?: Json
           id?: string
           is_active?: boolean
+          is_locked?: boolean | null
+          locked_at?: string | null
+          locked_by?: string | null
           name: string
           original_pdf_url: string
           template_metadata?: Json
           updated_at?: string
+          version_number?: number | null
         }
         Update: {
+          auto_save_data?: Json | null
           client_id?: string
+          collaboration_settings?: Json | null
           company_id?: string
           created_at?: string
           description?: string | null
           field_mappings?: Json
           id?: string
           is_active?: boolean
+          is_locked?: boolean | null
+          locked_at?: string | null
+          locked_by?: string | null
           name?: string
           original_pdf_url?: string
           template_metadata?: Json
           updated_at?: string
+          version_number?: number | null
         }
         Relationships: [
           {
@@ -4778,6 +4850,122 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          parent_category_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_category_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_category_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "template_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_library: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          download_count: number
+          field_mappings: Json
+          id: string
+          is_featured: boolean
+          is_public: boolean
+          name: string
+          original_template_id: string | null
+          preview_image_url: string | null
+          rating_average: number | null
+          rating_count: number
+          tags: string[] | null
+          template_metadata: Json
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          download_count?: number
+          field_mappings?: Json
+          id?: string
+          is_featured?: boolean
+          is_public?: boolean
+          name: string
+          original_template_id?: string | null
+          preview_image_url?: string | null
+          rating_average?: number | null
+          rating_count?: number
+          tags?: string[] | null
+          template_metadata?: Json
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          download_count?: number
+          field_mappings?: Json
+          id?: string
+          is_featured?: boolean
+          is_public?: boolean
+          name?: string
+          original_template_id?: string | null
+          preview_image_url?: string | null
+          rating_average?: number | null
+          rating_count?: number
+          tags?: string[] | null
+          template_metadata?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_library_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "template_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_library_original_template_id_fkey"
+            columns: ["original_template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
             referencedColumns: ["id"]
           },
         ]
