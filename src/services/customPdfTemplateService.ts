@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CustomPdfTemplate, CreateCustomPdfTemplateData } from "@/types/customPdfTemplate";
 
-export const customPdfTemplateService = {
+// Service de gestion des templates PDF personnalisés
+const customPdfTemplateService = {
   // Récupérer un template par ID
   async getTemplate(templateId: string): Promise<CustomPdfTemplate | null> {
     const { data, error } = await supabase
@@ -22,59 +23,51 @@ export const customPdfTemplateService = {
   async getTemplatesByCompany(): Promise<CustomPdfTemplate[]> {
     const { data, error } = await supabase
       .from('custom_pdf_templates')
-      .select(`
-        *,
-        clients (
-          id,
-          name,
-          company
-        )
-      `)
+      .select('*, clients(name)')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Erreur récupération templates:', error);
+      console.error('Error fetching company templates:', error);
       throw error;
     }
 
     return data || [];
   },
 
-  // Récupérer le template actif d'un client
+  // Récupérer le template actif pour un client
   async getActiveTemplateByClient(clientId: string): Promise<CustomPdfTemplate | null> {
     const { data, error } = await supabase
       .from('custom_pdf_templates')
-      .select('*')
+      .select('*, clients(name)')
       .eq('client_id', clientId)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Erreur récupération template client:', error);
+    if (error) {
+      console.error('Error fetching active template:', error);
       throw error;
     }
 
-    return data || null;
+    return data;
   },
 
   // Créer un nouveau template
   async createTemplate(templateData: CreateCustomPdfTemplateData): Promise<CustomPdfTemplate> {
-    // D'abord désactiver l'ancien template s'il existe
-    if (templateData.is_active !== false) {
-      await this.deactivateClientTemplates(templateData.client_id);
-    }
+    // D'abord désactiver tous les templates existants pour ce client
+    await this.deactivateClientTemplates(templateData.client_id);
 
     const { data, error } = await supabase
       .from('custom_pdf_templates')
-      .insert([{
+      .insert({
         ...templateData,
-        company_id: (await this.getCurrentUserCompanyId())
-      }])
+        company_id: await this.getCurrentUserCompanyId(),
+        is_active: templateData.is_active ?? true
+      })
       .select()
       .single();
 
     if (error) {
-      console.error('Erreur création template:', error);
+      console.error('Error creating template:', error);
       throw error;
     }
 
@@ -91,7 +84,7 @@ export const customPdfTemplateService = {
       .single();
 
     if (error) {
-      console.error('Erreur mise à jour template:', error);
+      console.error('Error updating template:', error);
       throw error;
     }
 
@@ -106,7 +99,7 @@ export const customPdfTemplateService = {
       .eq('id', templateId);
 
     if (error) {
-      console.error('Erreur suppression template:', error);
+      console.error('Error deleting template:', error);
       throw error;
     }
   },
@@ -119,24 +112,24 @@ export const customPdfTemplateService = {
       .eq('client_id', clientId);
 
     if (error) {
-      console.error('Erreur désactivation templates:', error);
+      console.error('Error deactivating templates:', error);
       throw error;
     }
   },
 
-  // Activer un template spécifique (désactive automatiquement les autres)
+  // Activer un template spécifique
   async activateTemplate(templateId: string, clientId: string): Promise<void> {
-    // Désactiver tous les templates du client
+    // D'abord désactiver tous les autres templates du client
     await this.deactivateClientTemplates(clientId);
-    
-    // Activer le template choisi
+
+    // Puis activer le template sélectionné
     const { error } = await supabase
       .from('custom_pdf_templates')
       .update({ is_active: true })
       .eq('id', templateId);
 
     if (error) {
-      console.error('Erreur activation template:', error);
+      console.error('Error activating template:', error);
       throw error;
     }
   },
@@ -155,3 +148,16 @@ export const customPdfTemplateService = {
     return profile.company_id;
   }
 };
+
+// Export des fonctions individuelles 
+export const getTemplate = customPdfTemplateService.getTemplate.bind(customPdfTemplateService);
+export const getTemplatesByCompany = customPdfTemplateService.getTemplatesByCompany.bind(customPdfTemplateService);
+export const getActiveTemplateByClient = customPdfTemplateService.getActiveTemplateByClient.bind(customPdfTemplateService);
+export const createTemplate = customPdfTemplateService.createTemplate.bind(customPdfTemplateService);
+export const updateTemplate = customPdfTemplateService.updateTemplate.bind(customPdfTemplateService);
+export const deleteTemplate = customPdfTemplateService.deleteTemplate.bind(customPdfTemplateService);
+export const deactivateClientTemplates = customPdfTemplateService.deactivateClientTemplates.bind(customPdfTemplateService);
+export const activateTemplate = customPdfTemplateService.activateTemplate.bind(customPdfTemplateService);
+
+// Export par défaut
+export default customPdfTemplateService;

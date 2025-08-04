@@ -9,17 +9,17 @@ export class CustomPdfFieldMapper {
   /**
    * Résout la valeur d'un champ à partir des données d'offre
    */
-  static resolveFieldValue(field: CustomPdfTemplateField, data: any): string {
+  static resolveFieldValue(mappingKey: string, data: any): string {
     try {
-      const value = this.getNestedValue(data, field.mapping_key);
+      const value = this.getNestedValue(data, mappingKey);
       
       if (value === undefined || value === null) {
         return '';
       }
       
-      return this.formatValue(value, field);
+      return String(value);
     } catch (error) {
-      console.error('Erreur lors de la résolution du champ:', field.mapping_key, error);
+      console.error('Erreur lors de la résolution du champ:', mappingKey, error);
       return '';
     }
   }
@@ -51,16 +51,16 @@ export class CustomPdfFieldMapper {
   /**
    * Formate une valeur selon le type et format du champ
    */
-  private static formatValue(value: any, field: CustomPdfTemplateField): string {
-    switch (field.type) {
+  static formatValue(value: any, fieldType: string, format?: any): string {
+    switch (fieldType) {
       case 'currency':
-        return this.formatCurrency(value, field.format?.currency);
+        return this.formatCurrency(value, format?.currency);
         
       case 'date':
-        return this.formatDate(value, field.format?.dateFormat);
+        return this.formatDate(value, format?.dateFormat);
         
       case 'number':
-        return this.formatNumber(value, field.format?.numberDecimals);
+        return this.formatNumber(value, format?.numberDecimals);
         
       case 'text':
       default:

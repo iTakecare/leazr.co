@@ -115,7 +115,7 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   };
 
   const renderField = (field: CustomPdfTemplateField) => {
-    const value = CustomPdfFieldMapper.resolveFieldValue(field, sampleData);
+    const value = CustomPdfFieldMapper.resolveFieldValue(field.mapping_key, sampleData);
     const isSelected = field.id === selectedFieldId;
     
     const style = {

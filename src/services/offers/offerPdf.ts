@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { PDFGenerationEngine } from "../pdfGenerationEngine";
 import { PDFTemplateService } from "../pdfTemplateService";
 import { saveAs } from "file-saver";
+import { getActiveTemplateByClient } from "../customPdfTemplateService";
+import { CustomPdfRenderer } from "../customPdfRenderer";
+import { CustomPdfTemplateAdapter } from "../customPdfTemplateAdapter";
 
 /**
  * Récupère une offre complète avec les données client pour générer un PDF
@@ -153,8 +156,41 @@ export const generateAndDownloadOfferPdf = async (
       client_email: offerData.client_email,
       amount: offerData.amount,
       monthly_payment: offerData.monthly_payment,
-      company_id: offerData.company_id
+      company_id: offerData.company_id,
+      client_id: offerData.client_id
     });
+
+    // Vérifier s'il existe un template personnalisé pour ce client
+    if (offerData.client_id && offerData.company_id) {
+      try {
+        console.log("Vérification des templates personnalisés pour le client:", offerData.client_id);
+        const customTemplate = await getActiveTemplateByClient(offerData.client_id);
+        
+        if (customTemplate) {
+          console.log("Template personnalisé trouvé:", customTemplate.name);
+          
+          // Convertir vers le format étendu pour le rendu
+          const extendedTemplate = CustomPdfTemplateAdapter.toExtended(customTemplate);
+          
+          // Générer le PDF avec le template personnalisé
+          const pdfBytes = await CustomPdfRenderer.renderCustomPdf(extendedTemplate, offerData);
+          
+          // Télécharger le PDF
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const filename = `offre-${offerData.offer_id || offerId}.pdf`;
+          saveAs(blob, filename);
+          
+          console.log("PDF généré avec template personnalisé et téléchargé avec succès");
+          toast.success(`PDF généré avec votre template personnalisé: ${filename}`);
+          return filename;
+        } else {
+          console.log("Aucun template personnalisé actif pour ce client");
+        }
+      } catch (customError) {
+        console.warn("Erreur avec le template personnalisé, fallback vers le système standard:", customError);
+        toast.warning("Utilisation du template standard suite à une erreur");
+      }
+    }
 
     // Utiliser le nouveau moteur si demandé et si un company_id est disponible
     if (options?.useNewEngine && offerData.company_id) {

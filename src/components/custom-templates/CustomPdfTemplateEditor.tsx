@@ -12,18 +12,20 @@ import {
 } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
 import { CustomPdfTemplateAdapter } from "@/services/customPdfTemplateAdapter";
-import { customPdfTemplateService } from "@/services/customPdfTemplateService";
+import customPdfTemplateService from "@/services/customPdfTemplateService";
 import FieldPalette from "./FieldPalette";
 import CustomPdfCanvas from "./CustomPdfCanvas";
 import FieldPropertiesPanel from "./FieldPropertiesPanel";
 
 interface CustomPdfTemplateEditorProps {
-  templateId: string;
+  clientId: string;
+  templateId?: string;
   onSave?: (template: ExtendedCustomPdfTemplate) => void;
   onClose?: () => void;
 }
 
 const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
+  clientId,
   templateId,
   onSave,
   onClose
