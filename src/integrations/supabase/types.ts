@@ -5105,6 +5105,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_template_comments_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_template_comments_resolved_by"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "template_comments_parent_comment_id_fkey"
             columns: ["parent_comment_id"]
             isOneToOne: false

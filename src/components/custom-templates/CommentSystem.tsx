@@ -24,10 +24,19 @@ export function CommentSystem({ templateId, fieldId }: CommentSystemProps) {
   const [filterStatus, setFilterStatus] = useState<TemplateComment['status'] | 'all'>('all');
 
   useEffect(() => {
-    loadComments();
+    if (templateId && templateId !== 'temp') {
+      loadComments();
+    } else {
+      setLoading(false);
+    }
   }, [templateId, fieldId, filterStatus]);
 
   const loadComments = async () => {
+    if (!templateId || templateId === 'temp') {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const statusFilter = filterStatus === 'all' ? undefined : filterStatus;
       const data = await templateCollaborationService.getComments(
@@ -114,6 +123,24 @@ export function CommentSystem({ templateId, fieldId }: CommentSystemProps) {
         return 'default';
     }
   };
+
+  if (!templateId || templateId === 'temp') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Commentaires
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            Veuillez sauvegarder le template avant d'ajouter des commentaires.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center p-8">Chargement...</div>;

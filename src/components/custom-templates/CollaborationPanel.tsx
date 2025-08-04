@@ -22,10 +22,19 @@ export function CollaborationPanel({ templateId }: CollaborationPanelProps) {
   const [isAddingUser, setIsAddingUser] = useState(false);
 
   useEffect(() => {
-    loadCollaborators();
+    if (templateId && templateId !== 'temp') {
+      loadCollaborators();
+    } else {
+      setLoading(false);
+    }
   }, [templateId]);
 
   const loadCollaborators = async () => {
+    if (!templateId || templateId === 'temp') {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const data = await templateCollaborationService.getCollaborators(templateId);
       setCollaborators(data);
@@ -112,6 +121,24 @@ export function CollaborationPanel({ templateId }: CollaborationPanelProps) {
         return 'outline';
     }
   };
+
+  if (!templateId || templateId === 'temp') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Collaboration
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            Veuillez sauvegarder le template avant d'ajouter des collaborateurs.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center p-8">Chargement...</div>;
