@@ -1835,6 +1835,60 @@ export type Database = {
           },
         ]
       }
+      custom_pdf_template_changes: {
+        Row: {
+          change_type: string
+          created_at: string
+          description: string | null
+          field_path: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          template_id: string
+          user_id: string | null
+          version_id: string | null
+        }
+        Insert: {
+          change_type: string
+          created_at?: string
+          description?: string | null
+          field_path?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          template_id: string
+          user_id?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          change_type?: string
+          created_at?: string
+          description?: string | null
+          field_path?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          template_id?: string
+          user_id?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_pdf_template_changes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_pdf_template_changes_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_pdf_template_versions: {
         Row: {
           changes_description: string | null
@@ -4854,6 +4908,63 @@ export type Database = {
           },
         ]
       }
+      template_approvals: {
+        Row: {
+          approval_date: string | null
+          approver_id: string
+          comments: string | null
+          due_date: string | null
+          id: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          template_id: string
+          version_id: string | null
+          workflow_step: number
+        }
+        Insert: {
+          approval_date?: string | null
+          approver_id: string
+          comments?: string | null
+          due_date?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          template_id: string
+          version_id?: string | null
+          workflow_step?: number
+        }
+        Update: {
+          approval_date?: string | null
+          approver_id?: string
+          comments?: string | null
+          due_date?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          template_id?: string
+          version_id?: string | null
+          workflow_step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_approvals_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_approvals_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_categories: {
         Row: {
           created_at: string
@@ -4891,6 +5002,113 @@ export type Database = {
             columns: ["parent_category_id"]
             isOneToOne: false
             referencedRelation: "template_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_collaborators: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          id: string
+          is_active: boolean
+          last_active_at: string | null
+          role: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_active_at?: string | null
+          role?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_active_at?: string | null
+          role?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_collaborators_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_comments: {
+        Row: {
+          comment_type: string
+          content: string
+          created_at: string
+          created_by: string
+          field_id: string | null
+          id: string
+          parent_comment_id: string | null
+          position_x: number | null
+          position_y: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment_type?: string
+          content: string
+          created_at?: string
+          created_by: string
+          field_id?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment_type?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          field_id?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "template_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_comments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -4964,6 +5182,149 @@ export type Database = {
           {
             foreignKeyName: "template_library_original_template_id_fkey"
             columns: ["original_template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_performance_metrics: {
+        Row: {
+          additional_data: Json | null
+          created_at: string
+          id: string
+          measurement_date: string
+          metric_type: string
+          metric_value: number
+          template_id: string
+        }
+        Insert: {
+          additional_data?: Json | null
+          created_at?: string
+          id?: string
+          measurement_date?: string
+          metric_type: string
+          metric_value: number
+          template_id: string
+        }
+        Update: {
+          additional_data?: Json | null
+          created_at?: string
+          id?: string
+          measurement_date?: string
+          metric_type?: string
+          metric_value?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_performance_metrics_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_sharing: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          message: string | null
+          permission_level: string
+          shared_by: string
+          shared_with_company_id: string | null
+          shared_with_user_id: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string | null
+          permission_level?: string
+          shared_by: string
+          shared_with_company_id?: string | null
+          shared_with_user_id?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string | null
+          permission_level?: string
+          shared_by?: string
+          shared_with_company_id?: string | null
+          shared_with_user_id?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_sharing_shared_with_company_id_fkey"
+            columns: ["shared_with_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_sharing_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "custom_pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_usage_stats: {
+        Row: {
+          action_type: string
+          company_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          template_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          company_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          template_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          company_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          template_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_usage_stats_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_stats_template_id_fkey"
+            columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "custom_pdf_templates"
             referencedColumns: ["id"]
