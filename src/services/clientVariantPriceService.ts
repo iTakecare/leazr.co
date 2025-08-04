@@ -40,7 +40,7 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
         product_variant_prices!inner(
           id,
           attributes,
-          purchase_price,
+          price,
           monthly_price,
           product_id
         )
@@ -59,7 +59,7 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
     const enrichedData = (data || []).map(customPrice => ({
       ...customPrice,
       variant_attributes: customPrice.product_variant_prices?.attributes,
-      standard_purchase_price: customPrice.product_variant_prices?.purchase_price,
+      standard_price: customPrice.product_variant_prices?.price,
       standard_monthly_price: customPrice.product_variant_prices?.monthly_price
     }));
     
