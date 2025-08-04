@@ -226,14 +226,23 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
           if (!enrichedAttributes[key]) {
             enrichedAttributes[key] = [];
           }
-          if (!enrichedAttributes[key].includes(String(value))) {
-            enrichedAttributes[key].push(String(value));
-          }
+          
+          // Split multiple values separated by commas and clean them
+          const valueStr = String(value);
+          const splitValues = valueStr.includes(',') 
+            ? valueStr.split(',').map(v => v.trim()).filter(v => v.length > 0)
+            : [valueStr];
+          
+          splitValues.forEach(splitValue => {
+            if (!enrichedAttributes[key].includes(splitValue)) {
+              enrichedAttributes[key].push(splitValue);
+            }
+          });
         });
       }
     });
     
-    console.log('🎯 Enriched variation attributes with custom variants:', {
+    console.log('🎯 Enriched variation attributes with custom variants (split values):', {
       baseAttributes,
       customVariantsCount: clientCustomVariants.length,
       enrichedAttributes
@@ -329,8 +338,22 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       // Check if all test options match this custom variant's attributes
       const matches = Object.entries(testOptions).every(([key, val]) => {
         const variantValue = customVariant.attributes[key];
-        const directMatch = variantValue && 
-          String(variantValue).toLowerCase().trim() === String(val).toLowerCase().trim();
+        
+        // Handle split values for custom variants
+        let directMatch = false;
+        if (variantValue) {
+          const variantValueStr = String(variantValue);
+          if (variantValueStr.includes(',')) {
+            // If the variant value contains multiple options, check if our value is one of them
+            const splitVariantValues = variantValueStr.split(',').map(v => v.trim());
+            directMatch = splitVariantValues.some(splitVal => 
+              splitVal.toLowerCase().trim() === String(val).toLowerCase().trim()
+            );
+          } else {
+            // Single value comparison
+            directMatch = variantValueStr.toLowerCase().trim() === String(val).toLowerCase().trim();
+          }
+        }
         
         console.log(`Checking custom variant ${key}=${val}:`, {
           directMatch,
