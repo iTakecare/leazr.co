@@ -18,8 +18,36 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
   const [hasCustomPricing, setHasCustomPricing] = useState(false);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
   const [clientCustomPrices, setClientCustomPrices] = useState<any[]>([]);
+  const [hiddenVariants, setHiddenVariants] = useState<string[]>([]);
 
   const availableDurations = [36];
+
+  // Load client's hidden variants
+  useEffect(() => {
+    if (clientId && clientId.trim() !== '') {
+      console.log('🔒 Loading hidden variants for client:', clientId);
+      
+      import('@/integrations/supabase/client').then(({ supabase }) => {
+        supabase
+          .from('clients')
+          .select('hidden_variants')
+          .eq('id', clientId)
+          .single()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('❌ Failed to load hidden variants:', error);
+              setHiddenVariants([]);
+            } else {
+              const variants = data?.hidden_variants || [];
+              console.log('🔒 Loaded hidden variants:', variants);
+              setHiddenVariants(variants);
+            }
+          });
+      });
+    } else {
+      setHiddenVariants([]);
+    }
+  }, [clientId]);
 
   // Load client custom prices
   useEffect(() => {
@@ -195,8 +223,42 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     console.log(`Checking availability for ${optionName}=${value}`, {
       testOptions,
       clientCustomPrices: clientCustomPrices.length,
-      variantPrices: variantPrices?.length
+      variantPrices: variantPrices?.length,
+      hiddenVariants: hiddenVariants.length
     });
+
+    // FIRST: Check if this combination corresponds to a hidden variant
+    const isHiddenVariant = variantPrices?.some(vp => {
+      // Skip if this variant is not hidden
+      if (!hiddenVariants.includes(vp.id)) return false;
+      
+      const attrs = typeof vp.attributes === 'string' 
+        ? JSON.parse(vp.attributes) 
+        : vp.attributes;
+      
+      const matches = Object.entries(testOptions).every(([key, val]) => {
+        const directMatch = attrs[key] && 
+          String(attrs[key]).toLowerCase().trim() === String(val).toLowerCase().trim();
+        
+        const mappedKey = attributeMapping[key] || attributeMapping[key.toLowerCase()];
+        const mappedMatch = mappedKey && attrs[mappedKey] && 
+          String(attrs[mappedKey]).toLowerCase().trim() === String(val).toLowerCase().trim();
+
+        return directMatch || mappedMatch;
+      });
+
+      if (matches) {
+        console.log(`🔒 Hidden variant detected for ${optionName}=${value}:`, vp.id);
+      }
+      
+      return matches;
+    });
+
+    // If this combination corresponds to a hidden variant, it's not available
+    if (isHiddenVariant) {
+      console.log(`❌ Option ${optionName}=${value} is NOT available (hidden variant)`);
+      return false;
+    }
 
     // First priority: Check if this combination has a custom price
     const hasCustomVariant = clientCustomPrices.some(customPrice => {
@@ -242,8 +304,11 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       return true;
     }
 
-    // Second priority: Check if this combination has standard variant pricing
+    // Second priority: Check if this combination has standard variant pricing (and is not hidden)
     const hasStandardVariant = variantPrices?.some(vp => {
+      // Skip if this variant is hidden
+      if (hiddenVariants.includes(vp.id)) return false;
+      
       const attrs = typeof vp.attributes === 'string' 
         ? JSON.parse(vp.attributes) 
         : vp.attributes;
@@ -278,10 +343,11 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     console.log(`Option ${optionName}=${value} availability check:`, {
       availableValues,
       isInAttributes,
-      fallbackToAttributes: true
+      fallbackToAttributes: false // Changed to false to be more restrictive
     });
     
-    return isInAttributes;
+    // Only return true if it's in attributes AND we have confirmed variants for it
+    return isInAttributes && (hasCustomVariant || hasStandardVariant);
   };
 
   const hasAttributeOptions = (attributeName: string) => {

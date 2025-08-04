@@ -25,6 +25,70 @@ export const getClientProductPrice = async (
   };
 
   try {
+    // Check if the selected options correspond to a hidden variant
+    if (selectedOptions) {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Get client's hidden variants
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('hidden_variants')
+        .eq('id', clientId)
+        .single();
+      
+      const hiddenVariants = clientData?.hidden_variants || [];
+      
+      if (hiddenVariants.length > 0) {
+        // Get variant prices to check if selected options match a hidden variant
+        const { data: variantPrices } = await supabase
+          .from('product_variant_prices')
+          .select('id, attributes')
+          .eq('product_id', product.id)
+          .in('id', hiddenVariants);
+        
+        // Check if selected options match any hidden variant
+        const isHiddenVariant = variantPrices?.some(vp => {
+          const attrs = typeof vp.attributes === 'string' 
+            ? JSON.parse(vp.attributes) 
+            : vp.attributes;
+          
+          return Object.entries(selectedOptions).every(([key, val]) => {
+            const directMatch = attrs[key] && 
+              String(attrs[key]).toLowerCase().trim() === String(val).toLowerCase().trim();
+            
+            // Also check mapped attribute names
+            const attributeMapping: Record<string, string> = {
+              'storage': 'Capacité du disque dur',
+              'stockage': 'Capacité du disque dur', 
+              'memory': 'Mémoire vive (RAM)',
+              'ram': 'Mémoire vive (RAM)',
+              'processor': 'Processeur',
+              'processeur': 'Processeur',
+              'screen_size': 'Taille écran',
+              'taille_ecran': 'Taille écran'
+            };
+            
+            const mappedKey = attributeMapping[key] || attributeMapping[key.toLowerCase()];
+            const mappedMatch = mappedKey && attrs[mappedKey] && 
+              String(attrs[mappedKey]).toLowerCase().trim() === String(val).toLowerCase().trim();
+
+            return directMatch || mappedMatch;
+          });
+        });
+        
+        if (isHiddenVariant) {
+          console.log(`🔒 Selected options correspond to hidden variant, no pricing available`);
+          // Return zero prices for hidden variants
+          return {
+            monthlyPrice: 0,
+            purchasePrice: 0,
+            hasCustomPricing: false,
+            originalPrice: 0
+          };
+        }
+      }
+    }
+
     // Try to get custom prices for this client and product
     const customPrices = await getClientCustomVariantPrices(clientId, product.id);
     
