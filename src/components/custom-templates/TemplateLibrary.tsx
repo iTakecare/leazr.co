@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Download, Star, Eye } from 'lucide-react';
-import { templateSharingService, TemplateLibraryItem, TemplateCategory } from '@/services/templateSharingService';
+import { templateSharingService } from '@/services/templateSharingService';
+import { TemplateLibraryItem, TemplateCategory } from '@/types/customPdfTemplate';
 import { toast } from 'sonner';
 
 interface TemplateLibraryProps {

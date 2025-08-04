@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Eye, Settings, Palette, FileText, Loader2 } from "lucide-react";
+import { Save, Eye, Settings, Palette, FileText, Loader2, History, Users, MessageSquare, BarChart3, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   ExtendedCustomPdfTemplate, 
@@ -19,6 +19,11 @@ import FieldPropertiesPanel from "./FieldPropertiesPanel";
 import { AdvancedToolbar } from "./AdvancedToolbar";
 import { FieldAlignmentGuides } from "./FieldAlignmentGuides";
 import { StylePresetsPanel } from "./StylePresetsPanel";
+// Phase 5: Import des nouveaux composants
+import { VersionHistory } from './VersionHistory';
+import { CollaborationPanel } from './CollaborationPanel';
+import { CommentSystem } from './CommentSystem';
+import { TemplateAnalytics } from './TemplateAnalytics';
 
 interface CustomPdfTemplateEditorProps {
   clientId: string;
@@ -370,18 +375,38 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         {/* Sidebar gauche */}
         <div className="w-80 border-r border-border bg-card">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 m-2">
-              <TabsTrigger value="fields" className="flex items-center gap-1 text-xs">
+            <TabsList className="grid w-full grid-cols-8 m-2 text-xs">
+              <TabsTrigger value="fields" className="flex items-center gap-1">
                 <Palette className="h-3 w-3" />
                 Champs
               </TabsTrigger>
-              <TabsTrigger value="properties" className="flex items-center gap-1 text-xs">
+              <TabsTrigger value="properties" className="flex items-center gap-1">
                 <Settings className="h-3 w-3" />
                 Propriétés
               </TabsTrigger>
-              <TabsTrigger value="styles" className="flex items-center gap-1 text-xs">
+              <TabsTrigger value="styles" className="flex items-center gap-1">
                 <Eye className="h-3 w-3" />
                 Styles
+              </TabsTrigger>
+              <TabsTrigger value="versions" className="flex items-center gap-1">
+                <History className="h-3 w-3" />
+                Versions
+              </TabsTrigger>
+              <TabsTrigger value="collaboration" className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                Collab
+              </TabsTrigger>
+              <TabsTrigger value="comments" className="flex items-center gap-1">
+                <MessageSquare className="h-3 w-3" />
+                Comments
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-1">
+                <BarChart3 className="h-3 w-3" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="sharing" className="flex items-center gap-1">
+                <Share2 className="h-3 w-3" />
+                Partage
               </TabsTrigger>
             </TabsList>
             
@@ -408,6 +433,68 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
                   selectedFieldType={selectedField?.type}
                   className="h-full"
                 />
+              </TabsContent>
+
+              {/* Phase 5: Nouveaux onglets */}
+              <TabsContent value="versions" className="h-full m-2 mt-0">
+                <div className="h-full overflow-auto">
+                  <VersionHistory
+                    templateId={template.id}
+                    onRestoreVersion={(version) => {
+                      toast.success(`Version ${version.version_number} restaurée`);
+                      // Recharger le template
+                      window.location.reload();
+                    }}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="collaboration" className="h-full m-2 mt-0">
+                <div className="h-full overflow-auto">
+                  <CollaborationPanel templateId={template.id} />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="comments" className="h-full m-2 mt-0">
+                <div className="h-full overflow-auto">
+                  <CommentSystem 
+                    templateId={template.id}
+                    fieldId={selectedFieldId || undefined}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="analytics" className="h-full m-2 mt-0">
+                <div className="h-full overflow-auto">
+                  <TemplateAnalytics templateId={template.id} />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="sharing" className="h-full m-2 mt-0">
+                <div className="h-full overflow-auto">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Share2 className="h-5 w-5" />
+                        Partage et Export
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Button className="w-full" variant="outline">
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Partager avec une entreprise
+                      </Button>
+                      <Button className="w-full" variant="outline">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Exporter en JSON
+                      </Button>
+                      <Button className="w-full" variant="outline">
+                        <Palette className="h-4 w-4 mr-2" />
+                        Publier dans la bibliothèque
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </div>
           </Tabs>

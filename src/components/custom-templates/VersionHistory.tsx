@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, GitBranch, RotateCcw, Eye } from 'lucide-react';
-import { templateVersioningService, TemplateVersion } from '@/services/templateVersioningService';
+import { templateVersioningService } from '@/services/templateVersioningService';
+import { TemplateVersion } from '@/types/customPdfTemplate';
 import { toast } from 'sonner';
 
 interface VersionHistoryProps {
