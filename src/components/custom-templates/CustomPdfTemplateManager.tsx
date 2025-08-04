@@ -245,7 +245,7 @@ export const CustomPdfTemplateManager: React.FC<CustomPdfTemplateManagerProps> =
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
             <CustomPdfTemplateEditor
-              clientId={clientId}
+              clientId={clientId || "default-client"}
               templateId={selectedTemplateId || undefined}
               onClose={() => handleEditorClose(false)}
             />

@@ -19,6 +19,7 @@ import FieldPropertiesPanel from "./FieldPropertiesPanel";
 import { AdvancedToolbar } from "./AdvancedToolbar";
 import { FieldAlignmentGuides } from "./FieldAlignmentGuides";
 import { StylePresetsPanel } from "./StylePresetsPanel";
+import { PdfTemplateUploader } from "@/components/templates/PdfTemplateUploader";
 // Phase 5: Import des nouveaux composants
 import { VersionHistory } from './VersionHistory';
 import { CollaborationPanel } from './CollaborationPanel';
@@ -58,6 +59,23 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
 
   // Données d'exemple pour la prévisualisation
   const sampleData = CustomPdfFieldMapper.generateSampleData();
+
+  // Gestion de l'upload PDF
+  const handlePdfUpload = useCallback((templateUrl: string, metadata: any) => {
+    if (!template) return;
+    
+    setTemplate(prev => prev ? {
+      ...prev,
+      original_pdf_url: templateUrl,
+      template_metadata: {
+        ...prev.template_metadata,
+        ...metadata
+      }
+    } : null);
+    
+    setHasUnsavedChanges(true);
+    toast.success("PDF téléchargé avec succès");
+  }, [template]);
 
   // Fonction pour créer un nouveau template
   const createNewTemplate = useCallback(() => {
@@ -415,6 +433,9 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     );
   }
 
+  // Vérifier si c'est un nouveau template sans PDF
+  const isNewTemplateWithoutPdf = template.id.startsWith('temp_') && !template.original_pdf_url;
+
   const totalPages = template.pages_data.length;
 
   return (
@@ -495,9 +516,29 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
 
       {/* Interface principale */}
       <div className="flex-1 flex min-h-0">
-        {/* Sidebar gauche */}
-        <div className="w-96 border-r border-border bg-card">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+        {/* Condition d'affichage : upload PDF d'abord pour nouveaux templates */}
+        {isNewTemplateWithoutPdf ? (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <Card className="w-full max-w-2xl">
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl">Commencez par uploader votre template PDF</CardTitle>
+                <p className="text-muted-foreground">
+                  Téléchargez votre fichier PDF pour pouvoir placer les champs et configurer votre template
+                </p>
+              </CardHeader>
+              <CardContent>
+                <PdfTemplateUploader
+                  onTemplateUploaded={handlePdfUpload}
+                  currentTemplateUrl={template.original_pdf_url}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <>
+            {/* Sidebar gauche */}
+            <div className="w-96 border-r border-border bg-card">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
             <div className="border-b border-border p-2">
               <TabsList className="grid w-full grid-cols-4 gap-1 h-auto">
                 <TabsTrigger value="fields" className="flex flex-col items-center gap-1 p-2 text-xs">
@@ -636,6 +677,8 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
             zoomLevel={zoomLevel}
           />
         </div>
+          </>
+        )}
       </div>
     </div>
   );
