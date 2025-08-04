@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,9 @@ import customPdfTemplateService from "@/services/customPdfTemplateService";
 import FieldPalette from "./FieldPalette";
 import CustomPdfCanvas from "./CustomPdfCanvas";
 import FieldPropertiesPanel from "./FieldPropertiesPanel";
+import { AdvancedToolbar } from "./AdvancedToolbar";
+import { FieldAlignmentGuides } from "./FieldAlignmentGuides";
+import { StylePresetsPanel } from "./StylePresetsPanel";
 
 interface CustomPdfTemplateEditorProps {
   clientId: string;
@@ -36,8 +39,17 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("design");
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState("fields");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [gridVisible, setGridVisible] = useState(true);
+  const [activeTool, setActiveTool] = useState<'select' | 'move'>('select');
+  const [undoStack, setUndoStack] = useState<ExtendedCustomPdfTemplate[]>([]);
+  const [redoStack, setRedoStack] = useState<ExtendedCustomPdfTemplate[]>([]);
+  const [alignmentGuides, setAlignmentGuides] = useState<any[]>([]);
+  
+  // Refs
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Données d'exemple pour la prévisualisation
   const sampleData = CustomPdfFieldMapper.generateSampleData();
@@ -174,8 +186,92 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     }
   };
 
+  // Nouvelles fonctions pour la toolbar avancée
+  const handleUndo = useCallback(() => {
+    if (undoStack.length > 0) {
+      const previousState = undoStack[undoStack.length - 1];
+      setRedoStack(prev => template ? [...prev, template] : prev);
+      setUndoStack(prev => prev.slice(0, -1));
+      setTemplate(previousState);
+    }
+  }, [undoStack, template]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length > 0) {
+      const nextState = redoStack[redoStack.length - 1];
+      setUndoStack(prev => template ? [...prev, template] : prev);
+      setRedoStack(prev => prev.slice(0, -1));
+      setTemplate(nextState);
+    }
+  }, [redoStack, template]);
+
+  const handleCopySelected = useCallback(() => {
+    if (selectedFieldIds.length > 0) {
+      // Logique de copie - pour l'instant, toast informatif
+      toast.success(`${selectedFieldIds.length} champ(s) copié(s)`);
+    }
+  }, [selectedFieldIds]);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (!template || selectedFieldIds.length === 0) return;
+
+    setTemplate(prev => prev ? {
+      ...prev,
+      fields: prev.fields.filter(field => !selectedFieldIds.includes(field.id))
+    } : null);
+    
+    setSelectedFieldIds([]);
+    setSelectedFieldId(null);
+    setHasUnsavedChanges(true);
+    toast.success(`${selectedFieldIds.length} champ(s) supprimé(s)`);
+  }, [template, selectedFieldIds]);
+
+  const handlePreview = useCallback(() => {
+    toast.info("Aperçu en cours de développement");
+  }, []);
+
   // Obtenir le champ sélectionné
   const selectedField = template?.fields.find(field => field.id === selectedFieldId) || null;
+
+  const handleApplyStylePreset = useCallback((style: Partial<CustomPdfTemplateField['style']>) => {
+    if (!selectedFieldId) {
+      toast.error("Veuillez sélectionner un champ");
+      return;
+    }
+    
+    handleFieldUpdate(selectedFieldId, { style: { ...selectedField?.style, ...style } });
+    toast.success("Style appliqué");
+  }, [selectedFieldId, selectedField, handleFieldUpdate]);
+
+  // Raccourcis clavier
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey) {
+        switch (event.key) {
+          case 's':
+            event.preventDefault();
+            handleSave();
+            break;
+          case 'z':
+            if (!event.shiftKey) {
+              event.preventDefault();
+              handleUndo();
+            }
+            break;
+          case 'y':
+            event.preventDefault();
+            handleRedo();
+            break;
+        }
+      } else if (event.key === 'Delete' && selectedFieldIds.length > 0) {
+        event.preventDefault();
+        handleDeleteSelected();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave, handleUndo, handleRedo, handleDeleteSelected, selectedFieldIds]);
 
   if (loading) {
     return (
@@ -197,131 +293,129 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   const totalPages = template.pages_data.length;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* En-tête */}
-      <Card className="mb-4">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                {template.name}
-              </CardTitle>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline">
-                  {template.fields.length} champs
+    <div className="h-full flex flex-col bg-background">
+      {/* Toolbar avancée */}
+      <AdvancedToolbar
+        onSave={handleSave}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onToggleGrid={() => setGridVisible(!gridVisible)}
+        onZoomIn={() => setZoomLevel(prev => Math.min(2, prev + 0.1))}
+        onZoomOut={() => setZoomLevel(prev => Math.max(0.5, prev - 0.1))}
+        onPreview={handlePreview}
+        onCopySelected={handleCopySelected}
+        onDeleteSelected={handleDeleteSelected}
+        zoomLevel={zoomLevel}
+        hasUnsavedChanges={hasUnsavedChanges}
+        selectedFieldsCount={selectedFieldIds.length}
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+        gridVisible={gridVisible}
+        activeTool={activeTool}
+        onToolChange={setActiveTool}
+      />
+
+      {/* En-tête du template */}
+      <div className="border-b border-border bg-card px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {template.name}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {template.fields.length} champ{template.fields.length > 1 ? 's' : ''}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {totalPages} page{totalPages > 1 ? 's' : ''}
+              </Badge>
+              {hasUnsavedChanges && (
+                <Badge variant="destructive" className="text-xs">
+                  Non sauvegardé
                 </Badge>
-                <Badge variant="outline">
-                  {totalPages} page{totalPages > 1 ? 's' : ''}
-                </Badge>
-                {hasUnsavedChanges && (
-                  <Badge variant="secondary">
-                    Modifications non sauvegardées
-                  </Badge>
-                )}
-              </div>
+              )}
             </div>
-            
+          </div>
+          
+          {/* Navigation pages */}
+          {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.1))}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage <= 1}
               >
-                Zoom -
+                ← Précédent
               </Button>
-              <span className="text-sm font-medium px-2">
-                {Math.round(zoomLevel * 100)}%
+              <span className="text-sm font-medium px-3 py-1 bg-muted rounded">
+                Page {currentPage} / {totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setZoomLevel(prev => Math.min(2, prev + 0.1))}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
               >
-                Zoom +
-              </Button>
-              
-              {totalPages > 1 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage <= 1}
-                  >
-                    ← Page
-                  </Button>
-                  <span className="text-sm px-2">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage >= totalPages}
-                  >
-                    Page →
-                  </Button>
-                </>
-              )}
-              
-              <Button
-                onClick={handleSave}
-                disabled={saving || !hasUnsavedChanges}
-                className="ml-2"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sauvegarde...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Sauvegarder
-                  </>
-                )}
+                Suivant →
               </Button>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
+          )}
+        </div>
+      </div>
 
       {/* Interface principale */}
-      <div className="flex-1 grid grid-cols-12 gap-4">
-        {/* Palette de champs - Gauche */}
-        <div className="col-span-3">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="fields" className="flex items-center gap-1">
-                <Palette className="h-4 w-4" />
+      <div className="flex-1 flex min-h-0">
+        {/* Sidebar gauche */}
+        <div className="w-80 border-r border-border bg-card">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-3 m-2">
+              <TabsTrigger value="fields" className="flex items-center gap-1 text-xs">
+                <Palette className="h-3 w-3" />
                 Champs
               </TabsTrigger>
-              <TabsTrigger value="properties" className="flex items-center gap-1">
-                <Settings className="h-4 w-4" />
+              <TabsTrigger value="properties" className="flex items-center gap-1 text-xs">
+                <Settings className="h-3 w-3" />
                 Propriétés
+              </TabsTrigger>
+              <TabsTrigger value="styles" className="flex items-center gap-1 text-xs">
+                <Eye className="h-3 w-3" />
+                Styles
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="fields" className="mt-4">
-              <FieldPalette
-                onFieldAdd={handleFieldAdd}
-              />
-            </TabsContent>
-            
-            <TabsContent value="properties" className="mt-4">
-              <FieldPropertiesPanel
-                field={selectedField}
-                onFieldUpdate={handleFieldUpdate}
-                onFieldDelete={handleFieldDelete}
-              />
-            </TabsContent>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <TabsContent value="fields" className="h-full m-2 mt-0">
+                <FieldPalette
+                  onFieldAdd={handleFieldAdd}
+                  className="h-full"
+                />
+              </TabsContent>
+              
+              <TabsContent value="properties" className="h-full m-2 mt-0">
+                <FieldPropertiesPanel
+                  field={selectedField}
+                  onFieldUpdate={handleFieldUpdate}
+                  onFieldDelete={handleFieldDelete}
+                  className="h-full"
+                />
+              </TabsContent>
+
+              <TabsContent value="styles" className="h-full m-2 mt-0">
+                <StylePresetsPanel
+                  onApplyPreset={handleApplyStylePreset}
+                  selectedFieldType={selectedField?.type}
+                  className="h-full"
+                />
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
 
-        {/* Canvas principal - Centre */}
-        <div className="col-span-9">
-            <CustomPdfCanvas
+        {/* Canvas principal */}
+        <div className="flex-1 relative" ref={canvasRef}>
+          <CustomPdfCanvas
             template={template}
             currentPage={currentPage}
             zoomLevel={zoomLevel}
@@ -329,6 +423,14 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
             sampleData={sampleData}
             onFieldSelect={setSelectedFieldId}
             onFieldMove={handleFieldMove}
+            className="h-full"
+          />
+          
+          {/* Guides d'alignement */}
+          <FieldAlignmentGuides
+            guides={alignmentGuides}
+            containerRef={canvasRef}
+            zoomLevel={zoomLevel}
           />
         </div>
       </div>
