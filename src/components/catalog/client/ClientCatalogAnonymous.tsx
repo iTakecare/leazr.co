@@ -274,7 +274,7 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
                             companyId={company.id}
                             companySlug={company.slug}
                             productId={selectedProductId}
-                            clientId=""
+                            clientId={clientId || ""}
                             company={company}
                             onBackToCatalog={handleBackToGrid}
                           />
