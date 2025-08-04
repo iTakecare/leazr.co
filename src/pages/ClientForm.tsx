@@ -12,6 +12,7 @@ import { createClient, getClientById, updateClient } from '@/services/clientServ
 import { formatPhoneWithCountry } from '@/services/postalCodeService';
 import { toast } from 'sonner';
 import { ArrowLeft, Phone } from 'lucide-react';
+import { ClientLogoUploader } from '@/components/clients/ClientLogoUploader';
 
 const ClientForm = () => {
   const { id } = useParams();
@@ -31,7 +32,8 @@ const ClientForm = () => {
     postal_code: '',
     country: '',
     vat_number: '',
-    notes: ''
+    notes: '',
+    logo_url: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -87,7 +89,8 @@ const ClientForm = () => {
           postal_code: client.postal_code || '',
           country: client.country || '',
           vat_number: client.vat_number || '',
-          notes: client.notes || ''
+          notes: client.notes || '',
+          logo_url: client.logo_url || ''
         });
       }
     } catch (error) {
@@ -291,6 +294,16 @@ const ClientForm = () => {
                     value={formData.notes}
                     onChange={(e) => handleInputChange('notes', e.target.value)}
                     rows={3}
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <Label>Logo du client</Label>
+                  <ClientLogoUploader
+                    clientId={id}
+                    initialLogoUrl={formData.logo_url}
+                    onLogoUploaded={(url) => handleInputChange('logo_url', url)}
+                    onLogoRemoved={() => handleInputChange('logo_url', '')}
                   />
                 </div>
               </div>

@@ -872,6 +872,7 @@ export type Database = {
           hidden_variants: string[] | null
           id: string
           last_name: string | null
+          logo_url: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -898,6 +899,7 @@ export type Database = {
           hidden_variants?: string[] | null
           id?: string
           last_name?: string | null
+          logo_url?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -924,6 +926,7 @@ export type Database = {
           hidden_variants?: string[] | null
           id?: string
           last_name?: string | null
+          logo_url?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -5032,6 +5035,10 @@ export type Database = {
           other_company_data_count: number
           isolation_status: string
         }[]
+      }
+      ensure_client_logos_bucket: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       ensure_site_settings_bucket: {
         Args: Record<PropertyKey, never>

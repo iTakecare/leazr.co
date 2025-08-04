@@ -37,6 +37,7 @@ export interface Client {
   contact_name?: string;
   default_leaser_id?: string;
   has_custom_catalog?: boolean;
+  logo_url?: string;
 }
 
 export interface CreateClientData {
@@ -59,4 +60,5 @@ export interface CreateClientData {
   is_ambassador_client?: boolean;
   contact_name?: string;
   default_leaser_id?: string;
+  logo_url?: string;
 }

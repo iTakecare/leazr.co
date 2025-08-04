@@ -16,6 +16,7 @@ import { User, Building, MapPin, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { updateClient } from "@/services/clientService";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
+import { ClientLogoUploader } from '@/components/clients/ClientLogoUploader';
 
 interface PartnerClientEditDialogProps {
   client: Client | null;
@@ -42,6 +43,7 @@ const PartnerClientEditDialog = ({
     vat_number: "",
     notes: "",
     status: "active",
+    logo_url: "",
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -59,6 +61,7 @@ const PartnerClientEditDialog = ({
         vat_number: client.vat_number || "",
         notes: client.notes || "",
         status: client.status || "active",
+        logo_url: client.logo_url || "",
       });
     }
   }, [client]);
@@ -202,6 +205,21 @@ const PartnerClientEditDialog = ({
                 onPostalCodeChange={(value) => handleInputChange("postal_code", value)}
                 onCityChange={(value) => handleInputChange("city", value)}
                 onCountryChange={(value) => handleInputChange("country", value)}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Logo */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Logo du client</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ClientLogoUploader
+                clientId={client.id}
+                initialLogoUrl={formData.logo_url}
+                onLogoUploaded={(url) => handleInputChange("logo_url", url)}
+                onLogoRemoved={() => handleInputChange("logo_url", "")}
               />
             </CardContent>
           </Card>
