@@ -303,7 +303,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                       <SelectValue placeholder="Sélectionnez une marque" />
                     </SelectTrigger>
                     <SelectContent>
-                      {brands.map((brand) => (
+                      {brands.filter(brand => brand.name && brand.name.trim() !== "").map((brand) => (
                         <SelectItem key={brand.id} value={brand.name}>
                           {brand.name}
                         </SelectItem>
@@ -327,7 +327,7 @@ const ProductEditor: React.FC<ProductEditorProps> = ({
                       <SelectValue placeholder="Sélectionnez une catégorie" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {categories.filter(category => category.name && category.name.trim() !== "").map((category) => (
                         <SelectItem key={category.id} value={category.name}>
                           {category.name}
                         </SelectItem>

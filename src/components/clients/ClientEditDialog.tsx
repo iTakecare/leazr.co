@@ -394,7 +394,7 @@ const ClientEditDialog = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {leasers.map((leaser) => (
+                        {leasers.filter(leaser => leaser.id && leaser.id.trim() !== "").map((leaser) => (
                           <SelectItem key={leaser.id} value={leaser.id}>
                             {leaser.name}
                           </SelectItem>
