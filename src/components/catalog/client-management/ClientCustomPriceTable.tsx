@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Search, 
   Filter, 
@@ -30,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProductCustomPriceEditor } from "./ProductCustomPriceEditor";
 import { ClientVariantPriceManager } from "./ClientVariantPriceManager";
+import ClientVariantCombinationsManager from "./ClientVariantCombinationsManager";
 import { addMultipleProductsToCustomCatalog } from "@/services/catalogService";
 
 interface ClientCustomPriceTableProps {
@@ -44,6 +46,7 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
   const [managingVariants, setManagingVariants] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("assigned");
+  const [managingCombinations, setManagingCombinations] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -252,10 +255,14 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="assigned" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Produits assignés ({assignedProducts?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="combinations" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Combinaisons
             </TabsTrigger>
             <TabsTrigger value="add" className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
@@ -331,18 +338,28 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
                         </div>
                       </TableCell>
                       
-                      <TableCell>
-                         {product.hasVariants && (
-                           <Button 
-                             variant="outline" 
-                             size="sm"
-                             onClick={() => setManagingVariants(product.id)}
-                           >
-                             <Settings className="mr-1 h-3 w-3" />
-                             Gérer ({product.product_variant_prices?.length})
-                           </Button>
-                         )}
-                      </TableCell>
+                       <TableCell>
+                          <div className="flex gap-1">
+                            {product.hasVariants && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setManagingVariants(product.id)}
+                              >
+                                <Settings className="mr-1 h-3 w-3" />
+                                Variantes
+                              </Button>
+                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setManagingCombinations(product.id)}
+                            >
+                              <Settings className="mr-1 h-3 w-3" />
+                              Combinaisons
+                            </Button>
+                          </div>
+                       </TableCell>
                       
                       <TableCell>
                          <div className="flex items-center gap-1">
@@ -369,6 +386,47 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
                 </TableBody>
               </Table>
             )}
+          </TabsContent>
+
+          <TabsContent value="combinations" className="mt-6">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Gérez les prix pour toutes les combinaisons de variantes possibles. 
+                Sélectionnez un produit pour configurer les combinaisons de ses variantes.
+              </p>
+              
+              {managingCombinations ? (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        Combinaisons pour {assignedProducts?.find(p => p.id === managingCombinations)?.name}
+                      </CardTitle>
+                      <Button
+                        variant="outline"
+                        onClick={() => setManagingCombinations(null)}
+                      >
+                        Retour
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ClientVariantCombinationsManager
+                      clientId={clientId}
+                      productId={managingCombinations}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="text-center py-8">
+                  <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold mb-2">Sélectionnez un produit</h3>
+                  <p className="text-muted-foreground">
+                    Allez dans l'onglet "Produits assignés" et cliquez sur "Combinaisons" pour un produit.
+                  </p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="add" className="mt-6">
@@ -500,6 +558,26 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
           productId={managingVariants}
           productName={assignedProducts?.find(p => p.id === managingVariants)?.name || ""}
         />
+      )}
+
+      {/* Gestionnaire de combinaisons */}
+      {managingCombinations && (
+        <Dialog open={!!managingCombinations} onOpenChange={(open) => !open && setManagingCombinations(null)}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Gestion des combinaisons - {assignedProducts?.find(p => p.id === managingCombinations)?.name}
+              </DialogTitle>
+              <DialogDescription>
+                Configurez les prix pour toutes les combinaisons de variantes possibles
+              </DialogDescription>
+            </DialogHeader>
+            <ClientVariantCombinationsManager
+              clientId={clientId}
+              productId={managingCombinations}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </Card>
   );
