@@ -551,6 +551,21 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       .eq("is_active", true)
       .in("product_variant_prices.product_id", productIds);
 
+    // Récupérer les combinaisons personnalisées pour ces produits
+    const { data: customCombinations } = await supabase
+      .from("client_custom_variant_combinations")
+      .select(`
+        id,
+        product_id,
+        attributes,
+        custom_monthly_price,
+        custom_purchase_price,
+        is_available
+      `)
+      .eq("client_id", clientId)
+      .eq("is_available", true)
+      .in("product_id", productIds);
+
     // Créer une map des prix personnalisés des variants par product_id, filtering hidden variants
     const customVariantPriceMap = new Map<string, any[]>();
     customVariantPrices?.forEach(cvp => {
@@ -581,6 +596,22 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       }
     });
 
+    // Créer une map des combinaisons personnalisées par product_id
+    const customCombinationsMap = new Map<string, any[]>();
+    customCombinations?.forEach(combination => {
+      if (combination.product_id) {
+        if (!customCombinationsMap.has(combination.product_id)) {
+          customCombinationsMap.set(combination.product_id, []);
+        }
+        customCombinationsMap.get(combination.product_id)?.push({
+          id: combination.id,
+          attributes: combination.attributes,
+          monthly_price: combination.custom_monthly_price || 0,
+          price: combination.custom_purchase_price || 0
+        });
+      }
+    });
+
     // Étape 3: Mapper les produits avec leurs prix personnalisés
     const mappedProducts: Product[] = productsData.map(product => {
       // Trouver le prix personnalisé correspondant à ce produit
@@ -604,11 +635,24 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
 
       // Récupérer les variants personnalisés pour ce produit
       const customVariants = customVariantPriceMap.get(product.id) || [];
+      
+      // Récupérer les combinaisons personnalisées pour ce produit
+      const productCustomCombinations = customCombinationsMap.get(product.id) || [];
 
-      // Calculer le prix minimum des variants personnalisés
-      const minCustomVariantPrice = customVariants.length > 0 
-        ? Math.min(...customVariants.map(v => v.monthly_price).filter(p => p > 0))
+      // Combiner tous les prix disponibles (variants + combinaisons) pour calculer le minimum
+      const allAvailablePrices = [
+        ...customVariants.map(v => v.monthly_price).filter(p => p > 0),
+        ...productCustomCombinations.map(c => c.monthly_price).filter(p => p > 0)
+      ];
+
+      // Si on a des prix de variants/combinaisons, prendre le minimum, sinon utiliser le prix de base
+      const minVariantPrice = allAvailablePrices.length > 0 
+        ? Math.min(...allAvailablePrices)
         : 0;
+
+      // Un produit a des variants s'il a des variants personnalisés OU des combinaisons personnalisées
+      const hasVariants = customVariants.length > 0 || productCustomCombinations.length > 0;
+      const totalVariantsCount = customVariants.length + productCustomCombinations.length;
 
       return {
         id: product.id,
@@ -618,13 +662,13 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
         category: product.categories?.name || product.category_name || "",
         price: customPurchasePrice,
         monthly_price: customMonthlyPrice,
-        min_variant_price: minCustomVariantPrice,
+        min_variant_price: minVariantPrice,
         slug: product.slug || "",
         image_url: product.image_url || "",
         images: product.imageurls || [],
         co2_savings: 0,
-        has_variants: customVariants.length > 0,
-        variants_count: customVariants.length,
+        has_variants: hasVariants,
+        variants_count: totalVariantsCount,
         active: product.active || false,
         createdAt: new Date(),
         updatedAt: new Date(),
