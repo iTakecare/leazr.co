@@ -136,9 +136,6 @@ export const ClientVariantPriceManager = ({
                       <div>
                         <div className="font-medium text-muted-foreground">Prix standard</div>
                         <div className="text-lg font-semibold">
-                          {formatCurrency(variant.price)}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
                           {formatCurrency(variant.monthly_price)}/mois
                         </div>
                       </div>
@@ -147,9 +144,6 @@ export const ClientVariantPriceManager = ({
                         <div>
                           <div className="font-medium text-muted-foreground">Prix personnalisé</div>
                           <div className="text-lg font-semibold text-primary">
-                            {customPrice.custom_purchase_price ? formatCurrency(customPrice.custom_purchase_price) : 'Non défini'}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
                             {customPrice.custom_monthly_price ? `${formatCurrency(customPrice.custom_monthly_price)}/mois` : 'Non défini'}
                           </div>
                         </div>
