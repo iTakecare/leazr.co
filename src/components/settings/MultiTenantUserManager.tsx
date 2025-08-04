@@ -735,7 +735,7 @@ const MultiTenantUserManager = () => {
                   <SelectValue placeholder="Sélectionner un profil" />
                 </SelectTrigger>
                 <SelectContent>
-                  {permissionProfiles.map((profile) => (
+                  {permissionProfiles.filter(profile => profile.id && profile.id.trim() !== "").map((profile) => (
                     <SelectItem key={profile.id} value={profile.id}>
                       <div className="flex items-center space-x-2">
                         <span>{profile.name}</span>
