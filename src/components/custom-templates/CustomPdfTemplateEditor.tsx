@@ -428,52 +428,56 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
       {/* Interface principale */}
       <div className="flex-1 flex min-h-0">
         {/* Sidebar gauche */}
-        <div className="w-80 border-r border-border bg-card">
+        <div className="w-96 border-r border-border bg-card">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-8 m-2 text-xs">
-              <TabsTrigger value="fields" className="flex items-center gap-1">
-                <Palette className="h-3 w-3" />
-                Champs
-              </TabsTrigger>
-              <TabsTrigger value="properties" className="flex items-center gap-1">
-                <Settings className="h-3 w-3" />
-                Propriétés
-              </TabsTrigger>
-              <TabsTrigger value="styles" className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                Styles
-              </TabsTrigger>
-              <TabsTrigger value="versions" className="flex items-center gap-1">
-                <History className="h-3 w-3" />
-                Versions
-              </TabsTrigger>
-              <TabsTrigger value="collaboration" className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                Collab
-              </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />
-                Comments
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-1">
-                <BarChart3 className="h-3 w-3" />
-                Analytics
-              </TabsTrigger>
-              <TabsTrigger value="sharing" className="flex items-center gap-1">
-                <Share2 className="h-3 w-3" />
-                Partage
-              </TabsTrigger>
-            </TabsList>
+            <div className="border-b border-border p-2">
+              <TabsList className="grid w-full grid-cols-4 gap-1 h-auto">
+                <TabsTrigger value="fields" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <Palette className="h-4 w-4" />
+                  <span>Champs</span>
+                </TabsTrigger>
+                <TabsTrigger value="properties" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <Settings className="h-4 w-4" />
+                  <span>Propriétés</span>
+                </TabsTrigger>
+                <TabsTrigger value="styles" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <Eye className="h-4 w-4" />
+                  <span>Styles</span>
+                </TabsTrigger>
+                <TabsTrigger value="versions" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <History className="h-4 w-4" />
+                  <span>Versions</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsList className="grid w-full grid-cols-4 gap-1 h-auto mt-1">
+                <TabsTrigger value="collaboration" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <Users className="h-4 w-4" />
+                  <span>Collab</span>
+                </TabsTrigger>
+                <TabsTrigger value="comments" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Comments</span>
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Analytics</span>
+                </TabsTrigger>
+                <TabsTrigger value="sharing" className="flex flex-col items-center gap-1 p-2 text-xs">
+                  <Share2 className="h-4 w-4" />
+                  <span>Partage</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
             <div className="flex-1 min-h-0 overflow-hidden">
-              <TabsContent value="fields" className="h-full m-2 mt-0">
+              <TabsContent value="fields" className="h-full p-2 overflow-auto">
                 <FieldPalette
                   onFieldAdd={handleFieldAdd}
                   className="h-full"
                 />
               </TabsContent>
               
-              <TabsContent value="properties" className="h-full m-2 mt-0">
+              <TabsContent value="properties" className="h-full p-2 overflow-auto">
                 <FieldPropertiesPanel
                   field={selectedField}
                   onFieldUpdate={handleFieldUpdate}
@@ -482,7 +486,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
                 />
               </TabsContent>
 
-              <TabsContent value="styles" className="h-full m-2 mt-0">
+              <TabsContent value="styles" className="h-full p-2 overflow-auto">
                 <StylePresetsPanel
                   onApplyPreset={handleApplyStylePreset}
                   selectedFieldType={selectedField?.type}
@@ -491,65 +495,54 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
               </TabsContent>
 
               {/* Phase 5: Nouveaux onglets */}
-              <TabsContent value="versions" className="h-full m-2 mt-0">
-                <div className="h-full overflow-auto">
-                  <VersionHistory
-                    templateId={template.id}
-                    onRestoreVersion={(version) => {
-                      toast.success(`Version ${version.version_number} restaurée`);
-                      // Recharger le template
-                      window.location.reload();
-                    }}
-                  />
-                </div>
+              <TabsContent value="versions" className="h-full p-2 overflow-auto">
+                <VersionHistory
+                  templateId={template.id.startsWith('temp_') ? undefined : template.id}
+                />
               </TabsContent>
               
-              <TabsContent value="collaboration" className="h-full m-2 mt-0">
-                <div className="h-full overflow-auto">
-                  <CollaborationPanel templateId={template.id} />
-                </div>
+              <TabsContent value="collaboration" className="h-full p-2 overflow-auto">
+                <CollaborationPanel 
+                  templateId={template.id.startsWith('temp_') ? undefined : template.id} 
+                />
               </TabsContent>
               
-              <TabsContent value="comments" className="h-full m-2 mt-0">
-                <div className="h-full overflow-auto">
-                  <CommentSystem 
-                    templateId={template.id}
-                    fieldId={selectedFieldId || undefined}
-                  />
-                </div>
+              <TabsContent value="comments" className="h-full p-2 overflow-auto">
+                <CommentSystem 
+                  templateId={template.id.startsWith('temp_') ? undefined : template.id}
+                  fieldId={selectedFieldId || undefined}
+                />
               </TabsContent>
               
-              <TabsContent value="analytics" className="h-full m-2 mt-0">
-                <div className="h-full overflow-auto">
-                  <TemplateAnalytics templateId={template.id} />
-                </div>
+              <TabsContent value="analytics" className="h-full p-2 overflow-auto">
+                <TemplateAnalytics 
+                  templateId={template.id.startsWith('temp_') ? undefined : template.id} 
+                />
               </TabsContent>
               
-              <TabsContent value="sharing" className="h-full m-2 mt-0">
-                <div className="h-full overflow-auto">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Share2 className="h-5 w-5" />
-                        Partage et Export
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Button className="w-full" variant="outline">
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Partager avec une entreprise
-                      </Button>
-                      <Button className="w-full" variant="outline">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Exporter en JSON
-                      </Button>
-                      <Button className="w-full" variant="outline">
-                        <Palette className="h-4 w-4 mr-2" />
-                        Publier dans la bibliothèque
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
+              <TabsContent value="sharing" className="h-full p-2 overflow-auto">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Share2 className="h-5 w-5" />
+                      Partage et Export
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button className="w-full" variant="outline">
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Partager avec une entreprise
+                    </Button>
+                    <Button className="w-full" variant="outline">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Exporter en JSON
+                    </Button>
+                    <Button className="w-full" variant="outline">
+                      <Palette className="h-4 w-4 mr-2" />
+                      Publier dans la bibliothèque
+                    </Button>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </div>
           </Tabs>
