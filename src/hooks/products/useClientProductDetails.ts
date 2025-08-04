@@ -5,6 +5,7 @@ import { Product } from '@/types/catalog';
 import { getClientProductPrice, getClientMinimumMonthlyPrice } from '@/utils/clientProductPricing';
 import { getClientCustomVariantPrices } from '@/services/clientVariantPriceService';
 import { getClientCustomVariants } from '@/services/clientCustomVariantService';
+import { getClientCustomVariantCombinations } from '@/services/clientCustomVariantCombinationsService';
 
 export const useClientProductDetails = (productId: string | undefined, clientId: string) => {
   const { product, isLoading, error } = useProductById(productId);
@@ -21,6 +22,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
   const [clientCustomPrices, setClientCustomPrices] = useState<any[]>([]);
   const [hiddenVariants, setHiddenVariants] = useState<string[]>([]);
   const [clientCustomVariants, setClientCustomVariants] = useState<any[]>([]);
+  const [clientCustomCombinations, setClientCustomCombinations] = useState<any[]>([]);
 
   const availableDurations = [36];
 
@@ -91,6 +93,27 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     } else {
       console.log('🎯 Not loading custom variants - missing data:', { productId, clientId });
       setClientCustomVariants([]);
+    }
+  }, [productId, clientId]);
+
+  // Load client custom variant combinations
+  useEffect(() => {
+    console.log('🎯 Custom combinations useEffect triggered:', { productId, clientId });
+    
+    if (productId && clientId && clientId.trim() !== '') {
+      console.log('🎯 Calling getClientCustomVariantCombinations with:', { clientId, productId });
+      getClientCustomVariantCombinations(clientId, productId)
+        .then(customCombinations => {
+          console.log('🎯 Loaded client custom combinations:', customCombinations);
+          setClientCustomCombinations(customCombinations);
+        })
+        .catch(error => {
+          console.error('❌ Failed to load client custom combinations:', error);
+          setClientCustomCombinations([]);
+        });
+    } else {
+      console.log('🎯 Not loading custom combinations - missing data:', { productId, clientId });
+      setClientCustomCombinations([]);
     }
   }, [productId, clientId]);
 
@@ -220,6 +243,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     // Enrich with client custom variants attributes
     const enrichedAttributes = { ...baseAttributes };
     
+    // Add custom variant attributes
     clientCustomVariants.forEach(customVariant => {
       if (customVariant.attributes) {
         Object.entries(customVariant.attributes).forEach(([key, value]) => {
@@ -241,15 +265,32 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
         });
       }
     });
+
+    // Add custom combination attributes
+    clientCustomCombinations.forEach(combination => {
+      if (combination.attributes && combination.is_available) {
+        Object.entries(combination.attributes).forEach(([key, value]) => {
+          if (!enrichedAttributes[key]) {
+            enrichedAttributes[key] = [];
+          }
+          
+          const valueStr = String(value);
+          if (!enrichedAttributes[key].includes(valueStr)) {
+            enrichedAttributes[key].push(valueStr);
+          }
+        });
+      }
+    });
     
-    console.log('🎯 Enriched variation attributes with custom variants (split values):', {
+    console.log('🎯 Enriched variation attributes with custom variants and combinations:', {
       baseAttributes,
       customVariantsCount: clientCustomVariants.length,
+      customCombinationsCount: clientCustomCombinations.length,
       enrichedAttributes
     });
     
     return enrichedAttributes;
-  }, [product, clientCustomVariants]);
+  }, [product, clientCustomVariants, clientCustomCombinations]);
 
   const hasVariants = useMemo(() => {
     return !!(
@@ -289,6 +330,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       testOptions,
       clientCustomPrices: clientCustomPrices.length,
       clientCustomVariants: clientCustomVariants.length,
+      clientCustomCombinations: clientCustomCombinations.length,
       variantPrices: variantPrices?.length,
       hiddenVariants: hiddenVariants.length
     });
@@ -326,7 +368,39 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       return false;
     }
 
-    // First priority: Check if this combination matches a client custom variant
+    // First priority: Check if this combination matches a client custom combination
+    const hasCustomCombinationMatch = clientCustomCombinations.some(combination => {
+      if (!combination.attributes || !combination.is_available) {
+        return false;
+      }
+
+      // Check if all test options match this combination's attributes exactly
+      const matches = Object.entries(testOptions).every(([key, val]) => {
+        const combinationValue = combination.attributes[key];
+        const directMatch = combinationValue && 
+          String(combinationValue).toLowerCase().trim() === String(val).toLowerCase().trim();
+        
+        console.log(`Custom combination ${key}=${val}:`, {
+          directMatch,
+          combinationValue
+        });
+
+        return directMatch;
+      });
+
+      if (matches) {
+        console.log(`✓ Custom combination found for ${optionName}=${value}:`, combination);
+      }
+      
+      return matches;
+    });
+
+    if (hasCustomCombinationMatch) {
+      console.log(`Option ${optionName}=${value} is available (custom combination)`);
+      return true;
+    }
+
+    // Second priority: Check if this combination matches a client custom variant
     const hasCustomVariantMatch = clientCustomVariants.some(customVariant => {
       if (!customVariant.attributes) {
         console.log('No attributes for custom variant:', customVariant);
@@ -375,7 +449,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       return true;
     }
 
-    // Second priority: Check if this combination has a custom price
+    // Third priority: Check if this combination has a custom price
     const hasCustomVariant = clientCustomPrices.some(customPrice => {
       if (!customPrice.variant_attributes) {
         console.log('No variant_attributes for custom price:', customPrice);
@@ -419,7 +493,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       return true;
     }
 
-    // Third priority: Check if this combination has standard variant pricing (and is not hidden)
+    // Fourth priority: Check if this combination has standard variant pricing (and is not hidden)
     const hasStandardVariant = variantPrices?.some(vp => {
       // Skip if this variant is hidden
       if (hiddenVariants.includes(vp.id)) return false;
@@ -451,7 +525,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       return true;
     }
 
-    // Fourth priority: Check if variation attributes support this option value
+    // Fifth priority: Check if variation attributes support this option value
     const availableValues = variationAttributes[optionName] || [];
     const isInAttributes = availableValues.includes(value);
     
@@ -462,7 +536,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
     });
     
     // Only return true if it's in attributes AND we have confirmed variants for it
-    return isInAttributes && (hasCustomVariantMatch || hasCustomVariant || hasStandardVariant);
+    return isInAttributes && (hasCustomCombinationMatch || hasCustomVariantMatch || hasCustomVariant || hasStandardVariant);
   };
 
   const hasAttributeOptions = (attributeName: string) => {
