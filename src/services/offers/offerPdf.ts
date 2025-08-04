@@ -197,12 +197,7 @@ export const generateAndDownloadOfferPdf = async (
       try {
         console.log("Utilisation du nouveau moteur de génération PDF");
         
-        const pdfBytes = await PDFGenerationEngine.generateOfferPDF({
-          offerId,
-          companyId: offerData.company_id,
-          templateType: options.templateType || 'standard',
-          templateId: options.templateId
-        });
+        const pdfUrl = await pdfGenerationEngine.generateOfferPDF(offerData);
 
         // Créer un blob et télécharger
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });

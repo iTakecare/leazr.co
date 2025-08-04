@@ -25,6 +25,8 @@ import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropMa
 import ClientSubdomainManager from "./ClientSubdomainManager";
 import ClientUserAccount from "./ClientUserAccount";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
+import { CustomPdfTemplateManager } from "@/components/custom-templates/CustomPdfTemplateManager";
+import { ClientLogoUploader } from "./ClientLogoUploader";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -386,7 +388,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -394,6 +396,10 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="collaborators" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Collaborateurs
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Templates PDF
           </TabsTrigger>
           <TabsTrigger value="subdomain" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
@@ -570,6 +576,54 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Upload de logo */}
+            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Logo du client
+                </CardTitle>
+                <CardDescription>Gérez le logo utilisé dans les documents PDF</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ClientLogoUploader 
+                  clientId={client.id}
+                  initialLogoUrl={client.logo_url}
+                  onLogoUploaded={(logoUrl) => {
+                    setClient(prev => ({ ...prev, logo_url: logoUrl }));
+                    onClientUpdate?.({ ...client, logo_url: logoUrl });
+                  }}
+                  onLogoRemoved={() => {
+                    setClient(prev => ({ ...prev, logo_url: null }));
+                    onClientUpdate?.({ ...client, logo_url: null });
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Informations Templates */}
+            <Card className="shadow-md border-none bg-gradient-to-br from-card to-background">
+              <CardHeader className="bg-muted/50 pb-4 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Templates personnalisés
+                </CardTitle>
+                <CardDescription>Gérez les templates PDF personnalisés pour ce client</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Créez et gérez des templates PDF personnalisés avec des champs mappés automatiquement pour ce client.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Template Manager */}
+          <CustomPdfTemplateManager clientId={client.id} />
         </TabsContent>
 
         <TabsContent value="subdomain">
