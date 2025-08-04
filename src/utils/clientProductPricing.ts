@@ -1,6 +1,7 @@
 import { Product } from '@/types/catalog';
 import { getProductPrice, ProductPriceData } from './productPricing';
 import { getClientCustomVariantPrices } from '@/services/clientVariantPriceService';
+import { getClientCustomVariants } from '@/services/clientCustomVariantService';
 
 export interface ClientProductPriceData extends ProductPriceData {
   hasCustomPricing: boolean;
@@ -130,7 +131,31 @@ export const getClientProductPrice = async (
       }
     }
 
-    // Try to get custom prices for this client and product
+    // First priority: Check client custom variants
+    const customVariants = await getClientCustomVariants(clientId, product.id);
+    
+    if (customVariants && customVariants.length > 0) {
+      // Find matching custom variant based on selected options
+      const matchingCustomVariant = findMatchingCustomVariant(customVariants, selectedOptions);
+      
+      if (matchingCustomVariant) {
+        // Use custom variant pricing
+        result.monthlyPrice = matchingCustomVariant.custom_monthly_price || result.monthlyPrice;
+        result.purchasePrice = matchingCustomVariant.custom_purchase_price || result.purchasePrice;
+        result.hasCustomPricing = true;
+        
+        console.log(`Client custom variant pricing found for product ${product.name}:`, {
+          customMonthly: matchingCustomVariant.custom_monthly_price,
+          customPurchase: matchingCustomVariant.custom_purchase_price,
+          originalMonthly: result.originalPrice,
+          variantName: matchingCustomVariant.variant_name
+        });
+        
+        return result;
+      }
+    }
+
+    // Second priority: Try to get custom prices for this client and product
     const customPrices = await getClientCustomVariantPrices(clientId, product.id);
     
     if (customPrices && customPrices.length > 0) {
@@ -155,6 +180,67 @@ export const getClientProductPrice = async (
   }
 
   return result;
+};
+
+/**
+ * Find matching custom variant for selected options
+ */
+const findMatchingCustomVariant = (
+  customVariants: any[],
+  selectedOptions?: Record<string, string>
+) => {
+  if (!selectedOptions || !customVariants || customVariants.length === 0) {
+    return customVariants?.[0] || null;
+  }
+
+  console.log('🔍 Finding matching custom variant:', {
+    customVariantsCount: customVariants.length,
+    selectedOptions
+  });
+
+  // Find custom variant that matches the selected options
+  const matchingCustomVariant = customVariants.find(customVariant => {
+    if (!customVariant.attributes) {
+      console.log('❌ No attributes for custom variant:', customVariant.id);
+      return false;
+    }
+
+    console.log('🔄 Comparing variant attributes:', {
+      variantAttrs: customVariant.attributes,
+      selectedOptions
+    });
+
+    // Check if all selected options match this custom variant's attributes
+    const matches = Object.entries(selectedOptions).every(([key, value]) => {
+      const variantValue = customVariant.attributes[key];
+      const directMatch = variantValue && 
+        String(variantValue).toLowerCase().trim() === String(value).toLowerCase().trim();
+
+      console.log(`🔍 Checking ${key}=${value}:`, {
+        directMatch,
+        variantValue
+      });
+
+      return directMatch;
+    });
+
+    if (matches) {
+      console.log('✅ Found matching custom variant:', {
+        customVariantId: customVariant.id,
+        variantName: customVariant.variant_name,
+        monthlyPrice: customVariant.custom_monthly_price,
+        purchasePrice: customVariant.custom_purchase_price
+      });
+    }
+
+    return matches;
+  });
+
+  if (!matchingCustomVariant) {
+    console.log('❌ No matching custom variant found for options:', selectedOptions);
+  }
+
+  return matchingCustomVariant || null;
 };
 
 /**
