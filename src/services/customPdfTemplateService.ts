@@ -2,6 +2,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { CustomPdfTemplate, CreateCustomPdfTemplateData } from "@/types/customPdfTemplate";
 
 export const customPdfTemplateService = {
+  // Récupérer un template par ID
+  async getTemplate(templateId: string): Promise<CustomPdfTemplate | null> {
+    const { data, error } = await supabase
+      .from('custom_pdf_templates')
+      .select('*, clients(name)')
+      .eq('id', templateId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching template:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
   // Récupérer tous les templates d'une entreprise
   async getTemplatesByCompany(): Promise<CustomPdfTemplate[]> {
     const { data, error } = await supabase
