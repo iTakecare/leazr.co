@@ -349,14 +349,6 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
                                 Variantes
                               </Button>
                             )}
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setManagingCombinations(product.id)}
-                            >
-                              <Settings className="mr-1 h-3 w-3" />
-                              Combinaisons
-                            </Button>
                           </div>
                        </TableCell>
                       
