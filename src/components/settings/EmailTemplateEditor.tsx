@@ -249,7 +249,7 @@ const EmailTemplateEditor: React.FC = () => {
               <SelectValue placeholder="Sélectionnez un modèle" />
             </SelectTrigger>
             <SelectContent>
-              {templates.map((template) => (
+              {templates.filter(template => template.type && template.type.trim() !== "").map((template) => (
                 <SelectItem key={template.id} value={template.type}>
                   {template.name}
                 </SelectItem>

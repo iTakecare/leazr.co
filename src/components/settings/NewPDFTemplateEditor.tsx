@@ -927,7 +927,7 @@ const NewPDFTemplateEditor = ({ template, onSave }: NewPDFTemplateEditorProps) =
                       <SelectValue placeholder="Sélectionner un champ" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categoryFields.map((field) => (
+                      {categoryFields.filter(field => field.key && field.key.trim() !== "").map((field) => (
                         <SelectItem key={field.key} value={field.key}>
                           {field.label}
                         </SelectItem>

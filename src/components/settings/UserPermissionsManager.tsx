@@ -277,7 +277,7 @@ const UserPermissionsManager = ({
                   <SelectValue placeholder="Choisir un profil de permissions..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {profiles.map((profile) => (
+                  {profiles.filter(profile => profile.id && profile.id.trim() !== "").map((profile) => (
                     <SelectItem key={profile.id} value={profile.id}>
                       {profile.name} - {profile.description}
                     </SelectItem>

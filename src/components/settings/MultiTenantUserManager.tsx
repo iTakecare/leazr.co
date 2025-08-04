@@ -413,7 +413,7 @@ const MultiTenantUserManager = () => {
                 <SelectValue placeholder="Sélectionner une entreprise" />
               </SelectTrigger>
               <SelectContent>
-                {companies.map((company) => (
+                {companies.filter(company => company.id && company.id.trim() !== "").map((company) => (
                   <SelectItem key={company.id} value={company.id}>
                     {getCompanyDisplayText(company)}
                   </SelectItem>

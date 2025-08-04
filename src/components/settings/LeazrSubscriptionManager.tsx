@@ -184,7 +184,7 @@ const LeazrSubscriptionManager = () => {
                   <SelectValue placeholder="Sélectionner une entreprise" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies.map((company) => (
+                  {companies.filter(company => company.id && company.id.trim() !== "").map((company) => (
                     <SelectItem key={company.id} value={company.id}>
                       {company.name} - {getPlanBadge(company.plan, company.is_active)}
                     </SelectItem>
