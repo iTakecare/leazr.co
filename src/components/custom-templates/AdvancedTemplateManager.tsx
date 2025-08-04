@@ -178,7 +178,7 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Toutes</SelectItem>
+              <SelectItem value="all">Toutes</SelectItem>
               <SelectItem value="business">Business</SelectItem>
               <SelectItem value="invoice">Facture</SelectItem>
               <SelectItem value="contract">Contrat</SelectItem>
@@ -190,7 +190,7 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous</SelectItem>
+              <SelectItem value="all">Tous</SelectItem>
               <SelectItem value="active">Actif</SelectItem>
               <SelectItem value="inactive">Inactif</SelectItem>
               <SelectItem value="shared">Partagé</SelectItem>
