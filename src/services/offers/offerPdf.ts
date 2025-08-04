@@ -2,7 +2,7 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
-import { PDFGenerationEngine } from "../pdfGenerationEngine";
+import { pdfGenerationEngine } from "../pdfGenerationEngine";
 import { PDFTemplateService } from "../pdfTemplateService";
 import { saveAs } from "file-saver";
 import { getActiveTemplateByClient } from "../customPdfTemplateService";
@@ -197,16 +197,18 @@ export const generateAndDownloadOfferPdf = async (
       try {
         console.log("Utilisation du nouveau moteur de génération PDF");
         
-        const pdfUrl = await pdfGenerationEngine.generateOfferPDF(offerData);
-
-        // Créer un blob et télécharger
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const filename = `offre-${offerData.offer_id || offerId}.pdf`;
-        saveAs(blob, filename);
+        const result = await pdfGenerationEngine.generatePDF({
+          templateId: 'default-offer',
+          data: offerData
+        });
         
-        console.log("PDF généré avec le nouveau moteur et téléchargé avec succès");
-        toast.success(`PDF généré avec succès: ${filename}`);
-        return filename;
+        if (result.success && result.pdfUrl) {
+          console.log("PDF généré avec le nouveau moteur avec succès");
+          toast.success(`PDF généré avec succès`);
+          return result.pdfUrl;
+        } else {
+          throw new Error(result.error || 'Erreur de génération PDF');
+        }
       } catch (engineError) {
         console.warn("Erreur avec le nouveau moteur, fallback vers l'ancien:", engineError);
         toast.warning("Utilisation du système classique suite à une erreur");
