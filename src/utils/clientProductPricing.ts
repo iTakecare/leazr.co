@@ -2,7 +2,7 @@ import { Product } from '@/types/catalog';
 import { getProductPrice, ProductPriceData } from './productPricing';
 import { getClientCustomVariantPrices } from '@/services/clientVariantPriceService';
 import { getClientCustomVariants } from '@/services/clientCustomVariantService';
-import { findClientCustomVariantCombination } from '@/services/clientCustomVariantCombinationsService';
+import { getClientCustomVariantCombinations } from '@/services/clientCustomVariantCombinationsService';
 
 export interface ClientProductPriceData extends ProductPriceData {
   hasCustomPricing: boolean;
@@ -134,27 +134,49 @@ export const getClientProductPrice = async (
 
     // First priority: Check for client custom variant combinations
     if (selectedOptions) {
-      const customCombination = await findClientCustomVariantCombination(
-        clientId, 
-        product.id, 
-        selectedOptions
-      );
-
-      if (customCombination && customCombination.is_available) {
-        console.log('🎯 Found matching custom variant combination:', customCombination);
+      try {
+        // Get all combinations for this client/product and filter locally
+        const allCombinations = await getClientCustomVariantCombinations(clientId, product.id);
         
-        result.monthlyPrice = customCombination.custom_monthly_price || result.monthlyPrice;
-        result.purchasePrice = customCombination.custom_purchase_price || result.purchasePrice;
-        result.hasCustomPricing = true;
-        
-        console.log(`Client custom combination pricing found for product ${product.name}:`, {
-          customMonthly: customCombination.custom_monthly_price,
-          customPurchase: customCombination.custom_purchase_price,
-          originalMonthly: result.originalPrice,
-          attributes: customCombination.attributes
+        // Find matching combination by comparing attributes
+        const customCombination = allCombinations.find(combination => {
+          if (!combination.is_available) return false;
+          
+          // Deep compare the attributes objects
+          const combinationAttrs = combination.attributes as Record<string, string>;
+          
+          // Convert both to normalized JSON strings for comparison
+          const normalizeForComparison = (obj: Record<string, string>) => {
+            const sorted = Object.keys(obj)
+              .sort()
+              .reduce((result, key) => {
+                result[key] = obj[key];
+                return result;
+              }, {} as Record<string, string>);
+            return JSON.stringify(sorted);
+          };
+          
+          return normalizeForComparison(combinationAttrs) === normalizeForComparison(selectedOptions);
         });
-        
-        return result;
+
+        if (customCombination) {
+          console.log('🎯 Found matching custom variant combination:', customCombination);
+          
+          result.monthlyPrice = customCombination.custom_monthly_price || result.monthlyPrice;
+          result.purchasePrice = customCombination.custom_purchase_price || result.purchasePrice;
+          result.hasCustomPricing = true;
+          
+          console.log(`Client custom combination pricing found for product ${product.name}:`, {
+            customMonthly: customCombination.custom_monthly_price,
+            customPurchase: customCombination.custom_purchase_price,
+            originalMonthly: result.originalPrice,
+            attributes: customCombination.attributes
+          });
+          
+          return result;
+        }
+      } catch (error) {
+        console.warn('Error finding custom combination, trying other methods:', error);
       }
     }
 
