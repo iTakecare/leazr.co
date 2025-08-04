@@ -2,6 +2,7 @@ import { Product } from '@/types/catalog';
 import { getProductPrice, ProductPriceData } from './productPricing';
 import { getClientCustomVariantPrices } from '@/services/clientVariantPriceService';
 import { getClientCustomVariants } from '@/services/clientCustomVariantService';
+import { findClientCustomVariantCombination } from '@/services/clientCustomVariantCombinationsService';
 
 export interface ClientProductPriceData extends ProductPriceData {
   hasCustomPricing: boolean;
@@ -131,7 +132,33 @@ export const getClientProductPrice = async (
       }
     }
 
-    // First priority: Check client custom variants
+    // First priority: Check for client custom variant combinations
+    if (selectedOptions) {
+      const customCombination = await findClientCustomVariantCombination(
+        clientId, 
+        product.id, 
+        selectedOptions
+      );
+
+      if (customCombination && customCombination.is_available) {
+        console.log('🎯 Found matching custom variant combination:', customCombination);
+        
+        result.monthlyPrice = customCombination.custom_monthly_price || result.monthlyPrice;
+        result.purchasePrice = customCombination.custom_purchase_price || result.purchasePrice;
+        result.hasCustomPricing = true;
+        
+        console.log(`Client custom combination pricing found for product ${product.name}:`, {
+          customMonthly: customCombination.custom_monthly_price,
+          customPurchase: customCombination.custom_purchase_price,
+          originalMonthly: result.originalPrice,
+          attributes: customCombination.attributes
+        });
+        
+        return result;
+      }
+    }
+
+    // Second priority: Check client custom variants
     const customVariants = await getClientCustomVariants(clientId, product.id);
     
     if (customVariants && customVariants.length > 0) {
@@ -155,7 +182,7 @@ export const getClientProductPrice = async (
       }
     }
 
-    // Second priority: Try to get custom prices for this client and product
+    // Third priority: Try to get custom prices for this client and product
     const customPrices = await getClientCustomVariantPrices(clientId, product.id);
     
     if (customPrices && customPrices.length > 0) {

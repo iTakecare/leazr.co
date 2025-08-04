@@ -704,6 +704,48 @@ export type Database = {
           },
         ]
       }
+      client_custom_variant_combinations: {
+        Row: {
+          attributes: Json
+          client_id: string
+          created_at: string
+          custom_monthly_price: number | null
+          custom_purchase_price: number | null
+          id: string
+          is_available: boolean
+          margin_rate: number | null
+          notes: string | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          attributes?: Json
+          client_id: string
+          created_at?: string
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_available?: boolean
+          margin_rate?: number | null
+          notes?: string | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          attributes?: Json
+          client_id?: string
+          created_at?: string
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_available?: boolean
+          margin_rate?: number | null
+          notes?: string | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_custom_variant_prices: {
         Row: {
           client_id: string

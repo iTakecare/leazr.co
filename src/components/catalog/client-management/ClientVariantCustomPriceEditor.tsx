@@ -11,6 +11,7 @@ import { getProductVariantPrices } from "@/services/variantPriceService";
 import { getClientCustomVariantPrices, upsertClientCustomVariantPrice } from "@/services/clientVariantPriceService";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import ClientVariantCombinationsManager from "./ClientVariantCombinationsManager";
 
 interface ClientVariantCustomPriceEditorProps {
   open: boolean;
@@ -311,6 +312,14 @@ export const ClientVariantCustomPriceEditor = ({
               {saveMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
             </Button>
           </div>
+        </div>
+
+        {/* Add the Client Variant Combinations Manager */}
+        <div className="mt-6 pt-6 border-t">
+          <ClientVariantCombinationsManager
+            clientId={clientId}
+            productId={productId}
+          />
         </div>
       </DialogContent>
     </Dialog>
