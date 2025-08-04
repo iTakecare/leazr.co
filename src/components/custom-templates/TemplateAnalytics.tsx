@@ -18,10 +18,15 @@ export function TemplateAnalytics({ templateId }: TemplateAnalyticsProps) {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
 
   useEffect(() => {
+    if (!templateId) {
+      setLoading(false);
+      return;
+    }
     loadAnalytics();
   }, [templateId, timeRange]);
 
   const loadAnalytics = async () => {
+    if (!templateId) return;
     try {
       const endDate = new Date();
       const startDate = new Date();

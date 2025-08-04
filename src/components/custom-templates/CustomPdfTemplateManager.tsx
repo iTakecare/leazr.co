@@ -12,7 +12,7 @@ import {
   activateTemplate 
 } from '@/services/customPdfTemplateService';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 
 interface CustomPdfTemplateManagerProps {
@@ -236,6 +236,12 @@ export const CustomPdfTemplateManager: React.FC<CustomPdfTemplateManagerProps> =
             <DialogTitle>
               {selectedTemplateId ? 'Modifier le template' : 'Nouveau template PDF'}
             </DialogTitle>
+            <DialogDescription>
+              {selectedTemplateId 
+                ? 'Modifiez les propriétés et le contenu de votre template PDF personnalisé'
+                : 'Créez un nouveau template PDF personnalisé en uploadant votre fichier et en configurant les champs'
+              }
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
             <CustomPdfTemplateEditor

@@ -17,10 +17,15 @@ export function VersionHistory({ templateId, onRestoreVersion }: VersionHistoryP
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!templateId) {
+      setLoading(false);
+      return;
+    }
     loadVersions();
   }, [templateId]);
 
   const loadVersions = async () => {
+    if (!templateId) return;
     try {
       const data = await templateVersioningService.getTemplateVersions(templateId);
       setVersions(data);
