@@ -8,29 +8,19 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
   try {
     console.log(`🎯 getClientCustomVariantPrices - START: client=${clientId}, product=${productId}`);
     
-    // First, let's check if this client has any custom prices at all
-    const { data: allClientPrices, error: clientError } = await supabase
-      .from('client_custom_variant_prices')
-      .select('*')
-      .eq('client_id', clientId);
-    
-    console.log(`🎯 All custom prices for client ${clientId}:`, allClientPrices);
+    // Get client's hidden variants first
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('hidden_variants')
+      .eq('id', clientId)
+      .single();
     
     if (clientError) {
-      console.error('❌ Error checking client prices:', clientError);
+      console.error('❌ Error fetching client hidden variants:', clientError);
     }
     
-    // Now check variant prices for this product
-    const { data: productVariants, error: variantError } = await supabase
-      .from('product_variant_prices')
-      .select('*')
-      .eq('product_id', productId);
-      
-    console.log(`🎯 Product variant prices for product ${productId}:`, productVariants);
-    
-    if (variantError) {
-      console.error('❌ Error checking product variants:', variantError);
-    }
+    const hiddenVariants = clientData?.hidden_variants || [];
+    console.log(`🔒 Hidden variants for client ${clientId}:`, hiddenVariants);
     
     // Get custom prices with variant attributes in a single query
     const { data, error } = await supabase
@@ -55,15 +45,24 @@ export const getClientCustomVariantPrices = async (clientId: string, productId: 
     
     console.log(`🎯 Raw client custom variant prices from DB (${data?.length || 0} items):`, data);
     
-    // Transform data to include variant attributes directly
-    const enrichedData = (data || []).map(customPrice => ({
-      ...customPrice,
-      variant_attributes: customPrice.product_variant_prices?.attributes,
-      standard_price: customPrice.product_variant_prices?.price,
-      standard_monthly_price: customPrice.product_variant_prices?.monthly_price
-    }));
+    // Transform data and filter out hidden variants
+    const enrichedData = (data || [])
+      .filter(customPrice => {
+        const variantPriceId = customPrice.product_variant_prices?.id;
+        const isHidden = hiddenVariants.includes(variantPriceId);
+        if (isHidden) {
+          console.log(`🔒 Filtering out hidden variant: ${variantPriceId}`);
+        }
+        return !isHidden;
+      })
+      .map(customPrice => ({
+        ...customPrice,
+        variant_attributes: customPrice.product_variant_prices?.attributes,
+        standard_price: customPrice.product_variant_prices?.price,
+        standard_monthly_price: customPrice.product_variant_prices?.monthly_price
+      }));
     
-    console.log(`🎯 Enriched client custom variant prices (${enrichedData.length} items):`, enrichedData);
+    console.log(`🎯 Enriched client custom variant prices after filtering (${enrichedData.length} items):`, enrichedData);
     return enrichedData;
   } catch (error) {
     console.error('❌ Error in getClientCustomVariantPrices:', error);

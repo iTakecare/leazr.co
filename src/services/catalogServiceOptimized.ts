@@ -521,6 +521,16 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       return [];
     }
 
+    // Get client's hidden variants first
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('hidden_variants')
+      .eq('id', clientId)
+      .single();
+    
+    const hiddenVariants = clientData?.hidden_variants || [];
+    console.log(`🔒 Hidden variants for client ${clientId}:`, hiddenVariants);
+
     // Récupérer les prix personnalisés des variants pour ces produits
     const { data: customVariantPrices } = await supabase
       .from("client_custom_variant_prices")
@@ -541,10 +551,18 @@ export const getClientCustomCatalog = async (clientId: string): Promise<Product[
       .eq("is_active", true)
       .in("product_variant_prices.product_id", productIds);
 
-    // Créer une map des prix personnalisés des variants par product_id
+    // Créer une map des prix personnalisés des variants par product_id, filtering hidden variants
     const customVariantPriceMap = new Map<string, any[]>();
     customVariantPrices?.forEach(cvp => {
       const productId = cvp.product_variant_prices?.product_id;
+      const variantPriceId = cvp.product_variant_prices?.id;
+      
+      // Skip if this variant is hidden for this client
+      if (variantPriceId && hiddenVariants.includes(variantPriceId)) {
+        console.log(`🔒 Filtering out hidden variant from catalog: ${variantPriceId}`);
+        return;
+      }
+      
       if (productId) {
         if (!customVariantPriceMap.has(productId)) {
           customVariantPriceMap.set(productId, []);

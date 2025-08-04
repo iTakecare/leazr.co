@@ -29,7 +29,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
       console.log('🎯 Calling getClientCustomVariantPrices with:', { clientId, productId });
       getClientCustomVariantPrices(clientId, productId)
         .then(customPrices => {
-          console.log('🎯 Loaded client custom prices:', customPrices);
+          console.log('🎯 Loaded client custom prices (filtered for hidden variants):', customPrices);
           setClientCustomPrices(customPrices);
         })
         .catch(error => {
