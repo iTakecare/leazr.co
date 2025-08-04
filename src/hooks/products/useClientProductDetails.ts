@@ -25,7 +25,7 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
   useEffect(() => {
     console.log('🎯 Custom prices useEffect triggered:', { productId, clientId });
     
-    if (productId && clientId) {
+    if (productId && clientId && clientId.trim() !== '') {
       console.log('🎯 Calling getClientCustomVariantPrices with:', { clientId, productId });
       getClientCustomVariantPrices(clientId, productId)
         .then(customPrices => {
@@ -38,6 +38,8 @@ export const useClientProductDetails = (productId: string | undefined, clientId:
         });
     } else {
       console.log('🎯 Not loading custom prices - missing data:', { productId, clientId });
+      // Reset custom prices if clientId becomes invalid
+      setClientCustomPrices([]);
     }
   }, [productId, clientId]);
 

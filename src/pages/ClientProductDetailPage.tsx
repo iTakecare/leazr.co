@@ -38,7 +38,8 @@ const ClientProductDetailPage: React.FC = () => {
     enabled: !!clientData?.id && !clientLoading,
   });
 
-  if (clientLoading || isLoadingCompany) {
+  // Show loading if any data is still loading or if clientData doesn't have an ID yet
+  if (clientLoading || isLoadingCompany || !clientData?.id) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
@@ -112,7 +113,7 @@ const ClientProductDetailPage: React.FC = () => {
           companyId={company.id}
           companySlug={company.slug}
           productId={productId}
-          clientId={clientData?.id || ''}
+          clientId={clientData.id}
           company={company}
           onBackToCatalog={() => navigate('/client/products')}
         />
