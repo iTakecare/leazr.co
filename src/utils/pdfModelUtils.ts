@@ -42,34 +42,14 @@ export const DEFAULT_MODEL_TEMPLATE = {
 export const getCurrentCompanyId = async (): Promise<string | null> => {
   try {
     const supabase = getSupabaseClient();
-    
-    // Récupérer l'utilisateur actuel
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('Erreur lors de la récupération de l\'utilisateur:', userError);
-      return null;
-    }
-    
-    // Utiliser une approche directe pour récupérer le company_id
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', user.id)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('get_current_user_company_id_secure');
     
     if (error) {
-      console.error('Erreur lors de la récupération du profil utilisateur:', error);
+      console.error('Erreur RPC get_current_user_company_id_secure:', error);
       return null;
     }
     
-    if (!data?.company_id) {
-      console.warn('Aucun company_id trouvé pour l\'utilisateur:', user.id);
-      return null;
-    }
-    
-    console.log('Company ID récupéré:', data.company_id);
-    return data.company_id;
+    return data;
   } catch (error) {
     console.error('Erreur lors de la récupération de company_id:', error);
     return null;

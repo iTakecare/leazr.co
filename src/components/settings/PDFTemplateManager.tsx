@@ -145,7 +145,7 @@ const PDFTemplateManager: React.FC<PDFTemplateManagerProps> = ({ templateId = 'd
             </TabsContent>
 
             <TabsContent value="advanced" className="space-y-6">
-              <AdvancedTemplateManager clientId="global" />
+              <AdvancedTemplateManager />
             </TabsContent>
           </Tabs>
         </CardContent>

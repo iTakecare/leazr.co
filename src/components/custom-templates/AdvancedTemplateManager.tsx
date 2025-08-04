@@ -29,7 +29,7 @@ import { CustomPdfTemplate } from '@/types/customPdfTemplate';
 import { toast } from 'sonner';
 
 interface AdvancedTemplateManagerProps {
-  clientId: string;
+  clientId?: string;
 }
 
 export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerProps) {

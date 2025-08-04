@@ -35,7 +35,24 @@ const customPdfTemplateService = {
   },
 
   // Récupérer le template actif pour un client
-  async getActiveTemplateByClient(clientId: string): Promise<CustomPdfTemplate | null> {
+  async getActiveTemplateByClient(clientId?: string): Promise<CustomPdfTemplate | null> {
+    if (!clientId) {
+      // Si pas de clientId, retourner le premier template actif de l'entreprise
+      const { data, error } = await supabase
+        .from('custom_pdf_templates')
+        .select('*, clients(name)')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching active template:', error);
+        throw error;
+      }
+
+      return data;
+    }
+
     const { data, error } = await supabase
       .from('custom_pdf_templates')
       .select('*, clients(name)')
