@@ -59,11 +59,47 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   // Données d'exemple pour la prévisualisation
   const sampleData = CustomPdfFieldMapper.generateSampleData();
 
-  // Chargement du template
+  // Fonction pour créer un nouveau template
+  const createNewTemplate = useCallback(() => {
+    const newTemplate: ExtendedCustomPdfTemplate = {
+      id: `temp_${Date.now()}`,
+      name: "Nouveau Template",
+      client_id: clientId,
+      company_id: "", // Sera défini lors de la sauvegarde
+      original_pdf_url: "", // Sera défini lors de l'upload
+      fields: [],
+      pages_data: [
+        {
+          page_number: 1,
+          image_url: "",
+          dimensions: { width: 595, height: 842 }
+        }
+      ],
+      template_metadata: {
+        pages_count: 1,
+        file_type: "application/pdf"
+      },
+      is_active: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    setTemplate(newTemplate);
+    setLoading(false);
+  }, [clientId]);
+
+  // Chargement du template ou création d'un nouveau
   useEffect(() => {
     const loadTemplate = async () => {
       try {
         setLoading(true);
+        
+        // Si aucun templateId, créer un nouveau template
+        if (!templateId) {
+          createNewTemplate();
+          return;
+        }
+        
         const templateData = await customPdfTemplateService.getTemplate(templateId);
         
         if (templateData) {
@@ -81,7 +117,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     };
 
     loadTemplate();
-  }, [templateId]);
+  }, [templateId, createNewTemplate]);
 
   // Gestion de l'ajout d'un champ depuis la palette
   const handleFieldAdd = useCallback((fieldDef: FieldDefinition) => {
@@ -175,10 +211,29 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         updated_at: new Date().toISOString()
       });
       
-      await customPdfTemplateService.updateTemplate(template.id, templateToSave);
+      // Si c'est un nouveau template (ID temporaire), créer, sinon mettre à jour
+      if (template.id.startsWith('temp_')) {
+        const newTemplate = await customPdfTemplateService.createTemplate({
+          name: template.name,
+          client_id: clientId,
+          original_pdf_url: template.original_pdf_url || "",
+          field_mappings: {
+            fields: template.fields,
+            pages_data: template.pages_data
+          },
+          template_metadata: template.template_metadata,
+          is_active: false
+        });
+        
+        // Mettre à jour l'état avec le nouveau template
+        setTemplate(CustomPdfTemplateAdapter.toExtended(newTemplate));
+        toast.success("Template créé avec succès");
+      } else {
+        await customPdfTemplateService.updateTemplate(template.id, templateToSave);
+        toast.success("Template sauvegardé avec succès");
+      }
       
       setHasUnsavedChanges(false);
-      toast.success("Template sauvegardé avec succès");
       
       if (onSave) {
         onSave(template);
