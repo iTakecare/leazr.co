@@ -150,7 +150,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           // Convert to ExtendedCustomPdfTemplate format
           const convertedTemplate: ExtendedCustomPdfTemplate = {
             ...extendedTemplate,
-            fields: extendedTemplate.field_mappings?.fields || [],
+            fields: Array.isArray(extendedTemplate.field_mappings) ? extendedTemplate.field_mappings : [],
             pages_data: (extendedTemplate.template_metadata as any)?.pages_data || []
           };
           setTemplate(convertedTemplate);
@@ -302,11 +302,11 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         const createData = {
           name: template.name,
           original_pdf_url: template.original_pdf_url || "",
-          field_mappings: {
-            fields: template.fields,
+          field_mappings: template.fields,
+          template_metadata: {
+            ...template.template_metadata,
             pages_data: template.pages_data
           },
-          template_metadata: template.template_metadata,
           is_active: false
         };
         
@@ -318,7 +318,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         // Convert to ExtendedCustomPdfTemplate format
         const convertedTemplate: ExtendedCustomPdfTemplate = {
           ...newTemplate,
-          fields: newTemplate.field_mappings?.fields || [],
+          fields: Array.isArray(newTemplate.field_mappings) ? newTemplate.field_mappings : [],
           pages_data: (newTemplate.template_metadata as any)?.pages_data || []
         };
         setTemplate(convertedTemplate);
@@ -326,7 +326,20 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         console.log('✅ Template créé avec l\'ID:', newTemplate.id);
       } else {
         console.log('📝 Mise à jour du template existant...');
-        await customPdfTemplateService.updateTemplate(template.id, templateToSave);
+        
+        const updateData = {
+          name: template.name,
+          original_pdf_url: template.original_pdf_url,
+          field_mappings: template.fields,
+          template_metadata: {
+            ...template.template_metadata,
+            pages_data: template.pages_data
+          },
+          is_active: template.is_active,
+          updated_at: new Date().toISOString()
+        };
+        
+        await customPdfTemplateService.updateTemplate(template.id, updateData);
         toast.success("Template sauvegardé avec succès");
         console.log('✅ Template mis à jour:', template.id);
       }
