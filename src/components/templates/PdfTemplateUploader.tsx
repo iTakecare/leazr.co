@@ -4,8 +4,7 @@ import { X, Upload, FileText, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { uploadImage } from "@/utils/imageUtils";
-import { ensureBucket } from "@/services/fileStorage";
+import { uploadFile, ensureBucket } from "@/services/fileStorage";
 
 interface PdfTemplateUploaderProps {
   onTemplateUploaded: (templateUrl: string, metadata: any) => void;
@@ -53,7 +52,7 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
 
       // Upload du fichier
       const fileName = `template-${Date.now()}.pdf`;
-      const uploadedUrl = await uploadImage(file, "pdf-templates", fileName);
+      const uploadedUrl = await uploadFile("pdf-templates", file, fileName);
       
       if (uploadedUrl) {
         const metadata = {
