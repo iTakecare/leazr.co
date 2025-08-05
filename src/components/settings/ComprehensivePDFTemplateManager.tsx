@@ -32,8 +32,7 @@ interface ComprehensivePDFTemplateManagerProps {
 
 const TEMPLATE_TYPES = [
   { value: 'standard', label: 'Standard', icon: FileText, description: 'Template de base pour les offres classiques' },
-  { value: 'ambassador', label: 'Ambassadeur', icon: Users, description: 'Template avec coordonnées ambassadeur' },
-  { value: 'custom', label: 'Personnalisé', icon: Crown, description: 'Template avec graphisme personnalisé' }
+  { value: 'ambassador', label: 'Ambassadeur', icon: Users, description: 'Template avec coordonnées ambassadeur' }
 ];
 
 const OFFER_TYPES = [
@@ -355,7 +354,7 @@ const ComprehensivePDFTemplateManager: React.FC<ComprehensivePDFTemplateManagerP
                     <Select
                       value={selectedTemplate?.template_type || newTemplate.template_type}
                       onValueChange={(value) => {
-                        const data = { template_type: value as 'standard' | 'ambassador' | 'custom' };
+                        const data = { template_type: value as 'standard' | 'ambassador' };
                         if (selectedTemplate) {
                           handleUpdateTemplate(selectedTemplate.id, data);
                         } else {
