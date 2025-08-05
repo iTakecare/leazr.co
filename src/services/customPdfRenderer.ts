@@ -27,6 +27,12 @@ export class CustomPdfRenderer {
 
       const pdfDoc = await PDFDocument.load(templatePdfBytes);
       
+      // Si aucun champ n'est défini, retourner le PDF original
+      if (!template.fields || template.fields.length === 0) {
+        console.log('Aucun champ défini, retour du PDF original');
+        return await pdfDoc.save();
+      }
+      
       // 2. Charger les polices standard
       const fonts = await this.loadFonts(pdfDoc);
       
