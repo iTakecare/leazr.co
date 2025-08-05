@@ -23,8 +23,10 @@ import {
 
 import { TemplateLibrary } from './TemplateLibrary';
 import { TemplateAnalytics } from './TemplateAnalytics';
+import { PdfTemplateUploader } from '../templates/PdfTemplateUploader';
 import { templateSharingService } from '@/services/templateSharingService';
 import { templateAnalyticsService } from '@/services/templateAnalyticsService';
+import customPdfTemplateService from '@/services/customPdfTemplateService';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
 import { toast } from 'sonner';
 
@@ -36,13 +38,25 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const [activeTab, setActiveTab] = useState('my-templates');
   const [companyAnalytics, setCompanyAnalytics] = useState<any>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [myTemplates, setMyTemplates] = useState<CustomPdfTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
   useEffect(() => {
     loadCompanyAnalytics();
+    loadMyTemplates();
   }, []);
+
+  const loadMyTemplates = async () => {
+    try {
+      const templates = await customPdfTemplateService.getTemplatesByCompany();
+      setMyTemplates(templates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+    }
+  };
 
   const loadCompanyAnalytics = async () => {
     try {
@@ -57,6 +71,30 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
     toast.success('Template téléchargé avec succès');
     // Recharger les templates de l'entreprise
     window.location.reload();
+  };
+
+  const handleTemplateUploaded = async (templateUrl: string, metadata: any) => {
+    try {
+      // Créer un nouveau template avec les données de l'upload
+      const templateData = {
+        name: metadata.original_name || `Template ${new Date().toLocaleDateString()}`,
+        description: 'Template importé via la gestion avancée',
+        original_pdf_url: templateUrl,
+        field_mappings: {},
+        template_metadata: {
+          ...metadata,
+          pages: []
+        }
+      };
+
+      await customPdfTemplateService.createTemplate(templateData);
+      toast.success('Template créé avec succès');
+      setIsImportOpen(false);
+      loadMyTemplates(); // Recharger la liste
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast.error('Erreur lors de la création du template');
+    }
   };
 
   return (
@@ -95,10 +133,22 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
               </DialogContent>
             </Dialog>
             
-            <Button variant="outline">
-              <Upload className="h-4 w-4 mr-2" />
-              Importer
-            </Button>
+            <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importer
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Importer un Template PDF</DialogTitle>
+                </DialogHeader>
+                <div className="p-4">
+                  <PdfTemplateUploader onTemplateUploaded={handleTemplateUploaded} />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -227,10 +277,53 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
           </TabsList>
 
           <TabsContent value="my-templates" className="h-full">
-            <div className="flex items-center justify-center h-32">
-              <p className="text-muted-foreground">
-                Gestion des templates déplacée vers les paramètres de l'entreprise
-              </p>
+            <div className="space-y-6">
+              {myTemplates.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">Aucun template trouvé</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Commencez par importer votre premier template PDF
+                    </p>
+                    <Button onClick={() => setIsImportOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Importer un template
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {myTemplates.map((template) => (
+                    <Card key={template.id} className="relative">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4" />
+                          {template.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {template.description || 'Aucune description'}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <Badge variant={template.is_active ? 'default' : 'secondary'}>
+                            {template.is_active ? 'Actif' : 'Inactif'}
+                          </Badge>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
 
