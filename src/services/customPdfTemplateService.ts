@@ -155,7 +155,7 @@ const customPdfTemplateService = {
     // Récupérer le template pour obtenir l'URL du fichier
     const { data: template, error: fetchError } = await supabase
       .from('custom_pdf_templates')
-      .select('file_url')
+      .select('original_pdf_url')
       .eq('id', templateId)
       .single();
 
@@ -165,9 +165,9 @@ const customPdfTemplateService = {
     }
 
     // Supprimer le fichier du bucket si il existe
-    if (template?.file_url) {
+    if (template?.original_pdf_url) {
       try {
-        const fileName = template.file_url.split('/').pop();
+        const fileName = template.original_pdf_url.split('/').pop();
         if (fileName) {
           const { error: storageError } = await supabase.storage
             .from('pdf-templates')
