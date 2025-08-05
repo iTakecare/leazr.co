@@ -6,6 +6,7 @@ import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCc
 import { useToast } from "@/hooks/use-toast";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
+import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
 import { PdfViewer } from "./PdfViewer";
 import { getTemplateImageUrl } from "@/utils/templateImageUtils";
 
@@ -30,7 +31,7 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const totalPages = template.template_metadata?.pages_count || template.template_metadata?.pages_data?.length || template.pages_data?.length || 1;
-  const isImageTemplate = (template as any).template_type === 'image-based';
+  const isImageTemplate = (template.template_metadata as any)?.template_type === 'image-based';
   const hasImages = template.template_metadata?.pages_data && template.template_metadata.pages_data.length > 0;
 
   // Générer l'aperçu selon le type de template
@@ -305,16 +306,43 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
                   const imageUrl = currentPageData ? getTemplateImageUrl(currentPageData) : null;
                   
                   return imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={`Page ${currentPage}`}
-                      className="w-full h-full object-contain"
-                      style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}
-                      onError={() => {
-                        console.error('Erreur chargement image template');
-                        setError('Impossible de charger l\'image du template');
-                      }}
-                    />
+                    <>
+                      <img
+                        src={imageUrl}
+                        alt={`Page ${currentPage}`}
+                        className="w-full h-full object-contain"
+                        style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}
+                        onError={() => {
+                          console.error('Erreur chargement image template');
+                          setError('Impossible de charger l\'image du template');
+                        }}
+                      />
+                      
+                      {/* Overlay des champs pour cette page */}
+                      {template.fields
+                        ?.filter(field => field.position.page === currentPage)
+                        .map(field => {
+                          const value = CustomPdfFieldMapper.resolveFieldValue(field.mapping_key, sampleData);
+                          return (
+                            <div
+                              key={field.id}
+                              className="absolute border border-blue-300 bg-blue-50 bg-opacity-75 p-1 text-xs pointer-events-none"
+                              style={{
+                                left: `${field.position.x * zoomLevel}px`,
+                                top: `${field.position.y * zoomLevel}px`,
+                                fontSize: `${(field.style.fontSize || 12) * zoomLevel}px`,
+                                fontFamily: field.style.fontFamily || 'Arial',
+                                color: field.style.color || '#000',
+                                fontWeight: field.style.fontWeight || 'normal',
+                                textAlign: field.style.textAlign || 'left',
+                                maxWidth: `${200 * zoomLevel}px`
+                              }}
+                            >
+                              {value}
+                            </div>
+                          );
+                        })}
+                    </>
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       <p>Image non disponible pour cette page</p>

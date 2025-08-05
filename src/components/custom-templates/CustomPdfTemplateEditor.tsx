@@ -155,8 +155,14 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
               setPdfFileExists(false);
             }
           } else {
-            console.warn('⚠️ Template sans URL PDF:', templateId);
-            setPdfFileExists(false);
+            // Vérifier si c'est un template image-based avant d'afficher l'avertissement
+            const isImageTemplate = (templateData.template_metadata as any)?.template_type === 'image-based';
+            if (!isImageTemplate) {
+              console.warn('⚠️ Template sans URL PDF:', templateId);
+              setPdfFileExists(false);
+            } else {
+              setPdfFileExists(true); // Les templates images n'ont pas besoin de PDF
+            }
           }
           
           // Convert to ExtendedCustomPdfTemplate format avec gestion d'erreur
@@ -400,7 +406,22 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         console.log('✅ Template créé avec l\'ID:', newTemplate.id);
       } else {
         console.log('📝 Mise à jour du template existant...');
-        await customPdfTemplateService.updateTemplate(template.id, templateToSave);
+        
+        // Préparer les données pour la mise à jour (adapter la structure pour la BD)
+        const updateData = {
+          name: template.name,
+          description: template.description,
+          original_pdf_url: template.original_pdf_url,
+          field_mappings: {
+            fields: template.fields,
+            pages_data: template.pages_data
+          },
+          template_metadata: template.template_metadata,
+          is_active: template.is_active,
+          updated_at: new Date().toISOString()
+        };
+        
+        await customPdfTemplateService.updateTemplate(template.id, updateData);
         toast({
           title: "Succès",
           description: "Template sauvegardé avec succès",
