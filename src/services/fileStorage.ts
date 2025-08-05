@@ -125,27 +125,58 @@ export const uploadFile = async (
   filePath: string
 ): Promise<string | null> => {
   try {
-    // Upload the file
-    const { error } = await supabase.storage
+    console.log(`[Upload] Starting upload: ${filePath} to bucket: ${bucketName}`);
+    console.log(`[Upload] File type: ${file.type}, size: ${file.size}`);
+    
+    // First check if we can access the bucket
+    const { data: bucketData, error: bucketError } = await supabase.storage.listBuckets();
+    console.log('[Upload] Available buckets:', bucketData?.map(b => b.name));
+    
+    if (bucketError) {
+      console.error('[Upload] Error listing buckets:', bucketError);
+    }
+    
+    // Try to ensure bucket exists
+    try {
+      const bucketExists = await createBucketIfNotExists(bucketName);
+      console.log(`[Upload] Bucket ${bucketName} exists/created:`, bucketExists);
+    } catch (bucketCreationError) {
+      console.warn('[Upload] Bucket creation failed, continuing with upload attempt:', bucketCreationError);
+    }
+    
+    // Attempt upload with detailed error logging
+    console.log(`[Upload] Attempting upload to bucket: ${bucketName}`);
+    const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: file.type
       });
 
     if (error) {
-      console.error(`Error uploading file to ${bucketName}/${filePath}:`, error);
-      return null;
+      console.error('[Upload] Upload error details:', {
+        message: error.message,
+        details: error,
+        bucketName,
+        filePath,
+        fileType: file.type,
+        fileSize: file.size
+      });
+      throw error;
     }
 
+    console.log('[Upload] File uploaded successfully:', data);
+
     // Get the public URL
-    const { data } = supabase.storage
+    const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    console.log('[Upload] Generated public URL:', urlData.publicUrl);
+    return urlData.publicUrl;
   } catch (error) {
-    console.error(`Exception uploading file to ${bucketName}/${filePath}:`, error);
+    console.error('[Upload] Upload error:', error);
     return null;
   }
 };
