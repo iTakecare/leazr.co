@@ -30,6 +30,7 @@ import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
 import { PdfImageGenerator } from '@/services/pdfImageGenerator';
 import { SimplePdfImageGenerator } from '@/services/simplePdfImageGenerator';
+import { FallbackImageGenerator } from '@/services/fallbackImageGenerator';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
 import { useToast } from "@/hooks/use-toast";
 import { getTemplatePreviewImage } from '@/utils/templateImageUtils';
@@ -103,6 +104,7 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
             if (success) {
               console.log('✅ Images de prévisualisation générées');
               loadMyTemplates();
+              return;
             } else {
               console.log('🔄 Fallback vers générateur simple...');
               // Fallback vers le générateur simple
@@ -113,6 +115,19 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
             if (fallbackSuccess) {
               console.log('✅ Aperçu simple généré');
               loadMyTemplates();
+              return;
+            } else {
+              console.log('🔄 Fallback vers générateur de capture...');
+              // Dernière tentative avec capture d'iframe
+              return FallbackImageGenerator.processFallbackThumbnail(templateUrl, newTemplate.id);
+            }
+          })
+          .then((finalSuccess) => {
+            if (finalSuccess) {
+              console.log('✅ Miniature de fallback générée');
+              loadMyTemplates();
+            } else {
+              console.warn('⚠️ Aucune miniature générée, mais template créé');
             }
           })
           .catch((error) => {

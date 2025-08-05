@@ -266,10 +266,10 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
             </div>
           )}
 
-          {previewUrl && !loading && !error && (
+          {(previewUrl || template.original_pdf_url) && !loading && !error && (
             <div className="flex justify-center">
               <iframe
-                src={`${previewUrl}#page=${currentPage}&zoom=${zoomLevel * 100}`}
+                src={`${previewUrl || template.original_pdf_url}#page=${currentPage}&zoom=${zoomLevel * 100}`}
                 className="border border-gray-300 bg-white shadow-lg"
                 style={{
                   width: `${595 * zoomLevel}px`,
@@ -277,6 +277,10 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
                   minHeight: '600px'
                 }}
                 title="Aperçu PDF"
+                onError={() => {
+                  console.error('Erreur chargement iframe PDF');
+                  setError('Impossible d\'afficher le PDF dans ce navigateur');
+                }}
               />
             </div>
           )}

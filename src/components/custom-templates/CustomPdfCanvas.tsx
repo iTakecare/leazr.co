@@ -177,18 +177,37 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         style={{
           width: `${canvasWidth}px`,
           height: `${canvasHeight}px`,
-          backgroundImage: currentPageData?.image_url 
-            ? `url(${currentPageData.image_url})` 
-            : undefined,
-          backgroundSize: 'contain',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center top'
+          backgroundColor: '#f9f9f9',
+          border: '1px solid #e2e8f0'
         }}
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* Affichage du PDF en arrière-plan si pas d'image */}
+        {!currentPageData?.image_url && template.original_pdf_url && (
+          <iframe
+            src={`${template.original_pdf_url}#page=${currentPage}&view=FitH`}
+            className="absolute inset-0 w-full h-full pointer-events-none opacity-70"
+            style={{ 
+              transform: `scale(${zoomLevel})`,
+              transformOrigin: 'top left'
+            }}
+            title={`Template page ${currentPage}`}
+          />
+        )}
+        
+        {/* Affichage de l'image si disponible */}
+        {currentPageData?.image_url && (
+          <img
+            src={currentPageData.image_url}
+            alt={`Page ${currentPage}`}
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+            style={{ opacity: 0.8 }}
+          />
+        )}
+
         {/* Grille de repères */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
           {/* Lignes verticales tous les 10mm */}
