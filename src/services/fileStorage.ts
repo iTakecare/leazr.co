@@ -126,15 +126,31 @@ export const uploadFile = async (
 ): Promise<string | null> => {
   try {
     console.log(`[Upload] Starting upload: ${filePath} to bucket: ${bucketName}`);
-    console.log(`[Upload] File type: ${file.type}, size: ${file.size}`);
+    console.log(`[Upload] File details:`, {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
     
-    // Direct upload without bucket creation attempts
-    console.log(`[Upload] Attempting direct upload to bucket: ${bucketName}`);
+    // Ensure the file is actually a PDF
+    if (file.type !== 'application/pdf') {
+      console.error('[Upload] Invalid file type:', file.type);
+      throw new Error(`Type de fichier invalide: ${file.type}. Seuls les fichiers PDF sont acceptés.`);
+    }
+
+    // Create a Blob explicitly with PDF content type to ensure proper MIME handling
+    const pdfBlob = new Blob([file], { type: 'application/pdf' });
+    console.log('[Upload] Created PDF blob with type:', pdfBlob.type);
+    
+    // Upload with explicit content type
+    console.log(`[Upload] Attempting upload to bucket: ${bucketName} with explicit PDF content type`);
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file, {
+      .upload(filePath, pdfBlob, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: 'application/pdf'
       });
 
     if (error) {
@@ -143,7 +159,8 @@ export const uploadFile = async (
         details: error,
         bucketName,
         filePath,
-        fileType: file.type,
+        originalFileType: file.type,
+        blobType: pdfBlob.type,
         fileSize: file.size
       });
       throw error;
