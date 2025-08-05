@@ -21,6 +21,7 @@ import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
 import { PostalCodeImport } from '@/components/admin/PostalCodeImport';
+import HtmlTemplateManager from '@/components/settings/HtmlTemplateManager';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -88,7 +89,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -112,6 +113,10 @@ const Settings: React.FC = () => {
           <TabsTrigger value="contracts" className="flex items-center gap-2">
             <FileSignature className="h-4 w-4" />
             Contrats
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Templates
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -154,6 +159,10 @@ const Settings: React.FC = () => {
 
         <TabsContent value="contracts" className="mt-6">
           <ContractSettings />
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          <HtmlTemplateManager />
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">
