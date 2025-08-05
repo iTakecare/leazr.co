@@ -37,8 +37,26 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   const pxToMm = (px: number) => px / (3.7795275591 * zoomLevel);
 
-  // Obtenir la page actuelle
-  const currentPageData = template.pages_data.find(page => page.page_number === currentPage);
+  // Obtenir la page actuelle via templateImages (images statiques) ou pages_data
+  const getCurrentPageBackground = () => {
+    // D'abord essayer les pages_data existantes
+    const currentPageData = template.pages_data.find(page => page.page_number === currentPage);
+    if (currentPageData?.image_url) {
+      return `${currentPageData.image_url}?t=${new Date().getTime()}`;
+    }
+
+    // Ensuite essayer template_metadata.pages_data
+    if (template?.template_metadata?.pages_data && template.template_metadata.pages_data.length > 0) {
+      const pageImage = template.template_metadata.pages_data.find(img => img.page_number === currentPage);
+      
+      if (pageImage) {
+        if (pageImage.image_url) {
+          return `${pageImage.image_url}?t=${new Date().getTime()}`;
+        }
+      }
+    }
+    return null;
+  };
   
   // Obtenir les champs de la page actuelle
   const currentPageFields = template.fields.filter(field => 
@@ -186,28 +204,38 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* Affichage PDF avec PdfViewer canvas-based */}
-        {currentPageData?.image_url ? (
+        {/* Affichage PDF avec images statiques (comme PDFFieldsEditor) */}
+        {getCurrentPageBackground() ? (
           <img
-            src={currentPageData.image_url}
+            src={getCurrentPageBackground()}
             alt={`Page ${currentPage}`}
             className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             style={{ opacity: 0.8 }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              console.error("Erreur de chargement de l'image:", target.src);
+              target.src = "/placeholder.svg";
+              
+              setTimeout(() => {
+                if (target.src === "/placeholder.svg") {
+                  const currentSrc = target.src;
+                  const timestamp = new Date().getTime();
+                  const newSrc = currentSrc.includes('?') 
+                    ? currentSrc.split('?')[0] + `?t=${timestamp}`
+                    : `${currentSrc}?t=${timestamp}`;
+                  
+                  console.log("Tentative de rechargement de l'image avec cache-busting:", newSrc);
+                  target.src = newSrc;
+                }
+              }, 2000);
+            }}
+            onLoad={() => {
+              console.log("Image chargée avec succès");
+            }}
           />
-        ) : template.original_pdf_url ? (
-          <div className="absolute inset-0 pointer-events-none opacity-80">
-            <PdfViewer
-              url={template.original_pdf_url}
-              currentPage={currentPage}
-              zoom={zoomLevel}
-              onLoadSuccess={(numPages) => console.log(`PDF loaded with ${numPages} pages`)}
-              onLoadError={(error) => console.error('PDF load error:', error)}
-              className="w-full h-full"
-            />
-          </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 text-gray-500">
-            <p>PDF non disponible</p>
+            <p>Images de pages en cours de génération...</p>
           </div>
         )}
 
