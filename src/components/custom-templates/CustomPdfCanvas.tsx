@@ -196,13 +196,12 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
           />
         ) : template.original_pdf_url ? (
           <div className="absolute inset-0 pointer-events-none opacity-70">
-            <PdfViewer
-              url={template.original_pdf_url}
-              currentPage={currentPage}
-              zoom={1.0}
-              className="w-full h-full"
-              onLoadError={(error) => {
-                console.error('PDF Viewer error in canvas:', error);
+            <iframe
+              src={template.original_pdf_url}
+              className="w-full h-full border-0"
+              title={`PDF Page ${currentPage}`}
+              style={{ 
+                background: 'white'
               }}
             />
           </div>
