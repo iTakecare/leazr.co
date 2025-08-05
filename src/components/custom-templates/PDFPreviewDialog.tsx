@@ -8,8 +8,7 @@ import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Laisser react-pdf gérer automatiquement son worker interne
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// React-pdf gère automatiquement son worker interne
 
 interface PDFPreviewDialogProps {
   open: boolean;
@@ -30,12 +29,16 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const totalPages = template.template_metadata?.pages_count || template.template_metadata?.pages_data?.length || template.pages_data?.length || 1;
 
-  // Générer l'aperçu PDF
+  // Générer l'aperçu PDF avec gestion mémoire améliorée
   const generatePreview = async () => {
+    if (isGenerating) return; // Éviter les appels multiples
+    
     try {
+      setIsGenerating(true);
       setLoading(true);
       setError(null);
       
@@ -43,10 +46,17 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       console.log('📋 Template:', template.name);
       console.log('📊 Données d\'exemple:', sampleData);
       
+      // Nettoyer les données précédentes pour éviter les conflits mémoire
+      if (pdfData) {
+        setPdfData(null);
+        // Petit délai pour permettre le nettoyage
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       // Utiliser le service de rendu personnalisé
       const pdfBytes = await CustomPdfRenderer.renderCustomPdf(template, sampleData);
       
-      // Stocker les données PDF
+      // Stocker les nouvelles données PDF
       setPdfData(pdfBytes);
       
       console.log('✅ Aperçu PDF généré avec succès');
@@ -57,6 +67,7 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       toast.error("Impossible de générer l'aperçu");
     } finally {
       setLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -82,20 +93,32 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
     }
   };
 
-  // Callbacks pour react-pdf
+  // Callbacks pour react-pdf avec gestion d'erreur améliorée
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setError(null);
+    console.log('✅ Document PDF chargé avec succès:', numPages, 'pages');
   };
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('Erreur lors du chargement du PDF:', error);
-    setError("Erreur lors du chargement du PDF");
+    console.error('❌ Erreur lors du chargement du PDF:', error);
+    setError("Impossible de charger le PDF généré. Essayez de régénérer l'aperçu.");
   };
 
   // Réinitialiser l'aperçu quand le dialog s'ouvre
   useEffect(() => {
-    if (open && !pdfData) {
+    if (open && !pdfData && !isGenerating) {
       generatePreview();
+    }
+  }, [open]);
+
+  // Nettoyage mémoire à la fermeture
+  useEffect(() => {
+    if (!open) {
+      setCurrentPage(1);
+      setZoomLevel(1);
+      setError(null);
+      setNumPages(null);
     }
   }, [open]);
 
@@ -174,7 +197,7 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
               variant="outline"
               size="sm"
               onClick={generatePreview}
-              disabled={loading}
+              disabled={loading || isGenerating}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -229,6 +252,20 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
                 className="border border-gray-300 bg-white shadow-lg"
+                loading={
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                }
+                error={
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <p className="text-destructive mb-2">Erreur de chargement</p>
+                    <Button onClick={generatePreview} variant="outline" size="sm">
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Régénérer
+                    </Button>
+                  </div>
+                }
               >
                 <Page
                   pageNumber={currentPage}
@@ -236,6 +273,19 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
                   className="bg-white"
+                  loading={
+                    <div className="flex items-center justify-center w-full h-96">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  }
+                  error={
+                    <div className="flex flex-col items-center justify-center w-full h-96 text-center">
+                      <p className="text-destructive mb-2">Erreur d'affichage</p>
+                      <Button onClick={() => setCurrentPage(1)} variant="outline" size="sm">
+                        Retour page 1
+                      </Button>
+                    </div>
+                  }
                 />
               </Document>
             </div>

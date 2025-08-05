@@ -5,8 +5,7 @@ import { CustomPdfTemplateField, ExtendedCustomPdfTemplate } from "@/types/custo
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
 import { cn } from "@/lib/utils";
 
-// Laisser react-pdf gérer automatiquement son worker interne
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// React-pdf gère automatiquement son worker interne
 
 interface CustomPdfCanvasProps {
   template: ExtendedCustomPdfTemplate;
@@ -38,10 +37,21 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const [pageWidth, setPageWidth] = useState(0);
   const [pageHeight, setPageHeight] = useState(0);
+  const [actualScale, setActualScale] = useState(1);
 
-  // Conversion mm vers pixels (1mm = 3.7795275591px à 96 DPI)
-  const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
-  const pxToMm = (px: number) => px / (3.7795275591 * zoomLevel);
+  // Conversion dynamique basée sur les dimensions réelles du PDF
+  const mmToPx = (mm: number) => {
+    // A4 en points PDF: 595.276 x 841.89 points
+    // A4 en mm: 210 x 297 mm
+    // Facteur de conversion: points/mm = 595.276/210 ≈ 2.834645669
+    const pdfPointsPerMm = 2.834645669;
+    return mm * pdfPointsPerMm * actualScale * zoomLevel;
+  };
+  
+  const pxToMm = (px: number) => {
+    const pdfPointsPerMm = 2.834645669;
+    return px / (pdfPointsPerMm * actualScale * zoomLevel);
+  };
 
   // Obtenir la page actuelle
   const currentPageData = template.pages_data.find(page => page.page_number === currentPage);
@@ -52,9 +62,9 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
     CustomPdfFieldMapper.shouldShowField(field, sampleData)
   );
 
-  // Dimensions du canvas (A4 en mm converti en px)
-  const canvasWidth = mmToPx(210);
-  const canvasHeight = mmToPx(297);
+  // Dimensions du canvas basées sur les dimensions réelles du PDF chargé
+  const canvasWidth = pageWidth || mmToPx(210);
+  const canvasHeight = pageHeight || mmToPx(297);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (isDragging) return;
@@ -218,9 +228,10 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
                 pageNumber={currentPage}
                 scale={zoomLevel}
                 onLoadSuccess={(page) => {
-                  setPageWidth(page.width);
-                  setPageHeight(page.height);
-                  console.log('✅ Page loaded:', page.pageNumber, `${page.width}x${page.height}`);
+                  setPageWidth(page.width * zoomLevel);
+                  setPageHeight(page.height * zoomLevel);
+                  setActualScale(page.width / 595.276); // Scale relatif à A4 standard
+                  console.log('✅ Page loaded:', page.pageNumber, `${page.width}x${page.height}`, 'scale:', page.width / 595.276);
                 }}
                 className="react-pdf__Page"
                 canvasBackground="white"
