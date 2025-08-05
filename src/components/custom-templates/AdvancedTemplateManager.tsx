@@ -154,6 +154,21 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const handleEditTemplate = (template: CustomPdfTemplate) => {
     setSelectedTemplate(template);
     setIsEditorOpen(true);
+    
+    // Générer automatiquement les images si elles n'existent pas
+    if (!template.template_metadata?.pages_data?.length && template.original_pdf_url) {
+      console.log('🔄 Génération automatique des images du template...');
+      SimplePdfImageGenerator.processTemplate(template.original_pdf_url, template.id)
+        .then((success) => {
+          if (success) {
+            console.log('✅ Images générées automatiquement');
+            loadMyTemplates(); // Refresh la liste pour voir les nouvelles images
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Erreur génération automatique:', error);
+        });
+    }
   };
 
   const handlePreviewTemplate = (template: CustomPdfTemplate) => {

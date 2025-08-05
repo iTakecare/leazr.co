@@ -186,7 +186,7 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* Affichage PDF avec fallback intégré */}
+        {/* Affichage PDF avec PdfViewer canvas-based */}
         {currentPageData?.image_url ? (
           <img
             src={currentPageData.image_url}
@@ -195,14 +195,14 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
             style={{ opacity: 0.8 }}
           />
         ) : template.original_pdf_url ? (
-          <div className="absolute inset-0 pointer-events-none opacity-70">
-            <iframe
-              src={template.original_pdf_url}
-              className="w-full h-full border-0"
-              title={`PDF Page ${currentPage}`}
-              style={{ 
-                background: 'white'
-              }}
+          <div className="absolute inset-0 pointer-events-none opacity-80">
+            <PdfViewer
+              url={template.original_pdf_url}
+              currentPage={currentPage}
+              zoom={zoomLevel}
+              onLoadSuccess={(numPages) => console.log(`PDF loaded with ${numPages} pages`)}
+              onLoadError={(error) => console.error('PDF load error:', error)}
+              className="w-full h-full"
             />
           </div>
         ) : (
