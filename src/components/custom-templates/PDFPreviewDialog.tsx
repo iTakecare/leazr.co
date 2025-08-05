@@ -6,6 +6,10 @@ import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCc
 import { toast } from "sonner";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
+import { Document, Page, pdfjs } from 'react-pdf';
+
+// Configuration de pdf.js
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface PDFPreviewDialogProps {
   open: boolean;
@@ -20,11 +24,12 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   template,
   sampleData
 }) => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [numPages, setNumPages] = useState<number | null>(null);
 
   const totalPages = template.template_metadata?.pages_count || template.template_metadata?.pages_data?.length || template.pages_data?.length || 1;
 
@@ -41,10 +46,8 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       // Utiliser le service de rendu personnalisé
       const pdfBytes = await CustomPdfRenderer.renderCustomPdf(template, sampleData);
       
-      // Créer un blob et une URL pour l'affichage
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      // Stocker les données PDF
+      setPdfData(pdfBytes);
       
       console.log('✅ Aperçu PDF généré avec succès');
       toast.success("Aperçu généré avec succès");
@@ -59,12 +62,10 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
 
   // Télécharger le PDF
   const downloadPdf = async () => {
-    if (!previewUrl) return;
+    if (!pdfData) return;
     
     try {
-      const response = await fetch(previewUrl);
-      const blob = await response.blob();
-      
+      const blob = new Blob([pdfData], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -81,21 +82,22 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
     }
   };
 
+  // Callbacks pour react-pdf
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('Erreur lors du chargement du PDF:', error);
+    setError("Erreur lors du chargement du PDF");
+  };
+
   // Réinitialiser l'aperçu quand le dialog s'ouvre
   useEffect(() => {
-    if (open && !previewUrl) {
+    if (open && !pdfData) {
       generatePreview();
     }
   }, [open]);
-
-  // Nettoyer l'URL quand le composant se démonte
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,7 +179,7 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
               <RotateCcw className="h-4 w-4" />
             </Button>
             
-            {previewUrl && (
+            {pdfData && (
               <Button
                 variant="default"
                 size="sm"
@@ -207,10 +209,9 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
           {error && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-lg font-medium mb-2">Fichier PDF manquant</p>
+                <p className="text-lg font-medium mb-2">Erreur de génération</p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Le fichier PDF de ce template n'existe plus dans le bucket.<br/>
-                  Veuillez re-uploader un PDF ou supprimer ce template.
+                  Une erreur est survenue lors de la génération de l'aperçu PDF.
                 </p>
                 <p className="text-xs text-destructive mb-4">{error}</p>
                 <Button onClick={generatePreview} variant="outline">
@@ -221,18 +222,22 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
             </div>
           )}
 
-          {previewUrl && !loading && !error && (
+          {pdfData && !loading && !error && (
             <div className="flex justify-center">
-              <iframe
-                src={`${previewUrl}#page=${currentPage}&zoom=${zoomLevel * 100}`}
+              <Document
+                file={{ data: pdfData }}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
                 className="border border-gray-300 bg-white shadow-lg"
-                style={{
-                  width: `${595 * zoomLevel}px`,
-                  height: `${842 * zoomLevel}px`,
-                  minHeight: '600px'
-                }}
-                title="Aperçu PDF"
-              />
+              >
+                <Page
+                  pageNumber={currentPage}
+                  scale={zoomLevel}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  className="bg-white"
+                />
+              </Document>
             </div>
           )}
         </div>
