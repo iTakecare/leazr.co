@@ -61,14 +61,26 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   // Obtenir les champs de la page actuelle
   const currentPageFields = template.fields.filter(field => {
     const isOnCurrentPage = field.position.page === currentPage;
-    const shouldShow = CustomPdfFieldMapper.shouldShowField(field, sampleData);
     
-    // Debug pour comprendre pourquoi les champs n'apparaissent pas
-    if (field.position.page === currentPage) {
-      console.log(`🔍 Champ "${field.label}" - Page: ${field.position.page}, Current: ${currentPage}, Visible: ${shouldShow}, Position: ${field.position.x}mm, ${field.position.y}mm`);
+    console.log('🔍 CustomPdfCanvas - Debug filtrage AVANT shouldShowField:', {
+      fieldId: field.id,
+      fieldLabel: field.label,
+      fieldPage: field.position.page,
+      currentPage: currentPage,
+      isOnCurrentPage: isOnCurrentPage,
+      sampleData: sampleData,
+      sampleDataKeys: sampleData ? Object.keys(sampleData) : 'undefined',
+      fieldVisible: field.isVisible,
+      fieldConditions: field.conditions
+    });
+    
+    if (isOnCurrentPage) {
+      const shouldShow = CustomPdfFieldMapper.shouldShowField(field, sampleData);
+      console.log(`🎯 Field "${field.label}" (${field.id}) - Page: ${field.position.page}, shouldShow: ${shouldShow}, Position: ${field.position.x}mm, ${field.position.y}mm`);
+      return shouldShow;
     }
     
-    return isOnCurrentPage && shouldShow;
+    return false;
   });
 
   // Dimensions du canvas (A4 en mm converti en px)

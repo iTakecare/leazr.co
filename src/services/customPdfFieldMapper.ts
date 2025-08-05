@@ -123,14 +123,37 @@ export class CustomPdfFieldMapper {
    * Vérifie si un champ doit être affiché selon ses conditions
    */
   static shouldShowField(field: CustomPdfTemplateField, data: any): boolean {
+    console.log('🔍 shouldShowField - Debug détaillé:', {
+      fieldId: field.id,
+      fieldLabel: field.label,
+      isVisible: field.isVisible,
+      hasConditions: !!field.conditions,
+      conditions: field.conditions,
+      dataKeys: data ? Object.keys(data) : 'data undefined',
+      sampleDataStructure: data
+    });
+
+    // Si pas de données d'exemple, afficher le champ quand même pour les nouveaux champs
+    if (!data) {
+      console.log('⚠️ shouldShowField - Pas de sampleData, affichage par défaut:', field.isVisible);
+      return field.isVisible;
+    }
+
     if (!field.conditions) {
+      console.log('✅ shouldShowField - Pas de conditions, isVisible:', field.isVisible);
       return field.isVisible;
     }
     
     // Vérifier la condition show_if
     if (field.conditions.show_if) {
       const showValue = this.getNestedValue(data, field.conditions.show_if);
+      console.log('🔍 shouldShowField - Condition show_if:', {
+        condition: field.conditions.show_if,
+        value: showValue,
+        result: !!showValue
+      });
       if (!showValue) {
+        console.log('❌ shouldShowField - show_if failed, hiding field');
         return false;
       }
     }
@@ -138,12 +161,20 @@ export class CustomPdfFieldMapper {
     // Vérifier la condition hide_if
     if (field.conditions.hide_if) {
       const hideValue = this.getNestedValue(data, field.conditions.hide_if);
+      console.log('🔍 shouldShowField - Condition hide_if:', {
+        condition: field.conditions.hide_if,
+        value: hideValue,
+        result: !!hideValue
+      });
       if (hideValue) {
+        console.log('❌ shouldShowField - hide_if failed, hiding field');
         return false;
       }
     }
     
-    return field.isVisible;
+    const finalResult = field.isVisible;
+    console.log('✅ shouldShowField - Résultat final:', finalResult);
+    return finalResult;
   }
   
   /**
