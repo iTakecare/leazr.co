@@ -244,9 +244,13 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     
     setSelectedFieldId(newField.id);
     setHasUnsavedChanges(true);
+    
+    console.log(`✅ Champ ajouté: "${fieldDef.label}" à la position (${newField.position.x}mm, ${newField.position.y}mm) sur la page ${currentPage}`);
+    console.log(`📊 Total des champs: ${template.fields.length + 1}`);
+    
     toast({
       title: "Succès",
-      description: `Champ "${fieldDef.label}" ajouté`,
+      description: `Champ "${fieldDef.label}" ajouté à la page ${currentPage}`,
     });
   }, [template, currentPage]);
 

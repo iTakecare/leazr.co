@@ -59,10 +59,17 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   };
   
   // Obtenir les champs de la page actuelle
-  const currentPageFields = template.fields.filter(field => 
-    field.position.page === currentPage && 
-    CustomPdfFieldMapper.shouldShowField(field, sampleData)
-  );
+  const currentPageFields = template.fields.filter(field => {
+    const isOnCurrentPage = field.position.page === currentPage;
+    const shouldShow = CustomPdfFieldMapper.shouldShowField(field, sampleData);
+    
+    // Debug pour comprendre pourquoi les champs n'apparaissent pas
+    if (field.position.page === currentPage) {
+      console.log(`🔍 Champ "${field.label}" - Page: ${field.position.page}, Current: ${currentPage}, Visible: ${shouldShow}, Position: ${field.position.x}mm, ${field.position.y}mm`);
+    }
+    
+    return isOnCurrentPage && shouldShow;
+  });
 
   // Dimensions du canvas (A4 en mm converti en px)
   const canvasWidth = mmToPx(210);
@@ -148,9 +155,10 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
       textAlign: field.style.textAlign,
       cursor: 'move',
       userSelect: 'none' as const,
-      minWidth: field.style.width ? `${mmToPx(field.style.width)}px` : 'auto',
-      minHeight: field.style.height ? `${mmToPx(field.style.height)}px` : 'auto',
-      zIndex: isSelected ? 10 : 5
+      minWidth: field.style.width ? `${mmToPx(field.style.width)}px` : '80px',
+      minHeight: field.style.height ? `${mmToPx(field.style.height)}px` : '20px',
+      zIndex: isSelected ? 10 : 5,
+      maxWidth: '300px'
     };
 
     return (
@@ -158,31 +166,41 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         key={field.id}
         style={style}
         className={cn(
-          "pdf-field border-dashed border-transparent hover:border-blue-400 hover:bg-blue-50/50 p-1 rounded",
+          "pdf-field border-2 border-dashed p-2 rounded-md transition-all duration-200",
+          "bg-white/90 backdrop-blur-sm shadow-sm",
           {
-            "border-blue-500 bg-blue-50/70 shadow-md": isSelected,
-            "border-gray-300": !isSelected
+            "border-blue-500 bg-blue-50/90 shadow-lg ring-2 ring-blue-200": isSelected,
+            "border-orange-400 hover:border-orange-500 hover:bg-orange-50/90 hover:shadow-md": !isSelected
           }
         )}
         onMouseDown={(e) => handleFieldMouseDown(e, field.id)}
+        title={`${field.label} (${field.mapping_key})`}
       >
         {field.type === 'table' ? (
-          <div className="bg-white border rounded p-2 min-w-[200px]">
-            <div className="text-xs font-medium mb-1">Tableau des équipements</div>
+          <div className="bg-white border rounded p-2 min-w-[150px] text-center">
+            <div className="text-xs font-semibold mb-1 text-gray-700">📊 Tableau</div>
             <div className="text-xs text-gray-500">
-              {sampleData?.equipment_list?.length || 0} éléments
+              {sampleData?.equipment_list?.length || 0} équipements
             </div>
           </div>
         ) : (
-          <span className="whitespace-pre-wrap">
-            {value || `[${field.label}]`}
-          </span>
+          <div className="text-center">
+            <div className="text-xs font-medium text-gray-600 mb-1">{field.label}</div>
+            <div className="text-sm" style={{ color: field.style.color }}>
+              {value || `[${field.label}]`}
+            </div>
+          </div>
         )}
         
         {isSelected && (
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-            <div className="w-2 h-2 bg-white rounded-full"></div>
-          </div>
+          <>
+            <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
+            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-xs bg-blue-500 text-white px-2 py-1 rounded">
+              {field.position.x}mm, {field.position.y}mm
+            </div>
+          </>
         )}
       </div>
     );
@@ -260,7 +278,16 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         </div>
 
         {/* Champs positionnés */}
-        {currentPageFields.map(renderField)}
+        {currentPageFields.length > 0 ? (
+          currentPageFields.map(renderField)
+        ) : (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+            {template.fields.length === 0 
+              ? "Ajoutez des champs depuis la palette à droite" 
+              : `Aucun champ sur la page ${currentPage}`
+            }
+          </div>
+        )}
 
         {/* Indicateur de page */}
         <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
