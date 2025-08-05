@@ -132,19 +132,14 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         if (templateData) {
           const extendedTemplate = templateData;
           
-          // Vérifier si le fichier PDF existe encore
+          // Log de debug pour l'URL du PDF
           if (extendedTemplate.original_pdf_url) {
-            try {
-              const response = await fetch(extendedTemplate.original_pdf_url, { method: 'HEAD' });
-              setPdfFileExists(response.ok);
-              if (!response.ok) {
-                toast.warning("Le fichier PDF de ce template n'existe plus dans le bucket");
-              }
-            } catch (error) {
-              console.warn("Impossible de vérifier l'existence du fichier PDF:", error);
-              setPdfFileExists(false);
-              toast.warning("Le fichier PDF de ce template semble inaccessible");
-            }
+            console.log('📄 URL du PDF template:', extendedTemplate.original_pdf_url);
+            // On assume que le PDF existe - la vérification HEAD peut échouer avec CORS
+            setPdfFileExists(true);
+          } else {
+            console.warn('⚠️ Aucune URL de PDF trouvée pour ce template');
+            setPdfFileExists(false);
           }
           
           // Convert to ExtendedCustomPdfTemplate format
@@ -585,16 +580,16 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           </div>
         ) : (
           <>
-            {/* Avertissement PDF manquant */}
-            {!pdfFileExists && template.original_pdf_url && (
+            {/* Avertissement PDF manquant - seulement si pas d'URL */}
+            {!template.original_pdf_url && (
               <div className="w-full bg-destructive/10 border border-destructive/20 p-3 text-sm">
                 <div className="flex items-center gap-2 text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   <strong>Fichier PDF manquant</strong>
                 </div>
                 <p className="text-muted-foreground mt-1">
-                  Le fichier PDF de ce template n'existe plus dans le bucket. 
-                  Veuillez re-uploader un PDF pour restaurer les fonctionnalités d'édition.
+                  Aucun fichier PDF n'est associé à ce template. 
+                  Veuillez uploader un PDF pour activer les fonctionnalités d'édition.
                 </p>
               </div>
             )}

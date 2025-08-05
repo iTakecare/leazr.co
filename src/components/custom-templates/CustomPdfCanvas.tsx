@@ -184,16 +184,22 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         onMouseLeave={handleMouseUp}
       >
         {/* PDF Viewer avec iframe */}
-        {template.original_pdf_url && (
-          <iframe
-            src={`${template.original_pdf_url}#page=${currentPage}&view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{
-              border: 'none',
-              background: 'white'
-            }}
-          />
-        )}
+        {template.original_pdf_url && (() => {
+          const pdfUrl = `${template.original_pdf_url}#page=${currentPage}&view=FitH&toolbar=0&navpanes=0&scrollbar=0`;
+          console.log('🖼️ URL iframe PDF:', pdfUrl);
+          return (
+            <iframe
+              src={pdfUrl}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{
+                border: 'none',
+                background: 'white'
+              }}
+              onLoad={() => console.log('✅ PDF iframe loaded successfully')}
+              onError={() => console.error('❌ PDF iframe failed to load')}
+            />
+          );
+        })()}
         {/* Grille de repères */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
           {/* Lignes verticales tous les 10mm */}
