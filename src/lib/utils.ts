@@ -1,10 +1,20 @@
-import clsx from "clsx"
 import { Product } from "@/types/catalog";
 
 type ClassValue = string | number | boolean | undefined | null | { [key: string]: any } | ClassValue[]
 
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs.filter(Boolean)).trim()
+  const classes = inputs.filter(Boolean).map(input => {
+    if (typeof input === 'string') return input;
+    if (typeof input === 'object' && input !== null) {
+      return Object.entries(input)
+        .filter(([_, value]) => Boolean(value))
+        .map(([key]) => key)
+        .join(' ');
+    }
+    return String(input);
+  }).join(' ');
+  
+  return classes.trim();
 }
 
 // Fonction pour traiter le markdown simple et le convertir en HTML sécurisé
