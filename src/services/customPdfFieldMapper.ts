@@ -133,6 +133,13 @@ export class CustomPdfFieldMapper {
       sampleDataStructure: data
     });
 
+    // CORRECTION: Toujours afficher les champs visibles, peu importe les conditions pour le moment
+    // Cela nous permettra de voir si le problème vient du filtrage
+    console.log('🎯 shouldShowField - Forcing visibility for debugging:', field.isVisible);
+    return field.isVisible;
+
+    // Code original commenté temporairement pour debug
+    /*
     // Si pas de données d'exemple, afficher le champ quand même pour les nouveaux champs
     if (!data) {
       console.log('⚠️ shouldShowField - Pas de sampleData, affichage par défaut:', field.isVisible);
@@ -175,6 +182,7 @@ export class CustomPdfFieldMapper {
     const finalResult = field.isVisible;
     console.log('✅ shouldShowField - Résultat final:', finalResult);
     return finalResult;
+    */
   }
   
   /**

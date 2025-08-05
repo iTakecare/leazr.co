@@ -58,26 +58,25 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
     return null;
   };
   
-  // Obtenir les champs de la page actuelle
+  // Obtenir les champs de la page actuelle - VERSION DEBUG SIMPLIFIÉE
   const currentPageFields = template.fields.filter(field => {
     const isOnCurrentPage = field.position.page === currentPage;
     
-    console.log('🔍 CustomPdfCanvas - Debug filtrage AVANT shouldShowField:', {
+    console.log('🔍 CustomPdfCanvas - Debug filtrage:', {
       fieldId: field.id,
       fieldLabel: field.label,
       fieldPage: field.position.page,
       currentPage: currentPage,
       isOnCurrentPage: isOnCurrentPage,
-      sampleData: sampleData,
-      sampleDataKeys: sampleData ? Object.keys(sampleData) : 'undefined',
       fieldVisible: field.isVisible,
-      fieldConditions: field.conditions
+      totalFields: template.fields.length
     });
     
-    if (isOnCurrentPage) {
-      const shouldShow = CustomPdfFieldMapper.shouldShowField(field, sampleData);
-      console.log(`🎯 Field "${field.label}" (${field.id}) - Page: ${field.position.page}, shouldShow: ${shouldShow}, Position: ${field.position.x}mm, ${field.position.y}mm`);
-      return shouldShow;
+    // CORRECTION TEMPORAIRE: Afficher tous les champs visibles de la page courante
+    // sans passer par shouldShowField pour le moment
+    if (isOnCurrentPage && field.isVisible) {
+      console.log(`✅ Field "${field.label}" (${field.id}) - AFFICHÉ sur page ${field.position.page} à ${field.position.x}mm, ${field.position.y}mm`);
+      return true;
     }
     
     return false;
