@@ -14,7 +14,7 @@ export interface HtmlPdfOptions {
 }
 
 /**
- * Template HTML par défaut pour iTakecare (basé sur le template fourni)
+ * Template HTML complet iTakecare avec design fidèle et images base64
  */
 export const ITAKECARE_HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="fr">
@@ -23,110 +23,593 @@ export const ITAKECARE_HTML_TEMPLATE = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Offre commerciale iTakecare</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
+      font-family: 'Arial', sans-serif;
       color: #1c1c1c;
       line-height: 1.6;
+      background: white;
     }
-    h1, h2, h3 {
-      color: #0a376e;
+    
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 20mm;
+      page-break-after: always;
+      position: relative;
+      background: white;
     }
-    .section {
-      margin-bottom: 60px;
-      page-break-inside: avoid;
+    
+    .page:last-child {
+      page-break-after: avoid;
     }
-    .title {
-      font-size: 24px;
-      font-weight: bold;
-    }
-    .subtitle {
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .info {
-      margin: 15px 0;
-    }
-    .values {
+    
+    /* PAGE 1 - COUVERTURE */
+    .cover-page {
+      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
+      color: white;
       display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
     }
-    .values > div {
-      flex: 1;
-      min-width: 250px;
-      margin-right: 20px;
-    }
-    .table {
+    
+    .cover-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+      height: 100%;
+      background-image: url('{{base64_image_cover}}');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.2;
+      z-index: 0;
     }
-    .table th, .table td {
-      border: 1px solid #ccc;
-      padding: 10px;
+    
+    .cover-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .cover-title {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .cover-subtitle {
+      font-size: 24px;
+      margin-bottom: 40px;
+      opacity: 0.9;
+    }
+    
+    .logo {
+      width: 150px;
+      height: auto;
+      margin-bottom: 30px;
+    }
+    
+    .client-info {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 15px;
+      margin-top: 40px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .client-info h2 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #87ceeb;
+    }
+    
+    .client-details {
+      font-size: 18px;
       text-align: left;
     }
-    .table th {
-      background-color: #f5f5f5;
+    
+    .client-details p {
+      margin-bottom: 10px;
+    }
+    
+    /* PAGE 2 - VISION */
+    .vision-page {
+      background: linear-gradient(to bottom, #f8fbff 0%, #e8f4fd 100%);
+    }
+    
+    .vision-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    .vision-title {
+      font-size: 42px;
+      color: #0a376e;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    
+    .vision-image {
+      width: 100%;
+      max-width: 600px;
+      height: 300px;
+      background-image: url('{{base64_image_vision}}');
+      background-size: cover;
+      background-position: center;
+      border-radius: 15px;
+      margin: 30px auto;
+      box-shadow: 0 10px 30px rgba(10, 55, 110, 0.2);
+    }
+    
+    .vision-content {
+      font-size: 18px;
+      text-align: center;
+      color: #2c3e50;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+    
+    /* PAGE 3 - OFFRE */
+    .offer-page {
+      background: white;
+    }
+    
+    .offer-header {
+      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .offer-title {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .offer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+    
+    .offer-card {
+      background: #f8fbff;
+      padding: 25px;
+      border-radius: 12px;
+      border-left: 5px solid #0a376e;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .offer-card h3 {
+      color: #0a376e;
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+    
+    .price-highlight {
+      font-size: 32px;
+      color: #0a376e;
       font-weight: bold;
     }
-    .steps {
-      padding-left: 0;
+    
+    .offer-benefits {
+      background: #e8f4fd;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 30px;
     }
-    .steps li {
-      margin-bottom: 10px;
-      list-style-type: none;
-      counter-increment: step-counter;
+    
+    .offer-benefits ul {
+      list-style: none;
+      padding: 0;
     }
-    .steps {
-      counter-reset: step-counter;
+    
+    .offer-benefits li {
+      padding: 8px 0;
+      position: relative;
+      padding-left: 25px;
     }
+    
+    .offer-benefits li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #0a376e;
+      font-weight: bold;
+    }
+    
+    /* PAGE 4 - SOLUTION */
+    .solution-page {
+      background: white;
+    }
+    
+    .solution-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .solution-title {
+      font-size: 36px;
+      color: #0a376e;
+      margin-bottom: 20px;
+    }
+    
+    .equipment-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    .equipment-table th {
+      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
+      color: white;
+      padding: 20px;
+      text-align: left;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .equipment-table td {
+      padding: 15px 20px;
+      border-bottom: 1px solid #e0e0e0;
+      background: white;
+    }
+    
+    .equipment-table tr:nth-child(even) td {
+      background: #f8fbff;
+    }
+    
+    .equipment-table tr:hover td {
+      background: #e8f4fd;
+    }
+    
+    /* PAGE 5 - ÉTAPES */
+    .steps-page {
+      background: linear-gradient(to bottom, #f8fbff 0%, #e8f4fd 100%);
+    }
+    
+    .steps-title {
+      font-size: 36px;
+      color: #0a376e;
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    .steps-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .step-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 30px;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    .step-number {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-right: 25px;
+      flex-shrink: 0;
+    }
+    
+    .step-content {
+      flex: 1;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    /* PAGE 6 - MODALITÉS */
+    .modalities-page {
+      background: white;
+    }
+    
+    .modalities-title {
+      font-size: 36px;
+      color: #0a376e;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .modality-card {
+      background: #f8fbff;
+      padding: 30px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      border-left: 5px solid #0a376e;
+    }
+    
+    .modality-card h3 {
+      color: #0a376e;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    
+    .insurance-highlight {
+      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin-top: 30px;
+    }
+    
+    /* PAGE 7 - VALEURS */
+    .values-page {
+      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
+      color: white;
+    }
+    
+    .values-title {
+      font-size: 42px;
+      text-align: center;
+      margin-bottom: 50px;
+      font-weight: bold;
+    }
+    
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      margin-top: 40px;
+    }
+    
+    .value-card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .value-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 36px;
+    }
+    
+    .value-card h3 {
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: #87ceeb;
+    }
+    
+    .value-card p {
+      font-size: 16px;
+      line-height: 1.6;
+      opacity: 0.9;
+    }
+    
+    /* PAGE 8 - CONTACT */
+    .contact-page {
+      background: white;
+    }
+    
+    .contact-title {
+      font-size: 36px;
+      color: #0a376e;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 40px;
+    }
+    
+    .contact-card {
+      background: #f8fbff;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+    }
+    
+    .contact-card h3 {
+      color: #0a376e;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    
+    .contact-info {
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    
+    /* PAGE 9 - SIGNATURE */
+    .signature-page {
+      background: white;
+    }
+    
+    .signature-title {
+      font-size: 36px;
+      color: #0a376e;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      margin-top: 60px;
+    }
+    
+    .signature-box {
+      border: 2px solid #0a376e;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      min-height: 200px;
+    }
+    
+    .signature-box h3 {
+      color: #0a376e;
+      margin-bottom: 20px;
+    }
+    
+    .signature-line {
+      border-top: 1px solid #ccc;
+      margin-top: 100px;
+      padding-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+    
     @media print {
-      .section {
+      .page {
+        margin: 0;
+        padding: 15mm;
         page-break-inside: avoid;
       }
+      
       body {
-        margin: 20px;
+        margin: 0;
+        padding: 0;
       }
     }
   </style>
 </head>
 <body>
-  <!-- PAGE 1 - INTRO -->
-  <div class="section">
-    <div class="title">Proposition Commerciale<br />pour Services de Leasing IT</div>
-    <p><strong>Par :</strong> Gianni Sergi - iTakecare</p>
-    <div class="info">
-      <p>Offre spécialement conçue pour : <strong>{{client_name}}</strong><br />
-      Entreprise : <strong>{{company_name}}</strong><br />
-      Adresse : <strong>{{client_address}}</strong><br />
-      Date : <strong>{{offer_date}}</strong></p>
+  <!-- PAGE 1 - COUVERTURE -->
+  <div class="page cover-page">
+    <div class="cover-bg"></div>
+    <div class="cover-content">
+      {{#if base64_image_logo}}
+      <img src="{{base64_image_logo}}" alt="iTakecare Logo" class="logo" />
+      {{/if}}
+      
+      <h1 class="cover-title">iTakecare</h1>
+      <p class="cover-subtitle">Services de Leasing IT</p>
+      
+      <div class="client-info">
+        <h2>Proposition Commerciale</h2>
+        <div class="client-details">
+          <p><strong>Client :</strong> {{client_name}}</p>
+          <p><strong>Entreprise :</strong> {{company_name}}</p>
+          <p><strong>Adresse :</strong> {{client_address}}</p>
+          <p><strong>Date :</strong> {{offer_date}}</p>
+        </div>
+      </div>
     </div>
-    <p>Bienvenue dans une nouvelle ère de location informatique, où la confiance, le progrès et le soutien forment la pierre angulaire de chaque décision que nous prenons ensemble.</p>
   </div>
 
   <!-- PAGE 2 - NOTRE VISION -->
-  <div class="section">
-    <h2>Notre vision</h2>
-    <p>Nous souhaitons être un acteur majeur dans l'accès aux technologies pour tous les professionnels du secteur Européen. Nous travaillons chaque jour à un monde plus juste et plus ouvert.</p>
+  <div class="page vision-page">
+    <div class="vision-header">
+      <h1 class="vision-title">Notre Vision</h1>
+      <div class="vision-image"></div>
+    </div>
+    
+    <div class="vision-content">
+      <p>Nous souhaitons être un acteur majeur dans l'accès aux technologies pour tous les professionnels du secteur Européen.</p>
+      <br>
+      <p>Nous travaillons chaque jour à un monde plus juste et plus ouvert, où l'innovation technologique est accessible à tous.</p>
+      <br>
+      <p>Notre mission est de démocratiser l'accès aux équipements informatiques de pointe grâce à des solutions de leasing flexibles et adaptées à chaque besoin.</p>
+    </div>
   </div>
 
-  <!-- PAGE 3 - OFFRE -->
-  <div class="section">
-    <h2>Notre offre</h2>
-    <p><strong>Mensualité totale :</strong> {{monthly_price}} HTVA/mois</p>
-    <p><strong>Estimation assurance annuelle :</strong> {{insurance}}</p>
-    <p><strong>Frais de dossier unique :</strong> {{setup_fee}} HTVA</p>
-    <p>Contrat de {{contract_duration}} mois - Livraison & installation incluse - Maintenance incluse - Garantie en échange direct incluse</p>
+  <!-- PAGE 3 - NOTRE OFFRE -->
+  <div class="page offer-page">
+    <div class="offer-header">
+      <h1 class="offer-title">Notre Offre</h1>
+      <p>Une solution complète adaptée à vos besoins</p>
+    </div>
+    
+    <div class="offer-grid">
+      <div class="offer-card">
+        <h3>Mensualité</h3>
+        <div class="price-highlight">{{monthly_price}}</div>
+        <p>HTVA/mois</p>
+      </div>
+      
+      <div class="offer-card">
+        <h3>Assurance Annuelle</h3>
+        <div class="price-highlight">{{insurance}}</div>
+        <p>Estimation</p>
+      </div>
+      
+      <div class="offer-card">
+        <h3>Frais de Dossier</h3>
+        <div class="price-highlight">{{setup_fee}}</div>
+        <p>HTVA (unique)</p>
+      </div>
+      
+      <div class="offer-card">
+        <h3>Durée du Contrat</h3>
+        <div class="price-highlight">{{contract_duration}}</div>
+        <p>mois</p>
+      </div>
+    </div>
+    
+    <div class="offer-benefits">
+      <h3>Inclus dans votre contrat :</h3>
+      <ul>
+        <li>Livraison et installation sur site</li>
+        <li>Maintenance complète incluse</li>
+        <li>Garantie en échange direct</li>
+        <li>Support technique dédié</li>
+        <li>Mise à jour des équipements</li>
+      </ul>
+    </div>
   </div>
 
-  <!-- PAGE 4 - LISTE DU MATÉRIEL -->
-  <div class="section">
-    <h2>Notre solution</h2>
-    <table class="table">
+  <!-- PAGE 4 - NOTRE SOLUTION -->
+  <div class="page solution-page">
+    <div class="solution-header">
+      <h1 class="solution-title">Notre Solution</h1>
+      <p>Équipements sélectionnés pour votre entreprise</p>
+    </div>
+    
+    <table class="equipment-table">
       <thead>
-        <tr><th>Catégorie</th><th>Désignation</th><th>Quantité</th></tr>
+        <tr>
+          <th>Catégorie</th>
+          <th>Désignation</th>
+          <th>Quantité</th>
+        </tr>
       </thead>
       <tbody>
         {{#each products}}
@@ -140,42 +623,161 @@ export const ITAKECARE_HTML_TEMPLATE = `<!DOCTYPE html>
     </table>
   </div>
 
-  <!-- PAGE 5 - ETAPES -->
-  <div class="section">
-    <h2>Les prochaines étapes</h2>
-    <ol class="steps">
-      <li>1. Vous marquez votre accord pour la proposition par retour de mail</li>
-      <li>2. Nous soumettons votre demande auprès de nos partenaires financiers</li>
-      <li>3. Après accord, nous vous envoyons les contrats électroniques à signer</li>
-      <li>4. Une fois signés, nous commandons le matériel et fixons une date de livraison</li>
-      <li>5. Profitez de votre équipement ! En cas de souci : un mail ou appel suffit</li>
-    </ol>
-  </div>
-
-  <!-- PAGE 6 - MODALITES -->
-  <div class="section">
-    <h2>Modalités du leasing</h2>
-    <p>Les prélèvements sont trimestriels, par domiciliation SEPA. Le client est tenu d'assurer le matériel, soit via sa propre assurance, soit via celle du leaser.</p>
-    <p>Assurance proposée : env. 3,5% du montant total du contrat. Exemple : {{insurance_example}}</p>
-  </div>
-
-  <!-- PAGE 7 - VALEURS -->
-  <div class="section">
-    <h2>Nos valeurs</h2>
-    <div class="values">
-      <div>
-        <h3>Confiance</h3>
-        <p>Nous valorisons les relations humaines authentiques et durables avec nos clients et partenaires.</p>
+  <!-- PAGE 5 - LES PROCHAINES ÉTAPES -->
+  <div class="page steps-page">
+    <h1 class="steps-title">Les Prochaines Étapes</h1>
+    
+    <div class="steps-container">
+      <div class="step-item">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <strong>Validation de votre part</strong><br>
+          Vous marquez votre accord pour cette proposition par retour de mail
+        </div>
       </div>
-      <div>
-        <h3>Entraide</h3>
-        <p>Nous nous rendons disponibles pour nous entraider, partager et faire grandir chacun.</p>
+      
+      <div class="step-item">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <strong>Analyse financière</strong><br>
+          Nous soumettons votre demande auprès de nos partenaires financiers
+        </div>
       </div>
-      <div>
-        <h3>Évolution</h3>
-        <p>Nous adaptons nos idées à la réalité du terrain pour devancer les besoins de demain.</p>
+      
+      <div class="step-item">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <strong>Signature électronique</strong><br>
+          Après accord, nous vous envoyons les contrats électroniques à signer
+        </div>
+      </div>
+      
+      <div class="step-item">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <strong>Commande et livraison</strong><br>
+          Une fois signés, nous commandons le matériel et fixons une date de livraison
+        </div>
+      </div>
+      
+      <div class="step-item">
+        <div class="step-number">5</div>
+        <div class="step-content">
+          <strong>Profitez de votre équipement !</strong><br>
+          En cas de souci, un simple mail ou appel suffit
+        </div>
       </div>
     </div>
+  </div>
+
+  <!-- PAGE 6 - MODALITÉS DU LEASING -->
+  <div class="page modalities-page">
+    <h1 class="modalities-title">Modalités du Leasing</h1>
+    
+    <div class="modality-card">
+      <h3>Modalités de Paiement</h3>
+      <p>Les prélèvements sont effectués trimestriellement par domiciliation SEPA. Cette solution vous garantit une gestion simplifiée de vos paiements avec une prévisibilité totale de vos charges.</p>
+    </div>
+    
+    <div class="modality-card">
+      <h3>Assurance du Matériel</h3>
+      <p>Le client est tenu d'assurer le matériel loué, soit via sa propre assurance entreprise, soit via l'assurance proposée par le leaser.</p>
+    </div>
+    
+    <div class="modality-card">
+      <h3>Maintenance et Support</h3>
+      <p>Une maintenance complète est incluse dans votre contrat, couvrant les réparations, les remplacements et le support technique pendant toute la durée du leasing.</p>
+    </div>
+    
+    <div class="insurance-highlight">
+      <h3>Estimation Assurance</h3>
+      <p>Assurance proposée : environ 3,5% du montant total du contrat</p>
+      <p><strong>{{insurance_example}}</strong></p>
+    </div>
+  </div>
+
+  <!-- PAGE 7 - NOS VALEURS -->
+  <div class="page values-page">
+    <h1 class="values-title">Nos Valeurs</h1>
+    
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-icon">🤝</div>
+        <h3>Confiance</h3>
+        <p>Nous valorisons les relations humaines authentiques et durables avec nos clients et partenaires. La transparence guide chacune de nos actions.</p>
+      </div>
+      
+      <div class="value-card">
+        <div class="value-icon">🤲</div>
+        <h3>Entraide</h3>
+        <p>Nous nous rendons disponibles pour nous entraider, partager nos connaissances et faire grandir chaque membre de notre écosystème.</p>
+      </div>
+      
+      <div class="value-card">
+        <div class="value-icon">📈</div>
+        <h3>Évolution</h3>
+        <p>Nous adaptons constamment nos idées à la réalité du terrain pour anticiper et devancer les besoins technologiques de demain.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 8 - CONTACT -->
+  <div class="page contact-page">
+    <h1 class="contact-title">Votre Contact</h1>
+    
+    <div class="contact-grid">
+      <div class="contact-card">
+        <h3>Gianni Sergi</h3>
+        <div class="contact-info">
+          <p><strong>Responsable Commercial</strong></p>
+          <p>📧 gianni@itakecare.be</p>
+          <p>📱 +32 XXX XX XX XX</p>
+          <p>🌐 www.itakecare.be</p>
+        </div>
+      </div>
+      
+      <div class="contact-card">
+        <h3>iTakecare</h3>
+        <div class="contact-info">
+          <p><strong>Siège Social</strong></p>
+          <p>📍 Adresse entreprise</p>
+          <p>🏢 Belgique</p>
+          <p>📋 N° TVA : BE XXXX.XXX.XXX</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 9 - ACCORD ET SIGNATURE -->
+  <div class="page signature-page">
+    <h1 class="signature-title">Accord et Engagement</h1>
+    
+    <p style="text-align: center; margin-bottom: 40px; font-size: 18px;">
+      En signant ce document, les deux parties s'engagent dans un partenariat de confiance 
+      pour la réalisation de ce projet de leasing informatique.
+    </p>
+    
+    <div class="signature-grid">
+      <div class="signature-box">
+        <h3>Pour l'Entreprise Cliente</h3>
+        <p style="margin-bottom: 80px;">{{company_name}}</p>
+        <div class="signature-line">
+          Nom, Prénom et Signature
+        </div>
+      </div>
+      
+      <div class="signature-box">
+        <h3>Pour iTakecare</h3>
+        <p style="margin-bottom: 80px;">Gianni Sergi</p>
+        <div class="signature-line">
+          Responsable Commercial
+        </div>
+      </div>
+    </div>
+    
+    <p style="text-align: center; margin-top: 40px; font-style: italic; color: #666;">
+      Document généré le {{offer_date}} - Offre valable 30 jours
+    </p>
   </div>
 </body>
 </html>`;

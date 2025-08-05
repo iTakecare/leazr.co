@@ -19,7 +19,8 @@ export interface HtmlTemplateData {
   }>;
   insurance_example?: string;
   // Images base64 (à injecter dynamiquement)
-  base64_image_solution?: string;
+  base64_image_cover?: string;
+  base64_image_vision?: string;
   base64_image_logo?: string;
   [key: string]: any; // Pour autres champs dynamiques
 }
@@ -113,8 +114,9 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
     products: products,
     insurance_example: `Pour un contrat de ${formatCurrency(totalAmount)}, assurance = ${formatCurrency(insuranceAmount)}/an`,
     // Images base64 - à injecter par la suite
-    base64_image_logo: '', // Sera rempli par le service d'images
-    base64_image_solution: '' // Sera rempli par le service d'images
+    base64_image_cover: '', // Image de couverture (bureau/ordinateur)
+    base64_image_vision: '', // Image de vision (mains avec globe)
+    base64_image_logo: '' // Logo iTakecare
   };
 };
 
