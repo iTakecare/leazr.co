@@ -5,7 +5,11 @@ import { CustomPdfTemplateField, ExtendedCustomPdfTemplate } from "@/types/custo
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
 import { cn } from "@/lib/utils";
 
-// React-pdf gère automatiquement son worker interne
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface CustomPdfCanvasProps {
   template: ExtendedCustomPdfTemplate;

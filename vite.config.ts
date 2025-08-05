@@ -22,4 +22,8 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     exclude: ['pdfjs-dist']
   },
+  define: {
+    global: 'globalThis',
+  },
+  assetsInclude: ['**/*.mjs'],
 }));

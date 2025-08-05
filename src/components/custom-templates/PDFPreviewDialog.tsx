@@ -8,7 +8,11 @@ import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// React-pdf gère automatiquement son worker interne
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface PDFPreviewDialogProps {
   open: boolean;
