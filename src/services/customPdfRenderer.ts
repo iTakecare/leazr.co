@@ -15,21 +15,29 @@ export class CustomPdfRenderer {
     offerData: Record<string, any>
   ): Promise<Uint8Array> {
     try {
-      console.log('Début du rendu PDF personnalisé:', template.name);
+      console.log('🎬 Début du rendu PDF personnalisé');
+      console.log('📋 Template:', template.name);
+      console.log('🔗 URL du PDF original:', template.original_pdf_url);
+      console.log('📊 Données à injecter:', offerData);
+      console.log('🔧 Champs du template:', template.fields);
+      console.log('📖 Pages du template:', template.template_metadata?.pages_data || template.pages_data);
 
-      // 1. Charger le PDF de base
-      const templatePdfBytes = await fetch(template.original_pdf_url).then(res => {
-        if (!res.ok) {
-          throw new Error(`Impossible de charger le template PDF: ${res.status}`);
-        }
-        return res.arrayBuffer();
-      });
+      // 1. Charger le PDF original depuis l'URL
+      const response = await fetch(template.original_pdf_url);
+      if (!response.ok) {
+        throw new Error(`Impossible de charger le PDF: ${response.statusText}`);
+      }
+
+      const templatePdfBytes = new Uint8Array(await response.arrayBuffer());
+      console.log('📄 PDF original chargé, taille:', templatePdfBytes.length, 'bytes');
 
       const pdfDoc = await PDFDocument.load(templatePdfBytes);
+      const pageCount = pdfDoc.getPageCount();
+      console.log(`📄 PDF chargé avec ${pageCount} page(s)`);
       
       // Si aucun champ n'est défini, retourner le PDF original
       if (!template.fields || template.fields.length === 0) {
-        console.log('Aucun champ défini, retour du PDF original');
+        console.log('⚠️ Aucun champ défini, retour du PDF original');
         return await pdfDoc.save();
       }
       

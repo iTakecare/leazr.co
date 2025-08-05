@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { uploadFile, ensureBucket } from "@/services/fileStorage";
 import { useAuth } from "@/context/AuthContext";
+import { PDFDocument } from "pdf-lib";
 
 interface PdfTemplateUploaderProps {
   onTemplateUploaded: (templateUrl: string, metadata: any) => void;
@@ -58,16 +59,39 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
       const uploadedUrl = await uploadFile("pdf-templates", file, fileName);
       
       if (uploadedUrl) {
+        // Analyser le PDF avec pdf-lib pour extraire le nombre de pages
+        console.log('🔍 Analyse du PDF pour détecter les pages...');
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const pageCount = pdfDoc.getPageCount();
+        
+        console.log(`📄 PDF détecté avec ${pageCount} page(s)`);
+        
+        // Générer les métadonnées de pages
+        const pages_data = [];
+        for (let i = 0; i < pageCount; i++) {
+          const page = pdfDoc.getPage(i);
+          const { width, height } = page.getSize();
+          
+          pages_data.push({
+            page_number: i + 1,
+            image_url: "", // Sera généré plus tard si nécessaire
+            dimensions: { width, height }
+          });
+        }
+
         const metadata = {
           file_size: file.size,
           file_type: file.type,
           upload_date: new Date().toISOString(),
-          original_name: file.name
+          original_name: file.name,
+          pages_count: pageCount,
+          pages_data: pages_data
         };
 
         setUploadedTemplate(uploadedUrl);
         onTemplateUploaded(uploadedUrl, metadata);
-        toast.success("Template PDF téléchargé avec succès");
+        toast.success(`Template PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`);
       } else {
         throw new Error("Échec du téléchargement");
       }

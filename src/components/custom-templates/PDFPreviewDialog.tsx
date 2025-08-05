@@ -26,7 +26,7 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const totalPages = template.pages_data.length;
+  const totalPages = template.template_metadata?.pages_count || template.template_metadata?.pages_data?.length || template.pages_data?.length || 1;
 
   // Générer l'aperçu PDF
   const generatePreview = async () => {

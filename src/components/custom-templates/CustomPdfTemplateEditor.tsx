@@ -65,17 +65,25 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   const handlePdfUpload = useCallback((templateUrl: string, metadata: any) => {
     if (!template) return;
     
+    console.log('📥 Upload PDF - Métadonnées reçues:', metadata);
+    
+    // Mettre à jour les pages_data si disponibles dans les métadonnées
+    const updatedPagesData = metadata.pages_data || template.pages_data;
+    
     setTemplate(prev => prev ? {
       ...prev,
       original_pdf_url: templateUrl,
+      pages_data: updatedPagesData,
       template_metadata: {
         ...prev.template_metadata,
-        ...metadata
+        ...metadata,
+        pages_data: updatedPagesData
       }
     } : null);
     
     setHasUnsavedChanges(true);
-    toast.success("PDF téléchargé avec succès");
+    const pageCount = metadata.pages_count || 1;
+    toast.success(`PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`);
   }, [template]);
 
   // Fonction pour créer un nouveau template
@@ -435,7 +443,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   // Vérifier si c'est un nouveau template sans PDF
   const isNewTemplateWithoutPdf = template.id.startsWith('temp_') && !template.original_pdf_url;
 
-  const totalPages = template.pages_data.length;
+  const totalPages = template.template_metadata?.pages_count || template.pages_data?.length || 1;
 
   return (
     <div className="h-full flex flex-col bg-background">

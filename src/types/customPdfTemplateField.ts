@@ -44,6 +44,7 @@ export interface ExtendedCustomPdfTemplate {
   pages_data: CustomPdfTemplatePage[];
   template_metadata: {
     pages_count?: number;
+    pages_data?: CustomPdfTemplatePage[];
     file_size?: number;
     file_type?: string;
     upload_date?: string;
