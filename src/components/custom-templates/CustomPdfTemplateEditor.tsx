@@ -298,9 +298,20 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     // Vérifications de base
     if (!template.name || template.name.trim().length === 0) return false;
     
-    // Pour un nouveau template, vérifier qu'il y a un PDF
-    if (template.id.startsWith('temp_') && (!template.original_pdf_url || template.original_pdf_url.trim().length === 0)) {
-      return false;
+    // Pour un nouveau template, vérifier qu'il y a du contenu (PDF ou images)
+    if (template.id.startsWith('temp_')) {
+      const isImageBased = (template.template_metadata as any)?.template_type === 'image-based';
+      if (isImageBased) {
+        // Pour templates image : vérifier qu'il y a des pages avec images
+        if (!template.template_metadata?.pages_data || template.template_metadata.pages_data.length === 0) {
+          return false;
+        }
+      } else {
+        // Pour templates PDF : vérifier qu'il y a un URL PDF
+        if (!template.original_pdf_url || template.original_pdf_url.trim().length === 0) {
+          return false;
+        }
+      }
     }
     
     return true;
@@ -310,8 +321,17 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   const getSaveErrorMessage = () => {
     if (!template) return "Aucun template";
     if (!template.name || template.name.trim().length === 0) return "Nom du template requis";
-    if (template.id.startsWith('temp_') && (!template.original_pdf_url || template.original_pdf_url.trim().length === 0)) {
-      return "PDF requis pour nouveau template";
+    if (template.id.startsWith('temp_')) {
+      const isImageBased = (template.template_metadata as any)?.template_type === 'image-based';
+      if (isImageBased) {
+        if (!template.template_metadata?.pages_data || template.template_metadata.pages_data.length === 0) {
+          return "Images requises pour nouveau template";
+        }
+      } else {
+        if (!template.original_pdf_url || template.original_pdf_url.trim().length === 0) {
+          return "PDF requis pour nouveau template";
+        }
+      }
     }
     return undefined;
   };
@@ -543,8 +563,13 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     );
   }
 
-  // Vérifier si c'est un nouveau template sans PDF
-  const isNewTemplateWithoutPdf = template.id.startsWith('temp_') && !template.original_pdf_url;
+  // Vérifier si c'est un nouveau template sans PDF (ou sans images pour templates image-based)
+  const isImageBasedTemplate = (template.template_metadata as any)?.template_type === 'image-based';
+  const isNewTemplateWithoutContent = template.id.startsWith('temp_') && 
+    (isImageBasedTemplate ? 
+      (!template.template_metadata?.pages_data || template.template_metadata.pages_data.length === 0) :
+      !template.original_pdf_url
+    );
 
   const totalPages = template.template_metadata?.pages_count || template.pages_data?.length || 1;
 
@@ -626,28 +651,38 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
 
       {/* Interface principale */}
       <div className="flex-1 flex min-h-0">
-        {/* Condition d'affichage : upload PDF d'abord pour nouveaux templates */}
-        {isNewTemplateWithoutPdf ? (
+        {/* Condition d'affichage : upload PDF/Images d'abord pour nouveaux templates */}
+        {isNewTemplateWithoutContent ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <Card className="w-full max-w-2xl">
               <CardHeader className="text-center">
-                <CardTitle className="text-xl">Commencez par uploader votre template PDF</CardTitle>
+                <CardTitle className="text-xl">
+                  {isImageBasedTemplate ? 
+                    "Ce template utilise des images directement" : 
+                    "Commencez par uploader votre template PDF"
+                  }
+                </CardTitle>
                 <p className="text-muted-foreground">
-                  Téléchargez votre fichier PDF pour pouvoir placer les champs et configurer votre template
+                  {isImageBasedTemplate ?
+                    "Vous devez d'abord créer ce template via l'assistant de création d'images" :
+                    "Téléchargez votre fichier PDF pour pouvoir placer les champs et configurer votre template"
+                  }
                 </p>
               </CardHeader>
               <CardContent>
-                <PdfTemplateUploader
-                  onTemplateUploaded={handlePdfUpload}
-                  currentTemplateUrl={template.original_pdf_url}
-                />
+                {!isImageBasedTemplate && (
+                  <PdfTemplateUploader
+                    onTemplateUploaded={handlePdfUpload}
+                    currentTemplateUrl={template.original_pdf_url}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
         ) : (
           <>
-            {/* Avertissement PDF manquant */}
-            {!pdfFileExists && template.original_pdf_url && (
+            {/* Avertissement PDF manquant - seulement pour templates PDF */}
+            {!isImageBasedTemplate && !pdfFileExists && template.original_pdf_url && (
               <div className="w-full bg-destructive/10 border border-destructive/20 p-3 text-sm">
                 <div className="flex items-center gap-2 text-destructive">
                   <AlertCircle className="h-4 w-4" />
