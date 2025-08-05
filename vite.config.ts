@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    exclude: ['pdfjs-dist'],
+    exclude: ['pdfjs-dist', '@supabase/supabase-js'],
     include: ['tailwind-merge']
   },
   define: {
