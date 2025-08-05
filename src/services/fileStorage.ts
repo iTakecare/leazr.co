@@ -1,4 +1,4 @@
-import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client';
+import { getFileUploadClient, getAdminSupabaseClient } from '@/integrations/supabase/client';
 
 /**
  * Vérifie la connexion au stockage Supabase
@@ -6,7 +6,7 @@ import { supabase, getAdminSupabaseClient } from '@/integrations/supabase/client
 export const checkStorageConnection = async (): Promise<boolean> => {
   try {
     // Essayer de lister les buckets pour vérifier la connexion
-    const { data, error } = await supabase.storage.listBuckets();
+    const { data, error } = await getFileUploadClient().storage.listBuckets();
     
     if (error) {
       console.error("Erreur lors de la vérification de la connexion au stockage:", error);
@@ -45,7 +45,7 @@ export const resetStorageConnection = async (): Promise<boolean> => {
     }
 
     // Vérifier si le bucket existe
-    const { data, error } = await supabase.storage.listBuckets();
+    const { data, error } = await getFileUploadClient().storage.listBuckets();
     
     if (error) {
       console.error("Erreur lors de la réinitialisation de la connexion au stockage:", error);
@@ -65,7 +65,7 @@ export const resetStorageConnection = async (): Promise<boolean> => {
 export const createBucketIfNotExists = async (bucketName: string): Promise<boolean> => {
   try {
     // Vérifier si le bucket existe
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await getFileUploadClient().storage.listBuckets();
     
     if (listError) {
       console.error("Erreur lors de la vérification des buckets:", listError);
@@ -95,7 +95,7 @@ export const createBucketIfNotExists = async (bucketName: string): Promise<boole
     }
 
     // Si l'Edge Function échoue, essayer de créer directement
-    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+    const { error: createError } = await getFileUploadClient().storage.createBucket(bucketName, {
       public: true
     });
     
@@ -145,7 +145,7 @@ export const uploadFile = async (
     
     // Upload with explicit content type
     console.log(`[Upload] Attempting upload to bucket: ${bucketName} with explicit PDF content type`);
-    const { data, error } = await supabase.storage
+    const { data, error } = await getFileUploadClient().storage
       .from(bucketName)
       .upload(filePath, pdfBlob, {
         cacheControl: '3600',
@@ -169,7 +169,7 @@ export const uploadFile = async (
     console.log('[Upload] File uploaded successfully:', data);
 
     // Get the public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = getFileUploadClient().storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
@@ -189,7 +189,7 @@ export const listFiles = async (
   folderPath: string = ''
 ): Promise<any[]> => {
   try {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getFileUploadClient().storage
       .from(bucketName)
       .list(folderPath);
 
@@ -213,7 +213,7 @@ export const deleteFile = async (
   filePath: string
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase.storage
+    const { error } = await getFileUploadClient().storage
       .from(bucketName)
       .remove([filePath]);
 
