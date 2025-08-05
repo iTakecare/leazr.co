@@ -29,6 +29,7 @@ import { PdfTemplateUploader } from '../templates/PdfTemplateUploader';
 import { ImageTemplateUploader } from './ImageTemplateUploader';
 import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
+import imageTemplateService from '@/services/imageTemplateService';
 import { PdfImageGenerator } from '@/services/pdfImageGenerator';
 import { SimplePdfImageGenerator } from '@/services/simplePdfImageGenerator';
 import { FallbackImageGenerator } from '@/services/fallbackImageGenerator';
@@ -158,22 +159,10 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       const templateData = {
         name: `Template Images ${new Date().toLocaleDateString()}`,
         description: 'Template créé à partir d\'images',
-        original_pdf_url: '', // Pas de PDF source
-        field_mappings: {},
-        template_metadata: {
-          template_type: 'image-based',
-          pages_count: pages.length,
-          pages_data: pages.map(page => ({
-            page_number: page.page_number,
-            image_url: page.image_url,
-            dimensions: page.dimensions,
-            width: page.dimensions.width,
-            height: page.dimensions.height
-          }))
-        }
+        pages: pages
       };
 
-      const newTemplate = await customPdfTemplateService.createTemplate(templateData);
+      const newTemplate = await imageTemplateService.createImageTemplate(templateData);
       
       toast({
         title: "Succès",

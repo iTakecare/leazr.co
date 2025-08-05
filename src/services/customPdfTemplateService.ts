@@ -313,8 +313,19 @@ const customPdfTemplateService = {
       throw new Error('Le nom du template est obligatoire');
     }
     
-    if (!templateData.original_pdf_url || templateData.original_pdf_url.trim().length === 0) {
+    // Pour les templates image-based, pas besoin d'URL PDF original
+    const isImageTemplate = templateData.template_metadata?.template_type === 'image-based';
+    
+    if (!isImageTemplate && (!templateData.original_pdf_url || templateData.original_pdf_url.trim().length === 0)) {
       throw new Error('L\'URL du PDF original est obligatoire');
+    }
+    
+    // Validation spécifique pour les templates image-based
+    if (isImageTemplate) {
+      const pagesData = templateData.template_metadata?.pages_data;
+      if (!pagesData || !Array.isArray(pagesData) || pagesData.length === 0) {
+        throw new Error('Au moins une image est requise pour un template image-based');
+      }
     }
     
     // Vérifier que l'utilisateur a une entreprise
