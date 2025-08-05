@@ -64,12 +64,9 @@ export class PdfImageGenerator {
       // Utiliser PDF.js pour le rendu - configuration améliorée
       const pdfjsLib = await import('pdfjs-dist');
       
-      // Configurer le worker avec le package local
+      // Configurer le worker avec CDN stable
       if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-          'pdfjs-dist/build/pdf.worker.min.js',
-          import.meta.url
-        ).toString();
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.js`;
       }
       
       console.log('📚 PDF.js configuré, worker:', pdfjsLib.GlobalWorkerOptions.workerSrc);

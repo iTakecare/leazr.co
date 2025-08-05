@@ -21,7 +21,7 @@ import {
   Share2,
   Trash2,
   Type,
-  RefreshCw
+  
 } from 'lucide-react';
 
 import { TemplateLibrary } from './TemplateLibrary';
@@ -29,6 +29,7 @@ import { PdfTemplateUploader } from '../templates/PdfTemplateUploader';
 import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
 import { PdfImageGenerator } from '@/services/pdfImageGenerator';
+import { SimplePdfImageGenerator } from '@/services/simplePdfImageGenerator';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
 import { useToast } from "@/hooks/use-toast";
 import { getTemplatePreviewImage } from '@/utils/templateImageUtils';
@@ -96,11 +97,22 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       
       // Générer les images de prévisualisation en arrière-plan
       if (newTemplate?.id) {
+        // Essayer d'abord le générateur principal
         PdfImageGenerator.processTemplateImages(templateUrl, newTemplate.id)
           .then((success) => {
             if (success) {
               console.log('✅ Images de prévisualisation générées');
-              loadMyTemplates(); // Recharger pour afficher les images
+              loadMyTemplates();
+            } else {
+              console.log('🔄 Fallback vers générateur simple...');
+              // Fallback vers le générateur simple
+              return SimplePdfImageGenerator.processSimplePreview(templateUrl, newTemplate.id);
+            }
+          })
+          .then((fallbackSuccess) => {
+            if (fallbackSuccess) {
+              console.log('✅ Aperçu simple généré');
+              loadMyTemplates();
             }
           })
           .catch((error) => {
@@ -223,49 +235,6 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
     }
   };
 
-  const handleRegenerateImages = async (template: CustomPdfTemplate) => {
-    if (!template.original_pdf_url) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de régénérer les aperçus: URL PDF manquante",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    toast({
-      title: "Information",
-      description: "Régénération des aperçus en cours...",
-    });
-    
-    try {
-      const success = await PdfImageGenerator.processTemplateImages(
-        template.original_pdf_url, 
-        template.id
-      );
-      
-      if (success) {
-        toast({
-          title: "Succès",
-          description: "Aperçus régénérés avec succès",
-        });
-        loadMyTemplates(); // Recharger pour afficher les nouvelles images
-      } else {
-        toast({
-          title: "Erreur",
-          description: "Erreur lors de la régénération des aperçus",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error regenerating images:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la régénération des aperçus",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <div className="h-full flex flex-col bg-background">

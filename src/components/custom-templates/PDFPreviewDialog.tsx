@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
@@ -39,6 +39,21 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       console.log('📋 Template:', template.name);
       console.log('📊 Données d\'exemple:', sampleData);
       
+      // Vérifier que le template a une URL PDF valide
+      if (!template.original_pdf_url) {
+        throw new Error("Le template n'a pas de fichier PDF associé");
+      }
+      
+      // Tester l'accessibilité du PDF
+      try {
+        const testResponse = await fetch(template.original_pdf_url, { method: 'HEAD' });
+        if (!testResponse.ok) {
+          throw new Error(`Le fichier PDF n'est pas accessible (${testResponse.status})`);
+        }
+      } catch (fetchError) {
+        throw new Error("Le fichier PDF de ce template n'existe plus ou n'est pas accessible");
+      }
+      
       // Utiliser le service de rendu personnalisé
       const pdfBytes = await CustomPdfRenderer.renderCustomPdf(template, sampleData);
       
@@ -54,10 +69,19 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       });
     } catch (error: any) {
       console.error('💥 Erreur lors de la génération de l\'aperçu:', error);
-      setError(error.message || "Erreur lors de la génération de l'aperçu");
+      let errorMessage = error.message || "Erreur lors de la génération de l'aperçu";
+      
+      // Messages d'erreur plus spécifiques
+      if (errorMessage.includes('accessible')) {
+        errorMessage = "Le fichier PDF n'est plus accessible. Veuillez re-uploader un PDF.";
+      } else if (errorMessage.includes('associé')) {
+        errorMessage = "Ce template n'a pas de fichier PDF. Veuillez en ajouter un.";
+      }
+      
+      setError(errorMessage);
       toast({
         title: "Erreur",
-        description: "Impossible de générer l'aperçu",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -221,17 +245,23 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
 
           {error && (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-lg font-medium mb-2">Fichier PDF manquant</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Le fichier PDF de ce template n'existe plus dans le bucket.<br/>
-                  Veuillez re-uploader un PDF ou supprimer ce template.
-                </p>
-                <p className="text-xs text-destructive mb-4">{error}</p>
-                <Button onClick={generatePreview} variant="outline">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Réessayer
-                </Button>
+              <div className="text-center max-w-md">
+                <div className="mb-4">
+                  <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+                    <FileText className="h-8 w-8 text-destructive" />
+                  </div>
+                  <p className="text-lg font-medium mb-2">Impossible de générer l'aperçu</p>
+                  <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                </div>
+                <div className="space-y-2">
+                  <Button onClick={generatePreview} variant="outline" size="sm">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Réessayer
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Si le problème persiste, vérifiez que le template a un fichier PDF valide
+                  </p>
+                </div>
               </div>
             </div>
           )}

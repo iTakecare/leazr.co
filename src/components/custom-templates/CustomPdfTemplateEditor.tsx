@@ -131,58 +131,79 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           return;
         }
         
+        console.log('📥 Chargement du template:', templateId);
         const templateData = await customPdfTemplateService.getTemplate(templateId);
         
         if (templateData) {
-          const extendedTemplate = templateData;
+          console.log('✅ Template chargé:', templateData.name);
           
           // Vérifier si le fichier PDF existe encore
-          if (extendedTemplate.original_pdf_url) {
+          if (templateData.original_pdf_url) {
             try {
-              const response = await fetch(extendedTemplate.original_pdf_url, { method: 'HEAD' });
+              const response = await fetch(templateData.original_pdf_url, { method: 'HEAD' });
               setPdfFileExists(response.ok);
               if (!response.ok) {
+                console.warn('⚠️ PDF inaccessible pour le template:', templateId);
                 toast({
                   title: "Attention",
-                  description: "Le fichier PDF de ce template n'existe plus dans le bucket",
+                  description: "Le fichier PDF de ce template n'est plus accessible",
                   variant: "destructive"
                 });
               }
             } catch (error) {
               console.warn("Impossible de vérifier l'existence du fichier PDF:", error);
               setPdfFileExists(false);
-              toast({
-                title: "Attention", 
-                description: "Le fichier PDF de ce template semble inaccessible",
-                variant: "destructive"
-              });
             }
+          } else {
+            console.warn('⚠️ Template sans URL PDF:', templateId);
+            setPdfFileExists(false);
           }
           
-          // Convert to ExtendedCustomPdfTemplate format
-          const convertedTemplate: ExtendedCustomPdfTemplate = {
-            ...extendedTemplate,
-            fields: extendedTemplate.field_mappings?.fields || [],
-            pages_data: (extendedTemplate.template_metadata as any)?.pages_data || []
-          };
-          setTemplate(convertedTemplate);
+          // Convert to ExtendedCustomPdfTemplate format avec gestion d'erreur
+          try {
+            const convertedTemplate: ExtendedCustomPdfTemplate = {
+              ...templateData,
+              fields: templateData.field_mappings?.fields || [],
+              pages_data: (templateData.template_metadata as any)?.pages_data || [
+                {
+                  page_number: 1,
+                  image_url: "",
+                  dimensions: { width: 595, height: 842 }
+                }
+              ]
+            };
+            setTemplate(convertedTemplate);
+            console.log('✅ Template converti et défini');
+          } catch (conversionError) {
+            console.error('💥 Erreur de conversion du template:', conversionError);
+            throw new Error("Données du template corrompues");
+          }
         } else {
           throw new Error("Template non trouvé");
         }
-      } catch (error) {
-        console.error("Erreur lors du chargement du template:", error);
+      } catch (error: any) {
+        console.error("💥 Erreur lors du chargement du template:", error);
+        const errorMessage = error.message === "Template non trouvé" 
+          ? "Ce template n'existe pas ou a été supprimé"
+          : "Impossible de charger le template";
+        
         toast({
           title: "Erreur",
-          description: "Impossible de charger le template",
+          description: errorMessage,
           variant: "destructive"
         });
+        
+        // Rediriger ou fermer l'éditeur en cas d'erreur critique
+        if (onClose) {
+          setTimeout(() => onClose(), 2000);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadTemplate();
-  }, [templateId, createNewTemplate]);
+  }, [templateId, createNewTemplate, onClose]);
 
   // Gestion de l'ajout d'un champ depuis la palette
   const handleFieldAdd = useCallback((fieldDef: FieldDefinition) => {
