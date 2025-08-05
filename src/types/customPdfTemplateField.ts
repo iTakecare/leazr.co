@@ -27,8 +27,10 @@ export interface CustomPdfTemplateField {
 
 export interface CustomPdfTemplatePage {
   page_number: number;
-  image_url: string;
-  dimensions: { width: number; height: number };
+  image_url?: string;
+  dimensions?: { width: number; height: number };
+  width?: number;
+  height?: number;
 }
 
 export interface ExtendedCustomPdfTemplate {

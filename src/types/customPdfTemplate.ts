@@ -11,6 +11,13 @@ export interface CustomPdfTemplate {
     file_size?: number;
     file_type?: string;
     upload_date?: string;
+    pages_data?: Array<{
+      page_number: number;
+      image_url?: string;
+      width?: number;
+      height?: number;
+      dimensions?: { width: number; height: number };
+    }>;
   };
   is_active: boolean;
   created_at: string | Date;
