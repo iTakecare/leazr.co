@@ -51,6 +51,8 @@ export class PdfImageGenerator {
     templateId: string
   ): Promise<string | null> {
     try {
+      console.log(`🎨 Début conversion page ${pageNumber} pour template ${templateId}`);
+      
       // Créer un canvas pour dessiner la page PDF
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -59,64 +61,105 @@ export class PdfImageGenerator {
         throw new Error('Impossible de créer le contexte canvas');
       }
 
-      // Utiliser PDF.js pour le rendu
+      // Utiliser PDF.js pour le rendu - configuration améliorée
       const pdfjsLib = await import('pdfjs-dist');
       
-      // Configurer le worker
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      
-      if (pdfjsLib) {
-        
-        const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-        const page = await pdf.getPage(pageNumber);
-        
-        const viewport = page.getViewport({ scale: 2.0 }); // Échelle 2x pour meilleure qualité
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        
-        await page.render({
-          canvasContext: ctx,
-          viewport: viewport,
-          canvas: canvas
-        }).promise;
-        
-        // Convertir en blob
-        return new Promise((resolve, reject) => {
-          canvas.toBlob(async (blob) => {
-            if (!blob) {
-              reject(new Error('Impossible de créer le blob'));
-              return;
-            }
-            
-            try {
-              // Upload vers Supabase Storage
-              const fileName = `template-${templateId}-page-${pageNumber}.png`;
-              const { data, error } = await supabase.storage
-                .from('pdf-templates')
-                .upload(`previews/${fileName}`, blob, {
-                  contentType: 'image/png',
-                  upsert: true
-                });
-              
-              if (error) throw error;
-              
-              // Obtenir l'URL publique
-              const { data: urlData } = supabase.storage
-                .from('pdf-templates')
-                .getPublicUrl(`previews/${fileName}`);
-              
-              resolve(urlData.publicUrl);
-            } catch (error) {
-              reject(error);
-            }
-          }, 'image/png', 0.9);
-        });
+      // Configurer le worker avec le package local
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.js',
+          import.meta.url
+        ).toString();
       }
       
-      return null;
+      console.log('📚 PDF.js configuré, worker:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+      
+      // Charger le document PDF
+      const loadingTask = pdfjsLib.getDocument({ 
+        data: pdfBytes,
+        verbosity: 0 // Réduire les logs PDF.js
+      });
+      
+      const pdf = await loadingTask.promise;
+      console.log(`📄 PDF chargé, ${pdf.numPages} pages`);
+      
+      if (pageNumber > pdf.numPages) {
+        throw new Error(`Page ${pageNumber} n'existe pas (max: ${pdf.numPages})`);
+      }
+      
+      const page = await pdf.getPage(pageNumber);
+      console.log(`📖 Page ${pageNumber} récupérée`);
+      
+      // Configurer le viewport avec une échelle appropriée
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      
+      console.log(`🖼️ Canvas configuré: ${canvas.width}x${canvas.height}`);
+      
+      // Rendre la page
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport,
+        canvas: canvas
+      };
+      
+      await page.render(renderContext).promise;
+      console.log('✅ Page rendue sur canvas');
+      
+      // Convertir en blob et uploader
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            console.error('❌ Impossible de créer le blob depuis le canvas');
+            reject(new Error('Impossible de créer le blob'));
+            return;
+          }
+          
+          console.log(`💾 Blob créé: ${blob.size} bytes`);
+          
+          try {
+            // Upload vers Supabase Storage
+            const fileName = `template-${templateId}-page-${pageNumber}.png`;
+            console.log(`⬆️ Upload vers: previews/${fileName}`);
+            
+            const { data, error } = await supabase.storage
+              .from('pdf-templates')
+              .upload(`previews/${fileName}`, blob, {
+                contentType: 'image/png',
+                upsert: true
+              });
+            
+            if (error) {
+              console.error('❌ Erreur upload Supabase:', error);
+              throw error;
+            }
+            
+            console.log('✅ Upload réussi:', data);
+            
+            // Obtenir l'URL publique
+            const { data: urlData } = supabase.storage
+              .from('pdf-templates')
+              .getPublicUrl(`previews/${fileName}`);
+            
+            console.log('🔗 URL publique générée:', urlData.publicUrl);
+            resolve(urlData.publicUrl);
+            
+          } catch (error) {
+            console.error('❌ Erreur lors de l\'upload:', error);
+            reject(error);
+          }
+        }, 'image/png', 0.9);
+      });
       
     } catch (error) {
-      console.error('Erreur lors de la conversion PDF vers image:', error);
+      console.error('❌ Erreur lors de la conversion PDF vers image:', error);
+      console.error('Détails de l\'erreur:', {
+        message: error.message,
+        stack: error.stack,
+        pageNumber,
+        templateId
+      });
       return null;
     }
   }
@@ -228,9 +271,32 @@ export class PdfImageGenerator {
   ): Promise<boolean> {
     try {
       console.log('🚀 Démarrage du traitement des images pour le template:', templateId);
+      console.log('📍 PDF URL:', pdfUrl);
+      
+      // Vérifier l'accès au PDF
+      const testResponse = await fetch(pdfUrl);
+      if (!testResponse.ok) {
+        throw new Error(`PDF inaccessible: ${testResponse.status} ${testResponse.statusText}`);
+      }
+      console.log('✅ PDF accessible');
       
       // Générer les aperçus
       const previews = await this.generateAllPagePreviews(pdfUrl, templateId);
+      console.log('📊 Aperçus générés:', previews);
+      
+      if (previews.length === 0) {
+        console.warn('⚠️ Aucun aperçu généré');
+        return false;
+      }
+      
+      // Vérifier si au moins un aperçu a été généré avec succès
+      const successfulPreviews = previews.filter(p => p.imageUrl !== null);
+      if (successfulPreviews.length === 0) {
+        console.error('❌ Aucun aperçu généré avec succès');
+        return false;
+      }
+      
+      console.log(`✅ ${successfulPreviews.length}/${previews.length} aperçus générés avec succès`);
       
       // Mettre à jour le template
       const success = await this.updateTemplateWithPreviews(templateId, previews);
@@ -238,13 +304,45 @@ export class PdfImageGenerator {
       if (success) {
         console.log('✅ Traitement des images terminé avec succès');
       } else {
-        console.log('❌ Erreur lors du traitement des images');
+        console.log('❌ Erreur lors de la mise à jour du template');
       }
       
       return success;
       
     } catch (error) {
-      console.error('Erreur lors du traitement complet des images:', error);
+      console.error('❌ Erreur lors du traitement complet des images:', error);
+      console.error('Détails:', {
+        message: error.message,
+        stack: error.stack,
+        pdfUrl,
+        templateId
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Régénère les aperçus pour un template existant
+   */
+  static async regenerateTemplateImages(templateId: string): Promise<boolean> {
+    try {
+      console.log('🔄 Régénération des aperçus pour le template:', templateId);
+      
+      // Récupérer l'URL du PDF original
+      const { data: template, error } = await supabase
+        .from('custom_pdf_templates')
+        .select('original_pdf_url')
+        .eq('id', templateId)
+        .single();
+      
+      if (error || !template?.original_pdf_url) {
+        throw new Error('Template ou URL PDF non trouvé');
+      }
+      
+      return await this.processTemplateImages(template.original_pdf_url, templateId);
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la régénération:', error);
       return false;
     }
   }

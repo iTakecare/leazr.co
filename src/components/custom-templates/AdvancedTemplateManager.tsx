@@ -20,7 +20,8 @@ import {
   Edit,
   Share2,
   Trash2,
-  Type
+  Type,
+  RefreshCw
 } from 'lucide-react';
 
 import { TemplateLibrary } from './TemplateLibrary';
@@ -186,6 +187,32 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       toast.error('Erreur lors de la suppression du template');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRegenerateImages = async (template: CustomPdfTemplate) => {
+    if (!template.original_pdf_url) {
+      toast.error('Impossible de régénérer les aperçus: URL PDF manquante');
+      return;
+    }
+
+    toast.info('Régénération des aperçus en cours...');
+    
+    try {
+      const success = await PdfImageGenerator.processTemplateImages(
+        template.original_pdf_url, 
+        template.id
+      );
+      
+      if (success) {
+        toast.success('Aperçus régénérés avec succès');
+        loadMyTemplates(); // Recharger pour afficher les nouvelles images
+      } else {
+        toast.error('Erreur lors de la régénération des aperçus');
+      }
+    } catch (error) {
+      console.error('Error regenerating images:', error);
+      toast.error('Erreur lors de la régénération des aperçus');
     }
   };
 
@@ -415,10 +442,10 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleRenameTemplate(template)}
-                        title="Renommer le template"
+                        onClick={() => handleRegenerateImages(template)}
+                        title="Régénérer les aperçus"
                       >
-                        <Type className="h-4 w-4" />
+                        <RefreshCw className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 

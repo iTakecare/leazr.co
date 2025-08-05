@@ -11,7 +11,8 @@ import {
   CheckCircle,
   Circle,
   Calendar,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ interface TemplatePreviewCardProps {
   onDuplicate: (templateId: string) => void;
   onDelete: (templateId: string) => void;
   onPreview: (templateId: string) => void;
+  onRegenerateImages?: (templateId: string) => void;
   className?: string;
 }
 
@@ -44,6 +46,7 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
   onDuplicate,
   onDelete,
   onPreview,
+  onRegenerateImages,
   className
 }) => {
   const fieldsCount = template.fields.length;
@@ -103,6 +106,12 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
                 <Copy className="h-4 w-4 mr-2" />
                 Dupliquer
               </DropdownMenuItem>
+              {onRegenerateImages && (
+                <DropdownMenuItem onClick={() => onRegenerateImages(template.id)}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Régénérer aperçus
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               {!isActive && (
                 <DropdownMenuItem onClick={() => onActivate(template.id)}>
