@@ -183,10 +183,11 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* PDF Viewer avec iframe */}
+        {/* PDF Viewer - URL simplifiée sans paramètres problématiques */}
         {template.original_pdf_url && (() => {
-          const pdfUrl = `${template.original_pdf_url}#page=${currentPage}&view=FitH&toolbar=0&navpanes=0&scrollbar=0`;
-          console.log('🖼️ URL iframe PDF:', pdfUrl);
+          // URL simplifiée sans paramètres PDF spécifiques qui peuvent causer des problèmes
+          const pdfUrl = `${template.original_pdf_url}`;
+          console.log('🖼️ URL iframe PDF (simplifiée):', pdfUrl);
           return (
             <iframe
               src={pdfUrl}
@@ -196,7 +197,11 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
                 background: 'white'
               }}
               onLoad={() => console.log('✅ PDF iframe loaded successfully')}
-              onError={() => console.error('❌ PDF iframe failed to load')}
+              onError={(e) => {
+                console.error('❌ PDF iframe failed to load:', e);
+                console.log('🔧 Essayez d\'ouvrir cette URL directement:', pdfUrl);
+              }}
+              title="PDF Template Viewer"
             />
           );
         })()}
