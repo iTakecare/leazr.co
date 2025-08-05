@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, FileText } from "lucide-react";
+import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, FileText, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
 import { PdfViewer } from "./PdfViewer";
+import { getTemplateImageUrl } from "@/utils/templateImageUtils";
 
 interface PDFPreviewDialogProps {
   open: boolean;
@@ -29,12 +30,24 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const totalPages = template.template_metadata?.pages_count || template.template_metadata?.pages_data?.length || template.pages_data?.length || 1;
+  const isImageTemplate = (template as any).template_type === 'image-based';
+  const hasImages = template.template_metadata?.pages_data && template.template_metadata.pages_data.length > 0;
 
-  // Générer l'aperçu PDF
+  // Générer l'aperçu selon le type de template
   const generatePreview = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      if (isImageTemplate) {
+        // Pour les templates d'images, pas besoin de génération PDF
+        console.log('🖼️ Template d\'images détecté, affichage direct');
+        if (!hasImages) {
+          throw new Error("Ce template d'images n'a pas d'images associées");
+        }
+        setLoading(false);
+        return;
+      }
       
       console.log('🎬 Génération de l\'aperçu PDF...');
       console.log('📋 Template:', template.name);
@@ -77,6 +90,8 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
         errorMessage = "Le fichier PDF n'est plus accessible. Veuillez re-uploader un PDF.";
       } else if (errorMessage.includes('associé')) {
         errorMessage = "Ce template n'a pas de fichier PDF. Veuillez en ajouter un.";
+      } else if (errorMessage.includes('images associées')) {
+        errorMessage = "Ce template d'images n'a pas d'images. Veuillez en ajouter.";
       }
       
       setError(errorMessage);
@@ -142,8 +157,14 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Aperçu - {template.name}</span>
+            <span className="flex items-center gap-2">
+              {isImageTemplate ? <Image className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+              Aperçu - {template.name}
+            </span>
             <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {isImageTemplate ? 'Images' : 'PDF'}
+              </Badge>
               <Badge variant="outline">
                 {template.fields.length} champ{template.fields.length > 1 ? 's' : ''}
               </Badge>
@@ -217,12 +238,12 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
               <RotateCcw className="h-4 w-4" />
             </Button>
             
-            {previewUrl && (
+            {(previewUrl || isImageTemplate) && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={downloadPdf}
-                disabled={loading}
+                disabled={loading || (isImageTemplate && !hasImages)}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Télécharger
@@ -267,7 +288,42 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
             </div>
           )}
 
-          {previewUrl && !loading && !error ? (
+          {isImageTemplate && hasImages && !loading && !error ? (
+            <div className="flex justify-center">
+              <div
+                className="border border-gray-300 bg-white shadow-lg relative"
+                style={{
+                  width: `${595 * zoomLevel}px`,
+                  height: `${842 * zoomLevel}px`,
+                  minHeight: '600px'
+                }}
+              >
+                {(() => {
+                  const currentPageData = template.template_metadata?.pages_data?.find(
+                    page => page.page_number === currentPage
+                  );
+                  const imageUrl = currentPageData ? getTemplateImageUrl(currentPageData) : null;
+                  
+                  return imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={`Page ${currentPage}`}
+                      className="w-full h-full object-contain"
+                      style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}
+                      onError={() => {
+                        console.error('Erreur chargement image template');
+                        setError('Impossible de charger l\'image du template');
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <p>Image non disponible pour cette page</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          ) : previewUrl && !loading && !error ? (
             <div className="flex justify-center">
               <iframe
                 src={`${previewUrl}#page=${currentPage}&zoom=${zoomLevel * 100}`}
