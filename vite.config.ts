@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     exclude: ['pdfjs-dist'],
-    include: ['tailwind-merge', 'sonner', '@supabase/supabase-js', '@supabase/postgrest-js']
+    include: ['tailwind-merge']
   },
   define: {
     global: 'globalThis',
