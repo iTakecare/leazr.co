@@ -100,20 +100,8 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
         onTemplateUploaded(uploadedUrl, metadata, tempTemplateId);
         toast.success(`Template PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`);
         
-        // Générer les aperçus en arrière-plan
-        setIsGeneratingPreviews(true);
-        toast.info("Génération des aperçus en cours...");
-        
-        try {
-          console.log('🖼️ Démarrage génération aperçus pour:', uploadedUrl);
-          await PdfImageGenerator.processTemplateImages(uploadedUrl, tempTemplateId);
-          toast.success("Aperçus générés avec succès");
-        } catch (previewError) {
-          console.error('Erreur génération aperçus:', previewError);
-          toast.warning("Template téléchargé mais aperçus non générés");
-        } finally {
-          setIsGeneratingPreviews(false);
-        }
+        // Traitement simplifié terminé
+        setIsGeneratingPreviews(false);
       } else {
         throw new Error("Échec du téléchargement");
       }

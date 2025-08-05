@@ -30,7 +30,10 @@ import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
 import { PdfImageGenerator } from '@/services/pdfImageGenerator';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
+import { ExtendedCustomPdfTemplate } from '@/types/customPdfTemplateField';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface AdvancedTemplateManagerProps {
   clientId?: string;
@@ -41,7 +44,7 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<CustomPdfTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<ExtendedCustomPdfTemplate | null>(null);
   const [myTemplates, setMyTemplates] = useState<CustomPdfTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -113,12 +116,24 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   };
 
   const handleEditTemplate = (template: CustomPdfTemplate) => {
-    setSelectedTemplate(template);
+    // Convert to ExtendedCustomPdfTemplate format
+    const extendedTemplate: ExtendedCustomPdfTemplate = {
+      ...template,
+      fields: [],
+      pages_data: template.template_metadata?.pages_data || []
+    };
+    setSelectedTemplate(extendedTemplate);
     setIsEditorOpen(true);
   };
 
   const handlePreviewTemplate = (template: CustomPdfTemplate) => {
-    setSelectedTemplate(template);
+    // Convert to ExtendedCustomPdfTemplate format
+    const extendedTemplate: ExtendedCustomPdfTemplate = {
+      ...template,
+      fields: [],
+      pages_data: template.template_metadata?.pages_data || []
+    };
+    setSelectedTemplate(extendedTemplate);
     setIsPreviewOpen(true);
   };
 
@@ -489,17 +504,23 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Preview */}
+      {/* Dialog Preview amélioré */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-5xl max-h-[95vh]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
               Aperçu: {selectedTemplate?.name}
+              {selectedTemplate?.template_metadata?.pages_count && (
+                <Badge variant="secondary">
+                  {selectedTemplate.template_metadata.pages_count} page{selectedTemplate.template_metadata.pages_count > 1 ? 's' : ''}
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto">
             {selectedTemplate?.original_pdf_url ? (
-              <div className="w-full h-96 border rounded-lg">
+              <div className="w-full h-[70vh] border rounded-lg shadow-inner">
                 <iframe
                   src={selectedTemplate.original_pdf_url}
                   className="w-full h-full rounded-lg"
@@ -513,6 +534,26 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                   <p className="text-muted-foreground">
                     Aucun PDF disponible pour ce template
                   </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Informations du template */}
+            {selectedTemplate && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Pages:</span> {selectedTemplate.template_metadata?.pages_count || selectedTemplate.pages_data.length}
+                  </div>
+                  <div>
+                    <span className="font-medium">Champs:</span> {selectedTemplate.fields.length}
+                  </div>
+                  <div>
+                    <span className="font-medium">Créé:</span> {format(new Date(selectedTemplate.created_at), 'dd/MM/yyyy', { locale: fr })}
+                  </div>
+                  <div>
+                    <span className="font-medium">Modifié:</span> {format(new Date(selectedTemplate.updated_at), 'dd/MM/yyyy', { locale: fr })}
+                  </div>
                 </div>
               </div>
             )}
