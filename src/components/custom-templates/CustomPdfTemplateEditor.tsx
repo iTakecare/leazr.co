@@ -11,7 +11,7 @@ import {
   FieldDefinition 
 } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
-import { CustomPdfTemplateAdapter } from "@/services/customPdfTemplateAdapter";
+
 import customPdfTemplateService from "@/services/customPdfTemplateService";
 import FieldPalette from "./FieldPalette";
 import CustomPdfCanvas from "./CustomPdfCanvas";
@@ -130,7 +130,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         const templateData = await customPdfTemplateService.getTemplate(templateId);
         
         if (templateData) {
-          const extendedTemplate = CustomPdfTemplateAdapter.toExtended(templateData);
+          const extendedTemplate = templateData;
           
           // Vérifier si le fichier PDF existe encore
           if (extendedTemplate.original_pdf_url) {
@@ -147,7 +147,13 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
             }
           }
           
-          setTemplate(extendedTemplate);
+          // Convert to ExtendedCustomPdfTemplate format
+          const convertedTemplate: ExtendedCustomPdfTemplate = {
+            ...extendedTemplate,
+            fields: extendedTemplate.field_mappings?.fields || [],
+            pages_data: (extendedTemplate.template_metadata as any)?.pages_data || []
+          };
+          setTemplate(convertedTemplate);
         } else {
           throw new Error("Template non trouvé");
         }
@@ -284,10 +290,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
       setSaving(true);
       console.log('💾 Début de la sauvegarde du template:', template.name);
       
-      const templateToSave = CustomPdfTemplateAdapter.fromExtended({
+      const templateToSave = {
         ...template,
         updated_at: new Date().toISOString()
-      });
+      };
       
       // Si c'est un nouveau template (ID temporaire), créer, sinon mettre à jour
       if (template.id.startsWith('temp_')) {
@@ -309,7 +315,13 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         const newTemplate = await customPdfTemplateService.createTemplate(createData);
         
         // Mettre à jour l'état avec le nouveau template
-        setTemplate(CustomPdfTemplateAdapter.toExtended(newTemplate));
+        // Convert to ExtendedCustomPdfTemplate format
+        const convertedTemplate: ExtendedCustomPdfTemplate = {
+          ...newTemplate,
+          fields: newTemplate.field_mappings?.fields || [],
+          pages_data: (newTemplate.template_metadata as any)?.pages_data || []
+        };
+        setTemplate(convertedTemplate);
         toast.success("Template créé avec succès");
         console.log('✅ Template créé avec l\'ID:', newTemplate.id);
       } else {
