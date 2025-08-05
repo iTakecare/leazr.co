@@ -207,7 +207,12 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
           {error && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-sm text-destructive mb-4">{error}</p>
+                <p className="text-lg font-medium mb-2">Fichier PDF manquant</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Le fichier PDF de ce template n'existe plus dans le bucket.<br/>
+                  Veuillez re-uploader un PDF ou supprimer ce template.
+                </p>
+                <p className="text-xs text-destructive mb-4">{error}</p>
                 <Button onClick={generatePreview} variant="outline">
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Réessayer

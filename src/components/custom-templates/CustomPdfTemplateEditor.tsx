@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Eye, Settings, Palette, FileText, Loader2, History, Users, MessageSquare, BarChart3, Share2 } from "lucide-react";
+import { Save, Eye, Settings, Palette, FileText, Loader2, History, Users, MessageSquare, BarChart3, Share2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { 
   ExtendedCustomPdfTemplate, 
@@ -48,6 +48,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("fields");
+  const [pdfFileExists, setPdfFileExists] = useState<boolean>(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [gridVisible, setGridVisible] = useState(true);
   const [activeTool, setActiveTool] = useState<'select' | 'move'>('select');
@@ -130,6 +131,22 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         
         if (templateData) {
           const extendedTemplate = CustomPdfTemplateAdapter.toExtended(templateData);
+          
+          // Vérifier si le fichier PDF existe encore
+          if (extendedTemplate.original_pdf_url) {
+            try {
+              const response = await fetch(extendedTemplate.original_pdf_url, { method: 'HEAD' });
+              setPdfFileExists(response.ok);
+              if (!response.ok) {
+                toast.warning("Le fichier PDF de ce template n'existe plus dans le bucket");
+              }
+            } catch (error) {
+              console.warn("Impossible de vérifier l'existence du fichier PDF:", error);
+              setPdfFileExists(false);
+              toast.warning("Le fichier PDF de ce template semble inaccessible");
+            }
+          }
+          
           setTemplate(extendedTemplate);
         } else {
           throw new Error("Template non trouvé");
@@ -543,6 +560,20 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           </div>
         ) : (
           <>
+            {/* Avertissement PDF manquant */}
+            {!pdfFileExists && template.original_pdf_url && (
+              <div className="w-full bg-destructive/10 border border-destructive/20 p-3 text-sm">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <strong>Fichier PDF manquant</strong>
+                </div>
+                <p className="text-muted-foreground mt-1">
+                  Le fichier PDF de ce template n'existe plus dans le bucket. 
+                  Veuillez re-uploader un PDF pour restaurer les fonctionnalités d'édition.
+                </p>
+              </div>
+            )}
+            
             {/* Sidebar gauche */}
             <div className="w-96 border-r border-border bg-card">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">

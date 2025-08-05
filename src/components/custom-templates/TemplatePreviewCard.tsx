@@ -192,6 +192,14 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
               </>
             )}
           </Button>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => onDelete(template.id)}
+            className="px-2"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </CardFooter>
     </Card>

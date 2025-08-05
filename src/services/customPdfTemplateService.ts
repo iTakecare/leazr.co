@@ -145,8 +145,46 @@ const customPdfTemplateService = {
     return data;
   },
 
-  // Supprimer un template
+  // Supprimer un template et ses fichiers associés
   async deleteTemplate(templateId: string): Promise<void> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    // Récupérer le template pour obtenir l'URL du fichier
+    const { data: template, error: fetchError } = await supabase
+      .from('custom_pdf_templates')
+      .select('file_url')
+      .eq('id', templateId)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Erreur lors de la récupération du template:', fetchError);
+      throw new Error(`Erreur lors de la récupération du template: ${fetchError.message}`);
+    }
+
+    // Supprimer le fichier du bucket si il existe
+    if (template?.file_url) {
+      try {
+        const fileName = template.file_url.split('/').pop();
+        if (fileName) {
+          const { error: storageError } = await supabase.storage
+            .from('pdf-templates')
+            .remove([fileName]);
+          
+          if (storageError) {
+            console.warn('Erreur lors de la suppression du fichier:', storageError);
+            // Continue quand même avec la suppression du template
+          }
+        }
+      } catch (error) {
+        console.warn('Erreur lors de la suppression du fichier:', error);
+        // Continue quand même avec la suppression du template
+      }
+    }
+
+    // Supprimer le template de la base de données
     const { error } = await supabase
       .from('custom_pdf_templates')
       .delete()

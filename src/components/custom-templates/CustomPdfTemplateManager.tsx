@@ -77,17 +77,17 @@ export const CustomPdfTemplateManager: React.FC<CustomPdfTemplateManagerProps> =
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce template ?')) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce template ? Cette action supprimera définitivement le template et son fichier PDF associé.')) {
       return;
     }
 
     try {
       await deleteTemplate(templateId);
-      toast.success('Template supprimé');
+      toast.success('Template et fichier PDF supprimés avec succès');
       await loadTemplates();
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      toast.error('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression du template');
     }
   };
 
@@ -197,10 +197,9 @@ export const CustomPdfTemplateManager: React.FC<CustomPdfTemplateManagerProps> =
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
                     onClick={() => handleDeleteTemplate(template.id)}
-                    className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
