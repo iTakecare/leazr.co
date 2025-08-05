@@ -2,11 +2,8 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
-import { pdfGenerationEngine } from "../pdfGenerationEngine";
 import { PDFTemplateService } from "../pdfTemplateService";
 import { saveAs } from "file-saver";
-import { getActiveTemplateByClient } from "../customPdfTemplateService";
-import { CustomPdfRenderer } from "../customPdfRenderer";
 
 
 /**
@@ -160,63 +157,11 @@ export const generateAndDownloadOfferPdf = async (
       client_id: offerData.client_id
     });
 
-    // Vérifier s'il existe un template personnalisé pour ce client
-    if (offerData.client_id && offerData.company_id) {
-      try {
-        console.log("Vérification des templates personnalisés pour le client:", offerData.client_id);
-        const customTemplate = await getActiveTemplateByClient(offerData.client_id);
-        
-        if (customTemplate) {
-          console.log("Template personnalisé trouvé:", customTemplate.name);
-          
-          // Générer le PDF avec le template personnalisé
-          const pdfBytes = await CustomPdfRenderer.renderCustomPdf(customTemplate, offerData);
-          
-          // Télécharger le PDF
-          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-          const filename = `offre-${offerData.offer_id || offerId}.pdf`;
-          saveAs(blob, filename);
-          
-          console.log("PDF généré avec template personnalisé et téléchargé avec succès");
-          toast.success(`PDF généré avec votre template personnalisé: ${filename}`);
-          return filename;
-        } else {
-          console.log("Aucun template personnalisé actif pour ce client");
-        }
-      } catch (customError) {
-        console.warn("Erreur avec le template personnalisé, fallback vers le système standard:", customError);
-        toast.warning("Utilisation du template standard suite à une erreur");
-      }
-    }
 
-    // Utiliser le nouveau moteur si demandé et si un company_id est disponible
-    if (options?.useNewEngine && offerData.company_id) {
-      try {
-        console.log("Utilisation du nouveau moteur de génération PDF");
-        
-        const result = await pdfGenerationEngine.generatePDF({
-          templateId: 'default-offer',
-          data: offerData
-        });
-        
-        if (result.success && result.pdfUrl) {
-          console.log("PDF généré avec le nouveau moteur avec succès");
-          toast.success(`PDF généré avec succès`);
-          return result.pdfUrl;
-        } else {
-          throw new Error(result.error || 'Erreur de génération PDF');
-        }
-      } catch (engineError) {
-        console.warn("Erreur avec le nouveau moteur, fallback vers l'ancien:", engineError);
-        toast.warning("Utilisation du système classique suite à une erreur");
-        // Continuer avec l'ancien système en cas d'erreur
-      }
-    }
-
-    // Ancien système (fallback ou par défaut)
-    console.log("Utilisation de l'ancien système de génération PDF");
+    // Système de génération PDF standard
+    console.log("Utilisation du système de génération PDF standard");
     
-    // Générer le PDF avec l'ancien système
+    // Générer le PDF avec le système standard
     const filename = await generateOfferPdf(offerData);
     
     if (!filename) {

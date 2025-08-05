@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield, MapPin } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
-import { AdvancedTemplateManager } from '@/components/custom-templates/AdvancedTemplateManager';
+
 
 import LeaserManager from '@/components/settings/LeaserManager';
 import CommissionManager from '@/components/settings/CommissionManager';
@@ -88,7 +88,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -100,10 +100,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="emails" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
             Emails
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Templates PDF
           </TabsTrigger>
           <TabsTrigger value="leasers" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -147,9 +143,6 @@ const Settings: React.FC = () => {
           <EmailSettings />
         </TabsContent>
 
-        <TabsContent value="templates" className="mt-6">
-          <AdvancedTemplateManager />
-        </TabsContent>
 
         <TabsContent value="leasers" className="mt-6">
           <LeaserManager />
