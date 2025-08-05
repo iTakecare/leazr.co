@@ -222,7 +222,6 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     
     // Vérifications de base
     if (!template.name || template.name.trim().length === 0) return false;
-    if (!clientId) return false;
     
     // Pour un nouveau template, vérifier qu'il y a un PDF
     if (template.id.startsWith('temp_') && (!template.original_pdf_url || template.original_pdf_url.trim().length === 0)) {
@@ -230,13 +229,12 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     }
     
     return true;
-  }, [template, clientId]);
+  }, [template]);
 
   // Message d'erreur pour la sauvegarde
   const getSaveErrorMessage = () => {
     if (!template) return "Aucun template";
     if (!template.name || template.name.trim().length === 0) return "Nom du template requis";
-    if (!clientId) return "Client ID manquant";
     if (template.id.startsWith('temp_') && (!template.original_pdf_url || template.original_pdf_url.trim().length === 0)) {
       return "PDF requis pour nouveau template";
     }
