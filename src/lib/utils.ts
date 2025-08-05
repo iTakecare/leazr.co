@@ -1,9 +1,8 @@
 import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
 import { Product } from "@/types/catalog";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return clsx(inputs.filter(Boolean)).trim()
 }
 
 // Fonction pour traiter le markdown simple et le convertir en HTML sécurisé

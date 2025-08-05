@@ -20,7 +20,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    exclude: ['pdfjs-dist']
+    exclude: ['pdfjs-dist'],
+    include: ['tailwind-merge']
   },
   define: {
     global: 'globalThis',
