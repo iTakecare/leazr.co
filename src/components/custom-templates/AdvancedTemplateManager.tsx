@@ -18,7 +18,9 @@ import {
   Users,
   Eye,
   Edit,
-  Share2
+  Share2,
+  Trash2,
+  Type
 } from 'lucide-react';
 
 import { TemplateLibrary } from './TemplateLibrary';
@@ -47,6 +49,12 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [templateToRename, setTemplateToRename] = useState<CustomPdfTemplate | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<CustomPdfTemplate | null>(null);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadCompanyAnalytics();
@@ -124,6 +132,59 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const handlePreviewClose = () => {
     setIsPreviewOpen(false);
     setSelectedTemplate(null);
+  };
+
+  const handleRenameTemplate = (template: CustomPdfTemplate) => {
+    setTemplateToRename(template);
+    setNewTemplateName(template.name);
+    setIsRenameDialogOpen(true);
+  };
+
+  const handleDeleteTemplate = (template: CustomPdfTemplate) => {
+    setTemplateToDelete(template);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmRename = async () => {
+    if (!templateToRename || !newTemplateName.trim()) {
+      toast.error('Le nom du template ne peut pas être vide');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await customPdfTemplateService.updateTemplate(templateToRename.id, {
+        name: newTemplateName.trim()
+      });
+      toast.success('Template renommé avec succès');
+      setIsRenameDialogOpen(false);
+      setTemplateToRename(null);
+      setNewTemplateName('');
+      loadMyTemplates();
+    } catch (error) {
+      console.error('Error renaming template:', error);
+      toast.error('Erreur lors du renommage du template');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!templateToDelete) return;
+
+    setIsLoading(true);
+    try {
+      await customPdfTemplateService.deleteTemplate(templateToDelete.id);
+      toast.success('Template supprimé avec succès');
+      setIsDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+      loadMyTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Erreur lors de la suppression du template');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -339,7 +400,7 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                           <Badge variant={template.is_active ? 'default' : 'secondary'}>
                             {template.is_active ? 'Actif' : 'Inactif'}
                           </Badge>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -355,6 +416,23 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                               title="Éditer le template"
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleRenameTemplate(template)}
+                              title="Renommer le template"
+                            >
+                              <Type className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteTemplate(template)}
+                              title="Supprimer le template"
+                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -485,6 +563,72 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Rename */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renommer le template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Nouveau nom</label>
+              <Input
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                placeholder="Nom du template"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsRenameDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={confirmRename}
+                disabled={isLoading || !newTemplateName.trim()}
+              >
+                {isLoading ? 'Renommage...' : 'Renommer'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Delete */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer le template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Êtes-vous sûr de vouloir supprimer le template "{templateToDelete?.name}" ? 
+              Cette action est irréversible.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Annuler
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Suppression...' : 'Supprimer'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
