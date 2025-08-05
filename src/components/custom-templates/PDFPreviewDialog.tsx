@@ -6,6 +6,7 @@ import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCc
 import { useToast } from "@/hooks/use-toast";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
+import { PdfViewer } from "./PdfViewer";
 
 interface PDFPreviewDialogProps {
   open: boolean;
@@ -266,22 +267,60 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
             </div>
           )}
 
-          {(previewUrl || template.original_pdf_url) && !loading && !error && (
+          {previewUrl && !loading && !error ? (
             <div className="flex justify-center">
               <iframe
-                src={`${previewUrl || template.original_pdf_url}#page=${currentPage}&zoom=${zoomLevel * 100}`}
+                src={`${previewUrl}#page=${currentPage}&zoom=${zoomLevel * 100}`}
                 className="border border-gray-300 bg-white shadow-lg"
                 style={{
                   width: `${595 * zoomLevel}px`,
                   height: `${842 * zoomLevel}px`,
                   minHeight: '600px'
                 }}
-                title="Aperçu PDF"
+                title="Aperçu PDF généré"
                 onError={() => {
-                  console.error('Erreur chargement iframe PDF');
-                  setError('Impossible d\'afficher le PDF dans ce navigateur');
+                  console.error('Erreur chargement iframe PDF généré');
+                  setError('Impossible d\'afficher le PDF généré');
                 }}
               />
+            </div>
+          ) : template.original_pdf_url && !loading && !error ? (
+            <div className="flex justify-center">
+              <div
+                className="border border-gray-300 bg-white shadow-lg"
+                style={{
+                  width: `${595 * zoomLevel}px`,
+                  height: `${842 * zoomLevel}px`,
+                  minHeight: '600px'
+                }}
+              >
+                <PdfViewer
+                  url={template.original_pdf_url}
+                  currentPage={currentPage}
+                  zoom={zoomLevel}
+                  className="w-full h-full"
+                  onPageChange={(page) => setCurrentPage(page)}
+                  onLoadError={(error) => {
+                    console.error('PDF Viewer error:', error);
+                    setError('Impossible de charger le PDF original');
+                  }}
+                />
+              </div>
+            </div>
+          ) : !loading && !error && (
+            <div className="flex justify-center items-center h-full">
+              <div className="text-center text-gray-500">
+                <p className="text-sm">Aucun aperçu disponible</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={generatePreview}
+                  className="mt-2"
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Générer l'aperçu
+                </Button>
+              </div>
             </div>
           )}
         </div>

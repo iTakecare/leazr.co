@@ -108,7 +108,7 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
             } else {
               console.log('🔄 Fallback vers générateur simple...');
               // Fallback vers le générateur simple
-              return SimplePdfImageGenerator.processSimplePreview(templateUrl, newTemplate.id);
+              return SimplePdfImageGenerator.processTemplate(templateUrl, newTemplate.id);
             }
           })
           .then((fallbackSuccess) => {

@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { CustomPdfTemplateField, ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
+import { PdfViewer } from "./PdfViewer";
 import { cn } from "@/lib/utils";
 
 interface CustomPdfCanvasProps {
@@ -185,27 +186,30 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* Affichage du PDF en arrière-plan si pas d'image */}
-        {!currentPageData?.image_url && template.original_pdf_url && (
-          <iframe
-            src={`${template.original_pdf_url}#page=${currentPage}&view=FitH`}
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-70"
-            style={{ 
-              transform: `scale(${zoomLevel})`,
-              transformOrigin: 'top left'
-            }}
-            title={`Template page ${currentPage}`}
-          />
-        )}
-        
-        {/* Affichage de l'image si disponible */}
-        {currentPageData?.image_url && (
+        {/* Affichage PDF avec fallback intégré */}
+        {currentPageData?.image_url ? (
           <img
             src={currentPageData.image_url}
             alt={`Page ${currentPage}`}
             className="absolute inset-0 w-full h-full object-contain pointer-events-none"
             style={{ opacity: 0.8 }}
           />
+        ) : template.original_pdf_url ? (
+          <div className="absolute inset-0 pointer-events-none opacity-70">
+            <PdfViewer
+              url={template.original_pdf_url}
+              currentPage={currentPage}
+              zoom={1.0}
+              className="w-full h-full"
+              onLoadError={(error) => {
+                console.error('PDF Viewer error in canvas:', error);
+              }}
+            />
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 text-gray-500">
+            <p>PDF non disponible</p>
+          </div>
         )}
 
         {/* Grille de repères */}
