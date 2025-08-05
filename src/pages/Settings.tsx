@@ -10,8 +10,7 @@ import { toast } from "sonner";
 import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield, MapPin } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
-import { AdvancedTemplateManager } from '@/components/custom-templates/AdvancedTemplateManager';
-
+import PDFTemplateManager from '@/components/settings/PDFTemplateManager';
 import LeaserManager from '@/components/settings/LeaserManager';
 import CommissionManager from '@/components/settings/CommissionManager';
 import ContractSettings from '@/components/settings/ContractSettings';
@@ -136,7 +135,7 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
-          <AdvancedTemplateManager />
+          <PDFTemplateManager />
         </TabsContent>
 
         <TabsContent value="leasers" className="mt-6">

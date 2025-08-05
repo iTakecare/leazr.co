@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 import { 
   MoreVertical, 
   Edit, 
@@ -12,8 +11,7 @@ import {
   CheckCircle,
   Circle,
   Calendar,
-  Layers,
-  RefreshCw
+  Layers
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -35,7 +33,6 @@ interface TemplatePreviewCardProps {
   onDuplicate: (templateId: string) => void;
   onDelete: (templateId: string) => void;
   onPreview: (templateId: string) => void;
-  onRegenerateImages?: (templateId: string) => Promise<boolean>;
   className?: string;
 }
 
@@ -47,33 +44,11 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
   onDuplicate,
   onDelete,
   onPreview,
-  onRegenerateImages,
   className
 }) => {
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const fieldsCount = template.fields.length;
   const pagesCount = template.pages_data.length;
   const lastUpdated = new Date(template.updated_at);
-
-  const handleRegenerateClick = async () => {
-    if (!template.id || !onRegenerateImages) return;
-    
-    setIsRegenerating(true);
-    try {
-      const success = await onRegenerateImages(template.id);
-      
-      if (success) {
-        toast.success("Aperçus régénérés avec succès");
-      } else {
-        toast.error("Erreur lors de la régénération des aperçus");
-      }
-    } catch (error) {
-      console.error('Erreur régénération:', error);
-      toast.error("Erreur lors de la régénération des aperçus");
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
 
   return (
     <Card className={cn(
@@ -148,22 +123,22 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
       </CardHeader>
 
       <CardContent className="py-3">
-        {/* Template preview with PDF icon */}
-        <div className="w-full h-32 bg-muted rounded-md mb-3 relative overflow-hidden border-2 border-dashed border-muted-foreground/20">
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <div className="relative">
-                <Layers className="h-12 w-12 mx-auto mb-2 text-primary/60" />
-                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                  {pagesCount}
-                </div>
-              </div>
-              <span className="text-xs font-medium">PDF Template</span>
-              <div className="text-xs text-muted-foreground mt-1">
-                {pagesCount} page{pagesCount > 1 ? 's' : ''}
+        {/* Template preview/thumbnail placeholder */}
+        <div className="w-full h-32 bg-muted rounded-md mb-3 relative overflow-hidden">
+          {template.pages_data[0]?.image_url ? (
+            <img 
+              src={template.pages_data[0].image_url} 
+              alt={`Aperçu de ${template.name}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <Layers className="h-8 w-8 mx-auto mb-2" />
+                <span className="text-xs">Pas d'aperçu</span>
               </div>
             </div>
-          </div>
+          )}
           
           {/* Fields overlay indication */}
           {fieldsCount > 0 && (

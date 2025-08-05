@@ -19,12 +19,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    exclude: ['pdfjs-dist', '@supabase/supabase-js'],
-    include: ['tailwind-merge']
-  },
-  define: {
-    global: 'globalThis',
-  },
-  assetsInclude: ['**/*.mjs'],
 }));

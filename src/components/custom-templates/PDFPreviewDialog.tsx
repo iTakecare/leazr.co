@@ -6,13 +6,6 @@ import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCc
 import { toast } from "sonner";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
-import { Document, Page, pdfjs } from 'react-pdf';
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
 
 interface PDFPreviewDialogProps {
   open: boolean;
@@ -27,22 +20,17 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   template,
   sampleData
 }) => {
-  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const totalPages = template.template_metadata?.pages_count || template.template_metadata?.pages_data?.length || template.pages_data?.length || 1;
 
-  // Générer l'aperçu PDF avec gestion mémoire améliorée
+  // Générer l'aperçu PDF
   const generatePreview = async () => {
-    if (isGenerating) return; // Éviter les appels multiples
-    
     try {
-      setIsGenerating(true);
       setLoading(true);
       setError(null);
       
@@ -50,18 +38,13 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       console.log('📋 Template:', template.name);
       console.log('📊 Données d\'exemple:', sampleData);
       
-      // Nettoyer les données précédentes pour éviter les conflits mémoire
-      if (pdfData) {
-        setPdfData(null);
-        // Petit délai pour permettre le nettoyage
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
       // Utiliser le service de rendu personnalisé
       const pdfBytes = await CustomPdfRenderer.renderCustomPdf(template, sampleData);
       
-      // Stocker les nouvelles données PDF
-      setPdfData(pdfBytes);
+      // Créer un blob et une URL pour l'affichage
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
       
       console.log('✅ Aperçu PDF généré avec succès');
       toast.success("Aperçu généré avec succès");
@@ -71,16 +54,17 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       toast.error("Impossible de générer l'aperçu");
     } finally {
       setLoading(false);
-      setIsGenerating(false);
     }
   };
 
   // Télécharger le PDF
   const downloadPdf = async () => {
-    if (!pdfData) return;
+    if (!previewUrl) return;
     
     try {
-      const blob = new Blob([pdfData], { type: 'application/pdf' });
+      const response = await fetch(previewUrl);
+      const blob = await response.blob();
+      
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -97,34 +81,21 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
     }
   };
 
-  // Callbacks pour react-pdf avec gestion d'erreur améliorée
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setError(null);
-    console.log('✅ Document PDF chargé avec succès:', numPages, 'pages');
-  };
-
-  const onDocumentLoadError = (error: Error) => {
-    console.error('❌ Erreur lors du chargement du PDF:', error);
-    setError("Impossible de charger le PDF généré. Essayez de régénérer l'aperçu.");
-  };
-
   // Réinitialiser l'aperçu quand le dialog s'ouvre
   useEffect(() => {
-    if (open && !pdfData && !isGenerating) {
+    if (open && !previewUrl) {
       generatePreview();
     }
   }, [open]);
 
-  // Nettoyage mémoire à la fermeture
+  // Nettoyer l'URL quand le composant se démonte
   useEffect(() => {
-    if (!open) {
-      setCurrentPage(1);
-      setZoomLevel(1);
-      setError(null);
-      setNumPages(null);
-    }
-  }, [open]);
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,12 +172,12 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
               variant="outline"
               size="sm"
               onClick={generatePreview}
-              disabled={loading || isGenerating}
+              disabled={loading}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
             
-            {pdfData && (
+            {previewUrl && (
               <Button
                 variant="default"
                 size="sm"
@@ -236,9 +207,10 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
           {error && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-lg font-medium mb-2">Erreur de génération</p>
+                <p className="text-lg font-medium mb-2">Fichier PDF manquant</p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Une erreur est survenue lors de la génération de l'aperçu PDF.
+                  Le fichier PDF de ce template n'existe plus dans le bucket.<br/>
+                  Veuillez re-uploader un PDF ou supprimer ce template.
                 </p>
                 <p className="text-xs text-destructive mb-4">{error}</p>
                 <Button onClick={generatePreview} variant="outline">
@@ -249,49 +221,18 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
             </div>
           )}
 
-          {pdfData && !loading && !error && (
+          {previewUrl && !loading && !error && (
             <div className="flex justify-center">
-              <Document
-                file={{ data: pdfData }}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
+              <iframe
+                src={`${previewUrl}#page=${currentPage}&zoom=${zoomLevel * 100}`}
                 className="border border-gray-300 bg-white shadow-lg"
-                loading={
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                }
-                error={
-                  <div className="flex flex-col items-center justify-center p-8 text-center">
-                    <p className="text-destructive mb-2">Erreur de chargement</p>
-                    <Button onClick={generatePreview} variant="outline" size="sm">
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Régénérer
-                    </Button>
-                  </div>
-                }
-              >
-                <Page
-                  pageNumber={currentPage}
-                  scale={zoomLevel}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  className="bg-white"
-                  loading={
-                    <div className="flex items-center justify-center w-full h-96">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                  }
-                  error={
-                    <div className="flex flex-col items-center justify-center w-full h-96 text-center">
-                      <p className="text-destructive mb-2">Erreur d'affichage</p>
-                      <Button onClick={() => setCurrentPage(1)} variant="outline" size="sm">
-                        Retour page 1
-                      </Button>
-                    </div>
-                  }
-                />
-              </Document>
+                style={{
+                  width: `${595 * zoomLevel}px`,
+                  height: `${842 * zoomLevel}px`,
+                  minHeight: '600px'
+                }}
+                title="Aperçu PDF"
+              />
             </div>
           )}
         </div>

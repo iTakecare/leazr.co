@@ -1,5 +1,6 @@
 
-// Create a simple theme hook for now
+import { useTheme as useNextTheme } from 'next-themes';
+
 export const useTheme = () => {
-  return { theme: "system" };
+  return useNextTheme();
 };

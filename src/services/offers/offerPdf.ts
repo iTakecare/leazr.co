@@ -7,7 +7,7 @@ import { PDFTemplateService } from "../pdfTemplateService";
 import { saveAs } from "file-saver";
 import { getActiveTemplateByClient } from "../customPdfTemplateService";
 import { CustomPdfRenderer } from "../customPdfRenderer";
-
+import { CustomPdfTemplateAdapter } from "../customPdfTemplateAdapter";
 
 /**
  * Récupère une offre complète avec les données client pour générer un PDF
@@ -169,8 +169,11 @@ export const generateAndDownloadOfferPdf = async (
         if (customTemplate) {
           console.log("Template personnalisé trouvé:", customTemplate.name);
           
+          // Convertir vers le format étendu pour le rendu
+          const extendedTemplate = CustomPdfTemplateAdapter.toExtended(customTemplate);
+          
           // Générer le PDF avec le template personnalisé
-          const pdfBytes = await CustomPdfRenderer.renderCustomPdf(customTemplate, offerData);
+          const pdfBytes = await CustomPdfRenderer.renderCustomPdf(extendedTemplate, offerData);
           
           // Télécharger le PDF
           const blob = new Blob([pdfBytes], { type: 'application/pdf' });

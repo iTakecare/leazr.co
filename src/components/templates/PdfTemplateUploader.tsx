@@ -8,10 +8,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { uploadFile, ensureBucket } from "@/services/fileStorage";
 import { useAuth } from "@/context/AuthContext";
 import { PDFDocument } from "pdf-lib";
-import { PdfImageGenerator } from "@/services/pdfImageGenerator";
 
 interface PdfTemplateUploaderProps {
-  onTemplateUploaded: (templateUrl: string, metadata: any, templateId?: string) => void;
+  onTemplateUploaded: (templateUrl: string, metadata: any) => void;
   currentTemplateUrl?: string;
 }
 
@@ -22,7 +21,6 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedTemplate, setUploadedTemplate] = useState<string | null>(currentTemplateUrl || null);
-  const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
 
   const validatePdfFile = (file: File): { isValid: boolean; error?: string } => {
     // Vérifier le type MIME
@@ -92,16 +90,8 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
         };
 
         setUploadedTemplate(uploadedUrl);
-        
-        // Générer un ID temporaire pour le template
-        const tempTemplateId = `temp-${Date.now()}`;
-        
-        // Appeler onTemplateUploaded avec les métadonnées de base
-        onTemplateUploaded(uploadedUrl, metadata, tempTemplateId);
+        onTemplateUploaded(uploadedUrl, metadata);
         toast.success(`Template PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`);
-        
-        // Traitement simplifié terminé
-        setIsGeneratingPreviews(false);
       } else {
         throw new Error("Échec du téléchargement");
       }
@@ -193,11 +183,11 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
         >
           <input {...getInputProps()} />
           <div className="flex flex-col items-center gap-4">
-            {isUploading || isGeneratingPreviews ? (
+            {isUploading ? (
               <>
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 <p className="text-sm text-muted-foreground">
-                  {isUploading ? "Téléchargement du template PDF..." : "Génération des aperçus..."}
+                  Téléchargement du template PDF...
                 </p>
               </>
             ) : (

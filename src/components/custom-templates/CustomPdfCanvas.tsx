@@ -1,15 +1,8 @@
-import React, { useRef, useState, useEffect } from "react";
-import { Document, Page, pdfjs } from 'react-pdf';
+import React, { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { CustomPdfTemplateField, ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
 import { cn } from "@/lib/utils";
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
 
 interface CustomPdfCanvasProps {
   template: ExtendedCustomPdfTemplate;
@@ -38,24 +31,10 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragField, setDragField] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [pdfLoadError, setPdfLoadError] = useState(false);
-  const [pageWidth, setPageWidth] = useState(0);
-  const [pageHeight, setPageHeight] = useState(0);
-  const [actualScale, setActualScale] = useState(1);
 
-  // Conversion dynamique basée sur les dimensions réelles du PDF
-  const mmToPx = (mm: number) => {
-    // A4 en points PDF: 595.276 x 841.89 points
-    // A4 en mm: 210 x 297 mm
-    // Facteur de conversion: points/mm = 595.276/210 ≈ 2.834645669
-    const pdfPointsPerMm = 2.834645669;
-    return mm * pdfPointsPerMm * actualScale * zoomLevel;
-  };
-  
-  const pxToMm = (px: number) => {
-    const pdfPointsPerMm = 2.834645669;
-    return px / (pdfPointsPerMm * actualScale * zoomLevel);
-  };
+  // Conversion mm vers pixels
+  const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
+  const pxToMm = (px: number) => px / (3.7795275591 * zoomLevel);
 
   // Obtenir la page actuelle
   const currentPageData = template.pages_data.find(page => page.page_number === currentPage);
@@ -66,9 +45,9 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
     CustomPdfFieldMapper.shouldShowField(field, sampleData)
   );
 
-  // Dimensions du canvas basées sur les dimensions réelles du PDF chargé
-  const canvasWidth = pageWidth || mmToPx(210);
-  const canvasHeight = pageHeight || mmToPx(297);
+  // Dimensions du canvas (A4 en mm converti en px)
+  const canvasWidth = mmToPx(210);
+  const canvasHeight = mmToPx(297);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (isDragging) return;
@@ -197,54 +176,19 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         className="relative mx-auto bg-white shadow-lg cursor-crosshair"
         style={{
           width: `${canvasWidth}px`,
-          height: `${canvasHeight}px`
+          height: `${canvasHeight}px`,
+          backgroundImage: currentPageData?.image_url 
+            ? `url(${currentPageData.image_url})` 
+            : undefined,
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center top'
         }}
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* PDF Viewer avec react-pdf pour compatibilité Chrome */}
-        {template.original_pdf_url && (
-          <div className="absolute inset-0 w-full h-full pointer-events-none">
-            <Document
-              file={template.original_pdf_url}
-              onLoadSuccess={(pdf) => {
-                console.log('✅ PDF loaded successfully with react-pdf:', pdf.numPages, 'pages');
-                setPdfLoadError(false);
-              }}
-              onLoadError={(error) => {
-                console.error('❌ PDF failed to load with react-pdf:', error);
-                setPdfLoadError(true);
-              }}
-              loading={
-                <div className="flex items-center justify-center h-full bg-gray-100">
-                  <div className="text-gray-600">Chargement du PDF...</div>
-                </div>
-              }
-              error={
-                <div className="flex items-center justify-center h-full bg-red-50">
-                  <div className="text-red-600">Erreur de chargement du PDF</div>
-                </div>
-              }
-            >
-              <Page
-                pageNumber={currentPage}
-                scale={zoomLevel}
-                onLoadSuccess={(page) => {
-                  setPageWidth(page.width * zoomLevel);
-                  setPageHeight(page.height * zoomLevel);
-                  setActualScale(page.width / 595.276); // Scale relatif à A4 standard
-                  console.log('✅ Page loaded:', page.pageNumber, `${page.width}x${page.height}`, 'scale:', page.width / 595.276);
-                }}
-                className="react-pdf__Page"
-                canvasBackground="white"
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-              />
-            </Document>
-          </div>
-        )}
         {/* Grille de repères */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
           {/* Lignes verticales tous les 10mm */}

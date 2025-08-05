@@ -18,45 +18,38 @@ import {
   Users,
   Eye,
   Edit,
-  Share2,
-  Trash2,
-  Type,
-  RefreshCw
+  Share2
 } from 'lucide-react';
 
 import { TemplateLibrary } from './TemplateLibrary';
+import { TemplateAnalytics } from './TemplateAnalytics';
 import { PdfTemplateUploader } from '../templates/PdfTemplateUploader';
 import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
+import { templateSharingService } from '@/services/templateSharingService';
+import { templateAnalyticsService } from '@/services/templateAnalyticsService';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
-import { PdfImageGenerator } from '@/services/pdfImageGenerator';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
-import { ExtendedCustomPdfTemplate } from '@/types/customPdfTemplateField';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 interface AdvancedTemplateManagerProps {
   clientId?: string;
 }
 
 export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerProps) {
+  const [activeTab, setActiveTab] = useState('my-templates');
+  const [companyAnalytics, setCompanyAnalytics] = useState<any>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<ExtendedCustomPdfTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<CustomPdfTemplate | null>(null);
   const [myTemplates, setMyTemplates] = useState<CustomPdfTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [templateToRename, setTemplateToRename] = useState<CustomPdfTemplate | null>(null);
-  const [templateToDelete, setTemplateToDelete] = useState<CustomPdfTemplate | null>(null);
-  const [newTemplateName, setNewTemplateName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    loadCompanyAnalytics();
     loadMyTemplates();
   }, []);
 
@@ -69,6 +62,14 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
     }
   };
 
+  const loadCompanyAnalytics = async () => {
+    try {
+      const analytics = await templateAnalyticsService.getCompanyAnalytics();
+      setCompanyAnalytics(analytics);
+    } catch (error) {
+      console.error('Error loading company analytics:', error);
+    }
+  };
 
   const handleTemplateDownload = (template: CustomPdfTemplate) => {
     toast.success('Template téléchargé avec succès');
@@ -86,26 +87,11 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
         field_mappings: {},
         template_metadata: {
           ...metadata,
-          pages_data: []
+          pages: []
         }
       };
 
-      const newTemplate = await customPdfTemplateService.createTemplate(templateData);
-      
-      // Générer les métadonnées de base en arrière-plan
-      if (newTemplate?.id) {
-        PdfImageGenerator.processTemplateMetadata(templateUrl, newTemplate.id)
-          .then((success) => {
-            if (success) {
-              console.log('✅ Métadonnées générées');
-              loadMyTemplates(); // Recharger pour afficher les modifications
-            }
-          })
-          .catch((error) => {
-            console.error('❌ Erreur génération métadonnées:', error);
-          });
-      }
-      
+      await customPdfTemplateService.createTemplate(templateData);
       toast.success('Template créé avec succès');
       setIsImportOpen(false);
       loadMyTemplates(); // Recharger la liste
@@ -116,24 +102,12 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   };
 
   const handleEditTemplate = (template: CustomPdfTemplate) => {
-    // Convert to ExtendedCustomPdfTemplate format
-    const extendedTemplate: ExtendedCustomPdfTemplate = {
-      ...template,
-      fields: [],
-      pages_data: template.template_metadata?.pages_data || []
-    };
-    setSelectedTemplate(extendedTemplate);
+    setSelectedTemplate(template);
     setIsEditorOpen(true);
   };
 
   const handlePreviewTemplate = (template: CustomPdfTemplate) => {
-    // Convert to ExtendedCustomPdfTemplate format
-    const extendedTemplate: ExtendedCustomPdfTemplate = {
-      ...template,
-      fields: [],
-      pages_data: template.template_metadata?.pages_data || []
-    };
-    setSelectedTemplate(extendedTemplate);
+    setSelectedTemplate(template);
     setIsPreviewOpen(true);
   };
 
@@ -150,88 +124,6 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const handlePreviewClose = () => {
     setIsPreviewOpen(false);
     setSelectedTemplate(null);
-  };
-
-  const handleRenameTemplate = (template: CustomPdfTemplate) => {
-    setTemplateToRename(template);
-    setNewTemplateName(template.name);
-    setIsRenameDialogOpen(true);
-  };
-
-  const handleDeleteTemplate = (template: CustomPdfTemplate) => {
-    setTemplateToDelete(template);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const confirmRename = async () => {
-    if (!templateToRename || !newTemplateName.trim()) {
-      toast.error('Le nom du template ne peut pas être vide');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await customPdfTemplateService.updateTemplate(templateToRename.id, {
-        name: newTemplateName.trim()
-      });
-      toast.success('Template renommé avec succès');
-      setIsRenameDialogOpen(false);
-      setTemplateToRename(null);
-      setNewTemplateName('');
-      loadMyTemplates();
-    } catch (error) {
-      console.error('Error renaming template:', error);
-      toast.error('Erreur lors du renommage du template');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!templateToDelete) return;
-
-    setIsLoading(true);
-    try {
-      await customPdfTemplateService.deleteTemplate(templateToDelete.id);
-      toast.success('Template supprimé avec succès');
-      setIsDeleteDialogOpen(false);
-      setTemplateToDelete(null);
-      loadMyTemplates();
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      toast.error('Erreur lors de la suppression du template');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegenerateImages = async (template: CustomPdfTemplate): Promise<boolean> => {
-    if (!template.original_pdf_url) {
-      toast.error('Impossible de régénérer les aperçus: URL PDF manquante');
-      return false;
-    }
-
-    toast.info('Régénération des métadonnées en cours...');
-    
-    try {
-      const success = await PdfImageGenerator.processTemplateMetadata(
-        template.original_pdf_url, 
-        template.id
-      );
-      
-      if (success) {
-        toast.success('Métadonnées régénérées avec succès');
-        loadMyTemplates(); // Recharger pour afficher les modifications
-        return true;
-      } else {
-        toast.error('Erreur lors de la régénération des aperçus');
-        return false;
-      }
-    } catch (error) {
-      console.error('Error regenerating images:', error);
-      toast.error('Erreur lors de la régénération des aperçus');
-      return false;
-    }
   };
 
   return (
@@ -289,43 +181,62 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
           </div>
         </div>
 
-        {/* Statistiques simplifiées */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Mes Templates</p>
-                <p className="text-2xl font-bold">{myTemplates.length}</p>
+        {/* Statistiques rapides */}
+        {companyAnalytics && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Templates</p>
+                  <p className="text-2xl font-bold">{companyAnalytics.totalTemplates}</p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-500" />
               </div>
-              <FileText className="h-8 w-8 text-blue-500" />
-            </div>
-          </Card>
-          
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Templates Actifs</p>
-                <p className="text-2xl font-bold">{myTemplates.filter(t => t.is_active).length}</p>
+            </Card>
+            
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Actifs</p>
+                  <p className="text-2xl font-bold">{companyAnalytics.activeTemplates}</p>
+                </div>
+                <Eye className="h-8 w-8 text-green-500" />
               </div>
-              <Eye className="h-8 w-8 text-green-500" />
-            </div>
-          </Card>
-          
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Dernière Création</p>
-                <p className="text-sm font-medium">
-                  {myTemplates.length > 0 
-                    ? new Date(Math.max(...myTemplates.map(t => new Date(t.created_at).getTime()))).toLocaleDateString()
-                    : 'Aucune'
-                  }
-                </p>
+            </Card>
+            
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Usage Total</p>
+                  <p className="text-2xl font-bold">{companyAnalytics.totalUsage}</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-purple-500" />
               </div>
-              <Upload className="h-8 w-8 text-purple-500" />
-            </div>
-          </Card>
-        </div>
+            </Card>
+            
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Score Perf.</p>
+                  <p className="text-2xl font-bold">{companyAnalytics.averagePerformanceScore}</p>
+                </div>
+                <Star className="h-8 w-8 text-yellow-500" />
+              </div>
+            </Card>
+            
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Top Template</p>
+                  <p className="text-sm font-medium truncate">
+                    {companyAnalytics.topTemplates[0]?.name || 'Aucun'}
+                  </p>
+                </div>
+                <Share2 className="h-8 w-8 text-orange-500" />
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Filtres et recherche */}
@@ -372,115 +283,158 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
         </div>
       </div>
 
-      {/* Contenu principal - Templates uniquement */}
+      {/* Contenu principal avec onglets */}
       <div className="flex-1 p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Mes Templates</h2>
-          <p className="text-muted-foreground">Gérez vos templates PDF personnalisés</p>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="my-templates" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Mes Templates
+            </TabsTrigger>
+            <TabsTrigger value="shared" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Partagés
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="library" className="flex items-center gap-2">
+              <Library className="h-4 w-4" />
+              Bibliothèque
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-6">
-          {myTemplates.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Aucun template trouvé</h3>
-                <p className="text-muted-foreground mb-4">
-                  Commencez par importer votre premier template PDF
-                </p>
-                <Button onClick={() => setIsImportOpen(true)}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importer un template
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myTemplates.map((template) => (
-                <Card key={template.id} className="relative group hover:shadow-lg transition-shadow">
-                  {/* Image de prévisualisation */}
-                  <div className="aspect-[3/4] bg-muted border-b overflow-hidden">
-                    {template.template_metadata?.pages_data?.[0]?.image_url ? (
-                      <img 
-                        src={template.template_metadata.pages_data[0].image_url} 
-                        alt={`Aperçu de ${template.name}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                        <FileText className="h-16 w-16 text-blue-400" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-sm truncate">
-                      <FileText className="h-4 w-4 flex-shrink-0" />
-                      {template.name}
-                    </CardTitle>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                      {template.description || 'Aucune description'}
+          <TabsContent value="my-templates" className="h-full">
+            <div className="space-y-6">
+              {myTemplates.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">Aucun template trouvé</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Commencez par importer votre premier template PDF
                     </p>
-                    
-                    {/* Métadonnées */}
-                    <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-                      {template.template_metadata?.pages_count && (
-                        <span className="bg-muted px-2 py-1 rounded">
-                          {template.template_metadata.pages_count} pages
-                        </span>
-                      )}
-                      <Badge variant={template.is_active ? 'default' : 'secondary'} className="text-xs">
-                        {template.is_active ? 'Actif' : 'Inactif'}
-                      </Badge>
-                    </div>
-                    
-                    {/* Actions */}
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handlePreviewTemplate(template)}
-                        title="Aperçu du template"
-                        className="flex-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditTemplate(template)}
-                        title="Éditer le template"
-                        className="flex-1"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleRegenerateImages(template)}
-                        title="Régénérer les aperçus"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDeleteTemplate(template)}
-                        title="Supprimer le template"
-                        className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button onClick={() => setIsImportOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Importer un template
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {myTemplates.map((template) => (
+                    <Card key={template.id} className="relative">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4" />
+                          {template.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {template.description || 'Aucune description'}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <Badge variant={template.is_active ? 'default' : 'secondary'}>
+                            {template.is_active ? 'Actif' : 'Inactif'}
+                          </Badge>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handlePreviewTemplate(template)}
+                              title="Aperçu du template"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditTemplate(template)}
+                              title="Éditer le template"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="shared" className="h-full">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Templates Partagés
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12 text-muted-foreground">
+                  <Share2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Fonctionnalité de partage en cours de développement</p>
+                  <p className="text-sm mt-2">
+                    Bientôt : visualisez et gérez les templates partagés avec votre équipe
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="h-full">
+            <div className="space-y-6">
+              {companyAnalytics && (
+                <>
+                  {/* Graphiques de tendances */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Templates les plus utilisés</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {companyAnalytics.topTemplates.slice(0, 5).map((template: any, index: number) => (
+                            <div key={template.id} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">{index + 1}</Badge>
+                                <span className="font-medium">{template.name}</span>
+                              </div>
+                              <Badge>{template.usage_count} utilisations</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Évolution de l'usage</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8 text-muted-foreground">
+                          <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>Graphique détaillé disponible dans l'éditeur de template</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="library" className="h-full">
+            <TemplateLibrary 
+              clientId={clientId}
+              onTemplateDownload={handleTemplateDownload}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Dialog Editor */}
@@ -504,23 +458,17 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Preview amélioré */}
+      {/* Dialog Preview */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-5xl max-h-[95vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <DialogTitle>
               Aperçu: {selectedTemplate?.name}
-              {selectedTemplate?.template_metadata?.pages_count && (
-                <Badge variant="secondary">
-                  {selectedTemplate.template_metadata.pages_count} page{selectedTemplate.template_metadata.pages_count > 1 ? 's' : ''}
-                </Badge>
-              )}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto p-4">
             {selectedTemplate?.original_pdf_url ? (
-              <div className="w-full h-[70vh] border rounded-lg shadow-inner">
+              <div className="w-full h-96 border rounded-lg">
                 <iframe
                   src={selectedTemplate.original_pdf_url}
                   className="w-full h-full rounded-lg"
@@ -537,92 +485,6 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                 </div>
               </div>
             )}
-            
-            {/* Informations du template */}
-            {selectedTemplate && (
-              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Pages:</span> {selectedTemplate.template_metadata?.pages_count || selectedTemplate.pages_data.length}
-                  </div>
-                  <div>
-                    <span className="font-medium">Champs:</span> {selectedTemplate.fields.length}
-                  </div>
-                  <div>
-                    <span className="font-medium">Créé:</span> {format(new Date(selectedTemplate.created_at), 'dd/MM/yyyy', { locale: fr })}
-                  </div>
-                  <div>
-                    <span className="font-medium">Modifié:</span> {format(new Date(selectedTemplate.updated_at), 'dd/MM/yyyy', { locale: fr })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Rename */}
-      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Renommer le template</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Nouveau nom</label>
-              <Input
-                value={newTemplateName}
-                onChange={(e) => setNewTemplateName(e.target.value)}
-                placeholder="Nom du template"
-                className="mt-1"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsRenameDialogOpen(false)}
-                disabled={isLoading}
-              >
-                Annuler
-              </Button>
-              <Button 
-                onClick={confirmRename}
-                disabled={isLoading || !newTemplateName.trim()}
-              >
-                {isLoading ? 'Renommage...' : 'Renommer'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Delete */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Supprimer le template</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Êtes-vous sûr de vouloir supprimer le template "{templateToDelete?.name}" ? 
-              Cette action est irréversible.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsDeleteDialogOpen(false)}
-                disabled={isLoading}
-              >
-                Annuler
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={confirmDelete}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Suppression...' : 'Supprimer'}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>

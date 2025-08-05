@@ -11,7 +11,7 @@ import {
   FieldDefinition 
 } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
-
+import { CustomPdfTemplateAdapter } from "@/services/customPdfTemplateAdapter";
 import customPdfTemplateService from "@/services/customPdfTemplateService";
 import FieldPalette from "./FieldPalette";
 import CustomPdfCanvas from "./CustomPdfCanvas";
@@ -130,25 +130,24 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         const templateData = await customPdfTemplateService.getTemplate(templateId);
         
         if (templateData) {
-          const extendedTemplate = templateData;
+          const extendedTemplate = CustomPdfTemplateAdapter.toExtended(templateData);
           
-          // Log de debug pour l'URL du PDF
+          // Vérifier si le fichier PDF existe encore
           if (extendedTemplate.original_pdf_url) {
-            console.log('📄 URL du PDF template:', extendedTemplate.original_pdf_url);
-            // On assume que le PDF existe - la vérification HEAD peut échouer avec CORS
-            setPdfFileExists(true);
-          } else {
-            console.warn('⚠️ Aucune URL de PDF trouvée pour ce template');
-            setPdfFileExists(false);
+            try {
+              const response = await fetch(extendedTemplate.original_pdf_url, { method: 'HEAD' });
+              setPdfFileExists(response.ok);
+              if (!response.ok) {
+                toast.warning("Le fichier PDF de ce template n'existe plus dans le bucket");
+              }
+            } catch (error) {
+              console.warn("Impossible de vérifier l'existence du fichier PDF:", error);
+              setPdfFileExists(false);
+              toast.warning("Le fichier PDF de ce template semble inaccessible");
+            }
           }
           
-          // Convert to ExtendedCustomPdfTemplate format
-          const convertedTemplate: ExtendedCustomPdfTemplate = {
-            ...extendedTemplate,
-            fields: Array.isArray(extendedTemplate.field_mappings) ? extendedTemplate.field_mappings : [],
-            pages_data: (extendedTemplate.template_metadata as any)?.pages_data || []
-          };
-          setTemplate(convertedTemplate);
+          setTemplate(extendedTemplate);
         } else {
           throw new Error("Template non trouvé");
         }
@@ -285,10 +284,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
       setSaving(true);
       console.log('💾 Début de la sauvegarde du template:', template.name);
       
-      const templateToSave = {
+      const templateToSave = CustomPdfTemplateAdapter.fromExtended({
         ...template,
         updated_at: new Date().toISOString()
-      };
+      });
       
       // Si c'est un nouveau template (ID temporaire), créer, sinon mettre à jour
       if (template.id.startsWith('temp_')) {
@@ -297,11 +296,11 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         const createData = {
           name: template.name,
           original_pdf_url: template.original_pdf_url || "",
-          field_mappings: template.fields,
-          template_metadata: {
-            ...template.template_metadata,
+          field_mappings: {
+            fields: template.fields,
             pages_data: template.pages_data
           },
+          template_metadata: template.template_metadata,
           is_active: false
         };
         
@@ -310,31 +309,12 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         const newTemplate = await customPdfTemplateService.createTemplate(createData);
         
         // Mettre à jour l'état avec le nouveau template
-        // Convert to ExtendedCustomPdfTemplate format
-        const convertedTemplate: ExtendedCustomPdfTemplate = {
-          ...newTemplate,
-          fields: Array.isArray(newTemplate.field_mappings) ? newTemplate.field_mappings : [],
-          pages_data: (newTemplate.template_metadata as any)?.pages_data || []
-        };
-        setTemplate(convertedTemplate);
+        setTemplate(CustomPdfTemplateAdapter.toExtended(newTemplate));
         toast.success("Template créé avec succès");
         console.log('✅ Template créé avec l\'ID:', newTemplate.id);
       } else {
         console.log('📝 Mise à jour du template existant...');
-        
-        const updateData = {
-          name: template.name,
-          original_pdf_url: template.original_pdf_url,
-          field_mappings: template.fields,
-          template_metadata: {
-            ...template.template_metadata,
-            pages_data: template.pages_data
-          },
-          is_active: template.is_active,
-          updated_at: new Date().toISOString()
-        };
-        
-        await customPdfTemplateService.updateTemplate(template.id, updateData);
+        await customPdfTemplateService.updateTemplate(template.id, templateToSave);
         toast.success("Template sauvegardé avec succès");
         console.log('✅ Template mis à jour:', template.id);
       }
@@ -580,16 +560,16 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           </div>
         ) : (
           <>
-            {/* Avertissement PDF manquant - seulement si pas d'URL */}
-            {!template.original_pdf_url && (
+            {/* Avertissement PDF manquant */}
+            {!pdfFileExists && template.original_pdf_url && (
               <div className="w-full bg-destructive/10 border border-destructive/20 p-3 text-sm">
                 <div className="flex items-center gap-2 text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   <strong>Fichier PDF manquant</strong>
                 </div>
                 <p className="text-muted-foreground mt-1">
-                  Aucun fichier PDF n'est associé à ce template. 
-                  Veuillez uploader un PDF pour activer les fonctionnalités d'édition.
+                  Le fichier PDF de ce template n'existe plus dans le bucket. 
+                  Veuillez re-uploader un PDF pour restaurer les fonctionnalités d'édition.
                 </p>
               </div>
             )}
