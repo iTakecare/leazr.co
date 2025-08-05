@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import { uploadImage } from '@/utils/imageUtils';
+import { uploadTemplateImage } from '@/services/templateImageUploadService';
 import { toast } from "sonner";
 
 interface ImagePage {
@@ -89,7 +89,7 @@ export function ImageTemplateUploader({ onImagesUploaded, maxPages = 10 }: Image
       const uploadedPages: Omit<ImagePage, 'file'>[] = [];
 
       for (const page of pages) {
-        const uploadedUrl = await uploadImage(page.file, 'template-images', '');
+        const uploadedUrl = await uploadTemplateImage(page.file, 'template-images');
         uploadedPages.push({
           page_number: page.page_number,
           image_url: uploadedUrl,
