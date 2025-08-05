@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
 
@@ -20,6 +20,7 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
   template,
   sampleData
 }) => {
+  const { toast } = useToast();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,11 +48,18 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       setPreviewUrl(url);
       
       console.log('✅ Aperçu PDF généré avec succès');
-      toast.success("Aperçu généré avec succès");
+      toast({
+        title: "Succès",
+        description: "Aperçu généré avec succès",
+      });
     } catch (error: any) {
       console.error('💥 Erreur lors de la génération de l\'aperçu:', error);
       setError(error.message || "Erreur lors de la génération de l'aperçu");
-      toast.error("Impossible de générer l'aperçu");
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer l'aperçu",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -74,10 +82,17 @@ export const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      toast.success("PDF téléchargé");
+      toast({
+        title: "Succès",
+        description: "PDF téléchargé",
+      });
     } catch (error) {
       console.error('Erreur lors du téléchargement:', error);
-      toast.error("Erreur lors du téléchargement");
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du téléchargement",
+        variant: "destructive"
+      });
     }
   };
 

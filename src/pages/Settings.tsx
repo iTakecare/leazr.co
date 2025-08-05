@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield, MapPin } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
@@ -24,6 +24,7 @@ import { PostalCodeImport } from '@/components/admin/PostalCodeImport';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
 
@@ -32,7 +33,11 @@ const Settings: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast.error('Vous devez être connecté');
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -49,7 +54,11 @@ const Settings: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur lors de l\'ouverture du portail client:', error);
-      toast.error('Erreur lors de l\'ouverture du portail client');
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'ouverture du portail client",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -59,7 +68,10 @@ const Settings: React.FC = () => {
     setLoading(true);
     await checkSubscription();
     setLoading(false);
-    toast.success('Statut d\'abonnement mis à jour');
+    toast({
+      title: "Succès",
+      description: "Statut d'abonnement mis à jour",
+    });
   };
 
   const planNames = {

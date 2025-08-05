@@ -30,13 +30,15 @@ import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
 import { PdfImageGenerator } from '@/services/pdfImageGenerator';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
-import { toast } from 'sonner';
+import { useToast } from "@/hooks/use-toast";
+import { getTemplatePreviewImage } from '@/utils/templateImageUtils';
 
 interface AdvancedTemplateManagerProps {
   clientId?: string;
 }
 
 export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerProps) {
+  const { toast } = useToast();
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -68,7 +70,10 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
 
 
   const handleTemplateDownload = (template: CustomPdfTemplate) => {
-    toast.success('Template téléchargé avec succès');
+    toast({
+      title: "Succès",
+      description: "Template téléchargé avec succès",
+    });
     // Recharger les templates de l'entreprise
     window.location.reload();
   };
@@ -103,12 +108,19 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
           });
       }
       
-      toast.success('Template créé avec succès');
+      toast({
+        title: "Succès",
+        description: "Template créé avec succès",
+      });
       setIsImportOpen(false);
       loadMyTemplates(); // Recharger la liste
     } catch (error) {
       console.error('Error creating template:', error);
-      toast.error('Erreur lors de la création du template');
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la création du template",
+        variant: "destructive"
+      });
     }
   };
 
@@ -123,7 +135,10 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   };
 
   const handleEditorSave = (updatedTemplate: any) => {
-    toast.success('Template sauvegardé avec succès');
+    toast({
+      title: "Succès",
+      description: "Template sauvegardé avec succès",
+    });
     loadMyTemplates(); // Recharger la liste
   };
 
@@ -150,7 +165,11 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
 
   const confirmRename = async () => {
     if (!templateToRename || !newTemplateName.trim()) {
-      toast.error('Le nom du template ne peut pas être vide');
+      toast({
+        title: "Erreur",
+        description: "Le nom du template ne peut pas être vide",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -159,14 +178,21 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       await customPdfTemplateService.updateTemplate(templateToRename.id, {
         name: newTemplateName.trim()
       });
-      toast.success('Template renommé avec succès');
+      toast({
+        title: "Succès",
+        description: "Template renommé avec succès",
+      });
       setIsRenameDialogOpen(false);
       setTemplateToRename(null);
       setNewTemplateName('');
       loadMyTemplates();
     } catch (error) {
       console.error('Error renaming template:', error);
-      toast.error('Erreur lors du renommage du template');
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du renommage du template",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -178,13 +204,20 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
     setIsLoading(true);
     try {
       await customPdfTemplateService.deleteTemplate(templateToDelete.id);
-      toast.success('Template supprimé avec succès');
+      toast({
+        title: "Succès",
+        description: "Template supprimé avec succès",
+      });
       setIsDeleteDialogOpen(false);
       setTemplateToDelete(null);
       loadMyTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
-      toast.error('Erreur lors de la suppression du template');
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la suppression du template",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -192,11 +225,18 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
 
   const handleRegenerateImages = async (template: CustomPdfTemplate) => {
     if (!template.original_pdf_url) {
-      toast.error('Impossible de régénérer les aperçus: URL PDF manquante');
+      toast({
+        title: "Erreur",
+        description: "Impossible de régénérer les aperçus: URL PDF manquante",
+        variant: "destructive"
+      });
       return;
     }
 
-    toast.info('Régénération des aperçus en cours...');
+    toast({
+      title: "Information",
+      description: "Régénération des aperçus en cours...",
+    });
     
     try {
       const success = await PdfImageGenerator.processTemplateImages(
@@ -205,14 +245,25 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       );
       
       if (success) {
-        toast.success('Aperçus régénérés avec succès');
+        toast({
+          title: "Succès",
+          description: "Aperçus régénérés avec succès",
+        });
         loadMyTemplates(); // Recharger pour afficher les nouvelles images
       } else {
-        toast.error('Erreur lors de la régénération des aperçus');
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la régénération des aperçus",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error regenerating images:', error);
-      toast.error('Erreur lors de la régénération des aperçus');
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la régénération des aperçus",
+        variant: "destructive"
+      });
     }
   };
 
@@ -382,17 +433,32 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                 <Card key={template.id} className="relative group hover:shadow-lg transition-shadow">
                   {/* Image de prévisualisation */}
                   <div className="aspect-[3/4] bg-muted border-b overflow-hidden">
-                    {template.template_metadata?.pages_data?.[0]?.image_url ? (
-                      <img 
-                        src={template.template_metadata.pages_data[0].image_url} 
-                        alt={`Aperçu de ${template.name}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                        <FileText className="h-16 w-16 text-blue-400" />
-                      </div>
-                    )}
+                    {(() => {
+                      const previewImageUrl = getTemplatePreviewImage(template);
+                      return previewImageUrl ? (
+                        <img 
+                          src={previewImageUrl}
+                          alt={`Aperçu de ${template.name}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('Erreur de chargement image template:', template.id, 'URL:', previewImageUrl);
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement!;
+                            parent.innerHTML = `
+                              <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                                <svg class="h-16 w-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                              </div>
+                            `;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                          <FileText className="h-16 w-16 text-blue-400" />
+                        </div>
+                      );
+                    })()}
                   </div>
                   
                   <CardHeader className="pb-2">
@@ -442,10 +508,11 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleRegenerateImages(template)}
-                        title="Régénérer les aperçus"
+                        onClick={() => handleRenameTemplate(template)}
+                        title="Renommer le template"
+                        className="flex-1"
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <Type className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 

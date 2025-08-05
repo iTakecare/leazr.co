@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Eye, Settings, Palette, FileText, Loader2, History, Users, MessageSquare, BarChart3, Share2, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { 
   ExtendedCustomPdfTemplate, 
   CustomPdfTemplateField, 
@@ -40,6 +40,7 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   onSave,
   onClose
 }) => {
+  const { toast } = useToast();
   const [template, setTemplate] = useState<ExtendedCustomPdfTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -84,7 +85,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     
     setHasUnsavedChanges(true);
     const pageCount = metadata.pages_count || 1;
-    toast.success(`PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`);
+    toast({
+      title: "Succès",
+      description: `PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`,
+    });
   }, [template]);
 
   // Fonction pour créer un nouveau template
@@ -138,12 +142,20 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
               const response = await fetch(extendedTemplate.original_pdf_url, { method: 'HEAD' });
               setPdfFileExists(response.ok);
               if (!response.ok) {
-                toast.warning("Le fichier PDF de ce template n'existe plus dans le bucket");
+                toast({
+                  title: "Attention",
+                  description: "Le fichier PDF de ce template n'existe plus dans le bucket",
+                  variant: "destructive"
+                });
               }
             } catch (error) {
               console.warn("Impossible de vérifier l'existence du fichier PDF:", error);
               setPdfFileExists(false);
-              toast.warning("Le fichier PDF de ce template semble inaccessible");
+              toast({
+                title: "Attention", 
+                description: "Le fichier PDF de ce template semble inaccessible",
+                variant: "destructive"
+              });
             }
           }
           
@@ -159,7 +171,11 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         }
       } catch (error) {
         console.error("Erreur lors du chargement du template:", error);
-        toast.error("Impossible de charger le template");
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger le template",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
@@ -201,7 +217,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     
     setSelectedFieldId(newField.id);
     setHasUnsavedChanges(true);
-    toast.success(`Champ "${fieldDef.label}" ajouté`);
+    toast({
+      title: "Succès",
+      description: `Champ "${fieldDef.label}" ajouté`,
+    });
   }, [template, currentPage]);
 
   // Gestion de la mise à jour d'un champ
@@ -245,7 +264,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     
     setSelectedFieldId(null);
     setHasUnsavedChanges(true);
-    toast.success("Champ supprimé");
+    toast({
+      title: "Succès",
+      description: "Champ supprimé",
+    });
   }, [template]);
 
   // Vérification préalable avant sauvegarde
@@ -276,13 +298,21 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   // Sauvegarde du template
   const handleSave = async () => {
     if (!template) {
-      toast.error("Aucun template à sauvegarder");
+      toast({
+        title: "Erreur",
+        description: "Aucun template à sauvegarder",
+        variant: "destructive"
+      });
       return;
     }
 
     // Vérifications préalables
     if (!canSave) {
-      toast.error("Veuillez compléter toutes les informations obligatoires");
+      toast({
+        title: "Erreur",
+        description: "Veuillez compléter toutes les informations obligatoires",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -322,12 +352,18 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           pages_data: (newTemplate.template_metadata as any)?.pages_data || []
         };
         setTemplate(convertedTemplate);
-        toast.success("Template créé avec succès");
+        toast({
+          title: "Succès",
+          description: "Template créé avec succès",
+        });
         console.log('✅ Template créé avec l\'ID:', newTemplate.id);
       } else {
         console.log('📝 Mise à jour du template existant...');
         await customPdfTemplateService.updateTemplate(template.id, templateToSave);
-        toast.success("Template sauvegardé avec succès");
+        toast({
+          title: "Succès",
+          description: "Template sauvegardé avec succès",
+        });
         console.log('✅ Template mis à jour:', template.id);
       }
       
@@ -357,7 +393,11 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
         errorMessage = "Problème avec les données du client";
       }
       
-      toast.error(errorMessage);
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }
@@ -385,7 +425,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
   const handleCopySelected = useCallback(() => {
     if (selectedFieldIds.length > 0) {
       // Logique de copie - pour l'instant, toast informatif
-      toast.success(`${selectedFieldIds.length} champ(s) copié(s)`);
+      toast({
+        title: "Succès",
+        description: `${selectedFieldIds.length} champ(s) copié(s)`,
+      });
     }
   }, [selectedFieldIds]);
 
@@ -400,7 +443,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     setSelectedFieldIds([]);
     setSelectedFieldId(null);
     setHasUnsavedChanges(true);
-    toast.success(`${selectedFieldIds.length} champ(s) supprimé(s)`);
+    toast({
+      title: "Succès",
+      description: `${selectedFieldIds.length} champ(s) supprimé(s)`,
+    });
   }, [template, selectedFieldIds]);
 
   const [showPreview, setShowPreview] = useState(false);
@@ -414,12 +460,19 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
 
   const handleApplyStylePreset = useCallback((style: Partial<CustomPdfTemplateField['style']>) => {
     if (!selectedFieldId) {
-      toast.error("Veuillez sélectionner un champ");
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un champ",
+        variant: "destructive"
+      });
       return;
     }
     
     handleFieldUpdate(selectedFieldId, { style: { ...selectedField?.style, ...style } });
-    toast.success("Style appliqué");
+    toast({
+      title: "Succès",
+      description: "Style appliqué",
+    });
   }, [selectedFieldId, selectedField, handleFieldUpdate]);
 
   // Raccourcis clavier

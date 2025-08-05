@@ -27,3 +27,30 @@ export const getPageBackgroundUrl = (templateImages: any[], currentPage: number)
   const pageImage = templateImages.find(img => img.page === currentPage);
   return getTemplateImageUrl(pageImage);
 };
+
+/**
+ * Get the template preview image URL from various possible structures
+ */
+export const getTemplatePreviewImage = (template: any): string | null => {
+  // Check template_metadata.pages_data first
+  if (template.template_metadata?.pages_data?.[0]?.image_url) {
+    return template.template_metadata.pages_data[0].image_url;
+  }
+  
+  // Check template.images array
+  if (template.images?.[0]?.image_url) {
+    return template.images[0].image_url;
+  }
+  
+  // Check direct template.image_url
+  if (template.image_url) {
+    return template.image_url;
+  }
+  
+  // Check preview_image_url
+  if (template.preview_image_url) {
+    return template.preview_image_url;
+  }
+  
+  return null;
+};
