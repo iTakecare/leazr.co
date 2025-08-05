@@ -8,8 +8,8 @@ import { ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfRenderer } from "@/services/customPdfRenderer";
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Configuration de pdf.js avec worker local
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Laisser react-pdf gérer automatiquement son worker interne
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFPreviewDialogProps {
   open: boolean;
