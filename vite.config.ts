@@ -22,4 +22,9 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     exclude: ['pdfjs-dist']
   },
+  build: {
+    rollupOptions: {
+      external: ['pdfjs-dist/build/pdf.worker.min.js']
+    }
+  },
 }));
