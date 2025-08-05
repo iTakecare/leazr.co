@@ -39,7 +39,7 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   const [pageWidth, setPageWidth] = useState(0);
   const [pageHeight, setPageHeight] = useState(0);
 
-  // Conversion mm vers pixels
+  // Conversion mm vers pixels (1mm = 3.7795275591px à 96 DPI)
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
   const pxToMm = (px: number) => px / (3.7795275591 * zoomLevel);
 

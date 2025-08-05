@@ -152,9 +152,10 @@ export class CustomPdfRenderer {
   ): Promise<void> {
     const { position, style } = field;
     
-    // Convertir les coordonnées si nécessaire (le PDF use un système de coordonnées différent)
-    const x = position.x;
-    const y = pageSize.height - position.y; // Inverser Y pour PDF-lib
+    // Convertir les coordonnées mm vers points PDF (1 mm = 2.834645669 points)
+    const x = position.x * 2.834645669;
+    // Corriger l'inversion Y: soustraire la position Y convertie de la hauteur de page
+    const y = pageSize.height - (position.y * 2.834645669);
     
     // Sélectionner la police
     const fontKey = this.getFontKey(style.fontFamily, style.fontWeight);
@@ -175,7 +176,7 @@ export class CustomPdfRenderer {
           x,
           y,
           font,
-          style.fontSize,
+          (style.fontSize || 12) * 0.75,
           color,
           style.textAlign,
           style.width
@@ -184,7 +185,7 @@ export class CustomPdfRenderer {
         
       case 'table':
         // Pour les tables, render une version simplifiée
-        await this.renderSimpleTable(page, value, x, y, font, style.fontSize, color);
+        await this.renderSimpleTable(page, value, x, y, font, (style.fontSize || 12) * 0.75, color);
         break;
         
       default:
