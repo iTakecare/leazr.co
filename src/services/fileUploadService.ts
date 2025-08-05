@@ -266,45 +266,29 @@ export const uploadImage = async (
       fileExtension: fileExt
     });
 
-    // ÉTAPE 6: UPLOAD VERS SUPABASE - API REST DIRECTE
-    console.log(`=== UPLOAD VERS SUPABASE (API REST DIRECTE) ===`);
-    console.log(`Upload avec FormData pour éviter la sérialisation JSON`);
+    // ÉTAPE 6: UPLOAD VERS SUPABASE - CLIENT AUTHENTIFIÉ
+    console.log(`=== UPLOAD VERS SUPABASE (CLIENT AUTHENTIFIÉ) ===`);
+    console.log(`Upload avec client Supabase authentifié pour respect des politiques RLS`);
     
-    // Utiliser l'API REST de Supabase Storage directement avec FormData
-    const formData = new FormData();
-    formData.append('file', validFile, fileName);
-    
-    const uploadUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/${bucketName}/${filePath}`;
-    console.log("URL d'upload:", uploadUrl);
-    console.log("FormData créée avec fichier:", {
-      fileName: validFile.name,
-      fileType: validFile.type,
-      fileSize: validFile.size
-    });
-
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw`,
-        'apikey': `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw`,
-        'x-upsert': 'true'
-      },
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Erreur API REST:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorText
+    // Utiliser le client Supabase authentifié qui respecte les politiques RLS
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, validFile, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: correctedMimeType
       });
-      toast.error(`Erreur lors du téléchargement: ${response.status} ${response.statusText}`);
+
+    if (error) {
+      console.error("Erreur client Supabase:", {
+        error: error.message,
+        details: error
+      });
+      toast.error(`Erreur lors du téléchargement: ${error.message}`);
       return null;
     }
 
-    const data = await response.json();
-    console.log("Upload réussi via API REST:", data);
+    console.log("Upload réussi via client Supabase:", data);
 
     // Récupérer l'URL publique
     const { data: urlData } = supabase.storage
