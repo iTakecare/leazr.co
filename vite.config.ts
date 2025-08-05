@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     exclude: ['pdfjs-dist'],
-    include: ['tailwind-merge']
+    include: ['tailwind-merge', 'sonner']
   },
   define: {
     global: 'globalThis',
