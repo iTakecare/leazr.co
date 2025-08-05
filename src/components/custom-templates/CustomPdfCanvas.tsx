@@ -176,19 +176,24 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         className="relative mx-auto bg-white shadow-lg cursor-crosshair"
         style={{
           width: `${canvasWidth}px`,
-          height: `${canvasHeight}px`,
-          backgroundImage: currentPageData?.image_url 
-            ? `url(${currentPageData.image_url})` 
-            : undefined,
-          backgroundSize: 'contain',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center top'
+          height: `${canvasHeight}px`
         }}
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* PDF Viewer avec iframe */}
+        {template.original_pdf_url && (
+          <iframe
+            src={`${template.original_pdf_url}#page=${currentPage}&view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            style={{
+              border: 'none',
+              background: 'white'
+            }}
+          />
+        )}
         {/* Grille de repères */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
           {/* Lignes verticales tous les 10mm */}

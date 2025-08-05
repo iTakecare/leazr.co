@@ -92,17 +92,17 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
 
       const newTemplate = await customPdfTemplateService.createTemplate(templateData);
       
-      // Générer les images de prévisualisation en arrière-plan
+      // Générer les métadonnées de base en arrière-plan
       if (newTemplate?.id) {
-        PdfImageGenerator.processTemplateImages(templateUrl, newTemplate.id)
+        PdfImageGenerator.processTemplateMetadata(templateUrl, newTemplate.id)
           .then((success) => {
             if (success) {
-              console.log('✅ Images de prévisualisation générées');
-              loadMyTemplates(); // Recharger pour afficher les images
+              console.log('✅ Métadonnées générées');
+              loadMyTemplates(); // Recharger pour afficher les modifications
             }
           })
           .catch((error) => {
-            console.error('❌ Erreur génération images:', error);
+            console.error('❌ Erreur génération métadonnées:', error);
           });
       }
       
@@ -211,17 +211,17 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       return false;
     }
 
-    toast.info('Régénération des aperçus en cours...');
+    toast.info('Régénération des métadonnées en cours...');
     
     try {
-      const success = await PdfImageGenerator.processTemplateImages(
+      const success = await PdfImageGenerator.processTemplateMetadata(
         template.original_pdf_url, 
         template.id
       );
       
       if (success) {
-        toast.success('Aperçus régénérés avec succès');
-        loadMyTemplates(); // Recharger pour afficher les nouvelles images
+        toast.success('Métadonnées régénérées avec succès');
+        loadMyTemplates(); // Recharger pour afficher les modifications
         return true;
       } else {
         toast.error('Erreur lors de la régénération des aperçus');

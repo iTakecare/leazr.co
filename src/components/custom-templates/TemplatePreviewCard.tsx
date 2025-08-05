@@ -128,12 +128,6 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
                 <Copy className="h-4 w-4 mr-2" />
                 Dupliquer
               </DropdownMenuItem>
-              {onRegenerateImages && (
-                <DropdownMenuItem onClick={handleRegenerateClick} disabled={isRegenerating}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? 'animate-spin' : ''}`} />
-                  {isRegenerating ? 'Génération...' : 'Régénérer aperçus'}
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
               {!isActive && (
                 <DropdownMenuItem onClick={() => onActivate(template.id)}>

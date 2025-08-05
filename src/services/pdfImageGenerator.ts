@@ -2,19 +2,18 @@ import { PDFDocument } from 'pdf-lib';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Service pour générer des images de prévisualisation des pages PDF
+ * Service simplifié pour la gestion des métadonnées PDF (sans génération d'images)
  */
 export class PdfImageGenerator {
   /**
-   * Génère une image de prévisualisation pour la première page d'un PDF
+   * Génère les métadonnées de base pour un PDF (sans images)
    */
-  static async generatePagePreview(
+  static async generateBasicMetadata(
     pdfUrl: string, 
-    templateId: string,
-    pageNumber: number = 1
-  ): Promise<string | null> {
+    templateId: string
+  ): Promise<{ pageCount: number; dimensions: { width: number; height: number } } | null> {
     try {
-      console.log('🖼️ Génération d\'aperçu pour:', pdfUrl);
+      console.log('📄 Analyse des métadonnées PDF pour:', pdfUrl);
       
       // Charger le PDF
       const response = await fetch(pdfUrl);
@@ -25,187 +24,65 @@ export class PdfImageGenerator {
       const pdfBytes = await response.arrayBuffer();
       const pdfDoc = await PDFDocument.load(pdfBytes);
       
-      // Vérifier que la page existe
-      if (pageNumber > pdfDoc.getPageCount()) {
-        console.warn(`Page ${pageNumber} n'existe pas dans le PDF`);
-        return null;
-      }
+      const pageCount = pdfDoc.getPageCount();
+      const firstPage = pdfDoc.getPage(0);
+      const { width, height } = firstPage.getSize();
       
-      // Utiliser l'API de conversion PDF vers image
-      const imageUrl = await this.convertPdfPageToImage(pdfBytes, pageNumber, templateId);
+      console.log(`✅ PDF analysé: ${pageCount} pages, dimensions: ${width}x${height}`);
       
-      return imageUrl;
-      
-    } catch (error) {
-      console.error('Erreur lors de la génération d\'aperçu:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Convertit une page PDF en image et l'upload sur Supabase Storage
-   */
-  private static async convertPdfPageToImage(
-    pdfBytes: ArrayBuffer,
-    pageNumber: number,
-    templateId: string
-  ): Promise<string | null> {
-    try {
-      console.log(`🎨 Début conversion page ${pageNumber} pour template ${templateId}`);
-      
-      // Créer un canvas pour dessiner la page PDF
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Impossible de créer le contexte canvas');
-      }
-
-      // Utiliser PDF.js pour le rendu avec configuration simplifiée
-      const pdfjsLib = await import('pdfjs-dist');
-      
-      // Configuration worker simplifiée
-      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-      }
-      
-      console.log('📚 PDF.js configuré, version:', pdfjsLib.version);
-      
-      // Charger le document PDF
-      const loadingTask = pdfjsLib.getDocument({ 
-        data: pdfBytes,
-        verbosity: 0 // Réduire les logs PDF.js
-      });
-      
-      const pdf = await loadingTask.promise;
-      console.log(`📄 PDF chargé, ${pdf.numPages} pages`);
-      
-      if (pageNumber > pdf.numPages) {
-        throw new Error(`Page ${pageNumber} n'existe pas (max: ${pdf.numPages})`);
-      }
-      
-      const page = await pdf.getPage(pageNumber);
-      console.log(`📖 Page ${pageNumber} récupérée`);
-      
-      // Configurer le viewport avec une échelle appropriée
-      const viewport = page.getViewport({ scale: 1.5 });
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      
-      console.log(`🖼️ Canvas configuré: ${canvas.width}x${canvas.height}`);
-      
-      // Rendre la page
-      const renderContext = {
-        canvasContext: ctx,
-        viewport: viewport,
-        canvas: canvas
+      return {
+        pageCount,
+        dimensions: { width, height }
       };
       
-      await page.render(renderContext).promise;
-      console.log('✅ Page rendue sur canvas');
-      
-      // Convertir en blob et uploader
-      return new Promise((resolve, reject) => {
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            console.error('❌ Impossible de créer le blob depuis le canvas');
-            reject(new Error('Impossible de créer le blob'));
-            return;
-          }
-          
-          console.log(`💾 Blob créé: ${blob.size} bytes`);
-          
-          try {
-            // Upload vers Supabase Storage
-            const fileName = `template-${templateId}-page-${pageNumber}.png`;
-            console.log(`⬆️ Upload vers: previews/${fileName}`);
-            
-            const { data, error } = await supabase.storage
-              .from('pdf-templates')
-              .upload(`previews/${fileName}`, blob, {
-                contentType: 'image/png',
-                upsert: true
-              });
-            
-            if (error) {
-              console.error('❌ Erreur upload Supabase:', error);
-              throw error;
-            }
-            
-            console.log('✅ Upload réussi:', data);
-            
-            // Obtenir l'URL publique
-            const { data: urlData } = supabase.storage
-              .from('pdf-templates')
-              .getPublicUrl(`previews/${fileName}`);
-            
-            console.log('🔗 URL publique générée:', urlData.publicUrl);
-            resolve(urlData.publicUrl);
-            
-          } catch (error) {
-            console.error('❌ Erreur lors de l\'upload:', error);
-            reject(error);
-          }
-        }, 'image/png', 0.9);
-      });
-      
     } catch (error) {
-      console.error('❌ Erreur lors de la conversion PDF vers image:', error);
-      console.error('Détails de l\'erreur:', {
-        message: error.message,
-        stack: error.stack,
-        pageNumber,
-        templateId
-      });
+      console.error('Erreur lors de l\'analyse du PDF:', error);
       return null;
     }
   }
 
   /**
-   * Génère des aperçus pour toutes les pages d'un template
+   * DEPRECATED: Cette méthode n'est plus utilisée
+   * Le système utilise maintenant l'affichage direct du PDF
    */
-  static async generateAllPagePreviews(
+  private static async convertPdfPageToImage(): Promise<string | null> {
+    console.warn('⚠️ convertPdfPageToImage est deprecated - utilisez l\'affichage direct du PDF');
+    return null;
+  }
+
+  /**
+   * Génère les métadonnées de base pour toutes les pages d'un template
+   */
+  static async generateAllPageMetadata(
     pdfUrl: string,
     templateId: string
-  ): Promise<Array<{ pageNumber: number; imageUrl: string | null }>> {
+  ): Promise<Array<{ pageNumber: number; dimensions: { width: number; height: number } }>> {
     try {
-      // Charger le PDF pour obtenir le nombre de pages
-      const response = await fetch(pdfUrl);
-      const pdfBytes = await response.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(pdfBytes);
-      const pageCount = pdfDoc.getPageCount();
-      
-      console.log(`📄 Génération d'aperçus pour ${pageCount} pages`);
+      const metadata = await this.generateBasicMetadata(pdfUrl, templateId);
+      if (!metadata) return [];
       
       const results = [];
-      
-      // Générer les aperçus page par page (limité aux 5 premières pour les performances)
-      const maxPages = Math.min(pageCount, 5);
-      for (let i = 1; i <= maxPages; i++) {
-        const imageUrl = await this.generatePagePreview(pdfUrl, templateId, i);
+      for (let i = 1; i <= metadata.pageCount; i++) {
         results.push({
           pageNumber: i,
-          imageUrl
+          dimensions: metadata.dimensions
         });
-        
-        // Petite pause pour éviter de surcharger le navigateur
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       return results;
       
     } catch (error) {
-      console.error('Erreur lors de la génération de tous les aperçus:', error);
+      console.error('Erreur lors de la génération des métadonnées:', error);
       return [];
     }
   }
 
   /**
-   * Met à jour les métadonnées du template avec les URLs des images
+   * Met à jour les métadonnées du template avec les dimensions de base
    */
-  static async updateTemplateWithPreviews(
+  static async updateTemplateWithMetadata(
     templateId: string,
-    previews: Array<{ pageNumber: number; imageUrl: string | null }>
+    pageMetadata: Array<{ pageNumber: number; dimensions: { width: number; height: number } }>
   ): Promise<boolean> {
     try {
       // Récupérer les métadonnées actuelles
@@ -220,19 +97,21 @@ export class PdfImageGenerator {
       const currentMetadata = template.template_metadata || {};
       const pagesData = currentMetadata.pages_data || [];
       
-      // Mettre à jour les pages avec les nouvelles images
-      previews.forEach(preview => {
-        const pageIndex = preview.pageNumber - 1;
+      // Mettre à jour les pages avec les nouvelles métadonnées
+      pageMetadata.forEach(meta => {
+        const pageIndex = meta.pageNumber - 1;
         if (pagesData[pageIndex]) {
-          pagesData[pageIndex].image_url = preview.imageUrl;
+          pagesData[pageIndex].width = meta.dimensions.width;
+          pagesData[pageIndex].height = meta.dimensions.height;
+          pagesData[pageIndex].dimensions = meta.dimensions;
         } else {
           // Créer une nouvelle entrée de page
           pagesData[pageIndex] = {
-            page_number: preview.pageNumber,
-            image_url: preview.imageUrl,
-            width: 595, // Valeur par défaut A4
-            height: 842, // Valeur par défaut A4
-            dimensions: { width: 595, height: 842 }
+            page_number: meta.pageNumber,
+            image_url: null, // Plus d'images générées
+            width: meta.dimensions.width,
+            height: meta.dimensions.height,
+            dimensions: meta.dimensions
           };
         }
       });
@@ -250,7 +129,7 @@ export class PdfImageGenerator {
       
       if (updateError) throw updateError;
       
-      console.log('✅ Métadonnées du template mises à jour avec les aperçus');
+      console.log('✅ Métadonnées du template mises à jour');
       return true;
       
     } catch (error) {
@@ -260,14 +139,14 @@ export class PdfImageGenerator {
   }
 
   /**
-   * Pipeline complet: génère les aperçus et met à jour le template
+   * Pipeline simplifié: analyse le PDF et met à jour les métadonnées de base
    */
-  static async processTemplateImages(
+  static async processTemplateMetadata(
     pdfUrl: string,
     templateId: string
   ): Promise<boolean> {
     try {
-      console.log('🚀 Démarrage du traitement des images pour le template:', templateId);
+      console.log('🚀 Analyse des métadonnées pour le template:', templateId);
       console.log('📍 PDF URL:', pdfUrl);
       
       // Vérifier l'accès au PDF
@@ -277,29 +156,20 @@ export class PdfImageGenerator {
       }
       console.log('✅ PDF accessible');
       
-      // Générer les aperçus
-      const previews = await this.generateAllPagePreviews(pdfUrl, templateId);
-      console.log('📊 Aperçus générés:', previews);
+      // Générer les métadonnées de base
+      const pageMetadata = await this.generateAllPageMetadata(pdfUrl, templateId);
+      console.log('📊 Métadonnées générées:', pageMetadata);
       
-      if (previews.length === 0) {
-        console.warn('⚠️ Aucun aperçu généré');
+      if (pageMetadata.length === 0) {
+        console.warn('⚠️ Aucune métadonnée générée');
         return false;
       }
-      
-      // Vérifier si au moins un aperçu a été généré avec succès
-      const successfulPreviews = previews.filter(p => p.imageUrl !== null);
-      if (successfulPreviews.length === 0) {
-        console.error('❌ Aucun aperçu généré avec succès');
-        return false;
-      }
-      
-      console.log(`✅ ${successfulPreviews.length}/${previews.length} aperçus générés avec succès`);
       
       // Mettre à jour le template
-      const success = await this.updateTemplateWithPreviews(templateId, previews);
+      const success = await this.updateTemplateWithMetadata(templateId, pageMetadata);
       
       if (success) {
-        console.log('✅ Traitement des images terminé avec succès');
+        console.log('✅ Traitement des métadonnées terminé avec succès');
       } else {
         console.log('❌ Erreur lors de la mise à jour du template');
       }
@@ -307,23 +177,17 @@ export class PdfImageGenerator {
       return success;
       
     } catch (error) {
-      console.error('❌ Erreur lors du traitement complet des images:', error);
-      console.error('Détails:', {
-        message: error.message,
-        stack: error.stack,
-        pdfUrl,
-        templateId
-      });
+      console.error('❌ Erreur lors du traitement des métadonnées:', error);
       return false;
     }
   }
 
   /**
-   * Régénère les aperçus pour un template existant
+   * Régénère les métadonnées pour un template existant
    */
-  static async regenerateTemplateImages(templateId: string): Promise<boolean> {
+  static async regenerateTemplateMetadata(templateId: string): Promise<boolean> {
     try {
-      console.log('🔄 Régénération des aperçus pour le template:', templateId);
+      console.log('🔄 Régénération des métadonnées pour le template:', templateId);
       
       // Récupérer l'URL du PDF original
       const { data: template, error } = await supabase
@@ -336,7 +200,7 @@ export class PdfImageGenerator {
         throw new Error('Template ou URL PDF non trouvé');
       }
       
-      return await this.processTemplateImages(template.original_pdf_url, templateId);
+      return await this.processTemplateMetadata(template.original_pdf_url, templateId);
       
     } catch (error) {
       console.error('❌ Erreur lors de la régénération:', error);
