@@ -275,8 +275,8 @@ export const uploadImage = async (
       .from(bucketName)
       .upload(filePath, validFile, {
         cacheControl: '3600',
-        upsert: true,
-        contentType: correctedMimeType
+        upsert: true
+        // Ne pas spécifier contentType, laisser Supabase le détecter automatiquement
       });
 
     if (error) {
