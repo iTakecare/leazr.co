@@ -3,13 +3,27 @@ import html2pdf from 'html2pdf.js';
 import OfferPDFTemplate from '@/components/pdf/OfferPDFTemplate';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
+import { generateItakecareOfferPdf, ITAKECARE_HTML_TEMPLATE } from './htmlPdfGenerator';
 
 /**
- * Générer un PDF à partir des données de l'offre
+ * Générer un PDF à partir des données de l'offre avec support des templates HTML
  */
-export const generateOfferPdf = async (offerData) => {
+export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate?: boolean; customTemplate?: string }) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
+    
+    // Vérifier si on doit utiliser le template HTML
+    if (pdfOptions?.useHtmlTemplate) {
+      console.log("Utilisation du template HTML pour la génération PDF");
+      return await generateItakecareOfferPdf(
+        offerData, 
+        pdfOptions.customTemplate,
+        { filename: `offre-${offerData.id.substring(0, 8)}.pdf` }
+      );
+    }
+    
+    // Mode classique avec template React
+    console.log("Utilisation du template React classique");
     
     // Générer le HTML avec React
     const htmlContent = ReactDOMServer.renderToString(
