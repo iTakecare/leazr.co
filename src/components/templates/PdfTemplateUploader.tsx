@@ -8,9 +8,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { uploadFile, ensureBucket } from "@/services/fileStorage";
 import { useAuth } from "@/context/AuthContext";
 import { PDFDocument } from "pdf-lib";
+import { PdfImageGenerator } from "@/services/pdfImageGenerator";
 
 interface PdfTemplateUploaderProps {
-  onTemplateUploaded: (templateUrl: string, metadata: any) => void;
+  onTemplateUploaded: (templateUrl: string, metadata: any, templateId?: string) => void;
   currentTemplateUrl?: string;
 }
 
@@ -21,6 +22,7 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedTemplate, setUploadedTemplate] = useState<string | null>(currentTemplateUrl || null);
+  const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
 
   const validatePdfFile = (file: File): { isValid: boolean; error?: string } => {
     // Vérifier le type MIME
@@ -90,8 +92,28 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
         };
 
         setUploadedTemplate(uploadedUrl);
-        onTemplateUploaded(uploadedUrl, metadata);
+        
+        // Générer un ID temporaire pour le template
+        const tempTemplateId = `temp-${Date.now()}`;
+        
+        // Appeler onTemplateUploaded avec les métadonnées de base
+        onTemplateUploaded(uploadedUrl, metadata, tempTemplateId);
         toast.success(`Template PDF téléchargé avec succès (${pageCount} page${pageCount > 1 ? 's' : ''})`);
+        
+        // Générer les aperçus en arrière-plan
+        setIsGeneratingPreviews(true);
+        toast.info("Génération des aperçus en cours...");
+        
+        try {
+          console.log('🖼️ Démarrage génération aperçus pour:', uploadedUrl);
+          await PdfImageGenerator.processTemplateImages(uploadedUrl, tempTemplateId);
+          toast.success("Aperçus générés avec succès");
+        } catch (previewError) {
+          console.error('Erreur génération aperçus:', previewError);
+          toast.warning("Template téléchargé mais aperçus non générés");
+        } finally {
+          setIsGeneratingPreviews(false);
+        }
       } else {
         throw new Error("Échec du téléchargement");
       }
@@ -183,11 +205,11 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
         >
           <input {...getInputProps()} />
           <div className="flex flex-col items-center gap-4">
-            {isUploading ? (
+            {isUploading || isGeneratingPreviews ? (
               <>
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 <p className="text-sm text-muted-foreground">
-                  Téléchargement du template PDF...
+                  {isUploading ? "Téléchargement du template PDF..." : "Génération des aperçus..."}
                 </p>
               </>
             ) : (

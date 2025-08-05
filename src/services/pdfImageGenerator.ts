@@ -61,18 +61,15 @@ export class PdfImageGenerator {
         throw new Error('Impossible de créer le contexte canvas');
       }
 
-      // Utiliser PDF.js pour le rendu - configuration améliorée
+      // Utiliser PDF.js pour le rendu avec configuration simplifiée
       const pdfjsLib = await import('pdfjs-dist');
       
-      // Configurer le worker avec le package local
+      // Configuration worker simplifiée
       if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-          'pdfjs-dist/build/pdf.worker.min.js',
-          import.meta.url
-        ).toString();
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
       }
       
-      console.log('📚 PDF.js configuré, worker:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+      console.log('📚 PDF.js configuré, version:', pdfjsLib.version);
       
       // Charger le document PDF
       const loadingTask = pdfjsLib.getDocument({ 

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { 
   MoreVertical, 
   Edit, 
@@ -34,7 +35,7 @@ interface TemplatePreviewCardProps {
   onDuplicate: (templateId: string) => void;
   onDelete: (templateId: string) => void;
   onPreview: (templateId: string) => void;
-  onRegenerateImages?: (templateId: string) => void;
+  onRegenerateImages?: (templateId: string) => Promise<boolean>;
   className?: string;
 }
 
@@ -49,9 +50,30 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
   onRegenerateImages,
   className
 }) => {
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const fieldsCount = template.fields.length;
   const pagesCount = template.pages_data.length;
   const lastUpdated = new Date(template.updated_at);
+
+  const handleRegenerateClick = async () => {
+    if (!template.id || !onRegenerateImages) return;
+    
+    setIsRegenerating(true);
+    try {
+      const success = await onRegenerateImages(template.id);
+      
+      if (success) {
+        toast.success("Aperçus régénérés avec succès");
+      } else {
+        toast.error("Erreur lors de la régénération des aperçus");
+      }
+    } catch (error) {
+      console.error('Erreur régénération:', error);
+      toast.error("Erreur lors de la régénération des aperçus");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   return (
     <Card className={cn(
@@ -107,9 +129,9 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
                 Dupliquer
               </DropdownMenuItem>
               {onRegenerateImages && (
-                <DropdownMenuItem onClick={() => onRegenerateImages(template.id)}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Régénérer aperçus
+                <DropdownMenuItem onClick={handleRegenerateClick} disabled={isRegenerating}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  {isRegenerating ? 'Génération...' : 'Régénérer aperçus'}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />

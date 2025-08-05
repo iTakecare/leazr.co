@@ -190,10 +190,10 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
     }
   };
 
-  const handleRegenerateImages = async (template: CustomPdfTemplate) => {
+  const handleRegenerateImages = async (template: CustomPdfTemplate): Promise<boolean> => {
     if (!template.original_pdf_url) {
       toast.error('Impossible de régénérer les aperçus: URL PDF manquante');
-      return;
+      return false;
     }
 
     toast.info('Régénération des aperçus en cours...');
@@ -207,12 +207,15 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       if (success) {
         toast.success('Aperçus régénérés avec succès');
         loadMyTemplates(); // Recharger pour afficher les nouvelles images
+        return true;
       } else {
         toast.error('Erreur lors de la régénération des aperçus');
+        return false;
       }
     } catch (error) {
       console.error('Error regenerating images:', error);
       toast.error('Erreur lors de la régénération des aperçus');
+      return false;
     }
   };
 
