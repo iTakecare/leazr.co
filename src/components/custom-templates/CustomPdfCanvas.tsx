@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { CustomPdfTemplateField, ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
@@ -32,6 +32,20 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragField, setDragField] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // 🔧 DEBUG COMPLET - Tracking des changes de props pour identifier le problème
+  useEffect(() => {
+    console.log('🔧 DEBUG - Props template changé:', {
+      templateId: template.id,
+      fieldsCount: template.fields.length,
+      fields: template.fields.map(f => ({ id: f.id, label: f.label, page: f.position.page, visible: f.isVisible })),
+      currentPage: currentPage
+    });
+  }, [template, currentPage]);
+
+  useEffect(() => {
+    console.log('🔧 DEBUG - sampleData changé:', sampleData);
+  }, [sampleData]);
 
   // Conversion mm vers pixels
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
@@ -152,16 +166,38 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   };
 
   const renderField = (field: CustomPdfTemplateField) => {
+    // 🔧 DEBUG DÉTAILLÉ - Rendu de champ
+    console.log('🎨 RENDERFIELD - Début rendu:', {
+      fieldId: field.id,
+      fieldLabel: field.label,
+      position: field.position,
+      style: field.style,
+      mapping_key: field.mapping_key
+    });
+    
     const value = CustomPdfFieldMapper.resolveFieldValue(field.mapping_key, sampleData);
     const isSelected = field.id === selectedFieldId;
     
+    // 🔧 DEBUG - Calculs de position
+    const leftPx = mmToPx(field.position.x);
+    const topPx = mmToPx(field.position.y);
+    
+    console.log('🎨 RENDERFIELD - Calculs position:', {
+      xMm: field.position.x,
+      yMm: field.position.y,
+      leftPx: leftPx,
+      topPx: topPx,
+      zoomLevel: zoomLevel
+    });
+    
+    // 🔧 STYLE FORCÉ POUR DEBUG - Rouge fluo très visible
     const style = {
       position: 'absolute' as const,
-      left: `${mmToPx(field.position.x)}px`,
-      top: `${mmToPx(field.position.y)}px`,
+      left: `${leftPx}px`,
+      top: `${topPx}px`,
       fontSize: `${field.style.fontSize * zoomLevel}px`,
       fontFamily: field.style.fontFamily,
-      color: field.style.color,
+      color: '#000000', // Force noir pour visibilité
       fontWeight: field.style.fontWeight,
       textAlign: field.style.textAlign,
       cursor: 'move',
@@ -169,8 +205,14 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
       minWidth: field.style.width ? `${mmToPx(field.style.width)}px` : '80px',
       minHeight: field.style.height ? `${mmToPx(field.style.height)}px` : '20px',
       zIndex: isSelected ? 10 : 5,
-      maxWidth: '300px'
+      maxWidth: '300px',
+      // STYLE DEBUG TRÈS VISIBLE
+      backgroundColor: '#ff0000', // Rouge fluo
+      border: '3px solid #ffff00', // Bordure jaune
+      opacity: 1
     };
+    
+    console.log('🎨 RENDERFIELD - Style final:', style);
 
     return (
       <div
@@ -288,14 +330,39 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
           ))}
         </div>
 
+        {/* 🔧 DEBUG - Champ de test hardcodé pour vérifier le rendu */}
+        <div
+          style={{
+            position: 'absolute',
+            left: '50px',
+            top: '50px',
+            width: '150px',
+            height: '30px',
+            backgroundColor: '#00ff00',
+            border: '2px solid #0000ff',
+            color: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999
+          }}
+        >
+          CHAMP TEST HARDCODÉ
+        </div>
+
         {/* Champs positionnés */}
         {currentPageFields.length > 0 ? (
-          currentPageFields.map(renderField)
+          <>
+            <div style={{ position: 'absolute', top: '10px', left: '10px', color: 'red', fontSize: '12px', zIndex: 1000 }}>
+              DEBUG: {currentPageFields.length} champs trouvés
+            </div>
+            {currentPageFields.map(renderField)}
+          </>
         ) : (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
             {template.fields.length === 0 
               ? "Ajoutez des champs depuis la palette à droite" 
-              : `Aucun champ sur la page ${currentPage}`
+              : `Aucun champ sur la page ${currentPage} (Total: ${template.fields.length} champs)`
             }
           </div>
         )}
