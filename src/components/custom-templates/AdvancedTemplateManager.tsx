@@ -26,6 +26,7 @@ import {
 
 import { TemplateLibrary } from './TemplateLibrary';
 import { PdfTemplateUploader } from '../templates/PdfTemplateUploader';
+import { ImageTemplateUploader } from './ImageTemplateUploader';
 import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
 import { PdfImageGenerator } from '@/services/pdfImageGenerator';
@@ -34,6 +35,7 @@ import { FallbackImageGenerator } from '@/services/fallbackImageGenerator';
 import { CustomPdfTemplate } from '@/types/customPdfTemplate';
 import { useToast } from "@/hooks/use-toast";
 import { getTemplatePreviewImage } from '@/utils/templateImageUtils';
+import { ImageTemplatePage } from '@/types/imageTemplate';
 
 interface AdvancedTemplateManagerProps {
   clientId?: string;
@@ -143,6 +145,44 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       loadMyTemplates(); // Recharger la liste
     } catch (error) {
       console.error('Error creating template:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la création du template",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleImagesUploaded = async (pages: ImageTemplatePage[]) => {
+    try {
+      const templateData = {
+        name: `Template Images ${new Date().toLocaleDateString()}`,
+        description: 'Template créé à partir d\'images',
+        original_pdf_url: '', // Pas de PDF source
+        field_mappings: {},
+        template_metadata: {
+          template_type: 'image-based',
+          pages_count: pages.length,
+          pages_data: pages.map(page => ({
+            page_number: page.page_number,
+            image_url: page.image_url,
+            dimensions: page.dimensions,
+            width: page.dimensions.width,
+            height: page.dimensions.height
+          }))
+        }
+      };
+
+      const newTemplate = await customPdfTemplateService.createTemplate(templateData);
+      
+      toast({
+        title: "Succès",
+        description: `Template avec ${pages.length} page(s) créé avec succès`,
+      });
+      setIsImportOpen(false);
+      loadMyTemplates();
+    } catch (error) {
+      console.error('Error creating image template:', error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la création du template",
@@ -306,16 +346,25 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Upload className="h-4 w-4 mr-2" />
-                  Importer
+                  Créer Template
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Importer un Template PDF</DialogTitle>
+                  <DialogTitle>Créer un Nouveau Template</DialogTitle>
                 </DialogHeader>
-                <div className="p-4">
-                  <PdfTemplateUploader onTemplateUploaded={handleTemplateUploaded} />
-                </div>
+                <Tabs defaultValue="images" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="images">Template Images</TabsTrigger>
+                    <TabsTrigger value="pdf">Importer PDF</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="images" className="p-4">
+                    <ImageTemplateUploader onImagesUploaded={handleImagesUploaded} />
+                  </TabsContent>
+                  <TabsContent value="pdf" className="p-4">
+                    <PdfTemplateUploader onTemplateUploaded={handleTemplateUploaded} />
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           </div>
