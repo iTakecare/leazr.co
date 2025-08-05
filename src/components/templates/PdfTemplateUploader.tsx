@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { X, Upload, FileText, Eye } from "lucide-react";
+import { X, Upload, FileText, Eye, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { uploadFile, ensureBucket } from "@/services/fileStorage";
+import { useAuth } from "@/context/AuthContext";
 
 interface PdfTemplateUploaderProps {
   onTemplateUploaded: (templateUrl: string, metadata: any) => void;
@@ -15,6 +17,7 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
   onTemplateUploaded,
   currentTemplateUrl
 }) => {
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedTemplate, setUploadedTemplate] = useState<string | null>(currentTemplateUrl || null);
 
@@ -95,6 +98,19 @@ export const PdfTemplateUploader: React.FC<PdfTemplateUploaderProps> = ({
       window.open(uploadedTemplate, '_blank');
     }
   };
+
+  // If user is not authenticated, show auth required message
+  if (!user) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Vous devez être connecté pour télécharger des templates PDF. 
+          Veuillez vous connecter pour continuer.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-4">
