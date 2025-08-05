@@ -24,6 +24,7 @@ import {
 import { TemplateLibrary } from './TemplateLibrary';
 import { TemplateAnalytics } from './TemplateAnalytics';
 import { PdfTemplateUploader } from '../templates/PdfTemplateUploader';
+import CustomPdfTemplateEditor from './CustomPdfTemplateEditor';
 import { templateSharingService } from '@/services/templateSharingService';
 import { templateAnalyticsService } from '@/services/templateAnalyticsService';
 import customPdfTemplateService from '@/services/customPdfTemplateService';
@@ -39,6 +40,9 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
   const [companyAnalytics, setCompanyAnalytics] = useState<any>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<CustomPdfTemplate | null>(null);
   const [myTemplates, setMyTemplates] = useState<CustomPdfTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -95,6 +99,31 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
       console.error('Error creating template:', error);
       toast.error('Erreur lors de la création du template');
     }
+  };
+
+  const handleEditTemplate = (template: CustomPdfTemplate) => {
+    setSelectedTemplate(template);
+    setIsEditorOpen(true);
+  };
+
+  const handlePreviewTemplate = (template: CustomPdfTemplate) => {
+    setSelectedTemplate(template);
+    setIsPreviewOpen(true);
+  };
+
+  const handleEditorSave = (updatedTemplate: any) => {
+    toast.success('Template sauvegardé avec succès');
+    loadMyTemplates(); // Recharger la liste
+  };
+
+  const handleEditorClose = () => {
+    setIsEditorOpen(false);
+    setSelectedTemplate(null);
+  };
+
+  const handlePreviewClose = () => {
+    setIsPreviewOpen(false);
+    setSelectedTemplate(null);
   };
 
   return (
@@ -311,10 +340,20 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
                             {template.is_active ? 'Actif' : 'Inactif'}
                           </Badge>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handlePreviewTemplate(template)}
+                              title="Aperçu du template"
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditTemplate(template)}
+                              title="Éditer le template"
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                           </div>
@@ -397,6 +436,58 @@ export function AdvancedTemplateManager({ clientId }: AdvancedTemplateManagerPro
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog Editor */}
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <DialogContent className="max-w-[95vw] h-[95vh] p-0">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle>
+              Éditer le template: {selectedTemplate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {selectedTemplate && (
+              <CustomPdfTemplateEditor
+                clientId={clientId || ''}
+                templateId={selectedTemplate.id}
+                onSave={handleEditorSave}
+                onClose={handleEditorClose}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Preview */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              Aperçu: {selectedTemplate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto p-4">
+            {selectedTemplate?.original_pdf_url ? (
+              <div className="w-full h-96 border rounded-lg">
+                <iframe
+                  src={selectedTemplate.original_pdf_url}
+                  className="w-full h-full rounded-lg"
+                  title={`Aperçu de ${selectedTemplate.name}`}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
+                <div className="text-center">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">
+                    Aucun PDF disponible pour ce template
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
