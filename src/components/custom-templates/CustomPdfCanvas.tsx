@@ -1,8 +1,15 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import { Document, Page, pdfjs } from 'react-pdf';
 import { Card } from "@/components/ui/card";
 import { CustomPdfTemplateField, ExtendedCustomPdfTemplate } from "@/types/customPdfTemplateField";
 import { CustomPdfFieldMapper } from "@/services/customPdfFieldMapper";
 import { cn } from "@/lib/utils";
+
+// Configure PDF.js worker pour react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 interface CustomPdfCanvasProps {
   template: ExtendedCustomPdfTemplate;
@@ -31,6 +38,9 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragField, setDragField] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [pageHeight, setPageHeight] = useState(0);
 
   // Conversion mm vers pixels
   const mmToPx = (mm: number) => mm * 3.7795275591 * zoomLevel;
@@ -183,28 +193,46 @@ const CustomPdfCanvas: React.FC<CustomPdfCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* PDF Viewer - URL simplifiée sans paramètres problématiques */}
-        {template.original_pdf_url && (() => {
-          // URL simplifiée sans paramètres PDF spécifiques qui peuvent causer des problèmes
-          const pdfUrl = `${template.original_pdf_url}`;
-          console.log('🖼️ URL iframe PDF (simplifiée):', pdfUrl);
-          return (
-            <iframe
-              src={pdfUrl}
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{
-                border: 'none',
-                background: 'white'
+        {/* PDF Viewer avec react-pdf pour compatibilité Chrome */}
+        {template.original_pdf_url && (
+          <div className="absolute inset-0 w-full h-full pointer-events-none">
+            <Document
+              file={template.original_pdf_url}
+              onLoadSuccess={(pdf) => {
+                console.log('✅ PDF loaded successfully with react-pdf:', pdf.numPages, 'pages');
+                setPdfLoadError(false);
               }}
-              onLoad={() => console.log('✅ PDF iframe loaded successfully')}
-              onError={(e) => {
-                console.error('❌ PDF iframe failed to load:', e);
-                console.log('🔧 Essayez d\'ouvrir cette URL directement:', pdfUrl);
+              onLoadError={(error) => {
+                console.error('❌ PDF failed to load with react-pdf:', error);
+                setPdfLoadError(true);
               }}
-              title="PDF Template Viewer"
-            />
-          );
-        })()}
+              loading={
+                <div className="flex items-center justify-center h-full bg-gray-100">
+                  <div className="text-gray-600">Chargement du PDF...</div>
+                </div>
+              }
+              error={
+                <div className="flex items-center justify-center h-full bg-red-50">
+                  <div className="text-red-600">Erreur de chargement du PDF</div>
+                </div>
+              }
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={zoomLevel}
+                onLoadSuccess={(page) => {
+                  setPageWidth(page.width);
+                  setPageHeight(page.height);
+                  console.log('✅ Page loaded:', page.pageNumber, `${page.width}x${page.height}`);
+                }}
+                className="react-pdf__Page"
+                canvasBackground="white"
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+            </Document>
+          </div>
+        )}
         {/* Grille de repères */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
           {/* Lignes verticales tous les 10mm */}
