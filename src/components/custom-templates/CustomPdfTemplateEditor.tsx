@@ -25,6 +25,7 @@ import { VersionHistory } from './VersionHistory';
 import { CollaborationPanel } from './CollaborationPanel';
 import { CommentSystem } from './CommentSystem';
 import { TemplateAnalytics } from './TemplateAnalytics';
+import { PDFPreviewDialog } from './PDFPreviewDialog';
 
 interface CustomPdfTemplateEditorProps {
   clientId: string;
@@ -365,8 +366,10 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
     toast.success(`${selectedFieldIds.length} champ(s) supprimé(s)`);
   }, [template, selectedFieldIds]);
 
+  const [showPreview, setShowPreview] = useState(false);
+
   const handlePreview = useCallback(() => {
-    toast.info("Aperçu en cours de développement");
+    setShowPreview(true);
   }, []);
 
   // Obtenir le champ sélectionné
@@ -676,6 +679,14 @@ const CustomPdfTemplateEditor: React.FC<CustomPdfTemplateEditorProps> = ({
           </>
         )}
       </div>
+
+      {/* Dialog d'aperçu */}
+      <PDFPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        template={template}
+        sampleData={sampleData}
+      />
     </div>
   );
 };
