@@ -130,19 +130,48 @@ const customPdfTemplateService = {
 
   // Mettre à jour un template
   async updateTemplate(templateId: string, updates: Partial<CustomPdfTemplate>): Promise<CustomPdfTemplate> {
-    const { data, error } = await supabase
-      .from('custom_pdf_templates')
-      .update(updates)
-      .eq('id', templateId)
-      .select()
-      .single();
+    console.log('🚀 Début de la mise à jour du template:', templateId);
+    console.log('📝 Données à mettre à jour:', Object.keys(updates));
+    
+    try {
+      // Nettoyer les données pour ne garder que les champs valides de la table
+      const validFields = [
+        'name', 'description', 'original_pdf_url', 'field_mappings', 
+        'template_metadata', 'is_active', 'version_number', 'updated_at'
+      ];
+      
+      const cleanedUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([key]) => validFields.includes(key))
+      );
+      
+      // S'assurer que updated_at est défini
+      cleanedUpdates.updated_at = new Date().toISOString();
+      
+      console.log('🧹 Données nettoyées:', Object.keys(cleanedUpdates));
+      
+      const { data, error } = await supabase
+        .from('custom_pdf_templates')
+        .update(cleanedUpdates)
+        .eq('id', templateId)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error updating template:', error);
+      if (error) {
+        console.error('❌ Erreur lors de la mise à jour:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Template mis à jour mais aucune donnée retournée');
+      }
+
+      console.log('✅ Template mis à jour avec succès');
+      return data;
+      
+    } catch (error) {
+      console.error('💥 Erreur dans updateTemplate:', error);
       throw error;
     }
-
-    return data;
   },
 
   // Supprimer un template et ses fichiers associés
