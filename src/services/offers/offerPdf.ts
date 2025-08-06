@@ -201,26 +201,36 @@ export const generateAndDownloadOfferPdf = async (
     
     if (offerData.company_id) {
       try {
-        console.log("Vérification de l'existence d'un template HTML pour l'entreprise:", offerData.company_id);
+        console.log("🔍 Vérification de l'existence d'un template pour l'entreprise:", offerData.company_id);
         const template = await PDFTemplateService.getTemplateForOffer(
           offerData.company_id,
           'standard',
           'offer'
         );
         
+        console.log("🔍 Template récupéré:", template);
+        
         if (template) {
-          console.log("Template trouvé pour l'entreprise, utilisation du template HTML iTakecare");
-          console.log("Template file URL:", template.template_file_url);
+          console.log("✅ Template trouvé pour l'entreprise - FORÇAGE du template HTML iTakecare");
+          console.log("🔍 Template details:", {
+            id: template.template_id,
+            file_url: template.template_file_url,
+            company_data: template.company_data
+          });
+          
+          // FORCER l'utilisation du template HTML iTakecare dès qu'un template existe
           pdfOptions = {
             useHtmlTemplate: true,
-            customTemplate: template.template_file_url || null, // null utilisera le template par défaut iTakecare
+            customTemplate: null, // null force l'utilisation du template iTakecare par défaut
             templateData: template
           };
+          
+          console.log("🎯 Options PDF configurées pour template HTML:", pdfOptions);
         } else {
-          console.log("Aucun template trouvé, utilisation du template React standard");
+          console.log("❌ Aucun template trouvé, utilisation du template React standard");
         }
       } catch (error) {
-        console.warn("Erreur lors de la vérification du template HTML, utilisation du fallback:", error);
+        console.warn("⚠️ Erreur lors de la vérification du template HTML, utilisation du fallback:", error);
       }
     }
     
