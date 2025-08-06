@@ -70,28 +70,33 @@ export const generateSimplePdf = async (
     const templateData = prepareOfferDataForTemplate(offerData);
     console.log("✅ Données préparées:", Object.keys(templateData).length, "champs");
     
-    // Remplacer les champs template par remplacement de chaîne direct
+    // Analyser le template pour identifier le type de placeholders utilisés
+    console.log("🔍 Analyse du template HTML...");
+    const placeholders = htmlTemplate.match(/\{\{[^}]+\}\}/g) || [];
+    console.log("🎯 Placeholders trouvés:", placeholders.slice(0, 10)); // Afficher les 10 premiers
+    
     let processedHtml = htmlTemplate;
     
-    console.log("🔄 Remplacement des champs template...");
-    console.log("🔍 Template contains these placeholders:", htmlTemplate.match(/\{\{[^}]+\}\}/g) || []);
-    
-    let replacementCount = 0;
-    for (const [key, value] of Object.entries(templateData)) {
-      const placeholder = `{{${key}}}`;
-      const stringValue = String(value || '');
-      const beforeLength = processedHtml.length;
-      processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), stringValue);
-      const afterLength = processedHtml.length;
+    // Si le template contient des constructions Handlebars, utiliser le service approprié
+    if (placeholders.some(p => p.includes('#') || p.includes('/'))) {
+      console.log("🔧 Template Handlebars détecté, utilisation du service...");
       
-      if (beforeLength !== afterLength) {
-        replacementCount++;
-        console.log(`✅ Replaced ${placeholder} with: ${stringValue.substring(0, 50)}${stringValue.length > 50 ? '...' : ''}`);
+      try {
+        const { HtmlTemplateService, convertOfferToTemplateData } = await import('@/services/htmlTemplateService');
+        const templateService = HtmlTemplateService.getInstance();
+        const handlebarsData = convertOfferToTemplateData(offerData);
+        
+        console.log("📋 Données Handlebars préparées:", Object.keys(handlebarsData));
+        processedHtml = templateService.compileTemplate(htmlTemplate, handlebarsData);
+        console.log("✅ Template compilé avec Handlebars");
+      } catch (error) {
+        console.error("❌ Erreur Handlebars, fallback vers remplacement simple:", error);
+        processedHtml = performSimpleReplacement(htmlTemplate, templateData);
       }
+    } else {
+      console.log("🔄 Template simple détecté, remplacement direct...");
+      processedHtml = performSimpleReplacement(htmlTemplate, templateData);
     }
-    
-    console.log(`🔍 Total replacements made: ${replacementCount} out of ${Object.keys(templateData).length} fields`);
-    
     // Nettoyer le HTML pour supprimer le guide des templates
     const cleanedHtml = cleanHtmlForPdf(processedHtml);
     console.log("🧹 HTML nettoyé, taille finale:", cleanedHtml.length);
@@ -212,6 +217,28 @@ export const generateSimplePdf = async (
     console.error("Erreur lors de la génération du PDF:", error);
     throw error;
   }
+};
+
+// Fonction helper pour remplacement simple
+const performSimpleReplacement = (htmlTemplate: string, templateData: Record<string, any>): string => {
+  let processedHtml = htmlTemplate;
+  let replacementCount = 0;
+  
+  for (const [key, value] of Object.entries(templateData)) {
+    const placeholder = `{{${key}}}`;
+    const stringValue = String(value || '');
+    const beforeLength = processedHtml.length;
+    
+    processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), stringValue);
+    
+    if (processedHtml.length !== beforeLength) {
+      replacementCount++;
+      console.log(`✅ Remplacé ${placeholder} -> ${stringValue.substring(0, 50)}${stringValue.length > 50 ? '...' : ''}`);
+    }
+  }
+  
+  console.log(`📊 Remplacements effectués: ${replacementCount}/${Object.keys(templateData).length}`);
+  return processedHtml;
 };
 
 /**
