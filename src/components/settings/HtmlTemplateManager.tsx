@@ -11,7 +11,7 @@ import { Eye, Download, Save, FileText, AlertCircle, CheckCircle, BarChart3, Ima
 import HtmlTemplateService from '@/services/htmlTemplateService';
 import { ITAKECARE_HTML_TEMPLATE, previewHtmlTemplate } from '@/utils/htmlPdfGenerator';
 import { generateSamplePdf } from '@/services/offers/offerPdf';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 
 interface HtmlTemplate {
@@ -256,7 +256,7 @@ const HtmlTemplateManager: React.FC = () => {
           const logos = files.map(file => ({
             id: file.id || file.name,
             name: file.name,
-            url: `${supabase.storageUrl}/object/public/client-logos/${profile.company_id}/${file.name}`,
+            url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/${profile.company_id}/${file.name}`,
             file: null
           }));
           setClientLogos(logos);
@@ -335,7 +335,7 @@ const HtmlTemplateManager: React.FC = () => {
         const newLogo: ClientLogo = {
           id: fileName,
           name: fileName,
-          url: `${supabase.storageUrl}/object/public/client-logos/${filePath}`,
+          url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/${filePath}`,
           file: null
         };
 
