@@ -18,30 +18,37 @@ export interface HtmlPdfOptions {
  */
 const cleanHtmlForPdf = (html: string): string => {
   console.log('🧹 Nettoyage du HTML pour PDF...');
-  console.log('HTML avant nettoyage (longueur):', html.length);
+  console.log('🔍 HTML avant nettoyage (longueur):', html.length);
+  const originalLength = html.length;
   
-  // Supprimer complètement la section template-guide
-  let cleanedHtml = html.replace(
-    /<div[^>]*class[^>]*template-guide[^>]*>[\s\S]*?<\/div>/gi,
-    ''
-  );
+  // Remove template-guide sections more carefully - multiple variations
+  let cleanedHtml = html
+    .replace(/<div[^>]*class="[^"]*template-guide[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<section[^>]*class="[^"]*template-guide[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
+    .replace(/<div[^>]*template-guide[^>]*>[\s\S]*?<\/div>/gi, '');
   
-  // Supprimer les commentaires HTML
+  // Remove HTML comments
   cleanedHtml = cleanedHtml.replace(/<!--[\s\S]*?-->/g, '');
   
-  // Vérifier si le HTML contient encore du texte brut au lieu de HTML rendu
-  const hasRawHtml = cleanedHtml.includes('&lt;div') || cleanedHtml.includes('&gt;');
+  // Check if HTML is escaped and decode if necessary
+  const hasRawHtml = cleanedHtml.includes('&lt;') || cleanedHtml.includes('&gt;');
   if (hasRawHtml) {
-    console.warn('⚠️ ATTENTION: Le HTML contient encore du code échappé');
-    // Décoder les entités HTML échappées si nécessaire
+    console.warn('⚠️ ATTENTION: Le HTML contient du code échappé, décodage...');
     cleanedHtml = cleanedHtml
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
       .replace(/&amp;/g, '&');
   }
   
-  console.log('✅ HTML nettoyé (longueur finale):', cleanedHtml.length);
+  const finalLength = cleanedHtml.length;
+  console.log(`✅ HTML cleaned: ${originalLength} -> ${finalLength} characters (${originalLength - finalLength} removed)`);
+  
+  // Warning if too much content was removed
+  if (finalLength < originalLength * 0.3) {
+    console.warn('⚠️ WARNING: More than 70% of HTML was removed during cleaning!');
+  }
   
   return cleanedHtml;
 };
@@ -67,11 +74,23 @@ export const generateSimplePdf = async (
     let processedHtml = htmlTemplate;
     
     console.log("🔄 Remplacement des champs template...");
+    console.log("🔍 Template contains these placeholders:", htmlTemplate.match(/\{\{[^}]+\}\}/g) || []);
+    
+    let replacementCount = 0;
     for (const [key, value] of Object.entries(templateData)) {
       const placeholder = `{{${key}}}`;
       const stringValue = String(value || '');
+      const beforeLength = processedHtml.length;
       processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), stringValue);
+      const afterLength = processedHtml.length;
+      
+      if (beforeLength !== afterLength) {
+        replacementCount++;
+        console.log(`✅ Replaced ${placeholder} with: ${stringValue.substring(0, 50)}${stringValue.length > 50 ? '...' : ''}`);
+      }
     }
+    
+    console.log(`🔍 Total replacements made: ${replacementCount} out of ${Object.keys(templateData).length} fields`);
     
     // Nettoyer le HTML pour supprimer le guide des templates
     const cleanedHtml = cleanHtmlForPdf(processedHtml);
@@ -199,77 +218,77 @@ export const generateSimplePdf = async (
  * Prépare les données d'offre pour le remplacement dans le template
  */
 const prepareOfferDataForTemplate = (offerData: any) => {
-  console.log("📋 Préparation des données pour template:", offerData.id);
+  console.log("📋 Préparation des données pour template - ID:", offerData.id);
+  console.log("📋 Données brutes reçues:", {
+    id: offerData.id,
+    client_name: offerData.client_name,
+    amount: offerData.amount,
+    monthly_payment: offerData.monthly_payment,
+    financed_amount: offerData.financed_amount
+  });
   
-  // Extraire les données d'équipement
-  let equipmentData = [];
-  if (offerData.equipment_data && Array.isArray(offerData.equipment_data)) {
-    equipmentData = offerData.equipment_data;
-  } else if (offerData.equipment_description) {
-    try {
-      const parsed = JSON.parse(offerData.equipment_description);
-      equipmentData = Array.isArray(parsed) ? parsed : [parsed];
-    } catch {
-      equipmentData = [{
-        title: "Équipement",
-        description: offerData.equipment_description,
-        purchasePrice: offerData.amount || 0,
-        quantity: 1
-      }];
-    }
-  }
-
-  // Calculer les totaux
-  const totalAmount = equipmentData.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
-  const totalMonthly = equipmentData.reduce((sum, item) => sum + (item.monthlyPayment || 0), 0);
-  
-  // Calculer les assurances (2% du montant total)
-  const insuranceAmount = totalAmount * 0.02;
-  const monthlyInsurance = insuranceAmount / 60; // Sur 60 mois
-
-  // Préparer les logos clients en HTML simple
-  const clientLogos = `
-    <div class="client-logos">
-      <img src="/api/placeholder/150/60" alt="Logo client" style="max-height: 60px; margin: 0 10px;" />
-    </div>
-  `;
-
-  return {
-    // Informations de base
-    offer_id: offerData.offer_id || `OFF-${offerData.id?.substring(0, 8).toUpperCase()}`,
-    client_name: offerData.client_name || offerData.clients?.name || "Client",
-    client_company: offerData.client_company || offerData.clients?.company || "",
-    client_email: offerData.client_email || offerData.clients?.email || "",
-    client_phone: offerData.clients?.phone || "",
-    client_address: offerData.clients?.address || "",
-    client_city: offerData.clients?.city || "",
-    client_postal_code: offerData.clients?.postal_code || "",
+  // Use exact DB field names - no guessing
+  const templateData = {
+    // Basic offer info using real DB columns
+    offer_id: offerData.id || '',
+    client_name: offerData.client_name || '',
+    client_email: offerData.client_email || '',
+    client_company: offerData.client?.company || '',
+    amount: (offerData.amount || 0).toFixed(2),
+    monthly_payment: (offerData.monthly_payment || 0).toFixed(2),
+    financed_amount: (offerData.financed_amount || offerData.amount || 0).toFixed(2),
+    coefficient: (offerData.coefficient || 0).toFixed(4),
+    commission: (offerData.commission || 0).toFixed(2),
+    margin: (offerData.margin || 0).toFixed(2),
     
-    // Dates formatées
-    offer_date: new Date(offerData.created_at || Date.now()).toLocaleDateString('fr-FR'),
+    // Equipment description
+    equipment_description: offerData.equipment_description || '',
     
-    // Montants formatés
-    total_amount: totalAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
-    monthly_payment: totalMonthly.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
-    insurance_amount: insuranceAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
-    monthly_insurance: monthlyInsurance.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
+    // Dates
+    offer_date: offerData.created_at ? new Date(offerData.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
+    current_date: new Date().toLocaleDateString('fr-FR'),
     
-    // HTML content
-    client_logos: clientLogos,
+    // Status
+    status: offerData.status || 'pending',
+    workflow_status: offerData.workflow_status || '',
+    type: offerData.type || 'admin_offer',
+    remarks: offerData.remarks || '',
     
-    // Équipements en JSON pour usage avancé
-    equipment_json: JSON.stringify(equipmentData),
+    // Insurance calculations
+    insurance_amount: ((offerData.financed_amount || offerData.amount || 0) * 0.02).toFixed(2),
+    total_insurance_amount: ((offerData.financed_amount || offerData.amount || 0) * 0.02 * 36).toFixed(2),
     
-    // Premier équipement pour compatibilité
-    equipment_title: equipmentData[0]?.title || "Équipement",
-    equipment_description: equipmentData[0]?.description || "",
-    equipment_price: equipmentData[0]?.purchasePrice?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0 €",
+    // Company defaults for iTakecare
+    company_name: 'iTakecare',
+    company_address: 'Rue de la Innovation 123, 1000 Bruxelles',
+    company_phone: '+32 2 123 45 67',
+    company_email: 'contact@itakecare.be',
     
-    // Images par défaut (base64 ou URLs)
+    // Client details from relationships
+    client_address: offerData.client?.address || '',
+    client_phone: offerData.client?.phone || '',
+    client_city: offerData.client?.city || '',
+    client_postal_code: offerData.client?.postal_code || '',
+    
+    // Leaser info
+    leaser_name: offerData.leaser?.name || 'Leaser par défaut',
+    
+    // Default images and logos
+    client_logos: '<div class="client-logos"><img src="/api/placeholder/150/60" alt="Logo client" style="max-height: 60px; margin: 0 10px;" /></div>',
     base64_image_cover: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwNzNlNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+Q292ZXI8L3RleHQ+PC9zdmc+",
     base64_image_vision: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwYzg1MSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+VmlzaW9uPC90ZXh0Pjwvc3ZnPg==",
     base64_image_logo: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+TG9nbzwvdGV4dD48L3N2Zz4="
   };
+  
+  console.log("✅ Template data prepared with", Object.keys(templateData).length, "fields");
+  console.log("🔍 Key values:", {
+    offer_id: templateData.offer_id,
+    client_name: templateData.client_name,
+    amount: templateData.amount,
+    monthly_payment: templateData.monthly_payment
+  });
+  
+  return templateData;
 };
 
 /**
