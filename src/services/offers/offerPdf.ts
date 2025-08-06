@@ -158,11 +158,34 @@ export const generateAndDownloadOfferPdf = async (
     });
 
 
-    // Système de génération PDF standard
-    console.log("Utilisation du système de génération PDF standard");
+    // Vérifier d'abord s'il existe un template HTML pour cette entreprise
+    let pdfOptions = {};
     
-    // Générer le PDF avec le système standard
-    const filename = await generateOfferPdf(offerData);
+    if (offerData.company_id) {
+      try {
+        console.log("Vérification de l'existence d'un template HTML pour l'entreprise:", offerData.company_id);
+        const template = await PDFTemplateService.getTemplateForOffer(
+          offerData.company_id,
+          'standard',
+          'offer'
+        );
+        
+        if (template && template.template_file_url) {
+          console.log("Template HTML trouvé, utilisation pour la génération PDF:", template.template_file_url);
+          pdfOptions = {
+            useHtmlTemplate: true,
+            customTemplate: template.template_file_url
+          };
+        } else {
+          console.log("Aucun template HTML trouvé, utilisation du template React standard");
+        }
+      } catch (error) {
+        console.warn("Erreur lors de la vérification du template HTML, utilisation du fallback:", error);
+      }
+    }
+    
+    // Générer le PDF avec les options appropriées
+    const filename = await generateOfferPdf(offerData, pdfOptions);
     
     if (!filename) {
       toast.error("Erreur lors de la génération du PDF");
