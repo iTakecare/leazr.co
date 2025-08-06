@@ -13,6 +13,7 @@ import { ITAKECARE_HTML_TEMPLATE, previewHtmlTemplate } from '@/utils/htmlPdfGen
 import { generateSamplePdf } from '@/services/offers/offerPdf';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { uploadImage, getCacheBustedUrl } from '@/utils/imageUtils';
 
 interface HtmlTemplate {
   id: string;
@@ -322,20 +323,18 @@ const HtmlTemplateManager: React.FC = () => {
       if (!profile?.company_id) return;
 
       for (const file of Array.from(files)) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${profile.company_id}/${fileName}`;
+        // Utiliser le service fileUploadService qui gère automatiquement les permissions
+        const uploadedUrl = await uploadImage(file, 'client-logos', profile.company_id);
+        
+        if (!uploadedUrl) {
+          throw new Error('Échec de l\'upload du logo');
+        }
 
-        const { error: uploadError } = await supabase.storage
-          .from('client-logos')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
+        const fileName = file.name;
         const newLogo: ClientLogo = {
-          id: fileName,
+          id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
           name: fileName,
-          url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/${filePath}`,
+          url: uploadedUrl,
           file: null
         };
 
