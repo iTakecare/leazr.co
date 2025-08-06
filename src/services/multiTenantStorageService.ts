@@ -14,7 +14,8 @@ export type StorageType =
   | 'pdf-templates'
   | 'leaser-logos'
   | 'blog-images'
-  | 'site-settings';
+  | 'site-settings'
+  | 'client-logos';
 
 /**
  * Génère le chemin de stockage multi-tenant

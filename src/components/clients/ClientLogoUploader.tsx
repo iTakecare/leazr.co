@@ -3,8 +3,7 @@ import { Upload, Image as ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { uploadImage } from "@/utils/imageUtils";
-import { ensureBucket } from "@/services/fileStorage";
+import { uploadFileMultiTenant } from "@/services/multiTenantStorageService";
 import { getCacheBustedUrl } from "@/services/fileUploadService";
 
 interface ClientLogoUploaderProps {
@@ -43,11 +42,8 @@ export const ClientLogoUploader: React.FC<ClientLogoUploaderProps> = ({
     setError(null);
 
     try {
-      // S'assurer que le bucket existe
-      await ensureBucket("client-logos");
-      
       const fileName = clientId ? `client-${clientId}-logo` : `logo-${Date.now()}`;
-      const uploadedUrl = await uploadImage(file, "client-logos", fileName);
+      const uploadedUrl = await uploadFileMultiTenant(file, "client-logos", fileName);
 
       if (uploadedUrl) {
         setLogoUrl(uploadedUrl);

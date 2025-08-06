@@ -430,15 +430,15 @@ export class HtmlTemplateService {
           };
         }
 
-        // Charger les logos clients
+        // Charger les logos clients avec la structure multi-tenant
         const { data: files } = await supabase.storage
           .from('client-logos')
-          .list(`${companyId}/`, { limit: 10 });
+          .list(`company-${companyId}/`, { limit: 10 });
 
         if (files && files.length > 0) {
           clientLogos = files.map(file => ({
-            url: `${supabase.supabaseUrl}/storage/v1/object/public/client-logos/${companyId}/${file.name}`,
-            name: file.name
+            url: `${supabase.supabaseUrl}/storage/v1/object/public/client-logos/company-${companyId}/${file.name}`,
+            name: file.name.replace(/client-.*?-logo\..*$/, '').replace(/^.*-/, '') || file.name
           }));
         }
       } catch (error) {
