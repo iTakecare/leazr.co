@@ -299,15 +299,46 @@ export class HtmlTemplateService {
     try {
       this.ensureHelpersRegistered();
       
-      // Compiler le template Handlebars
-      const template = Handlebars.compile(htmlTemplate);
+      console.log('🔧 Compilation du template Handlebars...');
+      console.log('Template length:', htmlTemplate.length);
+      console.log('Data keys:', Object.keys(data));
+      
+      // Préprocesser le template pour s'assurer que les champs HTML utilisent des triple braces
+      let processedTemplate = htmlTemplate;
+      
+      // Remplacer {{client_logos}} par {{{client_logos}}} pour éviter l'échappement HTML
+      processedTemplate = processedTemplate.replace(/\{\{client_logos\}\}/g, '{{{client_logos}}}');
+      
+      // S'assurer que les autres champs HTML utilisent aussi des triple braces
+      const htmlFields = ['client_logos', 'base64_image_cover', 'base64_image_vision', 'base64_image_logo'];
+      htmlFields.forEach(field => {
+        const singleBraceRegex = new RegExp(`\\{\\{${field}\\}\\}`, 'g');
+        const tripleBraceReplacement = `{{{${field}}}}`;
+        processedTemplate = processedTemplate.replace(singleBraceRegex, tripleBraceReplacement);
+      });
+      
+      console.log('✅ Template préprocessé pour échappement HTML');
+      
+      // Compiler le template Handlebars avec le template préprocessé
+      const template = Handlebars.compile(processedTemplate, {
+        noEscape: false, // On garde l'échappement par défaut, sauf pour les triple braces
+        strict: false
+      });
       
       // Générer le HTML final
       const compiledHtml = template(data);
+      console.log('✅ Template compilé avec succès, taille finale:', compiledHtml.length);
+      
+      // Vérifier si le HTML contient encore du code brut (debugging)
+      if (compiledHtml.includes('<div class="client-logos-grid"')) {
+        console.log('✅ HTML des logos clients correctement injecté');
+      } else {
+        console.warn('⚠️ Attention: HTML des logos clients pourrait ne pas être correctement injecté');
+      }
       
       return compiledHtml;
     } catch (error) {
-      console.error('Erreur lors de la compilation du template HTML:', error);
+      console.error('❌ Erreur lors de la compilation du template HTML:', error);
       throw new Error(`Erreur de compilation du template: ${error.message}`);
     }
   }

@@ -17,14 +17,33 @@ export interface HtmlPdfOptions {
  * Nettoie le HTML en supprimant les sections qui ne doivent pas apparaître dans le PDF
  */
 const cleanHtmlForPdf = (html: string): string => {
+  console.log('🧹 Nettoyage du HTML pour PDF...');
+  console.log('HTML avant nettoyage (longueur):', html.length);
+  
   // Supprimer complètement la section template-guide
-  const cleanedHtml = html.replace(
+  let cleanedHtml = html.replace(
     /<div[^>]*class[^>]*template-guide[^>]*>[\s\S]*?<\/div>/gi,
     ''
   );
   
   // Supprimer les commentaires HTML
-  return cleanedHtml.replace(/<!--[\s\S]*?-->/g, '');
+  cleanedHtml = cleanedHtml.replace(/<!--[\s\S]*?-->/g, '');
+  
+  // Vérifier si le HTML contient encore du texte brut au lieu de HTML rendu
+  const hasRawHtml = cleanedHtml.includes('&lt;div') || cleanedHtml.includes('&gt;');
+  if (hasRawHtml) {
+    console.warn('⚠️ ATTENTION: Le HTML contient encore du code échappé');
+    // Décoder les entités HTML échappées si nécessaire
+    cleanedHtml = cleanedHtml
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+  }
+  
+  console.log('✅ HTML nettoyé (longueur finale):', cleanedHtml.length);
+  
+  return cleanedHtml;
 };
 
 /**
