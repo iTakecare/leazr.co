@@ -1,5 +1,6 @@
 import Handlebars from 'handlebars';
 import { formatCurrency } from '@/utils/formatters';
+import { supabase } from '@/integrations/supabase/client';
 
 // Interface pour les données d'offre compatible avec les templates HTML
 export interface HtmlTemplateData {
@@ -58,6 +59,11 @@ const setupHandlebarsHelpers = () => {
   // Helper pour les calculs simples
   Handlebars.registerHelper('multiply', (a: number, b: number) => {
     return (a || 0) * (b || 0);
+  });
+
+  // Helper pour rendre du HTML brut (triple braces {{{}}} automatique)
+  Handlebars.registerHelper('html', (content: string) => {
+    return new Handlebars.SafeString(content || '');
   });
 
   // Helper pour formater les nombres
@@ -130,16 +136,46 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
     company_stats_devices: '2500',
     company_stats_co2: '45.5',
     company_started_year: '2020',
-    // Logos clients (grille HTML par défaut)
-    client_logos_count: '12',
-    client_logos: `
-      <div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 1" style="max-height: 60px; object-fit: contain;">
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 2" style="max-height: 60px; object-fit: contain;">
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 3" style="max-height: 60px; object-fit: contain;">
-      </div>
-    `
+  // Logos clients (grille HTML par défaut)
+  client_logos_count: '12',
+      client_logos: generateClientLogosHtml([]) // Utilise une fonction pour générer le HTML
   };
+};
+
+// Générer le HTML pour les logos clients
+const generateClientLogosHtml = (logos: Array<{ url: string; name: string }> = []): string => {
+  if (logos.length === 0) {
+    // Logos d'exemple par défaut
+    return `
+      <div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
+        <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+1" alt="Logo Client 1" style="max-width: 100%; height: auto; max-height: 60px;"/>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 1</p>
+        </div>
+        <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+2" alt="Logo Client 2" style="max-width: 100%; height: auto; max-height: 60px;"/>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 2</p>
+        </div>
+        <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+3" alt="Logo Client 3" style="max-width: 100%; height: auto; max-height: 60px;"/>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 3</p>
+        </div>
+      </div>
+    `;
+  }
+
+  const logosHtml = logos.map(logo => `
+    <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+      <img src="${logo.url}" alt="${logo.name}" style="max-width: 100%; height: auto; max-height: 60px;"/>
+      <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${logo.name.replace(/\.[^/.]+$/, '')}</p>
+    </div>
+  `).join('\n');
+
+  return `
+    <div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
+      ${logosHtml}
+    </div>
+  `;
 };
 
 // Formater l'adresse complète du client
@@ -172,6 +208,81 @@ export class HtmlTemplateService {
       HtmlTemplateService.instance = new HtmlTemplateService();
     }
     return HtmlTemplateService.instance;
+  }
+
+  /**
+   * Sauvegarder un template HTML en base de données
+   */
+  public async saveTemplate(templateData: {
+    name: string;
+    description?: string;
+    html_content: string;
+    company_id: string;
+    is_default?: boolean;
+  }): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from('html_templates')
+        .insert({
+          name: templateData.name,
+          description: templateData.description || '',
+          html_content: templateData.html_content,
+          company_id: templateData.company_id,
+          is_default: templateData.is_default || false
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      return data.id;
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du template:', error);
+      throw new Error(`Erreur de sauvegarde: ${error.message}`);
+    }
+  }
+
+  /**
+   * Charger les templates d'une entreprise
+   */
+  public async loadCompanyTemplates(companyId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('html_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Erreur lors du chargement des templates:', error);
+      throw new Error(`Erreur de chargement: ${error.message}`);
+    }
+  }
+
+  /**
+   * Mettre à jour un template existant
+   */
+  public async updateTemplate(templateId: string, updates: {
+    name?: string;
+    description?: string;
+    html_content?: string;
+    is_default?: boolean;
+  }): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('html_templates')
+        .update(updates)
+        .eq('id', templateId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du template:', error);
+      throw new Error(`Erreur de mise à jour: ${error.message}`);
+    }
   }
 
   private ensureHelpersRegistered() {
@@ -237,9 +348,23 @@ export class HtmlTemplateService {
   }
 
   /**
-   * Prévisualiser un template avec des données d'exemple
+   * Prévisualiser un template avec des données réelles ou d'exemple
    */
-  public previewTemplate(htmlTemplate: string): string {
+  public async previewTemplate(htmlTemplate: string, companyId?: string): Promise<string> {
+    try {
+      const sampleData = await this.generatePreviewData(companyId);
+      return this.compileTemplate(htmlTemplate, sampleData);
+    } catch (error) {
+      console.error('Erreur lors de la prévisualisation:', error);
+      // Fallback vers des données d'exemple
+      return this.previewTemplateWithSampleData(htmlTemplate);
+    }
+  }
+
+  /**
+   * Prévisualiser avec des données d'exemple (fallback)
+   */
+  public previewTemplateWithSampleData(htmlTemplate: string): string {
     const sampleData: HtmlTemplateData = {
       client_name: 'Jean Dupont',
       company_name: 'ACME SA',
@@ -265,20 +390,93 @@ export class HtmlTemplateService {
       // Stats d'entreprise (exemples)
       company_stats_clients: '150',
       company_stats_devices: '2500', 
-      company_stats_co2: '45.5',
+      company_stats_co2: '45.5 tonnes',
       company_started_year: '2020',
       // Logos clients (exemple)
-      client_logos_count: '12',
-      client_logos: `
-        <div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
-          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 1" style="max-height: 60px; object-fit: contain;">
-          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 2" style="max-height: 60px; object-fit: contain;">
-          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 3" style="max-height: 60px; object-fit: contain;">
-        </div>
-      `
+      client_logos_count: '3',
+      client_logos: generateClientLogosHtml([])
     };
 
     return this.compileTemplate(htmlTemplate, sampleData);
+  }
+
+  /**
+   * Générer des données de prévisualisation avec les vraies données de l'entreprise
+   */
+  private async generatePreviewData(companyId?: string): Promise<HtmlTemplateData> {
+    let companyStats = {
+      clients_count: 150,
+      devices_count: 2500,
+      co2_saved: 45.5,
+      started_year: 2020
+    };
+    let clientLogos: Array<{ url: string; name: string }> = [];
+
+    if (companyId) {
+      try {
+        // Charger les stats de l'entreprise
+        const { data: company } = await supabase
+          .from('companies')
+          .select('clients_count, devices_count, co2_saved, started_year')
+          .eq('id', companyId)
+          .single();
+
+        if (company) {
+          companyStats = {
+            clients_count: company.clients_count || 150,
+            devices_count: company.devices_count || 2500,
+            co2_saved: company.co2_saved || 45.5,
+            started_year: company.started_year || 2020
+          };
+        }
+
+        // Charger les logos clients
+        const { data: files } = await supabase.storage
+          .from('client-logos')
+          .list(`${companyId}/`, { limit: 10 });
+
+        if (files && files.length > 0) {
+          clientLogos = files.map(file => ({
+            url: `${supabase.supabaseUrl}/storage/v1/object/public/client-logos/${companyId}/${file.name}`,
+            name: file.name
+          }));
+        }
+      } catch (error) {
+        console.warn('Impossible de charger les données réelles, utilisation des données d\'exemple');
+      }
+    }
+
+    return {
+      client_name: 'Jean Dupont',
+      company_name: 'ACME SA',
+      client_address: '123 Rue de la Paix, 1000 Bruxelles, Belgique',
+      offer_date: new Date().toLocaleDateString('fr-FR'),
+      monthly_price: '250,00 €',
+      insurance: '450 €',
+      setup_fee: '150 €',
+      contract_duration: '36',
+      products: [
+        {
+          category: 'Ordinateur portable',
+          description: 'Dell Latitude 5520 - Intel i5, 16GB RAM, 512GB SSD',
+          quantity: 2
+        },
+        {
+          category: 'Écran',
+          description: 'Dell UltraSharp 24" Full HD',
+          quantity: 2
+        }
+      ],
+      insurance_example: 'Pour un contrat de 10.000 €, assurance = 350 €/an',
+      // Stats d'entreprise (vraies données)
+      company_stats_clients: companyStats.clients_count.toString(),
+      company_stats_devices: companyStats.devices_count.toString(),
+      company_stats_co2: `${companyStats.co2_saved} tonnes`,
+      company_started_year: companyStats.started_year.toString(),
+      // Logos clients (vraies données ou exemples)
+      client_logos_count: clientLogos.length.toString(),
+      client_logos: generateClientLogosHtml(clientLogos)
+    };
   }
 }
 

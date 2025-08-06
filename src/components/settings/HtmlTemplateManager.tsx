@@ -78,24 +78,38 @@ const HtmlTemplateManager: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
-      // Ici on chargerait les templates depuis la base de données
-      // Pour l'instant, on utilise le template iTakecare par défaut
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Charger les templates de l'entreprise depuis la base de données
+      const savedTemplates = await templateService.loadCompanyTemplates(profile.company_id);
+      
+      // Template par défaut iTakecare
       const defaultTemplate: HtmlTemplate = {
         id: 'itakecare-default',
         name: 'Template iTakecare par défaut',
         description: 'Template HTML complet pour les offres iTakecare',
         html_content: ITAKECARE_HTML_TEMPLATE,
         is_default: true,
-        company_id: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0',
+        company_id: profile.company_id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-      setTemplates([defaultTemplate]);
-      setCurrentTemplate(defaultTemplate);
-      setHtmlContent(defaultTemplate.html_content);
-      setTemplateName(defaultTemplate.name);
-      setTemplateDescription(defaultTemplate.description);
+      const allTemplates = [defaultTemplate, ...savedTemplates];
+      setTemplates(allTemplates);
+
+      // Charger le dernier template modifié ou le template par défaut
+      const templateToLoad = savedTemplates.length > 0 ? savedTemplates[0] : defaultTemplate;
+      setCurrentTemplate(templateToLoad);
+      setHtmlContent(templateToLoad.html_content);
+      setTemplateName(templateToLoad.name);
+      setTemplateDescription(templateToLoad.description);
     } catch (error) {
       console.error('Erreur lors du chargement des templates:', error);
       toast.error('Erreur lors du chargement des templates');
@@ -114,14 +128,28 @@ const HtmlTemplateManager: React.FC = () => {
     setValidationError(validation.error || '');
   };
 
-  const handlePreview = () => {
+  const handlePreview = async () => {
     try {
       if (!isValidTemplate) {
         toast.error('Le template contient des erreurs de syntaxe');
         return;
       }
 
-      previewHtmlTemplate(htmlContent);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      const compiledHtml = await templateService.previewTemplate(htmlContent, profile?.company_id);
+      
+      // Ouvrir dans un nouvel onglet
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(compiledHtml);
+        newWindow.document.close();
+      }
+      
       toast.success('Prévisualisation ouverte dans un nouvel onglet');
     } catch (error) {
       console.error('Erreur lors de la prévisualisation:', error);
@@ -193,8 +221,46 @@ const HtmlTemplateManager: React.FC = () => {
 
       setIsSaving(true);
 
-      // Ici on sauvegarderait en base de données
-      // Pour l'instant on simule la sauvegarde
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) {
+        toast.error('Impossible de déterminer l\'entreprise');
+        return;
+      }
+
+      if (currentTemplate && currentTemplate.id !== 'itakecare-default') {
+        // Mise à jour d'un template existant
+        await templateService.updateTemplate(currentTemplate.id, {
+          name: templateName,
+          description: templateDescription,
+          html_content: htmlContent
+        });
+      } else {
+        // Création d'un nouveau template
+        const newTemplateId = await templateService.saveTemplate({
+          name: templateName,
+          description: templateDescription,
+          html_content: htmlContent,
+          company_id: profile.company_id
+        });
+
+        // Mettre à jour l'état local avec le nouveau template
+        const newTemplate: HtmlTemplate = {
+          id: newTemplateId,
+          name: templateName,
+          description: templateDescription,
+          html_content: htmlContent,
+          is_default: false,
+          company_id: profile.company_id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        setCurrentTemplate(newTemplate);
+      }
       
       toast.success('Template sauvegardé avec succès');
       
