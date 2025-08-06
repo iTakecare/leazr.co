@@ -15,12 +15,17 @@ export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate
     // Vérifier si on doit utiliser le template HTML
     if (pdfOptions?.useHtmlTemplate) {
       console.log("Utilisation du template HTML pour la génération PDF");
-      console.log("Custom template URL:", pdfOptions.customTemplate);
+      console.log("Custom template provided:", !!pdfOptions.customTemplate);
       console.log("Template data available:", !!pdfOptions.templateData);
+      
+      // Si on a un template personnalisé (de la DB), l'utiliser, sinon utiliser le template par défaut
+      const templateToUse = pdfOptions.customTemplate || undefined; // undefined pour forcer le template par défaut
+      
+      console.log("Template à utiliser:", templateToUse ? "Template de la base de données" : "Template par défaut iTakecare");
       
       return await generateItakecareOfferPdf(
         offerData, 
-        pdfOptions.customTemplate,
+        templateToUse,
         { filename: `offre-${offerData.id.substring(0, 8)}.pdf` }
       );
     }

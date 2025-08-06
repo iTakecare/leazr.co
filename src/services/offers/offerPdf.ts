@@ -3,6 +3,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
 import { PDFTemplateService } from "../pdfTemplateService";
+import HtmlTemplateService from "../htmlTemplateService";
 import { saveAs } from "file-saver";
 
 
@@ -201,36 +202,57 @@ export const generateAndDownloadOfferPdf = async (
     
     if (offerData.company_id) {
       try {
-        console.log("🔍 Vérification de l'existence d'un template pour l'entreprise:", offerData.company_id);
-        const template = await PDFTemplateService.getTemplateForOffer(
-          offerData.company_id,
-          'standard',
-          'offer'
-        );
+        console.log("🔍 Vérification des templates HTML pour l'entreprise:", offerData.company_id);
         
-        console.log("🔍 Template récupéré:", template);
+        // D'abord chercher un template HTML dans html_templates
+        const htmlTemplateService = HtmlTemplateService.getInstance();
+        const htmlTemplates = await htmlTemplateService.loadCompanyTemplates(offerData.company_id);
         
-        if (template) {
-          console.log("✅ Template trouvé pour l'entreprise - FORÇAGE du template HTML iTakecare");
-          console.log("🔍 Template details:", {
-            id: template.template_id,
-            file_url: template.template_file_url,
-            company_data: template.company_data
+        console.log("🔍 Templates HTML trouvés:", htmlTemplates.length);
+        
+        if (htmlTemplates.length > 0) {
+          // Utiliser le premier template HTML par défaut ou celui marqué comme default
+          const defaultTemplate = htmlTemplates.find(t => t.is_default) || htmlTemplates[0];
+          
+          console.log("✅ Template HTML trouvé - utilisation du template de la base de données");
+          console.log("🔍 Template HTML details:", {
+            id: defaultTemplate.id,
+            name: defaultTemplate.name,
+            is_default: defaultTemplate.is_default
           });
           
-          // FORCER l'utilisation du template HTML iTakecare dès qu'un template existe
           pdfOptions = {
             useHtmlTemplate: true,
-            customTemplate: null, // null force l'utilisation du template iTakecare par défaut
-            templateData: template
+            customTemplate: defaultTemplate.html_content,
+            templateData: {
+              template_id: defaultTemplate.id,
+              name: defaultTemplate.name
+            }
           };
           
-          console.log("🎯 Options PDF configurées pour template HTML:", pdfOptions);
+          console.log("🎯 Options PDF configurées pour template HTML de la DB:", pdfOptions);
         } else {
-          console.log("❌ Aucun template trouvé, utilisation du template React standard");
+          // Fallback vers les anciens templates PDF
+          console.log("🔍 Aucun template HTML trouvé, vérification des templates PDF...");
+          const template = await PDFTemplateService.getTemplateForOffer(
+            offerData.company_id,
+            'standard',
+            'offer'
+          );
+          
+          if (template) {
+            console.log("✅ Template PDF trouvé - utilisation du template PDF");
+            pdfOptions = {
+              useHtmlTemplate: true,
+              customTemplate: null, // null force l'utilisation du template iTakecare par défaut
+              templateData: template
+            };
+          } else {
+            console.log("❌ Aucun template trouvé, utilisation du template React standard");
+          }
         }
       } catch (error) {
-        console.warn("⚠️ Erreur lors de la vérification du template HTML, utilisation du fallback:", error);
+        console.warn("⚠️ Erreur lors de la vérification des templates, utilisation du fallback:", error);
       }
     }
     
