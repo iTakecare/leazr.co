@@ -170,14 +170,14 @@ export const generateAndDownloadOfferPdf = async (
           'offer'
         );
         
-        if (template && template.template_file_url) {
-          console.log("Template HTML trouvé, utilisation pour la génération PDF:", template.template_file_url);
+        if (template) {
+          console.log("Template trouvé pour l'entreprise, utilisation du template HTML iTakecare");
           pdfOptions = {
             useHtmlTemplate: true,
-            customTemplate: template.template_file_url
+            customTemplate: template.template_file_url || null // null utilisera le template par défaut
           };
         } else {
-          console.log("Aucun template HTML trouvé, utilisation du template React standard");
+          console.log("Aucun template trouvé, utilisation du template React standard");
         }
       } catch (error) {
         console.warn("Erreur lors de la vérification du template HTML, utilisation du fallback:", error);
