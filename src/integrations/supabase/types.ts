@@ -5655,7 +5655,7 @@ export type Database = {
         }
         Returns: {
           template_id: string
-          template_name: string
+          name: string
           template_file_url: string
           field_mappings: Json
           company_data: Json
