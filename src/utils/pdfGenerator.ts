@@ -3,7 +3,7 @@ import html2pdf from 'html2pdf.js';
 import OfferPDFTemplate from '@/components/pdf/OfferPDFTemplate';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { generateItakecareOfferPdf, ITAKECARE_HTML_TEMPLATE } from './htmlPdfGenerator';
+import { generateItakecareOfferPdf } from './htmlPdfGenerator';
 
 /**
  * Générer un PDF à partir des données de l'offre avec support des templates HTML

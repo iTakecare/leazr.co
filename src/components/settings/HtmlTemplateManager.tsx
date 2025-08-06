@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Eye, Download, Save, FileText, AlertCircle, CheckCircle, BarChart3, Image, Upload, Trash2 } from 'lucide-react';
 import HtmlTemplateService from '@/services/htmlTemplateService';
-import { ITAKECARE_HTML_TEMPLATE, previewHtmlTemplate } from '@/utils/htmlPdfGenerator';
+import { previewHtmlTemplate } from '@/utils/htmlPdfGenerator';
 import { generateSamplePdf } from '@/services/offers/offerPdf';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -89,27 +89,94 @@ const HtmlTemplateManager: React.FC = () => {
       // Charger les templates de l'entreprise depuis la base de données
       const savedTemplates = await templateService.loadCompanyTemplates(profile.company_id);
       
-      // Template par défaut iTakecare
-      const defaultTemplate: HtmlTemplate = {
-        id: 'itakecare-default',
-        name: 'Template iTakecare par défaut',
-        description: 'Template HTML complet pour les offres iTakecare',
-        html_content: ITAKECARE_HTML_TEMPLATE,
-        is_default: true,
-        company_id: profile.company_id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Les templates sont maintenant exclusivement gérés via la base de données
+      setTemplates(savedTemplates);
 
-      const allTemplates = [defaultTemplate, ...savedTemplates];
-      setTemplates(allTemplates);
-
-      // Charger le dernier template modifié ou le template par défaut
-      const templateToLoad = savedTemplates.length > 0 ? savedTemplates[0] : defaultTemplate;
-      setCurrentTemplate(templateToLoad);
-      setHtmlContent(templateToLoad.html_content);
-      setTemplateName(templateToLoad.name);
-      setTemplateDescription(templateToLoad.description);
+      // Charger le dernier template modifié s'il y en a un
+      if (savedTemplates.length > 0) {
+        const templateToLoad = savedTemplates[0];
+        setCurrentTemplate(templateToLoad);
+        setHtmlContent(templateToLoad.html_content);
+        setTemplateName(templateToLoad.name);
+        setTemplateDescription(templateToLoad.description);
+      } else {
+        // Aucun template trouvé - initialiser avec le template utilisateur
+        const userTemplate = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposition Commerciale iTakecare - Leasing IT reconditionné </title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', 'Segoe UI', sans-serif;
+            background: #e8e8e8;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .page {
+                box-shadow: none;
+                page-break-after: always;
+                margin: 0;
+            }
+            
+            .page:last-child {
+                page-break-after: auto;
+            }
+            
+            .template-field {
+                background: transparent;
+                font-family: inherit;
+                font-size: inherit;
+                padding: 0;
+            }
+            
+            /* Hide template guide on print */
+            .template-guide {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Votre template de 7 pages ici -->
+    <div class="page">
+        <h1>{{client_name}} - {{company_name}}</h1>
+        <p>Créez votre template personnalisé en utilisant les variables disponibles.</p>
+    </div>
+</body>
+</html>`;
+        
+        setCurrentTemplate(null);
+        setHtmlContent(userTemplate);
+        setTemplateName('Nouveau Template');
+        setTemplateDescription('Template créé à partir du modèle iTakecare');
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des templates:', error);
       toast.error('Erreur lors du chargement des templates');

@@ -14,773 +14,18 @@ export interface HtmlPdfOptions {
 }
 
 /**
- * Template HTML complet iTakecare avec design fidèle et images base64
+ * Nettoie le HTML en supprimant les sections qui ne doivent pas apparaître dans le PDF
  */
-export const ITAKECARE_HTML_TEMPLATE = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Offre commerciale iTakecare</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Arial', sans-serif;
-      color: #1c1c1c;
-      line-height: 1.6;
-      background: white;
-    }
-    
-    .page {
-      width: 210mm;
-      min-height: 297mm;
-      margin: 0 auto;
-      padding: 20mm;
-      page-break-after: always;
-      position: relative;
-      background: white;
-    }
-    
-    .page:last-child {
-      page-break-after: avoid;
-    }
-    
-    /* PAGE 1 - COUVERTURE */
-    .cover-page {
-      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .cover-bg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: url('{{base64_image_cover}}');
-      background-size: cover;
-      background-position: center;
-      opacity: 0.2;
-      z-index: 0;
-    }
-    
-    .cover-content {
-      position: relative;
-      z-index: 1;
-    }
-    
-    .cover-title {
-      font-size: 48px;
-      font-weight: bold;
-      margin-bottom: 30px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
-    
-    .cover-subtitle {
-      font-size: 24px;
-      margin-bottom: 40px;
-      opacity: 0.9;
-    }
-    
-    .logo {
-      width: 150px;
-      height: auto;
-      margin-bottom: 30px;
-    }
-    
-    .client-info {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      padding: 30px;
-      border-radius: 15px;
-      margin-top: 40px;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    .client-info h2 {
-      font-size: 28px;
-      margin-bottom: 20px;
-      color: #87ceeb;
-    }
-    
-    .client-details {
-      font-size: 18px;
-      text-align: left;
-    }
-    
-    .client-details p {
-      margin-bottom: 10px;
-    }
-    
-    /* PAGE 2 - VISION */
-    .vision-page {
-      background: linear-gradient(to bottom, #f8fbff 0%, #e8f4fd 100%);
-    }
-    
-    .vision-header {
-      text-align: center;
-      margin-bottom: 50px;
-    }
-    
-    .vision-title {
-      font-size: 42px;
-      color: #0a376e;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-    
-    .vision-image {
-      width: 100%;
-      max-width: 600px;
-      height: 300px;
-      background-image: url('{{base64_image_vision}}');
-      background-size: cover;
-      background-position: center;
-      border-radius: 15px;
-      margin: 30px auto;
-      box-shadow: 0 10px 30px rgba(10, 55, 110, 0.2);
-    }
-    
-    .vision-content {
-      font-size: 18px;
-      text-align: center;
-      color: #2c3e50;
-      max-width: 800px;
-      margin: 0 auto;
-      line-height: 1.8;
-    }
-    
-    /* PAGE 3 - OFFRE */
-    .offer-page {
-      background: white;
-    }
-    
-    .offer-header {
-      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
-      color: white;
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    .offer-title {
-      font-size: 36px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    
-    .offer-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin-top: 40px;
-    }
-    
-    .offer-card {
-      background: #f8fbff;
-      padding: 25px;
-      border-radius: 12px;
-      border-left: 5px solid #0a376e;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    .offer-card h3 {
-      color: #0a376e;
-      font-size: 20px;
-      margin-bottom: 15px;
-    }
-    
-    .price-highlight {
-      font-size: 32px;
-      color: #0a376e;
-      font-weight: bold;
-    }
-    
-    .offer-benefits {
-      background: #e8f4fd;
-      padding: 20px;
-      border-radius: 10px;
-      margin-top: 30px;
-    }
-    
-    .offer-benefits ul {
-      list-style: none;
-      padding: 0;
-    }
-    
-    .offer-benefits li {
-      padding: 8px 0;
-      position: relative;
-      padding-left: 25px;
-    }
-    
-    .offer-benefits li:before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #0a376e;
-      font-weight: bold;
-    }
-    
-    /* PAGE 4 - SOLUTION */
-    .solution-page {
-      background: white;
-    }
-    
-    .solution-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    .solution-title {
-      font-size: 36px;
-      color: #0a376e;
-      margin-bottom: 20px;
-    }
-    
-    .equipment-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    
-    .equipment-table th {
-      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
-      color: white;
-      padding: 20px;
-      text-align: left;
-      font-weight: bold;
-      font-size: 16px;
-    }
-    
-    .equipment-table td {
-      padding: 15px 20px;
-      border-bottom: 1px solid #e0e0e0;
-      background: white;
-    }
-    
-    .equipment-table tr:nth-child(even) td {
-      background: #f8fbff;
-    }
-    
-    .equipment-table tr:hover td {
-      background: #e8f4fd;
-    }
-    
-    /* PAGE 5 - ÉTAPES */
-    .steps-page {
-      background: linear-gradient(to bottom, #f8fbff 0%, #e8f4fd 100%);
-    }
-    
-    .steps-title {
-      font-size: 36px;
-      color: #0a376e;
-      text-align: center;
-      margin-bottom: 50px;
-    }
-    
-    .steps-container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    
-    .step-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 30px;
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-      position: relative;
-    }
-    
-    .step-number {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      margin-right: 25px;
-      flex-shrink: 0;
-    }
-    
-    .step-content {
-      flex: 1;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-    
-    /* PAGE 6 - MODALITÉS */
-    .modalities-page {
-      background: white;
-    }
-    
-    .modalities-title {
-      font-size: 36px;
-      color: #0a376e;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    .modality-card {
-      background: #f8fbff;
-      padding: 30px;
-      border-radius: 15px;
-      margin-bottom: 25px;
-      border-left: 5px solid #0a376e;
-    }
-    
-    .modality-card h3 {
-      color: #0a376e;
-      margin-bottom: 15px;
-      font-size: 20px;
-    }
-    
-    .insurance-highlight {
-      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      margin-top: 30px;
-    }
-    
-    /* PAGE 7 - VALEURS */
-    .values-page {
-      background: linear-gradient(135deg, #0a376e 0%, #1e5f99 100%);
-      color: white;
-    }
-    
-    .values-title {
-      font-size: 42px;
-      text-align: center;
-      margin-bottom: 50px;
-      font-weight: bold;
-    }
-    
-    .values-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
-      margin-top: 40px;
-    }
-    
-    .value-card {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-      padding: 30px;
-      border-radius: 20px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    .value-icon {
-      width: 80px;
-      height: 80px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      font-size: 36px;
-    }
-    
-    .value-card h3 {
-      font-size: 24px;
-      margin-bottom: 15px;
-      color: #87ceeb;
-    }
-    
-    .value-card p {
-      font-size: 16px;
-      line-height: 1.6;
-      opacity: 0.9;
-    }
-    
-    /* PAGE 8 - CONTACT */
-    .contact-page {
-      background: white;
-    }
-    
-    .contact-title {
-      font-size: 36px;
-      color: #0a376e;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    .contact-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      margin-top: 40px;
-    }
-    
-    .contact-card {
-      background: #f8fbff;
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-    }
-    
-    .contact-card h3 {
-      color: #0a376e;
-      margin-bottom: 20px;
-      font-size: 24px;
-    }
-    
-    .contact-info {
-      font-size: 16px;
-      line-height: 1.8;
-    }
-    
-    /* PAGE 9 - SIGNATURE */
-    .signature-page {
-      background: white;
-    }
-    
-    .signature-title {
-      font-size: 36px;
-      color: #0a376e;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    .signature-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 50px;
-      margin-top: 60px;
-    }
-    
-    .signature-box {
-      border: 2px solid #0a376e;
-      border-radius: 10px;
-      padding: 30px;
-      text-align: center;
-      min-height: 200px;
-    }
-    
-    .signature-box h3 {
-      color: #0a376e;
-      margin-bottom: 20px;
-    }
-    
-    .signature-line {
-      border-top: 1px solid #ccc;
-      margin-top: 100px;
-      padding-top: 10px;
-      font-size: 14px;
-      color: #666;
-    }
-    
-    @media print {
-      .page {
-        margin: 0;
-        padding: 15mm;
-        page-break-inside: avoid;
-      }
-      
-      body {
-        margin: 0;
-        padding: 0;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- PAGE 1 - COUVERTURE -->
-  <div class="page cover-page">
-    <div class="cover-bg"></div>
-    <div class="cover-content">
-      {{#if base64_image_logo}}
-      <img src="{{base64_image_logo}}" alt="iTakecare Logo" class="logo" />
-      {{/if}}
-      
-      <h1 class="cover-title">iTakecare</h1>
-      <p class="cover-subtitle">Services de Leasing IT</p>
-      
-      <div class="client-info">
-        <h2>Proposition Commerciale</h2>
-        <div class="client-details">
-          <p><strong>Client :</strong> {{client_name}}</p>
-          <p><strong>Entreprise :</strong> {{company_name}}</p>
-          <p><strong>Adresse :</strong> {{client_address}}</p>
-          <p><strong>Date :</strong> {{offer_date}}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE 2 - NOTRE VISION -->
-  <div class="page vision-page">
-    <div class="vision-header">
-      <h1 class="vision-title">Notre Vision</h1>
-      <div class="vision-image"></div>
-    </div>
-    
-    <div class="vision-content">
-      <p>Nous souhaitons être un acteur majeur dans l'accès aux technologies pour tous les professionnels du secteur Européen.</p>
-      <br>
-      <p>Nous travaillons chaque jour à un monde plus juste et plus ouvert, où l'innovation technologique est accessible à tous.</p>
-      <br>
-      <p>Notre mission est de démocratiser l'accès aux équipements informatiques de pointe grâce à des solutions de leasing flexibles et adaptées à chaque besoin.</p>
-    </div>
-  </div>
-
-  <!-- PAGE 3 - NOTRE OFFRE -->
-  <div class="page offer-page">
-    <div class="offer-header">
-      <h1 class="offer-title">Notre Offre</h1>
-      <p>Une solution complète adaptée à vos besoins</p>
-    </div>
-    
-    <div class="offer-grid">
-      <div class="offer-card">
-        <h3>Mensualité</h3>
-        <div class="price-highlight">{{monthly_price}}</div>
-        <p>HTVA/mois</p>
-      </div>
-      
-      <div class="offer-card">
-        <h3>Assurance Annuelle</h3>
-        <div class="price-highlight">{{insurance}}</div>
-        <p>Estimation</p>
-      </div>
-      
-      <div class="offer-card">
-        <h3>Frais de Dossier</h3>
-        <div class="price-highlight">{{setup_fee}}</div>
-        <p>HTVA (unique)</p>
-      </div>
-      
-      <div class="offer-card">
-        <h3>Durée du Contrat</h3>
-        <div class="price-highlight">{{contract_duration}}</div>
-        <p>mois</p>
-      </div>
-    </div>
-    
-    <div class="offer-benefits">
-      <h3>Inclus dans votre contrat :</h3>
-      <ul>
-        <li>Livraison et installation sur site</li>
-        <li>Maintenance complète incluse</li>
-        <li>Garantie en échange direct</li>
-        <li>Support technique dédié</li>
-        <li>Mise à jour des équipements</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- PAGE 4 - NOTRE SOLUTION -->
-  <div class="page solution-page">
-    <div class="solution-header">
-      <h1 class="solution-title">Notre Solution</h1>
-      <p>Équipements sélectionnés pour votre entreprise</p>
-    </div>
-    
-    <table class="equipment-table">
-      <thead>
-        <tr>
-          <th>Catégorie</th>
-          <th>Désignation</th>
-          <th>Quantité</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each products}}
-        <tr>
-          <td>{{category}}</td>
-          <td>{{description}}</td>
-          <td>{{quantity}}</td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- PAGE 5 - LES PROCHAINES ÉTAPES -->
-  <div class="page steps-page">
-    <h1 class="steps-title">Les Prochaines Étapes</h1>
-    
-    <div class="steps-container">
-      <div class="step-item">
-        <div class="step-number">1</div>
-        <div class="step-content">
-          <strong>Validation de votre part</strong><br>
-          Vous marquez votre accord pour cette proposition par retour de mail
-        </div>
-      </div>
-      
-      <div class="step-item">
-        <div class="step-number">2</div>
-        <div class="step-content">
-          <strong>Analyse financière</strong><br>
-          Nous soumettons votre demande auprès de nos partenaires financiers
-        </div>
-      </div>
-      
-      <div class="step-item">
-        <div class="step-number">3</div>
-        <div class="step-content">
-          <strong>Signature électronique</strong><br>
-          Après accord, nous vous envoyons les contrats électroniques à signer
-        </div>
-      </div>
-      
-      <div class="step-item">
-        <div class="step-number">4</div>
-        <div class="step-content">
-          <strong>Commande et livraison</strong><br>
-          Une fois signés, nous commandons le matériel et fixons une date de livraison
-        </div>
-      </div>
-      
-      <div class="step-item">
-        <div class="step-number">5</div>
-        <div class="step-content">
-          <strong>Profitez de votre équipement !</strong><br>
-          En cas de souci, un simple mail ou appel suffit
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE 6 - MODALITÉS DU LEASING -->
-  <div class="page modalities-page">
-    <h1 class="modalities-title">Modalités du Leasing</h1>
-    
-    <div class="modality-card">
-      <h3>Modalités de Paiement</h3>
-      <p>Les prélèvements sont effectués trimestriellement par domiciliation SEPA. Cette solution vous garantit une gestion simplifiée de vos paiements avec une prévisibilité totale de vos charges.</p>
-    </div>
-    
-    <div class="modality-card">
-      <h3>Assurance du Matériel</h3>
-      <p>Le client est tenu d'assurer le matériel loué, soit via sa propre assurance entreprise, soit via l'assurance proposée par le leaser.</p>
-    </div>
-    
-    <div class="modality-card">
-      <h3>Maintenance et Support</h3>
-      <p>Une maintenance complète est incluse dans votre contrat, couvrant les réparations, les remplacements et le support technique pendant toute la durée du leasing.</p>
-    </div>
-    
-    <div class="insurance-highlight">
-      <h3>Estimation Assurance</h3>
-      <p>Assurance proposée : environ 3,5% du montant total du contrat</p>
-      <p><strong>{{insurance_example}}</strong></p>
-    </div>
-  </div>
-
-  <!-- PAGE 7 - NOS VALEURS -->
-  <div class="page values-page">
-    <h1 class="values-title">Nos Valeurs</h1>
-    
-    <div class="values-grid">
-      <div class="value-card">
-        <div class="value-icon">🤝</div>
-        <h3>Confiance</h3>
-        <p>Nous valorisons les relations humaines authentiques et durables avec nos clients et partenaires. La transparence guide chacune de nos actions.</p>
-      </div>
-      
-      <div class="value-card">
-        <div class="value-icon">🤲</div>
-        <h3>Entraide</h3>
-        <p>Nous nous rendons disponibles pour nous entraider, partager nos connaissances et faire grandir chaque membre de notre écosystème.</p>
-      </div>
-      
-      <div class="value-card">
-        <div class="value-icon">📈</div>
-        <h3>Évolution</h3>
-        <p>Nous adaptons constamment nos idées à la réalité du terrain pour anticiper et devancer les besoins technologiques de demain.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE 8 - CONTACT -->
-  <div class="page contact-page">
-    <h1 class="contact-title">Votre Contact</h1>
-    
-    <div class="contact-grid">
-      <div class="contact-card">
-        <h3>Gianni Sergi</h3>
-        <div class="contact-info">
-          <p><strong>Responsable Commercial</strong></p>
-          <p>📧 gianni@itakecare.be</p>
-          <p>📱 +32 XXX XX XX XX</p>
-          <p>🌐 www.itakecare.be</p>
-        </div>
-      </div>
-      
-      <div class="contact-card">
-        <h3>iTakecare</h3>
-        <div class="contact-info">
-          <p><strong>Siège Social</strong></p>
-          <p>📍 Adresse entreprise</p>
-          <p>🏢 Belgique</p>
-          <p>📋 N° TVA : BE XXXX.XXX.XXX</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE 9 - ACCORD ET SIGNATURE -->
-  <div class="page signature-page">
-    <h1 class="signature-title">Accord et Engagement</h1>
-    
-    <p style="text-align: center; margin-bottom: 40px; font-size: 18px;">
-      En signant ce document, les deux parties s'engagent dans un partenariat de confiance 
-      pour la réalisation de ce projet de leasing informatique.
-    </p>
-    
-    <div class="signature-grid">
-      <div class="signature-box">
-        <h3>Pour l'Entreprise Cliente</h3>
-        <p style="margin-bottom: 80px;">{{company_name}}</p>
-        <div class="signature-line">
-          Nom, Prénom et Signature
-        </div>
-      </div>
-      
-      <div class="signature-box">
-        <h3>Pour iTakecare</h3>
-        <p style="margin-bottom: 80px;">Gianni Sergi</p>
-        <div class="signature-line">
-          Responsable Commercial
-        </div>
-      </div>
-    </div>
-    
-    <p style="text-align: center; margin-top: 40px; font-style: italic; color: #666;">
-      Document généré le {{offer_date}} - Offre valable 30 jours
-    </p>
-  </div>
-</body>
-</html>`;
+const cleanHtmlForPdf = (html: string): string => {
+  // Supprimer complètement la section template-guide
+  const cleanedHtml = html.replace(
+    /<div[^>]*class[^>]*template-guide[^>]*>[\s\S]*?<\/div>/gi,
+    ''
+  );
+  
+  // Supprimer les commentaires HTML
+  return cleanedHtml.replace(/<!--[\s\S]*?-->/g, '');
+};
 
 /**
  * Générer un PDF à partir d'un template HTML et de données
@@ -801,72 +46,110 @@ export const generatePdfFromHtmlTemplate = async (
     console.log("Compilation du template avec les données...");
     const compiledHtml = templateService.compileTemplate(htmlTemplate, data);
     console.log("Template compilé, taille:", compiledHtml.length);
-    console.log("Aperçu du HTML compilé (100 premiers caractères):", compiledHtml.substring(0, 100));
     
-    // Configuration optimisée pour le PDF multi-pages
+    // Nettoyer le HTML pour supprimer le guide des templates
+    const cleanedHtml = cleanHtmlForPdf(compiledHtml);
+    console.log("HTML nettoyé, taille finale:", cleanedHtml.length);
+    
+    // Configuration optimisée pour le template iTakecare 7 pages
     const pdfOptions = {
-      margin: options.margin || [5, 5, 5, 5], // Marges en mm
+      margin: options.margin || [8, 8, 8, 8], // Marges en mm - ajustées pour le design
       filename: options.filename || `offre-${Date.now()}.pdf`,
       image: { 
         type: 'jpeg', 
-        quality: options.quality || 0.98 
+        quality: options.quality || 0.95 
       },
       html2canvas: { 
-        scale: options.scale || 1.5, // Réduit pour éviter les problèmes de mémoire
+        scale: options.scale || 1.2, // Optimisé pour la qualité/performance
         useCORS: true,
-        logging: true, // Activé pour debug
+        logging: false, // Désactivé pour une meilleure performance
         letterRendering: true,
         allowTaint: true,
-        imageTimeout: 20000, // Augmenté
-        width: 794, // Largeur A4 fixe
-        height: null, // Hauteur automatique pour multi-pages
+        imageTimeout: 15000,
+        width: 794, // Largeur A4 en pixels
+        height: 1123, // Hauteur A4 en pixels 
         scrollX: 0,
         scrollY: 0,
         windowWidth: 794,
-        windowHeight: null // Hauteur automatique
+        windowHeight: 1123,
+        foreignObjectRendering: true, // Améliore le rendu des CSS complexes
+        removeContainer: true
       },
       jsPDF: { 
         unit: 'mm', 
         format: options.format || 'a4', 
         orientation: options.orientation || 'portrait',
         compress: true,
-        precision: 16,
-        hotfixes: ["px_scaling"] // Fix pour les problèmes de scaling
+        precision: 16
       },
       pagebreak: { 
-        mode: 'css', // Mode CSS pour respecter les page-break
-        after: '.page',
-        avoid: 'img'
+        mode: 'avoid-all', // Évite les coupures de page inattendues
+        before: '.page',
+        after: '.page:not(:last-child)',
+        avoid: 'img, .value-card, .step-item'
       }
     };
     
-    console.log("Configuration PDF:", pdfOptions);
+    console.log("Configuration PDF optimisée:", pdfOptions);
     
-    // Créer un conteneur temporaire optimisé pour A4
+    // Créer un conteneur temporaire avec styles spécifiques pour PDF
     const container = document.createElement('div');
-    container.style.width = '210mm';
-    container.style.minHeight = '297mm';
-    container.style.margin = '0';
-    container.style.padding = '0';
-    container.style.fontFamily = "'Montserrat', 'Arial', sans-serif";
-    container.style.backgroundColor = 'white';
-    container.style.color = '#333';
-    container.style.fontSize = '14px';
-    container.style.lineHeight = '1.6';
-    container.style.boxSizing = 'border-box';
-    container.innerHTML = compiledHtml;
+    container.style.cssText = `
+      width: 210mm;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', 'Segoe UI', sans-serif;
+      background: white;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.6;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    `;
     
-    console.log("Container créé avec le HTML compilé");
+    container.innerHTML = cleanedHtml;
+    console.log("Container créé avec le HTML nettoyé");
     
-    // Ajouter le container au document temporairement
+    // Précharger toutes les images et polices
+    const preloadAssets = async () => {
+      const images = container.querySelectorAll('img');
+      const loadPromises = Array.from(images).map(img => {
+        return new Promise<void>((resolve) => {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // Continue même en cas d'erreur
+          }
+        });
+      });
+      
+      // Précharger la police Montserrat
+      const fontPromise = new Promise<void>((resolve) => {
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => resolve());
+        } else {
+          setTimeout(() => resolve(), 1000); // Fallback
+        }
+      });
+      
+      await Promise.all([...loadPromises, fontPromise]);
+    };
+    
+    // Ajouter temporairement au DOM et précharger les assets
     document.body.appendChild(container);
     
-    // Attendre que le DOM soit rendu
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
     try {
+      // Attendre que tout soit prêt
+      await preloadAssets();
+      console.log("Assets préchargés");
+      
+      // Petite pause pour s'assurer que le rendu est stable
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Générer le PDF
-      console.log("Génération du PDF en cours avec html2pdf...");
+      console.log("Génération du PDF en cours...");
       await html2pdf()
         .from(container)
         .set(pdfOptions)
@@ -887,7 +170,7 @@ export const generatePdfFromHtmlTemplate = async (
 };
 
 /**
- * Générer un PDF d'offre iTakecare à partir des données d'offre Leazr
+ * Générer un PDF d'offre iTakecare à partir des données d'offre
  */
 export const generateItakecareOfferPdf = async (
   offerData: any,
@@ -898,38 +181,47 @@ export const generateItakecareOfferPdf = async (
     console.log("Génération PDF iTakecare pour l'offre:", offerData.id);
     console.log("Template personnalisé fourni:", !!customTemplate);
     
-    // Si aucun template personnalisé n'est fourni, afficher une erreur
+    // Le template personnalisé doit provenir de la base de données
     if (!customTemplate) {
-      console.error("Aucun template HTML personnalisé fourni - utilisation du template par défaut");
-      throw new Error("Template HTML requis depuis la base de données");
+      console.error("ERREUR CRITIQUE: Aucun template HTML fourni depuis la base de données");
+      throw new Error("Template HTML requis depuis la base de données. Veuillez créer un template dans les paramètres.");
     }
+    
+    console.log("Utilisation du template de la base de données, longueur:", customTemplate.length);
     
     // Convertir les données d'offre au format template
     const templateData = convertOfferToTemplateData(offerData);
     console.log("Données template préparées:", Object.keys(templateData));
     
-    // Utiliser le template personnalisé de la base de données
+    // Utiliser le template de la base de données et le nettoyer
     const htmlTemplate = customTemplate;
-    console.log("Longueur du template HTML:", htmlTemplate.length);
     
     // Générer le nom de fichier
     const filename = options.filename || `offre-itakecare-${offerData.id?.substring(0, 8)}.pdf`;
     
-    // Configuration spécifique pour le template iTakecare 7 pages
-    const pdfConfig = {
+    // Configuration optimisée pour le template iTakecare 7 pages
+    const pdfConfig: HtmlPdfOptions = {
       ...options,
       filename,
-      margin: [5, 5, 5, 5], // Marges minimales
-      quality: 0.98,
-      scale: 1.5 // Légèrement réduit pour une meilleure compatibilité
+      margin: [8, 8, 8, 8], // Marges ajustées pour le design
+      quality: 0.95,
+      scale: 1.2, // Optimisé pour qualité/performance
+      format: 'a4',
+      orientation: 'portrait'
     };
     
-    console.log("Configuration PDF:", pdfConfig);
+    console.log("Configuration PDF optimisée pour template 7 pages:", pdfConfig);
     
-    // Générer le PDF
+    // Générer le PDF avec le template de la base de données
     return await generatePdfFromHtmlTemplate(htmlTemplate, templateData, pdfConfig);
   } catch (error) {
     console.error("Erreur lors de la génération du PDF iTakecare:", error);
+    
+    // Message d'erreur plus informatif pour l'utilisateur
+    if (error instanceof Error && error.message.includes("Template HTML requis")) {
+      throw new Error("Aucun template HTML trouvé. Veuillez créer un template dans Paramètres > Templates HTML.");
+    }
+    
     throw error;
   }
 };
@@ -961,6 +253,5 @@ export const previewHtmlTemplate = async (htmlTemplate: string, companyId?: stri
 export default {
   generatePdfFromHtmlTemplate,
   generateItakecareOfferPdf,
-  previewHtmlTemplate,
-  ITAKECARE_HTML_TEMPLATE
+  previewHtmlTemplate
 };
