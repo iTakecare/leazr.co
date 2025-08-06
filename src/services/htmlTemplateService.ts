@@ -306,15 +306,21 @@ export class HtmlTemplateService {
       // Préprocesser le template pour s'assurer que les champs HTML utilisent des triple braces
       let processedTemplate = htmlTemplate;
       
-      // Remplacer {{client_logos}} par {{{client_logos}}} pour éviter l'échappement HTML
-      processedTemplate = processedTemplate.replace(/\{\{client_logos\}\}/g, '{{{client_logos}}}');
-      
-      // S'assurer que les autres champs HTML utilisent aussi des triple braces
+      // Liste des champs qui contiennent du HTML et doivent utiliser des triple braces
       const htmlFields = ['client_logos', 'base64_image_cover', 'base64_image_vision', 'base64_image_logo'];
+      
       htmlFields.forEach(field => {
-        const singleBraceRegex = new RegExp(`\\{\\{${field}\\}\\}`, 'g');
-        const tripleBraceReplacement = `{{{${field}}}}`;
-        processedTemplate = processedTemplate.replace(singleBraceRegex, tripleBraceReplacement);
+        // Vérifier d'abord si le champ utilise déjà des triple braces pour éviter le double remplacement
+        const tripleMatch = new RegExp(`\\{\\{\\{${field}\\}\\}\\}`, 'g');
+        const doubleMatch = new RegExp(`\\{\\{${field}\\}\\}`, 'g');
+        
+        // Seulement remplacer si le champ utilise des double braces ET n'a pas déjà des triple braces
+        if (processedTemplate.match(doubleMatch) && !processedTemplate.match(tripleMatch)) {
+          console.log(`🔄 Conversion de {{${field}}} vers {{{${field}}}} pour éviter l'échappement HTML`);
+          processedTemplate = processedTemplate.replace(doubleMatch, `{{{${field}}}}`);
+        } else if (processedTemplate.match(tripleMatch)) {
+          console.log(`✅ Champ ${field} utilise déjà des triple braces`);
+        }
       });
       
       console.log('✅ Template préprocessé pour échappement HTML');
