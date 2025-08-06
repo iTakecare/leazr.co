@@ -47,28 +47,35 @@ const cleanHtmlForPdf = (html: string): string => {
 };
 
 /**
- * Générer un PDF à partir d'un template HTML et de données
+ * Génère un PDF simplifié en utilisant html2pdf avec remplacement de chaînes direct
  */
-export const generatePdfFromHtmlTemplate = async (
+export const generateSimplePdf = async (
   htmlTemplate: string,
-  data: HtmlTemplateData,
+  offerData: any,
   options: HtmlPdfOptions = {}
 ): Promise<string> => {
   try {
-    console.log("Début de la génération PDF à partir du template HTML");
-    console.log("Taille du template HTML:", htmlTemplate.length);
+    console.log("🚀 Génération PDF simplifiée - début");
+    console.log("📄 Taille du template HTML:", htmlTemplate.length);
+    console.log("📋 ID offre:", offerData.id);
     
-    // Obtenir l'instance du service de template
-    const templateService = HtmlTemplateService.getInstance();
+    // Préparer les données pour le remplacement direct
+    const templateData = prepareOfferDataForTemplate(offerData);
+    console.log("✅ Données préparées:", Object.keys(templateData).length, "champs");
     
-    // Compiler le template avec les données
-    console.log("Compilation du template avec les données...");
-    const compiledHtml = templateService.compileTemplate(htmlTemplate, data);
-    console.log("Template compilé, taille:", compiledHtml.length);
+    // Remplacer les champs template par remplacement de chaîne direct
+    let processedHtml = htmlTemplate;
+    
+    console.log("🔄 Remplacement des champs template...");
+    for (const [key, value] of Object.entries(templateData)) {
+      const placeholder = `{{${key}}}`;
+      const stringValue = String(value || '');
+      processedHtml = processedHtml.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), stringValue);
+    }
     
     // Nettoyer le HTML pour supprimer le guide des templates
-    const cleanedHtml = cleanHtmlForPdf(compiledHtml);
-    console.log("HTML nettoyé, taille finale:", cleanedHtml.length);
+    const cleanedHtml = cleanHtmlForPdf(processedHtml);
+    console.log("🧹 HTML nettoyé, taille finale:", cleanedHtml.length);
     
     // Configuration optimisée pour le template iTakecare 7 pages
     const pdfOptions = {
@@ -189,6 +196,83 @@ export const generatePdfFromHtmlTemplate = async (
 };
 
 /**
+ * Prépare les données d'offre pour le remplacement dans le template
+ */
+const prepareOfferDataForTemplate = (offerData: any) => {
+  console.log("📋 Préparation des données pour template:", offerData.id);
+  
+  // Extraire les données d'équipement
+  let equipmentData = [];
+  if (offerData.equipment_data && Array.isArray(offerData.equipment_data)) {
+    equipmentData = offerData.equipment_data;
+  } else if (offerData.equipment_description) {
+    try {
+      const parsed = JSON.parse(offerData.equipment_description);
+      equipmentData = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      equipmentData = [{
+        title: "Équipement",
+        description: offerData.equipment_description,
+        purchasePrice: offerData.amount || 0,
+        quantity: 1
+      }];
+    }
+  }
+
+  // Calculer les totaux
+  const totalAmount = equipmentData.reduce((sum, item) => sum + (item.purchasePrice * item.quantity), 0);
+  const totalMonthly = equipmentData.reduce((sum, item) => sum + (item.monthlyPayment || 0), 0);
+  
+  // Calculer les assurances (2% du montant total)
+  const insuranceAmount = totalAmount * 0.02;
+  const monthlyInsurance = insuranceAmount / 60; // Sur 60 mois
+
+  // Préparer les logos clients en HTML simple
+  const clientLogos = `
+    <div class="client-logos">
+      <img src="/api/placeholder/150/60" alt="Logo client" style="max-height: 60px; margin: 0 10px;" />
+    </div>
+  `;
+
+  return {
+    // Informations de base
+    offer_id: offerData.offer_id || `OFF-${offerData.id?.substring(0, 8).toUpperCase()}`,
+    client_name: offerData.client_name || offerData.clients?.name || "Client",
+    client_company: offerData.client_company || offerData.clients?.company || "",
+    client_email: offerData.client_email || offerData.clients?.email || "",
+    client_phone: offerData.clients?.phone || "",
+    client_address: offerData.clients?.address || "",
+    client_city: offerData.clients?.city || "",
+    client_postal_code: offerData.clients?.postal_code || "",
+    
+    // Dates formatées
+    offer_date: new Date(offerData.created_at || Date.now()).toLocaleDateString('fr-FR'),
+    
+    // Montants formatés
+    total_amount: totalAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
+    monthly_payment: totalMonthly.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
+    insurance_amount: insuranceAmount.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
+    monthly_insurance: monthlyInsurance.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }),
+    
+    // HTML content
+    client_logos: clientLogos,
+    
+    // Équipements en JSON pour usage avancé
+    equipment_json: JSON.stringify(equipmentData),
+    
+    // Premier équipement pour compatibilité
+    equipment_title: equipmentData[0]?.title || "Équipement",
+    equipment_description: equipmentData[0]?.description || "",
+    equipment_price: equipmentData[0]?.purchasePrice?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || "0 €",
+    
+    // Images par défaut (base64 ou URLs)
+    base64_image_cover: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwNzNlNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+Q292ZXI8L3RleHQ+PC9zdmc+",
+    base64_image_vision: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwYzg1MSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+VmlzaW9uPC90ZXh0Pjwvc3ZnPg==",
+    base64_image_logo: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+TG9nbzwvdGV4dD48L3N2Zz4="
+  };
+};
+
+/**
  * Générer un PDF d'offre iTakecare à partir des données d'offre
  */
 export const generateItakecareOfferPdf = async (
@@ -231,8 +315,8 @@ export const generateItakecareOfferPdf = async (
     
     console.log("Configuration PDF optimisée pour template 7 pages:", pdfConfig);
     
-    // Générer le PDF avec le template de la base de données
-    return await generatePdfFromHtmlTemplate(htmlTemplate, templateData, pdfConfig);
+    // Générer le PDF avec la nouvelle méthode simplifiée
+    return await generateSimplePdf(htmlTemplate, offerData, pdfConfig);
   } catch (error) {
     console.error("Erreur lors de la génération du PDF iTakecare:", error);
     
@@ -270,7 +354,7 @@ export const previewHtmlTemplate = async (htmlTemplate: string, companyId?: stri
 };
 
 export default {
-  generatePdfFromHtmlTemplate,
+  generateSimplePdf,
   generateItakecareOfferPdf,
   previewHtmlTemplate
 };

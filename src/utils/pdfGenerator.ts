@@ -14,20 +14,24 @@ export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate
     
     // Vérifier si on doit utiliser le template HTML
     if (pdfOptions?.useHtmlTemplate) {
-      console.log("Utilisation du template HTML pour la génération PDF");
-      console.log("Custom template provided:", !!pdfOptions.customTemplate);
-      console.log("Template data available:", !!pdfOptions.templateData);
+      console.log("🎯 Utilisation du template HTML simplifié pour la génération PDF");
+      console.log("📄 Custom template fourni:", !!pdfOptions.customTemplate);
       
-      // Si on a un template personnalisé (de la DB), l'utiliser, sinon utiliser le template par défaut
-      const templateToUse = pdfOptions.customTemplate || undefined; // undefined pour forcer le template par défaut
-      
-      console.log("Template à utiliser:", templateToUse ? "Template de la base de données" : "Template par défaut iTakecare");
-      
-      return await generateItakecareOfferPdf(
-        offerData, 
-        templateToUse,
-        { filename: `offre-${offerData.id.substring(0, 8)}.pdf` }
-      );
+      // Si on a un template personnalisé (de la DB), l'utiliser directement avec la nouvelle méthode
+      if (pdfOptions.customTemplate) {
+        console.log("✅ Utilisation du template de la base de données avec méthode simplifiée");
+        
+        // Utiliser directement generateSimplePdf pour éviter Handlebars
+        const { generateSimplePdf } = await import('./htmlPdfGenerator');
+        return await generateSimplePdf(
+          pdfOptions.customTemplate,
+          offerData,
+          { filename: `offre-${offerData.id.substring(0, 8)}.pdf` }
+        );
+      } else {
+        console.log("⚠️ Aucun template HTML fourni, utilisation du fallback React");
+        // Fallback vers le template React si pas de template HTML
+      }
     }
     
     // Mode classique avec template React
