@@ -323,7 +323,7 @@ const HtmlTemplateManager: React.FC = () => {
           const logos = files.map(file => ({
             id: file.id || file.name,
             name: file.name,
-            url: `${SUPABASE_URL}/storage/v1/object/public/Client Logos/company-${profile.company_id}/${file.name}`,
+            url: `${SUPABASE_URL}/storage/v1/object/public/Client%20Logos/company-${profile.company_id}/${file.name}`,
             file: null
           }));
           setClientLogos(logos);
