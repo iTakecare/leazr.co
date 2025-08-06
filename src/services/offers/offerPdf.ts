@@ -55,26 +55,49 @@ export const getOfferDataForPdf = async (offerId: string) => {
     // Traiter les données d'équipement
     if (data && data.equipment_description) {
       try {
-        // Parser les données d'équipement
-        const equipmentData = typeof data.equipment_description === 'string' 
-          ? JSON.parse(data.equipment_description)
-          : data.equipment_description;
-        
-        // Conversion explicite des types numériques
-        if (Array.isArray(equipmentData)) {
-          data.equipment_data = equipmentData.map(item => ({
-            ...item,
-            purchasePrice: parseFloat(item.purchasePrice) || 0,
-            quantity: parseInt(item.quantity, 10) || 1,
-            margin: parseFloat(item.margin) || 20,
-            monthlyPayment: parseFloat(item.monthlyPayment || 0)
-          }));
+        // Vérifier si c'est déjà du JSON valide
+        if (typeof data.equipment_description === 'string') {
+          // Essayer de parser comme JSON
+          try {
+            const equipmentData = JSON.parse(data.equipment_description);
+            if (Array.isArray(equipmentData)) {
+              data.equipment_data = equipmentData.map(item => ({
+                ...item,
+                purchasePrice: parseFloat(item.purchasePrice) || 0,
+                quantity: parseInt(item.quantity, 10) || 1,
+                margin: parseFloat(item.margin) || 20,
+                monthlyPayment: parseFloat(item.monthlyPayment || 0)
+              }));
+            } else {
+              data.equipment_data = equipmentData;
+            }
+          } catch (jsonError) {
+            // Si ce n'est pas du JSON valide, créer une structure par défaut
+            console.warn("Données d'équipement en format texte, conversion en structure JSON:", data.equipment_description);
+            data.equipment_data = [{
+              title: "Équipement",
+              description: data.equipment_description,
+              purchasePrice: data.amount || 0,
+              quantity: 1,
+              margin: 20,
+              monthlyPayment: data.monthly_payment || 0
+            }];
+          }
         } else {
-          data.equipment_data = equipmentData;
+          // Les données sont déjà un objet
+          data.equipment_data = data.equipment_description;
         }
       } catch (e) {
-        console.error("Les données d'équipement ne sont pas un JSON valide:", e);
-        console.log("Contenu brut:", data.equipment_description);
+        console.error("Erreur lors du traitement des données d'équipement:", e);
+        // Fallback vers une structure par défaut
+        data.equipment_data = [{
+          title: "Équipement",
+          description: "Description non disponible",
+          purchasePrice: data.amount || 0,
+          quantity: 1,
+          margin: 20,
+          monthlyPayment: data.monthly_payment || 0
+        }];
       }
     }
 
