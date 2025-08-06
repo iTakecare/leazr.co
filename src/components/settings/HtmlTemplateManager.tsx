@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Eye, Download, Save, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, Download, Save, FileText, AlertCircle, CheckCircle, BarChart3, Image, Upload, Trash2 } from 'lucide-react';
 import HtmlTemplateService from '@/services/htmlTemplateService';
 import { ITAKECARE_HTML_TEMPLATE, previewHtmlTemplate } from '@/utils/htmlPdfGenerator';
 import { generateSamplePdf } from '@/services/offers/offerPdf';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface HtmlTemplate {
   id: string;
@@ -23,7 +25,22 @@ interface HtmlTemplate {
   updated_at: string;
 }
 
+interface CompanyStats {
+  clients_count: number;
+  devices_count: number;
+  co2_saved: number;
+  started_year: number;
+}
+
+interface ClientLogo {
+  id: string;
+  name: string;
+  url: string;
+  file: File | null;
+}
+
 const HtmlTemplateManager: React.FC = () => {
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<HtmlTemplate[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<HtmlTemplate | null>(null);
   const [htmlContent, setHtmlContent] = useState('');
@@ -34,11 +51,24 @@ const HtmlTemplateManager: React.FC = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  
+  // Stats & Logos states
+  const [companyStats, setCompanyStats] = useState<CompanyStats>({
+    clients_count: 0,
+    devices_count: 0,
+    co2_saved: 0,
+    started_year: new Date().getFullYear()
+  });
+  const [clientLogos, setClientLogos] = useState<ClientLogo[]>([]);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isSavingStats, setIsSavingStats] = useState(false);
 
   const templateService = HtmlTemplateService.getInstance();
 
   useEffect(() => {
     loadTemplates();
+    loadCompanyStats();
+    loadClientLogos();
   }, []);
 
   useEffect(() => {
@@ -177,6 +207,177 @@ const HtmlTemplateManager: React.FC = () => {
     }
   };
 
+  const loadCompanyStats = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (profile?.company_id) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('clients_count, devices_count, co2_saved, started_year')
+          .eq('id', profile.company_id)
+          .single();
+
+        if (company) {
+          setCompanyStats({
+            clients_count: company.clients_count || 0,
+            devices_count: company.devices_count || 0,
+            co2_saved: company.co2_saved || 0,
+            started_year: company.started_year || new Date().getFullYear()
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des stats:', error);
+    }
+  };
+
+  const loadClientLogos = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (profile?.company_id) {
+        const { data: files, error } = await supabase.storage
+          .from('client-logos')
+          .list(`${profile.company_id}/`, {
+            limit: 100,
+            offset: 0
+          });
+
+        if (files && !error) {
+          const logos = files.map(file => ({
+            id: file.id || file.name,
+            name: file.name,
+            url: `${supabase.storageUrl}/object/public/client-logos/${profile.company_id}/${file.name}`,
+            file: null
+          }));
+          setClientLogos(logos);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des logos:', error);
+    }
+  };
+
+  const handleStatsChange = (field: keyof CompanyStats, value: number) => {
+    setCompanyStats(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveStats = async () => {
+    try {
+      setIsSavingStats(true);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (profile?.company_id) {
+        const { error } = await supabase
+          .from('companies')
+          .update({
+            clients_count: companyStats.clients_count,
+            devices_count: companyStats.devices_count,
+            co2_saved: companyStats.co2_saved,
+            started_year: companyStats.started_year
+          })
+          .eq('id', profile.company_id);
+
+        if (error) throw error;
+
+        toast.success('Statistiques sauvegardées avec succès');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des stats:', error);
+      toast.error('Erreur lors de la sauvegarde des statistiques');
+    } finally {
+      setIsSavingStats(false);
+    }
+  };
+
+  const handleLogoUpload = async (files: FileList) => {
+    if (!files.length) return;
+
+    try {
+      setIsUploadingLogo(true);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${profile.company_id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('client-logos')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const newLogo: ClientLogo = {
+          id: fileName,
+          name: fileName,
+          url: `${supabase.storageUrl}/object/public/client-logos/${filePath}`,
+          file: null
+        };
+
+        setClientLogos(prev => [...prev, newLogo]);
+      }
+
+      toast.success('Logos uploadés avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'upload des logos:', error);
+      toast.error('Erreur lors de l\'upload des logos');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleDeleteLogo = async (logoId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      const logo = clientLogos.find(l => l.id === logoId);
+      if (!logo) return;
+
+      const { error } = await supabase.storage
+        .from('client-logos')
+        .remove([`${profile.company_id}/${logo.name}`]);
+
+      if (error) throw error;
+
+      setClientLogos(prev => prev.filter(l => l.id !== logoId));
+      toast.success('Logo supprimé avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la suppression du logo:', error);
+      toast.error('Erreur lors de la suppression du logo');
+    }
+  };
+
   const extractedVariables = htmlContent ? templateService.extractTemplateVariables(htmlContent) : [];
 
   return (
@@ -193,6 +394,7 @@ const HtmlTemplateManager: React.FC = () => {
           <TabsTrigger value="editor">Éditeur</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="variables">Variables</TabsTrigger>
+          <TabsTrigger value="data-logos">Données & Logos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="editor" className="space-y-4">
@@ -413,11 +615,205 @@ const HtmlTemplateManager: React.FC = () => {
                 </div>
                 
                 <div>
+                  <h4 className="font-medium mb-3">Statistiques d'entreprise</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><code>{"{{company_stats_clients}}"}</code> - Nombre de clients satisfaits</div>
+                    <div><code>{"{{company_stats_devices}}"}</code> - Appareils dont nous prenons soin</div>
+                    <div><code>{"{{company_stats_co2}}"}</code> - CO2e économisée (en tonnes)</div>
+                    <div><code>{"{{company_started_year}}"}</code> - Année de début d'activité</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-3">Logos clients</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><code>{"{{client_logos}}"}</code> - Grille HTML des logos clients</div>
+                    <div><code>{"{{client_logos_count}}"}</code> - Nombre de logos disponibles</div>
+                  </div>
+                </div>
+                
+                <div>
                   <h4 className="font-medium mb-3">Helpers</h4>
                   <div className="space-y-2 text-sm">
                     <div><code>{"{{currency amount}}"}</code> - Formater en devise</div>
                     <div><code>{"{{date dateString}}"}</code> - Formater une date</div>
                     <div><code>{"{{number value}}"}</code> - Formater un nombre</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="data-logos" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Statistiques d'entreprise */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Statistiques d'entreprise
+                </CardTitle>
+                <CardDescription>
+                  Gérez les données chiffrées de votre entreprise pour les templates
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="clients-count">Nombre de clients satisfaits</Label>
+                  <Input
+                    id="clients-count"
+                    type="number"
+                    value={companyStats.clients_count}
+                    onChange={(e) => handleStatsChange('clients_count', parseInt(e.target.value) || 0)}
+                    placeholder="Ex: 150"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="devices-count">Appareils dont nous prenons soin</Label>
+                  <Input
+                    id="devices-count"
+                    type="number"
+                    value={companyStats.devices_count}
+                    onChange={(e) => handleStatsChange('devices_count', parseInt(e.target.value) || 0)}
+                    placeholder="Ex: 2500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="co2-saved">Quantité de CO2e économisée (tonnes)</Label>
+                  <Input
+                    id="co2-saved"
+                    type="number"
+                    step="0.1"
+                    value={companyStats.co2_saved}
+                    onChange={(e) => handleStatsChange('co2_saved', parseFloat(e.target.value) || 0)}
+                    placeholder="Ex: 45.5"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="started-year">Année de début de l'aventure</Label>
+                  <Input
+                    id="started-year"
+                    type="number"
+                    value={companyStats.started_year}
+                    onChange={(e) => handleStatsChange('started_year', parseInt(e.target.value) || new Date().getFullYear())}
+                    placeholder="Ex: 2020"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleSaveStats} 
+                  disabled={isSavingStats}
+                  className="w-full"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSavingStats ? 'Sauvegarde...' : 'Sauvegarder les statistiques'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Gestion des logos clients */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="w-5 h-5" />
+                  Logos clients
+                </CardTitle>
+                <CardDescription>
+                  Uploadez les logos de vos clients pour les intégrer dans vos templates
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Zone d'upload */}
+                <div 
+                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-muted-foreground/50 transition-colors cursor-pointer"
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                >
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Cliquez pour uploader des logos clients
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PNG, JPG, SVG jusqu'à 5MB
+                  </p>
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files && handleLogoUpload(e.target.files)}
+                  />
+                </div>
+
+                {/* Liste des logos */}
+                <div className="space-y-2">
+                  <Label>Logos uploadés ({clientLogos.length})</Label>
+                  <div className="max-h-48 overflow-y-auto space-y-2">
+                    {clientLogos.length > 0 ? (
+                      clientLogos.map((logo) => (
+                        <div key={logo.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2">
+                            <img 
+                              src={logo.url} 
+                              alt={logo.name}
+                              className="w-8 h-8 object-contain"
+                            />
+                            <span className="text-sm truncate">{logo.name}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteLogo(logo.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Aucun logo uploadé
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {isUploadingLogo && (
+                  <div className="text-sm text-muted-foreground text-center">
+                    Upload en cours...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Aperçu des variables générées */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Variables générées</CardTitle>
+              <CardDescription>
+                Aperçu des variables disponibles basées sur vos données
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <h4 className="font-medium mb-2">Statistiques</h4>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div><code>{"{{company_stats_clients}}"}</code> → {companyStats.clients_count.toLocaleString()}</div>
+                    <div><code>{"{{company_stats_devices}}"}</code> → {companyStats.devices_count.toLocaleString()}</div>
+                    <div><code>{"{{company_stats_co2}}"}</code> → {companyStats.co2_saved.toLocaleString()} tonnes</div>
+                    <div><code>{"{{company_started_year}}"}</code> → {companyStats.started_year}</div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Logos</h4>
+                  <div className="space-y-1 text-muted-foreground">
+                    <div><code>{"{{client_logos_count}}"}</code> → {clientLogos.length} logos</div>
+                    <div><code>{"{{client_logos}}"}</code> → Grille HTML générée</div>
                   </div>
                 </div>
               </div>
