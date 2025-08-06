@@ -5383,16 +5383,17 @@ export type Database = {
         Returns: string
       }
       get_company_users: {
-        Args: { p_company_id: string; role_filter?: string }
+        Args:
+          | Record<PropertyKey, never>
+          | { p_company_id: string; role_filter?: string }
         Returns: {
-          user_id: string
+          id: string
           email: string
           first_name: string
           last_name: string
           role: string
+          company_id: string
           created_at: string
-          last_sign_in_at: string
-          has_user_account: boolean
         }[]
       }
       get_contract_workflow_logs: {
@@ -5664,13 +5665,9 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           user_id: string
-          user_email: string
-          user_role: string
           client_id: string
-          client_name: string
-          client_email: string
-          association_date: string
-          status: string
+          association_type: string
+          created_at: string
         }[]
       }
       get_user_company_id: {
