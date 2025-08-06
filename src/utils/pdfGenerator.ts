@@ -8,13 +8,16 @@ import { generateItakecareOfferPdf, ITAKECARE_HTML_TEMPLATE } from './htmlPdfGen
 /**
  * Générer un PDF à partir des données de l'offre avec support des templates HTML
  */
-export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate?: boolean; customTemplate?: string }) => {
+export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate?: boolean; customTemplate?: string; templateData?: any }) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
     
     // Vérifier si on doit utiliser le template HTML
     if (pdfOptions?.useHtmlTemplate) {
       console.log("Utilisation du template HTML pour la génération PDF");
+      console.log("Custom template URL:", pdfOptions.customTemplate);
+      console.log("Template data available:", !!pdfOptions.templateData);
+      
       return await generateItakecareOfferPdf(
         offerData, 
         pdfOptions.customTemplate,

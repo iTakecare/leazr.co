@@ -57,31 +57,46 @@ export const getOfferDataForPdf = async (offerId: string) => {
       try {
         // Vérifier si c'est déjà du JSON valide
         if (typeof data.equipment_description === 'string') {
-          // Essayer de parser comme JSON
-          try {
-            const equipmentData = JSON.parse(data.equipment_description);
-            if (Array.isArray(equipmentData)) {
-              data.equipment_data = equipmentData.map(item => ({
-                ...item,
-                purchasePrice: parseFloat(item.purchasePrice) || 0,
-                quantity: parseInt(item.quantity, 10) || 1,
-                margin: parseFloat(item.margin) || 20,
-                monthlyPayment: parseFloat(item.monthlyPayment || 0)
-              }));
-            } else {
-              data.equipment_data = equipmentData;
-            }
-          } catch (jsonError) {
-            // Si ce n'est pas du JSON valide, créer une structure par défaut
-            console.warn("Données d'équipement en format texte, conversion en structure JSON:", data.equipment_description);
+          // Nettoyer le texte avant de tenter le parsing JSON
+          let cleanDescription = data.equipment_description.trim();
+          
+          // Si ça commence par "Demande" ou du texte libre, créer un objet simple
+          if (!cleanDescription.startsWith('[') && !cleanDescription.startsWith('{')) {
+            console.log("Equipment description is plain text, converting to structured data");
             data.equipment_data = [{
               title: "Équipement",
-              description: data.equipment_description,
+              description: cleanDescription,
               purchasePrice: data.amount || 0,
               quantity: 1,
               margin: 20,
               monthlyPayment: data.monthly_payment || 0
             }];
+          } else {
+            // Essayer de parser comme JSON
+            try {
+              const equipmentData = JSON.parse(cleanDescription);
+              if (Array.isArray(equipmentData)) {
+                data.equipment_data = equipmentData.map(item => ({
+                  ...item,
+                  purchasePrice: parseFloat(item.purchasePrice) || 0,
+                  quantity: parseInt(item.quantity, 10) || 1,
+                  margin: parseFloat(item.margin) || 20,
+                  monthlyPayment: parseFloat(item.monthlyPayment || 0)
+                }));
+              } else {
+                data.equipment_data = equipmentData;
+              }
+            } catch (jsonError) {
+              console.log("Failed to parse equipment_description as JSON, using fallback");
+              data.equipment_data = [{
+                title: "Équipement",
+                description: cleanDescription,
+                purchasePrice: data.amount || 0,
+                quantity: 1,
+                margin: 20,
+                monthlyPayment: data.monthly_payment || 0
+              }];
+            }
           }
         } else {
           // Les données sont déjà un objet
@@ -195,9 +210,11 @@ export const generateAndDownloadOfferPdf = async (
         
         if (template) {
           console.log("Template trouvé pour l'entreprise, utilisation du template HTML iTakecare");
+          console.log("Template file URL:", template.template_file_url);
           pdfOptions = {
             useHtmlTemplate: true,
-            customTemplate: template.template_file_url || null // null utilisera le template par défaut
+            customTemplate: template.template_file_url || null, // null utilisera le template par défaut iTakecare
+            templateData: template
           };
         } else {
           console.log("Aucun template trouvé, utilisation du template React standard");
