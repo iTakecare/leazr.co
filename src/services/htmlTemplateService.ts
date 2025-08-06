@@ -22,6 +22,14 @@ export interface HtmlTemplateData {
   base64_image_cover?: string;
   base64_image_vision?: string;
   base64_image_logo?: string;
+  // Stats d'entreprise
+  company_stats_clients?: string;
+  company_stats_devices?: string;
+  company_stats_co2?: string;
+  company_started_year?: string;
+  // Logos clients
+  client_logos_count?: string;
+  client_logos?: string;
   [key: string]: any; // Pour autres champs dynamiques
 }
 
@@ -116,7 +124,21 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
     // Images base64 - à injecter par la suite
     base64_image_cover: '', // Image de couverture (bureau/ordinateur)
     base64_image_vision: '', // Image de vision (mains avec globe)
-    base64_image_logo: '' // Logo iTakecare
+    base64_image_logo: '', // Logo iTakecare
+    // Stats d'entreprise (valeurs par défaut)
+    company_stats_clients: '150',
+    company_stats_devices: '2500',
+    company_stats_co2: '45.5',
+    company_started_year: '2020',
+    // Logos clients (grille HTML par défaut)
+    client_logos_count: '12',
+    client_logos: `
+      <div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 1" style="max-height: 60px; object-fit: contain;">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 2" style="max-height: 60px; object-fit: contain;">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 3" style="max-height: 60px; object-fit: contain;">
+      </div>
+    `
   };
 };
 
@@ -239,7 +261,21 @@ export class HtmlTemplateService {
           quantity: 2
         }
       ],
-      insurance_example: 'Pour un contrat de 10.000 €, assurance = 350 €/an'
+      insurance_example: 'Pour un contrat de 10.000 €, assurance = 350 €/an',
+      // Stats d'entreprise (exemples)
+      company_stats_clients: '150',
+      company_stats_devices: '2500', 
+      company_stats_co2: '45.5',
+      company_started_year: '2020',
+      // Logos clients (exemple)
+      client_logos_count: '12',
+      client_logos: `
+        <div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 1" style="max-height: 60px; object-fit: contain;">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 2" style="max-height: 60px; object-fit: contain;">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Client Logo 3" style="max-height: 60px; object-fit: contain;">
+        </div>
+      `
     };
 
     return this.compileTemplate(htmlTemplate, sampleData);

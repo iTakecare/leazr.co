@@ -1135,8 +1135,11 @@ export type Database = {
         Row: {
           accent_color: string | null
           account_status: string
+          clients_count: number | null
+          co2_saved: number | null
           created_at: string
           custom_domain: string | null
+          devices_count: number | null
           favicon_url: string | null
           id: string
           is_active: boolean | null
@@ -1147,6 +1150,7 @@ export type Database = {
           primary_color: string | null
           secondary_color: string | null
           slug: string | null
+          started_year: number | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
@@ -1157,8 +1161,11 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           account_status?: string
+          clients_count?: number | null
+          co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          devices_count?: number | null
           favicon_url?: string | null
           id?: string
           is_active?: boolean | null
@@ -1169,6 +1176,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string | null
+          started_year?: number | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
@@ -1179,8 +1187,11 @@ export type Database = {
         Update: {
           accent_color?: string | null
           account_status?: string
+          clients_count?: number | null
+          co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          devices_count?: number | null
           favicon_url?: string | null
           id?: string
           is_active?: boolean | null
@@ -1191,6 +1202,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string | null
+          started_year?: number | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
