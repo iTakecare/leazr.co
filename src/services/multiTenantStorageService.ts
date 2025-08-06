@@ -15,7 +15,8 @@ export type StorageType =
   | 'leaser-logos'
   | 'blog-images'
   | 'site-settings'
-  | 'client-logos';
+  | 'client-logos'
+  | 'Client Logos';
 
 /**
  * Génère le chemin de stockage multi-tenant

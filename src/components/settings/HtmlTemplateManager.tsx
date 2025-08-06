@@ -313,7 +313,7 @@ const HtmlTemplateManager: React.FC = () => {
 
       if (profile?.company_id) {
         const { data: files, error } = await supabase.storage
-          .from('client-logos')
+          .from('Client Logos')
           .list(`company-${profile.company_id}/`, {
             limit: 100,
             offset: 0
@@ -323,7 +323,7 @@ const HtmlTemplateManager: React.FC = () => {
           const logos = files.map(file => ({
             id: file.id || file.name,
             name: file.name,
-            url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/company-${profile.company_id}/${file.name}`,
+            url: `${SUPABASE_URL}/storage/v1/object/public/Client Logos/company-${profile.company_id}/${file.name}`,
             file: null
           }));
           setClientLogos(logos);
@@ -391,7 +391,7 @@ const HtmlTemplateManager: React.FC = () => {
       for (const file of Array.from(files)) {
         // Générer un nom de fichier unique pour éviter les collisions
         const fileName = `client-logo-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        const uploadedUrl = await uploadFileMultiTenant(file, 'client-logos', fileName);
+        const uploadedUrl = await uploadFileMultiTenant(file, 'Client Logos', fileName);
         
         if (!uploadedUrl) {
           throw new Error('Échec de l\'upload du logo');
@@ -431,7 +431,7 @@ const HtmlTemplateManager: React.FC = () => {
       if (!logo) return;
 
       const { error } = await supabase.storage
-        .from('client-logos')
+        .from('Client Logos')
         .remove([`company-${profile.company_id}/${logo.name}`]);
 
       if (error) throw error;
