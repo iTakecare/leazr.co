@@ -13,7 +13,7 @@ import { ITAKECARE_HTML_TEMPLATE, previewHtmlTemplate } from '@/utils/htmlPdfGen
 import { generateSamplePdf } from '@/services/offers/offerPdf';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { uploadImage, getCacheBustedUrl } from '@/utils/imageUtils';
+import { uploadFileMultiTenant } from '@/services/multiTenantStorageService';
 
 interface HtmlTemplate {
   id: string;
@@ -314,7 +314,7 @@ const HtmlTemplateManager: React.FC = () => {
       if (profile?.company_id) {
         const { data: files, error } = await supabase.storage
           .from('client-logos')
-          .list(`${profile.company_id}/`, {
+          .list(`company-${profile.company_id}/`, {
             limit: 100,
             offset: 0
           });
@@ -323,7 +323,7 @@ const HtmlTemplateManager: React.FC = () => {
           const logos = files.map(file => ({
             id: file.id || file.name,
             name: file.name,
-            url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/${profile.company_id}/${file.name}`,
+            url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/company-${profile.company_id}/${file.name}`,
             file: null
           }));
           setClientLogos(logos);
@@ -389,17 +389,18 @@ const HtmlTemplateManager: React.FC = () => {
       if (!profile?.company_id) return;
 
       for (const file of Array.from(files)) {
-        // Utiliser le service fileUploadService qui gère automatiquement les permissions
-        const uploadedUrl = await uploadImage(file, 'client-logos', profile.company_id);
+        // Générer un nom de fichier unique pour éviter les collisions
+        const fileName = `client-logo-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const uploadedUrl = await uploadFileMultiTenant(file, 'client-logos', fileName);
         
         if (!uploadedUrl) {
           throw new Error('Échec de l\'upload du logo');
         }
 
-        const fileName = file.name;
+        const displayName = file.name;
         const newLogo: ClientLogo = {
           id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
-          name: fileName,
+          name: displayName,
           url: uploadedUrl,
           file: null
         };
@@ -431,7 +432,7 @@ const HtmlTemplateManager: React.FC = () => {
 
       const { error } = await supabase.storage
         .from('client-logos')
-        .remove([`${profile.company_id}/${logo.name}`]);
+        .remove([`company-${profile.company_id}/${logo.name}`]);
 
       if (error) throw error;
 
