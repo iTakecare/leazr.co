@@ -792,57 +792,77 @@ export const generatePdfFromHtmlTemplate = async (
 ): Promise<string> => {
   try {
     console.log("Début de la génération PDF à partir du template HTML");
+    console.log("Taille du template HTML:", htmlTemplate.length);
     
     // Obtenir l'instance du service de template
     const templateService = HtmlTemplateService.getInstance();
     
     // Compiler le template avec les données
+    console.log("Compilation du template avec les données...");
     const compiledHtml = templateService.compileTemplate(htmlTemplate, data);
+    console.log("Template compilé, taille:", compiledHtml.length);
+    console.log("Aperçu du HTML compilé (100 premiers caractères):", compiledHtml.substring(0, 100));
     
-    // Configuration pour le PDF multi-pages
+    // Configuration optimisée pour le PDF multi-pages
     const pdfOptions = {
-      margin: options.margin || [10, 10, 10, 10], // Marges en mm
+      margin: options.margin || [5, 5, 5, 5], // Marges en mm
       filename: options.filename || `offre-${Date.now()}.pdf`,
       image: { 
         type: 'jpeg', 
-        quality: options.quality || 0.95 
+        quality: options.quality || 0.98 
       },
       html2canvas: { 
-        scale: options.scale || 2,
+        scale: options.scale || 1.5, // Réduit pour éviter les problèmes de mémoire
         useCORS: true,
-        logging: false,
+        logging: true, // Activé pour debug
         letterRendering: true,
         allowTaint: true,
-        imageTimeout: 15000,
-        height: window.innerHeight,
-        width: window.innerWidth,
+        imageTimeout: 20000, // Augmenté
+        width: 794, // Largeur A4 fixe
+        height: null, // Hauteur automatique pour multi-pages
         scrollX: 0,
-        scrollY: 0
+        scrollY: 0,
+        windowWidth: 794,
+        windowHeight: null // Hauteur automatique
       },
       jsPDF: { 
         unit: 'mm', 
         format: options.format || 'a4', 
         orientation: options.orientation || 'portrait',
         compress: true,
-        precision: 16
+        precision: 16,
+        hotfixes: ["px_scaling"] // Fix pour les problèmes de scaling
       },
       pagebreak: { 
-        mode: ['avoid-all', 'css', 'legacy'],
-        before: '.section'
+        mode: 'css', // Mode CSS pour respecter les page-break
+        after: '.page',
+        avoid: 'img'
       }
     };
     
-    // Créer un conteneur temporaire pour le HTML
+    console.log("Configuration PDF:", pdfOptions);
+    
+    // Créer un conteneur temporaire optimisé pour A4
     const container = document.createElement('div');
-    container.style.width = 'auto';
-    container.style.maxWidth = '210mm';
-    container.style.margin = '0 auto';
-    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.width = '210mm';
+    container.style.minHeight = '297mm';
+    container.style.margin = '0';
+    container.style.padding = '0';
+    container.style.fontFamily = "'Montserrat', 'Arial', sans-serif";
     container.style.backgroundColor = 'white';
+    container.style.color = '#333';
+    container.style.fontSize = '14px';
+    container.style.lineHeight = '1.6';
+    container.style.boxSizing = 'border-box';
     container.innerHTML = compiledHtml;
+    
+    console.log("Container créé avec le HTML compilé");
     
     // Ajouter le container au document temporairement
     document.body.appendChild(container);
+    
+    // Attendre que le DOM soit rendu
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
       // Générer le PDF
@@ -876,21 +896,38 @@ export const generateItakecareOfferPdf = async (
 ): Promise<string> => {
   try {
     console.log("Génération PDF iTakecare pour l'offre:", offerData.id);
+    console.log("Template personnalisé fourni:", !!customTemplate);
+    
+    // Si aucun template personnalisé n'est fourni, afficher une erreur
+    if (!customTemplate) {
+      console.error("Aucun template HTML personnalisé fourni - utilisation du template par défaut");
+      throw new Error("Template HTML requis depuis la base de données");
+    }
     
     // Convertir les données d'offre au format template
     const templateData = convertOfferToTemplateData(offerData);
+    console.log("Données template préparées:", Object.keys(templateData));
     
-    // Utiliser le template personnalisé ou celui par défaut
-    const htmlTemplate = customTemplate || ITAKECARE_HTML_TEMPLATE;
+    // Utiliser le template personnalisé de la base de données
+    const htmlTemplate = customTemplate;
+    console.log("Longueur du template HTML:", htmlTemplate.length);
     
     // Générer le nom de fichier
     const filename = options.filename || `offre-itakecare-${offerData.id?.substring(0, 8)}.pdf`;
     
-    // Générer le PDF
-    return await generatePdfFromHtmlTemplate(htmlTemplate, templateData, {
+    // Configuration spécifique pour le template iTakecare 7 pages
+    const pdfConfig = {
       ...options,
-      filename
-    });
+      filename,
+      margin: [5, 5, 5, 5], // Marges minimales
+      quality: 0.98,
+      scale: 1.5 // Légèrement réduit pour une meilleure compatibilité
+    };
+    
+    console.log("Configuration PDF:", pdfConfig);
+    
+    // Générer le PDF
+    return await generatePdfFromHtmlTemplate(htmlTemplate, templateData, pdfConfig);
   } catch (error) {
     console.error("Erreur lors de la génération du PDF iTakecare:", error);
     throw error;
