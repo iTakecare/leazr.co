@@ -921,7 +921,28 @@ export const previewHtmlTemplate = (htmlTemplate: string, data?: HtmlTemplateDat
           quantity: 2
         }
       ],
-      insurance_example: 'Pour un contrat de 10.000 €, assurance = 350 €/an'
+      insurance_example: 'Pour un contrat de 10.000 €, assurance = 350 €/an',
+      // Nouvelles variables statistiques
+      company_stats_clients: '119',
+      company_stats_devices: '711',
+      company_stats_co2: '91,2 tonnes',
+      company_started_year: '2023',
+      // Variables logos clients
+      client_logos_count: '3 logos',
+      client_logos: `<div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0;">
+        <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+1" alt="Logo Client 1" style="max-width: 100%; height: auto; max-height: 60px;"/>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 1</p>
+        </div>
+        <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+2" alt="Logo Client 2" style="max-width: 100%; height: auto; max-height: 60px;"/>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 2</p>
+        </div>
+        <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+3" alt="Logo Client 3" style="max-width: 100%; height: auto; max-height: 60px;"/>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 3</p>
+        </div>
+      </div>`
     };
     
     // Compiler le template
