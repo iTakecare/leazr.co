@@ -303,19 +303,19 @@ const CompanyDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="success" className="h-20 flex-col gap-2">
               <Users className="h-6 w-6" />
               <span className="text-sm">Nouveau client</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="success" className="h-20 flex-col gap-2">
               <FileText className="h-6 w-6" />
               <span className="text-sm">Créer offre</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="success" className="h-20 flex-col gap-2">
               <HandHeart className="h-6 w-6" />
               <span className="text-sm">Voir contrats</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
+            <Button variant="success" className="h-20 flex-col gap-2">
               <Filter className="h-6 w-6" />
               <span className="text-sm">Rapports</span>
             </Button>
