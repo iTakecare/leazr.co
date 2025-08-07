@@ -144,20 +144,15 @@ export const createClientAsAmbassadorDb = async (clientData: CreateClientData): 
       throw new Error("La fonction de création de client ambassadeur n'est pas disponible");
     }
     
-    // Ajouter is_ambassador_client: true aux données du client pour le marquer correctement
-    const enhancedClientData = {
-      ...clientData,
-      is_ambassador_client: true
-    };
-    
+    // Préparer les données du client (sans is_ambassador_client qui n'existe pas)
     console.log("🔍 DIAGNOSTIC - Appel de la fonction RPC avec:", {
-      client_data: enhancedClientData,
+      client_data: clientData,
       ambassador_id: ambassadorData.id
     });
     
     const { data, error } = await supabase
       .rpc('create_client_as_ambassador', {
-        client_data: enhancedClientData,
+        client_data: clientData,
         ambassador_id: ambassadorData.id
       });
     
