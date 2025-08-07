@@ -11,6 +11,7 @@ import { CartProvider } from "@/context/CartContext";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { RoleBasedRoutes } from "@/components/auth/RoleBasedRoutes";
 import { PrivateRoute } from "@/components/PrivateRoute";
+import ErrorBoundaryWrapper from "@/components/layout/ErrorBoundaryWrapper";
 
 // Auth pages
 import Login from "@/pages/Login";
@@ -172,7 +173,6 @@ const AppRoutes = () => (
     {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
     <Route path="/:companySlug/ambassador/*" element={<AmbassadorPrivateRoute />}>
       <Route path="" element={<AmbassadorLayout />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AmbassadorDashboardPage />} />
         <Route path="catalog" element={<AmbassadorCatalogPage />} />
         <Route path="products/:id" element={<AmbassadorProductDetailPage />} />
@@ -182,6 +182,7 @@ const AppRoutes = () => (
         <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
         <Route path="offers" element={<AmbassadorOffersPage />} />
         <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
     </Route>
     
@@ -277,24 +278,39 @@ const AppRoutes = () => (
 function App() {
   console.log('🚀 App component rendering...');
   
+  // Handle storage errors globally
+  const handleStorageError = () => {
+    console.warn('⚠️ Storage access blocked, continuing without storage');
+  };
+
+  // Add global error handler for storage issues
+  window.addEventListener('error', (event) => {
+    if (event.message?.includes('storage') || event.message?.includes('localStorage')) {
+      handleStorageError();
+      event.preventDefault();
+    }
+  });
+  
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-        <TooltipProvider>
-          <BrowserRouter>
-            <AuthProvider>
-              <CompanyBrandingProvider>
-                <CartProvider>
-                  <AppRoutes />
-                </CartProvider>
-              </CompanyBrandingProvider>
-            </AuthProvider>
-          </BrowserRouter>
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundaryWrapper>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+          <TooltipProvider>
+            <BrowserRouter>
+              <AuthProvider>
+                <CompanyBrandingProvider>
+                  <CartProvider>
+                    <AppRoutes />
+                  </CartProvider>
+                </CompanyBrandingProvider>
+              </AuthProvider>
+            </BrowserRouter>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundaryWrapper>
   );
 }
 
