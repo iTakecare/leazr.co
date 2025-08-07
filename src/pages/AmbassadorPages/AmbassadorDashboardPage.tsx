@@ -434,7 +434,7 @@ const AmbassadorDashboardPage = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => navigate(`offers/${offer.id}`)}
+                          onClick={() => navigate(`/itakecare/ambassador/offers/${offer.id}`)}
                         >
                           Détails
                         </Button>

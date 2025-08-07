@@ -63,7 +63,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
-  const { navigateToAdmin } = useRoleNavigation();
+  const { navigateToAdmin, navigateToAmbassador } = useRoleNavigation();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
   if (!offers.length) {
@@ -81,10 +81,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
       return "Date incorrecte";
     }
   };
-
+  
   const handleViewDetails = (offerId: string) => {
     if (isAmbassador()) {
-      navigate(`/ambassador/offers/${offerId}`);
+      navigateToAmbassador(`offers/${offerId}`);
     } else {
       navigateToAdmin(`offers/${offerId}`);
     }
