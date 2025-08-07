@@ -75,14 +75,6 @@ const AmbassadorFinancialSummary = ({
             Calcul en cours...
           </div>
         )}
-        
-        {/* Debug info in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="text-xs text-gray-500 pt-2 border-t bg-gray-50 p-2 rounded">
-            Debug: ambassadorId={ambassadorId}, commissionLevelId={commissionLevelId}, 
-            totalMonthly={totalMonthlyPayment}, equipCount={equipmentListLength}, totalMargin={totalMargin}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
