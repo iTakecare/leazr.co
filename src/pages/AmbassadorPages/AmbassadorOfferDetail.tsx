@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
-import { getOfferById, getWorkflowLogs, getOfferNotes } from "@/services/offerService";
+import { getWorkflowLogs, getOfferNotes } from "@/services/offerService";
+import { useOfferDetail } from "@/hooks/offers/useOfferDetail";
 import { formatCurrency } from "@/utils/formatters";
 import { format, differenceInMonths } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -35,9 +36,9 @@ const AmbassadorOfferDetail = () => {
   const { user } = useAuth();
   const { navigateToAmbassador } = useRoleNavigation();
   
-  const [offer, setOffer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Utiliser le hook robuste useOfferDetail
+  const { offer, loading, error, fetchOffer } = useOfferDetail(id || "");
+  
   const [sendingEmail, setSendingEmail] = useState(false);
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
@@ -46,42 +47,13 @@ const AmbassadorOfferDetail = () => {
   
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
   
+  // Charger les workflow logs et notes séparément
   useEffect(() => {
-    const fetchOfferDetails = async () => {
-      if (!id || !user) return;
-      
-      try {
-        setLoading(true);
-        const offerData = await getOfferById(id);
-        
-        if (!offerData) {
-          setError("Offre non trouvée");
-          toast.error("Offre non trouvée");
-          return;
-        }
-        
-        // Pour un ambassadeur, vérifier s'il a accès à l'offre
-        // Un ambassadeur peut avoir accès à ses propres offres ou à celles qui lui sont assignées
-        if (user.role !== 'admin' && user.role !== 'ambassador') {
-          setError("Vous n'avez pas accès à cette offre");
-          toast.error("Vous n'avez pas accès à cette offre");
-          return;
-        }
-        
-        setOffer(offerData);
-        fetchWorkflowLogs(id);
-        fetchOfferNotes(id);
-      } catch (err) {
-        console.error("Erreur lors du chargement de l'offre:", err);
-        setError("Impossible de charger les détails de l'offre");
-        toast.error("Erreur lors du chargement des détails de l'offre");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchOfferDetails();
-  }, [id, user]);
+    if (id) {
+      fetchWorkflowLogs(id);
+      fetchOfferNotes(id);
+    }
+  }, [id]);
   
   const fetchWorkflowLogs = async (offerId: string) => {
     try {
@@ -131,7 +103,7 @@ const AmbassadorOfferDetail = () => {
           
         if (error) throw error;
         
-        setOffer({ ...offer, workflow_status: 'sent' });
+        fetchOffer(); // Recharger les données mises à jour
       }
       
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -179,7 +151,7 @@ const AmbassadorOfferDetail = () => {
           return;
         }
         
-        setOffer({ ...offer, workflow_status: 'sent' });
+        fetchOffer(); // Recharger les données mises à jour
       }
       
       // Formater la description de l'équipement
@@ -302,7 +274,7 @@ const AmbassadorOfferDetail = () => {
             <AmbassadorOfferHeader 
               offer={offer}
               onBack={() => navigateToAmbassador("offers")}
-              onRefresh={() => window.location.reload()}
+              onRefresh={fetchOffer}
             />
 
             {/* Cartes financières */}
