@@ -5,6 +5,7 @@ import {
   getAmbassadorClients, 
   deleteAmbassadorClient
 } from '@/services/ambassador/ambassadorClients';
+import { createClientAsAmbassadorDb } from '@/services/ambassador/ambassadorOperations';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
@@ -56,9 +57,24 @@ export const useAmbassadorClients = () => {
     setIsLoading(true);
     
     try {
-      // Cette fonctionnalité sera implémentée plus tard si nécessaire
-      toast.error("Fonctionnalité de création de client non encore implémentée");
-      return false;
+      if (!user?.id) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      console.log("🔍 HOOK DIAGNOSTIC - Appel createClientAsAmbassadorDb...");
+      const clientId = await createClientAsAmbassadorDb(clientData);
+      
+      if (!clientId) {
+        throw new Error("Échec de la création du client");
+      }
+
+      console.log("🔍 HOOK DIAGNOSTIC - Client créé avec succès:", { clientId });
+      toast.success("Client créé avec succès");
+      
+      // Recharger la liste des clients
+      await loadClients();
+      
+      return true;
     } catch (err) {
       console.error("🔍 HOOK DIAGNOSTIC - Erreur lors de la création du client:", {
         error: err,

@@ -78,7 +78,7 @@ export const generateSimplePdf = async (
     let processedHtml = htmlTemplate;
     
     // Si le template contient des constructions Handlebars, utiliser le service approprié
-    if (placeholders.some(p => p.includes('#') || p.includes('/'))) {
+    if (placeholders.length > 0 && placeholders.some(p => p.includes('#') || p.includes('/'))) {
       console.log("🔧 Template Handlebars détecté, utilisation du service...");
       
       try {
