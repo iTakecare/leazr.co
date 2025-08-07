@@ -32,12 +32,22 @@ import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteC
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 
 const AmbassadorOfferDetail = () => {
+  console.log('🔥 AMBASSADOR OFFER DETAIL - Component starting to execute');
+  console.log('🔥 AMBASSADOR OFFER DETAIL - Current pathname:', window.location.pathname);
+  
   const { id } = useParams<{ id: string }>();
+  console.log('🔥 AMBASSADOR OFFER DETAIL - Offer ID from params:', id);
+  
   const { user } = useAuth();
+  console.log('🔥 AMBASSADOR OFFER DETAIL - User from auth:', !!user);
+  
   const { navigateToAmbassador } = useRoleNavigation();
+  console.log('🔥 AMBASSADOR OFFER DETAIL - Navigation hook loaded');
   
   // Utiliser le hook robuste useOfferDetail
+  console.log('🔥 AMBASSADOR OFFER DETAIL - About to call useOfferDetail with ID:', id);
   const { offer, loading, error, fetchOffer } = useOfferDetail(id || "");
+  console.log('🔥 AMBASSADOR OFFER DETAIL - useOfferDetail returned:', { offer: !!offer, loading, error });
   
   const [sendingEmail, setSendingEmail] = useState(false);
   const [workflowLogs, setWorkflowLogs] = useState<any[]>([]);
@@ -210,7 +220,10 @@ const AmbassadorOfferDetail = () => {
     return user?.role === 'admin';
   }, [user]);
 
+  console.log('🔥 AMBASSADOR OFFER DETAIL - Before loading check, loading:', loading);
+  
   if (loading) {
+    console.log('🔥 AMBASSADOR OFFER DETAIL - Showing loading state');
     return (
       <PageTransition>
         <Container>
@@ -224,6 +237,7 @@ const AmbassadorOfferDetail = () => {
   }
   
   if (error) {
+    console.log('🔥 AMBASSADOR OFFER DETAIL - Showing error state:', error);
     return (
       <PageTransition>
         <Container>
@@ -241,6 +255,7 @@ const AmbassadorOfferDetail = () => {
   }
   
   if (!offer) {
+    console.log('🔥 AMBASSADOR OFFER DETAIL - No offer found, showing not found state');
     return (
       <PageTransition>
         <Container>
@@ -265,75 +280,31 @@ const AmbassadorOfferDetail = () => {
     ? parseFloat(((calculatedMargin / offer.financed_amount) * 100).toFixed(2))
     : 0;
 
+  console.log('🔥 AMBASSADOR OFFER DETAIL - About to render main content with offer:', {
+    id: offer.id,
+    client_name: offer.client_name,
+    workflow_status: offer.workflow_status
+  });
+
+  // SIMPLIFIED RENDER FOR DEBUGGING
   return (
     <PageTransition>
       <Container>
-        <TooltipProvider>
-          <div className="p-4 md:p-6 space-y-6">
-            {/* En-tête de l'offre */}
-            <AmbassadorOfferHeader 
-              offer={offer}
-              onBack={() => navigateToAmbassador("offers")}
-              onRefresh={fetchOffer}
-            />
-
-            {/* Cartes financières */}
-            <AmbassadorFinancialCards 
-              monthlyPayment={offer.monthly_payment}
-              commission={offer.commission}
-              commissionStatus={offer.commission_status}
-              margin={offer.margin || calculatedMargin}
-              marginPercentage={marginPercentage}
-              showCommission={shouldShowCommission}
-              showMargin={false}
-            />
-
-            {/* Layout principal */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Colonne principale */}
-              <div className="lg:col-span-2 space-y-6">
-                <ClientInfoCard 
-                  clientName={offer.client_name}
-                  clientEmail={offer.client_email}
-                  clientPhone={offer.client_phone}
-                />
-                
-                <CompactEquipmentSection 
-                  offer={offer}
-                  hideFinancialColumns={true}
-                />
-                
-                <AmbassadorWorkflowTimeline 
-                  workflowLogs={workflowLogs}
-                  loading={logsLoading}
-                />
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-6">
-                <AmbassadorActionButtons 
-                  status={offer.workflow_status}
-                  offerId={offer.id}
-                  onSendSignatureLink={shareSignatureLink}
-                  onDownloadPdf={handlePrintPdf}
-                  sendingEmail={sendingEmail}
-                  isPdfGenerating={isPrintingPdf}
-                />
-                
-                <AmbassadorAddNoteCard 
-                  offerId={offer.id}
-                  onNoteAdded={handleNoteAdded}
-                />
-                
-                <AmbassadorOfferNotes 
-                  notes={offerNotes}
-                  loading={notesLoading}
-                />
-              </div>
+        <div className="p-4 md:p-6 space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h1 className="text-2xl font-bold mb-4">🔥 AMBASSADOR OFFER DETAIL DEBUG</h1>
+            <p><strong>Offer ID:</strong> {offer.id}</p>
+            <p><strong>Client:</strong> {offer.client_name}</p>
+            <p><strong>Status:</strong> {offer.workflow_status}</p>
+            <p><strong>Amount:</strong> {offer.amount}€</p>
+            <p><strong>Component successfully rendered!</strong></p>
+            <div className="mt-4">
+              <Button onClick={() => navigateToAmbassador("offers")}>
+                Retour aux offres
+              </Button>
             </div>
           </div>
-        </TooltipProvider>
+        </div>
       </Container>
     </PageTransition>
   );
