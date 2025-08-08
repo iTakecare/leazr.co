@@ -717,27 +717,26 @@ export const sendOfferReadyEmail = async (
     console.log(`   → Montant formaté: ${formattedAmount}`);
     console.log(`   → Mensualité formatée: ${formattedMonthlyPayment}`);
 
-    let subject = `Votre contrat pour ${formattedDescription} est prêt à signer`;
+    let subject = `Votre offre pour ${formattedDescription} est prête à signer`;
     let htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="text-align: center; margin-bottom: 20px;">
           <img src="{{site_logo}}" alt="Logo" style="max-width: 200px; height: auto;" />
         </div>
         <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bonjour ${clientName},</h2>
-        <p>Nous avons le plaisir de vous informer que votre contrat de financement est maintenant disponible pour consultation et signature.</p>
-        <p><strong>Détails du contrat:</strong></p>
+        <p>Nous avons le plaisir de vous informer que votre offre de financement est maintenant disponible pour consultation et signature.</p>
+        <p><strong>Détails de l'offre:</strong></p>
         <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
           <li>Équipement: ${formattedDescription}</li>
-          <li>Montant financé: ${formattedAmount} €</li>
           <li>Mensualité: ${formattedMonthlyPayment} €</li>
         </ul>
-        <p>Pour consulter les détails complets et signer votre contrat, veuillez cliquer sur le lien ci-dessous:</p>
+        <p>Pour consulter les détails complets et signer votre offre, veuillez cliquer sur le lien ci-dessous:</p>
         <p style="text-align: center; margin: 25px 0;">
           <a href="${finalOfferLink}" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
-            Consulter et signer mon contrat
+            Consulter et signer mon offre
           </a>
         </p>
-        <p>Ce lien vous permet d'accéder à votre contrat et de le signer électroniquement si les conditions vous conviennent.</p>
+        <p>Ce lien vous permet d'accéder à votre offre et de la signer électroniquement si les conditions vous conviennent.</p>
         <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
         <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
       </div>
