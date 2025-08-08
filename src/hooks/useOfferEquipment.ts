@@ -13,15 +13,17 @@ export const useOfferEquipment = (offerId?: string) => {
       return;
     }
 
+    console.log("🔥 EQUIPMENT HOOK - Starting fetchEquipment for offer:", offerId);
     setLoading(true);
     setError(null);
 
     try {
       const data = await getOfferEquipment(offerId);
+      console.log("🔥 EQUIPMENT HOOK - Equipment data received:", data?.length, "items");
       setEquipment(data);
     } catch (err: any) {
-      setError(err.message);
-      console.error("Erreur lors de la récupération des équipements:", err);
+      console.error("🔥 EQUIPMENT HOOK - Error fetching equipment:", err);
+      setError(err.message || "Erreur lors de la récupération des équipements");
     } finally {
       setLoading(false);
     }

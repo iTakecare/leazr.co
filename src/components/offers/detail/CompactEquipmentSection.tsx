@@ -13,7 +13,16 @@ interface CompactEquipmentSectionProps {
 
 const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer, hideFinancialColumns = false }) => {
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
-  const { equipment: offerEquipment, loading } = useOfferEquipment(offer.id);
+  const { equipment: offerEquipment, loading, error } = useOfferEquipment(offer.id);
+  
+  console.log("🔥 COMPACT EQUIPMENT - Render with:", {
+    offerId: offer.id,
+    loading,
+    error,
+    offerEquipmentCount: offerEquipment?.length,
+    hasEquipmentDescription: !!offer.equipment_description,
+    hasParsedEquipment: !!offer.parsedEquipment?.length
+  });
   
   let equipmentItems = [];
   
@@ -201,7 +210,11 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
             )}
           </div>
         ) : (
-          <div className="text-gray-500 text-center py-8 px-4">Aucun équipement spécifié</div>
+          <div className="text-center py-8 px-4">
+            {loading && <div className="text-blue-500">Chargement des équipements...</div>}
+            {error && <div className="text-red-500 mb-2">Erreur: {error}</div>}
+            {!loading && !error && <div className="text-gray-500">Aucun équipement spécifié</div>}
+          </div>
         )}
       </CardContent>
     </Card>

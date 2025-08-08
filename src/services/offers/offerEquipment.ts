@@ -85,75 +85,104 @@ const fetchEquipmentWithDetails = async (equipmentData: any[]): Promise<OfferEqu
  * Avec migration automatique depuis JSON si les nouvelles tables sont vides
  */
 export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment[]> => {
+  console.log("🔥 EQUIPMENT SERVICE - Starting getOfferEquipment for:", offerId);
+  
   try {
-    console.log("Fetching offer equipment for offer:", offerId);
+    // Vérifier l'authentification
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log("🔥 EQUIPMENT SERVICE - Current user:", user?.id, "Email:", user?.email);
     
-    // Récupérer les équipements depuis les nouvelles tables
+    if (authError) {
+      console.error("🔥 EQUIPMENT SERVICE - Auth error:", authError);
+      throw new Error("Erreur d'authentification: " + authError.message);
+    }
+
+    // D'abord essayer de récupérer depuis la nouvelle table offer_equipment
+    console.log("🔥 EQUIPMENT SERVICE - Querying offer_equipment table...");
     const { data: equipmentData, error: equipmentError } = await supabase
       .from('offer_equipment')
-      .select('*')
-      .eq('offer_id', offerId);
-    
+      .select(`
+        *,
+        attributes:offer_equipment_attributes(key, value),
+        specifications:offer_equipment_specifications(key, value)
+      `)
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: true });
+
     if (equipmentError) {
-      console.error("Erreur lors de la récupération des équipements:", equipmentError);
-      return [];
+      console.error("🔥 EQUIPMENT SERVICE - Equipment query error:", equipmentError);
+      throw new Error("Erreur lors de la récupération des équipements: " + equipmentError.message);
     }
+
+    console.log("🔥 EQUIPMENT SERVICE - Equipment query result:", equipmentData?.length, "items");
+
+    // Si nous avons des données dans offer_equipment, les utiliser
+    if (equipmentData && equipmentData.length > 0) {
+      console.log("🔥 EQUIPMENT SERVICE - Processing equipment details...");
+      const processed = await fetchEquipmentWithDetails(equipmentData);
+      console.log("🔥 EQUIPMENT SERVICE - Processed equipment:", processed.length, "items");
+      return processed;
+    }
+
+    console.log("🔥 EQUIPMENT SERVICE - No equipment in offer_equipment, checking offer JSON...");
     
-    // Si aucun équipement dans les nouvelles tables, essayer de migrer depuis le JSON
-    if (!equipmentData || equipmentData.length === 0) {
-      console.log("No equipment found in new tables, checking JSON data for offer:", offerId);
+    // Sinon, essayer de migrer depuis le champ JSON de la table offers
+    const { data: offerData, error: offerError } = await supabase
+      .from('offers')
+      .select('equipment_description')
+      .eq('id', offerId)
+      .single();
+
+    if (offerError) {
+      console.error("🔥 EQUIPMENT SERVICE - Offer query error:", offerError);
+      throw new Error("Erreur lors de la récupération de l'offre: " + offerError.message);
+    }
+
+    console.log("🔥 EQUIPMENT SERVICE - Offer equipment_description:", !!offerData?.equipment_description);
+
+    if (offerData?.equipment_description) {
+      console.log("🔥 EQUIPMENT SERVICE - Attempting migration from JSON...");
       
-      // Récupérer les données JSON depuis l'offre
-      const { data: offer, error: offerError } = await supabase
-        .from('offers')
-        .select('equipment_description')
-        .eq('id', offerId)
-        .single();
-      
-      if (offerError) {
-        console.error("Erreur lors de la récupération de l'offre:", offerError);
-        return [];
-      }
-      
-      if (offer?.equipment_description) {
-        console.log("Found JSON equipment data, attempting migration...");
-        
-        // Tenter la migration automatique
-        const migrationSuccess = await migrateEquipmentFromJson(offerId, offer.equipment_description);
+      try {
+        // Essayer de migrer les données JSON vers la nouvelle structure
+        const migrationSuccess = await migrateEquipmentFromJson(offerId, offerData.equipment_description);
         
         if (migrationSuccess) {
-          // Récupérer les données migrées
+          console.log("🔥 EQUIPMENT SERVICE - Migration successful, fetching migrated data...");
+          // Récupérer les équipements migrés
           const { data: migratedData, error: migratedError } = await supabase
             .from('offer_equipment')
-            .select('*')
-            .eq('offer_id', offerId);
-          
+            .select(`
+              *,
+              attributes:offer_equipment_attributes(key, value),
+              specifications:offer_equipment_specifications(key, value)
+            `)
+            .eq('offer_id', offerId)
+            .order('created_at', { ascending: true });
+
           if (migratedError) {
-            console.error("Erreur lors de la récupération des données migrées:", migratedError);
-            return parseEquipmentFromJson(offer.equipment_description);
+            console.error("🔥 EQUIPMENT SERVICE - Migration query error:", migratedError);
+            throw new Error("Erreur lors de la récupération des équipements migrés: " + migratedError.message);
           }
-          
-          if (migratedData && migratedData.length > 0) {
-            console.log("Migration successful, using migrated data");
-            // Récupérer avec les détails
-            return await fetchEquipmentWithDetails(migratedData);
-          }
+
+          const processed = await fetchEquipmentWithDetails(migratedData || []);
+          console.log("🔥 EQUIPMENT SERVICE - Final migrated equipment:", processed.length, "items");
+          return processed;
+        } else {
+          console.warn("🔥 EQUIPMENT SERVICE - Migration failed");
         }
-        
-        // Si la migration échoue, parser directement le JSON
-        console.log("Migration failed, parsing JSON directly");
-        return parseEquipmentFromJson(offer.equipment_description);
+      } catch (migrationError) {
+        console.error("🔥 EQUIPMENT SERVICE - Migration error:", migrationError);
+        // En cas d'erreur de migration, retourner un tableau vide plutôt que de lancer une erreur
       }
-      
-      console.log("No equipment data found");
-      return [];
     }
-    
-    console.log("Equipment found:", equipmentData.length, "items");
-    return await fetchEquipmentWithDetails(equipmentData);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des équipements:", error);
+
+    console.log("🔥 EQUIPMENT SERVICE - No equipment found for offer:", offerId);
     return [];
+
+  } catch (error) {
+    console.error("🔥 EQUIPMENT SERVICE - Global error:", error);
+    throw error;
   }
 };
 
