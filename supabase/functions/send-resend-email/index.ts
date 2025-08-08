@@ -121,26 +121,28 @@ serve(async (req) => {
       console.log("Paramètres SMTP spécifiques non trouvés, utilisation du fallback:", settingsError.message);
     }
     
-    // Déterminer quelle clé API Resend utiliser
-    let apiKey = Deno.env.get("LEAZR_RESEND_API");
-    let fromEmailDefault = 'noreply@leazr.co';
-    let fromNameDefault = 'Leazr';
+    // Déterminer quelle clé API Resend utiliser (source de base)
+    const FALLBACK_FROM_EMAIL = 'noreply@leazr.co';
+    const FALLBACK_FROM_NAME = 'Leazr';
+    const fallbackApiKey = Deno.env.get("LEAZR_RESEND_API") || '';
 
-    if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
-      const companyApiKey = smtpSettings.resend_api_key.trim();
-      if (!companyApiKey.includes("YOUR_API_KEY") && !companyApiKey.includes("RESEND_API_KEY")) {
-        console.log("Utilisation de la clé API Resend de l'entreprise");
-        apiKey = companyApiKey;
-        fromEmailDefault = smtpSettings.from_email || fromEmailDefault;
-        fromNameDefault = smtpSettings.from_name || fromNameDefault;
-      } else {
-        console.log("Clé API entreprise invalide, utilisation du fallback");
-      }
+    let fromEmailDefault = FALLBACK_FROM_EMAIL;
+    let fromNameDefault = FALLBACK_FROM_NAME;
+
+    const rawCompanyKey = (smtpSettings?.resend_api_key || '').trim();
+    const isValidCompanyKey = rawCompanyKey !== '' && !/(placeholder|your|demo)/i.test(rawCompanyKey);
+
+    let baseApiKey = isValidCompanyKey ? rawCompanyKey : fallbackApiKey;
+
+    if (isValidCompanyKey) {
+      console.log("Utilisation de la clé API Resend de l'entreprise");
+      fromEmailDefault = smtpSettings?.from_email || fromEmailDefault;
+      fromNameDefault = smtpSettings?.from_name || fromNameDefault;
     } else {
       console.log("Utilisation de la clé API Resend de fallback (LEAZR_RESEND_API)");
     }
 
-    if (!apiKey) {
+    if (!baseApiKey) {
       console.error("Aucune clé API Resend disponible");
       throw new Error("Configuration API Resend manquante");
     }
@@ -152,28 +154,28 @@ serve(async (req) => {
 
     let finalFromName = fromNameDefault;
     let finalFromEmail = fromEmailDefault;
-    let usedApiKey = apiKey;
+    let usedApiKey = baseApiKey as string;
+    let usedKeySource: 'company' | 'itakecare' | 'fallback' = isValidCompanyKey ? 'company' : 'fallback';
 
-    const isUsingFallbackKey = !(smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '');
-
-    if (isUsingFallbackKey) {
+    if (usedKeySource === 'fallback') {
       // Si la clé fallback est utilisée, on ne peut pas envoyer avec un domaine non vérifié
       if (requestedDomain) {
         // Cas spécifique: domaine itakecare.be avec clé dédiée optionnelle
         if (requestedDomain === 'itakecare.be') {
           const itakecareKey = Deno.env.get('ITAKECARE_RESEND_API');
-          if (itakecareKey) {
-            console.log("Clé spécifique ITAKECARE_RESEND_API détectée, utilisation de cette clé et du from demandé");
+          if (itakecareKey && itakecareKey.trim() !== '') {
+            console.log("Clé spécifique ITAKECARE_RESEND_API détectée, utilisation de cette clé et du FROM demandé");
             usedApiKey = itakecareKey;
+            usedKeySource = 'itakecare';
             finalFromName = requestedFromName || fromNameDefault;
             finalFromEmail = requestedFromEmail || fromEmailDefault;
           } else {
-            console.log("Domaine itakecare.be non vérifié avec la clé fallback: override du From vers noreply@leazr.co");
+            console.log("Domaine itakecare.be non vérifié avec la clé fallback: override du FROM vers noreply@leazr.co");
             finalFromName = fromNameDefault;
             finalFromEmail = fromEmailDefault;
           }
         } else if (requestedDomain !== 'leazr.co' && requestedDomain !== 'resend.dev') {
-          console.log(`Domaine ${requestedDomain} non vérifié pour la clé fallback: override du From vers ${fromEmailDefault}`);
+          console.log(`Domaine ${requestedDomain} non vérifié pour la clé fallback: override du FROM vers ${fromEmailDefault}`);
           finalFromName = fromNameDefault;
           finalFromEmail = fromEmailDefault;
         } else {
@@ -181,7 +183,7 @@ serve(async (req) => {
           finalFromEmail = requestedFromEmail || fromEmailDefault;
         }
       } else {
-        // Pas de from fourni, on utilise le fallback par défaut
+        // Pas de FROM fourni, on utilise le fallback par défaut
         finalFromName = fromNameDefault;
         finalFromEmail = fromEmailDefault;
       }
@@ -198,7 +200,7 @@ serve(async (req) => {
     const from = `${finalFromName} <${finalFromEmail}>`;
 
     console.log("Configuration d'envoi finale:", {
-      usedApiKey: isUsingFallbackKey ? (usedApiKey === apiKey ? 'fallback' : 'custom-domain-override') : 'company',
+      keySource: usedKeySource,
       from
     });
 
@@ -213,24 +215,57 @@ serve(async (req) => {
     // Log Deno env variables pour le débogage
     console.log("LEAZR_RESEND_API environment variable check:", !!Deno.env.get("LEAZR_RESEND_API"));
     
-    // Envoyer l'email avec Resend
-    const { data, error } = await resend.emails.send({
-      from,
-      to: reqData.to,
-      subject: reqData.subject,
-      html: htmlContent,
-      text: textContent,
-    });
+    let sendData: any = null;
+    try {
+      const { data, error } = await resend.emails.send({
+        from,
+        to: reqData.to,
+        subject: reqData.subject,
+        html: htmlContent,
+        text: textContent,
+      });
 
-    if (error) {
-      console.error("Erreur Resend:", error);
-      throw error;
+      if (error) {
+        throw error;
+      }
+      sendData = data;
+    } catch (err: any) {
+      const msg = `${err?.error || err?.message || ''}`.toLowerCase();
+      const status = err?.statusCode || err?.status || 0;
+      console.error("Erreur Resend:", err);
+
+      if (status === 403 && msg.includes('not verified')) {
+        // Retry with LEAZR fallback key and FROM
+        const retryKey = Deno.env.get("LEAZR_RESEND_API");
+        if (retryKey) {
+          const retryFrom = `${FALLBACK_FROM_NAME} <${FALLBACK_FROM_EMAIL}>`;
+          console.log("Retry envoi avec clé fallback et FROM:", retryFrom);
+          const retryClient = new Resend(retryKey);
+          const { data: retryData, error: retryError } = await retryClient.emails.send({
+            from: retryFrom,
+            to: reqData.to,
+            subject: reqData.subject,
+            html: htmlContent,
+            text: textContent,
+          });
+          if (retryError) {
+            console.error("Erreur lors du retry Resend:", retryError);
+            throw retryError;
+          }
+          sendData = retryData;
+        } else {
+          console.error("Clé fallback LEAZR_RESEND_API manquante pour le retry");
+          throw err;
+        }
+      } else {
+        throw err;
+      }
     }
 
-    console.log("Email envoyé avec succès via Resend:", data);
+    console.log("Email envoyé avec succès via Resend:", sendData);
     
     return new Response(
-      JSON.stringify({ success: true, data }),
+      JSON.stringify({ success: true, data: sendData }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
