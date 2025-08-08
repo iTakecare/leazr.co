@@ -144,15 +144,63 @@ serve(async (req) => {
       console.error("Aucune clé API Resend disponible");
       throw new Error("Configuration API Resend manquante");
     }
-    
-    const resend = new Resend(apiKey);
 
-    // Format d'expéditeur par défaut si non fourni
-    const fromName = reqData.from?.name || fromNameDefault;
-    const fromEmail = reqData.from?.email || fromEmailDefault;
-    
-    // Format de from pour resend
-    const from = `${fromName} <${fromEmail}>`;
+    // Sélection intelligente du FROM et de la clé en fonction du domaine demandé
+    const requestedFromName = reqData.from?.name;
+    const requestedFromEmail = reqData.from?.email;
+    const requestedDomain = requestedFromEmail?.split('@')[1]?.toLowerCase();
+
+    let finalFromName = fromNameDefault;
+    let finalFromEmail = fromEmailDefault;
+    let usedApiKey = apiKey;
+
+    const isUsingFallbackKey = !(smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '');
+
+    if (isUsingFallbackKey) {
+      // Si la clé fallback est utilisée, on ne peut pas envoyer avec un domaine non vérifié
+      if (requestedDomain) {
+        // Cas spécifique: domaine itakecare.be avec clé dédiée optionnelle
+        if (requestedDomain === 'itakecare.be') {
+          const itakecareKey = Deno.env.get('ITAKECARE_RESEND_API');
+          if (itakecareKey) {
+            console.log("Clé spécifique ITAKECARE_RESEND_API détectée, utilisation de cette clé et du from demandé");
+            usedApiKey = itakecareKey;
+            finalFromName = requestedFromName || fromNameDefault;
+            finalFromEmail = requestedFromEmail || fromEmailDefault;
+          } else {
+            console.log("Domaine itakecare.be non vérifié avec la clé fallback: override du From vers noreply@leazr.co");
+            finalFromName = fromNameDefault;
+            finalFromEmail = fromEmailDefault;
+          }
+        } else if (requestedDomain !== 'leazr.co' && requestedDomain !== 'resend.dev') {
+          console.log(`Domaine ${requestedDomain} non vérifié pour la clé fallback: override du From vers ${fromEmailDefault}`);
+          finalFromName = fromNameDefault;
+          finalFromEmail = fromEmailDefault;
+        } else {
+          finalFromName = requestedFromName || fromNameDefault;
+          finalFromEmail = requestedFromEmail || fromEmailDefault;
+        }
+      } else {
+        // Pas de from fourni, on utilise le fallback par défaut
+        finalFromName = fromNameDefault;
+        finalFromEmail = fromEmailDefault;
+      }
+    } else {
+      // Avec la clé entreprise, on respecte le FROM demandé
+      finalFromName = requestedFromName || fromNameDefault;
+      finalFromEmail = requestedFromEmail || fromEmailDefault;
+    }
+
+    // Initialiser Resend avec la clé finale
+    const resend = new Resend(usedApiKey);
+
+    // Construire le From final
+    const from = `${finalFromName} <${finalFromEmail}>`;
+
+    console.log("Configuration d'envoi finale:", {
+      usedApiKey: isUsingFallbackKey ? (usedApiKey === apiKey ? 'fallback' : 'custom-domain-override') : 'company',
+      from
+    });
 
     // Préparer le contenu texte si non fourni
     const textContent = reqData.text || stripHtml(reqData.html);
