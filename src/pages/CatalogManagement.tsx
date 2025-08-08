@@ -2,7 +2,7 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Download, Package, Users } from "lucide-react";
+import { Award, Folder, Download, Package, Users, Settings } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
@@ -12,6 +12,7 @@ import { ClientCatalogManager } from "@/components/catalog/client-management/Cli
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
 import ProductsViewOptions from "@/components/catalog/management/ProductsViewOptions";
 import CatalogContent from "@/components/catalog/management/CatalogContent";
+import PublicCatalogSettings from "@/components/catalog/management/PublicCatalogSettings";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
@@ -62,6 +63,10 @@ const CatalogManagement = () => {
               <Users className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Clients" : <span>Catalogues Clients</span>}
             </TabsTrigger>
+            <TabsTrigger value="configuration">
+              <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Config" : <span>Configuration</span>}
+            </TabsTrigger>
             <TabsTrigger value="import" onClick={() => navigateToAdmin("catalog/import")}>
               <Download className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Import" : <span>Import</span>}
@@ -109,6 +114,10 @@ const CatalogManagement = () => {
 
         <TabsContent value="client-catalogs">
           <ClientCatalogManager />
+        </TabsContent>
+
+        <TabsContent value="configuration">
+          <PublicCatalogSettings />
         </TabsContent>
         </Tabs>
       </div>
