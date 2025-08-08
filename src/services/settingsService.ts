@@ -25,13 +25,25 @@ export interface SiteSettings {
 /**
  * Récupère les paramètres de l'entreprise actuelle
  */
-export const getSiteSettings = async (): Promise<SiteSettings | null> => {
+export const getSiteSettings = async (userId?: string): Promise<SiteSettings | null> => {
   try {
+    // Obtenir l'ID utilisateur soit depuis le paramètre, soit depuis l'auth
+    let currentUserId = userId;
+    if (!currentUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUserId = user?.id;
+    }
+
+    if (!currentUserId) {
+      console.error("Aucun ID utilisateur disponible");
+      return null;
+    }
+
     // D'abord récupérer l'ID de l'entreprise de l'utilisateur
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
       .select('company_id')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('id', currentUserId)
       .single();
     
     if (profileError || !userProfile?.company_id) {
@@ -60,13 +72,26 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
 /**
  * Met à jour les paramètres de l'entreprise
  */
-export const updateSiteSettings = async (settings: Partial<SiteSettings>): Promise<boolean> => {
+export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId?: string): Promise<boolean> => {
   try {
+    // Obtenir l'ID utilisateur soit depuis le paramètre, soit depuis l'auth
+    let currentUserId = userId;
+    if (!currentUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUserId = user?.id;
+    }
+
+    if (!currentUserId) {
+      console.error("Aucun ID utilisateur disponible");
+      toast.error("Impossible de récupérer les informations de l'utilisateur");
+      return false;
+    }
+
     // Récupérer l'ID de l'entreprise de l'utilisateur
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
       .select('company_id')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('id', currentUserId)
       .single();
     
     if (profileError || !userProfile?.company_id) {

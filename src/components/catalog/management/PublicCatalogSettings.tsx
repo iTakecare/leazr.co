@@ -11,10 +11,12 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { updateSiteSettings } from "@/services/settingsService";
 import { toast } from "sonner";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { useAuth } from "@/context/AuthContext";
 
 const PublicCatalogSettings = () => {
   const { settings, loading } = useSiteSettings();
   const { companyId } = useMultiTenant();
+  const { user } = useAuth();
   
   const [hideHeader, setHideHeader] = React.useState(false);
   const [enableCartSync, setEnableCartSync] = React.useState(true);
@@ -32,6 +34,11 @@ const PublicCatalogSettings = () => {
   }, [settings]);
 
   const handleSave = async () => {
+    if (!user?.id) {
+      toast.error("Utilisateur non connecté");
+      return;
+    }
+
     setSaving(true);
     try {
       const success = await updateSiteSettings({
@@ -39,7 +46,7 @@ const PublicCatalogSettings = () => {
         public_catalog_enable_cart_sync: enableCartSync,
         public_catalog_parent_origin: parentOrigin,
         public_catalog_embed_mode: embedMode,
-      });
+      }, user.id);
       
       if (success) {
         toast.success("Configuration sauvegardée");
