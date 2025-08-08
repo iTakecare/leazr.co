@@ -286,22 +286,61 @@ const AmbassadorOfferDetail = () => {
     workflow_status: offer.workflow_status
   });
 
-  // SIMPLIFIED RENDER FOR DEBUGGING
+  // FULL RENDER – Ambassador view aligned with Admin layout
   return (
     <PageTransition>
       <Container>
-        <div className="p-4 md:p-6 space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h1 className="text-2xl font-bold mb-4">🔥 AMBASSADOR OFFER DETAIL DEBUG</h1>
-            <p><strong>Offer ID:</strong> {offer.id}</p>
-            <p><strong>Client:</strong> {offer.client_name}</p>
-            <p><strong>Status:</strong> {offer.workflow_status}</p>
-            <p><strong>Amount:</strong> {offer.amount}€</p>
-            <p><strong>Component successfully rendered!</strong></p>
-            <div className="mt-4">
-              <Button onClick={() => navigateToAmbassador("offers")}>
-                Retour aux offres
-              </Button>
+        <div className="py-6 space-y-6">
+          <AmbassadorOfferHeader
+            offer={offer}
+            onBack={() => navigateToAmbassador("offers")}
+            onRefresh={() => {
+              fetchOffer();
+              if (id) {
+                fetchWorkflowLogs(id);
+                fetchOfferNotes(id);
+              }
+            }}
+          />
+
+          <AmbassadorFinancialCards
+            monthlyPayment={Number(offer.monthly_payment || 0)}
+            commission={shouldShowCommission ? Number(offer.commission || 0) : undefined}
+            commissionStatus={offer.commission_status}
+            margin={calculatedMargin}
+            marginPercentage={marginPercentage}
+            showCommission={shouldShowCommission}
+            showMargin={false}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main column */}
+            <div className="lg:col-span-2 space-y-6">
+              <ClientInfoCard
+                clientName={offer.client_name}
+                clientEmail={offer.client_email}
+                clientCompany={offer.clients?.company}
+              />
+
+              <CompactEquipmentSection offer={offer} hideFinancialColumns />
+
+              {/* Workflow history */}
+              <AmbassadorWorkflowTimeline workflowLogs={workflowLogs} loading={logsLoading} />
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <AmbassadorActionButtons
+                status={offer.workflow_status || offer.status}
+                offerId={offer.id}
+                onSendSignatureLink={shareSignatureLink}
+                onDownloadPdf={handlePrintPdf}
+                sendingEmail={sendingEmail}
+                isPdfGenerating={isPrintingPdf}
+              />
+
+              <AmbassadorOfferNotes notes={offerNotes} loading={notesLoading} />
+              <AmbassadorAddNoteCard offerId={offer.id} onNoteAdded={handleNoteAdded} />
             </div>
           </div>
         </div>
