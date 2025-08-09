@@ -167,6 +167,21 @@ const PublicCatalogSettings = () => {
             />
           </div>
 
+          {/* URL du bouton Demander un devis - toujours visible */}
+          <div className="space-y-2 pt-4 border-t">
+            <Label htmlFor="quote-request-url">Lien du bouton "Demander un devis" (URL)</Label>
+            <Input
+              id="quote-request-url"
+              type="url"
+              value={quoteRequestUrl}
+              onChange={(e) => setQuoteRequestUrl(e.target.value)}
+              placeholder="https://example.com/contact ou mailto:contact@example.com"
+            />
+            <p className="text-xs text-muted-foreground">
+              Si renseigné, le bouton "Demander un devis" s'affichera dans l'en-tête et la barre compacte et ouvrira ce lien dans la même page
+            </p>
+          </div>
+
           {/* Options de personnalisation (visibles seulement si l'en-tête est activé) */}
           {headerEnabled && (
             <div className="space-y-4 pt-4 border-t">
@@ -191,21 +206,6 @@ const PublicCatalogSettings = () => {
                   placeholder="Donnez à vos collaborateurs les outils dont ils ont besoin..."
                   rows={3}
                 />
-              </div>
-
-              {/* URL du bouton Demander un devis */}
-              <div className="space-y-2">
-                <Label htmlFor="quote-request-url">Lien du bouton "Demander un devis" (URL)</Label>
-                <Input
-                  id="quote-request-url"
-                  type="url"
-                  value={quoteRequestUrl}
-                  onChange={(e) => setQuoteRequestUrl(e.target.value)}
-                  placeholder="https://example.com/contact ou mailto:contact@example.com"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Si renseigné, le bouton "Demander un devis" ouvrira ce lien dans un nouvel onglet au lieu d'utiliser le processus interne
-                </p>
               </div>
 
               {/* Type d'arrière-plan */}
