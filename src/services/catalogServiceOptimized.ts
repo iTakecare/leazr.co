@@ -436,8 +436,66 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
 };
 
 /**
- * Service pour récupérer le catalogue personnalisé d'un client spécifique
- * Ne retourne que les produits avec des prix personnalisés pour ce client
+ * Mapping des produits complémentaires pour les suggestions d'upsell
+ * Chaque clé correspond à un type de produit principal, les valeurs aux accessoires/périphériques complémentaires
+ */
+const complementaryMapping: Record<string, string[]> = {
+  // Tablettes iPad
+  'iPad': ['clavier', 'stylet', 'pencil', 'housse', 'support', 'étui', 'protection', 'accessoires'],
+  
+  // Ordinateurs portables
+  'MacBook': ['souris', 'mouse', 'housse', 'hub', 'support', 'dock', 'accessoires', 'clavier', 'écran'],
+  'laptop': ['souris', 'mouse', 'housse', 'hub', 'support', 'dock', 'accessoires', 'clavier', 'écran'],
+  'portable': ['souris', 'mouse', 'housse', 'hub', 'support', 'dock', 'accessoires', 'clavier', 'écran'],
+  
+  // Ordinateurs fixes
+  'iMac': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
+  'Mac mini': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
+  'desktop': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
+  'ordinateur': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
+  
+  // Smartphones
+  'iPhone': ['coque', 'chargeur', 'écouteurs', 'support', 'accessoires', 'protection'],
+  'smartphone': ['coque', 'chargeur', 'écouteurs', 'support', 'accessoires', 'protection'],
+  'téléphone': ['coque', 'chargeur', 'écouteurs', 'support', 'accessoires', 'protection'],
+  
+  // Logiciels bureautiques et packs
+  'Office': ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  'bureautique': ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  'pack': ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  
+  // Écrans
+  'écran': ['support', 'bras', 'hub', 'dock', 'accessoires'],
+  'monitor': ['support', 'bras', 'hub', 'dock', 'accessoires'],
+  'display': ['support', 'bras', 'hub', 'dock', 'accessoires']
+};
+
+/**
+ * Détermine le type de produit principal à partir du nom et de la catégorie
+ */
+const detectProductType = (productName: string, category: string): string | null => {
+  const searchText = `${productName} ${category}`.toLowerCase();
+  
+  // Ordre de priorité pour la détection
+  const detectionOrder = [
+    'iPad', 'MacBook', 'iMac', 'Mac mini', 'iPhone',
+    'laptop', 'portable', 'desktop', 'ordinateur',
+    'smartphone', 'téléphone', 'Office', 'bureautique',
+    'pack', 'écran', 'monitor', 'display'
+  ];
+  
+  for (const type of detectionOrder) {
+    if (searchText.includes(type.toLowerCase())) {
+      return type;
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Service pour récupérer les produits complémentaires (upsell) intelligents
+ * Suggère des accessoires et périphériques qui complètent le produit principal
  */
 export const getUpsellProducts = async (
   companyId: string,
@@ -446,72 +504,128 @@ export const getUpsellProducts = async (
   brand?: string
 ): Promise<Product[]> => {
   try {
-    console.log('🛒 UPSELL - Recherche de produits pour:', { companyId, currentProductId, category, brand });
-    // First, try to get the current product to check for upsell IDs
+    console.log('🛒 UPSELL - Recherche de produits complémentaires pour:', { companyId, currentProductId, category, brand });
+    
+    // Récupérer le produit principal pour analyser ses caractéristiques
     const { data: currentProduct } = await supabase
       .from('products')
-      .select('upsell_ids, cross_sell_ids')
+      .select('name, category_name, brand_name, brands(name)')
       .eq('id', currentProductId)
       .single();
 
-    let upsellIds: string[] = [];
-    
-    // Check for specific upsell/cross-sell IDs
-    if (currentProduct?.upsell_ids && Array.isArray(currentProduct.upsell_ids)) {
-      upsellIds = currentProduct.upsell_ids;
-    } else if (currentProduct?.cross_sell_ids && Array.isArray(currentProduct.cross_sell_ids)) {
-      upsellIds = currentProduct.cross_sell_ids;
-    }
-
-    let query = supabase
-      .from('products')
-      .select(`
-        id,
-        name,
-        description,
-        brand_name,
-        category_name,
-        price,
-        monthly_price,
-        image_url,
-        imageurls,
-        slug,
-        active,
-        brands(name, translation),
-        product_variant_prices(monthly_price)
-      `)
-      .eq('company_id', companyId)
-      .eq('active', true)
-      .neq('id', currentProductId);
-
-    // If we have specific upsell IDs, use them
-    if (upsellIds.length > 0) {
-      query = query.in('id', upsellIds);
-    } else {
-      // Fallback: get products from same category or brand
-      if (category && brand) {
-        query = query.or(`category_name.eq.${category},brand_name.eq.${brand}`);
-      } else if (category) {
-        query = query.eq('category_name', category);
-      } else if (brand) {
-        query = query.eq('brand_name', brand);
-      }
-    }
-
-    const { data, error } = await query.limit(6);
-
-    if (error) {
-      console.error('🛒 UPSELL - Error fetching upsell products:', error);
+    if (!currentProduct) {
+      console.log('🛒 UPSELL - Produit principal non trouvé');
       return [];
     }
 
-    console.log('🛒 UPSELL - Produits trouvés:', data?.length || 0);
+    const productName = currentProduct.name || '';
+    const productCategory = currentProduct.category_name || category || '';
+    const productBrand = currentProduct.brands?.name || currentProduct.brand_name || brand || '';
+    
+    console.log('🛒 UPSELL - Analyse du produit principal:', { productName, productCategory, productBrand });
 
-    // Map to Product type and calculate minimum prices
-    const products: Product[] = (data || []).map(product => {
+    // Déterminer le type de produit pour trouver les compléments appropriés
+    const productType = detectProductType(productName, productCategory);
+    console.log('🛒 UPSELL - Type de produit détecté:', productType);
+
+    if (!productType) {
+      console.log('🛒 UPSELL - Type de produit non reconnu, utilisation de la logique de fallback');
+      return getFallbackUpsellProducts(companyId, currentProductId, productCategory, productBrand);
+    }
+
+    // Récupérer les mots-clés complémentaires pour ce type de produit
+    const complementaryKeywords = complementaryMapping[productType] || [];
+    console.log('🛒 UPSELL - Mots-clés complémentaires:', complementaryKeywords);
+
+    if (complementaryKeywords.length === 0) {
+      return getFallbackUpsellProducts(companyId, currentProductId, productCategory, productBrand);
+    }
+
+    // Construire une requête pour chercher des produits complémentaires
+    let complementaryProducts: any[] = [];
+
+    // Étape 1: Chercher par mots-clés dans le nom des produits
+    for (const keyword of complementaryKeywords.slice(0, 4)) { // Limiter à 4 mots-clés pour les performances
+      const { data: keywordProducts } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          brands(name, translation),
+          product_variant_prices(monthly_price)
+        `)
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .neq('id', currentProductId)
+        .ilike('name', `%${keyword}%`)
+        .limit(3);
+
+      if (keywordProducts) {
+        complementaryProducts.push(...keywordProducts);
+      }
+    }
+
+    // Étape 2: Si pas assez de produits, chercher dans la catégorie "Accessoires" ou similaire
+    if (complementaryProducts.length < 3) {
+      const { data: accessoryProducts } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          brands(name, translation),
+          product_variant_prices(monthly_price)
+        `)
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .neq('id', currentProductId)
+        .or('category_name.ilike.%accessoire%,category_name.ilike.%périphérique%,category_name.ilike.%peripheral%')
+        .limit(4);
+
+      if (accessoryProducts) {
+        complementaryProducts.push(...accessoryProducts);
+      }
+    }
+
+    // Étape 3: Privilégier la même marque si c'est une marque reconnue (Apple, etc.)
+    if (productBrand && (productBrand.toLowerCase().includes('apple') || productBrand.toLowerCase().includes('microsoft'))) {
+      complementaryProducts = complementaryProducts.filter(product => {
+        const productProductBrand = product.brands?.name || product.brand_name || '';
+        return productProductBrand.toLowerCase().includes(productBrand.toLowerCase()) || 
+               !productProductBrand || // Inclure les produits sans marque spécifiée
+               productProductBrand.toLowerCase().includes('universel'); // Inclure les accessoires universels
+      });
+    }
+
+    // Supprimer les doublons et limiter à 3 produits
+    const uniqueProducts = complementaryProducts.filter((product, index, self) => 
+      index === self.findIndex(p => p.id === product.id)
+    ).slice(0, 3);
+
+    console.log('🛒 UPSELL - Produits complémentaires trouvés:', uniqueProducts.length);
+
+    // Mapper vers le format Product et calculer les prix
+    const mappedProducts: Product[] = uniqueProducts.map(product => {
       let minPrice = product.monthly_price || 0;
       
-      // If product has variants, get minimum price from variants
+      // Si le produit a des variants, récupérer le prix minimum
       if (product.product_variant_prices && product.product_variant_prices.length > 0) {
         const variantPrices = product.product_variant_prices
           .map((vp: any) => vp.monthly_price)
@@ -543,9 +657,92 @@ export const getUpsellProducts = async (
       };
     });
 
-    return products;
+    return mappedProducts;
   } catch (error) {
-    console.error('Error in getUpsellProducts:', error);
+    console.error('🛒 UPSELL - Erreur lors de la recherche de produits complémentaires:', error);
+    return [];
+  }
+};
+
+/**
+ * Fonction de fallback pour les cas où le type de produit n'est pas reconnu
+ */
+const getFallbackUpsellProducts = async (
+  companyId: string,
+  currentProductId: string,
+  category?: string,
+  brand?: string
+): Promise<Product[]> => {
+  try {
+    console.log('🛒 UPSELL - Utilisation du fallback avec catégorie/marque:', { category, brand });
+    
+    let query = supabase
+      .from('products')
+      .select(`
+        id,
+        name,
+        description,
+        brand_name,
+        category_name,
+        price,
+        monthly_price,
+        image_url,
+        imageurls,
+        slug,
+        active,
+        brands(name, translation),
+        product_variant_prices(monthly_price)
+      `)
+      .eq('company_id', companyId)
+      .eq('active', true)
+      .neq('id', currentProductId);
+
+    // Priorité à la marque si elle existe, sinon catégorie
+    if (brand) {
+      query = query.or(`brand_name.ilike.%${brand}%,brands.name.ilike.%${brand}%`);
+    } else if (category) {
+      query = query.or(`category_name.ilike.%${category}%,categories.name.ilike.%${category}%`);
+    }
+
+    const { data } = await query.limit(3);
+
+    if (!data) return [];
+
+    return data.map(product => {
+      let minPrice = product.monthly_price || 0;
+      
+      if (product.product_variant_prices && product.product_variant_prices.length > 0) {
+        const variantPrices = product.product_variant_prices
+          .map((vp: any) => vp.monthly_price)
+          .filter((price: number) => price > 0);
+        if (variantPrices.length > 0) {
+          minPrice = Math.min(...variantPrices);
+        }
+      }
+
+      return {
+        id: product.id,
+        name: product.name || "",
+        description: product.description || "",
+        brand: product.brands?.name || product.brand_name || "",
+        category: product.categories?.name || product.category_name || "",
+        price: product.price || 0,
+        monthly_price: minPrice,
+        slug: product.slug || "",
+        image_url: product.image_url || "",
+        images: product.imageurls || [],
+        co2_savings: 0,
+        has_variants: false,
+        variants_count: 0,
+        active: product.active || false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        variants: [],
+        variant_combination_prices: []
+      };
+    });
+  } catch (error) {
+    console.error('🛒 UPSELL - Erreur dans getFallbackUpsellProducts:', error);
     return [];
   }
 };
