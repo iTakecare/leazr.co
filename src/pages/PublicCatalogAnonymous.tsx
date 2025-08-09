@@ -5,7 +5,7 @@ import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
 import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
@@ -139,7 +139,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   if (isLoadingCompany) {
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader />
         <Container className="max-w-[1320px]">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -156,7 +155,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   if (companyError) {
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader />
         <Container className="max-w-[1320px]">
           <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
@@ -175,7 +173,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   if (!company) {
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader />
         <Container className="max-w-[1320px]">
           <Alert className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
@@ -193,7 +190,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     console.log('📱 PUBLIC CATALOG - Showing catalog loading');
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
         <Container className="max-w-[1320px]">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -211,7 +207,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     console.error('📱 PUBLIC CATALOG - Catalog error:', productsError || packsError);
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
         <Container className="max-w-[1320px]">
           <Alert variant="destructive" className="max-w-lg mx-auto mt-8">
             <AlertCircle className="h-4 w-4" />
@@ -234,13 +229,12 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   return (
     <CompanyProvider company={company}>
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
-        
         <Container className="py-6 max-w-[1320px]">
           <div className="space-y-8">
             <CatalogHeader 
               companyName={company?.name}
               companyLogo={company?.logo_url}
+              companyId={companyId}
             />
             
             <div className="flex gap-6">
