@@ -46,6 +46,10 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
   
+  // Check if we're in embed mode via URL parameter
+  const searchParams = new URLSearchParams(location.search);
+  const isEmbedMode = searchParams.get('embed') === '1';
+  
   // State for inline views
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'product-detail' | 'cart' | 'request-steps'>('grid');
@@ -274,7 +278,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               companyLogo={company?.logo_url}
               companyId={companyId}
               onCartClick={handleCartClick}
-              headerEnabled={settings?.header_enabled ?? true}
+              headerEnabled={isEmbedMode ? false : (settings?.header_enabled ?? true)}
               headerTitle={settings?.header_title}
               headerDescription={settings?.header_description}
               headerBackgroundType={settings?.header_background_type}

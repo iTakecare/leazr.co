@@ -27,6 +27,7 @@ const PublicCatalogSettings = () => {
     gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
   });
   const [saving, setSaving] = React.useState(false);
+  const [iframeTimestamp, setIframeTimestamp] = React.useState(Date.now());
 
   React.useEffect(() => {
     if (settings) {
@@ -58,6 +59,8 @@ const PublicCatalogSettings = () => {
       
       if (success) {
         toast.success("Configuration sauvegardée");
+        // Force reload of iframe with new timestamp
+        setIframeTimestamp(Date.now());
       }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
@@ -85,8 +88,9 @@ const PublicCatalogSettings = () => {
     const params = new URLSearchParams();
     
     if (!headerEnabled) params.set('embed', '1');
+    params.set('t', iframeTimestamp.toString()); // Add timestamp to prevent caching
     
-    const fullUrl = `${baseUrl}${catalogUrl}${params.toString() ? '?' + params.toString() : ''}`;
+    const fullUrl = `${baseUrl}${catalogUrl}?${params.toString()}`;
     
     return `<iframe 
   src="${fullUrl}"
@@ -110,9 +114,15 @@ const PublicCatalogSettings = () => {
     const params = new URLSearchParams();
     
     if (!headerEnabled) params.set('embed', '1');
+    params.set('t', iframeTimestamp.toString()); // Add timestamp to prevent caching
     
-    const fullUrl = `${baseUrl}${catalogUrl}${params.toString() ? '?' + params.toString() : ''}`;
+    const fullUrl = `${baseUrl}${catalogUrl}?${params.toString()}`;
     window.open(fullUrl, '_blank');
+  };
+
+  const reloadPreview = () => {
+    setIframeTimestamp(Date.now());
+    toast.success("Aperçu rechargé avec les derniers paramètres");
   };
 
   if (loading) {
@@ -342,6 +352,10 @@ const PublicCatalogSettings = () => {
             <Button variant="outline" onClick={openPreview}>
               <Eye className="h-4 w-4 mr-2" />
               Aperçu
+            </Button>
+            <Button variant="outline" onClick={reloadPreview}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Recharger l'aperçu
             </Button>
             <Button variant="outline" onClick={copyIframeCode}>
               <Copy className="h-4 w-4 mr-2" />
