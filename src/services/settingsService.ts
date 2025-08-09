@@ -149,3 +149,31 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
     return false;
   }
 };
+
+/**
+ * Récupère les paramètres d'une entreprise spécifique par son ID
+ */
+export const getSiteSettingsByCompanyId = async (companyId: string): Promise<SiteSettings | null> => {
+  try {
+    if (!companyId) {
+      console.error("Aucun ID d'entreprise fourni");
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('company_customizations')
+      .select('*')
+      .eq('company_id', companyId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Erreur lors de la récupération des paramètres d'entreprise par ID:", error);
+      return null;
+    }
+    
+    return data as SiteSettings;
+  } catch (error) {
+    console.error("Exception lors de la récupération des paramètres par ID d'entreprise:", error);
+    return null;
+  }
+};

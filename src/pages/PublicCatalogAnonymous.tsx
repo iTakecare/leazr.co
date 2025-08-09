@@ -22,7 +22,7 @@ import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";
 import { SearchWithSuggestions } from "@/components/catalog/public/SearchWithSuggestions";
 import { useCart } from "@/context/CartContext";
 
@@ -45,7 +45,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const location = useLocation();
   const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
-  const { settings } = useSiteSettings();
   const { cartCount } = useCart();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
@@ -86,6 +85,9 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
 
   // Use provided company or fetch fallback
   const company = providedCompany || fetchedCompany;
+  
+  // Get settings for the company
+  const { settings } = useSiteSettingsByCompanyId(company?.id);
   
   // Safari-compatible logging
   try {
