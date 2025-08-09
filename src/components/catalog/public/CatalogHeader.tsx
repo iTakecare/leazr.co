@@ -10,9 +10,15 @@ interface CatalogHeaderProps {
   companyName?: string;
   companyLogo?: string;
   companyId?: string;
+  onCartClick?: () => void;
 }
 
-const CatalogHeader: React.FC<CatalogHeaderProps> = ({ companyName, companyLogo, companyId }) => {
+const CatalogHeader: React.FC<CatalogHeaderProps> = ({ 
+  companyName, 
+  companyLogo, 
+  companyId, 
+  onCartClick 
+}) => {
   const { companySlug } = useParams<{ companySlug: string }>();
   return (
     <div className="rounded-2xl bg-gradient-to-br from-[#275D8C] via-[#4196b4] to-[#48B5C3] shadow-xl overflow-visible">
@@ -60,7 +66,11 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({ companyName, companyLogo,
         </div>
       </div>
       
-      <CatalogSearchSection companyId={companyId} companySlug={companySlug} />
+        <CatalogSearchSection 
+          companyId={companyId} 
+          companySlug={companySlug}
+          onCartClick={onCartClick}
+        />
     </div>
   );
 };

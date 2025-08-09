@@ -7,9 +7,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 interface CatalogSearchSectionProps {
   companyId?: string;
   companySlug?: string;
+  onCartClick?: () => void;
 }
 
-const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({ companyId, companySlug }) => {
+const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({ 
+  companyId, 
+  companySlug, 
+  onCartClick 
+}) => {
   const { cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +35,11 @@ const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({ companyId, 
   };
 
   const handleCartClick = () => {
-    navigate(getCartUrl());
+    if (onCartClick) {
+      onCartClick();
+    } else {
+      navigate(getCartUrl());
+    }
   };
 
   return (

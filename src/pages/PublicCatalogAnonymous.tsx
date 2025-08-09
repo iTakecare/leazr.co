@@ -6,6 +6,7 @@ import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
 import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
+import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
 
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
@@ -16,7 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -37,13 +38,14 @@ interface PublicCatalogAnonymousProps {
 const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company: providedCompany }) => {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
   
-  // State for inline product detail view
+  // State for inline views
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'product-detail'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'product-detail' | 'cart'>('grid');
   
   // Fetch company by slug if not provided (fallback for legacy routes)
   const { data: fetchedCompany, isLoading: isLoadingCompany, error: companyError } = useQuery({
@@ -139,6 +141,30 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Navigation handlers
+  const handleProductSelect = (productId: string) => {
+    setSelectedProductId(productId);
+    setViewMode('product-detail');
+  };
+
+  const handleBackToCatalog = () => {
+    setSelectedProductId(null);
+    setViewMode('grid');
+  };
+
+  const handleCartClick = () => {
+    setViewMode('cart');
+  };
+
+  const handleRequestQuote = () => {
+    // Navigate to request page
+    if (companySlug) {
+      navigate(`/${companySlug}/demande`);
+    } else if (company?.id) {
+      navigate(`/public/${company.id}/demande`);
+    }
+  };
 
   // Loading state for company fetch
   if (isLoadingCompany) {
@@ -240,11 +266,23 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               companyName={company?.name}
               companyLogo={company?.logo_url}
               companyId={companyId}
+              onCartClick={handleCartClick}
             />
             
-            <div className="flex gap-6">
-              {/* Filter Sidebar */}
-              <PublicFilterSidebar
+            {/* Show cart view */}
+            {viewMode === 'cart' && (
+              <InlinePublicCart
+                onBackToCatalog={handleBackToCatalog}
+                onRequestQuote={handleRequestQuote}
+              />
+            )}
+
+            {/* Show catalog grid/detail view */}
+            {viewMode !== 'cart' && (
+              <div className="flex gap-6">
+                {/* Filter Sidebar - Only show in grid view */}
+                {viewMode === 'grid' && (
+                  <PublicFilterSidebar
                 isOpen={isMobileFilterOpen}
                 onClose={() => setIsMobileFilterOpen(false)}
                 filters={filters}
@@ -255,12 +293,14 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                 priceRange={priceRange}
                 hasActiveFilters={hasActiveFilters}
                 resultsCount={resultsCount}
-              />
+                  />
+                )}
 
-              {/* Main Content */}
-              <div className="flex-1 space-y-6">
-                {/* Header with mobile toggle and sort */}
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                {/* Main Content */}
+                <div className={`${viewMode === 'grid' ? 'flex-1' : 'w-full'} space-y-6`}>
+                  {/* Header with mobile toggle and sort - Only show in grid view */}
+                  {viewMode === 'grid' && (
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                   <div className="flex items-center gap-4">
                     <FilterMobileToggle
                       isOpen={isMobileFilterOpen}
@@ -285,10 +325,12 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                     sortOrder={filters.sortOrder}
                     onSortByChange={(value) => updateFilter('sortBy', value)}
                     onSortOrderChange={(value) => updateFilter('sortOrder', value)}
-                  />
-                </div>
+                    />
+                    </div>
+                  )}
 
-                 {/* Tabs for Products and Packs */}
+                   {/* Tabs for Products and Packs - Only show in grid view */}
+                   {viewMode === 'grid' && (
                  <div className="flex border-b border-gray-200">
                    <button
                      onClick={() => setActiveTab('products')}
@@ -308,9 +350,10 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                          : 'border-transparent text-gray-500 hover:text-gray-700'
                      }`}
                    >
-                     Packs ({packs.length})
-                   </button>
-                 </div>
+                      Packs ({packs.length})
+                    </button>
+                    </div>
+                   )}
 
                  {activeTab === 'products' && (
                    <>
@@ -331,39 +374,34 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                       )}
 
                       {/* Product Grid or Detail View */}
-                      {viewMode === 'grid' && (
-                        <PublicProductGrid 
-                          products={filteredProducts || []}
-                          onProductSelect={(productId) => {
-                            setSelectedProductId(productId);
-                            setViewMode('product-detail');
-                          }}
-                        />
-                      )}
-                      
-                      {viewMode === 'product-detail' && selectedProductId && (
-                        <InlinePublicProductDetail
-                          companyId={company.id}
-                          companySlug={companySlug || company.slug}
-                          productId={selectedProductId}
-                          company={company}
-                          onBackToCatalog={() => {
-                            setViewMode('grid');
-                            setSelectedProductId(null);
-                          }}
-                        />
-                      )}
+                       {viewMode === 'grid' && (
+                         <PublicProductGrid 
+                           products={filteredProducts || []}
+                           onProductSelect={handleProductSelect}
+                         />
+                       )}
+                       
+                       {viewMode === 'product-detail' && selectedProductId && (
+                         <InlinePublicProductDetail
+                           companyId={company.id}
+                           companySlug={companySlug || company.slug}
+                           productId={selectedProductId}
+                           company={company}
+                           onBackToCatalog={handleBackToCatalog}
+                         />
+                       )}
                    </>
                  )}
 
-                 {activeTab === 'packs' && (
-                   <div className="space-y-6">
-                     {/* Pack Grid */}
-                     <PublicPackGrid packs={packs || []} companySlug={companySlug} />
-                   </div>
-                 )}
+                  {activeTab === 'packs' && viewMode === 'grid' && (
+                    <div className="space-y-6">
+                      {/* Pack Grid */}
+                      <PublicPackGrid packs={packs || []} companySlug={companySlug} />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </Container>
       </div>
