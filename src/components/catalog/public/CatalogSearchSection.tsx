@@ -65,7 +65,7 @@ const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({
               size="sm"
               onClick={() => {
                 if (quoteLink) {
-                  window.open(quoteLink, '_blank');
+                  window.location.href = quoteLink;
                 } else {
                   onRequestQuote?.();
                 }

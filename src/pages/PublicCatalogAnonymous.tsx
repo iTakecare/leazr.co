@@ -311,8 +311,8 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
             )}
 
             {/* Compact search bar when header is disabled */}
-            {!(settings?.header_enabled ?? true) && viewMode === 'grid' && (
-              <div className="bg-white rounded-lg p-4 mb-6">
+            {!(settings?.header_enabled ?? true) && (viewMode === 'grid' || viewMode === 'product-detail') && (
+              <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
                   {/* Search bar */}
                   <div className="flex-1 max-w-2xl">
@@ -326,7 +326,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                       size="sm"
                       onClick={() => {
                         if (settings?.quote_request_url) {
-                          window.open(settings.quote_request_url, '_blank');
+                          window.location.href = settings.quote_request_url;
                         } else {
                           handleRequestQuote();
                         }

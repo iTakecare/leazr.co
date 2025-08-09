@@ -84,7 +84,7 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
               className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-xs md:text-sm group"
               onClick={() => {
                 if (quoteLink) {
-                  window.open(quoteLink, '_blank');
+                  window.location.href = quoteLink;
                 } else {
                   onRequestQuote?.();
                 }
