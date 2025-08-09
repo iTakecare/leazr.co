@@ -311,7 +311,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
             )}
 
             {/* Compact search bar when header is disabled */}
-            {!(settings?.header_enabled ?? true) && (viewMode === 'grid' || viewMode === 'product-detail') && (
+            {!(settings?.header_enabled ?? true) && (viewMode === 'grid' || viewMode === 'product-detail' || viewMode === 'cart') && (
               <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
                   {/* Search bar */}
