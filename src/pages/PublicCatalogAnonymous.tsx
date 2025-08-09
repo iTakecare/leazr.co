@@ -457,13 +457,14 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                        )}
                        
                        {viewMode === 'product-detail' && selectedProductId && (
-                         <InlinePublicProductDetail
-                           companyId={company.id}
-                           companySlug={companySlug || company.slug}
-                           productId={selectedProductId}
-                           company={company}
-                           onBackToCatalog={handleBackToCatalog}
-                         />
+          <InlinePublicProductDetail
+            companyId={company.id}
+            companySlug={companySlug || company.slug}
+            productId={selectedProductId}
+            company={company}
+            onBackToCatalog={handleBackToCatalog}
+            onProductSelect={handleProductSelect}
+          />
                        )}
                    </>
                  )}
@@ -476,7 +477,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                   )}
                 </div>
               </div>
-            )}
           </div>
         </Container>
       </div>

@@ -25,6 +25,7 @@ interface InlinePublicProductDetailProps {
     accent_color?: string;
   };
   onBackToCatalog: () => void;
+  onProductSelect?: (productId: string) => void;
 }
 
 const InlinePublicProductDetail: React.FC<InlinePublicProductDetailProps> = ({
@@ -32,7 +33,8 @@ const InlinePublicProductDetail: React.FC<InlinePublicProductDetailProps> = ({
   companySlug,
   productId,
   company,
-  onBackToCatalog
+  onBackToCatalog,
+  onProductSelect
 }) => {
   // Use the same hook as ProductDetailPage
   const {
@@ -167,12 +169,13 @@ const InlinePublicProductDetail: React.FC<InlinePublicProductDetailProps> = ({
       </div>
 
       {/* Related Products */}
-      <RelatedProducts
+<RelatedProducts
         companyId={companyId}
         category={product.category}
         currentProductId={product.id}
         brand={product.brand}
         limit={4}
+        onProductSelect={onProductSelect}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { getRelatedProducts } from "@/services/catalogServiceOptimized";
 import { Product } from "@/types/catalog";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
@@ -12,6 +12,7 @@ interface RelatedProductsProps {
   currentProductId?: string;
   brand?: string;
   limit?: number;
+  onProductSelect?: (productId: string) => void;
 }
 
 const RelatedProducts: React.FC<RelatedProductsProps> = ({ 
@@ -19,7 +20,8 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
   category, 
   currentProductId,
   brand,
-  limit = 3
+  limit = 3,
+  onProductSelect
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,9 +52,13 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
     }
   }, [companyId, category, currentProductId, brand, limit]);
 
-  const handleProductClick = (productId: string) => {
+const handleProductClick = (productId: string) => {
+  if (onProductSelect) {
+    onProductSelect(productId);
+  } else {
     navigate(`/produits/${productId}`);
-  };
+  }
+};
 
   if (isLoading) {
     return (
