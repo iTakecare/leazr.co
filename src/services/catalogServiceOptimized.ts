@@ -439,6 +439,114 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
  * Service pour récupérer le catalogue personnalisé d'un client spécifique
  * Ne retourne que les produits avec des prix personnalisés pour ce client
  */
+export const getUpsellProducts = async (
+  companyId: string,
+  currentProductId: string,
+  category?: string,
+  brand?: string
+): Promise<Product[]> => {
+  try {
+    // First, try to get the current product to check for upsell IDs
+    const { data: currentProduct } = await supabase
+      .from('products')
+      .select('upsell_ids, cross_sell_ids')
+      .eq('id', currentProductId)
+      .single();
+
+    let upsellIds: string[] = [];
+    
+    // Check for specific upsell/cross-sell IDs
+    if (currentProduct?.upsell_ids && Array.isArray(currentProduct.upsell_ids)) {
+      upsellIds = currentProduct.upsell_ids;
+    } else if (currentProduct?.cross_sell_ids && Array.isArray(currentProduct.cross_sell_ids)) {
+      upsellIds = currentProduct.cross_sell_ids;
+    }
+
+    let query = supabase
+      .from('products')
+      .select(`
+        id,
+        name,
+        description,
+        brand_name,
+        category_name,
+        price,
+        monthly_price,
+        image_url,
+        imageurls,
+        slug,
+        active,
+        brands(name, translation),
+        product_variant_prices(monthly_price)
+      `)
+      .eq('company_id', companyId)
+      .eq('active', true)
+      .neq('id', currentProductId);
+
+    // If we have specific upsell IDs, use them
+    if (upsellIds.length > 0) {
+      query = query.in('id', upsellIds);
+    } else {
+      // Fallback: get products from same category or brand
+      if (category && brand) {
+        query = query.or(`category_name.eq.${category},brand_name.eq.${brand}`);
+      } else if (category) {
+        query = query.eq('category_name', category);
+      } else if (brand) {
+        query = query.eq('brand_name', brand);
+      }
+    }
+
+    const { data, error } = await query.limit(6);
+
+    if (error) {
+      console.error('Error fetching upsell products:', error);
+      return [];
+    }
+
+    // Map to Product type and calculate minimum prices
+    const products: Product[] = (data || []).map(product => {
+      let minPrice = product.monthly_price || 0;
+      
+      // If product has variants, get minimum price from variants
+      if (product.product_variant_prices && product.product_variant_prices.length > 0) {
+        const variantPrices = product.product_variant_prices
+          .map((vp: any) => vp.monthly_price)
+          .filter((price: number) => price > 0);
+        if (variantPrices.length > 0) {
+          minPrice = Math.min(...variantPrices);
+        }
+      }
+
+      return {
+        id: product.id,
+        name: product.name || "",
+        description: product.description || "",
+        brand: product.brands?.name || product.brand_name || "",
+        category: product.categories?.name || product.category_name || "",
+        price: product.price || 0,
+        monthly_price: minPrice,
+        slug: product.slug || "",
+        image_url: product.image_url || "",
+        images: product.imageurls || [],
+        co2_savings: 0,
+        has_variants: false,
+        variants_count: 0,
+        active: product.active || false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        variants: [],
+        variant_combination_prices: []
+      };
+    });
+
+    return products;
+  } catch (error) {
+    console.error('Error in getUpsellProducts:', error);
+    return [];
+  }
+};
+
 export const getClientCustomCatalog = async (clientId: string): Promise<Product[]> => {
   if (!clientId) {
     throw new Error("Client ID requis pour le catalogue personnalisé");

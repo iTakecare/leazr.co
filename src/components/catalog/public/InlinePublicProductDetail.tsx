@@ -132,40 +132,45 @@ const InlinePublicProductDetail: React.FC<InlinePublicProductDetailProps> = ({
         </nav>
       </div>
 
-      {/* Product details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left column - Product images and description */}
-        <ProductMainContent
-          product={product}
-          productName={product.name}
-          productDescription={product.description || ''}
-          currentImage={currentImage}
-          productBrand={product.brand || ''}
-        />
+      {/* Product details - Compact 3-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left columns (2/3) - Product images and description */}
+        <div className="lg:col-span-2">
+          <ProductMainContent
+            product={product}
+            productName={product.name}
+            productDescription={product.description || ''}
+            currentImage={currentImage}
+            productBrand={product.brand || ''}
+            companyId={companyId}
+          />
+        </div>
 
-        {/* Right column - Configuration and pricing */}
-        <ProductConfigurationSection
-          product={product}
-          productCategory={product.category || ''}
-          productName={product.name}
-          productBrand={product.brand || ''}
-          currentPrice={currentPrice}
-          minMonthlyPrice={minMonthlyPrice}
-          totalPrice={totalPrice}
-          quantity={quantity}
-          duration={duration}
-          handleQuantityChange={handleQuantityChange}
-          selectedOptions={selectedOptions}
-          handleOptionChange={handleOptionChange}
-          isOptionAvailable={isOptionAvailable}
-          variationAttributes={variationAttributes}
-          specifications={specifications}
-          hasAttributeOptions={hasAttributeOptions}
-          getOptionsForAttribute={getOptionsForAttribute}
-          configAttributes={getConfigAttributes()}
-          getCurrentValue={getCurrentValue}
-          getDisplayName={getDisplayName}
-        />
+        {/* Right column (1/3) - Configuration and pricing */}
+        <div className="lg:col-span-1">
+          <ProductConfigurationSection
+            product={product}
+            productCategory={product.category || ''}
+            productName={product.name}
+            productBrand={product.brand || ''}
+            currentPrice={currentPrice}
+            minMonthlyPrice={minMonthlyPrice}
+            totalPrice={totalPrice}
+            quantity={quantity}
+            duration={duration}
+            handleQuantityChange={handleQuantityChange}
+            selectedOptions={selectedOptions}
+            handleOptionChange={handleOptionChange}
+            isOptionAvailable={isOptionAvailable}
+            variationAttributes={variationAttributes}
+            specifications={specifications}
+            hasAttributeOptions={hasAttributeOptions}
+            getOptionsForAttribute={getOptionsForAttribute}
+            configAttributes={getConfigAttributes()}
+            getCurrentValue={getCurrentValue}
+            getDisplayName={getDisplayName}
+          />
+        </div>
       </div>
 
       {/* Related Products */}
