@@ -294,7 +294,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
             />
             
             {/* Show cart view */}
-            {viewMode === 'cart' && (
+            {false && (
               <InlinePublicCart
                 onBackToCatalog={handleBackToCatalog}
                 onRequestQuote={handleRequestQuote}
@@ -311,7 +311,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
             )}
 
             {/* Compact search bar when header is disabled - Only for grid and product detail */}
-            {!(settings?.header_enabled ?? true) && (viewMode === 'grid' || viewMode === 'product-detail') && (
+            {!(settings?.header_enabled ?? true) && (
               <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
                   {/* Search bar */}
@@ -354,8 +354,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
             )}
 
             {/* Show catalog grid/detail view */}
-            {viewMode !== 'cart' && viewMode !== 'request-steps' && (
-              <div className="flex gap-6">
+            <div className="flex gap-6">
                 {/* Filter Sidebar - Only show in grid view */}
                 {viewMode === 'grid' && (
                   <PublicFilterSidebar
