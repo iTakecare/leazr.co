@@ -36,9 +36,10 @@ interface RequestSummaryProps {
   };
   onBack: () => void;
   companyId?: string;
+  onRequestCompleted?: () => void;
 }
 
-const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack, companyId }) => {
+const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactData, onBack, companyId, onRequestCompleted }) => {
   const { items, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -127,13 +128,23 @@ const RequestSummary: React.FC<RequestSummaryProps> = ({ companyData, contactDat
       
       clearCart();
       
-      navigate('/demande-envoyee', { 
-        state: { 
-          success: true, 
-          companyName: companyData.company, 
-          name: contactData.name 
-        }
-      });
+      if (onRequestCompleted) {
+        // For inline experience, call the callback
+        toast({
+          title: "Demande envoyée avec succès !",
+          description: `Merci ${contactData.name}, votre demande pour ${companyData.company} a été envoyée. Nous reviendrons vers vous dans les 24h.`,
+        });
+        onRequestCompleted();
+      } else {
+        // For standalone experience, navigate to success page
+        navigate('/demande-envoyee', { 
+          state: { 
+            success: true, 
+            companyName: companyData.company, 
+            name: contactData.name 
+          }
+        });
+      }
     } catch (error) {
       console.error("Error submitting request:", error);
       toast({

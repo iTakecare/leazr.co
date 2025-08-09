@@ -7,6 +7,7 @@ import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
 import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
 import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
+import InlineRequestSteps from "@/components/catalog/public/InlineRequestSteps";
 
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
@@ -45,7 +46,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   
   // State for inline views
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'product-detail' | 'cart'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'product-detail' | 'cart' | 'request-steps'>('grid');
   
   // Fetch company by slug if not provided (fallback for legacy routes)
   const { data: fetchedCompany, isLoading: isLoadingCompany, error: companyError } = useQuery({
@@ -158,12 +159,16 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   };
 
   const handleRequestQuote = () => {
-    // Navigate to request page
-    if (companySlug) {
-      navigate(`/${companySlug}/demande`);
-    } else if (company?.id) {
-      navigate(`/public/${company.id}/demande`);
-    }
+    setViewMode('request-steps');
+  };
+
+  const handleBackToCart = () => {
+    setViewMode('cart');
+  };
+
+  const handleRequestCompleted = () => {
+    // Clear cart and return to catalog
+    setViewMode('grid');
   };
 
   // Loading state for company fetch
@@ -277,8 +282,17 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               />
             )}
 
+            {/* Show request steps view */}
+            {viewMode === 'request-steps' && (
+              <InlineRequestSteps
+                companyId={company?.id}
+                onBackToCart={handleBackToCart}
+                onRequestCompleted={handleRequestCompleted}
+              />
+            )}
+
             {/* Show catalog grid/detail view */}
-            {viewMode !== 'cart' && (
+            {viewMode !== 'cart' && viewMode !== 'request-steps' && (
               <div className="flex gap-6">
                 {/* Filter Sidebar - Only show in grid view */}
                 {viewMode === 'grid' && (
