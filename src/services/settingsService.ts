@@ -23,6 +23,8 @@ export interface SiteSettings {
     gradient?: { from: string; to: string; direction: string };
     image?: { url: string; position: string; repeat: string };
   };
+  iframe_width?: string;
+  iframe_height?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -123,6 +125,8 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
         header_description: settings.header_description,
         header_background_type: settings.header_background_type,
         header_background_config: settings.header_background_config,
+        iframe_width: settings.iframe_width,
+        iframe_height: settings.iframe_height,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'company_id'

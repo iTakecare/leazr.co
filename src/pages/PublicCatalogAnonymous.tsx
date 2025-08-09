@@ -282,7 +282,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               companyLogo={company?.logo_url}
               companyId={companyId}
               onCartClick={handleCartClick}
-              headerEnabled={isEmbedMode ? false : (settings?.header_enabled ?? true)}
+              headerEnabled={settings?.header_enabled ?? true}
               headerTitle={settings?.header_title}
               headerDescription={settings?.header_description}
               headerBackgroundType={settings?.header_background_type}
@@ -307,8 +307,8 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               />
             )}
 
-            {/* Compact search bar when header is disabled (embed mode) */}
-            {isEmbedMode && viewMode === 'grid' && (
+            {/* Compact search bar when header is disabled */}
+            {!(settings?.header_enabled ?? true) && viewMode === 'grid' && (
               <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
                   {/* Search bar */}

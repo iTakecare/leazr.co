@@ -26,6 +26,8 @@ const PublicCatalogSettings = () => {
   const [headerBackgroundConfig, setHeaderBackgroundConfig] = React.useState<any>({
     gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
   });
+  const [iframeWidth, setIframeWidth] = React.useState("100%");
+  const [iframeHeight, setIframeHeight] = React.useState("800");
   const [saving, setSaving] = React.useState(false);
   const [iframeTimestamp, setIframeTimestamp] = React.useState(Date.now());
 
@@ -38,6 +40,8 @@ const PublicCatalogSettings = () => {
       setHeaderBackgroundConfig(settings.header_background_config || {
         gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
       });
+      setIframeWidth(settings.iframe_width || "100%");
+      setIframeHeight(settings.iframe_height || "800");
     }
   }, [settings]);
 
@@ -55,6 +59,8 @@ const PublicCatalogSettings = () => {
         header_description: headerDescription,
         header_background_type: headerBackgroundType,
         header_background_config: headerBackgroundConfig,
+        iframe_width: iframeWidth,
+        iframe_height: iframeHeight,
       }, user.id);
       
       if (success) {
@@ -87,6 +93,7 @@ const PublicCatalogSettings = () => {
       : `/company/${companyId}/catalog`;
     const params = new URLSearchParams();
     
+    // Only add embed parameter if header is disabled
     if (!headerEnabled) params.set('embed', '1');
     params.set('t', iframeTimestamp.toString()); // Add timestamp to prevent caching
     
@@ -94,8 +101,8 @@ const PublicCatalogSettings = () => {
     
     return `<iframe 
   src="${fullUrl}"
-  width="100%" 
-  height="800"
+  width="${iframeWidth}" 
+  height="${iframeHeight}"
   frameborder="0"
   style="border: none; border-radius: 8px;"
 ></iframe>`;
@@ -320,6 +327,66 @@ const PublicCatalogSettings = () => {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Dimensions de l'iframe */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Dimensions de l'iframe</CardTitle>
+          <CardDescription>
+            Configurez la taille de l'iframe pour l'intégration
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="iframe-width">Largeur</Label>
+              <Select value={iframeWidth} onValueChange={setIframeWidth}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="100%">100% (responsive)</SelectItem>
+                  <SelectItem value="400px">400px</SelectItem>
+                  <SelectItem value="600px">600px</SelectItem>
+                  <SelectItem value="800px">800px</SelectItem>
+                  <SelectItem value="1200px">1200px</SelectItem>
+                  <SelectItem value="custom">Personnalisé</SelectItem>
+                </SelectContent>
+              </Select>
+              {iframeWidth === 'custom' && (
+                <Input
+                  placeholder="ex: 750px"
+                  value={iframeWidth !== 'custom' ? iframeWidth : ''}
+                  onChange={(e) => setIframeWidth(e.target.value)}
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="iframe-height">Hauteur</Label>
+              <Select value={iframeHeight} onValueChange={setIframeHeight}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="400">400px</SelectItem>
+                  <SelectItem value="600">600px</SelectItem>
+                  <SelectItem value="800">800px</SelectItem>
+                  <SelectItem value="1000">1000px</SelectItem>
+                  <SelectItem value="1200">1200px</SelectItem>
+                  <SelectItem value="custom">Personnalisé</SelectItem>
+                </SelectContent>
+              </Select>
+              {iframeHeight === 'custom' && (
+                <Input
+                  placeholder="ex: 900px"
+                  value={iframeHeight !== 'custom' ? iframeHeight : ''}
+                  onChange={(e) => setIframeHeight(e.target.value)}
+                />
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
