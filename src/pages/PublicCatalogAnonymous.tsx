@@ -5,6 +5,7 @@ import Container from "@/components/layout/Container";
 import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
+import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
 
 import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
 import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
@@ -39,6 +40,10 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
+  
+  // State for inline product detail view
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'product-detail'>('grid');
   
   // Fetch company by slug if not provided (fallback for legacy routes)
   const { data: fetchedCompany, isLoading: isLoadingCompany, error: companyError } = useQuery({
@@ -309,22 +314,45 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
 
                  {activeTab === 'products' && (
                    <>
-                     {/* Active Filter Badges */}
-                     <FilterBadges
-                       searchQuery={filters.searchQuery}
-                       selectedCategory={filters.selectedCategory}
-                       selectedBrands={filters.selectedBrands}
-                       inStockOnly={filters.inStockOnly}
-                       categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                       onRemoveSearch={() => updateFilter('searchQuery', '')}
-                       onRemoveCategory={() => updateFilter('selectedCategory', '')}
-                       onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                       onRemoveStock={() => updateFilter('inStockOnly', false)}
-                       onClearAll={resetFilters}
-                     />
+                      {/* Active Filter Badges - Only show in grid view */}
+                      {viewMode === 'grid' && (
+                        <FilterBadges
+                          searchQuery={filters.searchQuery}
+                          selectedCategory={filters.selectedCategory}
+                          selectedBrands={filters.selectedBrands}
+                          inStockOnly={filters.inStockOnly}
+                          categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
+                          onRemoveSearch={() => updateFilter('searchQuery', '')}
+                          onRemoveCategory={() => updateFilter('selectedCategory', '')}
+                          onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
+                          onRemoveStock={() => updateFilter('inStockOnly', false)}
+                          onClearAll={resetFilters}
+                        />
+                      )}
 
-                     {/* Product Grid */}
-                     <PublicProductGrid products={filteredProducts || []} />
+                      {/* Product Grid or Detail View */}
+                      {viewMode === 'grid' && (
+                        <PublicProductGrid 
+                          products={filteredProducts || []}
+                          onProductSelect={(productId) => {
+                            setSelectedProductId(productId);
+                            setViewMode('product-detail');
+                          }}
+                        />
+                      )}
+                      
+                      {viewMode === 'product-detail' && selectedProductId && (
+                        <InlinePublicProductDetail
+                          companyId={company.id}
+                          companySlug={companySlug || company.slug}
+                          productId={selectedProductId}
+                          company={company}
+                          onBackToCatalog={() => {
+                            setViewMode('grid');
+                            setSelectedProductId(null);
+                          }}
+                        />
+                      )}
                    </>
                  )}
 

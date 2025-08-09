@@ -11,9 +11,10 @@ import { useLocation } from "react-router-dom";
 
 interface PublicProductGridProps {
   products: Product[];
+  onProductSelect?: (productId: string) => void;
 }
 
-const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
+const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products, onProductSelect }) => {
   const safeNavigate = useSafeNavigate();
   const { navigateToClient } = useRoleNavigation();
   const { companyId, companySlug } = useCompanyContext();
@@ -33,6 +34,12 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products }) => {
       companyId,
       currentPath: location.pathname
     });
+
+    // If onProductSelect callback is provided, use it instead of navigation
+    if (onProductSelect) {
+      onProductSelect(product.id);
+      return;
+    }
 
     // Check if we're in client space - fix detection for multi-tenant URLs
     const isInClientSpace = location.pathname.includes('/client/');
