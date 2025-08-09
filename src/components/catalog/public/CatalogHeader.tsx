@@ -71,14 +71,14 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
         <div className="z-10 p-6 md:p-8 md:w-3/5">
           
           <h1 className="font-bold text-2xl md:text-3xl lg:text-4xl text-white leading-tight mb-3">
-            {headerTitle || (companyName ? 
+            {headerTitle && headerTitle.trim() ? headerTitle : (companyName ? 
               `Équipement premium ${companyName}` : 
               "Équipement premium reconditionné pour des équipes performantes"
             )}
           </h1>
           
           <p className="text-white/90 text-sm md:text-base mb-6 max-w-xl">
-            {headerDescription || (companyName ? 
+            {headerDescription && headerDescription.trim() ? headerDescription : (companyName ? 
               `Découvrez la sélection d'équipements professionnels de ${companyName} - matériel Apple et PC haute qualité, à l'impact environnemental réduit.` :
               "Donnez à vos collaborateurs les outils dont ils ont besoin avec notre sélection de matériel Apple et PC haute qualité, à l'impact environnemental réduit."
             )}
