@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Eye, ExternalLink, Info } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Copy, Eye, ExternalLink, Settings2, Upload, Palette } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { updateSiteSettings } from "@/services/settingsService";
@@ -18,12 +19,24 @@ const PublicCatalogSettings = () => {
   const { companyId } = useMultiTenant();
   const { user } = useAuth();
   
-  const [hideHeader, setHideHeader] = React.useState(false);
+  const [headerEnabled, setHeaderEnabled] = React.useState(true);
+  const [headerTitle, setHeaderTitle] = React.useState("");
+  const [headerDescription, setHeaderDescription] = React.useState("");
+  const [headerBackgroundType, setHeaderBackgroundType] = React.useState<'solid' | 'gradient' | 'image'>('gradient');
+  const [headerBackgroundConfig, setHeaderBackgroundConfig] = React.useState<any>({
+    gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
+  });
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (settings) {
-      setHideHeader(settings.public_catalog_hide_header || false);
+      setHeaderEnabled(settings.header_enabled ?? true);
+      setHeaderTitle(settings.header_title || "");
+      setHeaderDescription(settings.header_description || "");
+      setHeaderBackgroundType(settings.header_background_type || 'gradient');
+      setHeaderBackgroundConfig(settings.header_background_config || {
+        gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
+      });
     }
   }, [settings]);
 
@@ -36,7 +49,11 @@ const PublicCatalogSettings = () => {
     setSaving(true);
     try {
       const success = await updateSiteSettings({
-        public_catalog_hide_header: hideHeader,
+        header_enabled: headerEnabled,
+        header_title: headerTitle,
+        header_description: headerDescription,
+        header_background_type: headerBackgroundType,
+        header_background_config: headerBackgroundConfig,
       }, user.id);
       
       if (success) {
@@ -50,6 +67,16 @@ const PublicCatalogSettings = () => {
     }
   };
 
+  const updateBackgroundConfig = (key: string, value: any) => {
+    setHeaderBackgroundConfig(prev => ({
+      ...prev,
+      [headerBackgroundType]: {
+        ...prev[headerBackgroundType],
+        [key]: value
+      }
+    }));
+  };
+
   const generateIframeCode = () => {
     const baseUrl = window.location.origin;
     const catalogUrl = companyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0' 
@@ -57,7 +84,7 @@ const PublicCatalogSettings = () => {
       : `/company/${companyId}/catalog`;
     const params = new URLSearchParams();
     
-    if (hideHeader) params.set('embed', '1');
+    if (!headerEnabled) params.set('embed', '1');
     
     const fullUrl = `${baseUrl}${catalogUrl}${params.toString() ? '?' + params.toString() : ''}`;
     
@@ -82,7 +109,7 @@ const PublicCatalogSettings = () => {
       : `/company/${companyId}/catalog`;
     const params = new URLSearchParams();
     
-    if (hideHeader) params.set('embed', '1');
+    if (!headerEnabled) params.set('embed', '1');
     
     const fullUrl = `${baseUrl}${catalogUrl}${params.toString() ? '?' + params.toString() : ''}`;
     window.open(fullUrl, '_blank');
@@ -94,34 +121,197 @@ const PublicCatalogSettings = () => {
 
   return (
     <div className="space-y-6">
-      {/* Affichage */}
+      {/* Configuration en-tête */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Affichage du catalogue
+            <Settings2 className="h-5 w-5" />
+            Configuration en-tête
           </CardTitle>
           <CardDescription>
-            Configurez l'apparence du catalogue public pour l'intégration externe
+            Personnalisez l'affichage de l'en-tête du catalogue public
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Switch pour activer/désactiver l'en-tête */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Masquer la barre de menu</Label>
+              <Label>Afficher l'en-tête</Label>
               <p className="text-sm text-muted-foreground">
-                Cache la navigation et l'en-tête pour l'intégration en iframe
+                Si désactivé, seule la barre de recherche et le panier seront visibles
               </p>
             </div>
             <Switch 
-              checked={hideHeader} 
-              onCheckedChange={setHideHeader}
+              checked={headerEnabled} 
+              onCheckedChange={setHeaderEnabled}
             />
           </div>
 
+          {/* Options de personnalisation (visibles seulement si l'en-tête est activé) */}
+          {headerEnabled && (
+            <div className="space-y-4 pt-4 border-t">
+              {/* Titre personnalisé */}
+              <div className="space-y-2">
+                <Label htmlFor="header-title">Titre de l'en-tête</Label>
+                <Input
+                  id="header-title"
+                  value={headerTitle}
+                  onChange={(e) => setHeaderTitle(e.target.value)}
+                  placeholder="Équipement premium reconditionné..."
+                />
+              </div>
+
+              {/* Description personnalisée */}
+              <div className="space-y-2">
+                <Label htmlFor="header-description">Description</Label>
+                <Textarea
+                  id="header-description"
+                  value={headerDescription}
+                  onChange={(e) => setHeaderDescription(e.target.value)}
+                  placeholder="Donnez à vos collaborateurs les outils dont ils ont besoin..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Type d'arrière-plan */}
+              <div className="space-y-2">
+                <Label>Type d'arrière-plan</Label>
+                <Select value={headerBackgroundType} onValueChange={(value: 'solid' | 'gradient' | 'image') => setHeaderBackgroundType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solid">
+                      <div className="flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Couleur unie
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gradient">
+                      <div className="flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Dégradé
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="image">
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Image
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Configuration spécifique selon le type */}
+              {headerBackgroundType === 'solid' && (
+                <div className="space-y-2">
+                  <Label>Couleur</Label>
+                  <Input
+                    type="color"
+                    value={headerBackgroundConfig.solid || '#275D8C'}
+                    onChange={(e) => updateBackgroundConfig('solid', e.target.value)}
+                  />
+                </div>
+              )}
+
+              {headerBackgroundType === 'gradient' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Couleur de départ</Label>
+                      <Input
+                        type="color"
+                        value={headerBackgroundConfig.gradient?.from || '#275D8C'}
+                        onChange={(e) => updateBackgroundConfig('from', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Couleur d'arrivée</Label>
+                      <Input
+                        type="color"
+                        value={headerBackgroundConfig.gradient?.to || '#48B5C3'}
+                        onChange={(e) => updateBackgroundConfig('to', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Direction du dégradé</Label>
+                    <Select 
+                      value={headerBackgroundConfig.gradient?.direction || '135deg'} 
+                      onValueChange={(value) => updateBackgroundConfig('direction', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0deg">↑ Vers le haut</SelectItem>
+                        <SelectItem value="90deg">→ Vers la droite</SelectItem>
+                        <SelectItem value="180deg">↓ Vers le bas</SelectItem>
+                        <SelectItem value="270deg">← Vers la gauche</SelectItem>
+                        <SelectItem value="45deg">↗ Diagonale haut-droite</SelectItem>
+                        <SelectItem value="135deg">↘ Diagonale bas-droite</SelectItem>
+                        <SelectItem value="225deg">↙ Diagonale bas-gauche</SelectItem>
+                        <SelectItem value="315deg">↖ Diagonale haut-gauche</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {headerBackgroundType === 'image' && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>URL de l'image</Label>
+                    <Input
+                      value={headerBackgroundConfig.image?.url || ''}
+                      onChange={(e) => updateBackgroundConfig('url', e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Position</Label>
+                      <Select 
+                        value={headerBackgroundConfig.image?.position || 'center'} 
+                        onValueChange={(value) => updateBackgroundConfig('position', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="center">Centre</SelectItem>
+                          <SelectItem value="top">Haut</SelectItem>
+                          <SelectItem value="bottom">Bas</SelectItem>
+                          <SelectItem value="left">Gauche</SelectItem>
+                          <SelectItem value="right">Droite</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Répétition</Label>
+                      <Select 
+                        value={headerBackgroundConfig.image?.repeat || 'no-repeat'} 
+                        onValueChange={(value) => updateBackgroundConfig('repeat', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no-repeat">Aucune</SelectItem>
+                          <SelectItem value="repeat">Répéter</SelectItem>
+                          <SelectItem value="repeat-x">Répéter horizontalement</SelectItem>
+                          <SelectItem value="repeat-y">Répéter verticalement</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
-
 
       {/* Code d'intégration */}
       <Card>

@@ -21,6 +21,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface Company {
   id: string;
@@ -41,6 +42,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const location = useLocation();
   const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
+  const { settings } = useSiteSettings();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
   
@@ -272,6 +274,12 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               companyLogo={company?.logo_url}
               companyId={companyId}
               onCartClick={handleCartClick}
+              headerEnabled={settings?.header_enabled ?? true}
+              headerTitle={settings?.header_title}
+              headerDescription={settings?.header_description}
+              headerBackgroundType={settings?.header_background_type}
+              headerBackgroundConfig={settings?.header_background_config}
+              onRequestQuote={handleRequestQuote}
             />
             
             {/* Show cart view */}

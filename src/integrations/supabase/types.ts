@@ -1223,10 +1223,14 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           favicon_url: string | null
+          header_background_config: Json | null
+          header_background_type: string | null
+          header_description: string | null
+          header_enabled: boolean | null
+          header_title: string | null
           id: string
           logo_url: string | null
           primary_color: string | null
-          public_catalog_hide_header: boolean | null
           secondary_color: string | null
           updated_at: string
         }
@@ -1240,10 +1244,14 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
+          header_background_config?: Json | null
+          header_background_type?: string | null
+          header_description?: string | null
+          header_enabled?: boolean | null
+          header_title?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
-          public_catalog_hide_header?: boolean | null
           secondary_color?: string | null
           updated_at?: string
         }
@@ -1257,10 +1265,14 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
+          header_background_config?: Json | null
+          header_background_type?: string | null
+          header_description?: string | null
+          header_enabled?: boolean | null
+          header_title?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
-          public_catalog_hide_header?: boolean | null
           secondary_color?: string | null
           updated_at?: string
         }

@@ -1,6 +1,7 @@
 import React from "react";
 import { SearchWithSuggestions } from "./SearchWithSuggestions";
 import { ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -8,12 +9,16 @@ interface CatalogSearchSectionProps {
   companyId?: string;
   companySlug?: string;
   onCartClick?: () => void;
+  showQuoteButton?: boolean;
+  onRequestQuote?: () => void;
 }
 
 const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({ 
   companyId, 
   companySlug, 
-  onCartClick 
+  onCartClick,
+  showQuoteButton = false,
+  onRequestQuote
 }) => {
   const { cartCount } = useCart();
   const navigate = useNavigate();
@@ -50,8 +55,19 @@ const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({
           <SearchWithSuggestions />
         </div>
         
-        {/* Panier à droite */}
-        <div className="flex-shrink-0">
+        {/* Boutons à droite */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {showQuoteButton && (
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={onRequestQuote}
+              className="text-xs md:text-sm"
+            >
+              Demander un devis
+            </Button>
+          )}
+          
           <button
             onClick={handleCartClick}
             className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#275D8C]/30"

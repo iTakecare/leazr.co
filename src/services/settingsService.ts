@@ -14,7 +14,15 @@ export interface SiteSettings {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
-  public_catalog_hide_header?: boolean;
+  header_enabled?: boolean;
+  header_title?: string;
+  header_description?: string;
+  header_background_type?: 'solid' | 'gradient' | 'image';
+  header_background_config?: {
+    solid?: string;
+    gradient?: { from: string; to: string; direction: string };
+    image?: { url: string; position: string; repeat: string };
+  };
   created_at?: string;
   updated_at?: string;
 }
@@ -110,7 +118,11 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
         primary_color: settings.primary_color,
         secondary_color: settings.secondary_color,
         accent_color: settings.accent_color,
-        public_catalog_hide_header: settings.public_catalog_hide_header,
+        header_enabled: settings.header_enabled,
+        header_title: settings.header_title,
+        header_description: settings.header_description,
+        header_background_type: settings.header_background_type,
+        header_background_config: settings.header_background_config,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'company_id'
