@@ -436,89 +436,305 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
 };
 
 /**
- * Mapping des produits complémentaires pour les suggestions d'upsell
+ * Mapping complet des produits complémentaires pour les suggestions d'upsell
  * Chaque clé correspond à un type de produit principal avec mots-clés d'inclusion et d'exclusion
  */
 const complementaryMapping: Record<string, { include: string[], exclude: string[] }> = {
-  // Tablettes iPad
+  // ========== TABLETTES ==========
   'iPad': {
     include: ['clavier iPad', 'stylet', 'pencil', 'housse iPad', 'support iPad', 'étui', 'protection iPad', 'accessoires iPad'],
-    exclude: ['MacBook', 'iMac', 'iPhone', 'desktop']
+    exclude: ['MacBook', 'iMac', 'iPhone', 'desktop', 'laptop']
+  },
+  'tablette': {
+    include: ['clavier tablette', 'stylet', 'pencil', 'housse tablette', 'support tablette', 'étui', 'protection tablette'],
+    exclude: ['MacBook', 'iMac', 'iPhone', 'desktop', 'laptop']
+  },
+  'tablet': {
+    include: ['clavier tablet', 'stylet', 'pencil', 'housse tablet', 'support tablet', 'étui', 'protection tablet'],
+    exclude: ['MacBook', 'iMac', 'iPhone', 'desktop', 'laptop']
   },
   
-  // Ordinateurs portables
+  // ========== ORDINATEURS PORTABLES ==========
   'MacBook': {
     include: ['souris', 'mouse', 'housse MacBook', 'hub', 'support laptop', 'dock', 'accessoires MacBook', 'clavier externe', 'écran externe'],
-    exclude: ['iPad', 'iPhone', 'desktop']
+    exclude: ['iPad', 'iPhone', 'desktop', 'tablette']
   },
   'laptop': {
     include: ['souris', 'mouse', 'housse laptop', 'hub', 'support laptop', 'dock', 'accessoires laptop', 'clavier externe', 'écran externe'],
-    exclude: ['iPad', 'iPhone', 'desktop']
+    exclude: ['iPad', 'iPhone', 'desktop', 'tablette']
   },
   'portable': {
     include: ['souris', 'mouse', 'housse laptop', 'hub', 'support laptop', 'dock', 'accessoires laptop', 'clavier externe', 'écran externe'],
-    exclude: ['iPad', 'iPhone', 'desktop']
+    exclude: ['iPad', 'iPhone', 'desktop', 'tablette']
+  },
+  'ordinateur portable': {
+    include: ['souris', 'mouse', 'housse laptop', 'hub', 'support laptop', 'dock', 'accessoires laptop', 'clavier externe', 'écran externe'],
+    exclude: ['iPad', 'iPhone', 'desktop', 'tablette']
   },
   
-  // Ordinateurs fixes
+  // ========== ORDINATEURS FIXES ==========
   'iMac': {
-    include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires iMac', 'dock'],
-    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+    include: ['clavier', 'souris', 'mouse', 'écran externe', 'hub', 'support', 'accessoires iMac', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette']
   },
   'Mac mini': {
     include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires Mac', 'dock'],
-    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette']
   },
   'desktop': {
     include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires desktop', 'dock'],
-    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette']
   },
   'ordinateur': {
     include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires ordinateur', 'dock'],
-    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette']
+  },
+  'PC': {
+    include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires PC', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette']
   },
   
-  // Smartphones
+  // ========== SMARTPHONES ==========
   'iPhone': {
     include: ['coque iPhone', 'chargeur iPhone', 'écouteurs', 'support iPhone', 'accessoires iPhone', 'protection iPhone'],
-    exclude: ['iPad', 'MacBook', 'iMac', 'desktop']
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop', 'laptop']
   },
   'smartphone': {
     include: ['coque', 'chargeur', 'écouteurs', 'support smartphone', 'accessoires smartphone', 'protection smartphone'],
-    exclude: ['iPad', 'MacBook', 'iMac', 'desktop']
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop', 'laptop']
   },
   'téléphone': {
     include: ['coque', 'chargeur', 'écouteurs', 'support téléphone', 'accessoires téléphone', 'protection téléphone'],
-    exclude: ['iPad', 'MacBook', 'iMac', 'desktop']
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop', 'laptop']
+  },
+  'mobile': {
+    include: ['coque', 'chargeur', 'écouteurs', 'support mobile', 'accessoires mobile', 'protection mobile'],
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop', 'laptop']
   },
   
-  // Logiciels bureautiques et packs
-  'Office': {
-    include: ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  // ========== PÉRIPHÉRIQUES ==========
+  'souris': {
+    include: ['tapis souris', 'clavier', 'support poignet', 'nettoyant', 'hub'],
+    exclude: ['smartphone', 'iPhone', 'mobile']
+  },
+  'mouse': {
+    include: ['tapis souris', 'clavier', 'support poignet', 'nettoyant', 'hub'],
+    exclude: ['smartphone', 'iPhone', 'mobile']
+  },
+  'clavier': {
+    include: ['souris', 'mouse', 'support poignet', 'nettoyant', 'hub', 'repose-poignet'],
+    exclude: ['smartphone', 'iPhone', 'mobile', 'iPad']
+  },
+  'keyboard': {
+    include: ['souris', 'mouse', 'support poignet', 'nettoyant', 'hub', 'repose-poignet'],
+    exclude: ['smartphone', 'iPhone', 'mobile', 'iPad']
+  },
+  
+  // ========== AUDIO/VIDÉO ==========
+  'casque': {
+    include: ['support casque', 'adaptateur', 'câbles audio', 'mousse casque', 'nettoyant'],
     exclude: []
   },
-  'bureautique': {
-    include: ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  'écouteurs': {
+    include: ['étui écouteurs', 'adaptateur', 'câbles audio', 'embouts', 'nettoyant'],
     exclude: []
   },
-  'pack': {
-    include: ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  'microphone': {
+    include: ['support microphone', 'filtre pop', 'bras articule', 'adaptateur', 'mousse acoustique'],
+    exclude: []
+  },
+  'webcam': {
+    include: ['support webcam', 'éclairage', 'fond vert', 'microphone', 'trépied'],
+    exclude: []
+  },
+  'haut-parleur': {
+    include: ['support haut-parleur', 'câbles audio', 'adaptateur', 'isolation'],
+    exclude: []
+  },
+  'speaker': {
+    include: ['support speaker', 'câbles audio', 'adaptateur', 'isolation'],
     exclude: []
   },
   
-  // Écrans
+  // ========== STOCKAGE ET RÉSEAUX ==========
+  'disque dur': {
+    include: ['housse disque', 'hub', 'câbles', 'adaptateur', 'boîtier protection'],
+    exclude: []
+  },
+  'SSD': {
+    include: ['housse SSD', 'hub', 'câbles', 'adaptateur', 'boîtier protection'],
+    exclude: []
+  },
+  'stockage': {
+    include: ['housse stockage', 'hub', 'câbles', 'adaptateur', 'boîtier protection'],
+    exclude: []
+  },
+  'routeur': {
+    include: ['câbles réseau', 'switch', 'répéteur', 'support mural', 'onduleur'],
+    exclude: []
+  },
+  'switch': {
+    include: ['câbles réseau', 'routeur', 'support rack', 'onduleur'],
+    exclude: []
+  },
+  'modem': {
+    include: ['câbles réseau', 'filtre ADSL', 'support', 'onduleur'],
+    exclude: []
+  },
+  
+  // ========== ÉCRANS ET AFFICHAGE ==========
   'écran': {
-    include: ['support', 'bras', 'hub', 'dock', 'accessoires écran'],
+    include: ['bras écran', 'support écran', 'hub', 'câbles vidéo', 'nettoyant écran'],
     exclude: []
   },
   'monitor': {
-    include: ['support', 'bras', 'hub', 'dock', 'accessoires monitor'],
+    include: ['bras monitor', 'support monitor', 'hub', 'câbles vidéo', 'nettoyant écran'],
     exclude: []
   },
   'display': {
-    include: ['support', 'bras', 'hub', 'dock', 'accessoires display'],
+    include: ['support display', 'bras', 'hub', 'câbles vidéo', 'nettoyant écran'],
+    exclude: []
+  },
+  'projecteur': {
+    include: ['écran projection', 'support plafond', 'télécommande', 'câbles vidéo'],
+    exclude: []
+  },
+  'vidéoprojecteur': {
+    include: ['écran projection', 'support plafond', 'télécommande', 'câbles vidéo'],
+    exclude: []
+  },
+  
+  // ========== LOGICIELS ET SERVICES ==========
+  'Office': {
+    include: ['accessoires bureautiques', 'clavier', 'souris', 'écran', 'support'],
+    exclude: []
+  },
+  'bureautique': {
+    include: ['accessoires bureautiques', 'clavier', 'souris', 'écran', 'support'],
+    exclude: []
+  },
+  'logiciel': {
+    include: ['formation', 'support', 'manuel', 'accessoires'],
+    exclude: []
+  },
+  'software': {
+    include: ['formation', 'support', 'manuel', 'accessoires'],
+    exclude: []
+  },
+  'antivirus': {
+    include: ['formation sécurité', 'support', 'sauvegarde', 'VPN'],
+    exclude: []
+  },
+  'sécurité': {
+    include: ['antivirus', 'VPN', 'sauvegarde', 'formation'],
+    exclude: []
+  },
+  
+  // ========== ACCESSOIRES GÉNÉRIQUES ==========
+  'câble': {
+    include: ['organisateur câble', 'adaptateur', 'gaine protection', 'enrouleur'],
+    exclude: []
+  },
+  'chargeur': {
+    include: ['câble', 'adaptateur', 'support chargeur', 'multiprise'],
+    exclude: []
+  },
+  'adaptateur': {
+    include: ['câbles', 'hub', 'convertisseur', 'boîtier'],
+    exclude: []
+  },
+  'hub': {
+    include: ['câbles', 'adaptateur', 'support', 'alimentation'],
+    exclude: []
+  },
+  'dock': {
+    include: ['câbles', 'adaptateur', 'support', 'hub'],
+    exclude: []
+  },
+  'support': {
+    include: ['accessoires montage', 'visserie', 'adaptateur', 'bras'],
+    exclude: []
+  },
+  'housse': {
+    include: ['protection', 'nettoyant', 'accessoires transport'],
+    exclude: []
+  },
+  'protection': {
+    include: ['nettoyant', 'housse', 'film protection', 'étui'],
+    exclude: []
+  },
+  'étui': {
+    include: ['protection', 'nettoyant', 'accessoires'],
+    exclude: []
+  },
+  'coque': {
+    include: ['protection écran', 'support', 'chargeur', 'nettoyant'],
+    exclude: []
+  },
+  
+  // ========== PACK ET BUNDLES ==========
+  'pack': {
+    include: ['accessoires', 'extensions', 'compléments'],
+    exclude: []
+  },
+  'bundle': {
+    include: ['accessoires', 'extensions', 'compléments'],
+    exclude: []
+  },
+  'kit': {
+    include: ['accessoires', 'extensions', 'compléments'],
     exclude: []
   }
+};
+
+/**
+ * Mapping par catégories pour les produits sans type spécifique détecté
+ */
+const categoryMapping: Record<string, { include: string[], exclude: string[] }> = {
+  'ordinateurs': {
+    include: ['clavier', 'souris', 'écran', 'hub', 'support', 'accessoires'],
+    exclude: ['smartphone', 'mobile']
+  },
+  'accessoires': {
+    include: ['câbles', 'adaptateur', 'support', 'protection', 'nettoyant'],
+    exclude: []
+  },
+  'périphériques': {
+    include: ['accessoires', 'câbles', 'support', 'hub', 'nettoyant'],
+    exclude: []
+  },
+  'audio': {
+    include: ['support', 'câbles audio', 'adaptateur', 'accessoires audio'],
+    exclude: []
+  },
+  'vidéo': {
+    include: ['support', 'câbles vidéo', 'éclairage', 'accessoires vidéo'],
+    exclude: []
+  },
+  'stockage': {
+    include: ['housse', 'câbles', 'adaptateur', 'hub', 'protection'],
+    exclude: []
+  },
+  'réseau': {
+    include: ['câbles réseau', 'adaptateur réseau', 'support', 'onduleur'],
+    exclude: []
+  },
+  'sécurité': {
+    include: ['formation', 'support', 'sauvegarde', 'accessoires sécurité'],
+    exclude: []
+  },
+  'logiciels': {
+    include: ['formation', 'support', 'manuel', 'accessoires'],
+    exclude: []
+  }
+};
+
+/**
+ * Mapping universel de fallback pour tous les produits
+ */
+const universalFallback = {
+  include: ['accessoires', 'support', 'câbles', 'protection', 'nettoyant', 'housse', 'adaptateur'],
+  exclude: []
 };
 
 /**
@@ -527,17 +743,60 @@ const complementaryMapping: Record<string, { include: string[], exclude: string[
 const detectProductType = (productName: string, category: string): string | null => {
   const searchText = `${productName} ${category}`.toLowerCase();
   
-  // Ordre de priorité pour la détection
+  // Ordre de priorité pour la détection (spécifique → générique)
   const detectionOrder = [
+    // Spécifiques Apple d'abord
     'iPad', 'MacBook', 'iMac', 'Mac mini', 'iPhone',
-    'laptop', 'portable', 'desktop', 'ordinateur',
-    'smartphone', 'téléphone', 'Office', 'bureautique',
-    'pack', 'écran', 'monitor', 'display'
+    
+    // Ordinateurs spécifiques
+    'ordinateur portable', 'laptop', 'portable', 'desktop', 'ordinateur', 'PC',
+    
+    // Devices mobiles
+    'smartphone', 'téléphone', 'mobile', 'tablette', 'tablet',
+    
+    // Périphériques spécifiques
+    'souris', 'mouse', 'clavier', 'keyboard', 'casque', 'écouteurs', 'microphone', 
+    'webcam', 'haut-parleur', 'speaker',
+    
+    // Stockage et réseau
+    'disque dur', 'SSD', 'stockage', 'routeur', 'switch', 'modem',
+    
+    // Écrans et affichage
+    'projecteur', 'vidéoprojecteur', 'écran', 'monitor', 'display',
+    
+    // Logiciels et services
+    'Office', 'bureautique', 'logiciel', 'software', 'antivirus', 'sécurité',
+    
+    // Accessoires génériques
+    'câble', 'chargeur', 'adaptateur', 'hub', 'dock', 'support', 'housse', 
+    'protection', 'étui', 'coque',
+    
+    // Bundles et packs
+    'pack', 'bundle', 'kit'
   ];
   
   for (const type of detectionOrder) {
     if (searchText.includes(type.toLowerCase())) {
       return type;
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Détecte le type de produit par catégorie si aucun type spécifique n'est trouvé
+ */
+const detectProductByCategory = (category: string): { include: string[], exclude: string[] } | null => {
+  if (!category) return null;
+  
+  const categoryLower = category.toLowerCase();
+  
+  // Chercher dans le mapping de catégories
+  for (const [catKey, mapping] of Object.entries(categoryMapping)) {
+    if (categoryLower.includes(catKey.toLowerCase()) || 
+        catKey.toLowerCase().includes(categoryLower)) {
+      return mapping;
     }
   }
   
@@ -723,7 +982,8 @@ export const getUpsellProducts = async (
 };
 
 /**
- * Fonction de fallback pour les cas où le type de produit n'est pas reconnu
+ * Fonction de fallback intelligente pour les cas où le type de produit n'est pas reconnu
+ * Utilise le mapping par catégorie puis le fallback universel
  */
 const getFallbackUpsellProducts = async (
   companyId: string,
@@ -732,41 +992,110 @@ const getFallbackUpsellProducts = async (
   brand?: string
 ): Promise<Product[]> => {
   try {
-    console.log('🛒 UPSELL - Utilisation du fallback avec catégorie/marque:', { category, brand });
+    console.log('🛒 UPSELL - Fallback intelligent avec catégorie/marque:', { category, brand });
     
-    let query = supabase
-      .from('products')
-      .select(`
-        id,
-        name,
-        description,
-        brand_name,
-        category_name,
-        price,
-        monthly_price,
-        image_url,
-        imageurls,
-        slug,
-        active,
-        brands(name, translation),
-        product_variant_prices(monthly_price)
-      `)
-      .eq('company_id', companyId)
-      .eq('active', true)
-      .neq('id', currentProductId);
-
-    // Priorité à la marque si elle existe, sinon catégorie
-    if (brand) {
-      query = query.or(`brand_name.ilike.%${brand}%,brands.name.ilike.%${brand}%`);
-    } else if (category) {
-      query = query.or(`category_name.ilike.%${category}%,categories.name.ilike.%${category}%`);
+    let complementaryConfig: { include: string[], exclude: string[] } | null = null;
+    
+    // Étape 1: Essayer de détecter par catégorie
+    if (category) {
+      complementaryConfig = detectProductByCategory(category);
+      if (complementaryConfig) {
+        console.log('🛒 UPSELL - Configuration trouvée par catégorie:', complementaryConfig);
+      }
     }
+    
+    // Étape 2: Si pas de mapping par catégorie, utiliser le fallback universel
+    if (!complementaryConfig) {
+      complementaryConfig = universalFallback;
+      console.log('🛒 UPSELL - Utilisation du fallback universel:', complementaryConfig);
+    }
+    
+    let complementaryProducts: any[] = [];
+    
+    // Étape 3: Chercher par mots-clés intelligents
+    for (const keyword of complementaryConfig.include.slice(0, 3)) { // Limiter à 3 mots-clés pour les performances
+      const { data: keywordProducts } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          brands(name, translation),
+          product_variant_prices(monthly_price)
+        `)
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .neq('id', currentProductId)
+        .ilike('name', `%${keyword}%`)
+        .limit(2);
 
-    const { data } = await query.limit(3);
+      if (keywordProducts) {
+        // Filtrer selon les exclusions
+        const filteredProducts = keywordProducts.filter(product => {
+          const productName = product.name.toLowerCase();
+          return !complementaryConfig!.exclude.some(excludeKeyword => 
+            productName.includes(excludeKeyword.toLowerCase())
+          );
+        });
+        complementaryProducts.push(...filteredProducts);
+      }
+    }
+    
+    // Étape 4: Si pas assez de produits, chercher par catégorie ou marque traditionnelle
+    if (complementaryProducts.length < 2) {
+      let fallbackQuery = supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          description,
+          brand_name,
+          category_name,
+          price,
+          monthly_price,
+          image_url,
+          imageurls,
+          slug,
+          active,
+          brands(name, translation),
+          product_variant_prices(monthly_price)
+        `)
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .neq('id', currentProductId);
 
-    if (!data) return [];
+      // Priorité à la marque si elle existe, sinon catégorie
+      if (brand) {
+        fallbackQuery = fallbackQuery.or(`brand_name.ilike.%${brand}%,brands.name.ilike.%${brand}%`);
+      } else if (category) {
+        fallbackQuery = fallbackQuery.or(`category_name.ilike.%${category}%,categories.name.ilike.%${category}%`);
+      } else {
+        // Chercher dans les accessoires génériques
+        fallbackQuery = fallbackQuery.or('category_name.ilike.%accessoire%,category_name.ilike.%périphérique%,category_name.ilike.%support%');
+      }
 
-    return data.map(product => {
+      const { data: fallbackData } = await fallbackQuery.limit(2);
+      if (fallbackData) {
+        complementaryProducts.push(...fallbackData);
+      }
+    }
+    
+    // Étape 5: Filtrer les doublons et limiter le nombre
+    const uniqueProducts = complementaryProducts.filter((product, index, self) => 
+      index === self.findIndex(p => p.id === product.id)
+    ).slice(0, 3);
+    
+    console.log('🛒 UPSELL - Produits fallback trouvés:', uniqueProducts.length);
+
+    return uniqueProducts.map(product => {
       let minPrice = product.monthly_price || 0;
       
       if (product.product_variant_prices && product.product_variant_prices.length > 0) {
