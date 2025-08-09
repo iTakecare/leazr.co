@@ -17,11 +17,14 @@ import { getPublicProductsOptimized, getPublicPacksOptimized } from "@/services/
 import { useQuery } from "@tanstack/react-query";
 import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { SearchWithSuggestions } from "@/components/catalog/public/SearchWithSuggestions";
+import { useCart } from "@/context/CartContext";
 
 interface Company {
   id: string;
@@ -43,6 +46,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   const navigate = useNavigate();
   const { companySlug } = useParams<{ companySlug: string }>();
   const { settings } = useSiteSettings();
+  const { cartCount } = useCart();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'packs'>('products');
   
@@ -301,6 +305,43 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                 onBackToCart={handleBackToCart}
                 onRequestCompleted={handleRequestCompleted}
               />
+            )}
+
+            {/* Compact search bar when header is disabled (embed mode) */}
+            {isEmbedMode && viewMode === 'grid' && (
+              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
+                  {/* Search bar */}
+                  <div className="flex-1 max-w-2xl">
+                    <SearchWithSuggestions />
+                  </div>
+                  
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRequestQuote}
+                      className="text-sm whitespace-nowrap"
+                    >
+                      Demander un devis
+                    </Button>
+                    
+                    <button
+                      onClick={handleCartClick}
+                      className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      aria-label="Voir le panier"
+                    >
+                      <ShoppingCart className="h-6 w-6 text-gray-700" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                          {cartCount > 99 ? '99+' : cartCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Show catalog grid/detail view */}
