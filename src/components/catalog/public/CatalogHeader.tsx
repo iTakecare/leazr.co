@@ -3,7 +3,6 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import CatalogSearchSection from "./CatalogSearchSection";
-import CompanyLogo from "@/components/layout/CompanyLogo";
 import { useParams } from "react-router-dom";
 
 interface CatalogHeaderProps {
@@ -24,14 +23,6 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
     <div className="rounded-2xl bg-gradient-to-br from-[#275D8C] via-[#4196b4] to-[#48B5C3] shadow-xl overflow-visible">
       <div className="relative flex flex-col md:flex-row max-h-[460px] md:max-h-[380px]">
         <div className="z-10 p-6 md:p-8 md:w-3/5">
-          {companyLogo && (
-            <div className="mb-4">
-              <CompanyLogo 
-                logoSize="lg" 
-                className="filter brightness-0 invert"
-              />
-            </div>
-          )}
           
           <h1 className="font-bold text-2xl md:text-3xl lg:text-4xl text-white leading-tight mb-3">
             {companyName ? 
