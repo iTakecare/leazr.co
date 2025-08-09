@@ -32,15 +32,17 @@ const PublicProductGrid: React.FC<PublicProductGridProps> = ({ products, onProdu
       productBrand: product.brand,
       companySlug,
       companyId,
-      currentPath: location.pathname
+      currentPath: location.pathname,
+      hasCallback: !!onProductSelect
     });
 
-    // If onProductSelect callback is provided, use it instead of navigation
+    // Always use callback for inline display when provided
     if (onProductSelect) {
       onProductSelect(product.id);
       return;
     }
 
+    // Only navigate to separate pages when no callback is provided
     // Check if we're in client space - fix detection for multi-tenant URLs
     const isInClientSpace = location.pathname.includes('/client/');
     

@@ -42,11 +42,14 @@ const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({
   };
 
   const handleCartClick = () => {
+    // Always prioritize the callback for inline display
     if (onCartClick) {
       onCartClick();
-    } else {
-      navigate(getCartUrl());
+      return;
     }
+    
+    // Only navigate to separate page when no callback provided
+    navigate(getCartUrl());
   };
 
   return (
