@@ -1229,6 +1229,8 @@ export type Database = {
           header_enabled: boolean | null
           header_title: string | null
           id: string
+          iframe_height: string | null
+          iframe_width: string | null
           logo_url: string | null
           primary_color: string | null
           secondary_color: string | null
@@ -1250,6 +1252,8 @@ export type Database = {
           header_enabled?: boolean | null
           header_title?: string | null
           id?: string
+          iframe_height?: string | null
+          iframe_width?: string | null
           logo_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
@@ -1271,6 +1275,8 @@ export type Database = {
           header_enabled?: boolean | null
           header_title?: string | null
           id?: string
+          iframe_height?: string | null
+          iframe_width?: string | null
           logo_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
