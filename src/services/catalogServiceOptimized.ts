@@ -446,6 +446,7 @@ export const getUpsellProducts = async (
   brand?: string
 ): Promise<Product[]> => {
   try {
+    console.log('🛒 UPSELL - Recherche de produits pour:', { companyId, currentProductId, category, brand });
     // First, try to get the current product to check for upsell IDs
     const { data: currentProduct } = await supabase
       .from('products')
@@ -500,9 +501,11 @@ export const getUpsellProducts = async (
     const { data, error } = await query.limit(6);
 
     if (error) {
-      console.error('Error fetching upsell products:', error);
+      console.error('🛒 UPSELL - Error fetching upsell products:', error);
       return [];
     }
+
+    console.log('🛒 UPSELL - Produits trouvés:', data?.length || 0);
 
     // Map to Product type and calculate minimum prices
     const products: Product[] = (data || []).map(product => {

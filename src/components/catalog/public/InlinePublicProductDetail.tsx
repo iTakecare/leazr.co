@@ -132,10 +132,10 @@ const InlinePublicProductDetail: React.FC<InlinePublicProductDetailProps> = ({
         </nav>
       </div>
 
-      {/* Product details - Compact 3-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left columns (2/3) - Product images and description */}
-        <div className="lg:col-span-2">
+      {/* Product details - 2-column layout for better configurator space */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left column - Product images and description */}
+        <div>
           <ProductMainContent
             product={product}
             productName={product.name}
@@ -146,8 +146,8 @@ const InlinePublicProductDetail: React.FC<InlinePublicProductDetailProps> = ({
           />
         </div>
 
-        {/* Right column (1/3) - Configuration and pricing */}
-        <div className="lg:col-span-1">
+        {/* Right column - Configuration and pricing (now has more space) */}
+        <div>
           <ProductConfigurationSection
             product={product}
             productCategory={product.category || ''}
