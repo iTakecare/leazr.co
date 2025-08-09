@@ -1226,10 +1226,7 @@ export type Database = {
           id: string
           logo_url: string | null
           primary_color: string | null
-          public_catalog_embed_mode: boolean | null
-          public_catalog_enable_cart_sync: boolean | null
           public_catalog_hide_header: boolean | null
-          public_catalog_parent_origin: string | null
           secondary_color: string | null
           updated_at: string
         }
@@ -1246,10 +1243,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           primary_color?: string | null
-          public_catalog_embed_mode?: boolean | null
-          public_catalog_enable_cart_sync?: boolean | null
           public_catalog_hide_header?: boolean | null
-          public_catalog_parent_origin?: string | null
           secondary_color?: string | null
           updated_at?: string
         }
@@ -1266,10 +1260,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           primary_color?: string | null
-          public_catalog_embed_mode?: boolean | null
-          public_catalog_enable_cart_sync?: boolean | null
           public_catalog_hide_header?: boolean | null
-          public_catalog_parent_origin?: string | null
           secondary_color?: string | null
           updated_at?: string
         }
