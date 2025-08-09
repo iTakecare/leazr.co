@@ -437,37 +437,88 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
 
 /**
  * Mapping des produits complémentaires pour les suggestions d'upsell
- * Chaque clé correspond à un type de produit principal, les valeurs aux accessoires/périphériques complémentaires
+ * Chaque clé correspond à un type de produit principal avec mots-clés d'inclusion et d'exclusion
  */
-const complementaryMapping: Record<string, string[]> = {
+const complementaryMapping: Record<string, { include: string[], exclude: string[] }> = {
   // Tablettes iPad
-  'iPad': ['clavier', 'stylet', 'pencil', 'housse', 'support', 'étui', 'protection', 'accessoires'],
+  'iPad': {
+    include: ['clavier iPad', 'stylet', 'pencil', 'housse iPad', 'support iPad', 'étui', 'protection iPad', 'accessoires iPad'],
+    exclude: ['MacBook', 'iMac', 'iPhone', 'desktop']
+  },
   
   // Ordinateurs portables
-  'MacBook': ['souris', 'mouse', 'housse', 'hub', 'support', 'dock', 'accessoires', 'clavier', 'écran'],
-  'laptop': ['souris', 'mouse', 'housse', 'hub', 'support', 'dock', 'accessoires', 'clavier', 'écran'],
-  'portable': ['souris', 'mouse', 'housse', 'hub', 'support', 'dock', 'accessoires', 'clavier', 'écran'],
+  'MacBook': {
+    include: ['souris', 'mouse', 'housse MacBook', 'hub', 'support laptop', 'dock', 'accessoires MacBook', 'clavier externe', 'écran externe'],
+    exclude: ['iPad', 'iPhone', 'desktop']
+  },
+  'laptop': {
+    include: ['souris', 'mouse', 'housse laptop', 'hub', 'support laptop', 'dock', 'accessoires laptop', 'clavier externe', 'écran externe'],
+    exclude: ['iPad', 'iPhone', 'desktop']
+  },
+  'portable': {
+    include: ['souris', 'mouse', 'housse laptop', 'hub', 'support laptop', 'dock', 'accessoires laptop', 'clavier externe', 'écran externe'],
+    exclude: ['iPad', 'iPhone', 'desktop']
+  },
   
   // Ordinateurs fixes
-  'iMac': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
-  'Mac mini': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
-  'desktop': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
-  'ordinateur': ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires', 'dock'],
+  'iMac': {
+    include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires iMac', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+  },
+  'Mac mini': {
+    include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires Mac', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+  },
+  'desktop': {
+    include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires desktop', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+  },
+  'ordinateur': {
+    include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires ordinateur', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop']
+  },
   
   // Smartphones
-  'iPhone': ['coque', 'chargeur', 'écouteurs', 'support', 'accessoires', 'protection'],
-  'smartphone': ['coque', 'chargeur', 'écouteurs', 'support', 'accessoires', 'protection'],
-  'téléphone': ['coque', 'chargeur', 'écouteurs', 'support', 'accessoires', 'protection'],
+  'iPhone': {
+    include: ['coque iPhone', 'chargeur iPhone', 'écouteurs', 'support iPhone', 'accessoires iPhone', 'protection iPhone'],
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop']
+  },
+  'smartphone': {
+    include: ['coque', 'chargeur', 'écouteurs', 'support smartphone', 'accessoires smartphone', 'protection smartphone'],
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop']
+  },
+  'téléphone': {
+    include: ['coque', 'chargeur', 'écouteurs', 'support téléphone', 'accessoires téléphone', 'protection téléphone'],
+    exclude: ['iPad', 'MacBook', 'iMac', 'desktop']
+  },
   
   // Logiciels bureautiques et packs
-  'Office': ['accessoires', 'clavier', 'souris', 'écran', 'support'],
-  'bureautique': ['accessoires', 'clavier', 'souris', 'écran', 'support'],
-  'pack': ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+  'Office': {
+    include: ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+    exclude: []
+  },
+  'bureautique': {
+    include: ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+    exclude: []
+  },
+  'pack': {
+    include: ['accessoires', 'clavier', 'souris', 'écran', 'support'],
+    exclude: []
+  },
   
   // Écrans
-  'écran': ['support', 'bras', 'hub', 'dock', 'accessoires'],
-  'monitor': ['support', 'bras', 'hub', 'dock', 'accessoires'],
-  'display': ['support', 'bras', 'hub', 'dock', 'accessoires']
+  'écran': {
+    include: ['support', 'bras', 'hub', 'dock', 'accessoires écran'],
+    exclude: []
+  },
+  'monitor': {
+    include: ['support', 'bras', 'hub', 'dock', 'accessoires monitor'],
+    exclude: []
+  },
+  'display': {
+    include: ['support', 'bras', 'hub', 'dock', 'accessoires display'],
+    exclude: []
+  }
 };
 
 /**
@@ -534,18 +585,18 @@ export const getUpsellProducts = async (
     }
 
     // Récupérer les mots-clés complémentaires pour ce type de produit
-    const complementaryKeywords = complementaryMapping[productType] || [];
-    console.log('🛒 UPSELL - Mots-clés complémentaires:', complementaryKeywords);
+    const complementaryConfig = complementaryMapping[productType] || { include: [], exclude: [] };
+    console.log('🛒 UPSELL - Configuration complémentaire:', complementaryConfig);
 
-    if (complementaryKeywords.length === 0) {
+    if (complementaryConfig.include.length === 0) {
       return getFallbackUpsellProducts(companyId, currentProductId, productCategory, productBrand);
     }
 
     // Construire une requête pour chercher des produits complémentaires
     let complementaryProducts: any[] = [];
 
-    // Étape 1: Chercher par mots-clés dans le nom des produits
-    for (const keyword of complementaryKeywords.slice(0, 4)) { // Limiter à 4 mots-clés pour les performances
+    // Étape 1: Chercher par mots-clés dans le nom des produits avec filtres d'exclusion
+    for (const keyword of complementaryConfig.include.slice(0, 4)) { // Limiter à 4 mots-clés pour les performances
       const { data: keywordProducts } = await supabase
         .from('products')
         .select(`
@@ -570,7 +621,14 @@ export const getUpsellProducts = async (
         .limit(3);
 
       if (keywordProducts) {
-        complementaryProducts.push(...keywordProducts);
+        // Filtrer les produits selon les exclusions
+        const filteredProducts = keywordProducts.filter(product => {
+          const productName = product.name.toLowerCase();
+          return !complementaryConfig.exclude.some(excludeKeyword => 
+            productName.includes(excludeKeyword.toLowerCase())
+          );
+        });
+        complementaryProducts.push(...filteredProducts);
       }
     }
 
