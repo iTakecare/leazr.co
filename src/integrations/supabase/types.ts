@@ -5609,6 +5609,21 @@ export type Database = {
           conversion_rate: number
         }[]
       }
+      get_public_company_customizations: {
+        Args: { p_company_id: string }
+        Returns: {
+          header_enabled: boolean
+          header_title: string
+          header_description: string
+          header_background_type: string
+          header_background_config: Json
+          company_name: string
+          logo_url: string
+          primary_color: string
+          secondary_color: string
+          accent_color: string
+        }[]
+      }
       get_public_company_info: {
         Args: { company_slug: string }
         Returns: {

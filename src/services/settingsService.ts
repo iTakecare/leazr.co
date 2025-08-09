@@ -151,27 +151,69 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
 };
 
 /**
- * Récupère les paramètres d'une entreprise spécifique par son ID
+ * Récupère publiquement (anonyme) un sous-ensemble des paramètres par company_id via RPC
  */
-export const getSiteSettingsByCompanyId = async (companyId: string): Promise<SiteSettings | null> => {
+export const getPublicSiteSettingsByCompanyId = async (
+  companyId: string
+): Promise<SiteSettings | null> => {
   try {
-    if (!companyId) {
-      console.error("Aucun ID d'entreprise fourni");
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      'get_public_company_customizations',
+      { p_company_id: companyId }
+    );
+
+    if (rpcError) {
+      console.error(
+        'Erreur RPC get_public_company_customizations:',
+        rpcError
+      );
       return null;
     }
 
+    const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+    return (row as SiteSettings) || null;
+  } catch (e) {
+    console.error('Exception RPC public site settings:', e);
+    return null;
+  }
+};
+
+/**
+ * Récupère les paramètres d'une entreprise spécifique par son ID
+ */
+export const getSiteSettingsByCompanyId = async (
+  companyId: string
+): Promise<SiteSettings | null> => {
+  try {
+    if (!companyId) {
+      console.error('Aucun ID d\'entreprise fourni');
+      return null;
+    }
+
+    // 1) Tentative de lecture directe (fonctionne si utilisateur authentifié avec bons droits RLS)
     const { data, error } = await supabase
       .from('company_customizations')
       .select('*')
       .eq('company_id', companyId)
       .maybeSingle();
-    
-    if (error) {
-      console.error("Erreur lors de la récupération des paramètres d'entreprise par ID:", error);
-      return null;
+
+    if (data) {
+      console.log('[SiteSettings] Source: direct table read');
+      return data as SiteSettings;
     }
-    
-    return data as SiteSettings;
+
+    if (error) {
+      console.warn('[SiteSettings] Direct read failed, fallback to public RPC:', error?.message);
+    } else {
+      console.warn('[SiteSettings] No direct data found, fallback to public RPC');
+    }
+
+    // 2) Fallback public RPC (anonyme)
+    const publicData = await getPublicSiteSettingsByCompanyId(companyId);
+    if (publicData) {
+      console.log('[SiteSettings] Source: public RPC');
+    }
+    return publicData;
   } catch (error) {
     console.error("Exception lors de la récupération des paramètres par ID d'entreprise:", error);
     return null;
