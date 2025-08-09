@@ -5,7 +5,7 @@ import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/layout/Logo";
 import { useCart } from "@/context/CartContext";
-import { useEmbed } from "@/context/EmbedContext";
+
 
 interface SimpleHeaderProps {
   companyId?: string;
@@ -13,16 +13,19 @@ interface SimpleHeaderProps {
   companyName?: string;
 }
 
-const SimpleHeader = ({ companyId, companyLogo, companyName }: SimpleHeaderProps) => {
+const SimpleHeader: React.FC<SimpleHeaderProps> = ({ companyId, companyLogo, companyName }) => {
   const { cartCount } = useCart();
-  const { isEmbed } = useEmbed();
+  const location = useLocation();
   
-  // Don't render header in embed mode
+  // Hide header in embed mode (check URL parameter)
+  const params = new URLSearchParams(location.search);
+  const isEmbed = params.get('embed') === '1';
+  
   if (isEmbed) {
     return null;
   }
+  
   const { companySlug } = useParams<{ companySlug: string }>();
-  const location = useLocation();
   
   // Determine the correct cart URL based on context
   const getCartUrl = () => {

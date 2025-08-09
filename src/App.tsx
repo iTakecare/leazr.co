@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
-import { EmbedProvider } from "@/context/EmbedContext";
+
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { RoleBasedRoutes } from "@/components/auth/RoleBasedRoutes";
@@ -298,15 +298,13 @@ function App() {
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           <TooltipProvider>
             <BrowserRouter>
-              <EmbedProvider>
-                <AuthProvider>
-                  <CompanyBrandingProvider>
-                    <CartProvider>
-                      <AppRoutes />
-                    </CartProvider>
-                  </CompanyBrandingProvider>
-                </AuthProvider>
-              </EmbedProvider>
+              <AuthProvider>
+                <CompanyBrandingProvider>
+                  <CartProvider>
+                    <AppRoutes />
+                  </CartProvider>
+                </CompanyBrandingProvider>
+              </AuthProvider>
             </BrowserRouter>
             <Toaster />
             <Sonner />

@@ -15,9 +15,6 @@ export interface SiteSettings {
   secondary_color?: string;
   accent_color?: string;
   public_catalog_hide_header?: boolean;
-  public_catalog_enable_cart_sync?: boolean;
-  public_catalog_parent_origin?: string;
-  public_catalog_embed_mode?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -114,9 +111,6 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
         secondary_color: settings.secondary_color,
         accent_color: settings.accent_color,
         public_catalog_hide_header: settings.public_catalog_hide_header,
-        public_catalog_enable_cart_sync: settings.public_catalog_enable_cart_sync,
-        public_catalog_parent_origin: settings.public_catalog_parent_origin,
-        public_catalog_embed_mode: settings.public_catalog_embed_mode,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'company_id'

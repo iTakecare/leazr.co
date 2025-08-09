@@ -19,17 +19,11 @@ const PublicCatalogSettings = () => {
   const { user } = useAuth();
   
   const [hideHeader, setHideHeader] = React.useState(false);
-  const [enableCartSync, setEnableCartSync] = React.useState(true);
-  const [parentOrigin, setParentOrigin] = React.useState("");
-  const [embedMode, setEmbedMode] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (settings) {
       setHideHeader(settings.public_catalog_hide_header || false);
-      setEnableCartSync(settings.public_catalog_enable_cart_sync ?? true);
-      setParentOrigin(settings.public_catalog_parent_origin || "");
-      setEmbedMode(settings.public_catalog_embed_mode || false);
     }
   }, [settings]);
 
@@ -43,9 +37,6 @@ const PublicCatalogSettings = () => {
     try {
       const success = await updateSiteSettings({
         public_catalog_hide_header: hideHeader,
-        public_catalog_enable_cart_sync: enableCartSync,
-        public_catalog_parent_origin: parentOrigin,
-        public_catalog_embed_mode: embedMode,
       }, user.id);
       
       if (success) {
@@ -66,8 +57,7 @@ const PublicCatalogSettings = () => {
       : `/company/${companyId}/catalog`;
     const params = new URLSearchParams();
     
-    if (hideHeader || embedMode) params.set('embed', '1');
-    if (parentOrigin && enableCartSync) params.set('parentOrigin', parentOrigin);
+    if (hideHeader) params.set('embed', '1');
     
     const fullUrl = `${baseUrl}${catalogUrl}${params.toString() ? '?' + params.toString() : ''}`;
     
@@ -92,8 +82,7 @@ const PublicCatalogSettings = () => {
       : `/company/${companyId}/catalog`;
     const params = new URLSearchParams();
     
-    if (hideHeader || embedMode) params.set('embed', '1');
-    if (parentOrigin && enableCartSync) params.set('parentOrigin', parentOrigin);
+    if (hideHeader) params.set('embed', '1');
     
     const fullUrl = `${baseUrl}${catalogUrl}${params.toString() ? '?' + params.toString() : ''}`;
     window.open(fullUrl, '_blank');
@@ -130,71 +119,9 @@ const PublicCatalogSettings = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Mode embed par défaut</Label>
-              <p className="text-sm text-muted-foreground">
-                Active automatiquement le mode intégration
-              </p>
-            </div>
-            <Switch 
-              checked={embedMode} 
-              onCheckedChange={setEmbedMode}
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Intégration Web */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ExternalLink className="h-5 w-5" />
-            Intégration Web
-          </CardTitle>
-          <CardDescription>
-            Paramètres pour l'intégration du catalogue sur votre site web
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Synchronisation du panier</Label>
-              <p className="text-sm text-muted-foreground">
-                Permet la communication du nombre d'articles avec le site parent
-              </p>
-            </div>
-            <Switch 
-              checked={enableCartSync} 
-              onCheckedChange={setEnableCartSync}
-            />
-          </div>
-
-          {enableCartSync && (
-            <div className="space-y-2">
-              <Label htmlFor="parentOrigin">
-                Origine du site parent
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 ml-1 inline" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>URL complète de votre site (ex: https://monsite.com)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
-              <Input
-                id="parentOrigin"
-                placeholder="https://monsite.com"
-                value={parentOrigin}
-                onChange={(e) => setParentOrigin(e.target.value)}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Code d'intégration */}
       <Card>

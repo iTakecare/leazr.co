@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '@/types/catalog';
 import { getProductPrice } from '@/utils/productPricing';
 import { toast } from 'sonner';
-import { createEmbedBridge, getEmbedParams } from '@/lib/embedBridge';
+
 
 type CartItem = {
   product: Product;
@@ -27,9 +27,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   
-  // Initialize embed bridge
-  const { isEmbed, parentOrigin } = getEmbedParams();
-  const embedBridge = isEmbed ? createEmbedBridge(parentOrigin) : null;
   
   // Load cart from localStorage on component mount
   useEffect(() => {
@@ -73,20 +70,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setItems(validatedCart);
         
-        // Notify parent of initial cart state in embed mode
-        if (embedBridge) {
-          embedBridge.postCart(validatedCart.reduce((total, item) => total + item.quantity, 0));
-        }
       } catch (error) {
         console.error('Failed to parse cart from localStorage:', error);
       }
     }
     
-    // Signal that embed is ready
-    if (embedBridge) {
-      embedBridge.ready();
-    }
-  }, [embedBridge]);
+  }, []);
   
   // Save cart to localStorage whenever it changes
   useEffect(() => {
@@ -124,11 +113,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast.success('Quantité mise à jour dans le panier');
         
-        // Notify parent in embed mode
-        if (embedBridge) {
-          const newCount = updatedItems.reduce((total, item) => total + item.quantity, 0);
-          embedBridge.postCart(newCount);
-        }
         
         return updatedItems;
       } else {
@@ -148,11 +132,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           product: productToAdd
         }];
         
-        // Notify parent in embed mode
-        if (embedBridge) {
-          const newCount = newItems.reduce((total, item) => total + item.quantity, 0);
-          embedBridge.postCart(newCount);
-        }
         
         return newItems;
       }
@@ -163,11 +142,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems(prevItems => {
       const newItems = prevItems.filter(item => item.product.id !== productId);
       
-      // Notify parent in embed mode
-      if (embedBridge) {
-        const newCount = newItems.reduce((total, item) => total + item.quantity, 0);
-        embedBridge.postCart(newCount);
-      }
       
       return newItems;
     });
@@ -182,11 +156,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : item
       );
       
-      // Notify parent in embed mode
-      if (embedBridge) {
-        const newCount = newItems.reduce((total, item) => total + item.quantity, 0);
-        embedBridge.postCart(newCount);
-      }
       
       return newItems;
     });
@@ -195,10 +164,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     setItems([]);
     
-    // Notify parent in embed mode
-    if (embedBridge) {
-      embedBridge.postCart(0);
-    }
     
     toast.info('Panier vidé');
   };
