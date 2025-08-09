@@ -30,7 +30,6 @@ const PublicCatalogSettings = () => {
   const [iframeWidth, setIframeWidth] = React.useState("100%");
   const [iframeHeight, setIframeHeight] = React.useState("800");
   const [saving, setSaving] = React.useState(false);
-  const [iframeTimestamp, setIframeTimestamp] = React.useState(Date.now());
 
   React.useEffect(() => {
     if (settings) {
@@ -68,8 +67,6 @@ const PublicCatalogSettings = () => {
       
       if (success) {
         toast.success("Configuration sauvegardée");
-        // Force reload of iframe with new timestamp
-        setIframeTimestamp(Date.now());
       }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
@@ -98,7 +95,6 @@ const PublicCatalogSettings = () => {
     
     // Only add embed parameter if header is disabled
     if (!headerEnabled) params.set('embed', '1');
-    params.set('t', iframeTimestamp.toString()); // Add timestamp to prevent caching
     
     const fullUrl = `${baseUrl}${catalogUrl}?${params.toString()}`;
     
@@ -124,16 +120,11 @@ const PublicCatalogSettings = () => {
     const params = new URLSearchParams();
     
     if (!headerEnabled) params.set('embed', '1');
-    params.set('t', iframeTimestamp.toString()); // Add timestamp to prevent caching
     
     const fullUrl = `${baseUrl}${catalogUrl}?${params.toString()}`;
     window.open(fullUrl, '_blank');
   };
 
-  const reloadPreview = () => {
-    setIframeTimestamp(Date.now());
-    toast.success("Aperçu rechargé avec les derniers paramètres");
-  };
 
   if (loading) {
     return <div className="p-4">Chargement...</div>;
@@ -437,10 +428,6 @@ const PublicCatalogSettings = () => {
             <Button variant="outline" onClick={openPreview}>
               <Eye className="h-4 w-4 mr-2" />
               Aperçu
-            </Button>
-            <Button variant="outline" onClick={reloadPreview}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Recharger l'aperçu
             </Button>
             <Button variant="outline" onClick={copyIframeCode}>
               <Copy className="h-4 w-4 mr-2" />
