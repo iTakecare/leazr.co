@@ -16,6 +16,7 @@ interface CatalogHeaderProps {
   headerBackgroundType?: 'solid' | 'gradient' | 'image';
   headerBackgroundConfig?: any;
   onRequestQuote?: () => void;
+  quoteLink?: string;
 }
 
 const CatalogHeader: React.FC<CatalogHeaderProps> = ({ 
@@ -28,7 +29,8 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
   headerDescription,
   headerBackgroundType = 'gradient',
   headerBackgroundConfig,
-  onRequestQuote
+  onRequestQuote,
+  quoteLink
 }) => {
   const { companySlug } = useParams<{ companySlug: string }>();
 
@@ -52,17 +54,9 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
     }
   };
 
-  // If header is disabled, only show the search section
+  // If header is disabled, return null (no header at all)
   if (!headerEnabled) {
-    return (
-      <CatalogSearchSection 
-        companyId={companyId} 
-        companySlug={companySlug}
-        onCartClick={onCartClick}
-        showQuoteButton={true}
-        onRequestQuote={onRequestQuote}
-      />
-    );
+    return null;
   }
 
   return (
@@ -86,17 +80,15 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
           
           <div className="flex flex-wrap gap-3">
             <Button 
-              size="sm"
-              variant="outline" 
-              className="bg-white text-[#275D8C] hover:bg-white/90 border-white text-xs md:text-sm group"
-            >
-              <MessageCircle className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12" />
-              Parler à un conseiller
-            </Button>
-            <Button 
               size="sm" 
               className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-xs md:text-sm group"
-              onClick={onRequestQuote}
+              onClick={() => {
+                if (quoteLink) {
+                  window.open(quoteLink, '_blank');
+                } else {
+                  onRequestQuote?.();
+                }
+              }}
             >
               Demander un devis <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>

@@ -26,6 +26,7 @@ const PublicCatalogSettings = () => {
   const [headerBackgroundConfig, setHeaderBackgroundConfig] = React.useState<any>({
     gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
   });
+  const [quoteRequestUrl, setQuoteRequestUrl] = React.useState("");
   const [iframeWidth, setIframeWidth] = React.useState("100%");
   const [iframeHeight, setIframeHeight] = React.useState("800");
   const [saving, setSaving] = React.useState(false);
@@ -40,6 +41,7 @@ const PublicCatalogSettings = () => {
       setHeaderBackgroundConfig(settings.header_background_config || {
         gradient: { from: '#275D8C', to: '#48B5C3', direction: '135deg' }
       });
+      setQuoteRequestUrl(settings.quote_request_url || "");
       setIframeWidth(settings.iframe_width || "100%");
       setIframeHeight(settings.iframe_height || "800");
     }
@@ -59,6 +61,7 @@ const PublicCatalogSettings = () => {
         header_description: headerDescription,
         header_background_type: headerBackgroundType,
         header_background_config: headerBackgroundConfig,
+        quote_request_url: quoteRequestUrl,
         iframe_width: iframeWidth,
         iframe_height: iframeHeight,
       }, user.id);
@@ -188,6 +191,21 @@ const PublicCatalogSettings = () => {
                   placeholder="Donnez à vos collaborateurs les outils dont ils ont besoin..."
                   rows={3}
                 />
+              </div>
+
+              {/* URL du bouton Demander un devis */}
+              <div className="space-y-2">
+                <Label htmlFor="quote-request-url">Lien du bouton "Demander un devis" (URL)</Label>
+                <Input
+                  id="quote-request-url"
+                  type="url"
+                  value={quoteRequestUrl}
+                  onChange={(e) => setQuoteRequestUrl(e.target.value)}
+                  placeholder="https://example.com/contact ou mailto:contact@example.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Si renseigné, le bouton "Demander un devis" ouvrira ce lien dans un nouvel onglet au lieu d'utiliser le processus interne
+                </p>
               </div>
 
               {/* Type d'arrière-plan */}

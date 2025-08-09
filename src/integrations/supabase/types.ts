@@ -1233,6 +1233,7 @@ export type Database = {
           iframe_width: string | null
           logo_url: string | null
           primary_color: string | null
+          quote_request_url: string | null
           secondary_color: string | null
           updated_at: string
         }
@@ -1256,6 +1257,7 @@ export type Database = {
           iframe_width?: string | null
           logo_url?: string | null
           primary_color?: string | null
+          quote_request_url?: string | null
           secondary_color?: string | null
           updated_at?: string
         }
@@ -1279,6 +1281,7 @@ export type Database = {
           iframe_width?: string | null
           logo_url?: string | null
           primary_color?: string | null
+          quote_request_url?: string | null
           secondary_color?: string | null
           updated_at?: string
         }
@@ -5622,6 +5625,7 @@ export type Database = {
           primary_color: string
           secondary_color: string
           accent_color: string
+          quote_request_url: string
         }[]
       }
       get_public_company_info: {

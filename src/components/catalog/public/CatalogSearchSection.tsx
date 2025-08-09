@@ -11,14 +11,16 @@ interface CatalogSearchSectionProps {
   onCartClick?: () => void;
   showQuoteButton?: boolean;
   onRequestQuote?: () => void;
+  quoteLink?: string;
 }
 
 const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({ 
   companyId, 
-  companySlug, 
+  companySlug,
   onCartClick,
   showQuoteButton = false,
-  onRequestQuote
+  onRequestQuote,
+  quoteLink
 }) => {
   const { cartCount } = useCart();
   const navigate = useNavigate();
@@ -61,7 +63,13 @@ const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({
             <Button 
               variant="outline"
               size="sm"
-              onClick={onRequestQuote}
+              onClick={() => {
+                if (quoteLink) {
+                  window.open(quoteLink, '_blank');
+                } else {
+                  onRequestQuote?.();
+                }
+              }}
               className="text-xs md:text-sm"
             >
               Demander un devis

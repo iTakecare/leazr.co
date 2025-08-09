@@ -290,6 +290,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               headerBackgroundType={settings?.header_background_type}
               headerBackgroundConfig={settings?.header_background_config}
               onRequestQuote={handleRequestQuote}
+              quoteLink={settings?.quote_request_url}
             />
             
             {/* Show cart view */}
@@ -311,7 +312,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
 
             {/* Compact search bar when header is disabled */}
             {!(settings?.header_enabled ?? true) && viewMode === 'grid' && (
-              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+              <div className="bg-white rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
                   {/* Search bar */}
                   <div className="flex-1 max-w-2xl">
@@ -323,7 +324,13 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                     <Button 
                       variant="outline"
                       size="sm"
-                      onClick={handleRequestQuote}
+                      onClick={() => {
+                        if (settings?.quote_request_url) {
+                          window.open(settings.quote_request_url, '_blank');
+                        } else {
+                          handleRequestQuote();
+                        }
+                      }}
                       className="text-sm whitespace-nowrap"
                     >
                       Demander un devis
@@ -400,7 +407,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
 
                    {/* Tabs for Products and Packs - Only show in grid view */}
                    {viewMode === 'grid' && (
-                 <div className="flex border-b border-gray-200">
+                 <div className={`flex ${!(settings?.header_enabled ?? true) ? '' : 'border-b border-gray-200'}`}>
                    <button
                      onClick={() => setActiveTab('products')}
                      className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
