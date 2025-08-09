@@ -293,24 +293,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               quoteLink={settings?.quote_request_url}
             />
             
-            {/* Show cart view */}
-            {false && (
-              <InlinePublicCart
-                onBackToCatalog={handleBackToCatalog}
-                onRequestQuote={handleRequestQuote}
-              />
-            )}
-
-            {/* Show request steps view */}
-            {viewMode === 'request-steps' && (
-              <InlineRequestSteps
-                companyId={company?.id}
-                onBackToCart={handleBackToCart}
-                onRequestCompleted={handleRequestCompleted}
-              />
-            )}
-
-            {/* Compact search bar when header is disabled - Only for grid and product detail */}
+            {/* Compact search bar when header is disabled - Show for all modes */}
             {!(settings?.header_enabled ?? true) && (
               <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
@@ -353,11 +336,10 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               </div>
             )}
 
-            {/* Show catalog grid/detail view */}
+            {/* Main layout with always-visible sidebar and dynamic content */}
             <div className="flex gap-6">
-                {/* Filter Sidebar - Only show in grid view */}
-                {viewMode === 'grid' && (
-                  <PublicFilterSidebar
+              {/* Filter Sidebar - ALWAYS visible */}
+              <PublicFilterSidebar
                 isOpen={isMobileFilterOpen}
                 onClose={() => setIsMobileFilterOpen(false)}
                 filters={filters}
@@ -368,11 +350,10 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                 priceRange={priceRange}
                 hasActiveFilters={hasActiveFilters}
                 resultsCount={resultsCount}
-                  />
-                )}
+              />
 
-                {/* Main Content */}
-                <div className={`${viewMode === 'grid' ? 'flex-1' : 'w-full'} space-y-6`}>
+              {/* Main Content - changes based on viewMode */}
+              <div className="flex-1 space-y-6">
                   {/* Header with mobile toggle and sort - Only show in grid view */}
                   {viewMode === 'grid' && (
                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -474,6 +455,23 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                       {/* Pack Grid */}
                       <PublicPackGrid packs={packs || []} companySlug={companySlug} />
                     </div>
+                  )}
+
+                  {/* Cart View */}
+                  {viewMode === 'cart' && (
+                    <InlinePublicCart
+                      onBackToCatalog={handleBackToCatalog}
+                      onRequestQuote={handleRequestQuote}
+                    />
+                  )}
+
+                  {/* Request Steps View */}
+                  {viewMode === 'request-steps' && (
+                    <InlineRequestSteps
+                      companyId={company?.id}
+                      onBackToCart={handleBackToCart}
+                      onRequestCompleted={handleRequestCompleted}
+                    />
                   )}
                 </div>
               </div>
