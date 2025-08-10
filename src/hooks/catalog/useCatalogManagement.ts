@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Product } from "@/types/catalog";
 import { useAuth } from "@/context/AuthContext";
+import { useSimplifiedCatalogFilter } from "./useSimplifiedCatalogFilter";
 
 export const useCatalogManagement = () => {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -79,8 +80,19 @@ export const useCatalogManagement = () => {
     }
   };
   
+  // Add simplified catalog filtering
+  const {
+    filters,
+    updateFilter,
+    resetFilters,
+    filteredProducts,
+    categories,
+    hasActiveFilters
+  } = useSimplifiedCatalogFilter(products);
+
   return {
-    products,
+    products: filteredProducts,
+    allProducts: products,
     isLoading: isLoading || isAuthLoading,
     error,
     isAddProductOpen,
@@ -93,6 +105,12 @@ export const useCatalogManagement = () => {
     onProductAdded,
     handleProductDeleted,
     handleAddNewProduct,
-    handleViewModeChange
+    handleViewModeChange,
+    // Filter state
+    filters,
+    updateFilter,
+    resetFilters,
+    categories,
+    hasActiveFilters
   };
 };

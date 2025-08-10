@@ -10,7 +10,7 @@ import { ClientCatalogManager } from "@/components/catalog/client-management/Cli
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
-import ProductsViewOptions from "@/components/catalog/management/ProductsViewOptions";
+import CatalogFilterBar from "@/components/catalog/management/CatalogFilterBar";
 import CatalogContent from "@/components/catalog/management/CatalogContent";
 import PublicCatalogSettings from "@/components/catalog/management/PublicCatalogSettings";
 import { useCatalogManagement } from "@/hooks/catalog/useCatalogManagement";
@@ -33,7 +33,12 @@ const CatalogManagement = () => {
     setGroupingOption,
     onProductAdded,
     handleProductDeleted,
-    handleViewModeChange
+    handleViewModeChange,
+    filters,
+    updateFilter,
+    resetFilters,
+    categories,
+    hasActiveFilters
   } = useCatalogManagement();
   
   // Handle new product creation
@@ -81,11 +86,21 @@ const CatalogManagement = () => {
             
             <div className="mt-6">
               <div className="w-full">
-                <ProductsViewOptions 
-                  groupingOption={groupingOption}
-                  onGroupingChange={setGroupingOption}
+                <CatalogFilterBar
+                  searchQuery={filters.searchQuery}
+                  onSearchChange={(query) => updateFilter('searchQuery', query)}
+                  selectedCategory={filters.selectedCategory}
+                  onCategoryChange={(category) => updateFilter('selectedCategory', category)}
+                  categories={categories}
+                  sortBy={filters.sortBy}
+                  sortOrder={filters.sortOrder}
+                  onSortChange={(sortBy) => updateFilter('sortBy', sortBy as any)}
+                  hasActiveFilters={hasActiveFilters}
+                  onResetFilters={resetFilters}
                   viewMode={viewMode}
                   onViewModeChange={handleViewModeChange}
+                  groupingOption={groupingOption}
+                  onGroupingChange={setGroupingOption}
                 />
                 
                 <CatalogContent 
