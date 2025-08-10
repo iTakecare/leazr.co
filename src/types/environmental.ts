@@ -55,3 +55,31 @@ export interface EnvironmentalApiResponse {
   categories?: CategoryWithEnvironmental[];
   product?: ProductCO2Response;
 }
+
+export interface CO2CalculationResult {
+  co2Kg: number;
+  carKilometers: number;
+  treeMonths: number;
+  source: string;
+  hasRealData: boolean;
+}
+
+export interface CO2SavingsDisplayProps {
+  category?: string;
+  quantity: number;
+  companySlug?: string;
+}
+
+export interface PackCO2SavingsDisplayProps {
+  items: Array<{
+    quantity: number;
+    product?: {
+      category_name?: string;
+      category?: {
+        name: string;
+      };
+    };
+  }>;
+  packQuantity: number;
+  companySlug?: string;
+}
