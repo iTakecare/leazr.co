@@ -2,8 +2,8 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 1.0
-DATE : Janvier 2025
+VERSION : 1.1  
+DATE : Janvier 2025 - Mise à jour pour utilisation du slug d'entreprise
 STATUT : Prêt pour production
 
 ===========================================
@@ -25,7 +25,7 @@ STATUT : Prêt pour production
 
 L'API Catalog permet d'accéder aux données de produits, catégories, marques et autres informations du catalogue d'une entreprise via des endpoints REST sécurisés.
 
-URL DE BASE : https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{companyId}
+URL DE BASE : https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{companySlug}
 
 FORMAT DES RÉPONSES : JSON
 MÉTHODES SUPPORTÉES : GET, OPTIONS
@@ -43,11 +43,16 @@ AUTHENTIFICATION PAR CLÉ API
 
 EXEMPLE DE REQUÊTE :
 ```
-GET /catalog-api/v1/{companyId}/products
+GET /catalog-api/v1/{companySlug}/products
 Headers:
   x-api-key: your_api_key_here
   Content-Type: application/json
 ```
+
+NOTE IMPORTANTE :
+- L'API accepte le slug de l'entreprise (ex: "itakecare") dans l'URL
+- Le slug est plus lisible et cohérent que l'UUID de l'entreprise
+- Mapping automatique slug → companyId en interne pour la sécurité
 
 PERMISSIONS PAR CLÉ API :
 - products: Accès aux produits
@@ -65,7 +70,7 @@ PERMISSIONS PAR CLÉ API :
 
 ## 3.1 INFORMATIONS ENTREPRISE
 ```
-GET /catalog-api/v1/{companyId}/company
+GET /catalog-api/v1/{companySlug}/company
 ```
 
 DESCRIPTION : Récupère les informations de base de l'entreprise
@@ -95,7 +100,7 @@ RÉPONSE :
 
 ## 3.2 PRODUITS
 ```
-GET /catalog-api/v1/{companyId}/products
+GET /catalog-api/v1/{companySlug}/products
 ```
 
 DESCRIPTION : Liste tous les produits actifs
@@ -109,7 +114,7 @@ PARAMÈTRES DE REQUÊTE :
 
 EXEMPLE :
 ```
-GET /catalog-api/v1/{companyId}/products?category=Ordinateurs&page=1&limit=20
+GET /catalog-api/v1/{companySlug}/products?category=Ordinateurs&page=1&limit=20
 ```
 
 RÉPONSE :
@@ -156,7 +161,7 @@ RÉPONSE :
 
 ## 3.3 PRODUIT SPÉCIFIQUE
 ```
-GET /catalog-api/v1/{companyId}/products/{productId}
+GET /catalog-api/v1/{companySlug}/products/{productId}
 ```
 
 DESCRIPTION : Détails d'un produit spécifique
@@ -183,7 +188,7 @@ RÉPONSE :
 
 ## 3.4 VARIANTS D'UN PRODUIT
 ```
-GET /catalog-api/v1/{companyId}/products/{productId}/variants
+GET /catalog-api/v1/{companySlug}/products/{productId}/variants
 ```
 
 DESCRIPTION : Liste les variants de prix/attributs d'un produit
@@ -211,7 +216,7 @@ RÉPONSE :
 
 ## 3.5 PRODUITS ASSOCIÉS
 ```
-GET /catalog-api/v1/{companyId}/products/{productId}/related
+GET /catalog-api/v1/{companySlug}/products/{productId}/related
 ```
 
 DESCRIPTION : Produits de la même catégorie
@@ -235,7 +240,7 @@ RÉPONSE :
 
 ## 3.6 IMPACT CO2 PRODUIT
 ```
-GET /catalog-api/v1/{companyId}/products/{productId}/co2
+GET /catalog-api/v1/{companySlug}/products/{productId}/co2
 ```
 
 DESCRIPTION : Calcul d'impact environnemental
@@ -254,7 +259,7 @@ RÉPONSE :
 
 ## 3.7 CATÉGORIES
 ```
-GET /catalog-api/v1/{companyId}/categories
+GET /catalog-api/v1/{companySlug}/categories
 ```
 
 DESCRIPTION : Liste toutes les catégories
@@ -277,7 +282,7 @@ RÉPONSE :
 
 ## 3.8 MARQUES
 ```
-GET /catalog-api/v1/{companyId}/brands  
+GET /catalog-api/v1/{companySlug}/brands  
 ```
 
 DESCRIPTION : Liste toutes les marques
@@ -300,7 +305,7 @@ RÉPONSE :
 
 ## 3.9 PACKS DE PRODUITS
 ```
-GET /catalog-api/v1/{companyId}/packs
+GET /catalog-api/v1/{companySlug}/packs
 ```
 
 DESCRIPTION : Liste les packs actifs
@@ -325,7 +330,7 @@ RÉPONSE :
 
 ## 3.10 PACK SPÉCIFIQUE
 ```
-GET /catalog-api/v1/{companyId}/packs/{packId}
+GET /catalog-api/v1/{companySlug}/packs/{packId}
 ```
 
 DESCRIPTION : Détails d'un pack spécifique
@@ -348,7 +353,7 @@ RÉPONSE :
 
 ## 3.11 RECHERCHE
 ```
-GET /catalog-api/v1/{companyId}/search?q=macbook
+GET /catalog-api/v1/{companySlug}/search?q=macbook
 ```
 
 DESCRIPTION : Recherche dans nom et description
@@ -375,7 +380,7 @@ RÉPONSE :
 
 ## 3.12 DONNÉES ENVIRONNEMENTALES
 ```
-GET /catalog-api/v1/{companyId}/environmental
+GET /catalog-api/v1/{companySlug}/environmental
 ```
 
 DESCRIPTION : Métriques environnementales de l'entreprise
@@ -393,7 +398,7 @@ RÉPONSE :
 
 ## 3.13 PARAMÈTRES CATALOGUE
 ```
-GET /catalog-api/v1/{companyId}/settings
+GET /catalog-api/v1/{companySlug}/settings
 ```
 
 DESCRIPTION : Configuration d'affichage du catalogue
@@ -416,7 +421,7 @@ RÉPONSE :
 
 ## 3.14 CUSTOMISATIONS
 ```
-GET /catalog-api/v1/{companyId}/customizations
+GET /catalog-api/v1/{companySlug}/customizations
 ```
 
 DESCRIPTION : Toutes les customisations visuelles
@@ -576,7 +581,7 @@ RÉPONSE :
 ### Configuration de base
 ```javascript
 const API_BASE_URL = 'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1';
-const COMPANY_ID = 'votre-company-id';
+const COMPANY_SLUG = 'votre-company-slug'; // ex: 'itakecare'
 const API_KEY = 'votre-api-key';
 
 const headers = {
@@ -589,7 +594,7 @@ const headers = {
 ```javascript
 async function getProducts(page = 1, limit = 50) {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_ID}/products?page=${page}&limit=${limit}`,
+    `${API_BASE_URL}/${COMPANY_SLUG}/products?page=${page}&limit=${limit}`,
     { headers }
   );
   

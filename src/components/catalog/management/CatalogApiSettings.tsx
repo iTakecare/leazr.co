@@ -368,6 +368,12 @@ const CatalogApiSettings = () => {
                   Télécharger la doc complète
                 </Button>
               </div>
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mt-4">
+                <p className="text-sm text-blue-700">
+                  <strong>URL de base:</strong> <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{baseApiUrl}</code><br/>
+                  <strong>Note:</strong> L'API utilise le slug de l'entreprise ({companySlug}) dans l'URL au lieu de l'UUID pour une meilleure lisibilité.
+                </p>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
