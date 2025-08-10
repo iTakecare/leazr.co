@@ -201,7 +201,12 @@ Deno.serve(async (req) => {
         break
 
       case 'environmental':
-        data = await getEnvironmentalData(supabaseAdmin, companyId, keyData.permissions)
+        if (subPaths.length > 0 && subPaths[0] === 'categories') {
+          console.log('🌿 FETCHING ENVIRONMENTAL CATEGORIES for company:', companyId)
+          data = await getEnvironmentalCategories(supabaseAdmin, companyId, keyData.permissions)
+        } else {
+          data = await getEnvironmentalData(supabaseAdmin, companyId, keyData.permissions)
+        }
         break
 
       case 'settings':
@@ -344,8 +349,60 @@ async function getRelatedProducts(supabase: any, companyId: string, productId: s
 }
 
 async function getProductCO2(supabase: any, companyId: string, productId: string, permissions: any) {
-  // Mock CO2 calculation - implement according to your business logic
-  return { co2_impact: { value: 2.5, unit: 'kg CO2eq', calculation_date: new Date().toISOString() } }
+  console.log('🌿 GET PRODUCT CO2 - Starting with productId:', productId, 'companyId:', companyId)
+  
+  // Get product with category information
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select(`
+      id,
+      name,
+      category_id,
+      categories!inner (
+        id,
+        name,
+        translation,
+        category_environmental_data (
+          co2_savings_kg,
+          carbon_footprint_reduction_percentage,
+          energy_savings_kwh,
+          source_url
+        )
+      )
+    `)
+    .eq('id', productId)
+    .eq('company_id', companyId)
+    .single()
+
+  if (productError || !product) {
+    console.log('❌ Product not found or error:', productError?.message)
+    return { co2_impact: { value: 0, unit: 'kg CO2eq', calculation_date: new Date().toISOString(), error: 'Product not found' } }
+  }
+
+  const environmentalData = product.categories?.category_environmental_data?.[0]
+  const co2Value = environmentalData?.co2_savings_kg || 0
+
+  console.log('🌿 GET PRODUCT CO2 - Environmental data found:', { 
+    productName: product.name, 
+    categoryName: product.categories?.name,
+    co2Value,
+    hasEnvironmentalData: !!environmentalData 
+  })
+
+  return { 
+    co2_impact: { 
+      value: co2Value, 
+      unit: 'kg CO2eq', 
+      calculation_date: new Date().toISOString(),
+      category: {
+        name: product.categories?.name,
+        translation: product.categories?.translation
+      },
+      carbon_footprint_reduction_percentage: environmentalData?.carbon_footprint_reduction_percentage || 0,
+      energy_savings_kwh: environmentalData?.energy_savings_kwh || 0,
+      source_url: environmentalData?.source_url || 'https://impactco2.fr'
+    } 
+  }
 }
 
 async function getCategories(supabase: any, companyId: string, permissions: any) {
@@ -353,7 +410,18 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
   
   const { data: categories, error: categoriesError } = await supabase
     .from('categories')
-    .select('*')
+    .select(`
+      *,
+      category_environmental_data (
+        co2_savings_kg,
+        carbon_footprint_reduction_percentage,
+        energy_savings_kwh,
+        water_savings_liters,
+        waste_reduction_kg,
+        source_url,
+        last_updated
+      )
+    `)
     .eq('company_id', companyId)
 
   console.log('📂 GET CATEGORIES - Query result:', { 
@@ -362,7 +430,23 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
     categories: categories?.slice(0, 2) // First 2 categories for debugging
   })
 
-  return { categories }
+  // Enrich categories with environmental impact data
+  const enrichedCategories = categories?.map(category => ({
+    ...category,
+    co2_savings_kg: category.category_environmental_data?.[0]?.co2_savings_kg || 0,
+    environmental_impact: category.category_environmental_data?.[0] ? {
+      co2_savings_kg: category.category_environmental_data[0].co2_savings_kg,
+      carbon_footprint_reduction_percentage: category.category_environmental_data[0].carbon_footprint_reduction_percentage,
+      energy_savings_kwh: category.category_environmental_data[0].energy_savings_kwh,
+      water_savings_liters: category.category_environmental_data[0].water_savings_liters,
+      waste_reduction_kg: category.category_environmental_data[0].waste_reduction_kg,
+      source_url: category.category_environmental_data[0].source_url,
+      last_updated: category.category_environmental_data[0].last_updated
+    } : null,
+    category_environmental_data: undefined // Remove raw data from response
+  }))
+
+  return { categories: enrichedCategories }
 }
 
 async function getBrands(supabase: any, companyId: string, permissions: any) {
@@ -416,13 +500,63 @@ async function searchCatalog(supabase: any, companyId: string, permissions: any,
 }
 
 async function getEnvironmentalData(supabase: any, companyId: string, permissions: any) {
+  console.log('🌿 GET ENVIRONMENTAL DATA - Starting for company:', companyId)
+  
   const { data: company } = await supabase
     .from('companies')
     .select('co2_saved, devices_count')
     .eq('id', companyId)
     .single()
 
+  console.log('🌿 GET ENVIRONMENTAL DATA - Company data:', company)
   return { environmental: company }
+}
+
+async function getEnvironmentalCategories(supabase: any, companyId: string, permissions: any) {
+  console.log('🌿 GET ENVIRONMENTAL CATEGORIES - Starting for company:', companyId)
+  
+  const { data: environmentalData, error } = await supabase
+    .from('category_environmental_data')
+    .select(`
+      *,
+      categories!inner (
+        id,
+        name,
+        translation,
+        company_id
+      )
+    `)
+    .eq('categories.company_id', companyId)
+
+  if (error) {
+    console.error('❌ Error fetching environmental categories:', error)
+    return { environmental_categories: [] }
+  }
+
+  console.log('🌿 GET ENVIRONMENTAL CATEGORIES - Found data:', { 
+    count: environmentalData?.length,
+    data: environmentalData?.slice(0, 2) // First 2 for debugging
+  })
+
+  const enrichedData = environmentalData?.map(item => ({
+    id: item.id,
+    category: {
+      id: item.categories.id,
+      name: item.categories.name,
+      translation: item.categories.translation
+    },
+    co2_savings_kg: item.co2_savings_kg,
+    carbon_footprint_reduction_percentage: item.carbon_footprint_reduction_percentage,
+    energy_savings_kwh: item.energy_savings_kwh,
+    water_savings_liters: item.water_savings_liters,
+    waste_reduction_kg: item.waste_reduction_kg,
+    source_url: item.source_url,
+    last_updated: item.last_updated,
+    created_at: item.created_at,
+    updated_at: item.updated_at
+  }))
+
+  return { environmental_categories: enrichedData }
 }
 
 async function getCatalogSettings(supabase: any, companyId: string, permissions: any) {
