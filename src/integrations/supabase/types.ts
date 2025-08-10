@@ -5216,6 +5216,17 @@ export type Database = {
           details: string
         }[]
       }
+      diagnose_api_key_context: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          company_id: string
+          user_role: string
+          is_admin: boolean
+          has_company_access: boolean
+          checked_at: string
+        }[]
+      }
       diagnose_data_isolation: {
         Args: Record<PropertyKey, never>
         Returns: {
