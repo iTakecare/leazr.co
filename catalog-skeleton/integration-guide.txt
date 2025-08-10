@@ -1,6 +1,6 @@
-# Guide d'intégration - Catalogue iTakecare
+# Guide d'intégration - Catalogue iTakecare (Supabase)
 
-Ce guide vous explique comment intégrer le catalogue Leazr dans votre site iTakecare.
+Ce guide vous explique comment intégrer le catalogue iTakecare utilisant l'architecture Supabase Edge Functions.
 
 ## 🚀 Installation
 
@@ -26,8 +26,8 @@ Copiez tous les fichiers `.txt` dans votre projet iTakecare :
 src/
 ├── catalog/
 │   ├── types-catalog.ts          # Types TypeScript
-│   ├── api-config.ts            # Configuration API
-│   ├── api-service.ts           # Service API Leazr
+│   ├── api-config.ts            # Configuration Supabase
+│   ├── api-service.ts           # Service API Supabase
 │   ├── utils-pricing.ts         # Utilitaires prix
 │   ├── hooks-products.ts        # Hooks React Query
 │   ├── cart-context.tsx         # Contexte panier
@@ -45,27 +45,36 @@ src/
 
 ### 1. Configuration API (api-config.ts)
 
-Modifiez les URLs pour pointer vers votre API Leazr :
+Configurez votre clé API Leazr pour l'intégration Supabase :
 
 ```typescript
-export const API_CONFIG = {
-  BASE_URL: 'https://votre-api-leazr.com/api',  // Remplacez par votre URL
+export const SUPABASE_CONFIG = {
+  // Nom de votre Edge Function (déjà déployée sur Supabase)
+  EDGE_FUNCTION_NAME: 'catalog-api',
+  
+  // Endpoints disponibles
   ENDPOINTS: {
-    CATALOG: '/catalog',
-    PRODUCTS: '/products',
-    // ... autres endpoints
+    PRODUCTS: 'products',
+    CATEGORIES: 'categories',
+    COMPANY: 'company',
+    CUSTOMIZATIONS: 'customizations',
   },
   
-  // Ajoutez vos headers d'authentification si nécessaire
-  HEADERS: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // 'Authorization': 'Bearer your-api-key',  // Si nécessaire
-  },
+  // Remplacez par votre vraie clé API Leazr
+  API_KEY: 'lzr_015eaab80e2b45539d2551e237f22335', // Votre clé API
 };
 ```
 
-### 2. Wrapper React Query
+### 2. Client Supabase
+
+Assurez-vous que le client Supabase est configuré dans votre projet :
+
+```typescript
+// src/integrations/supabase/client.ts doit exister
+import { supabase } from '@/integrations/supabase/client';
+```
+
+### 3. Wrapper React Query
 
 Dans votre App.tsx ou à la racine :
 
@@ -166,58 +175,55 @@ Le catalogue utilise Tailwind CSS et respecte les tokens de design. Pour personn
 />
 ```
 
-## 📊 API Leazr - Endpoints attendus
+## 📊 Architecture Supabase - Edge Functions
 
-Votre API Leazr doit exposer ces endpoints :
+L'intégration utilise l'architecture suivante :
 
-### GET /company/slug?slug={companySlug}
-```json
-{
-  "id": "uuid",
-  "name": "Nom entreprise",
-  "slug": "company-slug",
-  "logo_url": "https://...",
-  "primary_color": "#3b82f6",
-  "secondary_color": "#64748b"
-}
+```
+iTakecare → Supabase Edge Functions → Leazr API → Supabase Database
 ```
 
-### GET /catalog/public?company={companySlug}
-```json
-{
-  "products": [...],
-  "categories": [...],
-  "brands": [...],
-  "total": 150,
-  "page": 1,
-  "totalPages": 10
-}
+### Endpoints disponibles
+
+Tous les appels passent par l'Edge Function `catalog-api` :
+
+#### GET company info
+```javascript
+// Via Edge Function
+supabase.functions.invoke('catalog-api', {
+  body: {
+    path: 'v1/{companySlug}/company',
+    method: 'GET',
+    headers: { 'x-api-key': 'your-api-key' }
+  }
+})
 ```
 
-### GET /product/slug?company={companySlug}&slug={productSlug}
-```json
-{
-  "id": "uuid",
-  "name": "Product Name",
-  "price": 100,
-  "monthly_price": 25,
-  "image_url": "https://...",
-  "brand": "Brand Name",
-  "category": "Category Name",
-  "variants": [...],
-  // ... autres propriétés
-}
+#### GET products
+```javascript
+supabase.functions.invoke('catalog-api', {
+  body: {
+    path: 'v1/{companySlug}/products?page=1&limit=50',
+    method: 'GET',
+    headers: { 'x-api-key': 'your-api-key' }
+  }
+})
 ```
 
-### POST /cart/submit
-```json
-{
-  "company": "company-slug",
-  "items": [...],
-  "customerInfo": {...},
-  "type": "quote|order"
-}
+#### GET categories
+```javascript
+supabase.functions.invoke('catalog-api', {
+  body: {
+    path: 'v1/{companySlug}/categories',
+    method: 'GET',
+    headers: { 'x-api-key': 'your-api-key' }
+  }
+})
 ```
+
+### Clé API requise
+
+Vous devez avoir une clé API Leazr valide commençant par `lzr_` pour authentifier les requêtes.
 
 ## 🔍 Test et Debug
 
@@ -246,26 +252,30 @@ Le service API inclut des logs console. Vérifiez la console pour les erreurs.
 
 ## 🚨 Points d'attention
 
-1. **CORS** : Assurez-vous que votre API Leazr accepte les requêtes depuis votre domaine iTakecare
-2. **Authentication** : Configurez les headers d'auth dans `api-config.ts` si nécessaire
-3. **Cache** : Les données sont mises en cache côté client pour les performances
-4. **Responsive** : Tous les composants sont responsive par défaut
-5. **Persistence panier** : Le panier est sauvegardé en localStorage
+1. **Clé API** : Configurez votre vraie clé API Leazr dans `SUPABASE_CONFIG.API_KEY`
+2. **Edge Function** : L'Edge Function `catalog-api` doit être déployée sur votre projet Supabase
+3. **Authentication** : Pas besoin de CORS, les Edge Functions gèrent cela automatiquement
+4. **Cache** : Les données sont mises en cache côté client pour les performances
+5. **Responsive** : Tous les composants sont responsive par défaut
+6. **Persistence panier** : Le panier est sauvegardé en localStorage
+7. **Supabase Client** : Assurez-vous que le client Supabase est bien importé
 
 ## 🎯 Prochaines étapes
 
-1. Copiez les fichiers dans votre projet
-2. Configurez l'API dans `api-config.ts`
-3. Ajoutez le QueryClientProvider
-4. Testez avec votre URL d'entreprise
-5. Personnalisez selon vos besoins
+1. Copiez les fichiers dans votre projet iTakecare
+2. Configurez votre vraie clé API Leazr dans `api-config.ts`
+3. Vérifiez que le client Supabase est bien configuré
+4. Ajoutez le QueryClientProvider si pas déjà fait
+5. Testez avec votre slug d'entreprise (ex: `itakecare`)
+6. Personnalisez selon vos besoins
 
 ## 🆘 Support
 
 En cas de problème :
-1. Vérifiez la configuration API
-2. Regardez la console pour les erreurs
-3. Testez les endpoints directement
-4. Vérifiez les dépendances NPM
+1. Vérifiez que la clé API Leazr est correcte dans `api-config.ts`
+2. Consultez les logs de l'Edge Function Supabase pour débugger
+3. Vérifiez que le client Supabase est bien importé
+4. Regardez la console navigateur pour les erreurs
+5. Testez avec un slug d'entreprise valide comme `itakecare`
 
-Le catalogue est conçu pour être autonome et s'intégrer facilement dans votre architecture existante.
+L'intégration utilise l'architecture Supabase existante et est conçue pour s'intégrer facilement dans votre projet iTakecare.

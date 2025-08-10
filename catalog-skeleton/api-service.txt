@@ -1,7 +1,8 @@
-// API Service for iTakecare Catalog
-// Handles all API calls to Leazr backend
+// API Service for iTakecare Catalog - Supabase Integration
+// Handles all API calls to Supabase Edge Functions
 
-import { buildUrl, getRequestOptions } from './api-config';
+import { supabase } from '@/integrations/supabase/client';
+import { buildEdgeFunctionCall, buildEdgeFunctionPost, SUPABASE_CONFIG } from './api-config';
 import { Product, CatalogResponse, Company, ApiError } from './types-catalog';
 
 class ApiService {
@@ -19,16 +20,42 @@ class ApiService {
     };
   }
 
-  // Generic API call method
-  private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  // Generic Supabase Edge Function call method
+  private async edgeFunctionCall<T>(
+    companySlug: string,
+    endpoint: string,
+    params?: Record<string, string>
+  ): Promise<T> {
     try {
-      const response = await fetch(endpoint, options);
+      const { functionName, body } = buildEdgeFunctionCall(companySlug, endpoint, params);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const { data, error } = await supabase.functions.invoke(functionName, body);
+      
+      if (error) {
+        throw new Error(`Edge Function error: ${error.message}`);
       }
       
-      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw this.handleApiError(error);
+    }
+  }
+
+  // Generic POST method for Supabase Edge Function
+  private async edgeFunctionPost<T>(
+    companySlug: string,
+    endpoint: string,
+    postData: any
+  ): Promise<T> {
+    try {
+      const { functionName, body } = buildEdgeFunctionPost(companySlug, endpoint, postData);
+      
+      const { data, error } = await supabase.functions.invoke(functionName, body);
+      
+      if (error) {
+        throw new Error(`Edge Function error: ${error.message}`);
+      }
+      
       return data;
     } catch (error) {
       throw this.handleApiError(error);
@@ -37,11 +64,8 @@ class ApiService {
 
   // Get company information by slug
   async getCompanyBySlug(slug: string): Promise<Company | null> {
-    const url = buildUrl('/company/slug', { slug });
-    const options = getRequestOptions('GET');
-    
     try {
-      const data = await this.apiCall<Company>(url, options);
+      const data = await this.edgeFunctionCall<Company>(slug, SUPABASE_CONFIG.ENDPOINTS.COMPANY);
       return data;
     } catch (error) {
       console.error('Error fetching company:', error);
@@ -61,9 +85,7 @@ class ApiService {
       limit?: number;
     }
   ): Promise<CatalogResponse> {
-    const params: Record<string, string> = {
-      company: companySlug,
-    };
+    const params: Record<string, string> = {};
     
     if (filters) {
       if (filters.search) params.search = filters.search;
@@ -77,22 +99,20 @@ class ApiService {
       if (filters.limit) params.limit = filters.limit.toString();
     }
     
-    const url = buildUrl('/catalog/public', params);
-    const options = getRequestOptions('GET');
-    
-    return await this.apiCall<CatalogResponse>(url, options);
+    return await this.edgeFunctionCall<CatalogResponse>(
+      companySlug,
+      SUPABASE_CONFIG.ENDPOINTS.PRODUCTS,
+      params
+    );
   }
 
   // Get product by slug
   async getProductBySlug(companySlug: string, productSlug: string): Promise<Product | null> {
-    const url = buildUrl('/product/slug', { 
-      company: companySlug,
-      slug: productSlug 
-    });
-    const options = getRequestOptions('GET');
-    
     try {
-      const data = await this.apiCall<Product>(url, options);
+      const data = await this.edgeFunctionCall<Product>(
+        companySlug,
+        `${SUPABASE_CONFIG.ENDPOINTS.PRODUCTS}/${productSlug}`
+      );
       return data;
     } catch (error) {
       console.error('Error fetching product:', error);
@@ -101,15 +121,43 @@ class ApiService {
   }
 
   // Get product by ID
-  async getProductById(productId: string): Promise<Product | null> {
-    const url = buildUrl(`/product/${productId}`);
-    const options = getRequestOptions('GET');
-    
+  async getProductById(companySlug: string, productId: string): Promise<Product | null> {
     try {
-      const data = await this.apiCall<Product>(url, options);
+      const data = await this.edgeFunctionCall<Product>(
+        companySlug,
+        `${SUPABASE_CONFIG.ENDPOINTS.PRODUCTS}/${productId}`
+      );
       return data;
     } catch (error) {
       console.error('Error fetching product by ID:', error);
+      return null;
+    }
+  }
+
+  // Get categories for company
+  async getCategories(companySlug: string): Promise<{ categories: any[] }> {
+    try {
+      const data = await this.edgeFunctionCall<{ categories: any[] }>(
+        companySlug,
+        SUPABASE_CONFIG.ENDPOINTS.CATEGORIES
+      );
+      return data;
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return { categories: [] };
+    }
+  }
+
+  // Get customizations for company
+  async getCustomizations(companySlug: string): Promise<any> {
+    try {
+      const data = await this.edgeFunctionCall<any>(
+        companySlug,
+        SUPABASE_CONFIG.ENDPOINTS.CUSTOMIZATIONS
+      );
+      return data;
+    } catch (error) {
+      console.error('Error fetching customizations:', error);
       return null;
     }
   }
@@ -128,14 +176,12 @@ class ApiService {
       type: 'quote' | 'order';
     }
   ): Promise<{ success: boolean; id?: string; message?: string }> {
-    const url = buildUrl('/cart/submit');
-    const options = getRequestOptions('POST', {
-      company: companySlug,
-      ...cartData
-    });
-    
     try {
-      const data = await this.apiCall<{ success: boolean; id?: string; message?: string }>(url, options);
+      const data = await this.edgeFunctionPost<{ success: boolean; id?: string; message?: string }>(
+        companySlug,
+        'cart/submit',
+        cartData
+      );
       return data;
     } catch (error) {
       console.error('Error submitting cart:', error);

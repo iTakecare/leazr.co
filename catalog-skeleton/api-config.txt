@@ -1,60 +1,74 @@
-// API Configuration for iTakecare Catalog
-// Configure these URLs to point to your Leazr API endpoints
+// API Configuration for iTakecare Catalog - Supabase Integration
+// Configure these settings for Supabase Edge Functions
 
-export const API_CONFIG = {
-  // Base URL of your Leazr API
-  BASE_URL: 'https://your-leazr-api.com/api',
+export const SUPABASE_CONFIG = {
+  // Supabase Edge Function endpoint
+  EDGE_FUNCTION_NAME: 'catalog-api',
   
-  // Endpoints
+  // API endpoints for the catalog Edge Function
   ENDPOINTS: {
-    CATALOG: '/catalog',
-    PRODUCTS: '/products',
-    PRODUCT_BY_SLUG: '/products/slug',
-    CATEGORIES: '/categories',
-    BRANDS: '/brands',
-    COMPANY: '/company',
-    CART: '/cart',
-    ORDER: '/order',
+    PRODUCTS: 'products',
+    CATEGORIES: 'categories',
+    COMPANY: 'company',
+    CUSTOMIZATIONS: 'customizations',
+    BRANDS: 'brands',
   },
   
-  // Headers
+  // Headers for API requests
   HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
   
-  // Add your API key or authentication headers here
-  // AUTH_HEADER: 'Bearer your-api-key',
+  // Your Leazr API key - required for authentication
+  // Add this to your environment variables or configuration
+  API_KEY: 'lzr_your_api_key_here', // Replace with your actual API key
 };
 
-// Helper to build full URLs
-export const buildUrl = (endpoint: string, params?: Record<string, string>) => {
-  let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+// Helper to build Edge Function request parameters
+export const buildEdgeFunctionCall = (
+  companySlug: string, 
+  endpoint: string, 
+  params?: Record<string, string>
+) => {
+  // Build the path for the Edge Function
+  const path = `v1/${companySlug}/${endpoint}`;
   
-  if (params) {
-    const searchParams = new URLSearchParams(params);
-    url += `?${searchParams.toString()}`;
-  }
+  // Build query parameters if provided
+  const queryParams = params ? new URLSearchParams(params).toString() : '';
+  const fullPath = queryParams ? `${path}?${queryParams}` : path;
   
-  return url;
-};
-
-// Default request options
-export const getRequestOptions = (method: string = 'GET', body?: any) => {
-  const options: RequestInit = {
-    method,
-    headers: API_CONFIG.HEADERS,
+  return {
+    functionName: SUPABASE_CONFIG.EDGE_FUNCTION_NAME,
+    body: {
+      path: fullPath,
+      method: 'GET',
+      headers: {
+        ...SUPABASE_CONFIG.HEADERS,
+        'x-api-key': SUPABASE_CONFIG.API_KEY,
+      },
+    },
   };
+};
+
+// Helper to build POST request for Edge Function
+export const buildEdgeFunctionPost = (
+  companySlug: string,
+  endpoint: string,
+  data: any
+) => {
+  const path = `v1/${companySlug}/${endpoint}`;
   
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-  
-  // Add authentication header if needed
-  // options.headers = {
-  //   ...options.headers,
-  //   'Authorization': API_CONFIG.AUTH_HEADER,
-  // };
-  
-  return options;
+  return {
+    functionName: SUPABASE_CONFIG.EDGE_FUNCTION_NAME,
+    body: {
+      path,
+      method: 'POST',
+      headers: {
+        ...SUPABASE_CONFIG.HEADERS,
+        'x-api-key': SUPABASE_CONFIG.API_KEY,
+      },
+      body: data,
+    },
+  };
 };
