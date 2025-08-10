@@ -19,7 +19,8 @@ import {
   BookOpen,
   Settings,
   Database,
-  Zap
+  Zap,
+  Download
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
@@ -67,6 +68,29 @@ const CatalogApiSettings = () => {
   const copyEndpoint = (endpoint: string) => {
     navigator.clipboard.writeText(`${baseApiUrl}/${endpoint}`);
     toast.success("URL copiée !");
+  };
+
+  const downloadDocumentation = async () => {
+    try {
+      const response = await fetch('/catalog-api-documentation.txt');
+      if (!response.ok) {
+        throw new Error('Fichier de documentation non trouvé');
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'catalog-api-documentation.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Documentation téléchargée avec succès");
+    } catch (error) {
+      toast.error("Erreur lors du téléchargement de la documentation");
+    }
   };
 
   const testApi = async () => {
@@ -316,13 +340,21 @@ const CatalogApiSettings = () => {
         <TabsContent value="docs">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Documentation des endpoints
-              </CardTitle>
-              <CardDescription>
-                Liste complète des endpoints disponibles avec exemples
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Documentation des endpoints
+                  </CardTitle>
+                  <CardDescription>
+                    Liste complète des endpoints disponibles avec exemples
+                  </CardDescription>
+                </div>
+                <Button onClick={downloadDocumentation} variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger la doc complète
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
