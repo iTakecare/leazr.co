@@ -1,5 +1,8 @@
 project_id = "cifbetjefyfocafanlhv"
 
+[functions.catalog-api]
+verify_jwt = false
+
 [functions.redirect-upload]
 verify_jwt = false
 
