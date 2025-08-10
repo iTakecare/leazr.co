@@ -9,13 +9,10 @@ import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicP
 import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
 import InlineRequestSteps from "@/components/catalog/public/InlineRequestSteps";
 
-import PublicFilterSidebar from "@/components/catalog/public/filters/PublicFilterSidebar";
-import FilterMobileToggle from "@/components/catalog/public/filters/FilterMobileToggle";
-import FilterBadges from "@/components/catalog/public/filters/FilterBadges";
-import SortFilter from "@/components/catalog/public/filters/SortFilter";
+import PublicCatalogFilterBar from "@/components/catalog/public/PublicCatalogFilterBar";
 import { getPublicProductsOptimized, getPublicPacksOptimized } from "@/services/catalogServiceOptimized";
 import { useQuery } from "@tanstack/react-query";
-import { useOptimizedCatalogFilter } from "@/hooks/products/useOptimizedCatalogFilter";
+import { usePublicSimplifiedFilter } from "@/hooks/products/usePublicSimplifiedFilter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, ShoppingCart } from "lucide-react";
@@ -131,18 +128,16 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
     refetchOnWindowFocus: false
   });
 
-  // Optimized filter system
+  // Simplified filter system for public catalog
   const {
     filters,
     updateFilter,
     resetFilters,
     filteredProducts,
     categories,
-    brands,
-    priceRange,
     hasActiveFilters,
     resultsCount
-  } = useOptimizedCatalogFilter(products);
+  } = usePublicSimplifiedFilter(products);
 
   // Simplified resize handler
   useEffect(() => {
@@ -336,54 +331,20 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
               </div>
             )}
 
-            {/* Main layout with always-visible sidebar and dynamic content */}
-            <div className="flex gap-6">
-              {/* Filter Sidebar - ALWAYS visible */}
-              <PublicFilterSidebar
-                isOpen={isMobileFilterOpen}
-                onClose={() => setIsMobileFilterOpen(false)}
+            {/* Horizontal Filter Bar */}
+            {viewMode === 'grid' && (
+              <PublicCatalogFilterBar
                 filters={filters}
                 updateFilter={updateFilter}
                 resetFilters={resetFilters}
                 categories={categories}
-                brands={brands}
-                priceRange={priceRange}
                 hasActiveFilters={hasActiveFilters}
                 resultsCount={resultsCount}
               />
+            )}
 
-              {/* Main Content - changes based on viewMode */}
-              <div className="flex-1 space-y-6">
-                  {/* Header with mobile toggle and sort - Only show in grid view */}
-                  {viewMode === 'grid' && (
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <FilterMobileToggle
-                      isOpen={isMobileFilterOpen}
-                      onToggle={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                      filterCount={
-                        (filters.searchQuery ? 1 : 0) +
-                        (filters.selectedCategory ? 1 : 0) +
-                        filters.selectedBrands.length +
-                         (filters.inStockOnly ? 1 : 0)
-                      }
-                    />
-                     <div className="text-sm text-muted-foreground">
-                       {activeTab === 'products' 
-                         ? `${resultsCount} produit${resultsCount > 1 ? 's' : ''} trouvé${resultsCount > 1 ? 's' : ''}` 
-                         : `${packs.length} pack${packs.length > 1 ? 's' : ''} disponible${packs.length > 1 ? 's' : ''}`
-                       }
-                     </div>
-                  </div>
-
-                  <SortFilter
-                    sortBy={filters.sortBy}
-                    sortOrder={filters.sortOrder}
-                    onSortByChange={(value) => updateFilter('sortBy', value)}
-                    onSortOrderChange={(value) => updateFilter('sortOrder', value)}
-                    />
-                    </div>
-                  )}
+            {/* Main Content - full width */}
+            <div className="space-y-6">
 
                    {/* Tabs for Products and Packs - Only show in grid view */}
                    {viewMode === 'grid' && (
@@ -413,21 +374,6 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
 
                  {activeTab === 'products' && (
                    <>
-                      {/* Active Filter Badges - Only show in grid view */}
-                      {viewMode === 'grid' && (
-                        <FilterBadges
-                          searchQuery={filters.searchQuery}
-                          selectedCategory={filters.selectedCategory}
-                          selectedBrands={filters.selectedBrands}
-                          inStockOnly={filters.inStockOnly}
-                          categoryTranslation={categories.find(c => c.name === filters.selectedCategory)?.translation}
-                          onRemoveSearch={() => updateFilter('searchQuery', '')}
-                          onRemoveCategory={() => updateFilter('selectedCategory', '')}
-                          onRemoveBrand={(brand) => updateFilter('selectedBrands', filters.selectedBrands.filter(b => b !== brand))}
-                          onRemoveStock={() => updateFilter('inStockOnly', false)}
-                          onClearAll={resetFilters}
-                        />
-                      )}
 
                       {/* Product Grid or Detail View */}
                        {viewMode === 'grid' && (
@@ -473,8 +419,7 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
                       onRequestCompleted={handleRequestCompleted}
                     />
                   )}
-                </div>
-              </div>
+            </div>
           </div>
         </Container>
       </div>
