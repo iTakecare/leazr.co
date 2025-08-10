@@ -6,7 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/formatters';
 import { getProductPrice } from '@/utils/productPricing';
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
-import MainNavigation from '@/components/layout/MainNavigation';
+import UnifiedNavigationBar from '@/components/layout/UnifiedNavigationBar';
 
 const CartPage: React.FC = () => {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
@@ -23,12 +23,16 @@ const CartPage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6">
-        <MainNavigation />
-      </div>
+      <UnifiedNavigationBar 
+        mode="cart"
+        backButton={{
+          label: "Continuer mes achats",
+          url: "/catalog/anonymous"
+        }}
+        title="Mon panier"
+      />
       
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">Mon panier</h1>
+      <div className="container mx-auto px-4 py-8 mt-24">
         
         {items.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow-sm text-center">

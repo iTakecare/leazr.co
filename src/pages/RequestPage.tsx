@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RequestSteps from '@/components/checkout/RequestSteps';
-import MainNavigation from '@/components/layout/MainNavigation';
+import UnifiedNavigationBar from '@/components/layout/UnifiedNavigationBar';
 import { useCart } from '@/context/CartContext';
 import { ShoppingBag } from 'lucide-react';
 
@@ -20,18 +20,16 @@ const RequestPage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainNavigation />
+      <UnifiedNavigationBar 
+        mode="minimal"
+        backButton={{
+          label: "Retour au panier",
+          url: "/panier"
+        }}
+        title="Faire ma demande"
+      />
       
-      <div className="container mx-auto px-4 pt-[130px] pb-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Faire ma demande</h1>
-          <Link to="/panier">
-            <Button variant="outline" size="sm" className="flex items-center">
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Retour au panier
-            </Button>
-          </Link>
-        </div>
+      <div className="container mx-auto px-4 pt-24 pb-8">
         
         {items.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow-sm text-center">

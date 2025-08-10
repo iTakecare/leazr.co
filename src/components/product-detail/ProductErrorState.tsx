@@ -14,8 +14,8 @@ const ProductErrorState: React.FC<ProductErrorStateProps> = ({ onBackToCatalog, 
   return (
     <div className="min-h-screen bg-gray-50">
       <UnifiedNavigationBar 
+        mode="minimal"
         company={companyId ? { id: companyId, name: companyName || "iTakecare", slug: "", logo_url: companyLogo } : undefined}
-        showFilters={false}
         showCartButton={true}
         showQuoteButton={true}
       />

@@ -11,6 +11,7 @@ import { getProductPrice } from '@/utils/productPricing';
 import { Trash2, ShoppingBag, ArrowRight, ArrowLeft, Phone, Mail, ExternalLink } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import CompanyCustomizationService, { CompanyBranding } from "@/services/companyCustomizationService";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 
 const PublicCartPage: React.FC = () => {
   const { companyId, companySlug } = useParams<{ companyId: string; companySlug: string }>();
@@ -79,55 +80,24 @@ const PublicCartPage: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Company Header */}
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {company?.logo_url && (
-                <img 
-                  src={company.logo_url} 
-                  alt={company.name}
-                  className="h-10 w-auto"
-                />
-              )}
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{company?.name || "Catalogue"}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  {company?.contact_phone && (
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      <span>{company.contact_phone}</span>
-                    </div>
-                  )}
-                  {company?.contact_email && (
-                    <div className="flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      <span>{company.contact_email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                asChild
-                className="flex items-center gap-2"
-              >
-                <Link to={getCatalogUrl()}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Continuer mes achats
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <UnifiedNavigationBar 
+        mode="cart"
+        company={{
+          id: company?.id || '',
+          name: company?.name || 'Catalogue',
+          slug: company?.slug || '',
+          logo_url: company?.logo_url,
+          contact_phone: company?.contact_phone,
+          contact_email: company?.contact_email,
+        }}
+        backButton={{
+          label: "Continuer mes achats",
+          url: getCatalogUrl()
+        }}
+        title="Mon panier"
+      />
       
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">Mon panier</h1>
+      <div className="container mx-auto px-4 py-8 mt-24">
         
         {items.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow-sm text-center">
