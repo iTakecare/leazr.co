@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/catalog";
 import { getCurrentUserCompanyId } from "@/services/multiTenantService";
+import { 
+  EnvironmentalApiResponse, 
+  CategoryWithEnvironmental, 
+  ProductCO2Response 
+} from "@/types/environmental";
 
 export const getProducts = async (options?: { includeAdminOnly?: boolean }) => {
   console.log("📦 getProducts - Démarrage avec options:", options);
@@ -412,6 +417,89 @@ export const convertProductToParent = async (productId: string, updateData: any)
 
   if (error) throw error;
   return data;
+};
+
+// ===== Environmental Data Management =====
+
+/**
+ * Get environmental data for all categories using the catalog-api Edge Function
+ */
+export const getEnvironmentalData = async (companySlug: string): Promise<EnvironmentalApiResponse> => {
+  console.log("🌱 getEnvironmentalData - Fetching environmental data for company:", companySlug);
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('catalog-api', {
+      body: { 
+        companySlug,
+        endpoint: 'environmental/categories'
+      }
+    });
+
+    if (error) {
+      console.error("🌱 getEnvironmentalData - Error:", error);
+      throw error;
+    }
+
+    console.log("🌱 getEnvironmentalData - Success:", data);
+    return data;
+  } catch (error) {
+    console.error("🌱 getEnvironmentalData - Exception:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get categories with environmental data using the catalog-api Edge Function
+ */
+export const getCategoriesWithEnvironmentalData = async (companySlug: string): Promise<CategoryWithEnvironmental[]> => {
+  console.log("🌱 getCategoriesWithEnvironmentalData - Fetching categories with CO2 data for company:", companySlug);
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('catalog-api', {
+      body: { 
+        companySlug,
+        endpoint: 'categories'
+      }
+    });
+
+    if (error) {
+      console.error("🌱 getCategoriesWithEnvironmentalData - Error:", error);
+      throw error;
+    }
+
+    console.log("🌱 getCategoriesWithEnvironmentalData - Success:", data?.categories?.length, "categories");
+    return data?.categories || [];
+  } catch (error) {
+    console.error("🌱 getCategoriesWithEnvironmentalData - Exception:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get CO2 data for a specific product using the catalog-api Edge Function
+ */
+export const getProductCO2Data = async (companySlug: string, productId: string): Promise<ProductCO2Response> => {
+  console.log("🌱 getProductCO2Data - Fetching CO2 data for product:", productId);
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('catalog-api', {
+      body: { 
+        companySlug,
+        endpoint: `environmental/products/${productId}`
+      }
+    });
+
+    if (error) {
+      console.error("🌱 getProductCO2Data - Error:", error);
+      throw error;
+    }
+
+    console.log("🌱 getProductCO2Data - Success:", data);
+    return data?.product;
+  } catch (error) {
+    console.error("🌱 getProductCO2Data - Exception:", error);
+    throw error;
+  }
 };
 
 // ===== Client Custom Prices Management =====
