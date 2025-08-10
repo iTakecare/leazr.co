@@ -110,23 +110,25 @@ const UnifiedNavigationBar: React.FC<UnifiedNavigationBarProps> = ({
   };
 
   return (
-    <div className={cn("bg-white border-b border-gray-200 sticky top-0 z-50", className)}>
+    <div className={cn("sticky top-0 z-50 py-2", className)}>
       {/* Single integrated navigation bar */}
       {showFilters && filters && updateFilter && resetFilters && categories && (
         <div className="container mx-auto px-4">
-          <PublicCatalogFilterBar
-            filters={filters}
-            updateFilter={updateFilter}
-            resetFilters={resetFilters}
-            categories={categories}
-            hasActiveFilters={hasActiveFilters}
-            resultsCount={resultsCount}
-            showCartButton={showCartButton}
-            showQuoteButton={showQuoteButton}
-            cartCount={cartCount}
-            onCartClick={handleCartClick}
-            onRequestQuote={handleQuoteClick}
-          />
+          <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm">
+            <PublicCatalogFilterBar
+              filters={filters}
+              updateFilter={updateFilter}
+              resetFilters={resetFilters}
+              categories={categories}
+              hasActiveFilters={hasActiveFilters}
+              resultsCount={resultsCount}
+              showCartButton={showCartButton}
+              showQuoteButton={showQuoteButton}
+              cartCount={cartCount}
+              onCartClick={handleCartClick}
+              onRequestQuote={handleQuoteClick}
+            />
+          </div>
         </div>
       )}
     </div>
