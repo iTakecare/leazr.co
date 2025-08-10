@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -112,7 +112,12 @@ const ProductDetailPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
-      <SimpleHeader companyId={companyId} companyLogo={company?.logo_url} companyName={company?.name} />
+      <UnifiedNavigationBar 
+        company={company ? { id: companyId!, name: company.name, slug: companySlug || "", logo_url: company.logo_url } : undefined}
+        showFilters={false}
+        showCartButton={true}
+        showQuoteButton={true}
+      />
       
       <div className="container mx-auto px-4 max-w-[1320px] mb-16 pt-8">
         <div className="mb-4">

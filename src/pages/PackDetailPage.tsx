@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ProductLoadingState from "@/components/product-detail/ProductLoadingState";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 import PackMainContent from "@/components/pack-detail/PackMainContent";
 import PackConfigurationSection from "@/components/pack-detail/PackConfigurationSection";
 import PackRequestForm from "@/components/pack-detail/PackRequestForm";
@@ -86,10 +86,11 @@ const PackDetailPage: React.FC = () => {
     <PageTransition>
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <SimpleHeader 
-          companyId={companyId}
-          companyLogo={companyDetails?.logo_url}
-          companyName={companyDetails?.name}
+        <UnifiedNavigationBar 
+          company={companyDetails ? { id: companyId!, name: companyDetails.name, slug: companySlug || "", logo_url: companyDetails.logo_url } : undefined}
+          showFilters={false}
+          showCartButton={true}
+          showQuoteButton={true}
         />
 
         {/* Back button */}

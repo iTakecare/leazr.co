@@ -1,13 +1,17 @@
 
 import React from "react";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 import { useNavigate } from "react-router-dom";
 
 const HubPage = () => {
   const navigate = useNavigate();
   return (
     <div className="bg-white min-h-screen flex flex-col overflow-x-hidden">
-      <SimpleHeader />
+      <UnifiedNavigationBar 
+        showFilters={false}
+        showCartButton={true}
+        showQuoteButton={true}
+      />
       
       <div className="pt-[100px]">
         <div className="container mx-auto px-4 py-16">

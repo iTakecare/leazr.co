@@ -2,14 +2,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Container from "@/components/layout/Container";
-import CatalogHeader from "@/components/catalog/public/CatalogHeader";
 import PublicProductGrid from "@/components/catalog/public/PublicProductGrid";
 import PublicPackGrid from "@/components/catalog/public/PublicPackGrid";
 import InlinePublicProductDetail from "@/components/catalog/public/InlinePublicProductDetail";
 import InlinePublicCart from "@/components/catalog/public/InlinePublicCart";
 import InlineRequestSteps from "@/components/catalog/public/InlineRequestSteps";
-
-import PublicCatalogFilterBar from "@/components/catalog/public/PublicCatalogFilterBar";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 import { getPublicProductsOptimized, getPublicPacksOptimized } from "@/services/catalogServiceOptimized";
 import { useQuery } from "@tanstack/react-query";
 import { usePublicSimplifiedFilter } from "@/hooks/products/usePublicSimplifiedFilter";
@@ -20,7 +18,6 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { CompanyProvider } from "@/context/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettingsByCompanyId } from "@/hooks/useSiteSettings";
-import { SearchWithSuggestions } from "@/components/catalog/public/SearchWithSuggestions";
 import { useCart } from "@/context/CartContext";
 
 interface Company {
@@ -272,76 +269,25 @@ const PublicCatalogAnonymous: React.FC<PublicCatalogAnonymousProps> = ({ company
   return (
     <CompanyProvider company={company}>
       <div className="min-h-screen bg-white">
+        {/* Unified Navigation Bar */}
+        <UnifiedNavigationBar
+          company={company}
+          showFilters={viewMode === 'grid'}
+          filters={filters}
+          updateFilter={updateFilter}
+          resetFilters={resetFilters}
+          categories={categories}
+          hasActiveFilters={hasActiveFilters}
+          resultsCount={resultsCount}
+          showCartButton={true}
+          showQuoteButton={true}
+          onCartClick={handleCartClick}
+          onRequestQuote={handleRequestQuote}
+          quoteLink={settings?.quote_request_url}
+        />
+        
         <Container className="py-6 max-w-[1320px]">
           <div className="space-y-8">
-            <CatalogHeader 
-              companyName={company?.name}
-              companyLogo={company?.logo_url}
-              companyId={companyId}
-              onCartClick={handleCartClick}
-              headerEnabled={settings?.header_enabled ?? true}
-              headerTitle={settings?.header_title}
-              headerDescription={settings?.header_description}
-              headerBackgroundType={settings?.header_background_type}
-              headerBackgroundConfig={settings?.header_background_config}
-              onRequestQuote={handleRequestQuote}
-              quoteLink={settings?.quote_request_url}
-            />
-            
-            {/* Compact search bar when header is disabled - Show for all modes */}
-            {!(settings?.header_enabled ?? true) && (
-              <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
-                  {/* Search bar */}
-                  <div className="flex-1 max-w-2xl">
-                    <SearchWithSuggestions />
-                  </div>
-                  
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (settings?.quote_request_url) {
-                          window.location.href = settings.quote_request_url;
-                        } else {
-                          handleRequestQuote();
-                        }
-                      }}
-                      className="text-sm whitespace-nowrap"
-                    >
-                      Demander un devis
-                    </Button>
-                    
-                    <button
-                      onClick={handleCartClick}
-                      className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      aria-label="Voir le panier"
-                    >
-                      <ShoppingCart className="h-6 w-6 text-gray-700" />
-                      {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                          {cartCount > 99 ? '99+' : cartCount}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Horizontal Filter Bar */}
-            {viewMode === 'grid' && (
-              <PublicCatalogFilterBar
-                filters={filters}
-                updateFilter={updateFilter}
-                resetFilters={resetFilters}
-                categories={categories}
-                hasActiveFilters={hasActiveFilters}
-                resultsCount={resultsCount}
-              />
-            )}
 
             {/* Main Content - full width */}
             <div className="space-y-6">

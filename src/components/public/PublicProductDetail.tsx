@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import SimpleHeader from "@/components/catalog/public/SimpleHeader";
+import UnifiedNavigationBar from "@/components/layout/UnifiedNavigationBar";
 import ProductRequestForm from "@/components/catalog/public/ProductRequestForm";
 import { useProductDetails } from "@/hooks/products/useProductDetails";
 import ProductErrorState from "@/components/product-detail/ProductErrorState";
@@ -109,7 +109,12 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company.logo_url} companyName={company.name} />
+        <UnifiedNavigationBar 
+          company={company}
+          showFilters={false}
+          showCartButton={true}
+          showQuoteButton={true}
+        />
         <Container className="max-w-[1320px]">
           <ProductLoadingState />
         </Container>
@@ -120,7 +125,12 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
   if (error || !product) {
     return (
       <div className="min-h-screen bg-white">
-        <SimpleHeader companyId={companyId} companyLogo={company.logo_url} companyName={company.name} />
+        <UnifiedNavigationBar 
+          company={company}
+          showFilters={false}
+          showCartButton={true}
+          showQuoteButton={true}
+        />
         <Container className="max-w-[1320px]">
           <ProductErrorState 
             onBackToCatalog={handleBackToCatalog}
@@ -135,7 +145,12 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
 
   return (
     <div className="min-h-screen bg-white">
-      <SimpleHeader companyId={companyId} companyLogo={company.logo_url} companyName={company.name} />
+      <UnifiedNavigationBar 
+        company={company}
+        showFilters={false}
+        showCartButton={true}
+        showQuoteButton={true}
+      />
       
       <Container className="py-6 max-w-[1320px]">
         {/* Breadcrumb Navigation */}
