@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      [, , , version, companyId, endpoint, ...subPaths] = pathParts
+      [, , , version, companyIdOrSlug, endpoint, ...subPaths] = pathParts
     } else {
       // Direct format: /catalog-api/v1/{companyId}/{endpoint}
       if (pathParts.length < 4) {
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      [, version, companyId, endpoint, ...subPaths] = pathParts
+      [, version, companyIdOrSlug, endpoint, ...subPaths] = pathParts
     }
     
     if (version !== 'v1') {
@@ -57,6 +57,31 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Unsupported API version' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // Resolve company ID from slug if needed
+    let companyId = companyIdOrSlug
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyIdOrSlug)
+    
+    if (!isUuid) {
+      // It's a slug, resolve to company ID
+      console.log('🔍 Resolving company slug:', companyIdOrSlug)
+      const { data: company, error: companyError } = await supabaseAdmin
+        .from('companies')
+        .select('id')
+        .eq('slug', companyIdOrSlug)
+        .single()
+
+      if (companyError || !company) {
+        console.error('❌ Company not found for slug:', companyIdOrSlug, companyError)
+        return new Response(
+          JSON.stringify({ error: 'Company not found' }), 
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      companyId = company.id
+      console.log('✅ Resolved slug', companyIdOrSlug, 'to company ID:', companyId)
     }
 
     // Verify API key
