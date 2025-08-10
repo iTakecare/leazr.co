@@ -5,27 +5,14 @@ import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import VariantIndicator from "@/components/ui/product/VariantIndicator";
 import { getMinimumMonthlyPrice, hasVariantPricing } from "@/utils/productPricing";
+import { useCO2Calculator } from "@/hooks/environmental/useCO2Calculator";
+import CO2Badge from "@/components/ui/environmental/CO2Badge";
 
 interface ProductGridCardProps {
   product: Product;
   onClick: () => void;
 }
 
-const getCO2Savings = (category: string | undefined): number => {
-  if (!category) return 0;
-  
-  switch (category.toLowerCase()) {
-    case "laptop":
-    case "desktop":
-      return 170;
-    case "smartphone":
-      return 45;
-    case "tablet":
-      return 87;
-    default:
-      return 0;
-  }
-};
 
 const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -128,7 +115,12 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
   }, [product.variants_count, product.has_variants]);
 
   const hasVariantsFlag = variantsCount > 0;
-  const co2Savings = getCO2Savings(product.category);
+  
+  // Use real CO2 calculator
+  const { co2Kg, carKilometers, hasRealData } = useCO2Calculator({
+    category: product.category,
+    quantity: 1
+  });
   
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -180,14 +172,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({ product, onClick }) =
           </div>
         )}
         
-        {co2Savings > 0 && (
-          <div className="absolute top-2 right-2 z-10">
-            <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] text-white text-xs px-3 py-1.5 rounded-full flex items-center shadow-sm">
-              <span className="mr-1.5 text-sm">🍃</span>
-              <span className="font-medium">-{co2Savings} kg CO2</span>
-            </div>
-          </div>
-        )}
+        <CO2Badge
+          co2Kg={co2Kg}
+          carKilometers={carKilometers}
+          hasRealData={hasRealData}
+          size="small"
+          position="top-right"
+        />
       </div>
       
       <CardContent className="flex-1 flex flex-col p-3">

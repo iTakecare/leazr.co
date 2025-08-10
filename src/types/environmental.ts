@@ -83,3 +83,19 @@ export interface PackCO2SavingsDisplayProps {
   packQuantity: number;
   companySlug?: string;
 }
+
+export interface CO2BadgeProps {
+  co2Kg: number;
+  size?: 'small' | 'medium' | 'large';
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  hasRealData?: boolean;
+  showEquivalents?: boolean;
+  carKilometers?: number;
+  className?: string;
+}
+
+export interface BulkCO2CalculatorItem {
+  id: string;
+  category?: string;
+  category_name?: string;
+}

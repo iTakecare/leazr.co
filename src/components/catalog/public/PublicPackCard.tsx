@@ -4,28 +4,14 @@ import { PublicPack } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Package, Star } from "lucide-react";
+import { usePackCO2Calculator } from "@/hooks/environmental/useCO2Calculator";
+import CO2Badge from "@/components/ui/environmental/CO2Badge";
 
 interface PublicPackCardProps {
   pack: PublicPack;
   onClick: () => void;
 }
 
-const getCO2SavingsForPack = (items: Array<{ product: { category: string } }>): number => {
-  return items.reduce((total, item) => {
-    const category = item.product.category;
-    switch (category?.toLowerCase()) {
-      case "laptop":
-      case "desktop":
-        return total + 170;
-      case "smartphone":
-        return total + 45;
-      case "tablet":
-        return total + 87;
-      default:
-        return total;
-    }
-  }, 0);
-};
 
 const PublicPackCard: React.FC<PublicPackCardProps> = React.memo(({ pack, onClick }) => {
   const [hasError, setHasError] = useState(false);
@@ -53,7 +39,22 @@ const PublicPackCard: React.FC<PublicPackCardProps> = React.memo(({ pack, onClic
     return "/placeholder.svg";
   }, [pack.image_url, pack.items]);
 
-  const co2Savings = getCO2SavingsForPack(pack.items || []);
+  // Use real CO2 calculator for pack
+  const packItems = useMemo(() => {
+    return (pack.items || []).map(item => ({
+      quantity: item.quantity || 1,
+      product: {
+        category_name: item.product?.category,
+        category: item.product?.category ? { name: item.product.category } : undefined
+      }
+    }));
+  }, [pack.items]);
+
+  const { co2Kg, carKilometers, hasRealData, physicalItemsCount } = usePackCO2Calculator(
+    packItems,
+    1 // packQuantity
+  );
+  
   const itemsCount = pack.items?.length || 0;
   
   // Calculate display price
@@ -109,14 +110,13 @@ const PublicPackCard: React.FC<PublicPackCardProps> = React.memo(({ pack, onClic
         )}
         
         {/* CO2 savings */}
-        {co2Savings > 0 && (
-          <div className="absolute bottom-2 right-2 z-10">
-            <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] text-white text-xs px-3 py-1.5 rounded-full flex items-center shadow-sm">
-              <span className="mr-1.5 text-sm">🍃</span>
-              <span className="font-medium">-{co2Savings} kg CO2</span>
-            </div>
-          </div>
-        )}
+        <CO2Badge
+          co2Kg={co2Kg}
+          carKilometers={carKilometers}
+          hasRealData={hasRealData}
+          size="small"
+          position="bottom-right"
+        />
       </div>
       
       <CardContent className="flex-1 flex flex-col p-3">
