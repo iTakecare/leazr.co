@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, X, ChevronDown } from "lucide-react";
+import { Search, X, ShoppingCart, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,11 @@ interface PublicCatalogFilterBarProps {
   categories: Category[];
   hasActiveFilters: boolean;
   resultsCount: number;
+  showCartButton?: boolean;
+  showQuoteButton?: boolean;
+  cartCount?: number;
+  onCartClick?: () => void;
+  onRequestQuote?: () => void;
 }
 
 const PublicCatalogFilterBar: React.FC<PublicCatalogFilterBarProps> = ({
@@ -28,7 +33,12 @@ const PublicCatalogFilterBar: React.FC<PublicCatalogFilterBarProps> = ({
   resetFilters,
   categories,
   hasActiveFilters,
-  resultsCount
+  resultsCount,
+  showCartButton = false,
+  showQuoteButton = false,
+  cartCount = 0,
+  onCartClick,
+  onRequestQuote
 }) => {
   const sortOptions = [
     { value: 'newest', label: 'Plus récents' },
@@ -42,37 +52,41 @@ const PublicCatalogFilterBar: React.FC<PublicCatalogFilterBarProps> = ({
   };
 
   return (
-    <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
-      {/* Top row: Search and Sort */}
+    <div className="py-4 space-y-4">
+      {/* Line 1: Search, Product Count, Sort, Quote, Cart */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {/* Search bar */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Rechercher un produit..."
-            value={filters.searchQuery}
-            onChange={(e) => updateFilter('searchQuery', e.target.value)}
-            className="pl-10 pr-10"
-          />
-          {filters.searchQuery && (
-            <button
-              onClick={() => updateFilter('searchQuery', '')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        {/* Left side: Search and Product Count */}
+        <div className="flex items-center gap-4 flex-1">
+          {/* Search bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Rechercher un produit..."
+              value={filters.searchQuery}
+              onChange={(e) => updateFilter('searchQuery', e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {filters.searchQuery && (
+              <button
+                onClick={() => updateFilter('searchQuery', '')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-        {/* Right side: Results count, Sort, Reset */}
-        <div className="flex items-center gap-4">
+          {/* Product count */}
           <span className="text-sm text-muted-foreground whitespace-nowrap">
             {resultsCount} produit{resultsCount > 1 ? 's' : ''}
           </span>
-          
+        </div>
+
+        {/* Right side: Sort, Quote, Cart */}
+        <div className="flex items-center gap-3">
           <Select value={filters.sortBy} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -84,45 +98,76 @@ const PublicCatalogFilterBar: React.FC<PublicCatalogFilterBarProps> = ({
             </SelectContent>
           </Select>
 
-          {hasActiveFilters && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={resetFilters}
-              className="text-muted-foreground hover:text-foreground"
+          {showQuoteButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRequestQuote}
+              className="text-sm whitespace-nowrap hidden sm:flex"
             >
-              Réinitialiser
+              Demander un devis
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+
+          {showCartButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCartClick}
+              className="relative"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Categories row */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-sm font-medium text-foreground mr-2">Catégories:</span>
-        
-        {/* All categories button */}
-        <Badge
-          variant={filters.selectedCategory === null ? "default" : "outline"}
-          className="cursor-pointer transition-all hover:scale-105"
-          onClick={() => updateFilter('selectedCategory', null)}
-        >
-          Toutes
-        </Badge>
-
-        {/* Category buttons with icons */}
-        {categories.map((category) => (
+      {/* Line 2: Categories and Reset */}
+      <div className="flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm font-medium text-foreground mr-2">Catégories:</span>
+          
+          {/* All categories button */}
           <Badge
-            key={category.name}
-            variant={filters.selectedCategory === category.name ? "default" : "outline"}
-            className="cursor-pointer transition-all hover:scale-105 gap-1"
-            onClick={() => updateFilter('selectedCategory', category.name)}
+            variant={filters.selectedCategory === null ? "default" : "outline"}
+            className="cursor-pointer transition-all hover:scale-105"
+            onClick={() => updateFilter('selectedCategory', null)}
           >
-            <span>{category.icon}</span>
-            {category.label}
-            <span className="text-xs opacity-70">({category.count})</span>
+            Toutes
           </Badge>
-        ))}
+
+          {/* Category buttons with icons */}
+          {categories.map((category) => (
+            <Badge
+              key={category.name}
+              variant={filters.selectedCategory === category.name ? "default" : "outline"}
+              className="cursor-pointer transition-all hover:scale-105 gap-1"
+              onClick={() => updateFilter('selectedCategory', category.name)}
+            >
+              <span>{category.icon}</span>
+              {category.label}
+              <span className="text-xs opacity-70">({category.count})</span>
+            </Badge>
+          ))}
+        </div>
+
+        {/* Reset button */}
+        {hasActiveFilters && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={resetFilters}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Réinitialiser
+          </Button>
+        )}
       </div>
     </div>
   );
