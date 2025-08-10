@@ -63,7 +63,7 @@ import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
 import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
 import InvoiceEditPage from "@/pages/InvoiceEditPage";
-import EnvironmentalDataManager from "@/components/admin/environmental/EnvironmentalDataManager";
+
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
@@ -213,7 +213,6 @@ const AppRoutes = () => (
       <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
       <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
       <Route path="panier" element={<Layout><CartPage /></Layout>} />
-      <Route path="environmental" element={<Layout><EnvironmentalDataManager /></Layout>} />
       
       {/* Unified product form routes - handles both creation and editing */}
       <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />

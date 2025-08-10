@@ -21,8 +21,7 @@ import {
   Package,
   TrendingUp,
   HelpCircle,
-  Mail,
-  Leaf
+  Mail
 } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 import SidebarUserSection from "./SidebarUserSection";
@@ -58,7 +57,6 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       { icon: ClipboardList, label: "Offres", href: `${basePrefix}/admin/offers`, color: "indigo" },
       { icon: Calculator, label: "Factures", href: `${basePrefix}/admin/invoicing`, color: "pink" },
       { icon: Package, label: "Catalogue", href: `${basePrefix}/admin/catalog`, color: "emerald" },
-      { icon: Leaf, label: "Environnement", href: `${basePrefix}/admin/environmental`, color: "green" },
       { icon: Mail, label: "Chat Admin", href: `${basePrefix}/admin/chat`, color: "violet" },
       { icon: Settings, label: "Paramètres", href: `${basePrefix}/admin/settings`, color: "gray" },
     ];

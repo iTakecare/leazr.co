@@ -2,11 +2,12 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Download, Package, Users, Settings } from "lucide-react";
+import { Award, Folder, Download, Package, Users, Settings, Leaf } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import CategoryManager from "@/components/catalog/CategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
 import { ClientCatalogManager } from "@/components/catalog/client-management/ClientCatalogManager";
+import EnvironmentalDataManager from "@/components/admin/environmental/EnvironmentalDataManager";
 
 // Import refactored components
 import CatalogHeader from "@/components/catalog/management/CatalogHeader";
@@ -67,6 +68,10 @@ const CatalogManagement = () => {
             <TabsTrigger value="client-catalogs">
               <Users className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Clients" : <span>Catalogues Clients</span>}
+            </TabsTrigger>
+            <TabsTrigger value="environmental">
+              <Leaf className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Environnement" : <span>Environnement</span>}
             </TabsTrigger>
             <TabsTrigger value="configuration">
               <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
@@ -129,6 +134,10 @@ const CatalogManagement = () => {
 
         <TabsContent value="client-catalogs">
           <ClientCatalogManager />
+        </TabsContent>
+
+        <TabsContent value="environmental">
+          <EnvironmentalDataManager />
         </TabsContent>
 
         <TabsContent value="configuration">
