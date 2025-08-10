@@ -54,8 +54,20 @@ export function useApiKeys() {
     }
 
     try {
+      // First, run diagnostic to check authentication context
+      console.log('🔬 API Key Diagnostic - Running authentication check...');
+      
+      const { data: diagnosticData, error: diagnosticError } = await supabase
+        .rpc('diagnose_api_key_context');
+      
+      console.log('🔬 API Key Diagnostic - Auth context:', {
+        diagnostic: diagnosticData?.[0],
+        diagnosticError: diagnosticError?.message
+      });
+
+      // Try to create API key with enhanced debug function
       const { data, error } = await supabase
-        .rpc('create_api_key_secure', {
+        .rpc('create_api_key_secure_debug', {
           p_name: name,
           p_permissions: {
             products: true,
@@ -69,8 +81,14 @@ export function useApiKeys() {
           }
         });
 
+      console.log('🔬 API Key Creation - Result:', {
+        success: !!data,
+        error: error?.message,
+        debugInfo: data?.[0]?.debug_info
+      });
+
       if (error) {
-        console.error('Error creating API key:', error);
+        console.error('❌ API Key creation failed:', error);
         throw error;
       }
 
@@ -78,7 +96,7 @@ export function useApiKeys() {
       await fetchApiKeys();
       return data?.[0]; // RPC returns an array, get the first item
     } catch (error) {
-      console.error('Error creating API key:', error);
+      console.error('❌ Critical API Key creation error:', error);
       throw error;
     }
   };
