@@ -480,6 +480,66 @@ export type Database = {
           },
         ]
       }
+      category_environmental_data: {
+        Row: {
+          carbon_footprint_reduction_percentage: number | null
+          category_id: string
+          co2_savings_kg: number
+          company_id: string
+          created_at: string
+          energy_savings_kwh: number | null
+          id: string
+          last_updated: string | null
+          source_url: string | null
+          updated_at: string
+          waste_reduction_kg: number | null
+          water_savings_liters: number | null
+        }
+        Insert: {
+          carbon_footprint_reduction_percentage?: number | null
+          category_id: string
+          co2_savings_kg?: number
+          company_id: string
+          created_at?: string
+          energy_savings_kwh?: number | null
+          id?: string
+          last_updated?: string | null
+          source_url?: string | null
+          updated_at?: string
+          waste_reduction_kg?: number | null
+          water_savings_liters?: number | null
+        }
+        Update: {
+          carbon_footprint_reduction_percentage?: number | null
+          category_id?: string
+          co2_savings_kg?: number
+          company_id?: string
+          created_at?: string
+          energy_savings_kwh?: number | null
+          id?: string
+          last_updated?: string | null
+          source_url?: string | null
+          updated_at?: string
+          waste_reduction_kg?: number | null
+          water_savings_liters?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_environmental_data_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_environmental_data_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_agent_status: {
         Row: {
           agent_id: string
