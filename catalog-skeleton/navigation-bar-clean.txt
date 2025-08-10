@@ -1,0 +1,172 @@
+// Clean Navigation Bar for iTakecare Catalog
+// Neutral navigation without branding elements
+
+import React from 'react';
+import { ShoppingCart, Search, Filter, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+
+interface NavigationBarProps {
+  // Search
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  
+  // Cart
+  cartItemsCount: number;
+  onCartClick: () => void;
+  
+  // Filters
+  showMobileFilters: boolean;
+  onToggleMobileFilters: () => void;
+  hasActiveFilters: boolean;
+  onResetFilters: () => void;
+  
+  // Optional company logo
+  companyLogo?: string;
+  companyName?: string;
+}
+
+const NavigationBar: React.FC<NavigationBarProps> = ({
+  searchValue,
+  onSearchChange,
+  cartItemsCount,
+  onCartClick,
+  showMobileFilters,
+  onToggleMobileFilters,
+  hasActiveFilters,
+  onResetFilters,
+  companyLogo,
+  companyName,
+}) => {
+  return (
+    <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo/Brand (optional) */}
+          {(companyLogo || companyName) && (
+            <div className="flex items-center space-x-3">
+              {companyLogo && (
+                <img 
+                  src={companyLogo} 
+                  alt={companyName || 'Logo'} 
+                  className="h-8 w-auto"
+                />
+              )}
+              {companyName && !companyLogo && (
+                <span className="text-xl font-semibold text-gray-900">
+                  {companyName}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Search Bar - Desktop */}
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Rechercher un produit..."
+                value={searchValue}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-10 pr-4 w-full"
+              />
+              {searchValue && (
+                <button
+                  onClick={() => onSearchChange('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center space-x-2">
+            {/* Mobile Search Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => {/* You can implement mobile search toggle */}}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+
+            {/* Mobile Filters Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={onToggleMobileFilters}
+            >
+              <Filter className="h-4 w-4" />
+              {hasActiveFilters && (
+                <Badge variant="destructive" className="ml-1 h-2 w-2 p-0" />
+              )}
+            </Button>
+
+            {/* Reset Filters (when active) */}
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onResetFilters}
+                className="hidden md:flex"
+              >
+                Effacer filtres
+              </Button>
+            )}
+
+            {/* Cart Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCartClick}
+              className="relative"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {cartItemsCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                >
+                  {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                </Badge>
+              )}
+              <span className="hidden sm:ml-2 sm:inline">
+                Panier
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <div className="md:hidden pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Rechercher un produit..."
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-10 pr-10 w-full"
+            />
+            {searchValue && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NavigationBar;

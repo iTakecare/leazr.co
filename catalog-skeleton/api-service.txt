@@ -1,0 +1,151 @@
+// API Service for iTakecare Catalog
+// Handles all API calls to Leazr backend
+
+import { buildUrl, getRequestOptions } from './api-config';
+import { Product, CatalogResponse, Company, ApiError } from './types-catalog';
+
+class ApiService {
+  // Handle API errors
+  private handleApiError(error: any): ApiError {
+    if (error instanceof Error) {
+      return {
+        message: error.message,
+        code: 'NETWORK_ERROR'
+      };
+    }
+    return {
+      message: 'Une erreur inattendue est survenue',
+      code: 'UNKNOWN_ERROR'
+    };
+  }
+
+  // Generic API call method
+  private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    try {
+      const response = await fetch(endpoint, options);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw this.handleApiError(error);
+    }
+  }
+
+  // Get company information by slug
+  async getCompanyBySlug(slug: string): Promise<Company | null> {
+    const url = buildUrl('/company/slug', { slug });
+    const options = getRequestOptions('GET');
+    
+    try {
+      const data = await this.apiCall<Company>(url, options);
+      return data;
+    } catch (error) {
+      console.error('Error fetching company:', error);
+      return null;
+    }
+  }
+
+  // Get public catalog with filters
+  async getPublicCatalog(
+    companySlug: string,
+    filters?: {
+      search?: string;
+      category?: string;
+      brands?: string[];
+      priceRange?: [number, number];
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<CatalogResponse> {
+    const params: Record<string, string> = {
+      company: companySlug,
+    };
+    
+    if (filters) {
+      if (filters.search) params.search = filters.search;
+      if (filters.category) params.category = filters.category;
+      if (filters.brands?.length) params.brands = filters.brands.join(',');
+      if (filters.priceRange) {
+        params.minPrice = filters.priceRange[0].toString();
+        params.maxPrice = filters.priceRange[1].toString();
+      }
+      if (filters.page) params.page = filters.page.toString();
+      if (filters.limit) params.limit = filters.limit.toString();
+    }
+    
+    const url = buildUrl('/catalog/public', params);
+    const options = getRequestOptions('GET');
+    
+    return await this.apiCall<CatalogResponse>(url, options);
+  }
+
+  // Get product by slug
+  async getProductBySlug(companySlug: string, productSlug: string): Promise<Product | null> {
+    const url = buildUrl('/product/slug', { 
+      company: companySlug,
+      slug: productSlug 
+    });
+    const options = getRequestOptions('GET');
+    
+    try {
+      const data = await this.apiCall<Product>(url, options);
+      return data;
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      return null;
+    }
+  }
+
+  // Get product by ID
+  async getProductById(productId: string): Promise<Product | null> {
+    const url = buildUrl(`/product/${productId}`);
+    const options = getRequestOptions('GET');
+    
+    try {
+      const data = await this.apiCall<Product>(url, options);
+      return data;
+    } catch (error) {
+      console.error('Error fetching product by ID:', error);
+      return null;
+    }
+  }
+
+  // Submit cart for quote/order
+  async submitCart(
+    companySlug: string,
+    cartData: {
+      items: any[];
+      customerInfo: {
+        email: string;
+        name: string;
+        company?: string;
+        phone?: string;
+      };
+      type: 'quote' | 'order';
+    }
+  ): Promise<{ success: boolean; id?: string; message?: string }> {
+    const url = buildUrl('/cart/submit');
+    const options = getRequestOptions('POST', {
+      company: companySlug,
+      ...cartData
+    });
+    
+    try {
+      const data = await this.apiCall<{ success: boolean; id?: string; message?: string }>(url, options);
+      return data;
+    } catch (error) {
+      console.error('Error submitting cart:', error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Erreur lors de la soumission' 
+      };
+    }
+  }
+}
+
+// Export singleton instance
+export const apiService = new ApiService();

@@ -1,0 +1,247 @@
+// Cart Context for iTakecare Catalog
+// Manages cart state with localStorage persistence
+
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { CartItem, Product } from './types-catalog';
+import { calculateCartTotal } from './utils-pricing';
+
+interface CartState {
+  items: CartItem[];
+  total: number;
+  isOpen: boolean;
+}
+
+interface CartContextType extends CartState {
+  addItem: (product: Product, quantity?: number, duration?: number, selectedOptions?: Record<string, string>) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  updateDuration: (productId: string, duration: number) => void;
+  clearCart: () => void;
+  toggleCart: () => void;
+  openCart: () => void;
+  closeCart: () => void;
+}
+
+type CartAction =
+  | { type: 'ADD_ITEM'; payload: { product: Product; quantity: number; duration: number; selectedOptions?: Record<string, string> } }
+  | { type: 'REMOVE_ITEM'; payload: string }
+  | { type: 'UPDATE_QUANTITY'; payload: { productId: string; quantity: number } }
+  | { type: 'UPDATE_DURATION'; payload: { productId: string; duration: number } }
+  | { type: 'CLEAR_CART' }
+  | { type: 'TOGGLE_CART' }
+  | { type: 'OPEN_CART' }
+  | { type: 'CLOSE_CART' }
+  | { type: 'LOAD_CART'; payload: CartItem[] };
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+const CART_STORAGE_KEY = 'itakecare-cart';
+
+const cartReducer = (state: CartState, action: CartAction): CartState => {
+  switch (action.type) {
+    case 'ADD_ITEM': {
+      const { product, quantity, duration, selectedOptions } = action.payload;
+      const existingItemIndex = state.items.findIndex(item => 
+        item.product.id === product.id &&
+        JSON.stringify(item.selectedOptions) === JSON.stringify(selectedOptions)
+      );
+
+      let newItems: CartItem[];
+      
+      if (existingItemIndex >= 0) {
+        newItems = state.items.map((item, index) =>
+          index === existingItemIndex
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      } else {
+        const newItem: CartItem = {
+          product,
+          quantity,
+          duration,
+          selectedOptions,
+        };
+        newItems = [...state.items, newItem];
+      }
+
+      const newState = {
+        ...state,
+        items: newItems,
+        total: calculateCartTotal(newItems),
+        isOpen: true,
+      };
+
+      // Save to localStorage
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(newItems));
+      return newState;
+    }
+
+    case 'REMOVE_ITEM': {
+      const newItems = state.items.filter(item => item.product.id !== action.payload);
+      const newState = {
+        ...state,
+        items: newItems,
+        total: calculateCartTotal(newItems),
+      };
+
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(newItems));
+      return newState;
+    }
+
+    case 'UPDATE_QUANTITY': {
+      const { productId, quantity } = action.payload;
+      const newItems = quantity <= 0 
+        ? state.items.filter(item => item.product.id !== productId)
+        : state.items.map(item =>
+            item.product.id === productId
+              ? { ...item, quantity }
+              : item
+          );
+
+      const newState = {
+        ...state,
+        items: newItems,
+        total: calculateCartTotal(newItems),
+      };
+
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(newItems));
+      return newState;
+    }
+
+    case 'UPDATE_DURATION': {
+      const { productId, duration } = action.payload;
+      const newItems = state.items.map(item =>
+        item.product.id === productId
+          ? { ...item, duration }
+          : item
+      );
+
+      const newState = {
+        ...state,
+        items: newItems,
+        total: calculateCartTotal(newItems),
+      };
+
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(newItems));
+      return newState;
+    }
+
+    case 'CLEAR_CART': {
+      localStorage.removeItem(CART_STORAGE_KEY);
+      return {
+        ...state,
+        items: [],
+        total: 0,
+      };
+    }
+
+    case 'TOGGLE_CART':
+      return { ...state, isOpen: !state.isOpen };
+
+    case 'OPEN_CART':
+      return { ...state, isOpen: true };
+
+    case 'CLOSE_CART':
+      return { ...state, isOpen: false };
+
+    case 'LOAD_CART': {
+      const items = action.payload;
+      return {
+        ...state,
+        items,
+        total: calculateCartTotal(items),
+      };
+    }
+
+    default:
+      return state;
+  }
+};
+
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(cartReducer, {
+    items: [],
+    total: 0,
+    isOpen: false,
+  });
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+    if (savedCart) {
+      try {
+        const items = JSON.parse(savedCart);
+        dispatch({ type: 'LOAD_CART', payload: items });
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        localStorage.removeItem(CART_STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  const addItem = (
+    product: Product, 
+    quantity: number = 1, 
+    duration: number = 1,
+    selectedOptions?: Record<string, string>
+  ) => {
+    dispatch({ 
+      type: 'ADD_ITEM', 
+      payload: { product, quantity, duration, selectedOptions } 
+    });
+  };
+
+  const removeItem = (productId: string) => {
+    dispatch({ type: 'REMOVE_ITEM', payload: productId });
+  };
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } });
+  };
+
+  const updateDuration = (productId: string, duration: number) => {
+    dispatch({ type: 'UPDATE_DURATION', payload: { productId, duration } });
+  };
+
+  const clearCart = () => {
+    dispatch({ type: 'CLEAR_CART' });
+  };
+
+  const toggleCart = () => {
+    dispatch({ type: 'TOGGLE_CART' });
+  };
+
+  const openCart = () => {
+    dispatch({ type: 'OPEN_CART' });
+  };
+
+  const closeCart = () => {
+    dispatch({ type: 'CLOSE_CART' });
+  };
+
+  return (
+    <CartContext.Provider
+      value={{
+        ...state,
+        addItem,
+        removeItem,
+        updateQuantity,
+        updateDuration,
+        clearCart,
+        toggleCart,
+        openCart,
+        closeCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+};
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};

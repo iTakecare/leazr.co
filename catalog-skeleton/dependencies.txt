@@ -1,0 +1,212 @@
+# Dépendances NPM pour le catalogue iTakecare
+
+## Dépendances principales requises
+
+```bash
+# React Query pour la gestion des données API
+npm install @tanstack/react-query
+
+# Framer Motion pour les animations
+npm install framer-motion
+
+# Icônes Lucide React
+npm install lucide-react
+
+# React Router (si pas déjà installé)
+npm install react-router-dom
+```
+
+## Composants UI shadcn/ui
+
+```bash
+# Composants de base
+npx shadcn-ui@latest add button
+npx shadcn-ui@latest add card
+npx shadcn-ui@latest add badge
+npx shadcn-ui@latest add input
+npx shadcn-ui@latest add label
+npx shadcn-ui@latest add textarea
+
+# Composants de formulaire
+npx shadcn-ui@latest add checkbox
+npx shadcn-ui@latest add slider
+
+# Composants d'affichage
+npx shadcn-ui@latest add alert
+npx shadcn-ui@latest add separator
+npx shadcn-ui@latest add skeleton
+
+# Composants de dialogue (optionnel)
+npx shadcn-ui@latest add dialog
+npx shadcn-ui@latest add sheet
+```
+
+## Dépendances optionnelles (pour le développement)
+
+```bash
+# React Query DevTools pour le debug
+npm install @tanstack/react-query-devtools
+
+# Types TypeScript pour React Router
+npm install @types/react-router-dom
+```
+
+## Configuration minimale dans package.json
+
+```json
+{
+  "dependencies": {
+    "@tanstack/react-query": "^5.x.x",
+    "framer-motion": "^10.x.x",
+    "lucide-react": "^0.x.x",
+    "react": "^18.x.x",
+    "react-dom": "^18.x.x",
+    "react-router-dom": "^6.x.x"
+  },
+  "devDependencies": {
+    "@tanstack/react-query-devtools": "^5.x.x",
+    "@types/react": "^18.x.x",
+    "@types/react-dom": "^18.x.x",
+    "@types/react-router-dom": "^5.x.x",
+    "typescript": "^5.x.x"
+  }
+}
+```
+
+## Vérifications post-installation
+
+### 1. React Query Provider
+
+Assurez-vous d'avoir le QueryClient configuré :
+
+```typescript
+// App.tsx ou index.tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* Votre application */}
+    </QueryClientProvider>
+  );
+}
+```
+
+### 2. Tailwind CSS
+
+Le catalogue utilise Tailwind CSS. Assurez-vous que votre `tailwind.config.js` inclut :
+
+```javascript
+module.exports = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    // Incluez le dossier du catalogue
+    "./src/catalog/**/*.{js,jsx,ts,tsx}"
+  ],
+  theme: {
+    extend: {
+      // Vos extensions de thème
+    },
+  },
+  plugins: [],
+}
+```
+
+### 3. CSS de base
+
+Assurez-vous d'avoir les styles de base dans votre CSS principal :
+
+```css
+/* globals.css ou index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Styles pour les composants de catalogue */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+```
+
+## Commandes d'installation complètes
+
+### Installation rapide (copier-coller)
+
+```bash
+# Dépendances principales
+npm install @tanstack/react-query framer-motion lucide-react react-router-dom
+
+# Composants shadcn/ui essentiels
+npx shadcn-ui@latest add button card badge input label textarea checkbox slider alert separator skeleton
+
+# Dépendances de développement (optionnel)
+npm install -D @tanstack/react-query-devtools @types/react-router-dom
+```
+
+### Installation pour un nouveau projet
+
+Si vous créez un nouveau projet iTakecare :
+
+```bash
+# Créer le projet React + TypeScript
+npx create-react-app itakecare-catalog --template typescript
+
+# Installer Tailwind CSS
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# Installer shadcn/ui
+npx shadcn-ui@latest init
+
+# Installer les dépendances du catalogue
+npm install @tanstack/react-query framer-motion lucide-react react-router-dom
+
+# Installer les composants UI
+npx shadcn-ui@latest add button card badge input label textarea checkbox slider alert separator skeleton
+```
+
+## Versions compatibles testées
+
+- React: ^18.0.0
+- TypeScript: ^5.0.0
+- @tanstack/react-query: ^5.0.0
+- framer-motion: ^10.0.0
+- lucide-react: ^0.400.0
+- react-router-dom: ^6.0.0
+
+## Notes importantes
+
+1. **React Query** : Obligatoire pour la gestion d'état des données API
+2. **Framer Motion** : Utilisé pour les animations fluides des composants
+3. **Lucide React** : Pour les icônes cohérentes
+4. **shadcn/ui** : Système de composants UI moderne et accessible
+5. **React Router** : Pour la navigation (optionnel si vous gérez la navigation différemment)
+
+Le catalogue est conçu pour avoir des dépendances minimales et être compatible avec la plupart des setups React/TypeScript existants.

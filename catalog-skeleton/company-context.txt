@@ -1,0 +1,75 @@
+// Company Context for iTakecare Catalog
+// Manages company-specific data and settings
+
+import React, { createContext, useContext } from 'react';
+import { Company } from './types-catalog';
+
+interface CompanyContextType {
+  company: Company | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+
+interface CompanyProviderProps {
+  children: React.ReactNode;
+  company: Company | null;
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+export const CompanyProvider: React.FC<CompanyProviderProps> = ({
+  children,
+  company,
+  isLoading = false,
+  error = null,
+}) => {
+  return (
+    <CompanyContext.Provider
+      value={{
+        company,
+        isLoading,
+        error,
+      }}
+    >
+      {children}
+    </CompanyContext.Provider>
+  );
+};
+
+export const useCompany = () => {
+  const context = useContext(CompanyContext);
+  if (context === undefined) {
+    throw new Error('useCompany must be used within a CompanyProvider');
+  }
+  return context;
+};
+
+// Hook to get company-specific styling
+export const useCompanyStyles = () => {
+  const { company } = useCompany();
+  
+  return React.useMemo(() => {
+    if (!company) return {};
+    
+    return {
+      primaryColor: company.primary_color || '#3b82f6',
+      secondaryColor: company.secondary_color || '#64748b',
+      logoUrl: company.logo_url,
+      companyName: company.name,
+    };
+  }, [company]);
+};
+
+// Hook to check if company data is available
+export const useCompanyReady = () => {
+  const { company, isLoading, error } = useCompany();
+  
+  return {
+    isReady: !!company && !isLoading && !error,
+    company,
+    isLoading,
+    error,
+  };
+};

@@ -1,0 +1,271 @@
+# Guide d'intégration - Catalogue iTakecare
+
+Ce guide vous explique comment intégrer le catalogue Leazr dans votre site iTakecare.
+
+## 🚀 Installation
+
+### 1. Dépendances NPM requises
+
+```bash
+npm install @tanstack/react-query framer-motion lucide-react
+```
+
+### 2. Dépendances shadcn/ui
+
+Si vous n'avez pas déjà shadcn/ui configuré :
+
+```bash
+npx shadcn-ui@latest add button card badge input slider checkbox alert separator label textarea
+```
+
+## 📁 Structure des fichiers
+
+Copiez tous les fichiers `.txt` dans votre projet iTakecare :
+
+```
+src/
+├── catalog/
+│   ├── types-catalog.ts          # Types TypeScript
+│   ├── api-config.ts            # Configuration API
+│   ├── api-service.ts           # Service API Leazr
+│   ├── utils-pricing.ts         # Utilitaires prix
+│   ├── hooks-products.ts        # Hooks React Query
+│   ├── cart-context.tsx         # Contexte panier
+│   ├── company-context.tsx      # Contexte entreprise
+│   ├── hook-simplified-filter.tsx  # Hook filtres
+│   ├── navigation-bar-clean.tsx # Navigation
+│   ├── filter-bar-clean.tsx     # Barre de filtres
+│   ├── product-grid.tsx         # Grille produits
+│   ├── product-card.tsx         # Carte produit
+│   ├── catalog-page.tsx         # Page principale
+│   └── cart-page.tsx            # Page panier
+```
+
+## ⚙️ Configuration
+
+### 1. Configuration API (api-config.ts)
+
+Modifiez les URLs pour pointer vers votre API Leazr :
+
+```typescript
+export const API_CONFIG = {
+  BASE_URL: 'https://votre-api-leazr.com/api',  // Remplacez par votre URL
+  ENDPOINTS: {
+    CATALOG: '/catalog',
+    PRODUCTS: '/products',
+    // ... autres endpoints
+  },
+  
+  // Ajoutez vos headers d'authentification si nécessaire
+  HEADERS: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    // 'Authorization': 'Bearer your-api-key',  // Si nécessaire
+  },
+};
+```
+
+### 2. Wrapper React Query
+
+Dans votre App.tsx ou à la racine :
+
+```typescript
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import CatalogMain from './catalog/catalog-page';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* Votre contenu iTakecare existant */}
+      
+      {/* Catalogue intégré */}
+      <CatalogMain companySlug="votre-entreprise-slug" />
+    </QueryClientProvider>
+  );
+}
+```
+
+## 🔧 Intégrations possibles
+
+### Option 1 : Page dédiée
+
+```typescript
+// pages/CatalogPage.tsx
+import CatalogMain from '../catalog/catalog-page';
+
+const CatalogPage = () => {
+  return <CatalogMain companySlug="your-company-slug" />;
+};
+```
+
+### Option 2 : Iframe intégrée
+
+```typescript
+// Composant pour intégrer dans une iframe
+const CatalogIframe = () => {
+  return (
+    <div style={{ width: '100%', height: '100vh' }}>
+      <CatalogMain companySlug="your-company-slug" />
+    </div>
+  );
+};
+```
+
+### Option 3 : Modal/Dialog
+
+```typescript
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import CatalogMain from '../catalog/catalog-page';
+
+const CatalogModal = ({ isOpen, onClose }) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-7xl h-[90vh]">
+        <CatalogMain 
+          companySlug="your-company-slug"
+          onProductSelect={(productId) => {
+            // Gérer la sélection de produit
+            console.log('Product selected:', productId);
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
+```
+
+## 🎨 Personnalisation
+
+### Styles
+
+Le catalogue utilise Tailwind CSS et respecte les tokens de design. Pour personnaliser :
+
+1. **Couleurs** : Modifiez les classes Tailwind dans les composants
+2. **Logo entreprise** : Le logo est automatiquement récupéré depuis l'API
+3. **Thème** : Les couleurs primaires/secondaires sont appliquées automatiquement
+
+### Comportements
+
+```typescript
+// Exemple de personnalisation
+<CatalogMain 
+  companySlug="your-company-slug"
+  onProductSelect={(productId) => {
+    // Redirection personnalisée
+    window.location.href = `/product/${productId}`;
+  }}
+/>
+```
+
+## 📊 API Leazr - Endpoints attendus
+
+Votre API Leazr doit exposer ces endpoints :
+
+### GET /company/slug?slug={companySlug}
+```json
+{
+  "id": "uuid",
+  "name": "Nom entreprise",
+  "slug": "company-slug",
+  "logo_url": "https://...",
+  "primary_color": "#3b82f6",
+  "secondary_color": "#64748b"
+}
+```
+
+### GET /catalog/public?company={companySlug}
+```json
+{
+  "products": [...],
+  "categories": [...],
+  "brands": [...],
+  "total": 150,
+  "page": 1,
+  "totalPages": 10
+}
+```
+
+### GET /product/slug?company={companySlug}&slug={productSlug}
+```json
+{
+  "id": "uuid",
+  "name": "Product Name",
+  "price": 100,
+  "monthly_price": 25,
+  "image_url": "https://...",
+  "brand": "Brand Name",
+  "category": "Category Name",
+  "variants": [...],
+  // ... autres propriétés
+}
+```
+
+### POST /cart/submit
+```json
+{
+  "company": "company-slug",
+  "items": [...],
+  "customerInfo": {...},
+  "type": "quote|order"
+}
+```
+
+## 🔍 Test et Debug
+
+### 1. Vérification des appels API
+
+Ouvrez les DevTools → Network pour vérifier que les appels API sont corrects.
+
+### 2. État du cache React Query
+
+Installez React Query DevTools pour debug :
+
+```bash
+npm install @tanstack/react-query-devtools
+```
+
+```typescript
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+// Dans votre App.tsx
+<ReactQueryDevtools initialIsOpen={false} />
+```
+
+### 3. Logs personnalisés
+
+Le service API inclut des logs console. Vérifiez la console pour les erreurs.
+
+## 🚨 Points d'attention
+
+1. **CORS** : Assurez-vous que votre API Leazr accepte les requêtes depuis votre domaine iTakecare
+2. **Authentication** : Configurez les headers d'auth dans `api-config.ts` si nécessaire
+3. **Cache** : Les données sont mises en cache côté client pour les performances
+4. **Responsive** : Tous les composants sont responsive par défaut
+5. **Persistence panier** : Le panier est sauvegardé en localStorage
+
+## 🎯 Prochaines étapes
+
+1. Copiez les fichiers dans votre projet
+2. Configurez l'API dans `api-config.ts`
+3. Ajoutez le QueryClientProvider
+4. Testez avec votre URL d'entreprise
+5. Personnalisez selon vos besoins
+
+## 🆘 Support
+
+En cas de problème :
+1. Vérifiez la configuration API
+2. Regardez la console pour les erreurs
+3. Testez les endpoints directement
+4. Vérifiez les dépendances NPM
+
+Le catalogue est conçu pour être autonome et s'intégrer facilement dans votre architecture existante.

@@ -1,0 +1,287 @@
+// Main Catalog Page for iTakecare
+// Anonymous public catalog consuming Leazr API
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Import your components
+import { useCompanyBySlug } from './hooks-products';
+import { usePublicSimplifiedFilter } from './hook-simplified-filter';
+import { CartProvider, useCart } from './cart-context';
+import { CompanyProvider } from './company-context';
+import NavigationBar from './navigation-bar-clean';
+import FilterBar from './filter-bar-clean';
+import ProductGrid from './product-grid';
+import CartPage from './cart-page';
+
+// Import API service
+import { apiService } from './api-service';
+
+interface CatalogMainProps {
+  companySlug?: string;
+  onProductSelect?: (productId: string) => void;
+}
+
+const CatalogMain: React.FC<CatalogMainProps> = ({ 
+  companySlug: propCompanySlug,
+  onProductSelect 
+}) => {
+  // Get company slug from props or URL params
+  const { companySlug: urlCompanySlug } = useParams<{ companySlug: string }>();
+  const companySlug = propCompanySlug || urlCompanySlug;
+
+  // State management
+  const [viewMode, setViewMode] = useState<'catalog' | 'cart' | 'product'>('catalog');
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
+  // Company data
+  const { data: company, isLoading: isLoadingCompany, error: companyError } = useCompanyBySlug(companySlug);
+
+  // Filters
+  const {
+    filters,
+    setSearch,
+    setCategory,
+    setBrands,
+    setPriceRange,
+    resetFilters,
+    filteredProducts,
+    categories,
+    brands,
+    hasActiveFilters,
+    resultsCount,
+  } = usePublicSimplifiedFilter(products);
+
+  // Load products from API
+  useEffect(() => {
+    const loadProducts = async () => {
+      if (!companySlug) return;
+      
+      setIsLoadingProducts(true);
+      setProductsError(null);
+      
+      try {
+        const response = await apiService.getPublicCatalog(companySlug);
+        setProducts(response.products || []);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setProductsError('Erreur lors du chargement des produits');
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    loadProducts();
+  }, [companySlug]);
+
+  // Event handlers
+  const handleProductClick = (product: any) => {
+    if (onProductSelect) {
+      onProductSelect(product.id);
+    } else {
+      setSelectedProduct(product.id);
+      setViewMode('product');
+    }
+  };
+
+  const handleCartClick = () => {
+    setViewMode('cart');
+  };
+
+  const handleBackToCatalog = () => {
+    setViewMode('catalog');
+    setSelectedProduct(null);
+  };
+
+  // Loading states
+  if (isLoadingCompany) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error states
+  if (companyError || !company) {
+    return (
+      <div className="max-w-lg mx-auto mt-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {companyError?.message || `Entreprise non trouvée pour le slug: ${companySlug}`}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return (
+    <CompanyProvider company={company}>
+      <CartProvider>
+        <CatalogContent
+          viewMode={viewMode}
+          filteredProducts={filteredProducts}
+          categories={categories}
+          brands={brands}
+          filters={filters}
+          hasActiveFilters={hasActiveFilters}
+          showMobileFilters={showMobileFilters}
+          isLoadingProducts={isLoadingProducts}
+          productsError={productsError}
+          resultsCount={resultsCount}
+          company={company}
+          onProductClick={handleProductClick}
+          onCartClick={handleCartClick}
+          onBackToCatalog={handleBackToCatalog}
+          onSetSearch={setSearch}
+          onSetCategory={setCategory}
+          onSetBrands={setBrands}
+          onSetPriceRange={setPriceRange}
+          onResetFilters={resetFilters}
+          onToggleMobileFilters={() => setShowMobileFilters(!showMobileFilters)}
+          onCloseMobileFilters={() => setShowMobileFilters(false)}
+        />
+      </CartProvider>
+    </CompanyProvider>
+  );
+};
+
+// Separated content component to access cart context
+const CatalogContent: React.FC<any> = ({
+  viewMode,
+  filteredProducts,
+  categories,
+  brands,
+  filters,
+  hasActiveFilters,
+  showMobileFilters,
+  isLoadingProducts,
+  productsError,
+  resultsCount,
+  company,
+  onProductClick,
+  onCartClick,
+  onBackToCatalog,
+  onSetSearch,
+  onSetCategory,
+  onSetBrands,
+  onSetPriceRange,
+  onResetFilters,
+  onToggleMobileFilters,
+  onCloseMobileFilters,
+}) => {
+  const { items } = useCart();
+
+  // Handle window resize for mobile filters
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && showMobileFilters) {
+        onCloseMobileFilters();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [showMobileFilters, onCloseMobileFilters]);
+
+  if (viewMode === 'cart') {
+    return <CartPage onBackToCatalog={onBackToCatalog} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Bar */}
+      <NavigationBar
+        searchValue={filters.search}
+        onSearchChange={onSetSearch}
+        cartItemsCount={items.length}
+        onCartClick={onCartClick}
+        showMobileFilters={showMobileFilters}
+        onToggleMobileFilters={onToggleMobileFilters}
+        hasActiveFilters={hasActiveFilters}
+        onResetFilters={onResetFilters}
+        companyLogo={company.logo_url}
+        companyName={company.name}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex gap-6">
+          {/* Desktop Filters */}
+          <div className="hidden md:block">
+            <FilterBar
+              categories={categories}
+              selectedCategory={filters.category}
+              onCategoryChange={onSetCategory}
+              brands={brands}
+              selectedBrands={filters.brands}
+              onBrandsChange={onSetBrands}
+              priceRange={filters.priceRange}
+              onPriceRangeChange={onSetPriceRange}
+              minPrice={0}
+              maxPrice={1000}
+              hasActiveFilters={hasActiveFilters}
+              onResetFilters={onResetFilters}
+            />
+          </div>
+
+          {/* Mobile Filters Overlay */}
+          {showMobileFilters && (
+            <FilterBar
+              isMobile
+              isOpen={showMobileFilters}
+              onClose={onCloseMobileFilters}
+              categories={categories}
+              selectedCategory={filters.category}
+              onCategoryChange={onSetCategory}
+              brands={brands}
+              selectedBrands={filters.brands}
+              onBrandsChange={onSetBrands}
+              priceRange={filters.priceRange}
+              onPriceRangeChange={onSetPriceRange}
+              minPrice={0}
+              maxPrice={1000}
+              hasActiveFilters={hasActiveFilters}
+              onResetFilters={onResetFilters}
+            />
+          )}
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Results Header */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Catalogue
+              </h1>
+              <p className="text-gray-600">
+                {isLoadingProducts 
+                  ? "Chargement des produits..." 
+                  : `${resultsCount} produit${resultsCount > 1 ? 's' : ''} trouvé${resultsCount > 1 ? 's' : ''}`
+                }
+              </p>
+            </div>
+
+            {/* Products Grid */}
+            <ProductGrid
+              products={filteredProducts}
+              onProductClick={onProductClick}
+              isLoading={isLoadingProducts}
+              error={productsError}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CatalogMain;

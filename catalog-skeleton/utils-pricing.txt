@@ -1,0 +1,101 @@
+// Pricing utilities for iTakecare Catalog
+
+import { Product, VariantCombinationPrice } from './types-catalog';
+
+// Format currency for display
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Get minimum price from product and variants
+export const getMinimumPrice = (product: Product): number => {
+  let minPrice = product.price || 0;
+  
+  if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+    const combinationPrices = product.variant_combination_prices
+      .map(variant => variant.price || 0)
+      .filter(price => price > 0);
+    
+    if (combinationPrices.length > 0) {
+      const minCombinationPrice = Math.min(...combinationPrices);
+      if (minCombinationPrice > 0 && (minPrice === 0 || minCombinationPrice < minPrice)) {
+        minPrice = minCombinationPrice;
+      }
+    }
+  }
+  
+  return minPrice;
+};
+
+// Get minimum monthly price from product and variants
+export const getMinimumMonthlyPrice = (product: Product): number => {
+  let minPrice = product.monthly_price || 0;
+  
+  if (product.variant_combination_prices && product.variant_combination_prices.length > 0) {
+    const combinationPrices = product.variant_combination_prices
+      .map(variant => variant.monthly_price || 0)
+      .filter(price => price > 0);
+    
+    if (combinationPrices.length > 0) {
+      const minCombinationPrice = Math.min(...combinationPrices);
+      if (minCombinationPrice > 0) {
+        minPrice = minCombinationPrice;
+      }
+    }
+  }
+  
+  if (product.variants && product.variants.length > 0 && minPrice === 0) {
+    const variantPrices = product.variants
+      .map(variant => variant.monthly_price || 0)
+      .filter(price => price > 0);
+    
+    if (variantPrices.length > 0) {
+      const minVariantPrice = Math.min(...variantPrices);
+      if (minVariantPrice > 0) {
+        minPrice = minVariantPrice;
+      }
+    }
+  }
+  
+  return minPrice;
+};
+
+// Check if product has variants
+export const hasVariants = (product: Product): boolean => {
+  return (
+    (product.variants && product.variants.length > 0) || 
+    (product.variant_combination_prices && product.variant_combination_prices.length > 0) ||
+    (product.variation_attributes && Object.keys(product.variation_attributes || {}).length > 0)
+  );
+};
+
+// Get variants count
+export const getVariantsCount = (product: Product): number => {
+  if (!hasVariants(product)) return 0;
+  
+  return (
+    product.variants_count || 
+    product.variant_combination_prices?.length || 
+    0
+  );
+};
+
+// Calculate total cart price
+export const calculateCartTotal = (items: any[]): number => {
+  return items.reduce((total, item) => {
+    const itemPrice = item.monthlyPrice || getMinimumMonthlyPrice(item.product);
+    return total + (itemPrice * item.quantity * item.duration);
+  }, 0);
+};
+
+// Check if price should be displayed
+export const shouldShowPrice = (product: Product): boolean => {
+  const price = getMinimumPrice(product);
+  const monthlyPrice = getMinimumMonthlyPrice(product);
+  return price > 0 || monthlyPrice > 0;
+};

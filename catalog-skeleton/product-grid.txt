@@ -1,0 +1,182 @@
+// Product Grid for iTakecare Catalog
+// Displays products in a responsive grid layout
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Package, AlertCircle } from 'lucide-react';
+import { Product } from './types-catalog';
+import ProductCard from './product-card';
+
+interface ProductGridProps {
+  products: Product[];
+  onProductClick: (product: Product) => void;
+  onViewVariants?: (product: Product, e: React.MouseEvent) => void;
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+const ProductGrid: React.FC<ProductGridProps> = ({
+  products,
+  onProductClick,
+  onViewVariants,
+  isLoading = false,
+  error = null,
+}) => {
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {[...Array(8)].map((_, index) => (
+          <div key={index} className="animate-pulse">
+            <div className="bg-gray-200 h-48 rounded-xl mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Erreur lors du chargement
+        </h3>
+        <p className="text-gray-600 max-w-md">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!products || products.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Package className="h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Aucun produit trouvé
+        </h3>
+        <p className="text-gray-600 max-w-md">
+          Aucun produit ne correspond à vos critères de recherche. 
+          Essayez de modifier vos filtres ou votre recherche.
+        </p>
+      </div>
+    );
+  }
+
+  // Products grid
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {products.map((product, index) => (
+        <motion.div
+          key={product.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            duration: 0.3, 
+            delay: index * 0.05,
+            ease: "easeOut"
+          }}
+          whileHover={{ 
+            scale: 1.02,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <ProductCard
+            product={product}
+            onClick={() => onProductClick(product)}
+            onViewVariants={onViewVariants ? (e) => onViewVariants(product, e) : undefined}
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+export default ProductGrid;
+
+// Alternative compact grid component for smaller spaces
+export const CompactProductGrid: React.FC<ProductGridProps> = ({
+  products,
+  onProductClick,
+  onViewVariants,
+  isLoading = false,
+  error = null,
+}) => {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[...Array(10)].map((_, index) => (
+          <div key={index} className="animate-pulse">
+            <div className="bg-gray-200 h-32 rounded-lg mb-2"></div>
+            <div className="space-y-1">
+              <div className="h-3 bg-gray-200 rounded"></div>
+              <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error || !products?.length) {
+    return (
+      <div className="text-center py-8">
+        <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+        <p className="text-sm text-gray-600">
+          {error || 'Aucun produit disponible'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {products.map((product, index) => (
+        <motion.div
+          key={product.id}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ 
+            duration: 0.2, 
+            delay: index * 0.03
+          }}
+          className="cursor-pointer group"
+          onClick={() => onProductClick(product)}
+        >
+          <div className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow">
+            <div className="aspect-square bg-gray-50 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+              {product.image_url ? (
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="object-contain w-full h-full p-2"
+                />
+              ) : (
+                <Package className="h-8 w-8 text-gray-400" />
+              )}
+            </div>
+            <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
+              {product.name}
+            </h4>
+            {(product.monthly_price || product.price) && (
+              <p className="text-xs text-blue-600 font-semibold">
+                {product.monthly_price 
+                  ? `${product.monthly_price}€/mois`
+                  : `${product.price}€`
+                }
+              </p>
+            )}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+};

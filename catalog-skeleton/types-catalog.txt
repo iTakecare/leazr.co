@@ -1,0 +1,91 @@
+// Types for iTakecare Catalog Integration
+// Compatible with Leazr API responses
+
+export interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  price?: number;
+  monthly_price?: number;
+  image_url?: string;
+  brand?: string;
+  category?: string;
+  description?: string;
+  short_description?: string;
+  specifications?: Record<string, any>;
+  active?: boolean;
+  has_variants?: boolean;
+  variants_count?: number;
+  min_variant_price?: number;
+  variant_combination_prices?: VariantCombinationPrice[];
+  variants?: ProductVariant[];
+  variation_attributes?: Record<string, string[]>;
+  selected_attributes?: Record<string, string>;
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  price?: number;
+  monthly_price?: number;
+  image_url?: string;
+  attributes?: Record<string, string>;
+  active?: boolean;
+}
+
+export interface VariantCombinationPrice {
+  id: string;
+  price?: number;
+  monthly_price?: number;
+  attributes: Record<string, string>;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  duration: number;
+  selectedOptions?: Record<string, string>;
+  monthlyPrice?: number;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+}
+
+export interface Category {
+  name: string;
+  translation: string;
+  count: number;
+}
+
+export interface Brand {
+  name: string;
+  count: number;
+}
+
+export interface FilterState {
+  search: string;
+  category: string | null;
+  brands: string[];
+  priceRange: [number, number];
+}
+
+export interface CatalogResponse {
+  products: Product[];
+  categories: Category[];
+  brands: Brand[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: any;
+}

@@ -1,0 +1,141 @@
+// React Hooks for Product Data (iTakecare Catalog)
+// Uses React Query for caching and state management
+
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from './api-service';
+import { Product, CatalogResponse, Company } from './types-catalog';
+
+// Hook to get company by slug
+export const useCompanyBySlug = (slug: string | undefined) => {
+  return useQuery({
+    queryKey: ['company', slug],
+    queryFn: () => apiService.getCompanyBySlug(slug!),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// Hook to get public catalog with filters
+export const usePublicCatalog = (
+  companySlug: string | undefined,
+  filters?: {
+    search?: string;
+    category?: string;
+    brands?: string[];
+    priceRange?: [number, number];
+    page?: number;
+    limit?: number;
+  }
+) => {
+  return useQuery({
+    queryKey: ['public-catalog', companySlug, filters],
+    queryFn: () => apiService.getPublicCatalog(companySlug!, filters),
+    enabled: !!companySlug,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    cacheTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// Hook to get product by slug
+export const useProductBySlug = (
+  companySlug: string | undefined,
+  productSlug: string | undefined
+) => {
+  return useQuery({
+    queryKey: ['product', companySlug, productSlug],
+    queryFn: () => apiService.getProductBySlug(companySlug!, productSlug!),
+    enabled: !!companySlug && !!productSlug,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// Hook to get product by ID
+export const useProductById = (productId: string | undefined) => {
+  return useQuery({
+    queryKey: ['product-by-id', productId],
+    queryFn: () => apiService.getProductById(productId!),
+    enabled: !!productId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// Hook for search with debouncing
+export const useProductSearch = (
+  companySlug: string | undefined,
+  searchTerm: string,
+  debounceMs: number = 300
+) => {
+  const [debouncedSearch, setDebouncedSearch] = React.useState(searchTerm);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, debounceMs);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, debounceMs]);
+
+  return usePublicCatalog(companySlug, {
+    search: debouncedSearch,
+    limit: 20,
+  });
+};
+
+// Hook to prefetch product details
+export const usePrefetchProduct = () => {
+  const queryClient = useQueryClient();
+
+  return React.useCallback((companySlug: string, productSlug: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['product', companySlug, productSlug],
+      queryFn: () => apiService.getProductBySlug(companySlug, productSlug),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient]);
+};
+
+// Custom hook for catalog filters with URL sync
+export const useCatalogFilters = (companySlug: string | undefined) => {
+  const [filters, setFilters] = React.useState({
+    search: '',
+    category: null as string | null,
+    brands: [] as string[],
+    priceRange: [0, 1000] as [number, number],
+  });
+
+  const catalogQuery = usePublicCatalog(companySlug, filters);
+
+  const updateFilter = React.useCallback((key: keyof typeof filters, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  }, []);
+
+  const resetFilters = React.useCallback(() => {
+    setFilters({
+      search: '',
+      category: null,
+      brands: [],
+      priceRange: [0, 1000],
+    });
+  }, []);
+
+  return {
+    filters,
+    updateFilter,
+    resetFilters,
+    catalogQuery,
+    // Computed properties
+    hasActiveFilters: !!(
+      filters.search ||
+      filters.category ||
+      filters.brands.length > 0 ||
+      filters.priceRange[0] > 0 ||
+      filters.priceRange[1] < 1000
+    ),
+  };
+};

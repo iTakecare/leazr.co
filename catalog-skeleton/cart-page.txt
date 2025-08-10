@@ -1,0 +1,355 @@
+// Cart Page for iTakecare Catalog
+// Displays cart items and handles checkout process
+
+import React, { useState } from 'react';
+import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { useCart } from './cart-context';
+import { useCompany } from './company-context';
+import { formatCurrency, calculateCartTotal } from './utils-pricing';
+import { apiService } from './api-service';
+
+interface CartPageProps {
+  onBackToCatalog: () => void;
+}
+
+const CartPage: React.FC<CartPageProps> = ({ onBackToCatalog }) => {
+  const { items, updateQuantity, updateDuration, removeItem, clearCart } = useCart();
+  const { company } = useCompany();
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    email: '',
+    company: '',
+    phone: '',
+    message: ''
+  });
+
+  // Calculate totals
+  const subtotal = calculateCartTotal(items);
+  
+  // Handle form submission
+  const handleSubmit = async (type: 'quote' | 'order') => {
+    if (!customerInfo.name || !customerInfo.email) {
+      setSubmitError('Veuillez remplir les champs obligatoires');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const result = await apiService.submitCart(company?.slug || '', {
+        items: items.map(item => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          duration: item.duration,
+          monthlyPrice: item.monthlyPrice,
+          selectedOptions: item.selectedOptions
+        })),
+        customerInfo,
+        type
+      });
+
+      if (result.success) {
+        setSubmitSuccess(true);
+        clearCart();
+      } else {
+        setSubmitError(result.message || 'Erreur lors de l\'envoi');
+      }
+    } catch (error) {
+      setSubmitError('Erreur lors de l\'envoi de la demande');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Success screen
+  if (submitSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Send className="h-8 w-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Demande envoyée !
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Votre demande a été transmise avec succès. Nous vous contacterons bientôt.
+            </p>
+            <Button onClick={onBackToCatalog} className="w-full">
+              Retour au catalogue
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={onBackToCatalog}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Retour au catalogue
+          </Button>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Panier ({items.length} article{items.length > 1 ? 's' : ''})
+          </h1>
+        </div>
+
+        {/* Empty cart */}
+        {items.length === 0 && (
+          <div className="text-center py-12">
+            <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Votre panier est vide
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Ajoutez des produits pour commencer votre demande
+            </p>
+            <Button onClick={onBackToCatalog}>
+              Parcourir le catalogue
+            </Button>
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Cart Items */}
+            <div className="lg:col-span-2 space-y-4">
+              {items.map((item) => (
+                <Card key={`${item.product.id}-${JSON.stringify(item.selectedOptions)}`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start space-x-4">
+                      {/* Product Image */}
+                      <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
+                        {item.product.image_url ? (
+                          <img
+                            src={item.product.image_url}
+                            alt={item.product.name}
+                            className="w-full h-full object-contain p-2"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingCart className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Info */}
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">
+                          {item.product.name}
+                        </h3>
+                        {item.product.brand && (
+                          <p className="text-sm text-gray-600">{item.product.brand}</p>
+                        )}
+                        
+                        {/* Selected Options */}
+                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                          <div className="mt-2">
+                            {Object.entries(item.selectedOptions).map(([key, value]) => (
+                              <span key={key} className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-2 mb-1">
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Quantity and Duration Controls */}
+                        <div className="flex items-center space-x-4 mt-4">
+                          <div className="flex items-center space-x-2">
+                            <Label className="text-sm">Qté:</Label>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Label className="text-sm">Durée:</Label>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateDuration(item.product.id, Math.max(1, item.duration - 1))}
+                              disabled={item.duration <= 1}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-12 text-center">{item.duration} mois</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateDuration(item.product.id, item.duration + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.product.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">
+                          {formatCurrency((item.monthlyPrice || 0) * item.quantity * item.duration)}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {formatCurrency(item.monthlyPrice || 0)}/mois × {item.quantity} × {item.duration} mois
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Order Summary & Contact Form */}
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Résumé de la commande</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Total:</span>
+                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations de contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Nom complet *</Label>
+                    <Input
+                      id="name"
+                      value={customerInfo.name}
+                      onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={customerInfo.email}
+                      onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="company">Entreprise</Label>
+                    <Input
+                      id="company"
+                      value={customerInfo.company}
+                      onChange={(e) => setCustomerInfo(prev => ({ ...prev, company: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={customerInfo.phone}
+                      onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea
+                      id="message"
+                      value={customerInfo.message}
+                      onChange={(e) => setCustomerInfo(prev => ({ ...prev, message: e.target.value }))}
+                      placeholder="Informations complémentaires..."
+                    />
+                  </div>
+
+                  {submitError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{submitError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => handleSubmit('quote')}
+                      disabled={isSubmitting}
+                      className="w-full"
+                    >
+                      {isSubmitting ? 'Envoi...' : 'Demander un devis'}
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleSubmit('order')}
+                      disabled={isSubmitting}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {isSubmitting ? 'Envoi...' : 'Commander'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CartPage;

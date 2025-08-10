@@ -1,0 +1,194 @@
+// Product Card for iTakecare Catalog
+// Individual product display card
+
+import React, { useState } from 'react';
+import { ChevronRight, Layers, Package } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Product } from './types-catalog';
+import { formatCurrency, hasVariants, getVariantsCount, getMinimumMonthlyPrice, shouldShowPrice } from './utils-pricing';
+
+interface ProductCardProps {
+  product: Product;
+  onClick?: () => void;
+  onViewVariants?: (e: React.MouseEvent) => void;
+  showPurchasePrice?: boolean;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onClick, 
+  onViewVariants,
+  showPurchasePrice = false
+}) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  if (!product) return null;
+  
+  const productHasVariants = hasVariants(product);
+  const variantsCount = getVariantsCount(product);
+  const monthlyPrice = getMinimumMonthlyPrice(product);
+  const hasPrice = shouldShowPrice(product);
+  
+  return (
+    <div 
+      className="h-full overflow-hidden transition-all cursor-pointer border border-gray-200 hover:shadow-lg rounded-xl bg-white hover:border-gray-300" 
+      onClick={onClick}
+    >
+      <div className="flex flex-col h-full">
+        {/* Image Area */}
+        <div className="relative h-48 bg-gray-50 flex items-center justify-center overflow-hidden">
+          {!imageLoaded && !imageError && (
+            <div className="w-full h-full bg-gray-200 animate-pulse" />
+          )}
+          
+          {!imageError && product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name || "Produit"}
+              className={`object-contain w-full h-full p-4 transition-opacity duration-300 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => {
+                console.log(`Failed to load image for ${product.name}`);
+                setImageError(true);
+              }}
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full w-full p-4">
+              <Package className="h-12 w-12 text-gray-300 mb-2" />
+              <span className="text-xs text-gray-400 text-center">
+                {product.name?.slice(0, 2) || "PR"}
+              </span>
+            </div>
+          )}
+          
+          {/* Variants Badge */}
+          {productHasVariants && variantsCount > 0 && (
+            <div className="absolute top-2 right-2">
+              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                <Layers className="h-3 w-3 mr-1" />
+                {variantsCount}
+              </Badge>
+            </div>
+          )}
+        </div>
+        
+        {/* Content Area */}
+        <div className="p-4 flex-1 flex flex-col">
+          {product.brand && (
+            <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">
+              {product.brand}
+            </div>
+          )}
+          
+          <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 flex-1">
+            {product.name || "Produit sans nom"}
+          </h3>
+          
+          {/* Category Badge */}
+          <div className="flex gap-2 mb-3">
+            {product.category && (
+              <Badge variant="outline" className="text-xs">
+                {product.category}
+              </Badge>
+            )}
+          </div>
+          
+          {/* Price and Actions */}
+          <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+            <div className="flex-1">
+              {monthlyPrice > 0 ? (
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-blue-600">
+                    {productHasVariants ? "À partir de " : ""}
+                    {formatCurrency(monthlyPrice)}
+                    <span className="text-gray-500 font-normal text-xs"> /mois</span>
+                  </span>
+                </div>
+              ) : hasPrice && showPurchasePrice ? (
+                <div className="text-sm font-semibold text-gray-900">
+                  {productHasVariants ? "À partir de " : ""}
+                  {formatCurrency(product.price || 0)}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">Prix sur demande</div>
+              )}
+            </div>
+            
+            {/* View Variants Button */}
+            {productHasVariants && onViewVariants && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs p-2 h-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewVariants(e);
+                }}
+              >
+                Configs
+                <ChevronRight className="h-3 w-3 ml-1" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProductCard;
+
+// Compact version for lists or smaller spaces
+export const CompactProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onClick 
+}) => {
+  const monthlyPrice = getMinimumMonthlyPrice(product);
+  
+  return (
+    <div 
+      className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex-shrink-0 w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="object-contain w-full h-full p-2"
+          />
+        ) : (
+          <Package className="h-6 w-6 text-gray-400" />
+        )}
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-gray-900 truncate">
+          {product.name}
+        </h4>
+        {product.brand && (
+          <p className="text-xs text-gray-500 truncate">{product.brand}</p>
+        )}
+        {monthlyPrice > 0 && (
+          <p className="text-xs text-blue-600 font-semibold">
+            {formatCurrency(monthlyPrice)}/mois
+          </p>
+        )}
+      </div>
+      
+      {hasVariants(product) && (
+        <div className="flex-shrink-0">
+          <Badge variant="outline" className="text-xs">
+            <Layers className="h-3 w-3 mr-1" />
+            {getVariantsCount(product)}
+          </Badge>
+        </div>
+      )}
+    </div>
+  );
+};
