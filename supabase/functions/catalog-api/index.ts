@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const pathParts = url.pathname.split('/').filter(Boolean)
     
     // Expected format: /functions/v1/catalog-api/v1/{companyId}/{endpoint} or /catalog-api/v1/{companyId}/{endpoint}
-    let version, companyId, endpoint, subPaths
+    let version, companyIdOrSlug, endpoint, subPaths
     
     // Check if called via /functions/v1/catalog-api/...
     if (pathParts[0] === 'functions' && pathParts[1] === 'v1' && pathParts[2] === 'catalog-api') {
