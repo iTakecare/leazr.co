@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { getCompanySlugForUser } from "@/services/companySlugService";
 
 const CatalogApiSettings = () => {
   const { companyId } = useMultiTenant();
@@ -34,8 +35,20 @@ const CatalogApiSettings = () => {
   const [testApiKey, setTestApiKey] = React.useState('');
   const [testResult, setTestResult] = React.useState<any>(null);
   const [testLoading, setTestLoading] = React.useState(false);
+  const [companySlug, setCompanySlug] = React.useState<string | null>(null);
 
-  const baseApiUrl = `${window.location.origin}/functions/v1/catalog-api/v1/${companyId}`;
+  // Get company slug on component mount
+  React.useEffect(() => {
+    const fetchCompanySlug = async () => {
+      const slug = await getCompanySlugForUser();
+      setCompanySlug(slug);
+    };
+    fetchCompanySlug();
+  }, []);
+
+  const baseApiUrl = companySlug 
+    ? `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/${companySlug}`
+    : '';
 
   const handleCreateApiKey = async () => {
     const keyName = prompt("Nom de la clé API:");
@@ -212,7 +225,7 @@ const CatalogApiSettings = () => {
     }
   ];
 
-  if (loading) {
+  if (loading || !companySlug) {
     return <div className="p-4">Chargement...</div>;
   }
 
