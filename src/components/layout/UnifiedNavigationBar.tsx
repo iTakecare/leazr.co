@@ -1,9 +1,8 @@
 import React from "react";
-import { Link, useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { ShoppingCart, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import Logo from "@/components/layout/Logo";
 import { useCart } from "@/context/CartContext";
 import { SearchWithSuggestions } from "@/components/catalog/public/SearchWithSuggestions";
 import PublicCatalogFilterBar from "@/components/catalog/public/PublicCatalogFilterBar";
@@ -115,33 +114,11 @@ const UnifiedNavigationBar: React.FC<UnifiedNavigationBarProps> = ({
 
   return (
     <div className={cn("bg-white border-b border-gray-200 sticky top-0 z-50", className)}>
-      {/* Main navigation bar */}
+      {/* Main navigation bar - Single line with search, quote, and cart */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo and company name */}
-          <Link 
-            to="/" 
-            className="text-xl font-bold text-[#33638E] flex items-center group flex-shrink-0"
-          >
-            {company?.logo_url ? (
-              <img 
-                src={company.logo_url} 
-                alt={company.name || "Logo entreprise"} 
-                className="h-10 w-10 mr-3 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-            ) : (
-              <Logo variant="avatar" logoSize="md" showText={false} className="mr-3 transition-transform duration-300 group-hover:scale-110" />
-            )}
-            <span className="bg-gradient-to-r from-[#33638E] to-[#48b5c3] bg-clip-text text-transparent hidden sm:block">
-              {company?.name || "iTakecare"}
-            </span>
-          </Link>
-          
-          {/* Search bar - center on desktop, hidden on mobile when filters shown */}
-          <div className={cn(
-            "flex-1 max-w-2xl mx-6",
-            showFilters ? "hidden lg:block" : "hidden sm:block"
-          )}>
+        <div className="flex items-center gap-4 h-16">
+          {/* Search bar - takes most of the space */}
+          <div className="flex-1 max-w-3xl">
             <SearchWithSuggestions />
           </div>
           
@@ -152,7 +129,7 @@ const UnifiedNavigationBar: React.FC<UnifiedNavigationBarProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleQuoteClick}
-                className="text-sm whitespace-nowrap hidden md:flex"
+                className="text-sm whitespace-nowrap hidden sm:flex"
               >
                 Demander un devis
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -180,7 +157,7 @@ const UnifiedNavigationBar: React.FC<UnifiedNavigationBarProps> = ({
         </div>
       </div>
       
-      {/* Filters section - only shown when enabled */}
+      {/* Categories and filters section - Second line */}
       {showFilters && filters && updateFilter && resetFilters && categories && (
         <div className="border-t border-gray-100">
           <div className="container mx-auto px-4">
@@ -192,15 +169,6 @@ const UnifiedNavigationBar: React.FC<UnifiedNavigationBarProps> = ({
               hasActiveFilters={hasActiveFilters}
               resultsCount={resultsCount}
             />
-          </div>
-        </div>
-      )}
-      
-      {/* Mobile search - shown when filters are enabled */}
-      {showFilters && (
-        <div className="border-t border-gray-100 lg:hidden">
-          <div className="container mx-auto px-4 py-3">
-            <SearchWithSuggestions />
           </div>
         </div>
       )}
