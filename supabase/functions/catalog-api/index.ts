@@ -28,15 +28,29 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(Boolean)
     
-    // Expected format: /catalog-api/v1/{companyId}/{endpoint}
-    if (pathParts.length < 3) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid API path' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Expected format: /functions/v1/catalog-api/v1/{companyId}/{endpoint} or /catalog-api/v1/{companyId}/{endpoint}
+    let version, companyId, endpoint, subPaths
+    
+    // Check if called via /functions/v1/catalog-api/...
+    if (pathParts[0] === 'functions' && pathParts[1] === 'v1' && pathParts[2] === 'catalog-api') {
+      // Format: /functions/v1/catalog-api/v1/{companyId}/{endpoint}
+      if (pathParts.length < 6) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid API path' }), 
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      [, , , version, companyId, endpoint, ...subPaths] = pathParts
+    } else {
+      // Direct format: /catalog-api/v1/{companyId}/{endpoint}
+      if (pathParts.length < 4) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid API path' }), 
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      [, version, companyId, endpoint, ...subPaths] = pathParts
     }
-
-    const [, version, companyId, endpoint, ...subPaths] = pathParts
     
     if (version !== 'v1') {
       return new Response(
