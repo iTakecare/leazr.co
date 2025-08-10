@@ -8,15 +8,24 @@ import ProductImage from "./product/ProductImage";
 import ProductInfo from "./product/ProductInfo";
 import ProductPricing from "./product/ProductPricing";
 import VariantIndicator from "./product/VariantIndicator";
+import CO2Badge from "@/components/ui/environmental/CO2Badge";
+import { useCO2Calculator } from "@/hooks/environmental/useCO2Calculator";
 
 interface ProductCardProps {
   product: Product;
   onClick?: () => void;
   onViewVariants?: (e: React.MouseEvent) => void;
+  showCO2Badge?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVariants }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVariants, showCO2Badge = false }) => {
   if (!product) return null;
+  
+  // Calculate CO2 savings if badge is enabled
+  const co2Result = useCO2Calculator({
+    category: product.category,
+    quantity: 1
+  });
   
   // Check if the product has variants
   const hasVariants = 
@@ -55,10 +64,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, onViewVaria
   
   return (
     <Card 
-      className="h-full overflow-hidden hover:shadow-md transition-all cursor-pointer border rounded-xl bg-white" 
+      className="h-full overflow-hidden hover:shadow-md transition-all cursor-pointer border rounded-xl bg-white relative" 
       onClick={onClick}
     >
       <CardContent className="p-0">
+        {showCO2Badge && co2Result.co2Kg > 0 && (
+          <CO2Badge
+            co2Kg={co2Result.co2Kg}
+            size="small"
+            position="top-right"
+            hasRealData={co2Result.hasRealData}
+            carKilometers={co2Result.carKilometers}
+            className="z-10"
+          />
+        )}
         <div className="flex flex-col md:flex-row">
           <ProductImage product={product} />
           

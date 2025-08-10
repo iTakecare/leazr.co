@@ -8,10 +8,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Package } from "lucide-react";
+import { Edit, Trash2, Package, Leaf } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { useBulkCO2Calculator } from "@/hooks/environmental/useBulkCO2Calculator";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -25,6 +26,14 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   readOnly = false,
 }) => {
   const { navigateToAdmin } = useRoleNavigation();
+  
+  // Calculate CO2 data for all products at once
+  const { products: co2Results, isLoading: co2Loading } = useBulkCO2Calculator({
+    products: products.map(p => ({
+      id: p.id,
+      category: p.category
+    }))
+  });
 
   const handleDeleteProduct = (productId: string, productName: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer "${productName}" ?`)) {
@@ -70,6 +79,12 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                         {hasVariants && (
                           <Badge variant="secondary" className="text-xs">
                             {existingVariantsCount} variante{existingVariantsCount > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                        {co2Results[product.id] && co2Results[product.id].co2Kg > 0 && (
+                          <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                            <Leaf className="h-3 w-3 mr-1" />
+                            -{co2Results[product.id].co2Kg} kg CO2
                           </Badge>
                         )}
                       </div>

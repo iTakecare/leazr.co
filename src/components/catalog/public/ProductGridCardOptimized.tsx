@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/types/catalog";
 import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
+import CO2Badge from "@/components/ui/environmental/CO2Badge";
+import { useCO2Calculator } from "@/hooks/environmental/useCO2Calculator";
 
 
 interface ProductGridCardProps {
@@ -10,24 +12,15 @@ interface ProductGridCardProps {
   onClick: () => void;
 }
 
-const getCO2Savings = (category: string | undefined): number => {
-  if (!category) return 0;
-  
-  switch (category.toLowerCase()) {
-    case "laptop":
-    case "desktop":
-      return 170;
-    case "smartphone":
-      return 45;
-    case "tablet":
-      return 87;
-    default:
-      return 0;
-  }
-};
 
 const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ product, onClick }) => {
   const [hasError, setHasError] = useState(false);
+  
+  // Calculate CO2 savings using the real environmental data
+  const co2Result = useCO2Calculator({
+    category: product.category,
+    quantity: 1
+  });
 
   // Optimized image URL without timestamps
   const imageUrl = useMemo(() => {
@@ -69,7 +62,6 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
   }, [product.category]);
 
   const hasVariants = product.has_variants;
-  const co2Savings = getCO2Savings(product.category);
   const brandLabel = product.brand || "Generic";
   
   // Optimized pricing with minimum variant price
@@ -106,13 +98,14 @@ const ProductGridCardOptimized: React.FC<ProductGridCardProps> = React.memo(({ p
           </div>
         )}
         
-        {co2Savings > 0 && (
-          <div className="absolute top-2 right-2 z-10">
-            <div className="bg-gradient-to-r from-[#33638e] to-[#4ab6c4] text-white text-xs px-3 py-1.5 rounded-full flex items-center shadow-sm">
-              <span className="mr-1.5 text-sm">🍃</span>
-              <span className="font-medium">-{co2Savings} kg CO2</span>
-            </div>
-          </div>
+        {co2Result.co2Kg > 0 && (
+          <CO2Badge
+            co2Kg={co2Result.co2Kg}
+            size="small"
+            position="top-right"
+            hasRealData={co2Result.hasRealData}
+            carKilometers={co2Result.carKilometers}
+          />
         )}
       </div>
       

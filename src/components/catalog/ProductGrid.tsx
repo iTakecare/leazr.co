@@ -9,9 +9,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProductGridProps {
   products: Product[];
+  showCO2Badges?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, showCO2Badges = true }) => {
   const isMobile = useIsMobile();
   
   const itemVariants = {
@@ -58,7 +59,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
             to={`/products/${product.id}`}
             className="block h-full"
           >
-            <ProductCard product={product} />
+            <ProductCard product={product} showCO2Badge={showCO2Badges} />
           </Link>
         </motion.div>
       ))}
