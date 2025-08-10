@@ -20,6 +20,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('🚀 CATALOG API REQUEST:', {
+      method: req.method,
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries())
+    })
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -28,29 +34,43 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(Boolean)
     
+    console.log('📝 URL PARSING:', {
+      pathname: url.pathname,
+      pathParts: pathParts,
+      searchParams: Object.fromEntries(url.searchParams.entries())
+    })
+    
     // Expected format: /functions/v1/catalog-api/v1/{companyId}/{endpoint} or /catalog-api/v1/{companyId}/{endpoint}
     let version, companyIdOrSlug, endpoint, subPaths
+    
+    console.log('🔍 PATH ANALYSIS:', { pathParts })
     
     // Check if called via /functions/v1/catalog-api/...
     if (pathParts[0] === 'functions' && pathParts[1] === 'v1' && pathParts[2] === 'catalog-api') {
       // Format: /functions/v1/catalog-api/v1/{companyId}/{endpoint}
+      console.log('📡 USING FUNCTIONS PATH FORMAT')
       if (pathParts.length < 6) {
+        console.error('❌ INVALID PATH LENGTH FOR FUNCTIONS FORMAT:', pathParts.length)
         return new Response(
-          JSON.stringify({ error: 'Invalid API path' }), 
+          JSON.stringify({ error: 'Invalid API path', expected: '/functions/v1/catalog-api/v1/{companyId}/{endpoint}', received: pathParts }), 
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       [, , , version, companyIdOrSlug, endpoint, ...subPaths] = pathParts
     } else {
       // Direct format: /catalog-api/v1/{companyId}/{endpoint}
+      console.log('📡 USING DIRECT PATH FORMAT')
       if (pathParts.length < 4) {
+        console.error('❌ INVALID PATH LENGTH FOR DIRECT FORMAT:', pathParts.length)
         return new Response(
-          JSON.stringify({ error: 'Invalid API path' }), 
+          JSON.stringify({ error: 'Invalid API path', expected: '/catalog-api/v1/{companyId}/{endpoint}', received: pathParts }), 
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       [, version, companyIdOrSlug, endpoint, ...subPaths] = pathParts
     }
+    
+    console.log('✅ PARSED PARAMETERS:', { version, companyIdOrSlug, endpoint, subPaths })
     
     if (version !== 'v1') {
       return new Response(
@@ -86,7 +106,15 @@ Deno.serve(async (req) => {
 
     // Verify API key
     const apiKey = req.headers.get('x-api-key')
+    console.log('🔑 API KEY CHECK:', { 
+      hasApiKey: !!apiKey, 
+      apiKeyLength: apiKey?.length,
+      apiKeyPrefix: apiKey?.substring(0, 8) + '...',
+      companyId 
+    })
+    
     if (!apiKey) {
+      console.error('❌ NO API KEY PROVIDED')
       return new Response(
         JSON.stringify({ error: 'API key required' }), 
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -94,6 +122,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate API key and get permissions
+    console.log('🔍 VALIDATING API KEY:', { apiKey: apiKey.substring(0, 8) + '...', companyId })
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
       .select('id, company_id, permissions, is_active')
@@ -102,9 +131,16 @@ Deno.serve(async (req) => {
       .eq('is_active', true)
       .single() as { data: ApiKeyRecord | null, error: any }
 
+    console.log('🔐 API KEY VALIDATION RESULT:', { 
+      hasData: !!keyData, 
+      error: keyError?.message,
+      keyData: keyData ? { id: keyData.id, company_id: keyData.company_id, is_active: keyData.is_active } : null
+    })
+
     if (keyError || !keyData) {
+      console.error('❌ INVALID API KEY:', { keyError, keyData })
       return new Response(
-        JSON.stringify({ error: 'Invalid API key' }), 
+        JSON.stringify({ error: 'Invalid API key', details: keyError?.message }), 
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -116,6 +152,7 @@ Deno.serve(async (req) => {
       .eq('id', keyData.id)
 
     // Handle different endpoints
+    console.log('🎯 HANDLING ENDPOINT:', { endpoint, companyId })
     let data: any
     let error: any
 
@@ -142,7 +179,9 @@ Deno.serve(async (req) => {
         break
 
       case 'categories':
+        console.log('📂 FETCHING CATEGORIES for company:', companyId)
         data = await getCategories(supabaseAdmin, companyId, keyData.permissions)
+        console.log('📂 CATEGORIES RESULT:', data)
         break
 
       case 'brands':
@@ -310,10 +349,18 @@ async function getProductCO2(supabase: any, companyId: string, productId: string
 }
 
 async function getCategories(supabase: any, companyId: string, permissions: any) {
-  const { data: categories } = await supabase
+  console.log('📂 GET CATEGORIES - Starting with companyId:', companyId)
+  
+  const { data: categories, error: categoriesError } = await supabase
     .from('categories')
     .select('*')
     .eq('company_id', companyId)
+
+  console.log('📂 GET CATEGORIES - Query result:', { 
+    categoriesCount: categories?.length, 
+    error: categoriesError?.message,
+    categories: categories?.slice(0, 2) // First 2 categories for debugging
+  })
 
   return { categories }
 }
