@@ -34,7 +34,7 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
       try {
         setLoading(true);
         const products = await getUpsellProducts(companyId, productId, category, brand);
-        setUpsellProducts(products.slice(0, 4)); // Limit to 4 products
+        setUpsellProducts(products.slice(0, 5)); // Limit to 5 products for better variety
       } catch (error) {
         console.error('Error fetching upsell products:', error);
       } finally {
@@ -56,7 +56,7 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
   const scrollLeft = () => {
     if (!scrollContainerRef.current) return;
     scrollContainerRef.current.scrollBy({
-      left: -260, // Card width (240px) + gap (16px) 
+      left: -208, // Card width (192px) + gap (16px) 
       behavior: 'smooth'
     });
   };
@@ -64,7 +64,7 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
   const scrollRight = () => {
     if (!scrollContainerRef.current) return;
     scrollContainerRef.current.scrollBy({
-      left: 260, // Card width (240px) + gap (16px)
+      left: 208, // Card width (192px) + gap (16px)
       behavior: 'smooth'
     });
   };
@@ -99,10 +99,10 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
         <div className="max-w-7xl mx-auto px-4">
           <div className="animate-pulse">
             <div className="h-6 bg-muted rounded-lg w-80 mb-4"></div>
-            <div className="flex gap-4 overflow-hidden">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex-shrink-0 w-60">
-                  <div className="bg-muted rounded-xl h-64"></div>
+            <div className="flex gap-3 overflow-hidden">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex-shrink-0 w-48">
+                  <div className="bg-muted rounded-xl h-40"></div>
                 </div>
               ))}
             </div>
@@ -161,12 +161,12 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
 
           <div 
             ref={scrollContainerRef}
-            className="flex gap-4 overflow-x-auto pb-4 scroll-smooth scrollbar-hide px-8"
+            className="flex gap-3 overflow-x-auto pb-4 scroll-smooth scrollbar-hide px-8"
           >
             {upsellProducts.map((product, index) => (
               <div
                 key={product.id}
-                className="group flex-shrink-0 w-60 bg-card rounded-2xl border border-border/50 hover:border-primary/30 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2 animate-fade-in overflow-hidden"
+                className="group flex-shrink-0 w-48 bg-card rounded-xl border border-border/50 hover:border-primary/30 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in overflow-hidden"
                 style={{ animationDelay: `${index * 150}ms` }}
               >
                 {/* Product Badge */}
@@ -177,44 +177,44 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
                 </div>
 
                 {/* Product Image */}
-                <div className="relative h-32 bg-gradient-to-br from-muted/50 to-muted overflow-hidden">
+                <div className="relative h-20 bg-gradient-to-br from-muted/30 to-muted/50 overflow-hidden">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
                       alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="h-16 w-16 text-muted-foreground/50" />
+                      <Package className="h-8 w-8 text-muted-foreground/40" />
                     </div>
                   )}
                   
                   {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
                 
                 {/* Product Content */}
-                <div className="p-4">
+                <div className="p-3">
                   {/* Brand */}
                   {product.brand && (
-                    <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">
+                    <p className="text-xs font-medium text-primary/70 uppercase tracking-wide mb-1">
                       {product.brand}
                     </p>
                   )}
                   
                   {/* Product Name */}
-                  <h3 className="font-semibold text-foreground text-base mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-300 leading-tight">
+                  <h3 className="font-semibold text-foreground text-sm mb-2 line-clamp-2 group-hover:text-primary transition-colors duration-300 leading-tight">
                     {product.name}
                   </h3>
                   
                   {/* Price */}
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-primary">
+                      <span className="text-lg font-bold text-primary">
                         {formatCurrency(product.monthly_price || 0)}
                       </span>
-                      <span className="text-sm text-muted-foreground font-medium">
+                      <span className="text-xs text-muted-foreground font-medium">
                         /mois
                       </span>
                     </div>
@@ -223,11 +223,11 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
                   {/* Action Button */}
                   <Button
                     onClick={() => addToCartHandler(product)}
-                    className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105 font-semibold"
-                    size="lg"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-colors duration-300 font-medium text-xs"
+                    size="sm"
                   >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Ajouter au panier
+                    <ShoppingCart className="h-3 w-3 mr-1" />
+                    Ajouter
                   </Button>
                 </div>
               </div>
