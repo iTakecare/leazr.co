@@ -49,36 +49,25 @@ export function useApiKeys() {
   };
 
   const createApiKey = async (name: string) => {
-    if (!user || !companyId) {
-      throw new Error('User not authenticated or company not found');
+    if (!user) {
+      throw new Error('User not authenticated');
     }
 
     try {
-      // Generate a secure API key
-      const apiKey = generateApiKey();
-
       const { data, error } = await supabase
-        .from('api_keys')
-        .insert([
-          {
-            name,
-            api_key: apiKey,
-            company_id: companyId,
-            created_by: user.id,
-            permissions: {
-              products: true,
-              categories: true,
-              brands: true,
-              packs: true,
-              environmental: true,
-              images: true,
-              attributes: true,
-              specifications: true
-            }
+        .rpc('create_api_key_secure', {
+          p_name: name,
+          p_permissions: {
+            products: true,
+            categories: true,
+            brands: true,
+            packs: true,
+            environmental: true,
+            images: true,
+            attributes: true,
+            specifications: true
           }
-        ])
-        .select()
-        .single();
+        });
 
       if (error) {
         console.error('Error creating API key:', error);
@@ -87,7 +76,7 @@ export function useApiKeys() {
 
       // Refresh the list
       await fetchApiKeys();
-      return data;
+      return data?.[0]; // RPC returns an array, get the first item
     } catch (error) {
       console.error('Error creating API key:', error);
       throw error;
@@ -145,16 +134,4 @@ export function useApiKeys() {
     updateApiKey,
     refetch: fetchApiKeys
   };
-}
-
-// Generate a secure API key
-function generateApiKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'lzr_'; // Prefix for Leazr API keys
-  
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  
-  return result;
 }

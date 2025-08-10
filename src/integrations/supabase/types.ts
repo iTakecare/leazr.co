@@ -5083,6 +5083,21 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      create_api_key_secure: {
+        Args: { p_name: string; p_permissions?: Json }
+        Returns: {
+          id: string
+          name: string
+          api_key: string
+          permissions: Json
+          is_active: boolean
+          last_used_at: string
+          created_at: string
+          updated_at: string
+          company_id: string
+          created_by: string
+        }[]
+      }
       create_categories_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
