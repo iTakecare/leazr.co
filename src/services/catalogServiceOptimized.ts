@@ -456,8 +456,8 @@ const complementaryMapping: Record<string, { include: string[], exclude: string[
   
   // ========== ORDINATEURS PORTABLES ==========
   'MacBook': {
-    include: ['souris', 'mouse', 'housse MacBook', 'hub', 'support laptop', 'dock', 'accessoires MacBook', 'clavier externe', 'écran externe'],
-    exclude: ['iPad', 'iPhone', 'desktop', 'tablette']
+    include: ['souris', 'mouse', 'housse MacBook', 'hub', 'support laptop', 'dock', 'accessoires MacBook', 'clavier externe', 'clavier USB', 'clavier sans fil', 'écran externe'],
+    exclude: ['iPad', 'iPhone', 'desktop', 'tablette', 'Smart', 'Pro', 'clavier iPad', 'Magic Keyboard']
   },
   'laptop': {
     include: ['souris', 'mouse', 'housse laptop', 'hub', 'support laptop', 'dock', 'accessoires laptop', 'clavier externe', 'écran externe'],
@@ -474,8 +474,8 @@ const complementaryMapping: Record<string, { include: string[], exclude: string[
   
   // ========== ORDINATEURS FIXES ==========
   'iMac': {
-    include: ['clavier', 'souris', 'mouse', 'écran externe', 'hub', 'support', 'accessoires iMac', 'dock'],
-    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette']
+    include: ['clavier externe', 'clavier USB', 'clavier sans fil', 'souris', 'mouse', 'écran externe', 'hub', 'support', 'accessoires iMac', 'dock'],
+    exclude: ['iPad', 'iPhone', 'MacBook', 'laptop', 'tablette', 'Smart', 'Pro', 'clavier iPad', 'Magic Keyboard']
   },
   'Mac mini': {
     include: ['clavier', 'souris', 'mouse', 'écran', 'hub', 'support', 'accessoires Mac', 'dock'],
@@ -522,8 +522,8 @@ const complementaryMapping: Record<string, { include: string[], exclude: string[
     exclude: ['smartphone', 'iPhone', 'mobile']
   },
   'clavier': {
-    include: ['souris', 'mouse', 'support poignet', 'nettoyant', 'hub', 'repose-poignet'],
-    exclude: ['smartphone', 'iPhone', 'mobile', 'iPad']
+    include: ['souris', 'mouse', 'support poignet', 'nettoyant', 'hub', 'repose-poignet', 'tapis souris'],
+    exclude: ['smartphone', 'iPhone', 'mobile', 'iPad', 'tablette', 'Smart', 'Pro']
   },
   'keyboard': {
     include: ['souris', 'mouse', 'support poignet', 'nettoyant', 'hub', 'repose-poignet'],
