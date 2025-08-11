@@ -274,6 +274,7 @@ async function getProducts(supabase: any, companyId: string, permissions: any, s
     `)
     .eq('company_id', companyId)
     .eq('active', true)
+    .or("admin_only.is.null,admin_only.eq.false")
 
   // Apply filters
   const category = searchParams.get('category')
@@ -308,6 +309,7 @@ async function getProduct(supabase: any, companyId: string, productId: string, p
     .eq('company_id', companyId)
     .eq('id', productId)
     .eq('active', true)
+    .or("admin_only.is.null,admin_only.eq.false")
     .single()
 
   return { product }
@@ -343,6 +345,7 @@ async function getRelatedProducts(supabase: any, companyId: string, productId: s
     .eq('category_id', product.category_id)
     .neq('id', productId)
     .eq('active', true)
+    .or("admin_only.is.null,admin_only.eq.false")
     .limit(6)
 
   return { products: relatedProducts }
@@ -493,6 +496,7 @@ async function searchCatalog(supabase: any, companyId: string, permissions: any,
     `)
     .eq('company_id', companyId)
     .eq('active', true)
+    .or("admin_only.is.null,admin_only.eq.false")
     .or(`name.ilike.%${query}%, description.ilike.%${query}%`)
     .limit(20)
 
