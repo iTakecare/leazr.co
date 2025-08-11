@@ -1,4 +1,35 @@
-# Welcome to your Lovable project
+# iTakecare Catalog - Plateforme de Gestion avec Impact Environnemental
+
+Plateforme complète de gestion de catalogues produits avec calcul automatique d'économies CO2 et impact environnemental.
+
+## Fonctionnalités Environnementales
+
+### 🌱 Calcul d'impact CO2 en temps réel
+- **16 catégories** pré-configurées avec données environnementales réelles
+- **Calcul automatique** des économies carbone par produit/pack
+- **Équivalences visuelles** : distance en voiture, absorption d'arbres
+- **Sources multiples** : Base de données propriétaire + fallback impactco2.fr
+
+### 📊 Données environnementales disponibles
+| Catégorie | CO2 économisé | Source |
+|-----------|---------------|---------|
+| Serveurs | 300 kg | Database |
+| Laptops/Desktops | 170 kg | Database |
+| Tablettes | 87 kg | Database |
+| Écrans | 85 kg | Database |
+| Smartphones | 45 kg | Database |
+
+### 🛠️ Interface d'administration
+- **Onglet Environnement** intégré à la gestion du catalogue
+- **Modification en temps réel** des valeurs CO2
+- **Gestion des sources** de données environnementales
+- **Visualisation** données réelles vs estimées
+
+## Documentation Technique
+
+- 📖 [API Environnementale](docs/environmental-api.md) - Endpoints et services CO2
+- 🧩 [Composants CO2](docs/co2-components.md) - Composants React et hooks
+- 🔧 [Guide d'intégration](catalog-skeleton/integration-guide.txt) - Configuration personnalisée
 
 ## Project info
 

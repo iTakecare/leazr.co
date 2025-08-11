@@ -1,0 +1,198 @@
+# Guide d'Intégration - Données Environnementales iTakecare
+
+## Configuration des Endpoints CO2
+
+### 1. Configuration Supabase
+Assurez-vous que votre base de données contient la table `category_environmental_data` :
+
+```sql
+-- Structure de la table environnementale
+CREATE TABLE category_environmental_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category_id UUID REFERENCES categories(id),
+  co2_savings_kg NUMERIC NOT NULL,
+  carbon_footprint_reduction_percentage NUMERIC,
+  energy_savings_kwh NUMERIC,
+  water_savings_liters NUMERIC,
+  waste_reduction_kg NUMERIC,
+  source_url TEXT,
+  last_updated TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  company_id UUID REFERENCES companies(id) NOT NULL
+);
+```
+
+### 2. Edge Functions
+Les edge functions suivantes doivent être déployées :
+
+- `/environmental/categories` - Données environnementales par catégorie
+- `/categories` - Catégories avec impact environnemental intégré  
+- `/environmental/products/{productId}` - CO2 spécifique par produit
+
+### 3. Services Configuration
+Dans `src/services/catalogService.ts`, configurez les endpoints :
+
+```typescript
+// Endpoints environnementaux
+export const getEnvironmentalData = async (companySlug: string): Promise<EnvironmentalApiResponse> => {
+  const { data, error } = await supabase.functions.invoke('environmental-categories', {
+    body: { company_slug: companySlug }
+  });
+  
+  if (error) throw new Error(`Environmental data fetch failed: ${error.message}`);
+  return data;
+};
+```
+
+### 4. Hooks Configuration
+Les hooks sont pré-configurés avec cache React Query :
+
+```typescript
+// Configuration du cache optimisée
+const { data, isLoading } = useEnvironmentalData(companySlug, {
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  gcTime: 10 * 60 * 1000,   // 10 minutes
+});
+```
+
+## Personnalisation des Calculs CO2
+
+### 1. Modification des Mappings de Catégories
+Dans `src/utils/co2Utils.ts`, personnalisez les mappings :
+
+```typescript
+const mappings: Record<string, string> = {
+  // Ajoutez vos propres mappings
+  'votre_categorie': 'laptop',
+  'categorie_custom': 'server',
+};
+```
+
+### 2. Valeurs de Fallback Personnalisées
+Modifiez les valeurs par défaut dans `getFallbackCO2Data()` :
+
+```typescript
+const fallbackValues: Record<string, number> = {
+  'votre_categorie': 150, // kg CO2 économisés
+  'categorie_speciale': 250,
+};
+```
+
+### 3. Calcul des Équivalences
+Personnalisez les équivalences dans `calculateCO2Equivalents()` :
+
+```typescript
+return {
+  carKilometers: Math.round(co2Kg * 6), // Modifiez le facteur
+  treeMonths: Math.round(co2Kg / 20),   // Ajustez selon vos critères
+};
+```
+
+## Intégration des Composants
+
+### 1. Cards Produit avec CO2
+```typescript
+import { CO2Badge } from '@/components/environmental/CO2Badge';
+
+<ProductCard>
+  <CO2Badge 
+    co2Kg={productCO2} 
+    size="small"
+    position="top-right"
+  />
+</ProductCard>
+```
+
+### 2. Interface d'Administration
+```typescript
+// Dans votre page d'admin
+import EnvironmentalDataManager from '@/components/admin/environmental/EnvironmentalDataManager';
+
+<Tabs>
+  <TabsContent value="environmental">
+    <EnvironmentalDataManager />
+  </TabsContent>
+</Tabs>
+```
+
+### 3. Calculs Bulk pour Performance
+```typescript
+// Pour de gros catalogues, utilisez le calcul en masse
+const { products, packs } = useBulkCO2Calculator({
+  products: largeProductArray,
+  packs: largePackArray,
+  companySlug
+});
+```
+
+## Optimisations Performance
+
+### 1. Cache Strategies
+```typescript
+// Cache long terme pour données stables
+useEnvironmentalData(companySlug, {
+  staleTime: 30 * 60 * 1000, // 30 minutes
+  gcTime: 2 * 60 * 60 * 1000, // 2 heures
+});
+```
+
+### 2. Lazy Loading
+```typescript
+// Chargement conditionnel des données CO2
+const { data: co2Data } = useEnvironmentalData(
+  companySlug,
+  { enabled: shouldShowCO2 }
+);
+```
+
+### 3. Batch Requests
+Utilisez `useBulkCO2Calculator` au lieu de multiples `useCO2Calculator` pour optimiser les requêtes.
+
+## Données de Test
+
+### 1. Seed Data iTakecare
+```sql
+-- Données de test pour iTakecare
+INSERT INTO category_environmental_data (category_id, co2_savings_kg, company_id) VALUES
+((SELECT id FROM categories WHERE name = 'laptop'), 170, 'your_company_id'),
+((SELECT id FROM categories WHERE name = 'server'), 300, 'your_company_id'),
+((SELECT id FROM categories WHERE name = 'smartphone'), 45, 'your_company_id');
+```
+
+### 2. Tests des Composants
+```typescript
+// Tests unitaires recommandés
+describe('CO2Calculator', () => {
+  it('should calculate correct CO2 savings', () => {
+    const result = useCO2Calculator({ category: 'laptop', quantity: 2 });
+    expect(result.co2Kg).toBe(340);
+  });
+});
+```
+
+## Déploiement
+
+### 1. Variables d'Environnement
+Aucune variable d'environnement spécifique requise. Le système utilise la configuration Supabase existante.
+
+### 2. Migration Base de Données
+Exécutez les migrations Supabase pour créer les tables environnementales.
+
+### 3. Vérification Post-Déploiement
+- ✅ Vérifiez que les endpoints retournent des données
+- ✅ Testez l'affichage des badges CO2
+- ✅ Confirmez le cache React Query
+- ✅ Validez les calculs d'équivalences
+
+## Support et Maintenance
+
+### Monitoring
+- Surveillez les erreurs de fallback
+- Vérifiez la performance du cache React Query
+- Contrôlez l'exactitude des calculs CO2
+
+### Mise à Jour des Données
+- Utilisez l'interface d'administration pour modifier les valeurs CO2
+- Synchronisez régulièrement avec les sources externes (impactco2.fr)
+- Maintenez la cohérence des mappings de catégories
