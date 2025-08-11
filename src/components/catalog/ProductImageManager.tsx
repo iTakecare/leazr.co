@@ -13,10 +13,11 @@ import {
   AlertCircle 
 } from "lucide-react";
 import { toast } from "sonner";
-import { uploadImage } from "@/utils/imageUtils";
+import { uploadImage, generateProductImagePath } from "@/utils/imageUtils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProduct } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductImage {
   id: string;
@@ -38,7 +39,27 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
 }) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [companyId, setCompanyId] = useState<string>("");
   const queryClient = useQueryClient();
+
+  // Get company ID from user profile
+  useEffect(() => {
+    const getCompanyId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id);
+        }
+      }
+    };
+    getCompanyId();
+  }, []);
 
   // Initialize images from product
   useEffect(() => {
@@ -99,7 +120,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
         const uploadedUrl = await uploadImage(
           imageData.file,
           "product-images",
-          `products/${product.id}/`
+          generateProductImagePath(companyId, product.id)
         );
 
         if (uploadedUrl) {
@@ -205,7 +226,7 @@ const ProductImageManager: React.FC<ProductImageManagerProps> = ({
       const uploadedUrl = await uploadImage(
         image.file,
         "product-images",
-        `products/${product.id}/`
+        generateProductImagePath(companyId, product.id)
       );
 
       if (uploadedUrl) {

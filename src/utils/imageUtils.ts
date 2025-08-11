@@ -7,10 +7,18 @@ import { uploadImage as uploadImageService, getCacheBustedUrl as getCacheBustedU
  */
 export async function uploadImage(
   file: File,
-  bucketName: string = "blog-images",
+  bucketName: string = "product-images",
   folderPath: string = ""
 ): Promise<string | null> {
   return uploadImageService(file, bucketName, folderPath);
+}
+
+/**
+ * Generate RLS-compliant folder path for product images
+ * Format: company-{company_id}/products/{product_id}/
+ */
+export function generateProductImagePath(companyId: string, productId: string): string {
+  return `company-${companyId}/products/${productId}/`;
 }
 
 // Function to get a cache-busted URL for images
