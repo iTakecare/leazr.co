@@ -290,15 +290,21 @@ const CatalogApiSettings = () => {
     },
     {
       method: 'GET',
-      path: 'products/{id}/co2',
-      description: 'Impact environnemental du produit',
-      example: '{ "co2_impact": { "value": 2.5, "unit": "kg CO2eq" } }'
+      path: 'environmental/products/{id}',
+      description: 'Données environnementales d\'un produit spécifique',
+      example: '{ "product": { "product_id": "prod_123", "category_name": "laptop", "co2_savings_kg": 170, "environmental_data": { "id": "env_123", "co2_savings_kg": 170, "source_url": "https://impactco2.fr" }, "calculation_method": "category_based" } }'
+    },
+    {
+      method: 'GET',
+      path: 'environmental/categories',
+      description: 'Données environnementales par catégorie de produit',
+      example: '{ "environmental_categories": [{ "id": "env_123", "category": { "id": "cat_456", "name": "laptop", "translation": "Ordinateurs portables" }, "co2_savings_kg": 170, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "water_savings_liters": 50, "waste_reduction_kg": 5, "source_url": "https://impactco2.fr", "last_updated": "2024-01-15T10:30:00Z" }] }'
     },
     {
       method: 'GET',
       path: 'categories',
-      description: 'Liste des catégories avec traductions',
-      example: '{ "categories": [{ "name": "electronics", "translation": "Électronique" }] }'
+      description: 'Liste des catégories avec traductions et données environnementales intégrées',
+      example: '{ "categories": [{ "id": "cat_456", "name": "laptop", "translation": "Ordinateurs portables", "company_id": "comp_789", "co2_savings_kg": 170, "environmental_impact": { "id": "env_123", "co2_savings_kg": 170, "source_url": "https://impactco2.fr" } }] }'
     },
     {
       method: 'GET',
@@ -328,8 +334,8 @@ const CatalogApiSettings = () => {
     {
       method: 'GET',
       path: 'environmental',
-      description: 'Données environnementales globales',
-      example: '{ "environmental": { "co2_saved": 1000, "devices_count": 500 } }'
+      description: 'Données environnementales globales avec statistiques consolidées',
+      example: '{ "environmental_categories": [{ "id": "env_123", "category": { "name": "laptop", "translation": "Ordinateurs portables" }, "co2_savings_kg": 170, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "water_savings_liters": 50, "waste_reduction_kg": 5, "source_url": "https://impactco2.fr" }] }'
     },
     {
       method: 'GET',
@@ -497,6 +503,19 @@ const CatalogApiSettings = () => {
                   <strong>URL de base:</strong> <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{baseApiUrl}</code><br/>
                   <strong>Note:</strong> L'API utilise le slug de l'entreprise ({companySlug}) dans l'URL au lieu de l'UUID pour une meilleure lisibilité.
                 </p>
+              </div>
+              
+              <div className="bg-green-50 border border-green-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-green-900 mb-2">🌱 Nouveaux endpoints environnementaux</h4>
+                <p className="text-sm text-green-700 mb-2">
+                  L'API inclut maintenant des données CO2 complètes avec équivalences automatiques :
+                </p>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>• <strong>1 kg CO2 ≈ 6 km en voiture</strong> (calcul basé sur émissions moyennes)</li>
+                  <li>• <strong>1 kg CO2 ≈ 20 kg absorbés par arbre/mois</strong> (capacité d'absorption moyenne)</li>
+                  <li>• Sources : Base de données iTakecare + fallback impactco2.fr</li>
+                  <li>• Données disponibles : économies eau, énergie, déchets selon la catégorie</li>
+                </ul>
               </div>
             </CardHeader>
             <CardContent>
