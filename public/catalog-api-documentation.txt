@@ -65,10 +65,33 @@ PERMISSIONS PAR CLÉ API :
 - images: Accès aux images
 
 ===========================================
-   3. ENDPOINTS DE L'API
+   3. SÉCURITÉ ET FILTRAGE
 ===========================================
 
-## 3.1 INFORMATIONS ENTREPRISE
+FILTRAGE AUTOMATIQUE DES PRODUITS ADMIN :
+- L'API publique filtre automatiquement les produits marqués avec `admin_only: true`
+- Seuls les produits avec `admin_only: false` ou `admin_only: null` sont exposés
+- Ce filtrage s'applique à tous les endpoints publics de produits :
+  * GET /products (liste des produits)
+  * GET /products/{id} (produit spécifique) 
+  * GET /products/{id}/related (produits associés)
+  * GET /search (recherche de produits)
+
+SÉCURITÉ :
+- Les produits admin ne génèrent pas d'erreur 404, ils sont simplement exclus
+- Le filtrage est transparent pour les développeurs utilisant l'API
+- Aucune configuration supplémentaire requise côté client
+
+IMPORTANT :
+- Cette mesure de sécurité protège les produits internes/sensibles
+- Les comptes d'entreprises peuvent utiliser `admin_only: true` pour masquer certains produits du catalogue public
+- Le filtrage est appliqué au niveau de la base de données pour une sécurité optimale
+
+===========================================
+   4. ENDPOINTS DE L'API
+===========================================
+
+## 4.1 INFORMATIONS ENTREPRISE
 ```
 GET /catalog-api/v1/{companySlug}/company
 ```
@@ -98,13 +121,14 @@ RÉPONSE :
 }
 ```
 
-## 3.2 PRODUITS
+## 4.2 PRODUITS
 ```
 GET /catalog-api/v1/{companySlug}/products
 ```
 
-DESCRIPTION : Liste tous les produits actifs
+DESCRIPTION : Liste tous les produits actifs et publics (filtre automatique admin_only)
 PERMISSIONS : products
+SÉCURITÉ : Les produits avec admin_only=true sont automatiquement exclus
 
 PARAMÈTRES DE REQUÊTE :
 - category : Filtrer par nom de catégorie
@@ -159,13 +183,14 @@ RÉPONSE :
 }
 ```
 
-## 3.3 PRODUIT SPÉCIFIQUE
+## 4.3 PRODUIT SPÉCIFIQUE
 ```
 GET /catalog-api/v1/{companySlug}/products/{productId}
 ```
 
-DESCRIPTION : Détails d'un produit spécifique
+DESCRIPTION : Détails d'un produit spécifique (uniquement produits publics)
 PERMISSIONS : products
+SÉCURITÉ : Retourne 404 si le produit a admin_only=true
 
 RÉPONSE :
 ```json
@@ -186,7 +211,7 @@ RÉPONSE :
 }
 ```
 
-## 3.4 VARIANTS D'UN PRODUIT
+## 4.4 VARIANTS D'UN PRODUIT
 ```
 GET /catalog-api/v1/{companySlug}/products/{productId}/variants
 ```
@@ -214,14 +239,15 @@ RÉPONSE :
 }
 ```
 
-## 3.5 PRODUITS ASSOCIÉS
+## 4.5 PRODUITS ASSOCIÉS
 ```
 GET /catalog-api/v1/{companySlug}/products/{productId}/related
 ```
 
-DESCRIPTION : Produits de la même catégorie
+DESCRIPTION : Produits de la même catégorie (uniquement produits publics)
 PERMISSIONS : products
 LIMITE : 6 produits maximum
+SÉCURITÉ : Exclut automatiquement les produits admin_only
 
 RÉPONSE :
 ```json
@@ -238,7 +264,7 @@ RÉPONSE :
 }
 ```
 
-## 3.6 IMPACT CO2 PRODUIT
+## 4.6 IMPACT CO2 PRODUIT
 ```
 GET /catalog-api/v1/{companySlug}/products/{productId}/co2
 ```
@@ -351,14 +377,15 @@ RÉPONSE :
 }
 ```
 
-## 3.11 RECHERCHE
+## 4.11 RECHERCHE
 ```
 GET /catalog-api/v1/{companySlug}/search?q=macbook
 ```
 
-DESCRIPTION : Recherche dans nom et description
+DESCRIPTION : Recherche dans nom et description (uniquement produits publics)
 PERMISSIONS : products
-LIMITE : 20 résultats maximum
+LIMITE : 20 résultats maximum  
+SÉCURITÉ : Exclut automatiquement les produits admin_only de la recherche
 
 PARAMÈTRES :
 - q : Terme de recherche (requis)
