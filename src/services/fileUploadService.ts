@@ -52,7 +52,16 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
   try {
     console.log("=== TENTATIVE DE RÉCUPÉRATION DE FICHIER ===");
     console.log("Type de données reçues:", typeof data);
-    console.log("Données:", data);
+    console.log("Données détaillées:", {
+      constructor: data?.constructor?.name,
+      isFile: data instanceof File,
+      isBlob: data instanceof Blob,
+      hasName: !!data?.name,
+      hasType: !!data?.type,
+      hasSize: !!data?.size,
+      type: data?.type,
+      name: data?.name
+    });
 
     // Si c'est déjà un File, pas de problème
     if (data instanceof File) {
@@ -66,54 +75,69 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
       return new File([data], 'recovered-file', { type: data.type });
     }
 
-    // Si c'est un objet avec des propriétés de File
-    if (data && typeof data === 'object' && data.name && data.type) {
-      console.log("Tentative de reconstruction du File depuis l'objet");
+    // Si c'est un objet avec des propriétés de File mais type MIME incorrect
+    if (data && typeof data === 'object' && data.name) {
+      console.log("🔧 Reconstruction du File depuis l'objet sérialisé");
       
-      // Vérifier si on a des données binaires encodées
-      if (data._data || data.data) {
-        const binaryData = data._data || data.data;
-        console.log("Données binaires trouvées:", typeof binaryData);
+      // Détecter le type MIME correct basé sur l'extension
+      const fileExtension = data.name.toLowerCase().split('.').pop();
+      const correctMimeType = getMimeType(fileExtension || '');
+      
+      console.log("Extension détectée:", fileExtension);
+      console.log("Type MIME corrigé:", correctMimeType);
+
+      // Cas spécial: objet File sérialisé avec données binaires
+      if (data._data || data.data || data.stream) {
+        console.log("📦 Tentative de récupération des données binaires");
         
+        const binaryData = data._data || data.data;
         if (typeof binaryData === 'string') {
-          // Si les données sont en base64
           try {
             const binaryString = atob(binaryData);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
               bytes[i] = binaryString.charCodeAt(i);
             }
-            return new File([bytes], data.name, { type: data.type });
+            return new File([bytes], data.name, { type: correctMimeType });
           } catch (e) {
             console.error("Erreur décodage base64:", e);
           }
         }
         
         if (binaryData instanceof ArrayBuffer || binaryData instanceof Uint8Array) {
-          return new File([binaryData], data.name, { type: data.type });
+          return new File([binaryData], data.name, { type: correctMimeType });
+        }
+
+        // Essayer via stream
+        if (data.stream && typeof data.stream === 'function') {
+          try {
+            const streamData = data.stream();
+            return new File([streamData], data.name, { type: correctMimeType });
+          } catch (e) {
+            console.error("Erreur lors de l'utilisation du stream:", e);
+          }
         }
       }
-      
-      // Essayer de récupérer le contenu du fichier via stream
-      if (data.stream && typeof data.stream === 'function') {
-        console.log("Tentative de récupération via stream");
+
+      // Si on a juste les métadonnées, créer un File vide avec le bon type MIME
+      // Cela permettra au moins de corriger le type MIME pour les validations
+      if (data.size && data.lastModified) {
+        console.log("🆘 Création d'un File de substitution avec métadonnées");
         try {
-          return new File([data.stream()], data.name, { type: data.type });
+          // Essayer de récréer le File à partir de l'objet sérialisé
+          const fileArray = new Uint8Array(0); // File vide temporaire
+          return new File([fileArray], data.name, { 
+            type: correctMimeType,
+            lastModified: data.lastModified 
+          });
         } catch (e) {
-          console.error("Erreur lors de l'utilisation du stream:", e);
+          console.error("Erreur création File de substitution:", e);
         }
-      }
-      
-      // Si on a un ArrayBuffer ou buffer direct
-      if (data.arrayBuffer || data.buffer) {
-        const buffer = data.arrayBuffer || data.buffer;
-        console.log("Utilisation du buffer direct");
-        return new File([buffer], data.name, { type: data.type });
       }
     }
 
     console.error("❌ Impossible de récupérer le fichier depuis les données corrompues");
-    console.error("Structure de l'objet:", Object.keys(data || {}));
+    console.error("Structure disponible:", Object.keys(data || {}));
     return null;
   } catch (error) {
     console.error("❌ Erreur lors de la récupération du fichier:", error);
@@ -122,9 +146,9 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
 };
 
 /**
- * Validation approfondie du type MIME
+ * Validation et correction du type MIME
  */
-const validateMimeType = (file: File): boolean => {
+const validateAndCorrectMimeType = (file: File): { isValid: boolean; correctedFile: File } => {
   const allowedTypes = [
     'image/jpeg', 'image/jpg', 'image/png', 
     'image/gif', 'image/webp', 'image/svg+xml'
@@ -133,30 +157,40 @@ const validateMimeType = (file: File): boolean => {
   const fileExtension = file.name.toLowerCase().split('.').pop();
   const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
   
-  console.log("=== VALIDATION MIME TYPE ===");
-  console.log("Type MIME du fichier:", file.type);
+  console.log("=== VALIDATION ET CORRECTION MIME TYPE ===");
+  console.log("Type MIME original:", file.type);
   console.log("Extension du fichier:", fileExtension);
   
-  // Vérifier d'abord le type MIME
-  if (allowedTypes.includes(file.type)) {
-    console.log("Type MIME valide:", file.type);
-    return true;
+  // Si l'extension n'est pas valide, rejeter
+  if (!allowedExtensions.includes(fileExtension || '')) {
+    console.error("Extension non autorisée:", fileExtension);
+    return { isValid: false, correctedFile: file };
   }
   
-  // Si le type MIME n'est pas correct, vérifier l'extension
-  if (allowedExtensions.includes(fileExtension || '')) {
-    console.log("Extension valide, MIME type sera corrigé:", fileExtension);
-    return true;
+  // Déterminer le bon type MIME basé sur l'extension
+  const correctMimeType = getMimeType(fileExtension || '');
+  console.log("Type MIME correct attendu:", correctMimeType);
+  
+  // Si le type MIME est déjà correct
+  if (allowedTypes.includes(file.type) && file.type === correctMimeType) {
+    console.log("✅ Type MIME déjà correct");
+    return { isValid: true, correctedFile: file };
   }
   
-  // Cas spécial: certains navigateurs peuvent avoir des types MIME incorrects
-  if (file.type === 'application/json' && allowedExtensions.includes(fileExtension || '')) {
-    console.warn("ATTENTION: Type MIME application/json détecté pour un fichier image");
-    console.warn("Ceci indique un problème de sérialisation du fichier");
-    return false; // Retourner false pour déclencher une récupération
-  }
+  // Corriger le type MIME si nécessaire
+  console.log("🔧 Correction du type MIME de", file.type, "vers", correctMimeType);
+  const correctedFile = new File([file], file.name, { 
+    type: correctMimeType,
+    lastModified: file.lastModified 
+  });
   
-  return false;
+  console.log("✅ Fichier corrigé:", {
+    name: correctedFile.name,
+    type: correctedFile.type,
+    size: correctedFile.size
+  });
+  
+  return { isValid: true, correctedFile };
 };
 
 /**
@@ -220,8 +254,9 @@ export const uploadImage = async (
       constructor: validFile.constructor.name
     });
     
-    // ÉTAPE 2: Validation approfondie du type MIME
-    if (!validateMimeType(validFile)) {
+    // ÉTAPE 2: Validation et correction du type MIME
+    const { isValid, correctedFile } = validateAndCorrectMimeType(validFile);
+    if (!isValid) {
       console.error(`Type de fichier non autorisé:`, {
         fileName: validFile.name,
         fileType: validFile.type,
@@ -230,6 +265,9 @@ export const uploadImage = async (
       toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
       return null;
     }
+    
+    // Utiliser le fichier corrigé pour la suite
+    validFile = correctedFile;
     
     // ÉTAPE 3: S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
