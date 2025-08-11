@@ -279,75 +279,75 @@ const CatalogApiSettings = () => {
     {
       method: 'GET',
       path: 'products/{id}/variants',
-      description: 'Variants d\'un produit (couleurs, tailles, etc.)',
-      example: '{ "variants": [{ "attributes": {"color": "red"}, "price": 110 }] }'
+      description: 'Variants et combinaisons de prix d\'un produit',
+      example: '{ "variants": [{ "id": "var_123", "product_id": "prod_123", "attributes": { "color": "red", "size": "large" }, "price": 299.99, "monthly_price": 25.99, "stock": 10 }] }'
     },
     {
       method: 'GET',
       path: 'products/{id}/related',
-      description: 'Produits associés/recommandés',
-      example: '{ "products": [...] }'
+      description: 'Produits associés de la même catégorie',
+      example: '{ "products": [{ "id": "prod_456", "name": "Laptop similaire", "price": 899, "category": { "name": "laptop", "translation": "Ordinateurs portables" }, "brand": { "name": "Dell", "translation": "Dell" } }] }'
     },
     {
       method: 'GET',
-      path: 'environmental/products/{id}',
-      description: 'Données environnementales d\'un produit spécifique',
-      example: '{ "product": { "product_id": "prod_123", "category_name": "laptop", "co2_savings_kg": 170, "environmental_data": { "id": "env_123", "co2_savings_kg": 170, "source_url": "https://impactco2.fr" }, "calculation_method": "category_based" } }'
+      path: 'products/{id}/co2',
+      description: 'Données CO2 d\'un produit spécifique',
+      example: '{ "co2_impact": { "value": 170, "unit": "kg CO2eq", "calculation_date": "2024-01-15T10:30:00Z", "category": { "name": "laptop", "translation": "Ordinateurs portables" }, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "source_url": "https://impactco2.fr" } }'
     },
     {
       method: 'GET',
       path: 'environmental/categories',
-      description: 'Données environnementales par catégorie de produit',
+      description: 'Données environnementales détaillées par catégorie',
       example: '{ "environmental_categories": [{ "id": "env_123", "category": { "id": "cat_456", "name": "laptop", "translation": "Ordinateurs portables" }, "co2_savings_kg": 170, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "water_savings_liters": 50, "waste_reduction_kg": 5, "source_url": "https://impactco2.fr", "last_updated": "2024-01-15T10:30:00Z" }] }'
     },
     {
       method: 'GET',
       path: 'categories',
-      description: 'Liste des catégories avec traductions et données environnementales intégrées',
-      example: '{ "categories": [{ "id": "cat_456", "name": "laptop", "translation": "Ordinateurs portables", "company_id": "comp_789", "co2_savings_kg": 170, "environmental_impact": { "id": "env_123", "co2_savings_kg": 170, "source_url": "https://impactco2.fr" } }] }'
+      description: 'Liste des catégories avec données environnementales intégrées',
+      example: '{ "categories": [{ "id": "cat_456", "name": "laptop", "translation": "Ordinateurs portables", "company_id": "comp_789", "co2_savings_kg": 170, "environmental_impact": { "co2_savings_kg": 170, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "source_url": "https://impactco2.fr", "last_updated": "2024-01-15T10:30:00Z" } }] }'
     },
     {
       method: 'GET',
       path: 'brands',
-      description: 'Liste des marques avec métadonnées',
-      example: '{ "brands": [{ "name": "apple", "website_url": "..." }] }'
+      description: 'Liste des marques avec traductions',
+      example: '{ "brands": [{ "id": "brand_123", "name": "Dell", "translation": "Dell", "logo": "https://...", "description": "Fabricant d\'ordinateurs" }] }'
     },
     {
       method: 'GET',
       path: 'packs',
-      description: 'Liste des packs de produits',
-      example: '{ "packs": [...] }'
+      description: 'Liste des packs de produits disponibles',
+      example: '{ "packs": [{ "id": "pack_123", "name": "Pack Bureau Complet", "is_active": true, "company_id": "comp_789", "created_at": "2024-01-15T10:30:00Z" }] }'
     },
     {
       method: 'GET',
       path: 'packs/{id}',
-      description: 'Détail d\'un pack spécifique',
-      example: '{ "pack": { "id": "...", "name": "...", "items": [...] } }'
+      description: 'Détails d\'un pack spécifique',
+      example: '{ "pack": { "id": "pack_123", "name": "Pack Bureau Complet", "description": "Pack complet pour équiper un bureau", "is_active": true, "total_price": 1299.99, "items": [...] } }'
     },
     {
       method: 'GET',
       path: 'search',
-      description: 'Recherche dans le catalogue',
+      description: 'Recherche dans le catalogue par nom ou description',
       params: '?q=ordinateur',
-      example: '{ "products": [...] }'
+      example: '{ "products": [{ "id": "prod_123", "name": "Laptop Dell", "description": "Ordinateur portable professionnel", "category": { "name": "laptop", "translation": "Ordinateurs portables" }, "brand": { "name": "Dell", "translation": "Dell" } }] }'
     },
     {
       method: 'GET',
       path: 'environmental',
-      description: 'Données environnementales globales avec statistiques consolidées',
-      example: '{ "environmental_categories": [{ "id": "env_123", "category": { "name": "laptop", "translation": "Ordinateurs portables" }, "co2_savings_kg": 170, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "water_savings_liters": 50, "waste_reduction_kg": 5, "source_url": "https://impactco2.fr" }] }'
+      description: 'Données environnementales globales de l\'entreprise',
+      example: '{ "environmental": { "co2_saved": 15000, "devices_count": 1250 } }'
     },
     {
       method: 'GET',
       path: 'settings',
-      description: 'Configuration d\'affichage du catalogue',
-      example: '{ "settings": { "header_enabled": true, "header_title": "..." } }'
+      description: 'Paramètres de configuration du catalogue public',
+      example: '{ "settings": { "header_enabled": true, "header_title": "Notre Catalogue", "header_description": "Découvrez nos produits reconditionnés", "header_background_type": "gradient", "header_background_config": { "colors": ["#FF0000", "#0000FF"] } } }'
     },
     {
       method: 'GET',
       path: 'customizations',
-      description: 'Personnalisations visuelles complètes',
-      example: '{ "customizations": { "primary_color": "#3b82f6", ... } }'
+      description: 'Toutes les personnalisations visuelles de l\'entreprise',
+      example: '{ "customizations": { "company_name": "Mon Entreprise", "logo_url": "https://...", "primary_color": "#FF0000", "header_enabled": true, "header_title": "Catalogue Public", "iframe_width": "100%", "iframe_height": "600px", "quote_request_url": "https://..." } }'
     }
   ];
 
@@ -499,10 +499,37 @@ const CatalogApiSettings = () => {
                 </Button>
               </div>
               <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mt-4">
-                <p className="text-sm text-blue-700">
+                <h4 className="font-medium text-blue-900 mb-2">📌 Authentification et utilisation</h4>
+                <p className="text-sm text-blue-700 mb-2">
                   <strong>URL de base:</strong> <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">{baseApiUrl}</code><br/>
                   <strong>Note:</strong> L'API utilise le slug de l'entreprise ({companySlug}) dans l'URL au lieu de l'UUID pour une meilleure lisibilité.
                 </p>
+                <p className="text-sm text-blue-700">
+                  Toutes les requêtes doivent inclure l'en-tête <code className="bg-blue-100 px-1 py-0.5 rounded">x-api-key</code> avec votre clé API.
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 border border-gray-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-gray-900 mb-2">📝 Paramètres de requête disponibles</h4>
+                <div className="text-sm text-gray-700 space-y-2">
+                  <p><strong>GET /products :</strong></p>
+                  <ul className="ml-4 space-y-0.5 text-xs">
+                    <li>• <code>page</code> - Numéro de page (défaut: 1)</li>
+                    <li>• <code>limit</code> - Éléments par page (défaut: 50, max: 100)</li>
+                    <li>• <code>category</code> - Filtrer par nom de catégorie</li>
+                    <li>• <code>brand</code> - Filtrer par nom de marque</li>
+                  </ul>
+                  <p className="mt-2"><strong>GET /search :</strong></p>
+                  <ul className="ml-4 space-y-0.5 text-xs">
+                    <li>• <code>q</code> - Terme de recherche (nom ou description)</li>
+                  </ul>
+                  <p className="mt-2"><strong>Gestion des erreurs :</strong></p>
+                  <ul className="ml-4 space-y-0.5 text-xs">
+                    <li>• <code>401</code> - Clé API invalide ou manquante</li>
+                    <li>• <code>404</code> - Endpoint ou ressource non trouvée</li>
+                    <li>• <code>500</code> - Erreur serveur interne</li>
+                  </ul>
+                </div>
               </div>
               
               <div className="bg-green-50 border border-green-200 p-3 rounded-lg mt-4">
