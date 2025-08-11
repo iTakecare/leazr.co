@@ -48,7 +48,7 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
 /**
  * Récupère un fichier File à partir de données potentiellement corrompues/sérialisées
  */
-const recoverFileFromCorruptedData = (data: any): File | null => {
+const recoverFileFromCorruptedData = async (data: any): Promise<File | null> => {
   try {
     console.log("=== TENTATIVE DE RÉCUPÉRATION DE FICHIER ===");
     console.log("Type de données reçues:", typeof data);
@@ -63,16 +63,53 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
       name: data?.name
     });
 
-    // Si c'est déjà un File, pas de problème
+    // Si c'est déjà un File, vérifier son intégrité
     if (data instanceof File) {
       console.log("✅ Fichier déjà valide (File)");
+      
+      // Vérifier que le fichier n'est pas vide et a des données binaires
+      if (data.size === 0) {
+        console.warn("⚠️ Fichier vide détecté");
+        return null;
+      }
+      
+      // Vérifier que le type MIME n'est pas application/json pour un fichier image
+      const fileExtension = data.name.toLowerCase().split('.').pop();
+      const expectedMimeType = getMimeType(fileExtension || '');
+      
+      if (data.type === 'application/json' && expectedMimeType.startsWith('image/')) {
+        console.log("🔧 Correction du type MIME de application/json vers", expectedMimeType);
+        
+        // Lire le contenu du fichier et le recréer avec le bon type MIME
+        try {
+          const arrayBuffer = await data.arrayBuffer();
+          const correctedFile = new File([arrayBuffer], data.name, { 
+            type: expectedMimeType,
+            lastModified: data.lastModified 
+          });
+          
+          console.log("✅ Fichier corrigé:", {
+            name: correctedFile.name,
+            type: correctedFile.type,
+            size: correctedFile.size
+          });
+          
+          return correctedFile;
+        } catch (e) {
+          console.error("❌ Erreur lors de la lecture du fichier:", e);
+          return null;
+        }
+      }
+      
       return data;
     }
 
     // Si c'est un Blob, le convertir en File
     if (data instanceof Blob) {
       console.log("✅ Conversion Blob vers File");
-      return new File([data], 'recovered-file', { type: data.type });
+      const fileExtension = (data as any).name ? (data as any).name.toLowerCase().split('.').pop() : 'jpg';
+      const correctMimeType = getMimeType(fileExtension || 'jpg');
+      return new File([data], (data as any).name || 'recovered-file', { type: correctMimeType });
     }
 
     // Si c'est un objet avec des propriétés de File mais type MIME incorrect
@@ -118,22 +155,6 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
           }
         }
       }
-
-      // Si on a juste les métadonnées, créer un File vide avec le bon type MIME
-      // Cela permettra au moins de corriger le type MIME pour les validations
-      if (data.size && data.lastModified) {
-        console.log("🆘 Création d'un File de substitution avec métadonnées");
-        try {
-          // Essayer de récréer le File à partir de l'objet sérialisé
-          const fileArray = new Uint8Array(0); // File vide temporaire
-          return new File([fileArray], data.name, { 
-            type: correctMimeType,
-            lastModified: data.lastModified 
-          });
-        } catch (e) {
-          console.error("Erreur création File de substitution:", e);
-        }
-      }
     }
 
     console.error("❌ Impossible de récupérer le fichier depuis les données corrompues");
@@ -142,6 +163,61 @@ const recoverFileFromCorruptedData = (data: any): File | null => {
   } catch (error) {
     console.error("❌ Erreur lors de la récupération du fichier:", error);
     return null;
+  }
+};
+
+/**
+ * Valide qu'un fichier File contient bien des données binaires valides
+ */
+const validateFileIntegrity = async (file: File): Promise<{ isValid: boolean; correctedFile?: File }> => {
+  try {
+    console.log("=== VALIDATION DE L'INTÉGRITÉ DU FICHIER ===");
+    console.log("Fichier à valider:", {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
+    
+    // Vérifier que le fichier n'est pas vide
+    if (file.size === 0) {
+      console.error("❌ Fichier vide");
+      return { isValid: false };
+    }
+    
+    // Lire le contenu du fichier pour vérifier qu'il contient des données binaires
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    console.log("Premiers octets du fichier:", Array.from(bytes.slice(0, 10)).map(b => b.toString(16)));
+    
+    // Vérifier que le fichier contient des données binaires valides
+    if (bytes.length === 0) {
+      console.error("❌ Aucune donnée binaire trouvée");
+      return { isValid: false };
+    }
+    
+    // Déterminer le bon type MIME basé sur l'extension
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const expectedMimeType = getMimeType(fileExtension || '');
+    
+    // Si le type MIME est incorrect, le corriger
+    if (file.type !== expectedMimeType) {
+      console.log("🔧 Correction du type MIME de", file.type, "vers", expectedMimeType);
+      
+      const correctedFile = new File([arrayBuffer], file.name, { 
+        type: expectedMimeType,
+        lastModified: file.lastModified 
+      });
+      
+      return { isValid: true, correctedFile };
+    }
+    
+    console.log("✅ Fichier valide");
+    return { isValid: true, correctedFile: file };
+    
+  } catch (error) {
+    console.error("❌ Erreur lors de la validation du fichier:", error);
+    return { isValid: false };
   }
 };
 
@@ -223,7 +299,7 @@ export const uploadImage = async (
       console.log("Constructor:", (file as any)?.constructor?.name);
       console.log("Tentative de récupération...");
       
-      const recoveredFile = recoverFileFromCorruptedData(file);
+      const recoveredFile = await recoverFileFromCorruptedData(file);
       if (recoveredFile) {
         validFile = recoveredFile;
         console.log("✅ Fichier récupéré avec succès!");
@@ -254,7 +330,22 @@ export const uploadImage = async (
       constructor: validFile.constructor.name
     });
     
-    // ÉTAPE 2: Validation et correction du type MIME
+    // ÉTAPE 2: Validation de l'intégrité du fichier et correction du type MIME
+    const integrityResult = await validateFileIntegrity(validFile);
+    if (!integrityResult.isValid) {
+      console.error(`Fichier invalide ou corrompu:`, {
+        fileName: validFile.name,
+        fileType: validFile.type,
+        size: validFile.size
+      });
+      toast.error("Le fichier semble corrompu ou invalide. Veuillez réessayer.");
+      return null;
+    }
+    
+    // Utiliser le fichier corrigé pour la suite
+    validFile = integrityResult.correctedFile || validFile;
+    
+    // ÉTAPE 3: Validation finale du type MIME
     const { isValid, correctedFile } = validateAndCorrectMimeType(validFile);
     if (!isValid) {
       console.error(`Type de fichier non autorisé:`, {
@@ -266,7 +357,7 @@ export const uploadImage = async (
       return null;
     }
     
-    // Utiliser le fichier corrigé pour la suite
+    // Utiliser le fichier final corrigé
     validFile = correctedFile;
     
     // ÉTAPE 3: S'assurer que le bucket existe
@@ -307,14 +398,16 @@ export const uploadImage = async (
     // ÉTAPE 6: UPLOAD VERS SUPABASE - CLIENT AUTHENTIFIÉ
     console.log(`=== UPLOAD VERS SUPABASE (CLIENT AUTHENTIFIÉ) ===`);
     console.log(`Upload avec client Supabase authentifié pour respect des politiques RLS`);
+    console.log(`Forçage du type MIME:`, correctedMimeType);
     
     // Utiliser le client Supabase authentifié qui respecte les politiques RLS
+    // IMPORTANT: Forcer le type MIME correct pour éviter application/json
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, validFile, {
         cacheControl: '3600',
-        upsert: true
-        // Ne pas spécifier contentType, laisser Supabase le détecter automatiquement
+        upsert: true,
+        contentType: correctedMimeType // Forcer le type MIME correct
       });
 
     if (error) {
