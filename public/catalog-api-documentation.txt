@@ -12,12 +12,13 @@ STATUT : Prêt pour production
 
 1. VUE D'ENSEMBLE
 2. AUTHENTIFICATION
-3. ENDPOINTS DE L'API
-4. STRUCTURES DE DONNÉES
-5. GESTION DES ERREURS
-6. EXEMPLES D'IMPLÉMENTATION
-7. BASE DE DONNÉES REQUISE
-8. EDGE FUNCTION COMPLÈTE
+3. SÉCURITÉ ET FILTRAGE
+4. ENDPOINTS DE L'API
+5. STRUCTURES DE DONNÉES
+6. GESTION DES ERREURS
+7. EXEMPLES D'IMPLÉMENTATION
+8. BASE DE DONNÉES REQUISE
+9. EDGE FUNCTION COMPLÈTE
 
 ===========================================
    1. VUE D'ENSEMBLE
@@ -283,7 +284,7 @@ RÉPONSE :
 }
 ```
 
-## 3.7 CATÉGORIES
+## 4.7 CATÉGORIES
 ```
 GET /catalog-api/v1/{companySlug}/categories
 ```
@@ -306,7 +307,7 @@ RÉPONSE :
 }
 ```
 
-## 3.8 MARQUES
+## 4.8 MARQUES
 ```
 GET /catalog-api/v1/{companySlug}/brands  
 ```
@@ -329,7 +330,7 @@ RÉPONSE :
 }
 ```
 
-## 3.9 PACKS DE PRODUITS
+## 4.9 PACKS DE PRODUITS
 ```
 GET /catalog-api/v1/{companySlug}/packs
 ```
@@ -354,7 +355,7 @@ RÉPONSE :
 }
 ```
 
-## 3.10 PACK SPÉCIFIQUE
+## 4.10 PACK SPÉCIFIQUE
 ```
 GET /catalog-api/v1/{companySlug}/packs/{packId}
 ```
@@ -405,7 +406,7 @@ RÉPONSE :
 }
 ```
 
-## 3.12 DONNÉES ENVIRONNEMENTALES
+## 4.12 DONNÉES ENVIRONNEMENTALES
 ```
 GET /catalog-api/v1/{companySlug}/environmental
 ```
@@ -423,7 +424,7 @@ RÉPONSE :
 }
 ```
 
-## 3.13 PARAMÈTRES CATALOGUE
+## 4.13 PARAMÈTRES CATALOGUE
 ```
 GET /catalog-api/v1/{companySlug}/settings
 ```
@@ -446,7 +447,7 @@ RÉPONSE :
 }
 ```
 
-## 3.14 CUSTOMISATIONS
+## 4.14 CUSTOMISATIONS
 ```
 GET /catalog-api/v1/{companySlug}/customizations
 ```
@@ -473,8 +474,95 @@ RÉPONSE :
 }
 ```
 
+## 4.15 VALIDATION TVA (VIES)
+```
+POST /catalog-api/v1/{companySlug}/vies/validate
+```
+
+DESCRIPTION : Validation d'un numéro TVA européen via le système VIES
+PERMISSIONS : Aucune (endpoint public)
+
+PARAMÈTRES :
+```json
+{
+  "vat_number": "BE0123456789"
+}
+```
+
+RÉPONSE :
+```json
+{
+  "valid": true,
+  "company_name": "EXEMPLE SA",
+  "company_address": "RUE DE L'EXEMPLE 123, 1000 BRUXELLES",
+  "country_code": "BE",
+  "vat_number": "0123456789",
+  "request_date": "2025-01-10"
+}
+```
+
+## 4.16 CRÉATION DE DEMANDE DE DEVIS
+```
+POST /catalog-api/v1/{companySlug}/product-requests
+```
+
+DESCRIPTION : Création d'une nouvelle demande de devis/commande
+PERMISSIONS : Aucune (endpoint public)
+
+PARAMÈTRES :
+```json
+{
+  "company_info": {
+    "company_name": "EXEMPLE SA",
+    "vat_number": "BE0123456789",
+    "address": "RUE DE L'EXEMPLE 123",
+    "postal_code": "1000",
+    "city": "BRUXELLES",
+    "country": "Belgium"
+  },
+  "contact_info": {
+    "first_name": "Jean",
+    "last_name": "Dupont",
+    "email": "jean.dupont@example.com",
+    "phone": "+32123456789"
+  },
+  "delivery_info": {
+    "same_as_company": true,
+    "address": "RUE DE L'EXEMPLE 123",
+    "postal_code": "1000", 
+    "city": "BRUXELLES"
+  },
+  "products": [
+    {
+      "product_id": "uuid",
+      "quantity": 2,
+      "variant_id": "uuid"
+    }
+  ],
+  "packs": [
+    {
+      "pack_id": "uuid", 
+      "quantity": 1
+    }
+  ],
+  "create_client_account": true,
+  "request_type": "quote"
+}
+```
+
+RÉPONSE :
+```json
+{
+  "success": true,
+  "request_id": "uuid",
+  "offer_number": "OFFER-2025-001",
+  "client_account_created": true,
+  "message": "Demande créée avec succès"
+}
+```
+
 ===========================================
-   4. STRUCTURES DE DONNÉES
+   5. STRUCTURES DE DONNÉES
 ===========================================
 
 ## PRODUIT COMPLET
@@ -552,7 +640,7 @@ RÉPONSE :
 ```
 
 ===========================================
-   5. GESTION DES ERREURS
+   6. GESTION DES ERREURS
 ===========================================
 
 ## CODES D'ERREUR HTTP
@@ -600,7 +688,7 @@ RÉPONSE :
 ```
 
 ===========================================
-   6. EXEMPLES D'IMPLÉMENTATION
+   7. EXEMPLES D'IMPLÉMENTATION
 ===========================================
 
 ## JAVASCRIPT/TYPESCRIPT
@@ -643,7 +731,7 @@ getProducts().then(data => {
 ```javascript
 async function searchProducts(query) {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_ID}/search?q=${encodeURIComponent(query)}`,
+    `${API_BASE_URL}/${COMPANY_SLUG}/search?q=${encodeURIComponent(query)}`,
     { headers }
   );
   return await response.json();
@@ -659,7 +747,7 @@ searchProducts('macbook').then(data => {
 ```javascript
 async function getProduct(productId) {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_ID}/products/${productId}`,
+    `${API_BASE_URL}/${COMPANY_SLUG}/products/${productId}`,
     { headers }
   );
   return await response.json();
@@ -670,19 +758,66 @@ async function getProduct(productId) {
 ```javascript
 async function getCategories() {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_ID}/categories`,
+    `${API_BASE_URL}/${COMPANY_SLUG}/categories`,
     { headers }
   );
   return await response.json();
 }
 ```
 
+### Validation TVA via VIES
+```javascript
+async function validateVATNumber(vatNumber) {
+  const response = await fetch(
+    `${API_BASE_URL}/${COMPANY_SLUG}/vies/validate`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ vat_number: vatNumber })
+    }
+  );
+  return await response.json();
+}
+
+// Utilisation
+validateVATNumber('BE0123456789').then(data => {
+  console.log('Validation TVA:', data);
+});
+```
+
+### Créer une demande de devis
+```javascript
+async function createProductRequest(requestData) {
+  const response = await fetch(
+    `${API_BASE_URL}/${COMPANY_SLUG}/product-requests`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestData)
+    }
+  );
+  return await response.json();
+}
+
+// Utilisation
+const requestData = {
+  company_info: { /* ... */ },
+  contact_info: { /* ... */ },
+  products: [{ product_id: 'uuid', quantity: 2 }],
+  request_type: 'quote'
+};
+createProductRequest(requestData).then(data => {
+  console.log('Demande créée:', data);
+});
+```
+
 ### Gestion des erreurs complète
 ```javascript
-async function apiCall(endpoint) {
+async function apiCall(endpoint, options = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}/${COMPANY_ID}/${endpoint}`, {
-      headers
+    const response = await fetch(`${API_BASE_URL}/${COMPANY_SLUG}/${endpoint}`, {
+      headers,
+      ...options
     });
     
     if (!response.ok) {
@@ -702,21 +837,22 @@ async function apiCall(endpoint) {
 ```javascript
 import { useState, useEffect } from 'react';
 
-export function useCatalogAPI(companyId, apiKey) {
+export function useCatalogAPI(companySlug, apiKey) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  const apiCall = async (endpoint, params = '') => {
+  const apiCall = async (endpoint, options = {}) => {
     setLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/${companyId}/${endpoint}${params}`;
+      const url = `${API_BASE_URL}/${companySlug}/${endpoint}`;
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey
-        }
+        },
+        ...options
       });
       
       if (!response.ok) {
@@ -739,7 +875,7 @@ export function useCatalogAPI(companyId, apiKey) {
 
 // Utilisation du hook
 function ProductList() {
-  const { apiCall, loading, error } = useCatalogAPI(COMPANY_ID, API_KEY);
+  const { apiCall, loading, error } = useCatalogAPI(COMPANY_SLUG, API_KEY);
   const [products, setProducts] = useState([]);
   
   useEffect(() => {
@@ -763,10 +899,38 @@ function ProductList() {
     </div>
   );
 }
+
+// Hook spécialisé pour la validation TVA
+function useVATValidation(companySlug, apiKey) {
+  const { apiCall } = useCatalogAPI(companySlug, apiKey);
+  
+  const validateVAT = async (vatNumber) => {
+    return await apiCall('vies/validate', {
+      method: 'POST',
+      body: JSON.stringify({ vat_number: vatNumber })
+    });
+  };
+  
+  return { validateVAT };
+}
+
+// Hook pour création de demandes
+function useProductRequests(companySlug, apiKey) {
+  const { apiCall } = useCatalogAPI(companySlug, apiKey);
+  
+  const createRequest = async (requestData) => {
+    return await apiCall('product-requests', {
+      method: 'POST',
+      body: JSON.stringify(requestData)
+    });
+  };
+  
+  return { createRequest };
+}
 ```
 
 ===========================================
-   7. BASE DE DONNÉES REQUISE
+   8. BASE DE DONNÉES REQUISE
 ===========================================
 
 ## TABLES PRINCIPALES
@@ -926,7 +1090,7 @@ FOR SELECT USING (true);
 ```
 
 ===========================================
-   8. EDGE FUNCTION COMPLÈTE
+   9. EDGE FUNCTION COMPLÈTE
 ===========================================
 
 ```typescript
@@ -961,7 +1125,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(Boolean)
     
-    // Expected format: /catalog-api/v1/{companyId}/{endpoint}
+    // Expected format: /catalog-api/v1/{companySlug}/{endpoint}
     if (pathParts.length < 3) {
       return new Response(
         JSON.stringify({ error: 'Invalid API path' }), 
@@ -969,7 +1133,27 @@ Deno.serve(async (req) => {
       )
     }
 
-    const [, version, companyId, endpoint, ...subPaths] = pathParts
+    const [, version, companySlugOrId, endpoint, ...subPaths] = pathParts
+    
+    // Convert slug to company ID if needed
+    let companyId = companySlugOrId;
+    if (!companySlugOrId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+      // It's a slug, convert to ID
+      const { data: companyData } = await supabaseAdmin
+        .from('companies')
+        .select('id')
+        .eq('slug', companySlugOrId)
+        .single();
+      
+      if (!companyData) {
+        return new Response(
+          JSON.stringify({ error: 'Company not found' }), 
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      companyId = companyData.id;
+    }
     
     if (version !== 'v1') {
       return new Response(
