@@ -270,7 +270,7 @@ const validateAndCorrectMimeType = (file: File): { isValid: boolean; correctedFi
 };
 
 /**
- * Télécharge une image vers Supabase Storage
+ * Télécharge une image vers Supabase Storage - Approche ArrayBuffer simplifiée
  */
 export const uploadImage = async (
   file: File,
@@ -278,167 +278,102 @@ export const uploadImage = async (
   folder: string = ""
 ): Promise<string | null> => {
   try {
-    console.log(`=== DÉBUT UPLOAD IMAGE ===`);
+    console.log(`=== DÉBUT UPLOAD IMAGE (ARRAYBUFFER) ===`);
     console.log(`Fichier original reçu:`, {
       name: file?.name,
       type: file?.type,
       size: file?.size,
-      isFile: file instanceof File,
-      isBlob: file instanceof Blob,
-      constructor: file?.constructor?.name,
-      keys: file ? Object.keys(file) : 'N/A'
+      isFile: file instanceof File
     });
-    
-    // ÉTAPE 1: Validation et récupération du fichier
-    let validFile: File = file;
-    
-    // Vérification stricte du type File
-    if (!(file instanceof File)) {
-      console.warn("⚠️ ALERTE: L'objet reçu n'est PAS un File natif");
-      console.log("Type reçu:", typeof file);
-      console.log("Constructor:", (file as any)?.constructor?.name);
-      console.log("Tentative de récupération...");
-      
-      const recoveredFile = await recoverFileFromCorruptedData(file);
-      if (recoveredFile) {
-        validFile = recoveredFile;
-        console.log("✅ Fichier récupéré avec succès!");
-      } else {
-        console.error("❌ ERREUR CRITIQUE: Impossible de récupérer le fichier:", {
-          typeOf: typeof file,
-          isArray: Array.isArray(file),
-          constructor: (file as any)?.constructor?.name,
-          keys: file ? Object.keys(file as any) : 'N/A',
-          stringified: JSON.stringify(file).substring(0, 500)
-        });
-        toast.error("Erreur: Le fichier n'est pas au bon format. Veuillez réessayer.");
-        return null;
-      }
-    }
-    
-    // Vérification finale que nous avons un File valide
-    if (!validFile || !(validFile instanceof File)) {
-      console.error("❌ ÉCHEC FINAL: Pas de File valide après récupération");
-      toast.error("Erreur: Impossible de traiter le fichier");
+
+    // Validation de base
+    if (!file) {
+      toast.error("Aucun fichier fourni");
       return null;
     }
-    
-    console.log("✅ File validé:", {
-      name: validFile.name,
-      type: validFile.type,
-      size: validFile.size,
-      constructor: validFile.constructor.name
-    });
-    
-    // ÉTAPE 2: Validation de l'intégrité du fichier et correction du type MIME
-    const integrityResult = await validateFileIntegrity(validFile);
-    if (!integrityResult.isValid) {
-      console.error(`Fichier invalide ou corrompu:`, {
-        fileName: validFile.name,
-        fileType: validFile.type,
-        size: validFile.size
-      });
-      toast.error("Le fichier semble corrompu ou invalide. Veuillez réessayer.");
+
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux. Taille maximum: 5MB");
       return null;
     }
+
+    // Détecter le type MIME correct basé sur l'extension
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     
-    // Utiliser le fichier corrigé pour la suite
-    validFile = integrityResult.correctedFile || validFile;
-    
-    // ÉTAPE 3: Validation finale du type MIME
-    const { isValid, correctedFile } = validateAndCorrectMimeType(validFile);
-    if (!isValid) {
-      console.error(`Type de fichier non autorisé:`, {
-        fileName: validFile.name,
-        fileType: validFile.type,
-        extension: validFile.name.toLowerCase().split('.').pop()
-      });
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
       toast.error("Format de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou SVG.");
       return null;
     }
-    
-    // Utiliser le fichier final corrigé
-    validFile = correctedFile;
-    
-    // ÉTAPE 3: S'assurer que le bucket existe
+
+    const correctMimeType = getMimeType(fileExtension);
+    console.log("Type MIME détecté:", correctMimeType);
+
+    // S'assurer que le bucket existe
     const bucketExists = await ensureBucket(bucketName);
     if (!bucketExists) {
       toast.error("Erreur: Impossible d'accéder au stockage");
       return null;
     }
-    
-    // ÉTAPE 4: Vérifier la taille (max 5MB)
-    if (validFile.size > 5 * 1024 * 1024) {
-      toast.error("Le fichier est trop volumineux. Taille maximum: 5MB");
-      return null;
-    }
-    
-    // ÉTAPE 5: Créer un nom de fichier unique avec l'extension correcte
-    const fileExtension = validFile.name.toLowerCase().split('.').pop();
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 15);
-    const fileExt = fileExtension || (validFile.type.includes('jpeg') ? 'jpg' : validFile.type.split('/')[1]);
-    const fileName = `image-${timestamp}-${randomId}.${fileExt}`;
-    const filePath = folder ? `${folder}/${fileName}` : fileName;
 
-    // Corriger le type MIME si nécessaire
-    const correctedMimeType = validFile.type && validFile.type !== 'application/json' 
-      ? validFile.type 
-      : getMimeType(fileExt);
-
-    console.log(`=== INFORMATIONS D'UPLOAD FINALES ===`, {
-      fileName,
-      filePath,
-      fileSize: validFile.size,
-      originalContentType: validFile.type,
-      correctedContentType: correctedMimeType,
-      fileExtension: fileExt
+    // ÉTAPE CRITIQUE: Lire le fichier comme ArrayBuffer et créer un nouveau Blob
+    console.log("=== LECTURE DU FICHIER COMME ARRAYBUFFER ===");
+    const arrayBuffer = await file.arrayBuffer();
+    const binaryData = new Uint8Array(arrayBuffer);
+    
+    console.log("Données binaires lues:", {
+      size: binaryData.length,
+      premiersBytesHex: Array.from(binaryData.slice(0, 10)).map(b => b.toString(16).padStart(2, '0')).join(' ')
     });
 
-    // ÉTAPE 6: UPLOAD VERS SUPABASE - CLIENT AUTHENTIFIÉ
-    console.log(`=== UPLOAD VERS SUPABASE (CLIENT AUTHENTIFIÉ) ===`);
-    console.log(`Upload avec client Supabase authentifié pour respect des politiques RLS`);
-    console.log(`Forçage du type MIME:`, correctedMimeType);
+    // Créer un nouveau Blob avec les données binaires et le bon type MIME
+    const uploadBlob = new Blob([binaryData], { type: correctMimeType });
     
-    // Utiliser le client Supabase authentifié qui respecte les politiques RLS
-    // IMPORTANT: Forcer le type MIME correct pour éviter application/json
+    console.log("Blob créé pour upload:", {
+      size: uploadBlob.size,
+      type: uploadBlob.type
+    });
+
+    // Créer un nom de fichier unique
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const fileName = `image-${timestamp}-${randomId}.${fileExtension}`;
+    const filePath = folder ? `${folder}/${fileName}` : fileName;
+
+    console.log(`=== UPLOAD VERS SUPABASE ===`);
+    console.log(`Chemin: ${bucketName}/${filePath}`);
+    console.log(`Type MIME forcé: ${correctMimeType}`);
+
+    // Upload du Blob vers Supabase avec le type MIME correct
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, validFile, {
+      .upload(filePath, uploadBlob, {
         cacheControl: '3600',
         upsert: true,
-        contentType: correctedMimeType // Forcer le type MIME correct
+        contentType: correctMimeType // Forcer explicitement le type MIME
       });
 
     if (error) {
-      console.error("Erreur client Supabase:", {
-        error: error.message,
-        details: error
-      });
+      console.error("Erreur upload Supabase:", error);
       toast.error(`Erreur lors du téléchargement: ${error.message}`);
       return null;
     }
 
-    console.log("Upload réussi via client Supabase:", data);
+    console.log("Upload réussi:", data);
 
     // Récupérer l'URL publique
     const { data: urlData } = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
-    console.log("=== URL PUBLIQUE GÉNÉRÉE ===", {
-      publicUrl: urlData.publicUrl
-    });
+    console.log("URL publique générée:", urlData.publicUrl);
+    toast.success("Image téléchargée avec succès");
     
-    toast.success("Logo téléchargé avec succès");
     return urlData.publicUrl;
     
   } catch (error) {
-    console.error("=== ERREUR GÉNÉRALE UPLOAD ===", {
-      error,
-      message: error instanceof Error ? error.message : 'Erreur inconnue',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error("Erreur générale upload:", error);
     toast.error("Erreur lors du téléchargement du fichier");
     return null;
   }
