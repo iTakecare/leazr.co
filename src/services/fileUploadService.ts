@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { getFileUploadClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -9,8 +9,10 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
   try {
     console.log(`Vérification de l'existence du bucket: ${bucketName}`);
     
+    const fileClient = getFileUploadClient();
+    
     // Vérifier si le bucket existe déjà en essayant de lister son contenu
-    const { data: listData, error: listError } = await supabase.storage
+    const { data: listData, error: listError } = await fileClient.storage
       .from(bucketName)
       .list('', { limit: 1 });
 
@@ -23,7 +25,7 @@ export const ensureBucket = async (bucketName: string): Promise<boolean> => {
     if (listError.message.includes('does not exist')) {
       console.log(`Tentative de création du bucket: ${bucketName}`);
       
-      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      const { error: createError } = await fileClient.storage.createBucket(bucketName, {
         public: true
       });
 
@@ -345,8 +347,10 @@ export const uploadImage = async (
     console.log(`Chemin: ${bucketName}/${filePath}`);
     console.log(`Type MIME forcé: ${correctMimeType}`);
 
+    const fileClient = getFileUploadClient();
+
     // Upload du Blob vers Supabase avec le type MIME correct
-    const { data, error } = await supabase.storage
+    const { data, error } = await fileClient.storage
       .from(bucketName)
       .upload(filePath, uploadBlob, {
         cacheControl: '3600',
@@ -363,7 +367,7 @@ export const uploadImage = async (
     console.log("Upload réussi:", data);
 
     // Récupérer l'URL publique
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = fileClient.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
