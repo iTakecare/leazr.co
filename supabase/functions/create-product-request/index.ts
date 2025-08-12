@@ -110,8 +110,8 @@ serve(async (req) => {
     const clientEmail = data.contact_info.email;
     
     // Calculer les montants depuis les produits et créer la liste d'équipements
-    let totalAmount = data.total || data.subtotal || 0;
-    let totalMonthlyPayment = 0;
+    let totalPurchaseAmount = 0; // Montant total d'achat (somme des total_price)
+    let totalMonthlyPayment = 0; // Mensualité totale (somme des unit_price)
     let equipmentList = [];
     let detailedEquipmentList = [];
     
@@ -123,12 +123,12 @@ serve(async (req) => {
         const variantName = product.variant_name || '';
         const quantity = product.quantity || 1;
         const duration = product.duration || 36;
-        const unitPrice = product.unit_price || 0;
-        const totalPrice = product.total_price || (unitPrice * quantity * duration);
+        const unitPrice = product.unit_price || 0; // Prix mensuel
+        const totalPrice = product.total_price || 0; // Prix d'achat total
         
-        // Calculer la mensualité approximative (prix total / durée)
-        const monthlyPayment = totalPrice > 0 && duration > 0 ? totalPrice / duration : 0;
-        totalMonthlyPayment += monthlyPayment;
+        // Accumuler les montants
+        totalPurchaseAmount += totalPrice;
+        totalMonthlyPayment += unitPrice;
         
         // Construire le nom complet de l'équipement
         let fullProductName = productName;
@@ -142,9 +142,9 @@ serve(async (req) => {
         // Stocker les détails pour créer les équipements
         detailedEquipmentList.push({
           title: fullProductName,
-          purchase_price: unitPrice,
+          purchase_price: totalPrice, // Prix d'achat total pour cet équipement
           quantity: quantity,
-          monthly_payment: monthlyPayment,
+          monthly_payment: unitPrice, // Prix mensuel pour cet équipement
           duration: duration,
           product_id: product.product_id,
           variant_id: product.variant_id
@@ -152,7 +152,7 @@ serve(async (req) => {
       }
     }
     
-    console.log("Montants calculés - Total:", totalAmount, "Mensuel:", totalMonthlyPayment);
+    console.log("Montants calculés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
     console.log("Liste d'équipements:", equipmentList);
 
     // Préparer les données du client
@@ -188,11 +188,11 @@ serve(async (req) => {
 
     // Utiliser les valeurs calculées ou les valeurs par défaut
     const coefficient = 3.55; // Coefficient par défaut
-    const financedAmount = totalAmount * coefficient; // Calculer le montant financé
+    const financedAmount = totalPurchaseAmount * coefficient; // Calculer le montant financé
     
     // Calculer la marge correcte
-    const marginAmount = financedAmount - totalAmount;
-    const marginPercentage = totalAmount > 0 ? parseFloat(((marginAmount / totalAmount) * 100).toFixed(2)) : 82;
+    const marginAmount = financedAmount - totalPurchaseAmount;
+    const marginPercentage = totalPurchaseAmount > 0 ? parseFloat(((marginAmount / totalPurchaseAmount) * 100).toFixed(2)) : 82;
     
     // Créer la description de l'équipement depuis la liste
     const equipmentDescription = equipmentList.length > 0 
@@ -206,13 +206,13 @@ serve(async (req) => {
       client_name: clientName || companyName,
       client_email: clientEmail,
       equipment_description: equipmentDescription,
-      amount: totalAmount,
+      amount: totalPurchaseAmount,
       monthly_payment: totalMonthlyPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
       margin: marginPercentage,
       commission: 0,
-      type: "client_request",
+      type: "web_offer",
       workflow_status: "requested",
       status: "pending",
       remarks: data.notes || '',
@@ -308,7 +308,7 @@ serve(async (req) => {
           <p>Voici un récapitulatif de votre demande :</p>
           <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
             <li>Équipement : ${equipmentDescription}</li>
-            <li>Montant total : ${totalAmount} €</li>
+            <li>Montant total : ${totalPurchaseAmount} €</li>
             <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
           </ul>
           <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
@@ -326,7 +326,7 @@ serve(async (req) => {
         htmlContent = emailTemplate.html_content
           .replace(/{{client_name}}/g, clientName || companyName)
           .replace(/{{equipment_description}}/g, equipmentDescription)
-          .replace(/{{amount}}/g, totalAmount.toString())
+          .replace(/{{amount}}/g, totalPurchaseAmount.toString())
           .replace(/{{monthly_payment}}/g, totalMonthlyPayment.toString());
       } else if (templateError) {
         console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
@@ -409,8 +409,8 @@ serve(async (req) => {
                   <p>Voici un récapitulatif de votre demande :</p>
                   <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
                     <li>Équipement : ${equipmentDescription}</li>
-                    <li>Montant total : ${totalAmount} €</li>
-                    <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
+                     <li>Montant total : ${totalPurchaseAmount} €</li>
+                     <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
                   </ul>
                   <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
                   <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
@@ -475,7 +475,7 @@ serve(async (req) => {
       client_email: clientEmail,
       client_company: companyName,
       equipment_description: equipmentDescription,
-      amount: totalAmount,
+      amount: totalPurchaseAmount,
       monthly_payment: totalMonthlyPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
