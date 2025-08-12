@@ -25,9 +25,36 @@ serve(async (req) => {
       );
     }
 
+    // Créer un client Supabase avec la clé de service admin AVANT son utilisation
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'public',
+        },
+      }
+    );
+
+    // Log pour vérifier les variables d'environnement
+    console.log('SUPABASE_URL configuré:', !!Deno.env.get('SUPABASE_URL'));
+    console.log('SUPABASE_SERVICE_ROLE_KEY configuré:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+
     // Récupérer les données de la requête
     const data = await req.json();
     console.log("Données reçues par la fonction Edge:", data);
+    
+    // Validation des données requises
+    if (!data.company_info?.company_name || !data.contact_info?.email) {
+      return new Response(
+        JSON.stringify({ error: 'Données manquantes : company_info.company_name et contact_info.email sont requis' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
     
     // CORRECTION: Détecter automatiquement le company_id basé sur le domaine
     let targetCompanyId = null;
@@ -73,43 +100,47 @@ serve(async (req) => {
       console.log("Utilisation du company_id par défaut:", targetCompanyId);
     }
 
-    // Créer un client Supabase avec la clé de service admin
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-        db: {
-          schema: 'public',
-        },
-      }
-    );
-
-    // Log pour vérifier les variables d'environnement
-    console.log('SUPABASE_URL configuré:', !!Deno.env.get('SUPABASE_URL'));
-    console.log('SUPABASE_SERVICE_ROLE_KEY configuré:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-
     // Générer des identifiants uniques pour le client et la demande
     const clientId = crypto.randomUUID();
     const requestId = crypto.randomUUID();
 
+    // Adapter les données de la nouvelle structure vers l'ancienne
+    const clientName = `${data.contact_info.first_name || ''} ${data.contact_info.last_name || ''}`.trim();
+    const companyName = data.company_info.company_name;
+    const clientEmail = data.contact_info.email;
+    
+    // Calculer les montants depuis les produits
+    let totalAmount = 0;
+    let totalMonthlyPayment = 0;
+    let equipmentList = [];
+    
+    if (data.products && Array.isArray(data.products)) {
+      for (const product of data.products) {
+        // Ces valeurs devraient être calculées par le frontend
+        const productPrice = product.price || 0;
+        const productMonthly = product.monthly_price || 0;
+        const quantity = product.quantity || 1;
+        
+        totalAmount += productPrice * quantity;
+        totalMonthlyPayment += productMonthly * quantity;
+        equipmentList.push(`${product.name || 'Produit'} (x${quantity})`);
+      }
+    }
+
     // Préparer les données du client
     const clientData = {
       id: clientId,
-      name: data.client_name,
-      email: data.client_email,
-      company: data.client_company,
-      phone: data.phone || '',
-      vat_number: data.client_vat_number || '',
-      address: data.address || '',
-      city: data.city || '',
-      postal_code: data.postal_code || '',
-      country: data.country || 'BE',
+      name: clientName || companyName, // Utiliser le nom de contact ou le nom d'entreprise
+      email: clientEmail,
+      company: companyName,
+      phone: data.contact_info.phone || '',
+      vat_number: data.company_info.vat_number || '',
+      address: data.delivery_info.address || data.company_info.address || '',
+      city: data.delivery_info.city || data.company_info.city || '',
+      postal_code: data.delivery_info.postal_code || data.company_info.postal_code || '',
+      country: data.delivery_info.country || data.company_info.country || 'BE',
       status: 'active',
-      contact_name: data.client_name,
+      contact_name: clientName,
       company_id: targetCompanyId
     };
 
@@ -127,25 +158,28 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // CORRECTION: Utiliser les prix fixes du catalogue
-    const coefficient = Number(data.coefficient) || 3.55; // Coefficient correct
-    const monthlyPayment = Number(data.monthly_payment) || 0; // Prix fixe du catalogue (pas calculé)
-    const totalAmount = Number(data.amount) || 0; // Prix d'achat total
-    const financedAmount = Number(data.financed_amount) || 0; // Montant financé déjà calculé
+    // Utiliser les valeurs calculées ou les valeurs par défaut
+    const coefficient = 3.55; // Coefficient par défaut
+    const financedAmount = totalAmount * coefficient; // Calculer le montant financé
     
     // Calculer la marge correcte
     const marginAmount = financedAmount - totalAmount;
     const marginPercentage = totalAmount > 0 ? parseFloat(((marginAmount / totalAmount) * 100).toFixed(2)) : 82;
+    
+    // Créer la description de l'équipement depuis la liste
+    const equipmentDescription = equipmentList.length > 0 
+      ? equipmentList.join(', ') 
+      : 'Demande de produit depuis le catalogue';
 
     // Préparer les données de l'offre
     const offerData = {
       id: requestId,
       client_id: clientId,
-      client_name: data.client_name,
-      client_email: data.client_email,
-      equipment_description: data.equipment_description,
-      amount: totalAmount, // Prix d'achat total
-      monthly_payment: monthlyPayment, // Mensualité totale
+      client_name: clientName || companyName,
+      client_email: clientEmail,
+      equipment_description: equipmentDescription,
+      amount: totalAmount,
+      monthly_payment: totalMonthlyPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
       margin: marginPercentage,
@@ -153,7 +187,7 @@ serve(async (req) => {
       type: "client_request",
       workflow_status: "requested",
       status: "pending",
-      remarks: data.message || '',
+      remarks: data.notes || '',
       user_id: null,
       company_id: targetCompanyId
     };
@@ -212,13 +246,13 @@ serve(async (req) => {
       let subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
       let htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
+          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${clientName || companyName},</h2>
           <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
           <p>Voici un récapitulatif de votre demande :</p>
           <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <li>Équipement : ${data.equipment_description}</li>
-            <li>Montant total : ${data.amount} €</li>
-            <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
+            <li>Équipement : ${equipmentDescription}</li>
+            <li>Montant total : ${totalAmount} €</li>
+            <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
           </ul>
           <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
           <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
@@ -229,14 +263,14 @@ serve(async (req) => {
       if (emailTemplate && !templateError) {
         console.log("Modèle d'email trouvé, utilisation du modèle personnalisé");
         
-        subject = emailTemplate.subject.replace("{{client_name}}", data.client_name);
+        subject = emailTemplate.subject.replace("{{client_name}}", clientName || companyName);
         
         // Remplacer les variables dans le contenu HTML
         htmlContent = emailTemplate.html_content
-          .replace(/{{client_name}}/g, data.client_name)
-          .replace(/{{equipment_description}}/g, data.equipment_description)
-          .replace(/{{amount}}/g, data.amount)
-          .replace(/{{monthly_payment}}/g, data.monthly_payment);
+          .replace(/{{client_name}}/g, clientName || companyName)
+          .replace(/{{equipment_description}}/g, equipmentDescription)
+          .replace(/{{amount}}/g, totalAmount.toString())
+          .replace(/{{monthly_payment}}/g, totalMonthlyPayment.toString());
       } else if (templateError) {
         console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
       } else {
@@ -244,16 +278,16 @@ serve(async (req) => {
       }
       
       // Vérifier si l'utilisateur a demandé la création d'un compte
-      if (data.has_client_account === true) {
+      if (data.create_client_account === true) {
         console.log("L'utilisateur a demandé la création d'un compte client");
         
         try {
           // Créer un compte utilisateur sans mot de passe (il définira le sien)
           const { data: userData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-            email: data.client_email,
+            email: clientEmail,
             email_confirm: true,
             user_metadata: { 
-              name: data.client_name,
+              name: clientName || companyName,
               role: "client",
               client_id: clientId 
             },
@@ -286,7 +320,7 @@ serve(async (req) => {
             // Générer un lien pour définir le mot de passe
             const { data: passwordLinkData, error: passwordLinkError } = await supabaseAdmin.auth.admin.generateLink({
               type: "recovery",
-              email: data.client_email,
+              email: clientEmail,
               options: {
                 redirectTo: `${Deno.env.get('SITE_URL') || ''}/auth/callback`
               }
@@ -303,7 +337,7 @@ serve(async (req) => {
               // Template spécial pour création de compte
               htmlContent = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-                  <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${data.client_name},</h2>
+                  <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${clientName || companyName},</h2>
                   <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
                   
                   <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -317,9 +351,9 @@ serve(async (req) => {
                   
                   <p>Voici un récapitulatif de votre demande :</p>
                   <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-                    <li>Équipement : ${data.equipment_description}</li>
-                    <li>Montant total : ${data.amount} €</li>
-                    <li>Paiement mensuel estimé : ${data.monthly_payment} €/mois</li>
+                    <li>Équipement : ${equipmentDescription}</li>
+                    <li>Montant total : ${totalAmount} €</li>
+                    <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
                   </ul>
                   <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
                   <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
@@ -354,12 +388,12 @@ serve(async (req) => {
       const fromEmail = smtpSettings.from_email || "noreply@itakecare.app";
       const from = `${fromName} <${fromEmail}>`;
       
-      console.log(`Tentative d'envoi d'email via Resend à ${data.client_email} depuis ${from}`);
+      console.log(`Tentative d'envoi d'email via Resend à ${clientEmail} depuis ${from}`);
       
       // Envoyer l'email avec Resend
       const emailResult = await resend.emails.send({
         from,
-        to: data.client_email,
+        to: clientEmail,
         subject,
         html: htmlContent,
         text,
@@ -380,12 +414,12 @@ serve(async (req) => {
     const responseData = {
       id: requestId,
       client_id: clientId,
-      client_name: data.client_name,
-      client_email: data.client_email,
-      client_company: data.client_company,
-      equipment_description: data.equipment_description,
-      amount: data.amount,
-      monthly_payment: data.monthly_payment,
+      client_name: clientName || companyName,
+      client_email: clientEmail,
+      client_company: companyName,
+      equipment_description: equipmentDescription,
+      amount: totalAmount,
+      monthly_payment: totalMonthlyPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
       margin: parseFloat(marginPercentage.toFixed(2)),
