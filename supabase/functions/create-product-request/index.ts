@@ -109,23 +109,51 @@ serve(async (req) => {
     const companyName = data.company_info.company_name;
     const clientEmail = data.contact_info.email;
     
-    // Calculer les montants depuis les produits
-    let totalAmount = 0;
+    // Calculer les montants depuis les produits et créer la liste d'équipements
+    let totalAmount = data.total || data.subtotal || 0;
     let totalMonthlyPayment = 0;
     let equipmentList = [];
+    let detailedEquipmentList = [];
+    
+    console.log("Traitement des produits:", data.products);
     
     if (data.products && Array.isArray(data.products)) {
       for (const product of data.products) {
-        // Ces valeurs devraient être calculées par le frontend
-        const productPrice = product.price || 0;
-        const productMonthly = product.monthly_price || 0;
+        const productName = product.product_name || product.name || 'Produit';
+        const variantName = product.variant_name || '';
         const quantity = product.quantity || 1;
+        const duration = product.duration || 36;
+        const unitPrice = product.unit_price || 0;
+        const totalPrice = product.total_price || (unitPrice * quantity * duration);
         
-        totalAmount += productPrice * quantity;
-        totalMonthlyPayment += productMonthly * quantity;
-        equipmentList.push(`${product.name || 'Produit'} (x${quantity})`);
+        // Calculer la mensualité approximative (prix total / durée)
+        const monthlyPayment = totalPrice > 0 && duration > 0 ? totalPrice / duration : 0;
+        totalMonthlyPayment += monthlyPayment;
+        
+        // Construire le nom complet de l'équipement
+        let fullProductName = productName;
+        if (variantName) {
+          fullProductName += ` - ${variantName}`;
+        }
+        
+        // Ajouter à la liste pour la description
+        equipmentList.push(`${fullProductName} (x${quantity})`);
+        
+        // Stocker les détails pour créer les équipements
+        detailedEquipmentList.push({
+          title: fullProductName,
+          purchase_price: unitPrice,
+          quantity: quantity,
+          monthly_payment: monthlyPayment,
+          duration: duration,
+          product_id: product.product_id,
+          variant_id: product.variant_id
+        });
       }
     }
+    
+    console.log("Montants calculés - Total:", totalAmount, "Mensuel:", totalMonthlyPayment);
+    console.log("Liste d'équipements:", equipmentList);
 
     // Préparer les données du client
     const clientData = {
@@ -207,6 +235,35 @@ serve(async (req) => {
         JSON.stringify({ error: `Échec de création de l'offre: ${offerError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
+    }
+
+    // Créer les équipements détaillés pour l'offre
+    if (detailedEquipmentList.length > 0) {
+      console.log("Création des équipements détaillés:", detailedEquipmentList.length, "items");
+      
+      for (const equipment of detailedEquipmentList) {
+        const equipmentData = {
+          offer_id: requestId,
+          title: equipment.title,
+          purchase_price: equipment.purchase_price,
+          quantity: equipment.quantity,
+          monthly_payment: equipment.monthly_payment,
+          margin: marginPercentage,
+        };
+        
+        console.log("Création de l'équipement:", equipmentData);
+        
+        const { error: equipmentError } = await supabaseAdmin
+          .from('offer_equipment')
+          .insert(equipmentData);
+        
+        if (equipmentError) {
+          console.error("Erreur lors de la création de l'équipement:", equipmentError);
+          // On continue même si la création d'un équipement échoue
+        } else {
+          console.log("Équipement créé avec succès:", equipment.title);
+        }
+      }
     }
 
     try {
