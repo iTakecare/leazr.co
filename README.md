@@ -28,6 +28,7 @@ Plateforme complète de gestion de catalogues produits avec calcul automatique d
 ## Documentation Technique
 
 - 📖 [API Environnementale](docs/environmental-api.md) - Endpoints et services CO2
+- 🚀 [API de Demande de Produits](docs/product-request-api.md) - Création automatique d'offres clients
 - 🧩 [Composants CO2](docs/co2-components.md) - Composants React et hooks
 - 🔧 [Guide d'intégration](catalog-skeleton/integration-guide.txt) - Configuration personnalisée
 
