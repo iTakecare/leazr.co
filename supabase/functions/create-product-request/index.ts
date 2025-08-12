@@ -212,10 +212,10 @@ serve(async (req) => {
       financed_amount: financedAmount,
       margin: marginPercentage,
       commission: 0,
-      type: "web_offer",
-      workflow_status: "requested",
+      type: "client_request",
+      workflow_status: "requested", 
       status: "pending",
-      remarks: data.notes || '',
+      remarks: `Demande créée via API web${data.notes ? ' - ' + data.notes : ''}`,
       user_id: null,
       company_id: targetCompanyId
     };
