@@ -38,6 +38,10 @@ export const useAmbassadorOfferSave = ({
   const navigate = useNavigate();
   const { navigateToAmbassador } = useRoleNavigation();
 
+  // Calcul du prix d'achat total pour la commission
+  const totalPurchaseAmount = equipmentList.reduce((sum, equipment) => 
+    sum + (equipment.purchasePrice * equipment.quantity), 0);
+
   // Calcul de commission unifié pour les offres ambassadeur
   const commissionData = useOfferCommissionCalculator({
     isInternalOffer: false, // Les offres ambassadeur ne sont jamais internes
@@ -45,7 +49,8 @@ export const useAmbassadorOfferSave = ({
     commissionLevelId: ambassador?.commission_level_id,
     totalMargin,
     equipmentListLength: equipmentList.length,
-    totalMonthlyPayment
+    totalMonthlyPayment,
+    totalPurchaseAmount
   });
 
   const handleSaveOffer = async () => {

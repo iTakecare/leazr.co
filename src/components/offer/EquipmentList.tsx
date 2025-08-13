@@ -75,6 +75,10 @@ const EquipmentList = ({
 
   // Calculate total margin for ambassador commission - USE THE CORRECT MARGIN
   const totalMargin = calculations?.normalMarginAmount || 0;
+  
+  // Calculate total purchase amount for commission calculation
+  const totalPurchaseAmount = equipmentList.reduce((sum, equipment) => 
+    sum + (equipment.purchasePrice * equipment.quantity), 0);
 
   // Calculate commission for admin creating ambassador offers
   const commissionData = useOfferCommissionCalculator({
@@ -83,7 +87,8 @@ const EquipmentList = ({
     commissionLevelId: commissionLevelId,
     totalMargin: totalMargin,
     equipmentListLength: equipmentList.length,
-    totalMonthlyPayment: totalMonthlyPayment
+    totalMonthlyPayment: totalMonthlyPayment,
+    totalPurchaseAmount
   });
 
   console.log("EquipmentList - Ambassador mode debug:", {

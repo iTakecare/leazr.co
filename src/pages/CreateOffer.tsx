@@ -101,6 +101,9 @@ const CreateOffer = () => {
   // Obtenir le commission_level_id depuis la structure commission_level
   const commissionLevelId = selectedAmbassador?.commission_level?.id;
 
+  // Calcul du prix d'achat total
+  const totalPurchaseAmount = calculations?.totalPurchasePrice || 0;
+
   // Calcul de commission dynamique basé sur les paramètres
   const commissionData = useOfferCommissionCalculator({
     isInternalOffer,
@@ -108,7 +111,8 @@ const CreateOffer = () => {
     commissionLevelId: commissionLevelId,
     totalMargin: totalEquipmentMargin,
     equipmentListLength: equipmentList.length,
-    totalMonthlyPayment
+    totalMonthlyPayment,
+    totalPurchaseAmount
   });
   console.log("🔍 CreateOffer - Commission Debug:", {
     isInternalOffer,
