@@ -153,6 +153,50 @@ export const getContractEquipmentDeliveries = async (equipmentId: string): Promi
 };
 
 /**
+ * Récupérer toutes les livraisons individuelles pour un contrat
+ */
+export const getContractDeliveries = async (
+  contractId: string
+): Promise<Record<string, ContractEquipmentDelivery[]>> => {
+  try {
+    console.log("🚚 Récupération des livraisons pour le contrat:", contractId);
+
+    const { data, error } = await supabase
+      .from('contract_equipment_deliveries')
+      .select(`
+        *,
+        contract_equipment!inner(
+          id,
+          contract_id
+        )
+      `)
+      .eq('contract_equipment.contract_id', contractId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération des livraisons du contrat:", error);
+      throw error;
+    }
+
+    // Grouper les livraisons par équipement
+    const groupedDeliveries: Record<string, ContractEquipmentDelivery[]> = {};
+    data?.forEach(delivery => {
+      const equipmentId = delivery.contract_equipment_id;
+      if (!groupedDeliveries[equipmentId]) {
+        groupedDeliveries[equipmentId] = [];
+      }
+      groupedDeliveries[equipmentId].push(delivery);
+    });
+
+    console.log(`✅ Livraisons récupérées pour ${Object.keys(groupedDeliveries).length} équipements`);
+    return groupedDeliveries;
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des livraisons du contrat:", error);
+    throw error;
+  }
+};
+
+/**
  * Mettre à jour une livraison individuelle
  */
 export const updateContractEquipmentDelivery = async (

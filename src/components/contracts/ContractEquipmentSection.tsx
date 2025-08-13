@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Save, X, Package, Truck } from "lucide-react";
+import { Edit, Save, X, Package, Truck, Settings } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ContractEquipment, updateEquipmentSerialNumber } from "@/services/contractService";
 import { toast } from "sonner";
 import DeliveryWizardModal from "@/components/delivery/DeliveryWizardModal";
 import IndividualDeliveryWizardModal from "@/components/delivery/IndividualDeliveryWizardModal";
+import { useIndividualDeliveries } from "@/hooks/useIndividualDeliveries";
 
 interface ContractEquipmentSectionProps {
   equipment: ContractEquipment[];
@@ -29,6 +30,12 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
   const [savingSerials, setSavingSerials] = useState<{ [key: string]: boolean }>({});
   const [showDeliveryWizard, setShowDeliveryWizard] = useState(false);
   const [showIndividualDeliveryWizard, setShowIndividualDeliveryWizard] = useState(false);
+  
+  const { 
+    hasIndividualDeliveries, 
+    getDeliveryCount, 
+    getTotalQuantityDelivered 
+  } = useIndividualDeliveries(contractId);
 
   const getSerialNumbers = (item: ContractEquipment): string[] => {
     if (!item.serial_number) return Array(item.quantity).fill('');
@@ -114,6 +121,16 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
 
   // Vérifier si des livraisons sont configurées
   const hasDeliveryConfig = equipment.some(item => item.delivery_type);
+  
+  // Vérifier si des livraisons individuelles existent
+  const hasIndividualConfig = equipment.some(item => hasIndividualDeliveries(item.id));
+  
+  // Fonction pour déterminer si le bouton de livraison individuelle doit être affiché
+  const shouldShowIndividualButton = (item: ContractEquipment): boolean => {
+    const serials = getSerialNumbers(item);
+    const hasSerials = serials.some(s => s.trim() !== '');
+    return item.quantity > 1 || hasSerials;
+  };
 
   if (equipment.length === 0) {
     return (
@@ -149,6 +166,11 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
             {hasDeliveryConfig && (
               <Badge variant="outline" className="ml-2 text-green-600 border-green-200">
                 ✅ Livraisons configurées
+              </Badge>
+            )}
+            {hasIndividualConfig && (
+              <Badge variant="outline" className="ml-2 text-blue-600 border-blue-200">
+                📦 Livraisons individuelles
               </Badge>
             )}
           </div>
@@ -332,6 +354,34 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
               </div>
             )}
 
+            {/* Bouton de configuration individuelle */}
+            {shouldShowIndividualButton(item) && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h5 className="font-medium text-sm">Configuration individuelle</h5>
+                    {hasIndividualDeliveries(item.id) && (
+                      <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
+                        {getDeliveryCount(item.id)} livraison(s) - {getTotalQuantityDelivered(item.id)}/{item.quantity} unités
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={hasIndividualDeliveries(item.id) ? "outline" : "default"}
+                    onClick={() => setShowIndividualDeliveryWizard(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    {hasIndividualDeliveries(item.id) ? "Modifier" : "Configurer"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Définir des livraisons spécifiques par quantité ou numéro de série
+                </p>
+              </div>
+            )}
+
             {index < equipment.length - 1 && <Separator />}
           </div>
         ))}
@@ -345,6 +395,19 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
         clientId={clientId}
         contractId={contractId}
         onComplete={onRefresh}
+      />
+
+      {/* Wizard de configuration individuelle */}
+      <IndividualDeliveryWizardModal
+        open={showIndividualDeliveryWizard}
+        onOpenChange={setShowIndividualDeliveryWizard}
+        equipment={equipment}
+        clientId={clientId}
+        contractId={contractId}
+        onComplete={() => {
+          onRefresh();
+          setShowIndividualDeliveryWizard(false);
+        }}
       />
     </Card>
   );
