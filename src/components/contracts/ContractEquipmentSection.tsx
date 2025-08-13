@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Package, Users } from "lucide-react";
 import { ContractEquipment } from "@/services/contractService";
-import SimpleContractEquipmentManager from "./SimpleContractEquipmentManager";
+import ContractEquipmentDragDropManager from "./ContractEquipmentDragDropManager";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import { collaboratorEquipmentService } from "@/services/collaboratorEquipmentService";
 import { assignIndividualEquipment } from "@/services/equipmentDivisionService";
@@ -108,10 +108,11 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
 
   return (
     <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <SimpleContractEquipmentManager 
+      <ContractEquipmentDragDropManager 
         contractId={contractId} 
         draggedEquipment={draggedEquipment}
-        onRefresh={onRefresh}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       />
     </DragDropContext>
   );
