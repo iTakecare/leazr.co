@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -101,7 +101,8 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
   }
 
   return (
-    <Card className="h-full flex flex-col border-2 border-primary/20 bg-card">
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Card className="h-full flex flex-col border-2 border-primary/20 bg-card">
       <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
@@ -212,6 +213,7 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
         </div>
       </CardContent>
     </Card>
+    </DragDropContext>
   );
 };
 
