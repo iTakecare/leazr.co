@@ -195,63 +195,37 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-medium text-sm truncate">{item.title}</p>
-                {item.is_individual && (
-                  <Badge variant="secondary" className="text-xs">Individuel</Badge>
-                )}
-                {!item.is_individual && item.quantity > 1 && (
-                  <Badge variant="outline" className="text-xs">Groupe ({item.quantity})</Badge>
-                )}
-              </div>
-              
-              {/* Numéros de série améliorés */}
-              {formatSerialNumbers(item) && (
-                <div className="flex items-center gap-1 mb-1">
-                  <Hash className="h-3 w-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {formatSerialNumbers(item)}
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>Qté: {item.quantity}</span>
-                <span>•</span>
-                <span>{item.purchase_price}€</span>
-              </div>
+          {/* Titre du produit */}
+          <p className="font-medium text-sm truncate mb-2">{item.title}</p>
+          
+          {/* Numéros de série */}
+          {formatSerialNumbers(item) && (
+            <div className="flex items-center gap-1 mb-2">
+              <Hash className="h-3 w-3 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground font-mono">
+                {formatSerialNumbers(item)}
+              </p>
             </div>
-            
-            {item.monthly_payment && (
-              <Badge variant="secondary" className="text-xs flex-shrink-0">
-                {item.monthly_payment}€/mois
-              </Badge>
-            )}
-          </div>
+          )}
           
           {/* Contrôles d'attribution */}
-          {!readOnly && (
-            <div className="flex items-center gap-2 mt-2">
-              {/* Bouton pour diviser si nécessaire */}
-              {!item.is_individual && item.quantity > 1 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDivideEquipment(item)}
-                      className="h-7 w-7 p-0 hover:bg-primary/20"
-                    >
-                      <Split className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Diviser en équipements individuels</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+          {!readOnly && !item.is_individual && item.quantity > 1 && (
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDivideEquipment(item)}
+                    className="h-7 w-7 p-0 hover:bg-primary/20"
+                  >
+                    <Split className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Diviser en équipements individuels</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           )}
         </div>
