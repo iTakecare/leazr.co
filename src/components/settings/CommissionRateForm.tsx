@@ -85,8 +85,58 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
   // Responsive styling for inline mode
   const formClassName = inline ? "space-y-3" : "space-y-6";
   const buttonsClassName = inline ? "flex items-center justify-end gap-2 pt-2" : "flex items-center justify-between pt-4";
-  return <Form {...form}>
-      
-    </Form>;
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className={formClassName}>
+        <FormField
+          control={form.control}
+          name="min_amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Montant minimum</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="max_amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Montant maximum</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="rate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Taux (%)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className={buttonsClassName}>
+          <Button type="button" variant="outline" onClick={handleCancel}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
 };
 export default CommissionRateForm;
