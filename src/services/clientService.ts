@@ -1,31 +1,142 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Collaborator } from "@/types/client";
+import { Collaborator, Client, CreateClientData } from "@/types/client";
 
-// Stubs pour les fonctions manquantes - à implémenter plus tard
-export const getClientById = async (clientId: string): Promise<any> => {
-  console.warn("getClientById not implemented yet");
-  return null;
+/**
+ * Récupère un client par son ID
+ */
+export const getClientById = async (clientId: string): Promise<Client | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération du client:", error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération du client:", error);
+    return null;
+  }
 };
 
-export const getAllClients = async (): Promise<any[]> => {
-  console.warn("getAllClients not implemented yet");
-  return [];
+/**
+ * Récupère tous les clients de l'entreprise avec sécurité multi-tenant
+ */
+export const getAllClients = async (): Promise<Client[]> => {
+  try {
+    console.log("🔍 Récupération des clients avec sécurité multi-tenant...");
+    
+    // Utiliser la fonction sécurisée qui gère automatiquement l'isolation par company_id
+    const { data, error } = await supabase.rpc('get_all_clients_secure');
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération des clients:", error);
+      return [];
+    }
+
+    console.log(`✅ ${data?.length || 0} clients récupérés`);
+    return data || [];
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des clients:", error);
+    return [];
+  }
 };
 
-export const createClient = async (clientData: any): Promise<any> => {
-  console.warn("createClient not implemented yet");
-  return null;
+/**
+ * Crée un nouveau client
+ */
+export const createClient = async (clientData: CreateClientData): Promise<Client | null> => {
+  try {
+    console.log("➕ Création d'un nouveau client:", clientData.name);
+    
+    const { data, error } = await supabase
+      .from('clients')
+      .insert(clientData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Erreur lors de la création du client:", error);
+      throw new Error("Erreur lors de la création du client");
+    }
+
+    console.log("✅ Client créé avec succès:", data.id);
+    return data;
+  } catch (error) {
+    console.error("❌ Exception lors de la création du client:", error);
+    throw error;
+  }
 };
 
-export const updateClient = async (clientId: string, updates: any): Promise<any> => {
-  console.warn("updateClient not implemented yet");
-  return { id: clientId, ...updates };
+/**
+ * Met à jour un client existant
+ */
+export const updateClient = async (clientId: string, updates: Partial<Client>): Promise<Client | null> => {
+  try {
+    console.log("📝 Mise à jour du client:", clientId);
+    
+    const { data, error } = await supabase
+      .from('clients')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', clientId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Erreur lors de la mise à jour du client:", error);
+      return null;
+    }
+
+    console.log("✅ Client mis à jour avec succès");
+    return data;
+  } catch (error) {
+    console.error("❌ Exception lors de la mise à jour du client:", error);
+    return null;
+  }
 };
 
-export const deleteClient = async (clientId: string, onSuccess?: () => void, onError?: () => void, toast?: any): Promise<boolean> => {
-  console.warn("deleteClient not implemented yet");
-  if (onSuccess) onSuccess();
-  return false;
+/**
+ * Supprime un client
+ */
+export const deleteClient = async (
+  clientId: string, 
+  onSuccess?: () => void, 
+  onError?: () => void, 
+  toast?: any
+): Promise<boolean> => {
+  try {
+    console.log("🗑️ Suppression du client:", clientId);
+    
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', clientId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la suppression du client:", error);
+      if (toast) toast.error("Erreur lors de la suppression du client");
+      if (onError) onError();
+      return false;
+    }
+
+    console.log("✅ Client supprimé avec succès");
+    if (toast) toast.success("Client supprimé avec succès");
+    if (onSuccess) onSuccess();
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la suppression du client:", error);
+    if (toast) toast.error("Erreur lors de la suppression du client");
+    if (onError) onError();
+    return false;
+  }
 };
 
 export const verifyVatNumber = async (vatNumber: string, country?: string): Promise<{
