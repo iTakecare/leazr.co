@@ -153,6 +153,7 @@ const CommissionManager: React.FC = () => {
   };
 
   const handleEditAmbassadorRate = (rate: CommissionRate) => {
+    setSelectedAmbassadorLevelId(rate.commission_level_id);
     setEditingAmbassadorRate(rate);
     setIsAmbassadorRateFormOpen(true);
   };
@@ -233,6 +234,7 @@ const CommissionManager: React.FC = () => {
   };
 
   const handleEditPartnerRate = (rate: CommissionRate) => {
+    setSelectedPartnerLevelId(rate.commission_level_id);
     setEditingPartnerRate(rate);
     setIsPartnerRateFormOpen(true);
   };
