@@ -965,6 +965,10 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          billing_address: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
           city: string | null
           company: string | null
           company_id: string
@@ -972,6 +976,11 @@ export type Database = {
           country: string | null
           created_at: string
           default_leaser_id: string | null
+          delivery_address: string | null
+          delivery_city: string | null
+          delivery_country: string | null
+          delivery_postal_code: string | null
+          delivery_same_as_billing: boolean | null
           email: string | null
           first_name: string | null
           has_custom_catalog: boolean | null
@@ -992,6 +1001,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
           city?: string | null
           company?: string | null
           company_id: string
@@ -999,6 +1012,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           default_leaser_id?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_country?: string | null
+          delivery_postal_code?: string | null
+          delivery_same_as_billing?: boolean | null
           email?: string | null
           first_name?: string | null
           has_custom_catalog?: boolean | null
@@ -1019,6 +1037,10 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
           city?: string | null
           company?: string | null
           company_id?: string
@@ -1026,6 +1048,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           default_leaser_id?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_country?: string | null
+          delivery_postal_code?: string | null
+          delivery_same_as_billing?: boolean | null
           email?: string | null
           first_name?: string | null
           has_custom_catalog?: boolean | null
