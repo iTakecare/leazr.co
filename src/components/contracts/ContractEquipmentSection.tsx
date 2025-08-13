@@ -201,16 +201,20 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
           </CardContent>
         </Card>
 
-        {/* Section drag-and-drop pour l'attribution - Les deux managers partagent le même context */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <ContractEquipmentDragDropManager 
-            contractId={contractId} 
-            draggedEquipment={draggedEquipment}
-          />
-          <EquipmentDragDropManager 
-            clientId={clientId}
-            draggedEquipment={draggedEquipment}
-          />
+        {/* Section drag-and-drop pour l'attribution - Layout équilibré en flexbox */}
+        <div className="flex flex-col lg:flex-row gap-6 min-h-[600px]">
+          <div className="flex-1 min-w-0">
+            <ContractEquipmentDragDropManager 
+              contractId={contractId} 
+              draggedEquipment={draggedEquipment}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <EquipmentDragDropManager 
+              clientId={clientId}
+              draggedEquipment={draggedEquipment}
+            />
+          </div>
         </div>
       </div>
     </DragDropContext>

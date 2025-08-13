@@ -101,16 +101,16 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
   }
 
   return (
-    <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 dark:border-blue-800">
-      <CardHeader>
+    <Card className="h-full flex flex-col border-2 border-primary/20 bg-card">
+      <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
-              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Assignation des équipements contractuels
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <Users className="h-5 w-5 text-primary" />
+              Collaborateurs
             </CardTitle>
-            <CardDescription className="mt-2 text-blue-700 dark:text-blue-300">
-              Glissez-déposez les équipements de contrats pour les assigner aux collaborateurs (numéros de série disponibles)
+            <CardDescription className="mt-1">
+              Assignez les équipements aux collaborateurs
             </CardDescription>
           </div>
           {!readOnly && (
@@ -121,27 +121,22 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto">
+      <CardContent className="flex-1 min-h-0">
+        <div className="h-full overflow-y-auto space-y-3">
           {collaboratorGroups.map((group) => (
-            <div key={group.collaborator_id} className="space-y-2">
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            <div key={group.collaborator_id} className="border rounded-lg p-3 bg-muted/30">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-sm text-emerald-900 dark:text-emerald-100 truncate">{group.collaborator_name}</h3>
-                    {group.collaborator_id !== 'unassigned' && (
-                      <Badge className="text-xs bg-emerald-600 hover:bg-emerald-600 text-white">
-                        Principal
-                      </Badge>
-                    )}
+                    <h3 className="font-medium text-sm truncate">{group.collaborator_name}</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {group.equipment.length}
+                    </Badge>
                   </div>
                   {group.collaborator_email && (
-                    <p className="text-xs text-emerald-700 dark:text-emerald-300 truncate">{group.collaborator_email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{group.collaborator_email}</p>
                   )}
                 </div>
-                <Badge variant="outline" className="text-xs bg-white/80 text-emerald-800 border-emerald-300 font-semibold">
-                  {group.equipment.length}
-                </Badge>
               </div>
 
               <Droppable droppableId={group.collaborator_id} isDropDisabled={readOnly}>
@@ -149,10 +144,10 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`min-h-[180px] max-h-[300px] overflow-y-auto p-3 rounded-lg border-2 border-dashed transition-all duration-300 ${
+                    className={`min-h-[120px] p-2 rounded border-2 border-dashed transition-colors ${
                       snapshot.isDraggingOver
-                        ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/50 shadow-lg scale-[1.02]'
-                        : externalDraggedEquipment ? 'border-orange-200 bg-orange-50/50 dark:bg-orange-950/20' : 'border-gray-300 bg-gray-50/50 dark:bg-gray-800/50'
+                        ? 'border-primary bg-primary/5'
+                        : externalDraggedEquipment ? 'border-primary/50 bg-primary/5' : 'border-border'
                     }`}
                   >
                     {group.equipment.length > 0 ? (
@@ -168,56 +163,44 @@ const EquipmentDragDropManager: React.FC<EquipmentDragDropManagerProps> = ({
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                className={`p-3 bg-white dark:bg-gray-800 rounded-lg border-l-4 shadow-sm transition-all duration-200 ${
+                                className={`p-2 bg-background rounded border transition-all ${
                                   snapshot.isDragging
-                                    ? 'shadow-xl scale-105 rotate-1 border-l-orange-500 z-50'
-                                    : 'hover:shadow-md border-l-blue-400'
-                                } ${
-                                  externalDraggedEquipment === item.id ? 'opacity-60 scale-95' : ''
+                                    ? 'shadow-lg scale-105'
+                                    : 'hover:bg-muted/50'
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <Package className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                      <span className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{item.title}</span>
+                                      <Package className="h-3 w-3 text-primary flex-shrink-0" />
+                                      <span className="font-medium text-sm truncate">{item.title}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 mb-2">
-                                      <Badge className="text-xs bg-green-500 hover:bg-green-500 text-white font-medium">
-                                        Contrat
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                    <p className="text-xs text-muted-foreground truncate">
                                       {item.source_name}
                                     </p>
                                     {item.serial_number && (
-                                      <p className="text-xs font-mono text-gray-500 dark:text-gray-500 truncate bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded mt-1">
-                                        SN: {item.serial_number}
+                                      <p className="text-xs font-mono text-muted-foreground bg-muted px-1 py-0.5 rounded mt-1">
+                                        {item.serial_number}
                                       </p>
                                     )}
                                   </div>
                                   {!readOnly && (
-                                    <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-                                      <GripVertical className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                                    <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted">
+                                      <GripVertical className="h-3 w-3 text-muted-foreground" />
                                     </div>
                                   )}
                                 </div>
-                                </div>
+                              </div>
                               )}
                             </Draggable>
                           ))}
                         </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                        <Package className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                          Aucun équipement assigné
+                      <div className="flex flex-col items-center justify-center h-full text-center py-4">
+                        <Package className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          Aucun équipement
                         </p>
-                        {!readOnly && (
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            Glissez des équipements ici
-                          </p>
-                        )}
                       </div>
                     )}
                     {provided.placeholder}

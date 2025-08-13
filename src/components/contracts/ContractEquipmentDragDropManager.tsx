@@ -300,18 +300,18 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
 
         {/* Interface en deux colonnes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Colonne gauche : Équipements non assignés */}
-          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 dark:border-purple-800">
-            <CardHeader>
+          {/* Équipements du contrat */}
+          <Card className="h-full flex flex-col border-2 border-primary/20 bg-card">
+            <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-purple-900 dark:text-purple-100">
-                    <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    Équipements disponibles
-                    <Badge className="bg-purple-500 hover:bg-purple-500 text-white">{unassignedEquipment.length}</Badge>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <Package className="h-5 w-5 text-primary" />
+                    Équipements du contrat
+                    <Badge variant="secondary">{unassignedEquipment.length}</Badge>
                   </CardTitle>
-                  <CardDescription className="text-purple-700 dark:text-purple-300">
-                    Équipements en attente d'attribution
+                  <CardDescription>
+                    Équipements à assigner
                   </CardDescription>
                 </div>
                 {!readOnly && (
@@ -332,23 +332,22 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 min-h-0">
               <Droppable droppableId="contract-unassigned" isDropDisabled={readOnly}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`min-h-[400px] max-h-[500px] overflow-y-auto p-4 border-2 border-dashed rounded-lg transition-all duration-300 ${
+                    className={`h-full overflow-y-auto p-3 border-2 border-dashed rounded transition-colors ${
                       snapshot.isDraggingOver
-                        ? 'border-purple-400 bg-purple-50 dark:bg-purple-950/50 shadow-lg scale-[1.02]'
-                        : externalDraggedEquipment ? 'border-purple-200 bg-purple-50/50 dark:bg-purple-950/20' : 'border-gray-300 bg-gray-50/50 dark:bg-gray-800/50'
+                        ? 'border-primary bg-primary/5'
+                        : externalDraggedEquipment ? 'border-primary/50 bg-primary/5' : 'border-border'
                     }`}
                   >
                     {unassignedEquipment.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-32 text-purple-500 dark:text-purple-400">
-                        <Package className="h-12 w-12 mb-2" />
-                        <p className="text-sm font-medium">Aucun équipement disponible</p>
-                        <p className="text-xs">Tous les équipements sont assignés</p>
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Package className="h-12 w-12 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">Tous assignés</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
