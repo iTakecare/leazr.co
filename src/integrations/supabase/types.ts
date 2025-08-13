@@ -1196,7 +1196,10 @@ export type Database = {
       }
       collaborators: {
         Row: {
+          address: string | null
+          city: string | null
           client_id: string
+          country: string | null
           created_at: string
           department: string | null
           email: string | null
@@ -1204,11 +1207,15 @@ export type Database = {
           is_primary: boolean | null
           name: string
           phone: string | null
+          postal_code: string | null
           role: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           client_id: string
+          country?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -1216,11 +1223,15 @@ export type Database = {
           is_primary?: boolean | null
           name: string
           phone?: string | null
+          postal_code?: string | null
           role: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          city?: string | null
           client_id?: string
+          country?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -1228,6 +1239,7 @@ export type Database = {
           is_primary?: boolean | null
           name?: string
           phone?: string | null
+          postal_code?: string | null
           role?: string
           updated_at?: string
         }

@@ -22,7 +22,11 @@ const CollaboratorCreationDialog: React.FC<CollaboratorCreationDialogProps> = ({
     name: '',
     email: '',
     phone: '',
-    role: 'Collaborateur'
+    role: 'Collaborateur',
+    address: '',
+    city: '',
+    postal_code: '',
+    country: 'BE'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +49,10 @@ const CollaboratorCreationDialog: React.FC<CollaboratorCreationDialogProps> = ({
           email: formData.email.trim() || null,
           phone: formData.phone.trim() || null,
           role: formData.role,
+          address: formData.address.trim() || null,
+          city: formData.city.trim() || null,
+          postal_code: formData.postal_code.trim() || null,
+          country: formData.country,
           is_primary: false
         })
         .select('id, name, email')
@@ -64,7 +72,11 @@ const CollaboratorCreationDialog: React.FC<CollaboratorCreationDialogProps> = ({
         name: '',
         email: '',
         phone: '',
-        role: 'Collaborateur'
+        role: 'Collaborateur',
+        address: '',
+        city: '',
+        postal_code: '',
+        country: 'BE'
       });
       
       setOpen(false);
@@ -137,6 +149,38 @@ const CollaboratorCreationDialog: React.FC<CollaboratorCreationDialogProps> = ({
               onChange={(e) => handleInputChange('role', e.target.value)}
               placeholder="Rôle ou fonction"
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="address">Adresse</Label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              placeholder="Adresse complète"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="postal_code">Code postal</Label>
+              <Input
+                id="postal_code"
+                value={formData.postal_code}
+                onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                placeholder="1000"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="city">Ville</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                placeholder="Bruxelles"
+              />
+            </div>
           </div>
           
           <DialogFooter>
