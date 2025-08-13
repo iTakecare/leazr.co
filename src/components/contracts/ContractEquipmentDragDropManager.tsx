@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
+import { Droppable, Draggable } from "react-beautiful-dnd";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,9 @@ import CollaboratorCreationDialog from "@/components/equipment/CollaboratorCreat
 interface ContractEquipmentDragDropManagerProps {
   contractId: string;
   readOnly?: boolean;
+  onDragStart?: (start: any) => void;
+  onDragEnd?: (result: any) => void;
+  draggedEquipment?: any;
 }
 
 interface Collaborator {
@@ -40,12 +43,14 @@ interface CollaboratorWithEquipment extends Collaborator {
 
 const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManagerProps> = ({
   contractId,
-  readOnly = false
+  readOnly = false,
+  onDragStart,
+  onDragEnd,
+  draggedEquipment: externalDraggedEquipment
 }) => {
   const [unassignedEquipment, setUnassignedEquipment] = useState<ContractEquipment[]>([]);
   const [collaborators, setCollaborators] = useState<CollaboratorWithEquipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draggedEquipment, setDraggedEquipment] = useState<ContractEquipment | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [equipmentToDivide, setEquipmentToDivide] = useState<ContractEquipment | null>(null);
   const [clientId, setClientId] = useState<string>('');
@@ -146,30 +151,21 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
     localStorage.setItem('equipment-division-tutorial', 'seen');
   };
 
-  const onDragStart = (start: any) => {
-    const equipment = [...unassignedEquipment, ...collaborators.flatMap(c => c.equipment)]
-      .find(item => item.id === start.draggableId);
-    setDraggedEquipment(equipment || null);
-  };
-
-  const onDragEnd = async (result: DropResult) => {
-    setDraggedEquipment(null);
-    
-    if (!result.destination) return;
+  const handleContractDragEnd = async (result: any) => {
+    if (!result.destination || !result.destination.droppableId.startsWith('contract-')) return;
     
     const { draggableId, destination } = result;
-    const newCollaboratorId = destination.droppableId === 'unassigned' ? null : destination.droppableId;
+    const newCollaboratorId = destination.droppableId === 'contract-unassigned' ? null : destination.droppableId.replace('contract-', '');
     
     try {
       await assignIndividualEquipment(draggableId, newCollaboratorId);
-      
       await fetchData();
       toast.success(
         newCollaboratorId ? 'Équipement assigné avec succès' : 'Équipement désassigné avec succès'
       );
     } catch (error) {
       console.error('Erreur lors de l\'assignation:', error);
-      toast.error('Erreur lors de l\'assignation de l\'équipement');
+      toast.error('Erreur lors de l\'assignation de l\'équipment');
     }
   };
 
@@ -305,16 +301,16 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
         {/* Interface en deux colonnes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Colonne gauche : Équipements non assignés */}
-          <Card>
+          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 dark:border-purple-800">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-purple-900 dark:text-purple-100">
+                    <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     Équipements disponibles
-                    <Badge variant="outline">{unassignedEquipment.length}</Badge>
+                    <Badge className="bg-purple-500 hover:bg-purple-500 text-white">{unassignedEquipment.length}</Badge>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-purple-700 dark:text-purple-300">
                     Équipements en attente d'attribution
                   </CardDescription>
                 </div>
@@ -337,86 +333,86 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
               </div>
             </CardHeader>
             <CardContent>
-              <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                <Droppable droppableId="unassigned" isDropDisabled={readOnly}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`min-h-[400px] p-4 border-2 border-dashed rounded-lg transition-all duration-200 ${
-                        snapshot.isDraggingOver
-                          ? 'border-primary bg-primary/5 shadow-inner'
-                          : draggedEquipment ? 'border-muted-foreground/30 bg-muted/20' : 'border-muted-foreground/20'
-                      }`}
-                    >
-                      {unassignedEquipment.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                          <Package className="h-8 w-8 mb-2" />
-                          <p className="text-sm">Aucun équipement disponible</p>
-                          <p className="text-xs">Tous les équipements sont assignés</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {unassignedEquipment.map((item, index) => (
-                            <Draggable 
-                              key={item.id} 
-                              draggableId={item.id} 
-                              index={index}
-                              isDragDisabled={readOnly}
-                            >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  className={`${!readOnly ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {!readOnly && (
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        className="flex-shrink-0"
-                                      >
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <div className="p-1 rounded hover:bg-muted/50 cursor-grab active:cursor-grabbing">
-                                              <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                            </div>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>Glissez vers un collaborateur</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </div>
-                                    )}
-                                    <div className="flex-1">
-                                      {renderEquipmentCard(item, index, snapshot.isDragging)}
+              <Droppable droppableId="contract-unassigned" isDropDisabled={readOnly}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`min-h-[400px] max-h-[500px] overflow-y-auto p-4 border-2 border-dashed rounded-lg transition-all duration-300 ${
+                      snapshot.isDraggingOver
+                        ? 'border-purple-400 bg-purple-50 dark:bg-purple-950/50 shadow-lg scale-[1.02]'
+                        : externalDraggedEquipment ? 'border-purple-200 bg-purple-50/50 dark:bg-purple-950/20' : 'border-gray-300 bg-gray-50/50 dark:bg-gray-800/50'
+                    }`}
+                  >
+                    {unassignedEquipment.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-32 text-purple-500 dark:text-purple-400">
+                        <Package className="h-12 w-12 mb-2" />
+                        <p className="text-sm font-medium">Aucun équipement disponible</p>
+                        <p className="text-xs">Tous les équipements sont assignés</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {unassignedEquipment.map((item, index) => (
+                          <Draggable 
+                            key={item.id} 
+                            draggableId={item.id} 
+                            index={index}
+                            isDragDisabled={readOnly}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`${!readOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${
+                                  snapshot.isDragging ? 'z-50' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {!readOnly && (
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="flex-shrink-0"
+                                    >
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="p-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-grab active:cursor-grabbing">
+                                            <GripVertical className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Glissez vers un collaborateur</p>
+                                        </TooltipContent>
+                                      </Tooltip>
                                     </div>
+                                  )}
+                                  <div className="flex-1">
+                                    {renderEquipmentCard(item, index, snapshot.isDragging)}
                                   </div>
                                 </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Droppable>
             </CardContent>
           </Card>
 
           {/* Colonne droite : Collaborateurs et leurs équipements */}
-          <Card>
+          <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 dark:border-amber-800">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+                    <Users className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     Collaborateurs
-                    <Badge variant="outline">{collaborators.length}</Badge>
+                    <Badge className="bg-amber-500 hover:bg-amber-500 text-white">{collaborators.length}</Badge>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-amber-700 dark:text-amber-300">
                     Attribution des équipements par collaborateur
                   </CardDescription>
                 </div>
@@ -429,122 +425,122 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
               </div>
             </CardHeader>
             <CardContent>
-              <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {collaborators.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-32 text-muted-foreground border-2 border-dashed rounded-lg">
-                      <User className="h-8 w-8 mb-2" />
-                      <p className="text-sm">Aucun collaborateur</p>
-                      <p className="text-xs">Ajoutez des collaborateurs pour l'attribution</p>
-                    </div>
-                  ) : (
-                    collaborators.map((collaborator) => (
-                      <Droppable 
-                        key={collaborator.id} 
-                        droppableId={collaborator.id}
-                        isDropDisabled={readOnly}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            className={`border-2 rounded-lg p-4 transition-all duration-200 ${
-                              snapshot.isDraggingOver
-                                ? 'border-primary bg-primary/5 border-dashed shadow-lg'
-                                : draggedEquipment ? 'border-dashed border-muted-foreground/30 bg-muted/20' : 'border-border'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                  <h3 className="font-medium">{collaborator.name}</h3>
-                                  <Badge variant="outline" className="text-xs">
-                                    {collaborator.equipment.length}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="text-sm text-muted-foreground space-y-1">
-                                  {collaborator.email && (
-                                    <p className="truncate">{collaborator.email}</p>
-                                  )}
-                                  {collaborator.role && (
-                                    <p>{collaborator.role}</p>
-                                  )}
-                                  {(collaborator.address || collaborator.city) && (
-                                    <div className="flex items-start gap-1">
-                                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                      <p className="text-xs">
-                                        {[collaborator.address, collaborator.postal_code, collaborator.city]
-                                          .filter(Boolean)
-                                          .join(', ')}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {collaborators.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-amber-500 dark:text-amber-400 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-lg">
+                    <User className="h-12 w-12 mb-2" />
+                    <p className="text-sm font-medium">Aucun collaborateur</p>
+                    <p className="text-xs">Ajoutez des collaborateurs pour l'attribution</p>
+                  </div>
+                ) : (
+                  collaborators.map((collaborator) => (
+                    <Droppable 
+                      key={collaborator.id} 
+                      droppableId={`contract-${collaborator.id}`}
+                      isDropDisabled={readOnly}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          className={`border-2 rounded-lg p-4 transition-all duration-300 ${
+                            snapshot.isDraggingOver
+                              ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/50 shadow-lg scale-[1.02]'
+                              : externalDraggedEquipment ? 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/20' : 'border-amber-300 dark:border-amber-700'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <User className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                <h3 className="font-semibold text-amber-900 dark:text-amber-100">{collaborator.name}</h3>
+                                <Badge className="text-xs bg-amber-500 hover:bg-amber-500 text-white">
+                                  {collaborator.equipment.length}
+                                </Badge>
+                              </div>
+                              
+                              <div className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                                {collaborator.email && (
+                                  <p className="truncate">{collaborator.email}</p>
+                                )}
+                                {collaborator.role && (
+                                  <p>{collaborator.role}</p>
+                                )}
+                                {(collaborator.address || collaborator.city) && (
+                                  <div className="flex items-start gap-1">
+                                    <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0 text-amber-500" />
+                                    <p className="text-xs">
+                                      {[collaborator.address, collaborator.postal_code, collaborator.city]
+                                        .filter(Boolean)
+                                        .join(', ')}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              className="min-h-[100px]"
-                            >
-                              {collaborator.equipment.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-20 text-muted-foreground border border-dashed rounded">
-                                  <Package className="h-5 w-5 mb-1" />
-                                  <p className="text-xs">Glissez un équipement ici</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {collaborator.equipment.map((item, index) => (
-                                    <Draggable 
-                                      key={item.id} 
-                                      draggableId={item.id} 
-                                      index={index}
-                                      isDragDisabled={readOnly}
-                                    >
-                                      {(provided, snapshot) => (
-                                        <div
-                                          ref={provided.innerRef}
-                                          {...provided.draggableProps}
-                                          className={`${!readOnly ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            {!readOnly && (
-                                              <div
-                                                {...provided.dragHandleProps}
-                                                className="flex-shrink-0"
-                                              >
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <div className="p-1 rounded hover:bg-muted/50 cursor-grab active:cursor-grabbing">
-                                                      <GripVertical className="h-3 w-3 text-muted-foreground" />
-                                                    </div>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent>
-                                                    <p>Glissez pour déplacer</p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </div>
-                                            )}
-                                            <div className="flex-1">
-                                              {renderEquipmentCard(item, index, snapshot.isDragging)}
+                          </div>
+                          
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className="min-h-[100px]"
+                          >
+                            {collaborator.equipment.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-20 text-amber-500 dark:text-amber-400 border border-dashed border-amber-300 dark:border-amber-700 rounded">
+                                <Package className="h-5 w-5 mb-1" />
+                                <p className="text-xs">Glissez un équipement ici</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {collaborator.equipment.map((item, index) => (
+                                  <Draggable 
+                                    key={item.id} 
+                                    draggableId={item.id} 
+                                    index={index}
+                                    isDragDisabled={readOnly}
+                                  >
+                                    {(provided, snapshot) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        className={`${!readOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${
+                                          snapshot.isDragging ? 'z-50' : ''
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          {!readOnly && (
+                                            <div
+                                              {...provided.dragHandleProps}
+                                              className="flex-shrink-0"
+                                            >
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <div className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-grab active:cursor-grabbing">
+                                                    <GripVertical className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                                  </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  <p>Glissez pour déplacer</p>
+                                                </TooltipContent>
+                                              </Tooltip>
                                             </div>
+                                          )}
+                                          <div className="flex-1">
+                                            {renderEquipmentCard(item, index, snapshot.isDragging)}
                                           </div>
                                         </div>
-                                      )}
-                                    </Draggable>
-                                  ))}
-                                </div>
-                              )}
-                              {provided.placeholder}
-                            </div>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                ))}
+                              </div>
+                            )}
+                            {provided.placeholder}
                           </div>
-                        )}
-                      </Droppable>
-                    ))
-                  )}
-                </div>
-              </DragDropContext>
+                        </div>
+                      )}
+                    </Droppable>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
