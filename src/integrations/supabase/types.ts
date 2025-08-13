@@ -962,6 +962,68 @@ export type Database = {
         }
         Relationships: []
       }
+      client_delivery_sites: {
+        Row: {
+          address: string
+          city: string
+          client_id: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          country: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          notes: string | null
+          postal_code: string | null
+          site_name: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          city: string
+          client_id: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          notes?: string | null
+          postal_code?: string | null
+          site_name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          client_id?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          notes?: string | null
+          postal_code?: string | null
+          site_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_delivery_sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -3233,6 +3295,16 @@ export type Database = {
         Row: {
           collaborator_id: string | null
           created_at: string
+          delivery_address: string | null
+          delivery_city: string | null
+          delivery_contact_email: string | null
+          delivery_contact_name: string | null
+          delivery_contact_phone: string | null
+          delivery_country: string | null
+          delivery_notes: string | null
+          delivery_postal_code: string | null
+          delivery_site_id: string | null
+          delivery_type: string | null
           id: string
           margin: number
           monthly_payment: number | null
@@ -3246,6 +3318,16 @@ export type Database = {
         Insert: {
           collaborator_id?: string | null
           created_at?: string
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_contact_email?: string | null
+          delivery_contact_name?: string | null
+          delivery_contact_phone?: string | null
+          delivery_country?: string | null
+          delivery_notes?: string | null
+          delivery_postal_code?: string | null
+          delivery_site_id?: string | null
+          delivery_type?: string | null
           id?: string
           margin?: number
           monthly_payment?: number | null
@@ -3259,6 +3341,16 @@ export type Database = {
         Update: {
           collaborator_id?: string | null
           created_at?: string
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_contact_email?: string | null
+          delivery_contact_name?: string | null
+          delivery_contact_phone?: string | null
+          delivery_country?: string | null
+          delivery_notes?: string | null
+          delivery_postal_code?: string | null
+          delivery_site_id?: string | null
+          delivery_type?: string | null
           id?: string
           margin?: number
           monthly_payment?: number | null
@@ -3275,6 +3367,13 @@ export type Database = {
             columns: ["collaborator_id"]
             isOneToOne: false
             referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_equipment_delivery_site_id_fkey"
+            columns: ["delivery_site_id"]
+            isOneToOne: false
+            referencedRelation: "client_delivery_sites"
             referencedColumns: ["id"]
           },
           {
