@@ -3,11 +3,21 @@ import { formatCurrency } from "@/utils/formatters";
 
 interface EquipmentItem {
   title: string;
-  purchasePrice: number;
+  purchasePrice?: number;
+  purchase_price?: number;
   quantity: number;
-  monthlyPayment: number;
+  monthlyPayment?: number;
+  monthly_payment?: number;
   attributes?: Record<string, any> | any[];
   specifications?: Record<string, any> | any[];
+  delivery_info?: DeliveryInfo;
+}
+
+interface DeliveryInfo {
+  type: 'main_client' | 'collaborator' | 'predefined_site' | 'specific_address';
+  collaborator?: { id: string; name: string; email?: string; phone?: string };
+  site?: { site_name: string; address: string; city: string; postal_code: string; country: string; contact_name?: string };
+  specific_address?: { address: string; city: string; postal_code: string; country: string; contact_name?: string };
 }
 
 interface OfferPDFTemplateProps {
@@ -19,6 +29,14 @@ interface OfferPDFTemplateProps {
     client_email?: string;
     created_at: string;
     equipment_description: string;
+    equipment_data_enhanced?: Array<{
+      id: string;
+      title: string;
+      purchase_price: number;
+      quantity: number;
+      monthly_payment: number;
+      delivery_info?: DeliveryInfo;
+    }>;
     monthly_payment: number;
     signature_data?: string;
     signer_name?: string;
@@ -106,9 +124,39 @@ const formatEquipmentTitle = (item: EquipmentItem): string => {
 };
 
 const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
-  const equipment = parseEquipmentData(offer.equipment_description);
+  const equipment = offer.equipment_data_enhanced || parseEquipmentData(offer.equipment_description);
   const offerId = offer.offer_id || `OFF-${offer.id?.substring(0, 8).toUpperCase()}`;
   const isOfferSigned = !!offer.signature_data;
+  
+  // Grouper les équipements par adresse de livraison pour optimiser l'affichage
+  const groupedDeliveries = React.useMemo(() => {
+    const groups: Record<string, Array<typeof equipment[0]>> = {};
+    
+    equipment.forEach(item => {
+      let key = 'client_principal';
+      
+      if (item.delivery_info) {
+        switch (item.delivery_info.type) {
+          case 'collaborator':
+            key = `collaborator_${item.delivery_info.collaborator?.name || 'unknown'}`;
+            break;
+          case 'predefined_site':
+            key = `site_${item.delivery_info.site?.site_name || 'unknown'}`;
+            break;
+          case 'specific_address':
+            key = `address_${item.delivery_info.specific_address?.address || 'unknown'}`;
+            break;
+          default:
+            key = 'client_principal';
+        }
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
+    });
+    
+    return groups;
+  }, [equipment]);
   
   return (
     <div style={{ 
@@ -367,6 +415,58 @@ const OfferPDFTemplate: React.FC<OfferPDFTemplateProps> = ({ offer }) => {
             </div>
           </div>
         </div>
+
+        {/* Section Informations de livraison */}
+        {Object.keys(groupedDeliveries).length > 1 && (
+          <div style={{ 
+            margin: "0 0 5mm 0",
+            padding: "3mm",
+            border: "0.2mm solid #e5e7eb",
+            borderRadius: "1mm"
+          }}>
+            <h3 style={{ 
+              fontSize: "9pt", 
+              fontWeight: "bold", 
+              margin: "0 0 2mm 0",
+              color: "#1A2C3A"
+            }}>
+              Informations de livraison
+            </h3>
+            {Object.entries(groupedDeliveries).map(([groupKey, items]) => (
+              <div key={groupKey} style={{ margin: "2mm 0" }}>
+                <div style={{ 
+                  fontSize: "8pt", 
+                  fontWeight: "bold",
+                  color: "#4B5563",
+                  marginBottom: "1mm" 
+                }}>
+                  {groupKey.startsWith('collaborator_') ? (
+                    `📧 Collaborateur: ${groupKey.replace('collaborator_', '')}`
+                  ) : groupKey.startsWith('site_') ? (
+                    `🏢 Site: ${groupKey.replace('site_', '')}`
+                  ) : groupKey.startsWith('address_') ? (
+                    `📍 Adresse spécifique`
+                  ) : (
+                    `🏠 Client principal`
+                  )}
+                </div>
+                <div style={{ fontSize: "8pt", color: "#6B7280", marginLeft: "3mm" }}>
+                  {items.map(item => item.title).join(', ')}
+                  {items[0]?.delivery_info?.site && (
+                    <div style={{ fontSize: "7pt", marginTop: "0.5mm" }}>
+                      {items[0].delivery_info.site.address}, {items[0].delivery_info.site.postal_code} {items[0].delivery_info.site.city}
+                    </div>
+                  )}
+                  {items[0]?.delivery_info?.specific_address && (
+                    <div style={{ fontSize: "7pt", marginTop: "0.5mm" }}>
+                      {items[0].delivery_info.specific_address.address}, {items[0].delivery_info.specific_address.postal_code} {items[0].delivery_info.specific_address.city}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{ 
           margin: "5mm 0",

@@ -21,7 +21,7 @@ export const getOfferDataForPdf = async (offerId: string) => {
     
     console.log("Récupération des données de l'offre pour PDF:", offerId);
     
-    // Récupérer l'offre avec les données client associées
+    // Récupérer l'offre avec les données client et équipements avec informations de livraison
     const { data, error } = await supabase
       .from('offers')
       .select(`
@@ -40,6 +40,74 @@ export const getOfferDataForPdf = async (offerId: string) => {
       `)
       .eq('id', offerId)
       .maybeSingle();
+
+    if (error) {
+      console.error('Erreur lors de la récupération de l\'offre pour le PDF:', error);
+      return null;
+    }
+
+    if (!data) {
+      console.error("Aucune donnée d'offre trouvée pour l'ID:", offerId);
+      return null;
+    }
+
+    // Récupérer les équipements avec leurs informations de livraison pour le PDF
+    console.log("Récupération des équipements avec informations de livraison pour le PDF");
+    const { data: equipmentData, error: equipmentError } = await supabase
+      .from('offer_equipment')
+      .select(`
+        *,
+        attributes:offer_equipment_attributes(key, value),
+        specifications:offer_equipment_specifications(key, value),
+        collaborator:collaborators(id, name, email, phone),
+        delivery_site:client_delivery_sites(
+          site_name, 
+          address, 
+          city, 
+          postal_code, 
+          country,
+          contact_name,
+          contact_email,
+          contact_phone
+        )
+      `)
+      .eq('offer_id', offerId)
+      .order('created_at', { ascending: true });
+
+    if (equipmentError) {
+      console.error("Erreur lors de la récupération des équipements pour PDF:", equipmentError);
+      // Ne pas faire échouer si pas d'équipements, juste utiliser les données JSON existantes
+    }
+
+    // Si nous avons des données dans offer_equipment, les traiter avec les informations de livraison
+    if (equipmentData && equipmentData.length > 0) {
+      console.log("Traitement des équipements avec informations de livraison...");
+      
+      // Enrichir les équipements avec les informations de livraison formatées
+      const enrichedEquipment = equipmentData.map(equipment => ({
+        title: equipment.title,
+        quantity: equipment.quantity,
+        monthlyPayment: equipment.monthly_payment,
+        purchasePrice: equipment.purchase_price,
+        delivery_info: {
+          type: equipment.delivery_type,
+          collaborator: equipment.collaborator,
+          site: equipment.delivery_site,
+          specific_address: equipment.delivery_type === 'specific_address' ? {
+            address: equipment.delivery_address,
+            city: equipment.delivery_city,
+            postal_code: equipment.delivery_postal_code,
+            country: equipment.delivery_country,
+            contact_name: equipment.delivery_contact_name,
+            contact_email: equipment.delivery_contact_email,
+            contact_phone: equipment.delivery_contact_phone
+          } : null
+        }
+      }));
+
+      data.equipment_data_enhanced = enrichedEquipment;
+      console.log("Équipements enrichis avec informations de livraison");
+    }
 
     if (error) {
       console.error('Erreur lors de la récupération de l\'offre pour le PDF:', error);
