@@ -140,49 +140,75 @@ const EquipmentDeliverySection: React.FC<EquipmentDeliverySectionProps> = ({
         </div>
 
         {/* Collaborator selection */}
-        {deliveryType === 'collaborator' && collaborators.length > 0 && (
+        {deliveryType === 'collaborator' && (
           <div className="space-y-2">
             <Label htmlFor="collaborator">Collaborateur</Label>
-            <Select 
-              value={equipment.collaboratorId || ''} 
-              onValueChange={(value) => onChange('collaboratorId', value)}
-            >
-              <SelectTrigger id="collaborator">
-                <SelectValue placeholder="Sélectionner un collaborateur" />
-              </SelectTrigger>
-              <SelectContent>
-                {collaborators.map((collaborator) => (
-                  <SelectItem key={collaborator.id} value={collaborator.id}>
-                    {collaborator.name} - {collaborator.role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {collaborators.length > 0 ? (
+              <>
+                <Select 
+                  value={equipment.collaboratorId || ''} 
+                  onValueChange={(value) => onChange('collaboratorId', value)}
+                >
+                  <SelectTrigger id="collaborator">
+                    <SelectValue placeholder="Sélectionner un collaborateur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collaborators.map((collaborator) => (
+                      <SelectItem key={collaborator.id} value={collaborator.id}>
+                        {collaborator.name} {collaborator.role && `- ${collaborator.role}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!equipment.collaboratorId && (
+                  <p className="text-xs text-red-600">
+                    Veuillez sélectionner un collaborateur pour ce type de livraison
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
+                ⚠️ Aucun collaborateur trouvé pour ce client
+              </p>
+            )}
           </div>
         )}
 
         {/* Predefined site selection */}
-        {deliveryType === 'predefined_site' && deliverySites.length > 0 && (
+        {deliveryType === 'predefined_site' && (
           <div className="space-y-2">
             <Label htmlFor="delivery-site">Site de livraison</Label>
-            <Select 
-              value={equipment.deliverySiteId || ''} 
-              onValueChange={(value) => onChange('deliverySiteId', value)}
-            >
-              <SelectTrigger id="delivery-site">
-                <SelectValue placeholder="Sélectionner un site" />
-              </SelectTrigger>
-              <SelectContent>
-                {deliverySites.map((site) => (
-                  <SelectItem key={site.id} value={site.id}>
-                    <div className="flex items-center gap-2">
-                      {site.is_default && <span className="text-xs bg-primary text-primary-foreground px-1 rounded">Défaut</span>}
-                      <span>{site.site_name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {deliverySites.length > 0 ? (
+              <>
+                <Select 
+                  value={equipment.deliverySiteId || ''} 
+                  onValueChange={(value) => onChange('deliverySiteId', value)}
+                >
+                  <SelectTrigger id="delivery-site">
+                    <SelectValue placeholder="Sélectionner un site" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliverySites.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>
+                        <div className="flex items-center gap-2">
+                          {site.is_default && <span className="text-xs bg-primary text-primary-foreground px-1 rounded">Défaut</span>}
+                          <span>{site.site_name} - {site.city}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!equipment.deliverySiteId && (
+                  <p className="text-xs text-red-600">
+                    Veuillez sélectionner un site de livraison
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
+                ⚠️ Aucun site de livraison configuré pour ce client
+              </p>
+            )}
           </div>
         )}
 
@@ -190,13 +216,17 @@ const EquipmentDeliverySection: React.FC<EquipmentDeliverySectionProps> = ({
         {deliveryType === 'specific_address' && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="delivery-address">Adresse de livraison</Label>
+              <Label htmlFor="delivery-address">Adresse de livraison *</Label>
               <Input
                 id="delivery-address"
                 value={equipment.deliveryAddress || ''}
                 onChange={(e) => onChange('deliveryAddress', e.target.value)}
                 placeholder="Adresse complète"
+                className={!equipment.deliveryAddress ? 'border-red-300 focus:border-red-500' : ''}
               />
+              {!equipment.deliveryAddress && (
+                <p className="text-xs text-red-600">L'adresse est requise</p>
+              )}
             </div>
             
             <PostalCodeInput
@@ -207,38 +237,44 @@ const EquipmentDeliverySection: React.FC<EquipmentDeliverySectionProps> = ({
               onCityChange={(value) => onChange('deliveryCity', value)}
               onCountryChange={(value) => onChange('deliveryCountry', value)}
             />
+            {(!equipment.deliveryCity || !equipment.deliveryPostalCode) && (
+              <p className="text-xs text-red-600">Ville et code postal sont requis</p>
+            )}
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="delivery-contact-name">Contact</Label>
-                <Input
-                  id="delivery-contact-name"
-                  value={equipment.deliveryContactName || ''}
-                  onChange={(e) => onChange('deliveryContactName', e.target.value)}
-                  placeholder="Nom du contact"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="delivery-contact-email">Email</Label>
-                <Input
-                  id="delivery-contact-email"
-                  type="email"
-                  value={equipment.deliveryContactEmail || ''}
-                  onChange={(e) => onChange('deliveryContactEmail', e.target.value)}
-                  placeholder="Email"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="delivery-contact-phone">Téléphone</Label>
-                <Input
-                  id="delivery-contact-phone"
-                  type="tel"
-                  value={equipment.deliveryContactPhone || ''}
-                  onChange={(e) => onChange('deliveryContactPhone', e.target.value)}
-                  placeholder="Téléphone"
-                />
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Contact sur site (optionnel)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="delivery-contact-name" className="text-xs text-muted-foreground">Nom du contact</Label>
+                  <Input
+                    id="delivery-contact-name"
+                    value={equipment.deliveryContactName || ''}
+                    onChange={(e) => onChange('deliveryContactName', e.target.value)}
+                    placeholder="Nom du contact"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="delivery-contact-email" className="text-xs text-muted-foreground">Email</Label>
+                  <Input
+                    id="delivery-contact-email"
+                    type="email"
+                    value={equipment.deliveryContactEmail || ''}
+                    onChange={(e) => onChange('deliveryContactEmail', e.target.value)}
+                    placeholder="Email"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="delivery-contact-phone" className="text-xs text-muted-foreground">Téléphone</Label>
+                  <Input
+                    id="delivery-contact-phone"
+                    type="tel"
+                    value={equipment.deliveryContactPhone || ''}
+                    onChange={(e) => onChange('deliveryContactPhone', e.target.value)}
+                    placeholder="Téléphone"
+                  />
+                </div>
               </div>
             </div>
           </div>
