@@ -1739,8 +1739,11 @@ export type Database = {
           contract_id: string
           created_at: string
           id: string
+          individual_serial_number: string | null
+          is_individual: boolean | null
           margin: number
           monthly_payment: number | null
+          parent_equipment_id: string | null
           purchase_price: number
           quantity: number
           serial_number: string | null
@@ -1752,8 +1755,11 @@ export type Database = {
           contract_id: string
           created_at?: string
           id?: string
+          individual_serial_number?: string | null
+          is_individual?: boolean | null
           margin?: number
           monthly_payment?: number | null
+          parent_equipment_id?: string | null
           purchase_price?: number
           quantity?: number
           serial_number?: string | null
@@ -1765,8 +1771,11 @@ export type Database = {
           contract_id?: string
           created_at?: string
           id?: string
+          individual_serial_number?: string | null
+          is_individual?: boolean | null
           margin?: number
           monthly_payment?: number | null
+          parent_equipment_id?: string | null
           purchase_price?: number
           quantity?: number
           serial_number?: string | null
@@ -1786,6 +1795,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_equipment_parent_equipment_id_fkey"
+            columns: ["parent_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_equipment"
             referencedColumns: ["id"]
           },
         ]

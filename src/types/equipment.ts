@@ -8,6 +8,10 @@ export interface Equipment {
   monthlyPayment?: number;
   attributes?: Record<string, any>; // Attributs sélectionnés (couleur, taille, etc.)
   specifications?: Record<string, any>; // Spécifications techniques du produit
+  // Division fields
+  parentEquipmentId?: string;
+  isIndividual?: boolean;
+  individualSerialNumber?: string;
   // Delivery information fields
   collaboratorId?: string;
   deliverySiteId?: string;
