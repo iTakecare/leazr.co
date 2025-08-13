@@ -51,7 +51,7 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
   const [unassignedEquipment, setUnassignedEquipment] = useState<ContractEquipment[]>([]);
   const [collaborators, setCollaborators] = useState<CollaboratorWithEquipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showHelp, setShowHelp] = useState(false);
+  
   const [equipmentToDivide, setEquipmentToDivide] = useState<ContractEquipment | null>(null);
   const [clientId, setClientId] = useState<string>('');
 
@@ -112,11 +112,6 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
 
   useEffect(() => {
     fetchData();
-    // Vérifier si c'est la première fois
-    const hasSeenTutorial = localStorage.getItem('equipment-division-tutorial');
-    if (!hasSeenTutorial) {
-      setTimeout(() => setShowHelp(true), 1000);
-    }
   }, [contractId]);
 
   const handleDivideEquipment = async (equipment: ContractEquipment) => {
@@ -146,10 +141,6 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
     }
   };
 
-  const dismissTutorial = () => {
-    setShowHelp(false);
-    localStorage.setItem('equipment-division-tutorial', 'seen');
-  };
 
   const handleContractDragEnd = async (result: any) => {
     if (!result.destination || !result.destination.droppableId.startsWith('contract-')) return;
@@ -245,32 +236,6 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Aide tutoriel */}
-        {showHelp && (
-          <Card className="border-blue-200 bg-blue-50/50">
-            <CardContent className="pt-4">
-              <div className="flex items-start gap-3">
-                <HelpCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-900 mb-2">Attribution individuelle d'équipements</h4>
-                  <div className="space-y-2 text-sm text-blue-700">
-                    <p><strong>Division :</strong> Cliquez sur <Split className="inline h-3 w-3 mx-1" /> pour diviser un équipement en plusieurs équipements individuels</p>
-                    <p><strong>Attribution :</strong> Glissez les équipements de la colonne gauche vers les collaborateurs</p>
-                    <p><strong>Organisation :</strong> Interface en deux colonnes pour une meilleure visibilité</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={dismissTutorial}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Interface en deux colonnes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -288,22 +253,6 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
                     Équipements à assigner
                   </CardDescription>
                 </div>
-                {!readOnly && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowHelp(!showHelp)}
-                      >
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Afficher/masquer l'aide</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
               </div>
             </CardHeader>
             <CardContent className="flex-1 min-h-0">
