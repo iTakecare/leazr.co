@@ -1,6 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DeliverySite, CreateDeliverySiteData } from "@/types/deliverySite";
 
+// Stubs pour compatibilité
+export const getDeliverySitesByClientId = async (clientId: string) => {
+  return getClientDeliverySites(clientId);
+};
+
+export const setDeliverySiteAsDefault = async (siteId: string, clientId: string) => {
+  return setDefaultDeliverySite(siteId, clientId);
+};
+
 /**
  * Récupère tous les sites de livraison d'un client
  */

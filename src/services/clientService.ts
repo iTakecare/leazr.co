@@ -1,6 +1,51 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Collaborator } from "@/types/client";
 
+// Stubs pour les fonctions manquantes - à implémenter plus tard
+export const getClientById = async (clientId: string) => {
+  throw new Error("getClientById not implemented yet");
+};
+
+export const getAllClients = async () => {
+  throw new Error("getAllClients not implemented yet");
+};
+
+export const createClient = async (clientData: any) => {
+  throw new Error("createClient not implemented yet");
+};
+
+export const updateClient = async (clientId: string, updates: any) => {
+  throw new Error("updateClient not implemented yet");
+};
+
+export const deleteClient = async (clientId: string) => {
+  throw new Error("deleteClient not implemented yet");
+};
+
+export const verifyVatNumber = async (vatNumber: string) => {
+  throw new Error("verifyVatNumber not implemented yet");
+};
+
+export const syncClientUserAccountStatus = async (clientId: string) => {
+  throw new Error("syncClientUserAccountStatus not implemented yet");
+};
+
+export const getFreeClients = async () => {
+  throw new Error("getFreeClients not implemented yet");
+};
+
+export const addCollaborator = async (clientId: string, collaboratorData: any) => {
+  throw new Error("addCollaborator not implemented yet");
+};
+
+export const getCollaboratorsByClientId = async (clientId: string) => {
+  throw new Error("getCollaboratorsByClientId not implemented yet");
+};
+
+export const updateClientFromProfile = async (profileData: any) => {
+  throw new Error("updateClientFromProfile not implemented yet");
+};
+
 /**
  * Récupère tous les collaborateurs d'un client
  */
