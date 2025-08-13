@@ -2,140 +2,138 @@ import { supabase } from "@/integrations/supabase/client";
 import { DeliverySite, CreateDeliverySiteData } from "@/types/deliverySite";
 
 /**
- * Get all delivery sites for a client
+ * Récupère tous les sites de livraison d'un client
  */
-export const getDeliverySitesByClientId = async (clientId: string): Promise<DeliverySite[]> => {
+export const getClientDeliverySites = async (clientId: string): Promise<DeliverySite[]> => {
   try {
     const { data, error } = await supabase
       .from('client_delivery_sites')
       .select('*')
       .eq('client_id', clientId)
       .eq('is_active', true)
-      .order('is_default', { ascending: false })
-      .order('site_name', { ascending: true });
+      .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching delivery sites:', error);
-      throw error;
+      console.error("❌ Erreur lors de la récupération des sites:", error);
+      return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getDeliverySitesByClientId:', error);
+    console.error("❌ Exception lors de la récupération des sites:", error);
+    return [];
+  }
+};
+
+/**
+ * Crée un nouveau site de livraison pour un client
+ */
+export const createDeliverySite = async (
+  siteData: CreateDeliverySiteData
+): Promise<DeliverySite> => {
+  try {
+    const { data, error } = await supabase
+      .from('client_delivery_sites')
+      .insert({
+        ...siteData,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Erreur lors de la création du site:", error);
+      throw new Error("Erreur lors de la création du site de livraison");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("❌ Exception lors de la création du site:", error);
     throw error;
   }
 };
 
 /**
- * Create a new delivery site
+ * Met à jour un site de livraison existant
  */
-export const createDeliverySite = async (data: CreateDeliverySiteData): Promise<DeliverySite | null> => {
-  try {
-    // If this site should be default, unset all other defaults first
-    if (data.is_default) {
-      await supabase
-        .from('client_delivery_sites')
-        .update({ is_default: false })
-        .eq('client_id', data.client_id);
-    }
-
-    const { data: newSite, error } = await supabase
-      .from('client_delivery_sites')
-      .insert([data])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating delivery site:', error);
-      throw error;
-    }
-
-    return newSite;
-  } catch (error) {
-    console.error('Error in createDeliverySite:', error);
-    return null;
-  }
-};
-
-/**
- * Update an existing delivery site
- */
-export const updateDeliverySite = async (id: string, updates: Partial<DeliverySite>): Promise<DeliverySite | null> => {
-  try {
-    // If this site should be default, unset all other defaults first
-    if (updates.is_default && updates.client_id) {
-      await supabase
-        .from('client_delivery_sites')
-        .update({ is_default: false })
-        .eq('client_id', updates.client_id);
-    }
-
-    const { data, error } = await supabase
-      .from('client_delivery_sites')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating delivery site:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error in updateDeliverySite:', error);
-    return null;
-  }
-};
-
-/**
- * Delete a delivery site
- */
-export const deleteDeliverySite = async (id: string): Promise<boolean> => {
+export const updateDeliverySite = async (
+  siteId: string,
+  updates: Partial<Omit<DeliverySite, 'id' | 'client_id' | 'created_at' | 'updated_at'>>
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('client_delivery_sites')
-      .update({ is_active: false })
-      .eq('id', id);
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', siteId);
 
     if (error) {
-      console.error('Error deleting delivery site:', error);
+      console.error("❌ Erreur lors de la mise à jour du site:", error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in deleteDeliverySite:', error);
+    console.error("❌ Exception lors de la mise à jour du site:", error);
     return false;
   }
 };
 
 /**
- * Set a delivery site as default
+ * Désactive un site de livraison (soft delete)
  */
-export const setDeliverySiteAsDefault = async (id: string, clientId: string): Promise<boolean> => {
+export const deleteDeliverySite = async (siteId: string): Promise<boolean> => {
   try {
-    // First, unset all defaults for this client
-    await supabase
-      .from('client_delivery_sites')
-      .update({ is_default: false })
-      .eq('client_id', clientId);
-
-    // Then set the selected site as default
     const { error } = await supabase
       .from('client_delivery_sites')
-      .update({ is_default: true })
-      .eq('id', id);
+      .update({ 
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', siteId);
 
     if (error) {
-      console.error('Error setting default delivery site:', error);
+      console.error("❌ Erreur lors de la désactivation du site:", error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in setDeliverySiteAsDefault:', error);
+    console.error("❌ Exception lors de la désactivation du site:", error);
+    return false;
+  }
+};
+
+/**
+ * Définit un site comme site par défaut pour un client
+ */
+export const setDefaultDeliverySite = async (siteId: string, clientId: string): Promise<boolean> => {
+  try {
+    // D'abord, retirer le statut par défaut de tous les autres sites
+    await supabase
+      .from('client_delivery_sites')
+      .update({ is_default: false })
+      .eq('client_id', clientId);
+
+    // Puis définir le nouveau site par défaut
+    const { error } = await supabase
+      .from('client_delivery_sites')
+      .update({ 
+        is_default: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', siteId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la définition du site par défaut:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la définition du site par défaut:", error);
     return false;
   }
 };

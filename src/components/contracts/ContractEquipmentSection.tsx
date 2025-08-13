@@ -5,22 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Save, X, Package } from "lucide-react";
+import { Edit, Save, X, Package, Truck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ContractEquipment, updateEquipmentSerialNumber } from "@/services/contractService";
 import { toast } from "sonner";
+import DeliveryWizardModal from "@/components/delivery/DeliveryWizardModal";
 
 interface ContractEquipmentSectionProps {
   equipment: ContractEquipment[];
+  contractId: string;
+  clientId: string;
   onRefresh: () => void;
 }
 
 const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({ 
   equipment, 
+  contractId,
+  clientId,
   onRefresh 
 }) => {
   const [editingSerials, setEditingSerials] = useState<{ [key: string]: string[] }>({});
   const [savingSerials, setSavingSerials] = useState<{ [key: string]: boolean }>({});
+  const [showDeliveryWizard, setShowDeliveryWizard] = useState(false);
 
   const getSerialNumbers = (item: ContractEquipment): string[] => {
     if (!item.serial_number) return Array(item.quantity).fill('');
@@ -98,6 +104,15 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
     });
   };
 
+  // Vérifier si tous les numéros de série sont renseignés
+  const allSerialsComplete = equipment.every(item => {
+    const serials = getSerialNumbers(item);
+    return serials.every(s => s.trim() !== '');
+  });
+
+  // Vérifier si des livraisons sont configurées
+  const hasDeliveryConfig = equipment.some(item => item.delivery_type);
+
   if (equipment.length === 0) {
     return (
       <Card>
@@ -117,16 +132,35 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5" />
-          Équipements ({equipment.length})
-          {equipment.some(item => {
-            const serials = getSerialNumbers(item);
-            return serials.some(s => !s);
-          }) && (
-            <Badge variant="outline" className="ml-2 text-orange-600 border-orange-200">
-              ⚠️ Numéros de série manquants
-            </Badge>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Équipements ({equipment.length})
+            {equipment.some(item => {
+              const serials = getSerialNumbers(item);
+              return serials.some(s => !s);
+            }) && (
+              <Badge variant="outline" className="ml-2 text-orange-600 border-orange-200">
+                ⚠️ Numéros de série manquants
+              </Badge>
+            )}
+            {hasDeliveryConfig && (
+              <Badge variant="outline" className="ml-2 text-green-600 border-green-200">
+                ✅ Livraisons configurées
+              </Badge>
+            )}
+          </div>
+          
+          {allSerialsComplete && (
+            <Button 
+              variant={hasDeliveryConfig ? "outline" : "default"}
+              size="sm"
+              onClick={() => setShowDeliveryWizard(true)}
+              className="flex items-center gap-2"
+            >
+              <Truck className="h-4 w-4" />
+              {hasDeliveryConfig ? "Modifier les livraisons" : "Configurer les livraisons"}
+            </Button>
           )}
         </CardTitle>
       </CardHeader>
@@ -257,10 +291,59 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
               </div>
             )}
 
+            {/* Informations de livraison */}
+            {item.delivery_type && (
+              <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                <h5 className="font-medium mb-2 flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Informations de livraison
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="font-medium ml-2">
+                      {item.delivery_type === 'main_client' && 'Client principal'}
+                      {item.delivery_type === 'collaborator' && 'Collaborateur'}
+                      {item.delivery_type === 'predefined_site' && 'Site prédéfini'}
+                      {item.delivery_type === 'specific_address' && 'Adresse spécifique'}
+                    </span>
+                  </div>
+                  {item.delivery_address && (
+                    <div>
+                      <span className="text-muted-foreground">Adresse:</span>
+                      <span className="font-medium ml-2">{item.delivery_address}</span>
+                    </div>
+                  )}
+                  {item.delivery_city && (
+                    <div>
+                      <span className="text-muted-foreground">Ville:</span>
+                      <span className="font-medium ml-2">{item.delivery_city}</span>
+                    </div>
+                  )}
+                  {item.delivery_contact_name && (
+                    <div>
+                      <span className="text-muted-foreground">Contact:</span>
+                      <span className="font-medium ml-2">{item.delivery_contact_name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {index < equipment.length - 1 && <Separator />}
           </div>
         ))}
       </CardContent>
+
+      {/* Wizard de configuration des livraisons */}
+      <DeliveryWizardModal
+        open={showDeliveryWizard}
+        onOpenChange={setShowDeliveryWizard}
+        equipment={equipment}
+        clientId={clientId}
+        contractId={contractId}
+        onComplete={onRefresh}
+      />
     </Card>
   );
 };

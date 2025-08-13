@@ -112,7 +112,12 @@ const ContractDetail = () => {
               <ContractWorkflowPanel contract={contract} onRefresh={refetch} />
 
               {/* Section Équipements */}
-              <ContractEquipmentSection equipment={equipment} onRefresh={refetch} />
+              <ContractEquipmentSection 
+                equipment={equipment} 
+                contractId={contract.id}
+                clientId={contract.client_id || ''}
+                onRefresh={refetch} 
+              />
 
               {/* Section Documents */}
               <ContractDocumentsSection contractId={contract.id} documents={documents} onRefresh={refetch} />
