@@ -16,6 +16,7 @@ interface SimpleContractEquipmentManagerProps {
   contractId: string;
   readOnly?: boolean;
   draggedEquipment?: string | null;
+  onRefresh?: () => void;
 }
 
 interface Collaborator {
@@ -32,7 +33,8 @@ interface CollaboratorWithEquipment extends Collaborator {
 const SimpleContractEquipmentManager: React.FC<SimpleContractEquipmentManagerProps> = ({
   contractId,
   readOnly = false,
-  draggedEquipment: externalDraggedEquipment
+  draggedEquipment: externalDraggedEquipment,
+  onRefresh
 }) => {
   const [unassignedEquipment, setUnassignedEquipment] = useState<ContractEquipment[]>([]);
   const [collaborators, setCollaborators] = useState<CollaboratorWithEquipment[]>([]);
@@ -84,6 +86,20 @@ const SimpleContractEquipmentManager: React.FC<SimpleContractEquipmentManagerPro
       toast.error('Erreur lors du chargement des équipements');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEquipmentMove = async (equipmentId: string, newCollaboratorId: string | null) => {
+    try {
+      await assignIndividualEquipment(equipmentId, newCollaboratorId);
+      toast.success(
+        newCollaboratorId ? 'Équipement assigné avec succès' : 'Équipement désassigné avec succès'
+      );
+      fetchData();
+      onRefresh?.();
+    } catch (error) {
+      console.error('Erreur lors de l\'assignation:', error);
+      toast.error('Erreur lors de l\'assignation de l\'équipement');
     }
   };
 
@@ -252,9 +268,32 @@ const SimpleContractEquipmentManager: React.FC<SimpleContractEquipmentManagerPro
                         {collaborator.equipment.length > 0 ? (
                           <div className="space-y-2">
                             {collaborator.equipment.map((item, index) => (
-                              <div key={item.id}>
-                                {renderEquipmentCard(item, index)}
-                              </div>
+                              <Draggable 
+                                key={item.id} 
+                                draggableId={item.id} 
+                                index={index}
+                                isDragDisabled={readOnly}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className="flex items-center gap-2"
+                                  >
+                                    {!readOnly && (
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        className="p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing"
+                                      >
+                                        <GripVertical className="h-3 w-3 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div className="flex-1">
+                                      {renderEquipmentCard(item, index)}
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
                             ))}
                           </div>
                         ) : (

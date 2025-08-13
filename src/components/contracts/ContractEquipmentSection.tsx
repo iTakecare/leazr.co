@@ -108,51 +108,11 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
 
   return (
     <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col lg:flex-row gap-6 min-h-[600px]">
-        <div className="flex-1 min-w-0">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Équipements
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto space-y-3">
-              {equipment && equipment.length > 0 ? (
-                equipment.map((item, index) => {
-                  const serialNumbers = getSerialNumbers(item.serial_number, item.quantity);
-                  
-                  return (
-                    <div key={item.id || index} className="p-3 border rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-medium">{item.title}</h3>
-                        <Badge variant="secondary">Qté: {item.quantity}</Badge>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground mb-2">{item.purchase_price}€</p>
-                      
-                      {serialNumbers.length > 0 && (
-                        <p className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {serialNumbers.slice(0, 2).join(', ')}{serialNumbers.length > 2 ? '...' : ''}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-muted-foreground">Aucun équipement trouvé</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <SimpleContractEquipmentManager 
-            contractId={contractId} 
-            draggedEquipment={draggedEquipment}
-          />
-        </div>
-      </div>
+      <SimpleContractEquipmentManager 
+        contractId={contractId} 
+        draggedEquipment={draggedEquipment}
+        onRefresh={onRefresh}
+      />
     </DragDropContext>
   );
 };
