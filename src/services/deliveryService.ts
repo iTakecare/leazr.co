@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ContractEquipmentDelivery, CreateContractEquipmentDelivery, EquipmentDeliveryConfig } from "@/types/contractDelivery";
 
 export interface ContractEquipmentDeliveryData {
   delivery_type?: 'main_client' | 'collaborator' | 'predefined_site' | 'specific_address';
@@ -15,14 +16,14 @@ export interface ContractEquipmentDeliveryData {
 }
 
 /**
- * Met à jour les informations de livraison d'un équipement de contrat
+ * Met à jour les informations de livraison d'un équipement de contrat (legacy)
  */
-export const updateContractEquipmentDelivery = async (
+export const updateContractEquipmentLegacyDelivery = async (
   equipmentId: string,
   deliveryData: ContractEquipmentDeliveryData
 ): Promise<boolean> => {
   try {
-    console.log("🚚 Mise à jour des infos de livraison:", { equipmentId, deliveryData });
+    console.log("🚚 Mise à jour des infos de livraison (legacy):", { equipmentId, deliveryData });
 
     const { error } = await supabase
       .from('contract_equipment')
@@ -82,22 +83,174 @@ export const getContractEquipmentDelivery = async (equipmentId: string): Promise
 };
 
 /**
+ * Créer les livraisons individuelles d'un équipement
+ */
+export const createContractEquipmentDeliveries = async (
+  config: EquipmentDeliveryConfig
+): Promise<ContractEquipmentDelivery[]> => {
+  try {
+    console.log("🚚 Création des livraisons individuelles:", config);
+
+    const deliveriesToCreate: CreateContractEquipmentDelivery[] = config.deliveryItems.map(item => ({
+      contract_equipment_id: config.equipmentId,
+      quantity: item.quantity,
+      serial_numbers: item.serialNumbers,
+      delivery_type: item.deliveryType,
+      collaborator_id: item.collaboratorId,
+      delivery_site_id: item.deliverySiteId,
+      delivery_address: item.deliveryAddress,
+      delivery_city: item.deliveryCity,
+      delivery_postal_code: item.deliveryPostalCode,
+      delivery_country: item.deliveryCountry || 'BE',
+      delivery_contact_name: item.deliveryContactName,
+      delivery_contact_email: item.deliveryContactEmail,
+      delivery_contact_phone: item.deliveryContactPhone,
+      notes: item.notes
+    }));
+
+    const { data, error } = await supabase
+      .from('contract_equipment_deliveries')
+      .insert(deliveriesToCreate)
+      .select('*');
+
+    if (error) {
+      console.error("❌ Erreur lors de la création des livraisons:", error);
+      toast.error("Erreur lors de la création des livraisons");
+      throw error;
+    }
+
+    console.log("✅ Livraisons créées avec succès");
+    toast.success(`${data.length} livraisons créées avec succès`);
+    return data;
+  } catch (error) {
+    console.error("❌ Exception lors de la création des livraisons:", error);
+    toast.error("Erreur lors de la création des livraisons");
+    throw error;
+  }
+};
+
+/**
+ * Récupérer toutes les livraisons d'un équipement
+ */
+export const getContractEquipmentDeliveries = async (equipmentId: string): Promise<ContractEquipmentDelivery[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('contract_equipment_deliveries')
+      .select('*')
+      .eq('contract_equipment_id', equipmentId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération des livraisons:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des livraisons:", error);
+    return [];
+  }
+};
+
+/**
+ * Mettre à jour une livraison individuelle
+ */
+export const updateContractEquipmentDelivery = async (
+  deliveryId: string,
+  updates: Partial<CreateContractEquipmentDelivery>
+): Promise<boolean> => {
+  try {
+    console.log("🚚 Mise à jour de la livraison:", { deliveryId, updates });
+
+    const { error } = await supabase
+      .from('contract_equipment_deliveries')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', deliveryId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la mise à jour:", error);
+      toast.error("Erreur lors de la mise à jour");
+      return false;
+    }
+
+    console.log("✅ Livraison mise à jour");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la mise à jour:", error);
+    toast.error("Erreur lors de la mise à jour");
+    return false;
+  }
+};
+
+/**
+ * Supprimer une livraison individuelle
+ */
+export const deleteContractEquipmentDelivery = async (deliveryId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('contract_equipment_deliveries')
+      .delete()
+      .eq('id', deliveryId);
+
+    if (error) {
+      console.error("❌ Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression");
+      return false;
+    }
+
+    toast.success("Livraison supprimée");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception lors de la suppression:", error);
+    toast.error("Erreur lors de la suppression");
+    return false;
+  }
+};
+
+/**
  * Vérifie si tous les équipements d'un contrat ont leurs informations de livraison configurées
  */
 export const checkContractDeliveryConfiguration = async (contractId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    // Récupérer tous les équipements du contrat
+    const { data: equipment, error: equipmentError } = await supabase
       .from('contract_equipment')
-      .select('id, delivery_type')
+      .select('id, quantity')
       .eq('contract_id', contractId);
 
-    if (error) {
-      console.error("❌ Erreur lors de la vérification de la configuration:", error);
+    if (equipmentError) {
+      console.error("❌ Erreur lors de la récupération des équipements:", equipmentError);
       return false;
     }
 
-    // Vérifier si tous les équipements ont un type de livraison défini
-    return data?.every(item => item.delivery_type) ?? false;
+    if (!equipment || equipment.length === 0) {
+      return false;
+    }
+
+    // Vérifier chaque équipement
+    for (const eq of equipment) {
+      const { data: deliveries, error: deliveriesError } = await supabase
+        .from('contract_equipment_deliveries')
+        .select('quantity')
+        .eq('contract_equipment_id', eq.id);
+
+      if (deliveriesError) {
+        console.error("❌ Erreur lors de la récupération des livraisons:", deliveriesError);
+        return false;
+      }
+
+      const totalDeliveryQuantity = deliveries?.reduce((sum, d) => sum + d.quantity, 0) || 0;
+      
+      // Vérifier que la quantité totale des livraisons correspond à la quantité de l'équipement
+      if (totalDeliveryQuantity !== eq.quantity) {
+        return false;
+      }
+    }
+
+    return true;
   } catch (error) {
     console.error("❌ Exception lors de la vérification de la configuration:", error);
     return false;

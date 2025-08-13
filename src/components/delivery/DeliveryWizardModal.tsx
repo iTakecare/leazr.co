@@ -12,7 +12,7 @@ import { ChevronRight, ChevronLeft, Package, MapPin, User, Building } from "luci
 import { ContractEquipment } from "@/services/contractService";
 import { Collaborator } from "@/types/client";
 import { DeliverySite } from "@/types/deliverySite";
-import { updateContractEquipmentDelivery } from "@/services/deliveryService";
+import { updateContractEquipmentLegacyDelivery } from "@/services/deliveryService";
 import { createCollaborator, getClientCollaborators } from "@/services/clientService";
 import { createDeliverySite, getClientDeliverySites } from "@/services/deliverySiteService";
 import { toast } from "sonner";
@@ -138,7 +138,7 @@ const DeliveryWizardModal: React.FC<DeliveryWizardModalProps> = ({
     try {
       // Sauvegarder toutes les configurations de livraison
       for (const config of deliveryConfigs) {
-        await updateContractEquipmentDelivery(config.equipmentId, {
+        await updateContractEquipmentLegacyDelivery(config.equipmentId, {
           delivery_type: config.deliveryType,
           collaborator_id: config.collaboratorId,
           delivery_site_id: config.deliverySiteId,

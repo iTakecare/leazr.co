@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ContractEquipment, updateEquipmentSerialNumber } from "@/services/contractService";
 import { toast } from "sonner";
 import DeliveryWizardModal from "@/components/delivery/DeliveryWizardModal";
+import IndividualDeliveryWizardModal from "@/components/delivery/IndividualDeliveryWizardModal";
 
 interface ContractEquipmentSectionProps {
   equipment: ContractEquipment[];
@@ -27,6 +28,7 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
   const [editingSerials, setEditingSerials] = useState<{ [key: string]: string[] }>({});
   const [savingSerials, setSavingSerials] = useState<{ [key: string]: boolean }>({});
   const [showDeliveryWizard, setShowDeliveryWizard] = useState(false);
+  const [showIndividualDeliveryWizard, setShowIndividualDeliveryWizard] = useState(false);
 
   const getSerialNumbers = (item: ContractEquipment): string[] => {
     if (!item.serial_number) return Array(item.quantity).fill('');
