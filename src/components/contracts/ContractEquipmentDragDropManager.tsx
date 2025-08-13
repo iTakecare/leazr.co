@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Users, Package, GripVertical } from "lucide-react";
 import { 
-  assignIndividualEquipment, 
   getContractEquipmentWithIndividuals, 
   ContractEquipment 
 } from "@/services/equipmentDivisionService";
+import { collaboratorEquipmentService } from "@/services/collaboratorEquipmentService";
 import { supabase } from "@/integrations/supabase/client";
 import CollaboratorCreationDialog from "@/components/equipment/CollaboratorCreationDialog";
 
@@ -122,7 +122,7 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
 
       const newCollaboratorId = destination.droppableId === 'unassigned' ? null : destination.droppableId;
       
-      await assignIndividualEquipment(draggableId, newCollaboratorId);
+      await collaboratorEquipmentService.assignEquipment(draggableId, 'contract', newCollaboratorId);
       await fetchData();
 
       const collaboratorName = newCollaboratorId === null 
