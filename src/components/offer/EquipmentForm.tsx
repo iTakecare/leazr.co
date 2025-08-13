@@ -7,6 +7,7 @@ import EquipmentFormFields from "./EquipmentFormFields";
 import PriceDetailsDisplay from "./PriceDetailsDisplay";
 import FormActionButtons from "./FormActionButtons";
 import CatalogDialog from "./CatalogDialog";
+import EquipmentDeliverySection from "./EquipmentDeliverySection";
 
 interface EquipmentFormProps {
   equipment: Equipment;
@@ -28,6 +29,7 @@ interface EquipmentFormProps {
   setTargetSalePrice?: (value: number) => void;
   calculatedFromSalePrice?: { margin: number; monthlyPayment: number };
   applyCalculatedFromSalePrice?: () => void;
+  clientId?: string; // Pour la gestion des sites de livraison
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -49,7 +51,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   targetSalePrice = 0,
   setTargetSalePrice = () => {},
   calculatedFromSalePrice = { margin: 0, monthlyPayment: 0 },
-  applyCalculatedFromSalePrice = () => {}
+  applyCalculatedFromSalePrice = () => {},
+  clientId
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -182,6 +185,14 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             handleSubmit={handleSubmit}
             cancelEditing={cancelEditing}
           />
+
+          {clientId && (
+            <EquipmentDeliverySection
+              equipment={equipment}
+              clientId={clientId}
+              onChange={handleChange}
+            />
+          )}
 
           <div className="mt-4 pt-4 border-t">
             <MarginCalculator 

@@ -8,6 +8,17 @@ export interface OfferEquipment {
   margin: number;
   monthly_payment?: number;
   serial_number?: string;
+  // Delivery information fields
+  collaborator_id?: string;
+  delivery_site_id?: string;
+  delivery_type?: 'main_client' | 'collaborator' | 'predefined_site' | 'specific_address';
+  delivery_address?: string;
+  delivery_city?: string;
+  delivery_postal_code?: string;
+  delivery_country?: string;
+  delivery_contact_name?: string;
+  delivery_contact_email?: string;
+  delivery_contact_phone?: string;
   created_at?: string;
   updated_at?: string;
   attributes?: OfferEquipmentAttribute[];

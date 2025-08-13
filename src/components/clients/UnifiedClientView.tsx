@@ -25,6 +25,7 @@ import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropMa
 import ClientSubdomainManager from "./ClientSubdomainManager";
 import ClientUserAccount from "./ClientUserAccount";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
+import DeliverySitesManager from "./DeliverySitesManager";
 
 import { ClientLogoUploader } from "./ClientLogoUploader";
 
@@ -442,7 +443,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -450,6 +451,10 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="collaborators" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Collaborateurs
+          </TabsTrigger>
+          <TabsTrigger value="delivery-sites" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Sites de livraison
           </TabsTrigger>
           <TabsTrigger value="logo" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -711,6 +716,13 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="delivery-sites">
+          <DeliverySitesManager 
+            clientId={client.id} 
+            clientName={client.name}
+          />
         </TabsContent>
 
         <TabsContent value="logo" className="space-y-6">
