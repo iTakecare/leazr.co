@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,13 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(level);
+
+  // Synchroniser les états quand la prop level change
+  useEffect(() => {
+    setName(level?.name || '');
+    setIsDefault(level?.is_default || false);
+    setCalculationMode(level?.calculation_mode || 'margin');
+  }, [level]);
 
   const resetForm = () => {
     setName(level?.name || '');
