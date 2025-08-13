@@ -14,7 +14,8 @@ export const useCommissionCalculator = (
   ambassadorId?: string,
   commissionLevelId?: string,
   equipmentListLength: number = 0,
-  totalMargin?: number
+  totalMargin?: number,
+  totalPurchaseAmount?: number
 ): CommissionResult => {
   const [commission, setCommission] = useState<CommissionResult>({
     amount: 0,
@@ -33,7 +34,7 @@ export const useCommissionCalculator = (
         totalMargin
       });
 
-      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentListLength === 0 || !totalMargin || totalMargin <= 0) {
+      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentListLength === 0 || (!totalMargin || totalMargin <= 0)) {
         console.log("useCommissionCalculator - Missing required data, resetting to zero");
         setCommission({
           amount: 0,
@@ -49,10 +50,11 @@ export const useCommissionCalculator = (
       try {
         console.log("useCommissionCalculator - Calling calculateAmbassadorCommission with:", {
           ambassadorId,
-          totalMargin
+          totalMargin,
+          totalPurchaseAmount
         });
 
-        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin);
+        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin, totalPurchaseAmount);
 
         console.log("useCommissionCalculator - Commission result:", result);
 
@@ -84,7 +86,7 @@ export const useCommissionCalculator = (
     };
 
     fetchCommission();
-  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentListLength, totalMargin]);
+  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentListLength, totalMargin, totalPurchaseAmount]);
 
   return commission;
 };

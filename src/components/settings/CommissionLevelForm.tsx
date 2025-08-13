@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CommissionLevel, createCommissionLevel, updateCommissionLevel } from "@/services/commissionService";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -26,6 +27,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
 }) => {
   const [name, setName] = useState(level?.name || '');
   const [isDefault, setIsDefault] = useState(level?.is_default || false);
+  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price'>(level?.calculation_mode || 'margin');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(level);
@@ -33,6 +35,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
   const resetForm = () => {
     setName(level?.name || '');
     setIsDefault(level?.is_default || false);
+    setCalculationMode(level?.calculation_mode || 'margin');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,14 +50,16 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
       if (isEditing && level) {
         await updateCommissionLevel(level.id, {
           name,
-          is_default: isDefault
+          is_default: isDefault,
+          calculation_mode: calculationMode
         });
         toast.success("Barème mis à jour avec succès");
       } else {
         await createCommissionLevel({
           name,
           type,
-          is_default: isDefault
+          is_default: isDefault,
+          calculation_mode: calculationMode
         });
         toast.success("Barème créé avec succès");
       }
@@ -63,6 +68,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
       onSave({ 
         name, 
         is_default: isDefault,
+        calculation_mode: calculationMode,
         type
       });
     } catch (error) {
@@ -97,6 +103,24 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                 placeholder="Entrez le nom du barème"
                 required
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="calculationMode">Mode de calcul</Label>
+              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price') => setCalculationMode(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le mode de calcul" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="margin">% sur marge</SelectItem>
+                  <SelectItem value="purchase_price">% sur prix d'achat</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="text-sm text-muted-foreground">
+                {calculationMode === 'margin' 
+                  ? 'Commission calculée en pourcentage de la marge générée'
+                  : 'Commission calculée en pourcentage du prix d\'achat total HTVA'
+                }
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="isDefault">Barème par défaut</Label>

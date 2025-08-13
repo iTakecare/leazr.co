@@ -25,10 +25,11 @@ export interface AmbassadorCommission {
  */
 export const calculateAmbassadorCommission = async (
   ambassadorId: string,
-  marginAmount: number
+  marginAmount: number,
+  purchaseAmount?: number
 ): Promise<AmbassadorCommissionData> => {
   try {
-    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}`);
+    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}, purchase: ${purchaseAmount}`);
     
     // Récupérer le niveau de commission de l'ambassadeur
     const commissionLevel = await getAmbassadorCommissionLevel(ambassadorId);
@@ -60,21 +61,36 @@ export const calculateAmbassadorCommission = async (
 
     console.log("[calculateAmbassadorCommission] Found rates:", rates);
 
-    // Pour les commissions d'ambassadeur basées sur la marge, 
-    // nous utilisons le premier taux disponible (généralement un taux fixe)
-    // ou nous pourrions utiliser la marge comme critère de sélection
+    // Déterminer le montant de base pour le calcul selon le mode de calcul
+    const calculationMode = commissionLevel.calculation_mode || 'margin';
+    const baseAmount = calculationMode === 'purchase_price' ? (purchaseAmount || 0) : marginAmount;
+    
+    console.log(`[calculateAmbassadorCommission] Using calculation mode: ${calculationMode}, base amount: ${baseAmount}`);
+    
+    // Validation pour le mode purchase_price
+    if (calculationMode === 'purchase_price' && (!purchaseAmount || purchaseAmount <= 0)) {
+      console.log("[calculateAmbassadorCommission] Purchase price mode requires valid purchase amount");
+      return {
+        amount: 0,
+        rate: 0,
+        levelName: commissionLevel.name,
+        marginAmount
+      };
+    }
+    
+    // Rechercher le taux applicable basé sur le montant de base
     const applicableRate = rates.find(rate => 
-      marginAmount >= rate.min_amount && marginAmount <= rate.max_amount
+      baseAmount >= rate.min_amount && baseAmount <= rate.max_amount
     ) || rates[0]; // Fallback sur le premier taux si aucun ne correspond
 
     if (applicableRate) {
-      const commissionAmount = Math.round(marginAmount * (applicableRate.rate / 100));
-      console.log("[calculateAmbassadorCommission] Applied rate found:", applicableRate.rate, "Commission:", commissionAmount, "on margin:", marginAmount);
+      const commissionAmount = Math.round(baseAmount * (applicableRate.rate / 100));
+      console.log(`[calculateAmbassadorCommission] Applied rate found: ${applicableRate.rate}%, Commission: ${commissionAmount}, on ${calculationMode}: ${baseAmount}`);
       
       return {
         amount: commissionAmount,
         rate: applicableRate.rate,
-        levelName: commissionLevel.name,
+        levelName: `${commissionLevel.name} (${calculationMode === 'margin' ? '% sur marge' : '% sur prix d\'achat'})`,
         marginAmount
       };
     }

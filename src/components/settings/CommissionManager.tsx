@@ -319,6 +319,9 @@ const CommissionManager: React.FC = () => {
                               Par défaut
                             </Badge>
                           )}
+                          <Badge variant="outline">
+                            {level.calculation_mode === 'margin' ? '% sur marge' : '% sur prix d\'achat'}
+                          </Badge>
                         </div>
                         <div className="flex gap-2">
                           {!level.is_default && (
@@ -366,18 +369,20 @@ const CommissionManager: React.FC = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Taux de Commission</h4>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCreateAmbassadorRate(level.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Ajouter un taux
-                          </Button>
-                        </div>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium">
+                              {level.calculation_mode === 'margin' ? 'Taux de Commission (% sur marge)' : 'Pourcentage sur prix d\'achat'}
+                            </h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCreateAmbassadorRate(level.id)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Ajouter un taux
+                            </Button>
+                          </div>
                         
                         {ambassadorRates[level.id] && ambassadorRates[level.id].length > 0 ? (
                           <Table>
@@ -474,6 +479,9 @@ const CommissionManager: React.FC = () => {
                               Par défaut
                             </Badge>
                           )}
+                          <Badge variant="outline">
+                            {level.calculation_mode === 'margin' ? '% sur marge' : '% sur prix d\'achat'}
+                          </Badge>
                         </div>
                         <div className="flex gap-2">
                           {!level.is_default && (
@@ -521,18 +529,20 @@ const CommissionManager: React.FC = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium">Taux de Commission</h4>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCreatePartnerRate(level.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Ajouter un taux
-                          </Button>
-                        </div>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium">
+                              {level.calculation_mode === 'margin' ? 'Taux de Commission (% sur marge)' : 'Pourcentage sur prix d\'achat'}
+                            </h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCreatePartnerRate(level.id)}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Ajouter un taux
+                            </Button>
+                          </div>
                         
                         {partnerRates[level.id] && partnerRates[level.id].length > 0 ? (
                           <Table>

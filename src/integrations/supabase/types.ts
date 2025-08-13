@@ -1255,6 +1255,7 @@ export type Database = {
       }
       commission_levels: {
         Row: {
+          calculation_mode: string
           company_id: string
           created_at: string
           id: string
@@ -1264,6 +1265,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          calculation_mode?: string
           company_id: string
           created_at?: string
           id?: string
@@ -1273,6 +1275,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          calculation_mode?: string
           company_id?: string
           created_at?: string
           id?: string

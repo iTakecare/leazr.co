@@ -16,6 +16,7 @@ export interface CommissionLevel {
   name: string;
   type: 'partner' | 'ambassador';
   is_default: boolean;
+  calculation_mode: 'margin' | 'purchase_price';
   created_at: string;
   updated_at: string;
   rates?: CommissionRate[];
@@ -125,9 +126,9 @@ export const getDefaultCommissionLevel = async (type: 'partner' | 'ambassador' =
 /**
  * Crée un niveau de commission
  */
-export const createCommissionLevel = async (levelData: { name: string; type: 'partner' | 'ambassador'; is_default?: boolean }): Promise<CommissionLevel | null> => {
+export const createCommissionLevel = async (levelData: { name: string; type: 'partner' | 'ambassador'; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' }): Promise<CommissionLevel | null> => {
   try {
-    const { name, type, is_default = false } = levelData;
+    const { name, type, is_default = false, calculation_mode = 'margin' } = levelData;
     
     // Obtenir l'ID de l'entreprise actuelle
     const company_id = await getCurrentUserCompanyId();
@@ -144,7 +145,7 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
     const { data, error } = await supabase
       .from('commission_levels')
       .insert([
-        { name, type, is_default, company_id }
+        { name, type, is_default, calculation_mode, company_id }
       ])
       .select();
     
@@ -163,9 +164,9 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
 /**
  * Met à jour un niveau de commission
  */
-export const updateCommissionLevel = async (id: string, levelData: { name: string; is_default?: boolean }): Promise<CommissionLevel | null> => {
+export const updateCommissionLevel = async (id: string, levelData: { name: string; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' }): Promise<CommissionLevel | null> => {
   try {
-    const { name, is_default = false } = levelData;
+    const { name, is_default = false, calculation_mode } = levelData;
     
     const { data: levelData_, error: levelError } = await supabase
       .from('commission_levels')
@@ -188,9 +189,12 @@ export const updateCommissionLevel = async (id: string, levelData: { name: strin
         .eq('type', type);
     }
     
+    const updateData: any = { name, is_default };
+    if (calculation_mode !== undefined) updateData.calculation_mode = calculation_mode;
+    
     const { data, error } = await supabase
       .from('commission_levels')
-      .update({ name, is_default })
+      .update(updateData)
       .eq('id', id)
       .select();
     

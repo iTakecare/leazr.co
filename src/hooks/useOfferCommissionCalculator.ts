@@ -9,6 +9,7 @@ interface OfferCommissionCalculatorProps {
   totalMargin: number;
   equipmentListLength: number;
   totalMonthlyPayment: number;
+  totalPurchaseAmount?: number;
 }
 
 export const useOfferCommissionCalculator = ({
@@ -17,7 +18,8 @@ export const useOfferCommissionCalculator = ({
   commissionLevelId,
   totalMargin,
   equipmentListLength,
-  totalMonthlyPayment
+  totalMonthlyPayment,
+  totalPurchaseAmount
 }: OfferCommissionCalculatorProps) => {
   
   // Pour les offres internes, pas de commission
@@ -28,7 +30,8 @@ export const useOfferCommissionCalculator = ({
     shouldCalculateCommission ? selectedAmbassadorId : undefined,
     shouldCalculateCommission ? commissionLevelId : undefined,
     equipmentListLength,
-    shouldCalculateCommission ? totalMargin : 0
+    shouldCalculateCommission ? totalMargin : 0,
+    shouldCalculateCommission ? totalPurchaseAmount : undefined
   );
 
   // Retourner les données de commission appropriées
