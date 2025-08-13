@@ -3,10 +3,9 @@ import React, { useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Package, Users } from "lucide-react";
 import { ContractEquipment } from "@/services/contractService";
-import ContractEquipmentDragDropManager from "./ContractEquipmentDragDropManager";
+import SimpleContractEquipmentManager from "./SimpleContractEquipmentManager";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
 import { collaboratorEquipmentService } from "@/services/collaboratorEquipmentService";
 import { assignIndividualEquipment } from "@/services/equipmentDivisionService";
@@ -109,112 +108,49 @@ const ContractEquipmentSection: React.FC<ContractEquipmentSectionProps> = ({
 
   return (
     <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="space-y-6">
-        {/* Section informations équipements */}
-        <Card className="w-full border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950 dark:to-blue-950 dark:border-indigo-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-indigo-900 dark:text-indigo-100">
-              <Package className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-              Détails des équipements
-            </CardTitle>
-            <CardDescription className="text-indigo-700 dark:text-indigo-300">
-              Informations détaillées sur chaque équipement inclus dans ce contrat
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {equipment && equipment.length > 0 ? (
-              <div className="space-y-6">
-                {equipment.map((item, index) => {
+      <div className="flex flex-col lg:flex-row gap-6 min-h-[600px]">
+        <div className="flex-1 min-w-0">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Équipements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-y-auto space-y-3">
+              {equipment && equipment.length > 0 ? (
+                equipment.map((item, index) => {
                   const serialNumbers = getSerialNumbers(item.serial_number, item.quantity);
                   
                   return (
-                    <div key={item.id || index} className="space-y-4 p-4 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-indigo-200 dark:border-indigo-800">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">{item.title}</h3>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Quantité</p>
-                              <p className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">{item.quantity}</p>
-                            </div>
-                            
-                            <div>
-                              <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Prix d'achat</p>
-                              <p className="text-lg font-semibold text-indigo-900 dark:text-indigo-100">{item.purchase_price}€</p>
-                            </div>
-                          </div>
-
-                          {serialNumbers.length > 0 && (
-                            <div className="mt-4">
-                              <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-2">Numéros de série</p>
-                              <div className="flex flex-wrap gap-2">
-                                {serialNumbers.map((sn, idx) => (
-                                  <Badge key={idx} className="font-mono bg-indigo-100 text-indigo-800 hover:bg-indigo-100 dark:bg-indigo-800 dark:text-indigo-100">
-                                    {sn}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0 && (
-                            <div className="mt-4">
-                              <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-2">Attributs</p>
-                              <div className="grid grid-cols-2 gap-4">
-                                {item.attributes.map((attr, idx) => (
-                                  <div key={idx}>
-                                    <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{attr.key}</p>
-                                    <p className="text-sm text-indigo-700 dark:text-indigo-300">{attr.value}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {item.specifications && Array.isArray(item.specifications) && item.specifications.length > 0 && (
-                            <div className="mt-4">
-                              <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-2">Spécifications techniques</p>
-                              <div className="grid grid-cols-2 gap-4">
-                                {item.specifications.map((spec, idx) => (
-                                  <div key={idx}>
-                                    <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{spec.key}</p>
-                                    <p className="text-sm text-indigo-700 dark:text-indigo-300">{spec.value}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                    <div key={item.id || index} className="p-3 border rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-medium">{item.title}</h3>
+                        <Badge variant="secondary">Qté: {item.quantity}</Badge>
                       </div>
-
-                      {index < equipment.length - 1 && <Separator className="my-6" />}
+                      
+                      <p className="text-sm text-muted-foreground mb-2">{item.purchase_price}€</p>
+                      
+                      {serialNumbers.length > 0 && (
+                        <p className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {serialNumbers.slice(0, 2).join(', ')}{serialNumbers.length > 2 ? '...' : ''}
+                        </p>
+                      )}
                     </div>
                   );
-                })}
-              </div>
-            ) : (
-              <p className="text-indigo-700 dark:text-indigo-300">Aucun équipement trouvé pour ce contrat.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Section drag-and-drop pour l'attribution - Layout équilibré en flexbox */}
-        <div className="flex flex-col lg:flex-row gap-6 min-h-[600px]">
-          <div className="flex-1 min-w-0">
-            <ContractEquipmentDragDropManager 
-              contractId={contractId} 
-              draggedEquipment={draggedEquipment}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <EquipmentDragDropManager 
-              clientId={clientId}
-              draggedEquipment={draggedEquipment}
-            />
-          </div>
+                })
+              ) : (
+                <p className="text-muted-foreground">Aucun équipement trouvé</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <SimpleContractEquipmentManager 
+            contractId={contractId} 
+            draggedEquipment={draggedEquipment}
+          />
         </div>
       </div>
     </DragDropContext>
