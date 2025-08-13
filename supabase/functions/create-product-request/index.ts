@@ -126,9 +126,9 @@ serve(async (req) => {
         const unitPrice = product.unit_price || 0; // Prix mensuel
         const totalPrice = product.total_price || 0; // Prix d'achat total
         
-        // Accumuler les montants
-        totalPurchaseAmount += totalPrice;
-        totalMonthlyPayment += unitPrice;
+        // Accumuler les montants (multiplier par la quantité)
+        totalPurchaseAmount += totalPrice * quantity;
+        totalMonthlyPayment += unitPrice * quantity;
         
         // Construire le nom complet de l'équipement
         let fullProductName = productName;
@@ -212,8 +212,8 @@ serve(async (req) => {
       financed_amount: financedAmount,
       margin: marginPercentage,
       commission: 0,
-      type: "client_request",
-      workflow_status: "requested", 
+      type: "web_offer",
+      workflow_status: "draft",
       status: "pending",
       remarks: `Demande créée via API web${data.notes ? ' - ' + data.notes : ''}`,
       user_id: null,
