@@ -111,14 +111,6 @@ const ContractDetail = () => {
               {/* Workflow Panel */}
               <ContractWorkflowPanel contract={contract} onRefresh={refetch} />
 
-              {/* Section Équipements */}
-              <ContractEquipmentSection 
-                equipment={equipment} 
-                contractId={contract.id}
-                clientId={contract.client_id || ''}
-                onRefresh={refetch} 
-              />
-
               {/* Section Documents */}
               <ContractDocumentsSection contractId={contract.id} documents={documents} onRefresh={refetch} />
             </div>
@@ -129,6 +121,16 @@ const ContractDetail = () => {
               <ContractHistoryPanel logs={logs} />
             </div>
           </div>
+        </div>
+
+        {/* Section Équipements en pleine largeur */}
+        <div className="w-full px-6">
+          <ContractEquipmentSection 
+            equipment={equipment} 
+            contractId={contract.id}
+            clientId={contract.client_id || ''}
+            onRefresh={refetch} 
+          />
         </div>
       </div>
     </PageTransition>;
