@@ -1822,6 +1822,72 @@ export type Database = {
           },
         ]
       }
+      contract_equipment_deliveries: {
+        Row: {
+          collaborator_id: string | null
+          contract_equipment_id: string
+          created_at: string
+          delivery_address: string | null
+          delivery_city: string | null
+          delivery_contact_email: string | null
+          delivery_contact_name: string | null
+          delivery_contact_phone: string | null
+          delivery_country: string | null
+          delivery_date: string | null
+          delivery_postal_code: string | null
+          delivery_site_id: string | null
+          delivery_type: string
+          id: string
+          notes: string | null
+          quantity: number
+          serial_numbers: string[] | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id?: string | null
+          contract_equipment_id: string
+          created_at?: string
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_contact_email?: string | null
+          delivery_contact_name?: string | null
+          delivery_contact_phone?: string | null
+          delivery_country?: string | null
+          delivery_date?: string | null
+          delivery_postal_code?: string | null
+          delivery_site_id?: string | null
+          delivery_type: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          serial_numbers?: string[] | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string | null
+          contract_equipment_id?: string
+          created_at?: string
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_contact_email?: string | null
+          delivery_contact_name?: string | null
+          delivery_contact_phone?: string | null
+          delivery_country?: string | null
+          delivery_date?: string | null
+          delivery_postal_code?: string | null
+          delivery_site_id?: string | null
+          delivery_type?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          serial_numbers?: string[] | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contract_equipment_specifications: {
         Row: {
           created_at: string
