@@ -107,31 +107,62 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
   }, [contractId]);
 
   const handleDragEnd = async (result: any) => {
-    if (!result.destination) return;
+    console.log('🎯 DRAG END - Start:', { result, source: result?.source, destination: result?.destination, draggableId: result?.draggableId });
+    
+    if (!result.destination) {
+      console.log('❌ DRAG END - No destination, aborting');
+      return;
+    }
 
     const { source, destination, draggableId } = result;
     
-    if (source.droppableId === destination.droppableId) return;
+    console.log('🔍 DRAG END - Details:', { 
+      draggableId, 
+      sourceId: source.droppableId, 
+      destinationId: destination.droppableId,
+      sourceIndex: source.index,
+      destinationIndex: destination.index
+    });
+    
+    if (source.droppableId === destination.droppableId) {
+      console.log('❌ DRAG END - Same droppable, aborting');
+      return;
+    }
 
     try {
+      // Log all available equipment for debugging
+      const allEquipment = [...unassignedEquipment, ...collaboratorGroups.flatMap(group => group.equipment)];
+      console.log('📦 DRAG END - All equipment IDs:', allEquipment.map(item => ({ id: item.id, title: item.title })));
+      
       // Chercher l'équipement dans les collaborateurs assignés ou dans les non assignés
-      const equipment = [...unassignedEquipment, ...collaboratorGroups.flatMap(group => group.equipment)]
-        .find(item => item.id === draggableId);
+      const equipment = allEquipment.find(item => item.id === draggableId);
 
-      if (!equipment) return;
+      console.log('🔎 DRAG END - Equipment found:', equipment ? { id: equipment.id, title: equipment.title } : 'NOT FOUND');
+
+      if (!equipment) {
+        console.error('❌ DRAG END - Equipment not found with ID:', draggableId);
+        toast.error('Équipement non trouvé');
+        return;
+      }
 
       const newCollaboratorId = destination.droppableId === 'unassigned' ? null : destination.droppableId;
+      console.log('👤 DRAG END - New collaborator ID:', newCollaboratorId);
+      
+      console.log('🚀 DRAG END - Calling assignEquipment with:', { draggableId, type: 'contract', collaboratorId: newCollaboratorId });
       
       await collaboratorEquipmentService.assignEquipment(draggableId, 'contract', newCollaboratorId);
+      
+      console.log('✅ DRAG END - Assignment successful, refreshing data');
       await fetchData();
 
       const collaboratorName = newCollaboratorId === null 
         ? 'Non assigné' 
         : collaboratorGroups.find(c => c.collaborator_id === newCollaboratorId)?.collaborator_name || 'Collaborateur';
 
+      console.log('🎉 DRAG END - Complete! Assigned to:', collaboratorName);
       toast.success(`Équipement assigné à ${collaboratorName}`);
     } catch (error) {
-      console.error('Erreur lors de l\'assignation:', error);
+      console.error('💥 DRAG END - Error during assignment:', error);
       toast.error('Erreur lors de l\'assignation de l\'équipement');
     }
   };
