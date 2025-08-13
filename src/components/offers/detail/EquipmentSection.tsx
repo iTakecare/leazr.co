@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Hash, Euro } from "lucide-react";
+import { Package, Hash, Euro, Truck, User, Building, MapPin } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateEquipmentTotals, calculateOfferMargin } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
@@ -32,7 +33,18 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
     specifications: item.specifications?.reduce((acc: any, spec: any) => {
       acc[spec.key] = spec.value;
       return acc;
-    }, {}) || {}
+    }, {}) || {},
+    // Ajouter les informations de livraison
+    deliveryType: item.delivery_type,
+    collaboratorId: item.collaborator_id,
+    deliverySiteId: item.delivery_site_id,
+    deliveryAddress: item.delivery_address,
+    deliveryCity: item.delivery_city,
+    deliveryPostalCode: item.delivery_postal_code,
+    deliveryCountry: item.delivery_country,
+    deliveryContactName: item.delivery_contact_name,
+    deliveryContactEmail: item.delivery_contact_email,
+    deliveryContactPhone: item.delivery_contact_phone
   }));
 
   if (loading) {
@@ -66,6 +78,64 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
       </Card>
     );
   }
+
+  // Function to render delivery information
+  const renderDeliveryInfo = (item: any) => {
+    if (!item.deliveryType) {
+      return null;
+    }
+
+    let icon, label, details;
+
+    switch (item.deliveryType) {
+      case 'main_client':
+        icon = <Building className="w-4 h-4" />;
+        label = 'Client principal';
+        details = 'Livraison à l\'adresse principale du client';
+        break;
+      case 'collaborator':
+        icon = <User className="w-4 h-4" />;
+        label = 'Collaborateur';
+        details = item.collaboratorId ? 'Livraison au collaborateur assigné' : 'Collaborateur non spécifié';
+        break;
+      case 'predefined_site':
+        icon = <Building className="w-4 h-4" />;
+        label = 'Site prédéfini';
+        details = item.deliverySiteId ? 'Livraison au site prédéfini' : 'Site non spécifié';
+        break;
+      case 'specific_address':
+        icon = <MapPin className="w-4 h-4" />;
+        label = 'Adresse spécifique';
+        details = item.deliveryAddress 
+          ? `${item.deliveryAddress}, ${item.deliveryCity} ${item.deliveryPostalCode || ''}`
+          : 'Adresse non spécifiée';
+        break;
+      default:
+        return null;
+    }
+
+    return (
+      <div className="mt-3 pt-3 border-t">
+        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <Truck className="w-4 h-4" />
+          Informations de livraison
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            {icon}
+            <Badge variant="secondary">{label}</Badge>
+          </div>
+          <p className="text-sm text-gray-600">{details}</p>
+          {item.deliveryContactName && (
+            <p className="text-sm text-gray-600">
+              Contact: {item.deliveryContactName}
+              {item.deliveryContactEmail && ` (${item.deliveryContactEmail})`}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card>
@@ -153,6 +223,8 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
                     </div>
                   </div>
                 )}
+
+                {renderDeliveryInfo(item)}
               </div>
             ))}
           </div>

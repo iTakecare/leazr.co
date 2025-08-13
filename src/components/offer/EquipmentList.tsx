@@ -3,7 +3,8 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Pencil, Plus, Minus } from "lucide-react";
+import { Trash2, Pencil, Plus, Minus, Truck, User, Building, MapPin } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Equipment } from "@/types/equipment";
 import { formatCurrency } from "@/utils/formatters";
 import FinancialSummary from "@/components/offer/FinancialSummary";
@@ -133,6 +134,75 @@ const EquipmentList = ({
     return title;
   };
 
+  // Function to render delivery information
+  const renderDeliveryInfo = (item: Equipment) => {
+    if (!item.deliveryType) {
+      return (
+        <div className="flex items-center gap-1 text-gray-400">
+          <Truck className="h-4 w-4" />
+          <span className="text-xs">Non défini</span>
+        </div>
+      );
+    }
+
+    let icon, label, tooltipContent;
+
+    switch (item.deliveryType) {
+      case 'main_client':
+        icon = <Building className="h-4 w-4" />;
+        label = 'Client principal';
+        tooltipContent = 'Livraison à l\'adresse principale du client';
+        break;
+      case 'collaborator':
+        icon = <User className="h-4 w-4" />;
+        label = item.collaboratorId ? 'Collaborateur' : 'Collaborateur (non spécifié)';
+        tooltipContent = item.collaboratorId 
+          ? `Livraison au collaborateur` 
+          : 'Collaborateur non spécifié';
+        break;
+      case 'predefined_site':
+        icon = <Building className="h-4 w-4" />;
+        label = item.deliverySiteId ? 'Site prédéfini' : 'Site (non spécifié)';
+        tooltipContent = item.deliverySiteId 
+          ? `Livraison au site prédéfini`
+          : 'Site de livraison non spécifié';
+        break;
+      case 'specific_address':
+        icon = <MapPin className="h-4 w-4" />;
+        label = 'Adresse spécifique';
+        tooltipContent = item.deliveryAddress 
+          ? `${item.deliveryAddress}, ${item.deliveryCity} ${item.deliveryPostalCode || ''}`
+          : 'Adresse spécifique';
+        break;
+      default:
+        icon = <Truck className="h-4 w-4" />;
+        label = 'Non défini';
+        tooltipContent = 'Type de livraison non défini';
+    }
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1 text-sm cursor-help">
+              {icon}
+              <span className="text-xs truncate max-w-[100px]">{label}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="space-y-1">
+              <p className="font-medium">{label}</p>
+              <p className="text-xs">{tooltipContent}</p>
+              {item.deliveryContactName && (
+                <p className="text-xs">Contact: {item.deliveryContactName}</p>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border border-gray-200 shadow-sm">
@@ -163,6 +233,9 @@ const EquipmentList = ({
                     )}
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
                       Mensualité
+                    </th>
+                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
+                      Livraison
                     </th>
                     <th className="px-2 py-2 text-right text-sm font-medium text-gray-700 min-w-[100px]">
                       Actions
@@ -229,6 +302,9 @@ const EquipmentList = ({
                       )}
                       <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
                         {formatCurrency(item.monthlyPayment || 0)}
+                      </td>
+                      <td className="px-2 py-3 text-sm text-gray-900">
+                        {renderDeliveryInfo(item)}
                       </td>
                       <td className="px-2 py-3 text-right">
                         <div className="flex items-center justify-end space-x-1">
