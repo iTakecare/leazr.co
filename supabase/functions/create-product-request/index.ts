@@ -155,7 +155,7 @@ serve(async (req) => {
     console.log("Montants calculés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
     console.log("Liste d'équipements:", equipmentList);
 
-    // Préparer les données du client
+    // Préparer les données du client avec séparation des adresses
     const clientData = {
       id: clientId,
       name: clientName || companyName, // Utiliser le nom de contact ou le nom d'entreprise
@@ -163,10 +163,27 @@ serve(async (req) => {
       company: companyName,
       phone: data.contact_info.phone || '',
       vat_number: data.company_info.vat_number || '',
-      address: data.delivery_info.address || data.company_info.address || '',
-      city: data.delivery_info.city || data.company_info.city || '',
-      postal_code: data.delivery_info.postal_code || data.company_info.postal_code || '',
-      country: data.delivery_info.country || data.company_info.country || 'BE',
+      // Adresses existantes (pour compatibilité)
+      address: data.company_info.address || '',
+      city: data.company_info.city || '',
+      postal_code: data.company_info.postal_code || '',
+      country: data.company_info.country || 'BE',
+      // Nouvelles adresses de facturation (depuis company_info)
+      billing_address: data.company_info.address || '',
+      billing_city: data.company_info.city || '',
+      billing_postal_code: data.company_info.postal_code || '',
+      billing_country: data.company_info.country || 'BE',
+      // Adresses de livraison (depuis delivery_info)
+      delivery_address: data.delivery_info?.address || data.company_info.address || '',
+      delivery_city: data.delivery_info?.city || data.company_info.city || '',
+      delivery_postal_code: data.delivery_info?.postal_code || data.company_info.postal_code || '',
+      delivery_country: data.delivery_info?.country || data.company_info.country || 'BE',
+      delivery_same_as_billing: !data.delivery_info || (
+        data.delivery_info.address === data.company_info.address &&
+        data.delivery_info.city === data.company_info.city &&
+        data.delivery_info.postal_code === data.company_info.postal_code &&
+        data.delivery_info.country === data.company_info.country
+      ),
       status: 'active',
       contact_name: clientName,
       company_id: targetCompanyId

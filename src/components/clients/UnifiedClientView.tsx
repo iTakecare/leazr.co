@@ -107,6 +107,15 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     city: client.city || "",
     postal_code: client.postal_code || "",
     country: client.country || "",
+    billing_address: client.billing_address || client.address || "",
+    billing_city: client.billing_city || client.city || "",
+    billing_postal_code: client.billing_postal_code || client.postal_code || "",
+    billing_country: client.billing_country || client.country || "",
+    delivery_address: client.delivery_address || client.address || "",
+    delivery_city: client.delivery_city || client.city || "",
+    delivery_postal_code: client.delivery_postal_code || client.postal_code || "",
+    delivery_country: client.delivery_country || client.country || "",
+    delivery_same_as_billing: client.delivery_same_as_billing ?? true,
     vat_number: client.vat_number || "",
     contact_name: client.contact_name || "",
     notes: client.notes || "",
@@ -128,6 +137,15 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       city: initialClient.city || "",
       postal_code: initialClient.postal_code || "",
       country: initialClient.country || "",
+      billing_address: initialClient.billing_address || initialClient.address || "",
+      billing_city: initialClient.billing_city || initialClient.city || "",
+      billing_postal_code: initialClient.billing_postal_code || initialClient.postal_code || "",
+      billing_country: initialClient.billing_country || initialClient.country || "",
+      delivery_address: initialClient.delivery_address || initialClient.address || "",
+      delivery_city: initialClient.delivery_city || initialClient.city || "",
+      delivery_postal_code: initialClient.delivery_postal_code || initialClient.postal_code || "",
+      delivery_country: initialClient.delivery_country || initialClient.country || "",
+      delivery_same_as_billing: initialClient.delivery_same_as_billing ?? true,
       vat_number: initialClient.vat_number || "",
       contact_name: initialClient.contact_name || "",
       notes: initialClient.notes || "",
@@ -137,10 +155,37 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   }, [initialClient]);
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Si delivery_same_as_billing change à true, copier les adresses de facturation
+      if (field === 'delivery_same_as_billing' && value === true) {
+        updated.delivery_address = prev.billing_address;
+        updated.delivery_city = prev.billing_city;
+        updated.delivery_postal_code = prev.billing_postal_code;
+        updated.delivery_country = prev.billing_country;
+      }
+      
+      // Si on modifie une adresse de facturation et que delivery_same_as_billing est true
+      if (['billing_address', 'billing_city', 'billing_postal_code', 'billing_country'].includes(field) && 
+          prev.delivery_same_as_billing) {
+        const fieldMap: Record<string, string> = {
+          'billing_address': 'delivery_address',
+          'billing_city': 'delivery_city',
+          'billing_postal_code': 'delivery_postal_code',
+          'billing_country': 'delivery_country'
+        };
+        const deliveryField = fieldMap[field];
+        if (deliveryField) {
+          (updated as any)[deliveryField] = value;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleSave = async () => {
@@ -185,6 +230,15 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       city: client.city || "",
       postal_code: client.postal_code || "",
       country: client.country || "",
+      billing_address: client.billing_address || client.address || "",
+      billing_city: client.billing_city || client.city || "",
+      billing_postal_code: client.billing_postal_code || client.postal_code || "",
+      billing_country: client.billing_country || client.country || "",
+      delivery_address: client.delivery_address || client.address || "",
+      delivery_city: client.delivery_city || client.city || "",
+      delivery_postal_code: client.delivery_postal_code || client.postal_code || "",
+      delivery_country: client.delivery_country || client.country || "",
+      delivery_same_as_billing: client.delivery_same_as_billing ?? true,
       vat_number: client.vat_number || "",
       contact_name: client.contact_name || "",
       notes: client.notes || "",
@@ -461,44 +515,123 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                   </div>
                 </div>
                 
-                {/* Adresse de facturation */}
+                {/* Adresses de facturation et livraison */}
                 <div className="border-t pt-4">
-                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
-                    Adresse de facturation
+                    Adresses
                   </h3>
-                   {isEditing ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Adresse</Label>
-                        <Input
-                          id="address"
-                          value={formData.address}
-                          onChange={(e) => handleInputChange('address', e.target.value)}
-                          placeholder="Adresse complète"
-                        />
+                  
+                  {/* Onglets pour les adresses */}
+                  <Tabs defaultValue="billing" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="billing">Facturation</TabsTrigger>
+                      <TabsTrigger value="delivery">Livraison</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="billing" className="space-y-4 mt-4">
+                      <div className="bg-muted/20 p-4 rounded-md space-y-4">
+                        <h4 className="text-sm font-medium text-primary">Adresse de facturation</h4>
+                        {isEditing ? (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="billing_address">Adresse</Label>
+                              <Input
+                                id="billing_address"
+                                value={formData.billing_address}
+                                onChange={(e) => handleInputChange('billing_address', e.target.value)}
+                                placeholder="Adresse complète"
+                              />
+                            </div>
+                            <PostalCodeInput
+                              postalCode={formData.billing_postal_code}
+                              city={formData.billing_city}
+                              country={formData.billing_country}
+                              onPostalCodeChange={(value) => handleInputChange('billing_postal_code', value)}
+                              onCityChange={(value) => handleInputChange('billing_city', value)}
+                              onCountryChange={(value) => handleInputChange('billing_country', value)}
+                            />
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {renderField("Adresse", "billing_address", client.billing_address || client.address)}
+                            {renderField("Ville", "billing_city", client.billing_city || client.city)}
+                            {renderField("Code postal", "billing_postal_code", client.billing_postal_code || client.postal_code)}
+                            {renderField("Pays", "billing_country", client.billing_country || client.country)}
+                          </div>
+                        )}
                       </div>
-                      {(() => {
-                        console.log('🚨 ABOUT TO RENDER POSTAL CODE INPUT - isEditing:', isEditing, 'timestamp:', new Date().toISOString());
-                        return null;
-                      })()}
-                      <PostalCodeInput
-                        postalCode={formData.postal_code}
-                        city={formData.city}
-                        country={formData.country}
-                        onPostalCodeChange={(value) => handleInputChange('postal_code', value)}
-                        onCityChange={(value) => handleInputChange('city', value)}
-                        onCountryChange={(value) => handleInputChange('country', value)}
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {renderField("Adresse", "address", client.address)}
-                      {renderField("Ville", "city", client.city)}
-                      {renderField("Code postal", "postal_code", client.postal_code)}
-                      {renderField("Pays", "country", client.country)}
-                    </div>
-                  )}
+                    </TabsContent>
+                    
+                    <TabsContent value="delivery" className="space-y-4 mt-4">
+                      <div className="bg-muted/20 p-4 rounded-md space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-primary">Adresse de livraison</h4>
+                          {isEditing && (
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id="delivery_same_as_billing"
+                                checked={formData.delivery_same_as_billing}
+                                onCheckedChange={(checked) => handleInputChange('delivery_same_as_billing', checked)}
+                              />
+                              <Label htmlFor="delivery_same_as_billing" className="text-sm text-muted-foreground">
+                                Identique à la facturation
+                              </Label>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {isEditing && !formData.delivery_same_as_billing ? (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="delivery_address">Adresse</Label>
+                              <Input
+                                id="delivery_address"
+                                value={formData.delivery_address}
+                                onChange={(e) => handleInputChange('delivery_address', e.target.value)}
+                                placeholder="Adresse complète"
+                              />
+                            </div>
+                            <PostalCodeInput
+                              postalCode={formData.delivery_postal_code}
+                              city={formData.delivery_city}
+                              country={formData.delivery_country}
+                              onPostalCodeChange={(value) => handleInputChange('delivery_postal_code', value)}
+                              onCityChange={(value) => handleInputChange('delivery_city', value)}
+                              onCountryChange={(value) => handleInputChange('delivery_country', value)}
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            {isEditing && formData.delivery_same_as_billing ? (
+                              <p className="text-sm text-muted-foreground italic">
+                                Adresse identique à l'adresse de facturation
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {renderField("Adresse", "delivery_address", 
+                                  client.delivery_address || 
+                                  (client.delivery_same_as_billing ? (client.billing_address || client.address) : client.address)
+                                )}
+                                {renderField("Ville", "delivery_city", 
+                                  client.delivery_city || 
+                                  (client.delivery_same_as_billing ? (client.billing_city || client.city) : client.city)
+                                )}
+                                {renderField("Code postal", "delivery_postal_code", 
+                                  client.delivery_postal_code || 
+                                  (client.delivery_same_as_billing ? (client.billing_postal_code || client.postal_code) : client.postal_code)
+                                )}
+                                {renderField("Pays", "delivery_country", 
+                                  client.delivery_country || 
+                                  (client.delivery_same_as_billing ? (client.billing_country || client.country) : client.country)
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
 
                 {/* Notes */}
