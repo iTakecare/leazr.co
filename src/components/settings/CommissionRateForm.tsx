@@ -52,7 +52,8 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
   }, [isOpen, rate, form]);
 
   const handleSubmit = async (values: RateFormValues) => {
-    if (!levelId) {
+    const effectiveLevelId = levelId || rate?.commission_level_id;
+    if (!effectiveLevelId) {
       toast.error("ID du niveau de commission manquant");
       return;
     }
@@ -66,7 +67,7 @@ const CommissionRateForm: React.FC<CommissionRateFormProps> = ({
       } else {
         // Create new rate
         await createCommissionRate({
-          commission_level_id: levelId,
+          commission_level_id: effectiveLevelId,
           min_amount: values.min_amount,
           max_amount: values.max_amount,
           rate: values.rate,
