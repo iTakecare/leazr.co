@@ -366,3 +366,203 @@ export const useRecentActivity = () => {
 
   return activity;
 };
+
+// Hook pour les utilisateurs SaaS
+export const useSaaSUsers = () => {
+  const [users, setUsers] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        
+        // Simuler des données utilisateurs
+        const mockUsers = [
+          {
+            id: '1',
+            email: 'admin@example.com',
+            first_name: 'John',
+            last_name: 'Doe',
+            role: 'super_admin',
+            status: 'active',
+            company_name: 'iTakecare',
+            last_sign_in_at: '2024-01-15T10:30:00Z',
+            created_at: '2024-01-01T09:00:00Z'
+          },
+          {
+            id: '2', 
+            email: 'client@company.com',
+            first_name: 'Jane',
+            last_name: 'Smith',
+            role: 'admin',
+            status: 'active',
+            company_name: 'Company ABC',
+            last_sign_in_at: '2024-01-14T15:20:00Z',
+            created_at: '2024-01-05T11:15:00Z'
+          }
+        ];
+
+        const mockStats = {
+          total: mockUsers.length,
+          active: mockUsers.filter(u => u.status === 'active').length,
+          admins: mockUsers.filter(u => u.role.includes('admin')).length,
+          companies: new Set(mockUsers.map(u => u.company_name)).size
+        };
+
+        setUsers(mockUsers);
+        setStats(mockStats);
+      } catch (error) {
+        console.error('Erreur lors du chargement des utilisateurs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  return { users, stats, loading };
+};
+
+// Hook pour les analytics SaaS
+export const useSaaSAnalytics = (period: string = "30") => {
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        
+        // Simuler des données analytics
+        const mockAnalytics = {
+          mrr: 25000,
+          mrr_growth: 12.5,
+          active_customers: 85,
+          customer_growth: 8.3,
+          churn_rate: 2.1,
+          conversion_rate: 15.7,
+          ltv: 5000,
+          cac: 150,
+          ltv_cac_ratio: 33.3,
+          revenue_chart: [
+            { month: 'Jan', revenue: 20000 },
+            { month: 'Fév', revenue: 22000 },
+            { month: 'Mar', revenue: 25000 }
+          ],
+          customers_chart: [
+            { month: 'Jan', new_customers: 12 },
+            { month: 'Fév', new_customers: 15 },
+            { month: 'Mar', new_customers: 18 }
+          ],
+          plans_distribution: [
+            { name: 'Starter', value: 45 },
+            { name: 'Pro', value: 30 },
+            { name: 'Enterprise', value: 10 }
+          ],
+          recent_activity: [
+            { title: 'Nouvelle inscription - Company XYZ', time: '2h ago' },
+            { title: 'Paiement reçu - €499', time: '4h ago' },
+            { title: 'Mise à niveau vers Pro - ABC Corp', time: '1d ago' }
+          ]
+        };
+
+        setAnalytics(mockAnalytics);
+      } catch (error) {
+        console.error('Erreur lors du chargement des analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [period]);
+
+  return { analytics, loading };
+};
+
+// Hook pour la facturation SaaS
+export const useSaaSBilling = () => {
+  const [billing, setBilling] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBilling = async () => {
+      try {
+        setLoading(true);
+        
+        // Simuler des données de facturation
+        const mockBilling = {
+          metrics: {
+            monthly_revenue: 28500,
+            revenue_growth: 15.2,
+            pending_invoices: 3,
+            pending_amount: 1200,
+            active_subscriptions: 42,
+            new_subscriptions: 5,
+            payment_success_rate: 96.5,
+            failed_payments: 2
+          },
+          invoices: [
+            {
+              id: '1',
+              invoice_number: 'INV-2024-001',
+              company_name: 'ABC Corp',
+              plan_name: 'Pro',
+              amount: 99,
+              currency: 'EUR',
+              status: 'paid',
+              created_at: '2024-01-01T10:00:00Z',
+              due_date: '2024-01-31T23:59:59Z',
+              period_start: '2024-01-01',
+              period_end: '2024-01-31'
+            },
+            {
+              id: '2',
+              invoice_number: 'INV-2024-002',
+              company_name: 'XYZ Ltd',
+              plan_name: 'Starter',
+              amount: 49,
+              currency: 'EUR',
+              status: 'pending',
+              created_at: '2024-01-15T12:30:00Z',
+              due_date: '2024-02-15T23:59:59Z',
+              period_start: '2024-01-15',
+              period_end: '2024-02-15'
+            }
+          ],
+          subscriptions: [
+            {
+              id: '1',
+              company_name: 'ABC Corp',
+              plan_name: 'Pro',
+              price: 99,
+              status: 'active',
+              next_billing_date: '2024-02-01T00:00:00Z'
+            },
+            {
+              id: '2',
+              company_name: 'XYZ Ltd',
+              plan_name: 'Starter',
+              price: 49,
+              status: 'active',
+              next_billing_date: '2024-02-15T00:00:00Z'
+            }
+          ]
+        };
+
+        setBilling(mockBilling);
+      } catch (error) {
+        console.error('Erreur lors du chargement des données de facturation:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBilling();
+  }, []);
+
+  return { billing, loading };
+};

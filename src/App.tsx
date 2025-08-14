@@ -66,6 +66,9 @@ import InvoiceEditPage from "@/pages/InvoiceEditPage";
 
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
+import LeazrSaaSUsers from "@/pages/LeazrSaaSUsers";
+import LeazrSaaSAnalytics from "@/pages/LeazrSaaSAnalytics";
+import LeazrSaaSBilling from "@/pages/LeazrSaaSBilling";
 import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
 import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
 import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
@@ -159,6 +162,9 @@ const AppRoutes = () => (
     {/* LEAZR SAAS ADMIN ROUTES - Dedicated routes for SaaS administration */}
     <Route path="/admin/leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
     <Route path="/admin/leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
+    <Route path="/admin/leazr-saas-users" element={<Layout><LeazrSaaSUsers /></Layout>} />
+    <Route path="/admin/leazr-saas-analytics" element={<Layout><LeazrSaaSAnalytics /></Layout>} />
+    <Route path="/admin/leazr-saas-billing" element={<Layout><LeazrSaaSBilling /></Layout>} />
     <Route path="/admin/leazr-saas-plans" element={<Layout><LeazrSaaSPlans /></Layout>} />
     <Route path="/admin/leazr-saas-subscriptions" element={<Layout><LeazrSaaSSubscriptions /></Layout>} />
     <Route path="/admin/leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />

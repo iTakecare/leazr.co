@@ -27,9 +27,6 @@ const SaaSSettingsManager = () => {
     { id: "identity", label: "Identité", icon: Building2 },
     { id: "plans", label: "Plans & Tarifs", icon: Package },
     { id: "postal-codes", label: "Codes Postaux", icon: MapPin },
-    { id: "users", label: "Utilisateurs", icon: Users },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "billing", label: "Facturation", icon: CreditCard },
   ];
 
   return (
@@ -46,7 +43,7 @@ const SaaSSettingsManager = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
@@ -94,57 +91,6 @@ const SaaSSettingsManager = () => {
 
         <TabsContent value="postal-codes" className="space-y-6">
           <PostalCodeImport />
-        </TabsContent>
-
-        <TabsContent value="users" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestion des utilisateurs</CardTitle>
-              <CardDescription>
-                Administrez les comptes utilisateurs de la plateforme
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">Fonctionnalité en développement</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-              <CardDescription>
-                Statistiques et métriques de la plateforme
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">Fonctionnalité en développement</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="billing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Facturation</CardTitle>
-              <CardDescription>
-                Gestion de la facturation et des abonnements
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">Fonctionnalité en développement</p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

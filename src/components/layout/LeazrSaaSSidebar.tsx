@@ -11,6 +11,8 @@ import {
   Settings,
   LifeBuoy,
   Globe,
+  Users,
+  CreditCard,
 } from "lucide-react";
 
 interface LeazrSaaSSidebarProps {
@@ -29,6 +31,9 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
   const menuItems = [
     { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard", color: "blue" },
     { icon: Zap, label: "Gestion Applications", href: "/admin/leazr-saas-clients", color: "orange" },
+    { icon: Users, label: "Utilisateurs", href: "/admin/leazr-saas-users", color: "green" },
+    { icon: BarChart3, label: "Analytics", href: "/admin/leazr-saas-analytics", color: "purple" },
+    { icon: CreditCard, label: "Facturation", href: "/admin/leazr-saas-billing", color: "blue" },
     { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings", color: "gray" },
     { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support", color: "pink" },
   ];
