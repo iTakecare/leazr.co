@@ -129,22 +129,53 @@ export const useSaaSCompanies = () => {
           });
         }
 
-        // Combiner toutes les données
-        const enrichedCompanies: SaaSCompany[] = companiesData.map(company => ({
-          id: company.id,
-          name: company.name,
-          logo_url: company.logo_url,
-          plan: company.plan,
-          account_status: company.account_status,
-          created_at: company.created_at,
-          trial_ends_at: company.trial_ends_at,
-          subscription_ends_at: company.subscription_ends_at,
-          modules_enabled: company.modules_enabled || [],
-          user_count: usersCountMap.get(company.id) || 0,
-          primary_admin: adminsMap.get(company.id)
-        }));
+        // Fonction pour calculer le statut intelligent
+        const getSmartStatus = (company: any): string => {
+          const now = new Date();
+          
+          // Si subscription_ends_at existe et est dans le futur → active
+          if (company.subscription_ends_at) {
+            const subscriptionEnd = new Date(company.subscription_ends_at);
+            if (subscriptionEnd > now) {
+              return 'active';
+            } else {
+              return 'expired';
+            }
+          }
+          
+          // Si trial_ends_at existe et est dans le futur → trial
+          if (company.trial_ends_at) {
+            const trialEnd = new Date(company.trial_ends_at);
+            if (trialEnd > now) {
+              return 'trial';
+            } else {
+              return 'expired';
+            }
+          }
+          
+          // Fallback sur account_status de la DB
+          return company.account_status || 'pending';
+        };
 
-        // Calculer les statistiques
+        // Combiner toutes les données avec statut intelligent
+        const enrichedCompanies: SaaSCompany[] = companiesData.map(company => {
+          const smartStatus = getSmartStatus(company);
+          return {
+            id: company.id,
+            name: company.name,
+            logo_url: company.logo_url,
+            plan: company.plan,
+            account_status: smartStatus,
+            created_at: company.created_at,
+            trial_ends_at: company.trial_ends_at,
+            subscription_ends_at: company.subscription_ends_at,
+            modules_enabled: company.modules_enabled || [],
+            user_count: usersCountMap.get(company.id) || 0,
+            primary_admin: adminsMap.get(company.id)
+          };
+        });
+
+        // Calculer les statistiques avec le statut intelligent
         const planPrices = { starter: 49, pro: 149, business: 299 };
         const calculatedStats: SaaSCompaniesStats = {
           total: enrichedCompanies.length,
