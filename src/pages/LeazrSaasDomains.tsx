@@ -6,12 +6,44 @@ import SimplifiedCloudflareManager from "@/components/admin/SimplifiedCloudflare
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const LeazrSaasDomains = () => {
   const { user } = useAuth();
 
   // Vérifier que seul l'admin SaaS peut accéder à cette page
-  if (!user || user.email !== "ecommerce@itakecare.be") {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check SaaS admin role from database instead of hardcoded email
+  const [isSaaSAdmin, setIsSaaSAdmin] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    const checkSaaSAdmin = async () => {
+      const { data, error } = await supabase.rpc('is_saas_admin');
+      if (!error) {
+        setIsSaaSAdmin(data);
+      } else {
+        setIsSaaSAdmin(false);
+      }
+    };
+
+    if (user) {
+      checkSaaSAdmin();
+    }
+  }, [user]);
+
+  if (isSaaSAdmin === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2">Vérification des autorisations...</span>
+      </div>
+    );
+  }
+
+  if (!isSaaSAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
