@@ -32,8 +32,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, options?: any) => Promise<{ data?: any; error?: any }>;
   isAdmin: () => boolean;
   isClient: () => boolean;
-  
   isAmbassador: () => boolean;
+  isSuperAdmin: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -138,6 +138,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return result;
   };
 
+  const isSuperAdmin = () => {
+    const result = user?.role === 'super_admin';
+    console.log("🔍 isSuperAdmin check:", {
+      userRole: user?.role,
+      result
+    });
+    return result;
+  };
+
   // Fonction pour enrichir les données utilisateur avec gestion d'erreur améliorée
   const enrichUserData = async (baseUser: User): Promise<ExtendedUser> => {
     try {
@@ -169,13 +178,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Préserver les métadonnées de base si aucun profil trouvé
         const metaRole = baseUser.user_metadata?.role || 'client';
-        const isItakecareUser = baseUser.email === 'hello@itakecare.be';
         
         const defaultUser = {
           ...baseUser,
           first_name: baseUser.user_metadata?.first_name || '',
           last_name: baseUser.user_metadata?.last_name || '',
-          role: isItakecareUser ? 'admin' : metaRole,
+          role: metaRole,
           company: '',
           partner_id: '',
           ambassador_id: '',
@@ -183,8 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         console.log("📝 ENRICH - Utilisateur par défaut créé:", {
           email: defaultUser.email,
-          role: defaultUser.role,
-          isItakecareUser
+          role: defaultUser.role
         });
         return defaultUser;
       }
@@ -250,13 +257,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Préserver les métadonnées de base en cas d'erreur
       const metaRole = baseUser.user_metadata?.role || 'client';
-      const isItakecareUser = baseUser.email === 'hello@itakecare.be';
       
       const fallbackUser = {
         ...baseUser,
         first_name: baseUser.user_metadata?.first_name || '',
         last_name: baseUser.user_metadata?.last_name || '',
-        role: isItakecareUser ? 'admin' : metaRole,
+        role: metaRole,
         company: '',
         partner_id: '',
         ambassador_id: '',
@@ -264,8 +270,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
       console.log("📝 ENRICH - Utilisateur de fallback créé:", {
         email: fallbackUser.email,
-        role: fallbackUser.role,
-        isItakecareUser
+        role: fallbackUser.role
       });
       return fallbackUser;
     }
@@ -325,11 +330,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   console.log("🔄 AUTH EVENT - Enrichissement échoué, utilisation des données de base");
                   if (isMounted) {
                     // Fallback vers les données de base en préservant les métadonnées
-                    const isItakecareUser = newSession.user.email === 'hello@itakecare.be';
                     const metaRole = newSession.user.user_metadata?.role || 'client';
                     setUser({
                       ...newSession.user,
-                      role: isItakecareUser ? 'admin' : metaRole
+                      role: metaRole
                     } as ExtendedUser);
                     setIsLoading(false);
                   }
@@ -385,11 +389,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log("🚀 AUTH CONTEXT - Enrichissement initial échoué, utilisation des données de base");
               if (isMounted) {
                 // Fallback vers les données de base en préservant les métadonnées
-                const isItakecareUser = currentSession.user.email === 'hello@itakecare.be';
                 const metaRole = currentSession.user.user_metadata?.role || 'client';
                 setUser({
                   ...currentSession.user,
-                  role: isItakecareUser ? 'admin' : metaRole
+                  role: metaRole
                 } as ExtendedUser);
                 setIsLoading(false);
               }
@@ -449,8 +452,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     isAdmin,
     isClient,
-    
     isAmbassador,
+    isSuperAdmin,
   };
 
   // Reduced logging on homepage
