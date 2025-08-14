@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Product } from "@/types/catalog";
+import DOMPurify from 'dompurify';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -26,7 +27,11 @@ export function processMarkdownToHtml(markdown: string): string {
     html = '<p>' + html + '</p>';
   }
   
-  return html;
+  // Sanitize HTML to prevent XSS attacks
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'p', 'strong', 'br'],
+    ALLOWED_ATTR: []
+  });
 }
 
 export function generateProductSlug(productName: string, productBrand?: string): string {
