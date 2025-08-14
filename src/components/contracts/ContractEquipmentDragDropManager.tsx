@@ -49,14 +49,19 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
       // Use the same service as the working client side
       const allCollaboratorData = await collaboratorEquipmentService.getEquipmentByCollaborator(contractData.client_id);
       
+      console.log('🔍 [ADMIN DEBUG] Données brutes du service:', allCollaboratorData);
+      
       // Filter to only show equipment from this specific contract
       const contractCollaboratorData = allCollaboratorData.map(group => ({
         ...group,
         equipment: group.equipment.filter(item => 
           item.source_id === contractId && item.equipment_type === 'contract'
         )
-      })).filter(group => group.equipment.length > 0 || group.collaborator_id === null); // Keep "unassigned" group even if empty
+      }));
+      
+      console.log('🔍 [ADMIN DEBUG] Après filtrage par contrat:', contractCollaboratorData);
 
+      // Keep all collaborator groups, including empty ones (like client side does)
       setCollaboratorGroups(contractCollaboratorData);
       
     } catch (error) {
@@ -74,20 +79,39 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
   }, [contractId]);
 
   const handleDragEnd = async (result: any) => {
-    if (!result.destination) return;
+    console.log('🔍 [ADMIN DEBUG] handleDragEnd appelé:', result);
+    
+    if (!result.destination) {
+      console.log('🔍 [ADMIN DEBUG] Pas de destination, arrêt');
+      return;
+    }
 
     const { source, destination, draggableId } = result;
     
-    if (source.droppableId === destination.droppableId) return;
+    console.log('🔍 [ADMIN DEBUG] Source:', source.droppableId, 'Destination:', destination.droppableId, 'DraggableId:', draggableId);
+    
+    if (source.droppableId === destination.droppableId) {
+      console.log('🔍 [ADMIN DEBUG] Même destination, arrêt');
+      return;
+    }
 
     try {
+      console.log('🔍 [ADMIN DEBUG] Recherche équipement dans:', collaboratorGroups);
+      
       const equipment = collaboratorGroups
         .flatMap(group => group.equipment)
         .find(item => item.id === draggableId);
 
-      if (!equipment) return;
+      console.log('🔍 [ADMIN DEBUG] Équipement trouvé:', equipment);
+
+      if (!equipment) {
+        console.log('🔍 [ADMIN DEBUG] Équipement non trouvé!');
+        return;
+      }
 
       const newCollaboratorId = destination.droppableId === 'unassigned' ? null : destination.droppableId;
+      
+      console.log('🔍 [ADMIN DEBUG] Assignation:', equipment.id, equipment.equipment_type, newCollaboratorId);
       
       await collaboratorEquipmentService.assignEquipment(
         equipment.id,
@@ -103,7 +127,7 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
 
       toast.success(`Équipement assigné à ${collaboratorName}`);
     } catch (error) {
-      console.error('Erreur lors de l\'assignation:', error);
+      console.error('🚨 [ADMIN DEBUG] Erreur lors de l\'assignation:', error);
       toast.error('Erreur lors de l\'assignation de l\'équipment');
     }
   };
@@ -142,23 +166,27 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
         </CardHeader>
         <CardContent className="flex-1 min-h-0">
           <div className="h-full overflow-y-auto space-y-3">
-            {collaboratorGroups.map((group) => (
-              <div key={group.collaborator_id || 'unassigned'} className="border rounded-lg p-3 bg-muted/30">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm truncate">{group.collaborator_name}</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        {group.equipment.length}
-                      </Badge>
+            {collaboratorGroups.map((group) => {
+              const groupId = group.collaborator_id ?? 'unassigned';
+              console.log('🔍 [ADMIN DEBUG] Rendu groupe:', group.collaborator_name, 'ID:', groupId, 'Équipements:', group.equipment.length);
+              
+              return (
+                <div key={groupId} className="border rounded-lg p-3 bg-muted/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-sm truncate">{group.collaborator_name}</h3>
+                        <Badge variant="secondary" className="text-xs">
+                          {group.equipment.length}
+                        </Badge>
+                      </div>
+                      {group.collaborator_email && (
+                        <p className="text-xs text-muted-foreground truncate">{group.collaborator_email}</p>
+                      )}
                     </div>
-                    {group.collaborator_email && (
-                      <p className="text-xs text-muted-foreground truncate">{group.collaborator_email}</p>
-                    )}
                   </div>
-                </div>
 
-                <Droppable droppableId={group.collaborator_id || 'unassigned'} isDropDisabled={readOnly}>
+                  <Droppable droppableId={groupId} isDropDisabled={readOnly}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
@@ -171,13 +199,15 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
                     >
                       {group.equipment.length > 0 ? (
                         <div className="space-y-2">
-                          {group.equipment.map((item, index) => (
-                            <Draggable
-                              key={item.id}
-                              draggableId={item.id}
-                              index={index}
-                              isDragDisabled={readOnly}
-                            >
+                          {group.equipment.map((item, index) => {
+                            console.log('🔍 [ADMIN DEBUG] Rendu équipement:', item.title, 'ID:', item.id, 'Index:', index);
+                            return (
+                              <Draggable
+                                key={item.id}
+                                draggableId={item.id}
+                                index={index}
+                                isDragDisabled={readOnly}
+                              >
                               {(provided, snapshot) => (
                                 <div
                                   ref={provided.innerRef}
@@ -212,7 +242,8 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
                                 </div>
                               )}
                             </Draggable>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full text-center py-4">
@@ -227,7 +258,8 @@ const ContractEquipmentDragDropManager: React.FC<ContractEquipmentDragDropManage
                   )}
                 </Droppable>
               </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
