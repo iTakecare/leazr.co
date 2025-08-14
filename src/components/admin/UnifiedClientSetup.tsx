@@ -14,8 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface CompanyFormData {
   companyName: string;
-  repositoryUrl: string;
-  siteName: string;
   description: string;
   plan: string;
   adminEmail: string;
@@ -24,8 +22,6 @@ interface CompanyFormData {
 const UnifiedClientSetup = () => {
   const [formData, setFormData] = useState<CompanyFormData>({
     companyName: '',
-    repositoryUrl: 'https://github.com/iTakecare/leazr.co',
-    siteName: '',
     description: '',
     plan: 'starter',
     adminEmail: ''
@@ -98,40 +94,6 @@ const UnifiedClientSetup = () => {
     }
   };
 
-  // Fonction pour déployer sur Netlify
-  const deployToNetlify = async (companyId: string): Promise<boolean> => {
-    try {
-      console.log("Déploiement Netlify pour l'entreprise:", companyId);
-
-      const { data, error } = await supabase.functions.invoke('deploy-to-netlify', {
-        body: {
-          companyId: companyId,
-          repositoryUrl: formData.repositoryUrl,
-          siteName: formData.siteName || undefined
-        }
-      });
-
-      if (error) {
-        console.error("Erreur déploiement Netlify:", error);
-        toast.error(`Erreur lors du déploiement: ${error.message}`);
-        return false;
-      }
-
-      if (data?.success) {
-        console.log("Déploiement réussi:", data);
-        toast.success(`Déploiement réussi! Site URL: ${data.siteUrl}`);
-        return true;
-      } else {
-        console.error("Échec déploiement:", data);
-        toast.error(`Échec du déploiement: ${data?.error || 'Erreur inconnue'}`);
-        return false;
-      }
-    } catch (error) {
-      console.error("Erreur déploiement:", error);
-      toast.error("Erreur lors du déploiement");
-      return false;
-    }
-  };
 
   // Fonction principale de soumission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,31 +101,21 @@ const UnifiedClientSetup = () => {
     setIsSubmitting(true);
 
     try {
-      // Étape 1: Créer l'entreprise
+      // Créer l'entreprise avec admin
       const companyId = await createCompany();
-      if (!companyId) {
-        return;
-      }
-
-      // Étape 2: Déployer sur Netlify
-      const deploymentSuccess = await deployToNetlify(companyId);
-      
-      if (deploymentSuccess) {
-        toast.success("Configuration complète terminée avec succès!");
+      if (companyId) {
+        toast.success("Entreprise créée avec succès!");
         // Réinitialiser le formulaire
         setFormData({
           companyName: '',
-          repositoryUrl: 'https://github.com/iTakecare/leazr.co',
-          siteName: '',
           description: '',
           plan: 'starter',
           adminEmail: ''
         });
       }
-
     } catch (error) {
-      console.error("Erreur lors de la configuration:", error);
-      toast.error("Erreur lors de la configuration complète");
+      console.error("Erreur lors de la création:", error);
+      toast.error("Erreur lors de la création de l'entreprise");
     } finally {
       setIsSubmitting(false);
     }
@@ -178,7 +130,7 @@ const UnifiedClientSetup = () => {
             Configuration Client Unifiée
           </CardTitle>
           <CardDescription>
-            Créez une nouvelle entreprise et déployez automatiquement son application Leazr
+            Créez une nouvelle entreprise avec son administrateur automatiquement
           </CardDescription>
         </CardHeader>
         
@@ -230,37 +182,6 @@ const UnifiedClientSetup = () => {
               </div>
             </div>
 
-            <Separator />
-
-            {/* Configuration Déploiement */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Globe className="h-4 w-4" />
-                <h3 className="text-sm font-medium">Configuration Déploiement</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="repositoryUrl">URL du Repository</Label>
-                  <Input
-                    id="repositoryUrl"
-                    value={formData.repositoryUrl}
-                    onChange={(e) => setFormData({...formData, repositoryUrl: e.target.value})}
-                    placeholder="https://github.com/username/repo"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="siteName">Nom du site (optionnel)</Label>
-                  <Input
-                    id="siteName"
-                    value={formData.siteName}
-                    onChange={(e) => setFormData({...formData, siteName: e.target.value})}
-                    placeholder="Auto-généré si vide"
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Affichage de l'email généré */}
             {formData.adminEmail && (
@@ -285,11 +206,11 @@ const UnifiedClientSetup = () => {
                 className="min-w-[200px]"
               >
                 {isSubmitting ? (
-                  "Configuration en cours..."
+                  "Création en cours..."
                 ) : (
                   <>
                     <Building2 className="h-4 w-4 mr-2" />
-                    Créer et Déployer
+                    Créer Entreprise
                   </>
                 )}
               </Button>
@@ -315,18 +236,6 @@ const UnifiedClientSetup = () => {
               <span className="text-xs font-medium">2</span>
             </div>
             <span>Génération automatique d'un email admin unique</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-xs font-medium">3</span>
-            </div>
-            <span>Déploiement automatique sur Netlify</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-xs font-medium">4</span>
-            </div>
-            <span>Configuration du sous-domaine Cloudflare</span>
           </div>
         </CardContent>
       </Card>
