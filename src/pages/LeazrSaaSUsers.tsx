@@ -4,7 +4,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import SaaSUserManager from "@/components/saas/SaaSUserManager";
+import SaaSCompaniesManager from "@/components/saas/SaaSCompaniesManager";
 
 const LeazrSaaSUsers = () => {
   const { user, isSuperAdmin, isLoading } = useAuth();
@@ -34,7 +34,7 @@ const LeazrSaaSUsers = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <SaaSUserManager />
+          <SaaSCompaniesManager />
         </motion.div>
       </Container>
     </PageTransition>
