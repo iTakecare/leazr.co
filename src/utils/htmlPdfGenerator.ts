@@ -1,5 +1,6 @@
 import html2pdf from 'html2pdf.js';
 import HtmlTemplateService, { convertOfferToTemplateData, HtmlTemplateData } from '@/services/htmlTemplateService';
+import DOMPurify from 'dompurify';
 
 /**
  * Options pour la génération PDF à partir de HTML
@@ -158,7 +159,12 @@ export const generateSimplePdf = async (
       overflow: hidden;
     `;
     
-    container.innerHTML = cleanedHtml;
+    // Sanitize HTML before setting innerHTML to prevent XSS
+    const sanitizedHtml = DOMPurify.sanitize(cleanedHtml, {
+      ALLOWED_TAGS: ['div', 'p', 'span', 'img', 'strong', 'em', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'tr', 'td', 'th', 'tbody', 'thead'],
+      ALLOWED_ATTR: ['src', 'alt', 'class', 'style', 'width', 'height', 'colspan', 'rowspan']
+    });
+    container.innerHTML = sanitizedHtml;
     console.log("Container créé avec le HTML nettoyé");
     
     // Précharger toutes les images et polices

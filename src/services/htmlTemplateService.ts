@@ -1,6 +1,7 @@
 import Handlebars from 'handlebars';
 import { formatCurrency } from '@/utils/formatters';
 import { supabase } from '@/integrations/supabase/client';
+import DOMPurify from 'dompurify';
 
 // Interface pour les données d'offre compatible avec les templates HTML
 export interface HtmlTemplateData {
@@ -61,9 +62,13 @@ const setupHandlebarsHelpers = () => {
     return (a || 0) * (b || 0);
   });
 
-  // Helper pour rendre du HTML brut (triple braces {{{}}} automatique)
+  // Helper pour rendre du HTML avec sanitisation
   Handlebars.registerHelper('html', (content: string) => {
-    return new Handlebars.SafeString(content || '');
+    const sanitized = DOMPurify.sanitize(content || '', {
+      ALLOWED_TAGS: ['div', 'p', 'span', 'img', 'strong', 'em', 'br', 'h1', 'h2', 'h3', 'h4'],
+      ALLOWED_ATTR: ['src', 'alt', 'class', 'style', 'width', 'height']
+    });
+    return new Handlebars.SafeString(sanitized);
   });
 
   // Helper pour formater les nombres
