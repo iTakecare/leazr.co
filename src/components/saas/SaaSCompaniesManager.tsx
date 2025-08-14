@@ -26,6 +26,27 @@ const SaaSCompaniesManager = () => {
 
   const { companies, stats, loading } = useSaaSCompanies();
 
+  // Actions des boutons
+  const handleViewDetails = (company: any) => {
+    console.log("🔍 Voir détails de:", company.name);
+    // TODO: Ouvrir une modale avec les détails de l'entreprise
+    alert(`Détails de ${company.name}\nPlan: ${company.plan}\nStatut: ${company.account_status}\nUtilisateurs: ${company.user_count}`);
+  };
+
+  const handleManageSubscription = (company: any) => {
+    console.log("⚙️ Gérer abonnement de:", company.name);
+    // TODO: Ouvrir le gestionnaire d'abonnement
+    alert(`Gestion d'abonnement pour ${company.name}\nPlan actuel: ${company.plan}`);
+  };
+
+  const handleSuspendAccount = (company: any) => {
+    console.log("⏸️ Suspendre compte de:", company.name);
+    if (confirm(`Êtes-vous sûr de vouloir suspendre le compte de ${company.name} ?`)) {
+      // TODO: Implémenter la suspension du compte
+      alert(`Compte ${company.name} suspendu (simulation)`);
+    }
+  };
+
   const filteredCompanies = companies?.filter(company => {
     const matchesSearch = company.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          company.primary_admin?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -270,16 +291,19 @@ const SaaSCompaniesManager = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(company)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Voir détails
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleManageSubscription(company)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Gérer abonnement
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-orange-600">
+                        <DropdownMenuItem 
+                          className="text-orange-600"
+                          onClick={() => handleSuspendAccount(company)}
+                        >
                           <Pause className="h-4 w-4 mr-2" />
                           Suspendre
                         </DropdownMenuItem>

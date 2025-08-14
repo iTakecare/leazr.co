@@ -75,29 +75,19 @@ export const useSaaSCompanies = () => {
 
         // Récupérer les administrateurs principaux pour chaque entreprise
         const companyIds = companiesData.map(c => c.id);
+        console.log("🔍 SAAS COMPANIES - Recherche des admins pour:", companyIds.length, "entreprises");
+        
         const { data: adminsData, error: adminsError } = await supabase
           .from('profiles')
-          .select('id, company_id, first_name, last_name, role')
+          .select('id, company_id, first_name, last_name, role, email')
           .in('company_id', companyIds)
           .eq('role', 'admin')
           .order('created_at', { ascending: true }); // Premier admin créé = admin principal
 
         if (adminsError) {
           console.error("❌ SAAS COMPANIES - Erreur admins:", adminsError);
-        }
-
-        // Récupérer les emails des admins
-        const adminIds = adminsData?.map(admin => admin.id) || [];
-        const { data: authData, error: authError } = await supabase
-          .from('auth.users')
-          .select('id, email')
-          .in('id', adminIds);
-
-        const authMap = new Map();
-        if (!authError && authData) {
-          authData.forEach(user => {
-            authMap.set(user.id, user.email);
-          });
+        } else {
+          console.log("👥 SAAS COMPANIES - Admins trouvés:", adminsData?.length || 0);
         }
 
         // Compter les utilisateurs par entreprise (exclure les super_admin)
@@ -123,7 +113,7 @@ export const useSaaSCompanies = () => {
               adminsMap.set(admin.company_id, {
                 first_name: admin.first_name || '',
                 last_name: admin.last_name || '',
-                email: authMap.get(admin.id) || ''
+                email: admin.email || 'Email non disponible'
               });
             }
           });
