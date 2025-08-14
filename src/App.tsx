@@ -66,12 +66,10 @@ import InvoiceEditPage from "@/pages/InvoiceEditPage";
 
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
-import LeazrSaasDomains from "@/pages/LeazrSaasDomains";
 import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
 import LeazrSaaSSupport from "@/pages/LeazrSaaSSupport";
 import LeazrSaaSPlans from "@/pages/LeazrSaaSPlans";
 import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
-import LeazrSaaSDeployments from "@/pages/LeazrSaaSDeployments";
 
 // Route guards
 import AdminPrivateRoute from "@/components/routing/AdminPrivateRoute";
@@ -161,8 +159,6 @@ const AppRoutes = () => (
     {/* LEAZR SAAS ADMIN ROUTES - Dedicated routes for SaaS administration */}
     <Route path="/admin/leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
     <Route path="/admin/leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
-    <Route path="/admin/leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
-    <Route path="/admin/leazr-saas-deployments" element={<Layout><LeazrSaaSDeployments /></Layout>} />
     <Route path="/admin/leazr-saas-plans" element={<Layout><LeazrSaaSPlans /></Layout>} />
     <Route path="/admin/leazr-saas-subscriptions" element={<Layout><LeazrSaaSSubscriptions /></Layout>} />
     <Route path="/admin/leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
@@ -194,7 +190,6 @@ const AppRoutes = () => (
       <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
       <Route path="leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
       <Route path="leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
-      <Route path="leazr-saas-domains" element={<Layout><LeazrSaasDomains /></Layout>} />
       <Route path="leazr-saas-settings" element={<Layout><LeazrSaaSSettings /></Layout>} />
       <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
       <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />

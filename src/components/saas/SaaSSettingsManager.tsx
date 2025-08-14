@@ -16,7 +16,6 @@ import {
   MapPin
 } from "lucide-react";
 import SaaSPlansManager from "./SaaSPlansManager";
-import NetlifyDeploymentTab from "./NetlifyDeploymentTab";
 import PlatformIdentitySettings from "./PlatformIdentitySettings";
 import { PostalCodeImport } from "@/components/admin/PostalCodeImport";
 
@@ -26,7 +25,6 @@ const SaaSSettingsManager = () => {
   const tabs = [
     { id: "general", label: "Général", icon: Settings },
     { id: "identity", label: "Identité", icon: Building2 },
-    { id: "netlify", label: "Netlify", icon: Globe },
     { id: "plans", label: "Plans & Tarifs", icon: Package },
     { id: "postal-codes", label: "Codes Postaux", icon: MapPin },
     { id: "users", label: "Utilisateurs", icon: Users },
@@ -48,7 +46,7 @@ const SaaSSettingsManager = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-7">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
@@ -72,12 +70,12 @@ const SaaSSettingsManager = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-lg">
-                    <h3 className="font-medium">Domaine principal</h3>
-                    <p className="text-sm text-muted-foreground">leazr.co</p>
+                    <h3 className="font-medium">Mode de routage</h3>
+                    <p className="text-sm text-muted-foreground">Slug d'entreprise (ex: leazr.co/monentreprise)</p>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <h3 className="font-medium">Sous-domaines actifs</h3>
-                    <p className="text-sm text-muted-foreground">En cours de calcul...</p>
+                    <h3 className="font-medium">Domaine principal</h3>
+                    <p className="text-sm text-muted-foreground">leazr.co</p>
                   </div>
                 </div>
               </div>
@@ -89,9 +87,6 @@ const SaaSSettingsManager = () => {
           <PlatformIdentitySettings />
         </TabsContent>
 
-        <TabsContent value="netlify" className="space-y-6">
-          <NetlifyDeploymentTab />
-        </TabsContent>
 
         <TabsContent value="plans" className="space-y-6">
           <SaaSPlansManager />

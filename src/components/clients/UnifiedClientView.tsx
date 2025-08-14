@@ -22,7 +22,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CollaboratorForm from "./CollaboratorForm";
 import CollaboratorsList from "./CollaboratorsList";
 import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropManager";
-import ClientSubdomainManager from "./ClientSubdomainManager";
 import ClientUserAccount from "./ClientUserAccount";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 import DeliverySitesManager from "./DeliverySitesManager";
@@ -443,7 +442,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
 
       {/* Onglets avec contenu principal */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Informations générales
@@ -459,10 +458,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           <TabsTrigger value="logo" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Logo
-          </TabsTrigger>
-          <TabsTrigger value="subdomain" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Domaine
           </TabsTrigger>
         </TabsList>
 
@@ -752,12 +747,6 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
           </Card>
         </TabsContent>
 
-        <TabsContent value="subdomain">
-          <ClientSubdomainManager 
-            clientId={client.id}
-            companyName={client.company || client.name}
-          />
-        </TabsContent>
       </Tabs>
     </div>
   );

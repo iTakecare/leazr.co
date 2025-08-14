@@ -29,7 +29,6 @@ const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
   const menuItems = [
     { icon: BarChart3, label: "Dashboard SaaS", href: "/admin/leazr-saas-dashboard", color: "blue" },
     { icon: Zap, label: "Gestion Applications", href: "/admin/leazr-saas-clients", color: "orange" },
-    { icon: Globe, label: "Gestion Domaines", href: "/admin/leazr-saas-domains", color: "indigo" },
     { icon: Settings, label: "Configuration", href: "/admin/leazr-saas-settings", color: "gray" },
     { icon: LifeBuoy, label: "Support", href: "/admin/leazr-saas-support", color: "pink" },
   ];
