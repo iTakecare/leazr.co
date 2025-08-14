@@ -18,11 +18,11 @@ interface LeazrSaaSSidebarProps {
 }
 
 const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, isLoading } = useAuth();
   const location = useLocation();
 
-  // Vérifier si l'utilisateur est super admin
-  const isLeazrSaaSAdmin = isSuperAdmin();
+  // Defensive check: only call isSuperAdmin if it exists and auth is not loading
+  const isLeazrSaaSAdmin = !isLoading && isSuperAdmin && typeof isSuperAdmin === 'function' ? isSuperAdmin() : false;
 
   if (!user || !isLeazrSaaSAdmin) return null;
 

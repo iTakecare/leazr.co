@@ -11,11 +11,13 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, isLoading } = useAuth();
 
   // Vérifier si on est sur une page SaaS Leazr (sous /admin/leazr-saas-*)
   const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
-  const isLeazrSaaSAdmin = isSuperAdmin();
+  
+  // Defensive check: only call isSuperAdmin if it exists and auth is not loading
+  const isLeazrSaaSAdmin = !isLoading && isSuperAdmin && typeof isSuperAdmin === 'function' ? isSuperAdmin() : false;
 
   // Utiliser la sidebar SaaS si on est admin SaaS et sur une page SaaS
   const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;

@@ -26,8 +26,8 @@ const LeazrSaaSDashboard = () => {
   const { user, isLoading: authLoading, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est super admin
-  const isLeazrSaaSAdmin = isSuperAdmin();
+  // Defensive check: only call isSuperAdmin if it exists and auth is not loading
+  const isLeazrSaaSAdmin = !authLoading && isSuperAdmin && typeof isSuperAdmin === 'function' ? isSuperAdmin() : false;
   
   console.log('🔐 SAAS DASHBOARD - User check:', {
     email: user?.email,

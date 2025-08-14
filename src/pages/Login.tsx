@@ -42,7 +42,7 @@ const Login = () => {
       const timer = setTimeout(async () => {
         try {
           // Gestion spéciale pour l'admin SaaS
-          if (isSuperAdmin()) {
+          if (isSuperAdmin && typeof isSuperAdmin === 'function' && isSuperAdmin()) {
             console.log("🔀 LOGIN REDIRECT - Super Admin SaaS détecté");
             navigate(`/admin/leazr-saas-dashboard`, { replace: true });
             return;

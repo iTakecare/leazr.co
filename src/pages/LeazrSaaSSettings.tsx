@@ -8,11 +8,20 @@ import { useNavigate } from "react-router-dom";
 import SaaSSettingsManager from "@/components/saas/SaaSSettingsManager";
 
 const LeazrSaaSSettings = () => {
-  const { user, isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est super admin
-  const isLeazrSaaSAdmin = isSuperAdmin();
+  // Defensive check: only call isSuperAdmin if it exists and auth is not loading
+  const isLeazrSaaSAdmin = !isLoading && isSuperAdmin && typeof isSuperAdmin === 'function' ? isSuperAdmin() : false;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2">Chargement...</span>
+      </div>
+    );
+  }
 
   if (!isLeazrSaaSAdmin) {
     navigate("/dashboard");
