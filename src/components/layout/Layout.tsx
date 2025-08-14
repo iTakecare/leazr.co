@@ -11,11 +11,11 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
 
   // Vérifier si on est sur une page SaaS Leazr (sous /admin/leazr-saas-*)
   const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  const isLeazrSaaSAdmin = isSuperAdmin();
 
   // Utiliser la sidebar SaaS si on est admin SaaS et sur une page SaaS
   const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;

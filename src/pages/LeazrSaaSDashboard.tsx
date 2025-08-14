@@ -23,12 +23,11 @@ import { useNavigate } from "react-router-dom";
 import { useSaaSData, useRecentActivity } from "@/hooks/useSaaSData";
 
 const LeazrSaaSDashboard = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Liste des utilisateurs autorisés à accéder au dashboard SaaS
-  const authorizedUsers = ["ecommerce@itakecare.be"];
-  const isLeazrSaaSAdmin = user?.email && authorizedUsers.includes(user.email) || user?.role === "admin";
+  // Vérifier si l'utilisateur est super admin
+  const isLeazrSaaSAdmin = isSuperAdmin();
   
   console.log('🔐 SAAS DASHBOARD - User check:', {
     email: user?.email,

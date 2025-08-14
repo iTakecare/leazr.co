@@ -8,11 +8,11 @@ import { useNavigate } from "react-router-dom";
 import SaaSSettingsManager from "@/components/saas/SaaSSettingsManager";
 
 const LeazrSaaSSettings = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est autorisé
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  // Vérifier si l'utilisateur est super admin
+  const isLeazrSaaSAdmin = isSuperAdmin();
 
   if (!isLeazrSaaSAdmin) {
     navigate("/dashboard");

@@ -8,11 +8,11 @@ import { useNavigate } from "react-router-dom";
 import SaaSSupportManager from "@/components/saas/SaaSSupportManager";
 
 const LeazrSaaSSupport = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est autorisé
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  // Vérifier si l'utilisateur est super admin
+  const isLeazrSaaSAdmin = isSuperAdmin();
 
   if (!isLeazrSaaSAdmin) {
     navigate("/dashboard");

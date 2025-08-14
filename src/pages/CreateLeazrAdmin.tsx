@@ -16,9 +16,13 @@ const CreateLeazrAdmin = () => {
     try {
       setIsLoading(true);
       
+      // Generate a secure random password
+      const password = crypto.getRandomValues(new Uint8Array(16))
+        .reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '') + '!';
+      
       const adminData = {
         email: "ecommerce@itakecare.be",
-        password: "Leazr2024#SecureAdmin!",
+        password: password,
         first_name: "Admin",
         last_name: "Leazr",
         role: "admin"
@@ -63,7 +67,7 @@ const CreateLeazrAdmin = () => {
             Administrateur Leazr
           </CardTitle>
           <CardDescription>
-            Créer un compte administrateur pour la gestion des comptes et clients Leazr avec l'email ecommerce@itakecare.be
+            Créer un compte super administrateur pour la gestion de la plateforme Leazr
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -71,8 +75,8 @@ const CreateLeazrAdmin = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Information</AlertTitle>
             <AlertDescription>
-              Cet utilisateur sera créé avec les privilèges d'administrateur pour gérer les comptes et clients Leazr.
-              Email: ecommerce@itakecare.be
+              Cet utilisateur sera créé avec les privilèges de super administrateur pour gérer la plateforme Leazr.
+              Un mot de passe sécurisé sera généré automatiquement.
             </AlertDescription>
           </Alert>
         </CardContent>

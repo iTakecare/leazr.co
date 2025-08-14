@@ -11,12 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Building, Calendar, CreditCard, TrendingUp } from "lucide-react";
 
 const LeazrSaaSSubscriptions = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const { companies, metrics, loading } = useSaaSData();
 
-  // Vérifier si l'utilisateur est autorisé
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  // Vérifier si l'utilisateur est super admin
+  const isLeazrSaaSAdmin = isSuperAdmin();
 
   if (!isLeazrSaaSAdmin) {
     navigate("/dashboard");

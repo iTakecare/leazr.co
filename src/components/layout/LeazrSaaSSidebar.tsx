@@ -18,11 +18,11 @@ interface LeazrSaaSSidebarProps {
 }
 
 const LeazrSaaSSidebar = ({ className }: LeazrSaaSSidebarProps) => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const location = useLocation();
 
-  // Vérifier si l'utilisateur est l'admin SaaS Leazr
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  // Vérifier si l'utilisateur est super admin
+  const isLeazrSaaSAdmin = isSuperAdmin();
 
   if (!user || !isLeazrSaaSAdmin) return null;
 

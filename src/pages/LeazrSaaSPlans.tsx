@@ -8,11 +8,11 @@ import { useNavigate } from "react-router-dom";
 import SaaSPlansManager from "@/components/saas/SaaSPlansManager";
 
 const LeazrSaaSPlans = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est autorisé
-  const isLeazrSaaSAdmin = user?.email === "ecommerce@itakecare.be";
+  // Vérifier si l'utilisateur est super admin
+  const isLeazrSaaSAdmin = isSuperAdmin();
 
   if (!isLeazrSaaSAdmin) {
     navigate("/dashboard");
