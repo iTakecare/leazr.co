@@ -367,7 +367,7 @@ export const useRecentActivity = () => {
   return activity;
 };
 
-// Hook pour les utilisateurs SaaS
+// Hook pour les utilisateurs SaaS - uniquement les vrais clients de Leazr
 export const useSaaSUsers = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -377,9 +377,9 @@ export const useSaaSUsers = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        console.log("👥 SAAS USERS - Récupération des utilisateurs réels");
+        console.log("👥 SAAS USERS - Récupération des utilisateurs clients de Leazr uniquement");
         
-        // Récupérer tous les profils avec leurs données d'utilisateur auth
+        // Récupérer SEULEMENT les profils clients (excluant super_admin)
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select(`
@@ -391,6 +391,7 @@ export const useSaaSUsers = () => {
             created_at,
             updated_at
           `)
+          .neq('role', 'super_admin') // EXCLURE les super_admin (admins de Leazr)
           .order('created_at', { ascending: false });
 
         if (profilesError) {
@@ -398,12 +399,13 @@ export const useSaaSUsers = () => {
           throw profilesError;
         }
 
-        console.log("👥 SAAS USERS - Profils récupérés:", profilesData?.length || 0);
+        console.log("👥 SAAS USERS - Profils clients récupérés (sans super_admin):", profilesData?.length || 0);
 
-        // Récupérer les entreprises
+        // Récupérer les entreprises CLIENTES (pas Leazr)
         const { data: companiesData, error: companiesError } = await supabase
           .from('companies')
-          .select('id, name')
+          .select('id, name, account_status')
+          .neq('name', 'Leazr') // Exclure Leazr elle-même
           .order('name', { ascending: true });
 
         if (companiesError) {
@@ -413,9 +415,14 @@ export const useSaaSUsers = () => {
         const companiesMap = new Map();
         if (companiesData) {
           companiesData.forEach(company => {
-            companiesMap.set(company.id, company.name);
+            companiesMap.set(company.id, {
+              name: company.name,
+              account_status: company.account_status
+            });
           });
         }
+
+        console.log("👥 SAAS USERS - Entreprises clientes:", companiesData?.length || 0);
 
         // Récupérer les emails des utilisateurs depuis auth.users
         const { data: authUsersData, error: authError } = await supabase
@@ -434,10 +441,13 @@ export const useSaaSUsers = () => {
           });
         }
 
-        // Combiner les données
-        const realUsers = profilesData?.map(profile => {
+        // Filtrer et combiner les données - SEULEMENT les utilisateurs des entreprises clientes
+        const clientUsers = profilesData?.filter(profile => {
+          const company = companiesMap.get(profile.company_id);
+          return company && company.name !== 'Leazr'; // Double vérification d'exclusion de Leazr
+        }).map(profile => {
           const authUser = authUsersMap.get(profile.id);
-          const companyName = companiesMap.get(profile.company_id);
+          const company = companiesMap.get(profile.company_id);
           
           return {
             id: profile.id,
@@ -446,25 +456,26 @@ export const useSaaSUsers = () => {
             last_name: profile.last_name || 'N/A',
             role: profile.role || 'user',
             status: authUser?.email_confirmed_at ? 'active' : 'inactive',
-            company_name: companyName || 'Aucune entreprise',
+            company_name: company?.name || 'Entreprise inconnue',
+            company_status: company?.account_status || 'unknown',
             last_sign_in_at: authUser?.last_sign_in_at || null,
             created_at: profile.created_at
           };
         }) || [];
 
-        // Calculer les statistiques réelles
-        const realStats = {
-          total: realUsers.length,
-          active: realUsers.filter(u => u.status === 'active').length,
-          admins: realUsers.filter(u => u.role && (u.role.includes('admin') || u.role === 'super_admin')).length,
-          companies: new Set(realUsers.map(u => u.company_name).filter(name => name !== 'Aucune entreprise')).size
+        // Calculer les statistiques UNIQUEMENT pour les vrais clients
+        const clientStats = {
+          total: clientUsers.length,
+          active: clientUsers.filter(u => u.status === 'active').length,
+          admins: clientUsers.filter(u => u.role === 'admin').length, // Seulement les admins d'entreprise, pas super_admin
+          companies: new Set(clientUsers.map(u => u.company_name).filter(name => name !== 'Entreprise inconnue')).size
         };
 
-        console.log("👥 SAAS USERS - Statistiques réelles:", realStats);
-        console.log("👥 SAAS USERS - Utilisateurs traités:", realUsers.length);
+        console.log("👥 SAAS USERS - Statistiques clients finales:", clientStats);
+        console.log("👥 SAAS USERS - Utilisateurs clients traités:", clientUsers.length);
 
-        setUsers(realUsers);
-        setStats(realStats);
+        setUsers(clientUsers);
+        setStats(clientStats);
       } catch (error) {
         console.error('❌ SAAS USERS - Erreur lors du chargement des utilisateurs:', error);
         // Fallback avec données vides
