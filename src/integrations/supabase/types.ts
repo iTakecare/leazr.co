@@ -5279,7 +5279,9 @@ export type Database = {
     }
     Functions: {
       activate_prospect: {
-        Args: { p_activation_token: string; p_password: string }
+        Args:
+          | { p_activation_token: string }
+          | { p_activation_token: string; p_password: string }
         Returns: {
           company_id: string
           message: string
