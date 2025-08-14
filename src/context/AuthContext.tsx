@@ -32,7 +32,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, options?: any) => Promise<{ data?: any; error?: any }>;
   isAdmin: () => boolean;
   isClient: () => boolean;
-  isPartner: () => boolean;
+  
   isAmbassador: () => boolean;
 }
 
@@ -127,15 +127,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return result;
   };
 
-  const isPartner = () => {
-    const result = user?.role === 'partner' || !!user?.partner_id;
-    console.log("🔍 isPartner check:", {
-      userRole: user?.role,
-      partnerId: user?.partner_id,
-      result
-    });
-    return result;
-  };
 
   const isAmbassador = () => {
     const result = user?.role === 'ambassador' || !!user?.ambassador_id;
@@ -458,7 +449,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     isAdmin,
     isClient,
-    isPartner,
+    
     isAmbassador,
   };
 

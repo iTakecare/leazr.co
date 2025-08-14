@@ -24,7 +24,7 @@ interface CreateClientDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   isAmbassadorMode?: boolean;
-  isPartnerMode?: boolean;
+  
 }
 
 const CreateClientDialog = ({ 
@@ -32,7 +32,7 @@ const CreateClientDialog = ({
   open, 
   onOpenChange,
   isAmbassadorMode = false,
-  isPartnerMode = false 
+   
 }: CreateClientDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -114,55 +114,6 @@ const CreateClientDialog = ({
           resetForm();
           onClientCreated?.();
         }
-      } else if (isPartnerMode) {
-        // Mode partenaire - création directe avec company_id
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', user?.id)
-          .single();
-
-        if (!profile?.company_id) {
-          toast.error("Impossible de déterminer l'entreprise associée");
-          setLoading(false);
-          return;
-        }
-
-        if (formData.email) {
-          const { data: existingClient } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('email', formData.email)
-            .single();
-
-          if (existingClient) {
-            toast.error("Un client avec cet email existe déjà");
-            setLoading(false);
-            return;
-          }
-        }
-
-        const { data, error } = await supabase
-          .from('clients')
-          .insert([{
-            ...formData,
-            name: fullName,
-            company_id: profile.company_id,
-            is_partner_client: true
-          }])
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Erreur lors de la création du client (partenaire):', error);
-          toast.error("Erreur lors de la création du client");
-          return;
-        }
-
-        toast.success("Client créé avec succès");
-        setOpen(false);
-        resetForm();
-        onClientCreated?.();
       } else {
         // Mode admin classique
         const { data: profile } = await supabase

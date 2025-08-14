@@ -1,7 +1,7 @@
 
 import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Partner } from "./partnerService";
+
 import { Ambassador } from "./ambassadorService";
 import { sendWelcomeEmail, sendInvitationEmail } from "./emailService";
 import { Client } from "@/types/client";
@@ -10,22 +10,22 @@ interface CreateAccountParams {
   email: string;
   name: string;
   role: string;
-  userType: "partner" | "ambassador" | "client";
+  userType: "ambassador" | "client";
   entityId: string;
 }
 
-type EntityType = Partner | Ambassador | Client;
+type EntityType = Ambassador | Client;
 
 /**
  * Create a user account for a partner, ambassador or client
  */
 export const createUserAccount = async (
   entity: EntityType,
-  userType: "partner" | "ambassador" | "client"
+  userType: "ambassador" | "client"
 ): Promise<boolean> => {
   if (!entity.email) {
     toast.error(
-      `Ce ${userType === "partner" ? "partenaire" : userType === "ambassador" ? "ambassadeur" : "client"} n'a pas d'adresse email`
+      `Ce ${userType === "ambassador" ? "ambassadeur" : "client"} n'a pas d'adresse email`
     );
     return false;
   }
@@ -57,13 +57,11 @@ export const createUserAccount = async (
     // Important: Set proper role in user_metadata 
     const metadata: Record<string, any> = { 
       name: entity.name,
-      role: userType === "partner" ? "partner" : userType === "ambassador" ? "ambassador" : "client",
+      role: userType === "ambassador" ? "ambassador" : "client",
     };
     
     // Add the entity ID to user metadata
-    if (userType === "partner" && entity.id) {
-      metadata.partner_id = entity.id;
-    } else if (userType === "ambassador" && entity.id) {
+    if (userType === "ambassador" && entity.id) {
       metadata.ambassador_id = entity.id;
     } else if (userType === "client" && entity.id) {
       metadata.client_id = entity.id;
@@ -167,7 +165,7 @@ export const deleteUserAccount = async (userId: string): Promise<boolean> => {
     }
 
     // Remove associations in related tables
-    const tables = ['clients', 'partners', 'ambassadors'];
+    const tables = ['clients', 'ambassadors'];
     
     for (const table of tables) {
       const { error: updateError } = await supabase

@@ -33,7 +33,7 @@ const CompanyCRM = () => {
     offers, 
     contracts, 
     ambassadors, 
-    partners, 
+     
     stats, 
     isLoading 
   } = useCompanyCRM();
@@ -131,7 +131,7 @@ const CompanyCRM = () => {
       </div>
 
       {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -180,17 +180,6 @@ const CompanyCRM = () => {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Partenaires</p>
-                <p className="text-2xl font-bold">{stats.totalPartners}</p>
-              </div>
-              <Building className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Barre de recherche */}
@@ -207,7 +196,7 @@ const CompanyCRM = () => {
 
       {/* Onglets CRM */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="clients" className="gap-2">
             <Users className="h-4 w-4" />
             Clients
@@ -223,10 +212,6 @@ const CompanyCRM = () => {
           <TabsTrigger value="ambassadors" className="gap-2">
             <Users className="h-4 w-4" />
             Ambassadeurs
-          </TabsTrigger>
-          <TabsTrigger value="partners" className="gap-2">
-            <Building className="h-4 w-4" />
-            Partenaires
           </TabsTrigger>
         </TabsList>
 
@@ -440,59 +425,6 @@ const CompanyCRM = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="partners" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Partenaires de l'entreprise</CardTitle>
-              <CardDescription>
-                Gérez vos partenaires commerciaux
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Clients</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {partners
-                    .filter(partner => 
-                      !searchTerm || 
-                      partner.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      partner.contact_name?.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map((partner) => (
-                      <TableRow key={partner.id}>
-                        <TableCell className="font-medium">{partner.name}</TableCell>
-                        <TableCell>{partner.contact_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{partner.type}</Badge>
-                        </TableCell>
-                        <TableCell>{partner.clients_count || 0}</TableCell>
-                        <TableCell>{getStatusBadge(partner.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

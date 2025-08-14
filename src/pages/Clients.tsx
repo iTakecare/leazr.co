@@ -15,7 +15,7 @@ import ClientsList from "@/components/crm/ClientsList";
 import CreateClientDialog from "@/components/clients/CreateClientDialog";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import AmbassadorsList from "@/components/crm/AmbassadorsList";
-import PartnersList from "@/components/crm/PartnersList";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,13 +86,6 @@ const Clients = () => {
     }
   };
 
-  const getPartnersStatusFilterLabel = () => {
-    switch(statusFilter) {
-      case 'active': return 'Partenaires actifs';
-      case 'inactive': return 'Partenaires inactifs';
-      default: return 'Tous les partenaires';
-    }
-  };
 
   return (
     <PageTransition>
@@ -108,7 +101,7 @@ const Clients = () => {
               <div>
                 <h1 className="text-2xl font-bold mb-1">CRM</h1>
                 <p className="text-muted-foreground">
-                  Gérez vos clients, ambassadeurs et partenaires
+                  Gérez vos clients et ambassadeurs
                 </p>
               </div>
             </div>
@@ -118,7 +111,7 @@ const Clients = () => {
             <Card className="border shadow-sm">
               <CardHeader className="pb-2">
                 <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsList className="grid grid-cols-2 mb-4">
                     <TabsTrigger value="clients" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       <span className={isMobile ? "hidden" : ""}>Clients</span>
@@ -126,10 +119,6 @@ const Clients = () => {
                     <TabsTrigger value="ambassadors" className="flex items-center gap-2">
                       <HeartHandshake className="h-4 w-4" />
                       <span className={isMobile ? "hidden" : ""}>Ambassadeurs</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="partners" className="flex items-center gap-2">
-                      <BadgePercent className="h-4 w-4" />
-                      <span className={isMobile ? "hidden" : ""}>Partenaires</span>
                     </TabsTrigger>
                   </TabsList>
                   
@@ -201,50 +190,6 @@ const Clients = () => {
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="partners" className="mt-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-xl">Partenaires</CardTitle>
-                        <CardDescription>
-                          Gérez vos relations partenaires
-                        </CardDescription>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full sm:w-auto gap-2">
-                              <Filter className="h-4 w-4" />
-                              <span className="truncate">{getPartnersStatusFilterLabel()}</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56">
-                            <DropdownMenuLabel>Filtrer par statut</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                                Tous les partenaires
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                                Partenaires actifs
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-                                Partenaires inactifs
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <div className="relative flex-grow">
-                          <UserSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            placeholder="Rechercher un partenaire..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 w-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
                 </Tabs>
               </CardHeader>
               <CardContent>
@@ -260,7 +205,6 @@ const Clients = () => {
                   />
                 }
                 {activeTab === "ambassadors" && <AmbassadorsList />}
-                {activeTab === "partners" && <PartnersList searchTerm={searchTerm} statusFilter={statusFilter} />}
               </CardContent>
             </Card>
           </motion.div>

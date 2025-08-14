@@ -21,13 +21,6 @@ export const useRoleNavigation = () => {
     navigate(`/${companySlug}/client/${path}`);
   }, [navigate, companySlug]);
 
-  const navigateToPartner = useCallback((path: string = 'dashboard') => {
-    if (!companySlug) {
-      console.warn('No company slug available for partner navigation');
-      return;
-    }
-    navigate(`/${companySlug}/partner/${path}`);
-  }, [navigate, companySlug]);
 
   const navigateToAmbassador = useCallback((path: string = 'dashboard') => {
     if (!companySlug) {
@@ -40,7 +33,6 @@ export const useRoleNavigation = () => {
   return {
     navigateToAdmin,
     navigateToClient,
-    navigateToPartner,
     navigateToAmbassador,
     companySlug
   };

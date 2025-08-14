@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, HeartHandshake, BadgePercent, Filter, UserSearch, Plus, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import PartnersList from "@/components/crm/PartnersList";
+
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
@@ -72,8 +72,6 @@ const AmbassadorsListPage = () => {
     
     if (value === "clients") {
       navigate("/clients");
-    } else if (value === "partners") {
-      navigate("/partners");
     } else if (value === "ambassadors") {
       navigate("/ambassadors");
     }
@@ -102,7 +100,7 @@ const AmbassadorsListPage = () => {
               <div>
                 <h1 className="text-2xl font-bold mb-1">CRM</h1>
                 <p className="text-muted-foreground">
-                  Gérez vos clients, ambassadeurs et partenaires
+                  Gérez vos clients et ambassadeurs
                 </p>
               </div>
             </div>
@@ -112,7 +110,7 @@ const AmbassadorsListPage = () => {
             <Card className="border shadow-sm">
               <CardHeader className="pb-2">
                 <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsList className="grid grid-cols-2 mb-4">
                     <TabsTrigger value="clients" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       <span>Clients</span>
@@ -120,10 +118,6 @@ const AmbassadorsListPage = () => {
                     <TabsTrigger value="ambassadors" className="flex items-center gap-2">
                       <HeartHandshake className="h-4 w-4" />
                       <span>Ambassadeurs</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="partners" className="flex items-center gap-2">
-                      <BadgePercent className="h-4 w-4" />
-                      <span>Partenaires</span>
                     </TabsTrigger>
                   </TabsList>
                   
@@ -189,14 +183,6 @@ const AmbassadorsListPage = () => {
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="partners" className="mt-0">
-                    <div>
-                      <CardTitle className="text-xl">Partenaires</CardTitle>
-                      <CardDescription>
-                        Gérez vos relations partenaires
-                      </CardDescription>
-                    </div>
-                  </TabsContent>
                   
                   <TabsContent value="clients" className="mt-0">
                     <div>
@@ -210,7 +196,6 @@ const AmbassadorsListPage = () => {
               </CardHeader>
               <CardContent>
                 {activeTab === "ambassadors" && <AmbassadorsList searchTerm={searchTerm} statusFilter={statusFilter} />}
-                {activeTab === "partners" && <PartnersList />}
               </CardContent>
             </Card>
           </motion.div>

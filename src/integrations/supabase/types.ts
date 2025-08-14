@@ -3877,42 +3877,6 @@ export type Database = {
         }
         Relationships: []
       }
-      partner_clients: {
-        Row: {
-          client_id: string
-          created_at: string | null
-          id: string
-          partner_id: string
-        }
-        Insert: {
-          client_id: string
-          created_at?: string | null
-          id?: string
-          partner_id: string
-        }
-        Update: {
-          client_id?: string
-          created_at?: string | null
-          id?: string
-          partner_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "partner_clients_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "partner_clients_partner_id_fkey"
-            columns: ["partner_id"]
-            isOneToOne: false
-            referencedRelation: "partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       partner_commissions: {
         Row: {
           amount: number
@@ -3953,119 +3917,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "partner_commissions_partner_id_fkey"
-            columns: ["partner_id"]
-            isOneToOne: false
-            referencedRelation: "partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      partners: {
-        Row: {
-          address: string | null
-          city: string | null
-          clients_count: number | null
-          commission_level_id: string | null
-          company_id: string
-          contact_name: string
-          country: string | null
-          created_at: string | null
-          email: string
-          first_name: string | null
-          has_user_account: boolean | null
-          id: string
-          last_name: string | null
-          last_transaction: number | null
-          name: string
-          notes: string | null
-          pdf_template_id: string | null
-          phone: string | null
-          postal_code: string | null
-          revenue_total: number | null
-          status: string
-          type: string
-          updated_at: string | null
-          user_account_created_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          address?: string | null
-          city?: string | null
-          clients_count?: number | null
-          commission_level_id?: string | null
-          company_id: string
-          contact_name: string
-          country?: string | null
-          created_at?: string | null
-          email: string
-          first_name?: string | null
-          has_user_account?: boolean | null
-          id?: string
-          last_name?: string | null
-          last_transaction?: number | null
-          name: string
-          notes?: string | null
-          pdf_template_id?: string | null
-          phone?: string | null
-          postal_code?: string | null
-          revenue_total?: number | null
-          status?: string
-          type: string
-          updated_at?: string | null
-          user_account_created_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          address?: string | null
-          city?: string | null
-          clients_count?: number | null
-          commission_level_id?: string | null
-          company_id?: string
-          contact_name?: string
-          country?: string | null
-          created_at?: string | null
-          email?: string
-          first_name?: string | null
-          has_user_account?: boolean | null
-          id?: string
-          last_name?: string | null
-          last_transaction?: number | null
-          name?: string
-          notes?: string | null
-          pdf_template_id?: string | null
-          phone?: string | null
-          postal_code?: string | null
-          revenue_total?: number | null
-          status?: string
-          type?: string
-          updated_at?: string | null
-          user_account_created_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "partners_commission_level_id_fkey"
-            columns: ["commission_level_id"]
-            isOneToOne: false
-            referencedRelation: "commission_levels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "partners_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "partners_pdf_template_id_fkey"
-            columns: ["pdf_template_id"]
-            isOneToOne: false
-            referencedRelation: "pdf_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -5448,15 +5299,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      create_primary_collaborator_for_client: {
-        Args: {
-          p_client_email?: string
-          p_client_id: string
-          p_client_name: string
-          p_contact_name?: string
-        }
-        Returns: string
-      }
       create_prospect: {
         Args: {
           p_company_name: string
@@ -5726,29 +5568,6 @@ export type Database = {
           total_contracts: number
           total_offers: number
           total_revenue: number
-        }[]
-      }
-      get_company_partners_secure: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          clients_count: number
-          commission_level_id: string
-          company_id: string
-          contact_name: string
-          created_at: string
-          email: string
-          has_user_account: boolean
-          id: string
-          last_transaction: number
-          name: string
-          notes: string
-          phone: string
-          revenue_total: number
-          status: string
-          type: string
-          updated_at: string
-          user_account_created_at: string
-          user_id: string
         }[]
       }
       get_company_recent_activity: {

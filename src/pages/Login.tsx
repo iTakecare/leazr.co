@@ -17,7 +17,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { signIn, user, isAdmin, isClient, isPartner, isAmbassador, isLoading, session } = useAuth();
+  const { signIn, user, isAdmin, isClient, isAmbassador, isLoading, session } = useAuth();
 
   // Redirection automatique - corrigée pour éviter les conflits
   useEffect(() => {
@@ -75,9 +75,6 @@ const Login = () => {
           } else if (userRole === 'ambassador') {
             console.log("🔀 LOGIN REDIRECT - Redirection ambassador");
             navigate(`/${companySlug}/ambassador/dashboard`, { replace: true });
-          } else if (userRole === 'partner') {
-            console.log("🔀 LOGIN REDIRECT - Redirection partner");
-            navigate(`/${companySlug}/partner/dashboard`, { replace: true });
           } else {
             console.log("🔀 LOGIN REDIRECT - Redirection par défaut");
             navigate(`/${companySlug}/admin/dashboard`, { replace: true });

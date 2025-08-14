@@ -11,10 +11,6 @@ export const oldNavigationPatterns = [
   'navigate("/client/',
   'navigate(`/client/',
   
-  // Partner routes
-  'navigate(\'/partner/',
-  'navigate("/partner/',
-  'navigate(`/partner/',
   
   // Ambassador routes
   'navigate(\'/ambassador/',
@@ -28,7 +24,6 @@ export const componentsToUpdate = [
   'src/components/offers/ClientOffersSidebar.tsx',
   'src/components/offers/OfferCard.tsx',
   'src/components/offers/OffersTable.tsx',
-  'src/components/partners/PartnerOffersTable.tsx',
   'src/components/settings/WooCommerceConfigurationManager.tsx',
   'src/pages/AmbassadorCreateOffer.tsx',
   'src/pages/AmbassadorPages/AmbassadorOfferDetail.tsx',
@@ -38,8 +33,5 @@ export const componentsToUpdate = [
   'src/pages/CustomOfferGeneratorPage.tsx',
   'src/pages/InvoicingPage.tsx',
   'src/pages/LeazrSaaSDashboard.tsx',
-  'src/pages/PartnerCreateOffer.tsx',
-  'src/pages/PartnerDashboard.tsx',
-  'src/pages/PartnerOfferDetail.tsx',
   'src/pages/ProductFormPage.tsx',
 ];

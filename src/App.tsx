@@ -76,7 +76,7 @@ import LeazrSaaSDeployments from "@/pages/LeazrSaaSDeployments";
 // Route guards
 import AdminPrivateRoute from "@/components/routing/AdminPrivateRoute";
 import ClientPrivateRoute from "@/components/routing/ClientPrivateRoute";
-import PartnerPrivateRoute from "@/components/routing/PartnerPrivateRoute";
+
 
 // Ambassador management pages
 import AmbassadorsList from "@/pages/AmbassadorsList";
@@ -222,12 +222,9 @@ const AppRoutes = () => (
       <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
     </Route>
 
-    {/* ⚠️ MULTI-TENANT CLIENT & PARTNER ROUTES ⚠️ */}
+    {/* ⚠️ MULTI-TENANT CLIENT ROUTES ⚠️ */}
     <Route path="/:companySlug/client/*" element={<ClientPrivateRoute />}>
       <Route path="*" element={<ClientRoutes />} />
-    </Route>
-    <Route path="/:companySlug/partner/*" element={<PartnerPrivateRoute />}>
-      <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
     </Route>
     
     {/* Legacy routes - redirect to home for slug-based routing */}
