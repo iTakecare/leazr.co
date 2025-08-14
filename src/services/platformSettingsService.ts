@@ -46,48 +46,36 @@ export interface PlatformBranding {
 }
 
 /**
- * Get a platform setting by key
- */
-export const getPlatformSetting = async (key: string): Promise<any | null> => {
-  try {
-    const { data, error } = await supabase.rpc('get_platform_setting', {
-      p_setting_key: key
-    });
-
-    if (error) {
-      console.error(`Error fetching platform setting ${key}:`, error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error(`Exception fetching platform setting ${key}:`, error);
-    return null;
-  }
-};
-
-/**
- * Get aggregated platform settings in the format expected by components
+ * Get platform settings directly from the database
  */
 export const getPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
-    const [branding, defaultCompany, support] = await Promise.all([
-      getPlatformSetting('platform_branding'),
-      getPlatformSetting('default_company_info'),
-      getPlatformSetting('support_contact')
-    ]);
+    const { data, error } = await supabase
+      .from('platform_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error('Error fetching platform settings:', error);
+      return null;
+    }
+
+    if (!data) {
+      return null;
+    }
 
     return {
-      company_name: branding?.platform_name || 'Leazr',
-      company_description: defaultCompany?.description || '',
-      company_address: defaultCompany?.address || '',
-      company_phone: defaultCompany?.phone || support?.phone || '',
-      company_email: defaultCompany?.email || support?.email || '',
-      logo_url: branding?.logo_url || '',
-      primary_color: branding?.primary_color || '#3b82f6',
-      secondary_color: branding?.secondary_color || '#64748b',
-      accent_color: branding?.accent_color || '#8b5cf6',
-      website_url: defaultCompany?.website || ''
+      company_name: data.company_name || 'Leazr',
+      company_description: data.company_description || '',
+      company_address: data.company_address || '',
+      company_phone: data.company_phone || '',
+      company_email: data.company_email || '',
+      logo_url: data.logo_url || '',
+      primary_color: data.primary_color || '#3b82f6',
+      secondary_color: data.secondary_color || '#64748b',
+      accent_color: data.accent_color || '#8b5cf6',
+      website_url: data.website_url || ''
     };
   } catch (error) {
     console.error('Error fetching platform settings:', error);
@@ -96,66 +84,20 @@ export const getPlatformSettings = async (): Promise<PlatformSettings | null> =>
 };
 
 /**
- * Update a platform setting (super admin only)
- */
-export const updatePlatformSetting = async (
-  key: string,
-  value: Record<string, any>
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('platform_settings')
-      .update({
-        setting_value: value,
-        updated_at: new Date().toISOString()
-      })
-      .eq('setting_key', key);
-
-    if (error) {
-      console.error(`Error updating platform setting ${key}:`, error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error(`Exception updating platform setting ${key}:`, error);
-    return false;
-  }
-};
-
-/**
  * Update platform settings (super admin only)
  */
 export const updatePlatformSettings = async (settings: Partial<PlatformSettings>): Promise<boolean> => {
   try {
-    // Update platform branding
-    if (settings.company_name || settings.primary_color || settings.secondary_color || settings.accent_color || settings.logo_url) {
-      const branding = await getPlatformSetting('platform_branding') || {};
-      const updatedBranding = {
-        ...branding,
-        ...(settings.company_name && { platform_name: settings.company_name }),
-        ...(settings.primary_color && { primary_color: settings.primary_color }),
-        ...(settings.secondary_color && { secondary_color: settings.secondary_color }),
-        ...(settings.accent_color && { accent_color: settings.accent_color }),
-        ...(settings.logo_url && { logo_url: settings.logo_url })
-      };
-      
-      await updatePlatformSetting('platform_branding', updatedBranding);
-    }
+    const { error } = await supabase
+      .from('platform_settings')
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString()
+      });
 
-    // Update default company info
-    if (settings.company_description || settings.company_address || settings.company_phone || settings.company_email || settings.website_url) {
-      const defaultCompany = await getPlatformSetting('default_company_info') || {};
-      const updatedCompany = {
-        ...defaultCompany,
-        ...(settings.company_description && { description: settings.company_description }),
-        ...(settings.company_address && { address: settings.company_address }),
-        ...(settings.company_phone && { phone: settings.company_phone }),
-        ...(settings.company_email && { email: settings.company_email }),
-        ...(settings.website_url && { website: settings.website_url })
-      };
-      
-      await updatePlatformSetting('default_company_info', updatedCompany);
+    if (error) {
+      console.error('Error updating platform settings:', error);
+      return false;
     }
 
     return true;
@@ -166,25 +108,16 @@ export const updatePlatformSettings = async (settings: Partial<PlatformSettings>
 };
 
 /**
- * Get default company information
- */
-export const getDefaultCompanyInfo = async (): Promise<CompanyDefaults | null> => {
-  const data = await getPlatformSetting('default_company_info');
-  return data as CompanyDefaults;
-};
-
-/**
- * Get support contact information
- */
-export const getSupportContact = async (): Promise<SupportContact | null> => {
-  const data = await getPlatformSetting('support_contact');
-  return data as SupportContact;
-};
-
-/**
- * Get platform branding information
+ * Get platform branding information directly
  */
 export const getPlatformBranding = async (): Promise<PlatformBranding | null> => {
-  const data = await getPlatformSetting('platform_branding');
-  return data as PlatformBranding;
+  const settings = await getPlatformSettings();
+  if (!settings) return null;
+  
+  return {
+    platform_name: settings.company_name,
+    primary_color: settings.primary_color,
+    secondary_color: settings.secondary_color,
+    accent_color: settings.accent_color
+  };
 };
