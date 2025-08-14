@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -5281,10 +5281,10 @@ export type Database = {
       activate_prospect: {
         Args: { p_activation_token: string; p_password: string }
         Returns: {
-          success: boolean
-          user_id: string
           company_id: string
           message: string
+          success: boolean
+          user_id: string
         }[]
       }
       add_brand: {
@@ -5301,15 +5301,15 @@ export type Database = {
         }
       }
       apply_permission_profile: {
-        Args: { p_user_id: string; p_profile_id: string }
+        Args: { p_profile_id: string; p_user_id: string }
         Returns: boolean
       }
       calculate_total_revenue: {
         Args: { time_filter: string }
         Returns: {
-          total_revenue: number
-          gross_margin: number
           clients_count: number
+          gross_margin: number
+          total_revenue: number
         }[]
       }
       can_manage_users: {
@@ -5355,11 +5355,11 @@ export type Database = {
       complete_isolation_diagnostic: {
         Args: Record<PropertyKey, never>
         Returns: {
-          table_name: string
-          user_company_data_count: number
+          isolation_status: string
           itakecare_data_count: number
           other_company_data_count: number
-          isolation_status: string
+          table_name: string
+          user_company_data_count: number
         }[]
       }
       count_ambassador_clients_secure: {
@@ -5369,16 +5369,16 @@ export type Database = {
       create_api_key_secure: {
         Args: { p_name: string; p_permissions?: Json }
         Returns: {
-          id: string
-          name: string
           api_key: string
-          permissions: Json
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
           is_active: boolean
           last_used_at: string
-          created_at: string
+          name: string
+          permissions: Json
           updated_at: string
-          company_id: string
-          created_by: string
         }[]
       }
       create_categories_table: {
@@ -5386,50 +5386,50 @@ export type Database = {
         Returns: undefined
       }
       create_client_as_ambassador: {
-        Args: { client_data: Json; ambassador_id: string }
+        Args: { ambassador_id: string; client_data: Json }
         Returns: string
       }
       create_company_user: {
         Args: {
+          p_company_id: string
           p_email: string
-          p_password: string
           p_first_name: string
           p_last_name: string
+          p_password: string
           p_role: string
-          p_company_id: string
         }
         Returns: string
       }
       create_company_with_admin: {
         Args: {
-          company_name: string
           admin_email: string
-          admin_password: string
           admin_first_name: string
           admin_last_name: string
+          admin_password: string
+          company_name: string
           plan_type?: string
         }
         Returns: string
       }
       create_company_with_admin_complete: {
         Args: {
-          p_company_name: string
           p_admin_email: string
           p_admin_first_name: string
           p_admin_last_name: string
+          p_company_name: string
           p_plan?: string
         }
         Returns: {
           company_id: string
-          user_id: string
           success: boolean
+          user_id: string
         }[]
       }
       create_contract_workflow_log: {
         Args: {
           p_contract_id: string
-          p_previous_status: string
           p_new_status: string
+          p_previous_status: string
           p_reason?: string
         }
         Returns: string
@@ -5448,25 +5448,25 @@ export type Database = {
       }
       create_primary_collaborator_for_client: {
         Args: {
+          p_client_email?: string
           p_client_id: string
           p_client_name: string
-          p_client_email?: string
           p_contact_name?: string
         }
         Returns: string
       }
       create_prospect: {
         Args: {
+          p_company_name: string
           p_email: string
           p_first_name: string
           p_last_name: string
-          p_company_name: string
           p_plan?: string
           p_selected_modules?: string[]
         }
         Returns: {
-          prospect_id: string
           activation_token: string
+          prospect_id: string
           trial_ends_at: string
         }[]
       }
@@ -5477,8 +5477,8 @@ export type Database = {
       create_storage_policy: {
         Args: {
           bucket_name: string
-          policy_name: string
           definition: string
+          policy_name: string
           policy_type: string
         }
         Returns: undefined
@@ -5494,29 +5494,29 @@ export type Database = {
       diagnose_ambassador_isolation: {
         Args: Record<PropertyKey, never>
         Returns: {
-          step_name: string
-          result: string
           details: string
+          result: string
+          step_name: string
         }[]
       }
       diagnose_api_key_context: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
-          company_id: string
-          user_role: string
-          is_admin: boolean
-          has_company_access: boolean
           checked_at: string
+          company_id: string
+          has_company_access: boolean
+          is_admin: boolean
+          user_id: string
+          user_role: string
         }[]
       }
       diagnose_data_isolation: {
         Args: Record<PropertyKey, never>
         Returns: {
+          isolation_status: string
+          other_company_data_count: number
           table_name: string
           user_company_data_count: number
-          other_company_data_count: number
-          isolation_status: string
         }[]
       }
       ensure_client_logos_bucket: {
@@ -5546,56 +5546,56 @@ export type Database = {
       get_all_clients_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
-          email: string
-          company: string
-          phone: string
           address: string
           city: string
-          postal_code: string
+          company: string
+          company_id: string
           country: string
-          vat_number: string
-          notes: string
-          status: string
           created_at: string
+          email: string
+          has_user_account: boolean
+          id: string
+          is_ambassador_client: boolean
+          name: string
+          notes: string
+          phone: string
+          postal_code: string
+          status: string
           updated_at: string
           user_id: string
-          has_user_account: boolean
-          company_id: string
-          is_ambassador_client: boolean
+          vat_number: string
         }[]
       }
       get_all_users_extended: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
+          created_at: string
           email: string
           email_confirmed_at: string
+          id: string
           last_sign_in_at: string
-          created_at: string
         }[]
       }
       get_ambassador_clients_secure: {
         Args: { p_user_id: string }
         Returns: {
-          client_id: string
-          client_name: string
-          client_email: string
-          client_company: string
-          client_phone: string
           client_address: string
           client_city: string
-          client_postal_code: string
+          client_company: string
+          client_company_id: string
           client_country: string
-          client_vat_number: string
-          client_notes: string
-          client_status: string
           client_created_at: string
+          client_email: string
+          client_has_user_account: boolean
+          client_id: string
+          client_name: string
+          client_notes: string
+          client_phone: string
+          client_postal_code: string
+          client_status: string
           client_updated_at: string
           client_user_id: string
-          client_has_user_account: boolean
-          client_company_id: string
+          client_vat_number: string
           link_created_at: string
         }[]
       }
@@ -5664,96 +5664,96 @@ export type Database = {
         }[]
       }
       get_cities_by_postal_code: {
-        Args: { p_postal_code: string; p_country_code?: string }
+        Args: { p_country_code?: string; p_postal_code: string }
         Returns: {
-          postal_code: string
           city: string
-          region: string
           country_code: string
           country_name: string
+          postal_code: string
+          region: string
         }[]
       }
       get_company_ambassadors_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
-          email: string
-          phone: string
-          region: string
-          status: string
-          notes: string
           address: string
           city: string
-          postal_code: string
-          country: string
-          company: string
-          vat_number: string
-          has_user_account: boolean
-          user_id: string
-          user_account_created_at: string
-          updated_at: string
-          created_at: string
-          last_commission: number
-          commissions_total: number
           clients_count: number
           commission_level_id: string
+          commissions_total: number
+          company: string
           company_id: string
+          country: string
+          created_at: string
+          email: string
+          has_user_account: boolean
+          id: string
+          last_commission: number
+          name: string
+          notes: string
           pdf_template_id: string
+          phone: string
+          postal_code: string
+          region: string
+          status: string
+          updated_at: string
+          user_account_created_at: string
+          user_id: string
+          vat_number: string
         }[]
       }
       get_company_by_slug: {
         Args: { company_slug: string }
         Returns: {
+          accent_color: string
           id: string
-          name: string
-          slug: string
           logo_url: string
+          name: string
           primary_color: string
           secondary_color: string
-          accent_color: string
+          slug: string
         }[]
       }
       get_company_dashboard_metrics: {
         Args: Record<PropertyKey, never>
         Returns: {
-          total_clients: number
-          total_offers: number
-          total_contracts: number
-          total_revenue: number
-          pending_offers: number
           active_contracts: number
+          pending_offers: number
           recent_signups: number
+          total_clients: number
+          total_contracts: number
+          total_offers: number
+          total_revenue: number
         }[]
       }
       get_company_partners_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
-          contact_name: string
-          email: string
-          phone: string
-          type: string
-          status: string
-          notes: string
-          created_at: string
-          updated_at: string
           clients_count: number
-          revenue_total: number
-          last_transaction: number
           commission_level_id: string
+          company_id: string
+          contact_name: string
+          created_at: string
+          email: string
           has_user_account: boolean
+          id: string
+          last_transaction: number
+          name: string
+          notes: string
+          phone: string
+          revenue_total: number
+          status: string
+          type: string
+          updated_at: string
           user_account_created_at: string
           user_id: string
-          company_id: string
         }[]
       }
       get_company_recent_activity: {
         Args: Record<PropertyKey, never>
         Returns: {
-          activity_type: string
           activity_description: string
+          activity_type: string
           created_at: string
           entity_id: string
         }[]
@@ -5767,27 +5767,27 @@ export type Database = {
           | Record<PropertyKey, never>
           | { p_company_id: string; role_filter?: string }
         Returns: {
-          id: string
-          email: string
-          first_name: string
-          last_name: string
-          role: string
           company_id: string
           created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          role: string
         }[]
       }
       get_contract_workflow_logs: {
         Args: { p_contract_id: string }
         Returns: {
-          id: string
           contract_id: string
-          user_id: string
-          previous_status: string
-          new_status: string
-          reason: string
           created_at: string
-          user_name: string
+          id: string
+          new_status: string
+          previous_status: string
           profiles: Json
+          reason: string
+          user_id: string
+          user_name: string
         }[]
       }
       get_current_user_company_id_secure: {
@@ -5801,9 +5801,9 @@ export type Database = {
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
           company_id: string
           role: string
+          user_id: string
         }[]
       }
       get_current_user_role: {
@@ -5839,23 +5839,23 @@ export type Database = {
       get_free_clients_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          name: string
-          email: string
-          company: string
-          phone: string
           address: string
           city: string
-          postal_code: string
+          company: string
+          company_id: string
           country: string
-          vat_number: string
-          notes: string
-          status: string
           created_at: string
+          email: string
+          has_user_account: boolean
+          id: string
+          name: string
+          notes: string
+          phone: string
+          postal_code: string
+          status: string
           updated_at: string
           user_id: string
-          has_user_account: boolean
-          company_id: string
+          vat_number: string
         }[]
       }
       get_menus_cms: {
@@ -5954,75 +5954,75 @@ export type Database = {
         Returns: {
           country_code: string
           country_name: string
-          postal_code_count: number
           last_updated: string
+          postal_code_count: number
         }[]
       }
       get_prospects_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          total_prospects: number
           active_prospects: number
+          conversion_rate: number
           converted_prospects: number
           expired_prospects: number
-          conversion_rate: number
+          total_prospects: number
         }[]
       }
       get_public_company_customizations: {
         Args: { p_company_id: string }
         Returns: {
+          accent_color: string
+          company_name: string
+          header_background_config: Json
+          header_background_type: string
+          header_description: string
           header_enabled: boolean
           header_title: string
-          header_description: string
-          header_background_type: string
-          header_background_config: Json
-          company_name: string
           logo_url: string
           primary_color: string
-          secondary_color: string
-          accent_color: string
           quote_request_url: string
+          secondary_color: string
         }[]
       }
       get_public_company_info: {
         Args: { company_slug: string }
         Returns: {
+          accent_color: string
           id: string
-          name: string
-          slug: string
           logo_url: string
+          name: string
           primary_color: string
           secondary_color: string
-          accent_color: string
+          slug: string
         }[]
       }
       get_public_products_by_company: {
         Args: { p_company_id: string }
         Returns: {
-          id: string
-          name: string
-          description: string
-          price: number
-          monthly_price: number
-          stock_quantity: number
-          category: string
           brand: string
           brand_translation: string
+          category: string
           category_translation: string
-          image_url: string
-          sku: string
-          weight: number
-          dimensions: string
-          warranty_period: string
-          in_stock: boolean
           company_id: string
           created_at: string
+          description: string
+          dimensions: string
+          id: string
+          image_url: string
+          in_stock: boolean
+          monthly_price: number
+          name: string
+          price: number
+          sku: string
+          stock_quantity: number
           updated_at: string
           variant_combination_prices: Json
+          warranty_period: string
+          weight: number
         }[]
       }
       get_related_blog_posts: {
-        Args: { post_id: string; limit_count?: number }
+        Args: { limit_count?: number; post_id: string }
         Returns: {
           author_avatar: string | null
           author_name: string | null
@@ -6050,20 +6050,20 @@ export type Database = {
           p_template_category?: string
         }
         Returns: {
-          template_id: string
+          company_data: Json
+          field_mappings: Json
           name: string
           template_file_url: string
-          field_mappings: Json
-          company_data: Json
+          template_id: string
         }[]
       }
       get_user_client_associations: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
-          client_id: string
           association_type: string
+          client_id: string
           created_at: string
+          user_id: string
         }[]
       }
       get_user_company_id: {
@@ -6077,12 +6077,12 @@ export type Database = {
       get_user_permissions: {
         Args: { p_user_id: string }
         Returns: {
-          permission_name: string
-          permission_description: string
-          module: string
           action: string
-          granted: boolean
           expires_at: string
+          granted: boolean
+          module: string
+          permission_description: string
+          permission_name: string
         }[]
       }
       get_user_profile_with_associations: {
@@ -6092,11 +6092,11 @@ export type Database = {
       get_user_trial_status: {
         Args: Record<PropertyKey, never>
         Returns: {
-          is_trial: boolean
-          trial_ends_at: string
-          days_remaining: number
           company_name: string
+          days_remaining: number
+          is_trial: boolean
           prospect_email: string
+          trial_ends_at: string
         }[]
       }
       group_products_by_sku: {
@@ -6118,18 +6118,18 @@ export type Database = {
         Returns: boolean
       }
       insert_offer_equipment_attributes_secure: {
-        Args: { p_equipment_id: string; p_attributes: Json }
+        Args: { p_attributes: Json; p_equipment_id: string }
         Returns: undefined
       }
       insert_offer_equipment_secure: {
         Args: {
-          p_offer_id: string
-          p_title: string
-          p_purchase_price: number
-          p_quantity: number
           p_margin: number
           p_monthly_payment?: number
+          p_offer_id: string
+          p_purchase_price: number
+          p_quantity: number
           p_serial_number?: string
+          p_title: string
         }
         Returns: string
       }
@@ -6182,13 +6182,13 @@ export type Database = {
         Returns: boolean
       }
       link_client_to_ambassador_secure: {
-        Args: { p_user_id: string; p_client_id: string }
+        Args: { p_client_id: string; p_user_id: string }
         Returns: boolean
       }
       log_ambassador_activity: {
         Args: {
-          p_ambassador_id: string
           p_action_type: string
+          p_ambassador_id: string
           p_description: string
           p_metadata?: Json
           p_user_id?: string
@@ -6213,29 +6213,29 @@ export type Database = {
       }
       search_postal_codes: {
         Args: {
-          search_query: string
           country_filter?: string
           result_limit?: number
+          search_query: string
         }
         Returns: {
-          postal_code: string
           city: string
-          region: string
           country_code: string
           country_name: string
+          postal_code: string
+          region: string
         }[]
       }
       sign_offer_public: {
         Args: {
           p_offer_id: string
           p_signature_data: string
-          p_signer_name: string
           p_signer_ip?: string
+          p_signer_name: string
         }
         Returns: boolean
       }
       unlink_client_from_ambassador_secure: {
-        Args: { p_user_id: string; p_client_id: string }
+        Args: { p_client_id: string; p_user_id: string }
         Returns: boolean
       }
       update_ambassador_commission_level: {
@@ -6244,9 +6244,9 @@ export type Database = {
       }
       update_brand: {
         Args: {
-          original_name: string
           new_name: string
           new_translation: string
+          original_name: string
         }
         Returns: {
           company_id: string
@@ -6269,11 +6269,11 @@ export type Database = {
       }
       update_company_user: {
         Args: {
-          p_user_id: string
+          p_company_id?: string
           p_first_name: string
           p_last_name: string
           p_role: string
-          p_company_id?: string
+          p_user_id: string
         }
         Returns: boolean
       }
@@ -6286,7 +6286,7 @@ export type Database = {
         Returns: undefined
       }
       user_has_permission: {
-        Args: { p_user_id: string; p_permission_name: string }
+        Args: { p_permission_name: string; p_user_id: string }
         Returns: boolean
       }
     }
