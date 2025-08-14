@@ -228,8 +228,6 @@ const AppRoutes = () => (
       <Route path="*" element={<ClientRoutes />} />
     </Route>
     
-    {/* Legacy routes - redirect to home for slug-based routing */}
-    <Route path="/admin/*" element={<Navigate to="/" replace />} />
     
     {/* Ambassador management routes */}
     <Route path="/ambassadors/*" element={<PrivateRoute><RoleBasedRoutes /></PrivateRoute>}>
