@@ -169,9 +169,24 @@ export const syncClientUserAccountStatus = async (clientId: string): Promise<boo
   return false;
 };
 
-export const getFreeClients = async (): Promise<any[]> => {
-  console.warn("getFreeClients not implemented yet");
-  return [];
+export const getFreeClients = async (): Promise<Client[]> => {
+  try {
+    console.log("🔍 Récupération des clients libres (non rattachés aux ambassadeurs)...");
+    
+    const { data, error } = await supabase
+      .rpc('get_free_clients_secure');
+
+    if (error) {
+      console.error("❌ Erreur lors de la récupération des clients libres:", error);
+      return [];
+    }
+
+    console.log(`✅ ${data?.length || 0} clients libres récupérés`);
+    return data || [];
+  } catch (error) {
+    console.error("❌ Exception lors de la récupération des clients libres:", error);
+    return [];
+  }
 };
 
 export const addCollaborator = async (clientId: string, collaboratorData: any): Promise<any> => {
