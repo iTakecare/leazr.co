@@ -5337,6 +5337,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_primary_collaborator_for_client: {
+        Args: {
+          p_client_email: string
+          p_client_id: string
+          p_client_name: string
+          p_contact_name: string
+        }
+        Returns: undefined
+      }
       create_prospect: {
         Args: {
           p_company_name: string
