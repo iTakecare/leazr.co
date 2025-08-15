@@ -1626,6 +1626,44 @@ export type Database = {
           },
         ]
       }
+      company_module_changes: {
+        Row: {
+          changed_by: string | null
+          company_id: string
+          created_at: string
+          id: string
+          modules_enabled: string[]
+          notes: string | null
+          plan: string
+        }
+        Insert: {
+          changed_by?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          modules_enabled: string[]
+          notes?: string | null
+          plan: string
+        }
+        Update: {
+          changed_by?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          modules_enabled?: string[]
+          notes?: string | null
+          plan?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_module_changes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_modules: {
         Row: {
           activated_at: string | null
@@ -6087,6 +6125,19 @@ export type Database = {
       update_client_user_account: {
         Args: { client_id: string; user_id: string }
         Returns: boolean
+      }
+      update_company_modules: {
+        Args: {
+          p_company_id: string
+          p_modules_enabled: string[]
+          p_plan?: string
+        }
+        Returns: {
+          message: string
+          modules_enabled: string[]
+          plan: string
+          success: boolean
+        }[]
       }
       update_company_user: {
         Args: {

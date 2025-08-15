@@ -26,6 +26,7 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useCompanyDetails } from "@/hooks/useCompanyDetails";
+import { updateCompanyModules, updateCompanyPlan } from "@/services/companyModulesService";
 
 const available_plans = [
   { id: 'starter', name: 'Starter', price: 49, features: ['5 utilisateurs', 'CRM de base'] },
@@ -45,8 +46,9 @@ const CompanySubscriptionPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { companyDetails: company, loading, error } = useCompanyDetails(id || '');
+  const { companyDetails: company, loading, error, refetch } = useCompanyDetails(id || '');
   const [selectedPlan, setSelectedPlan] = useState(company?.plan || 'starter');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   React.useEffect(() => {
     if (company?.plan) {
@@ -120,13 +122,44 @@ const CompanySubscriptionPage = () => {
   };
 
   const handlePlanChange = async () => {
-    console.log('Changement de plan vers:', selectedPlan);
-    // TODO: Implement API call
+    if (!company || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      const currentModules = company.modules_enabled || [];
+      const result = await updateCompanyPlan(company.id, selectedPlan, currentModules);
+      
+      if (result.success) {
+        await refetch();
+      }
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleModuleToggle = async (moduleId: string) => {
-    console.log('Toggle module:', moduleId);
-    // TODO: Implement API call
+    if (!company || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      const currentModules = company.modules_enabled || [];
+      const isEnabled = currentModules.includes(moduleId);
+      
+      let newModules: string[];
+      if (isEnabled) {
+        newModules = currentModules.filter(m => m !== moduleId);
+      } else {
+        newModules = [...currentModules, moduleId];
+      }
+
+      const result = await updateCompanyModules(company.id, newModules);
+      
+      if (result.success) {
+        await refetch();
+      }
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -242,8 +275,15 @@ const CompanySubscriptionPage = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button onClick={handlePlanChange} disabled={selectedPlan === company.plan}>
-                      Appliquer le changement
+                    <Button onClick={handlePlanChange} disabled={selectedPlan === company.plan || isUpdating}>
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Mise à jour...
+                        </>
+                      ) : (
+                        'Appliquer le changement'
+                      )}
                     </Button>
                     {selectedPlan !== company.plan && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -278,6 +318,7 @@ const CompanySubscriptionPage = () => {
                         <Switch 
                           checked={company.modules_enabled.includes(module.id)} 
                           onCheckedChange={() => handleModuleToggle(module.id)}
+                          disabled={isUpdating}
                         />
                       </div>
                     ))}

@@ -28,6 +28,12 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useCompanyDetails } from "@/hooks/useCompanyDetails";
+import { 
+  suspendCompanyAccount,
+  reactivateCompanyAccount, 
+  deleteCompanyAccount,
+  getCompanyActionHistory 
+} from "@/services/companyActionsService";
 
 const actionHistory = [
   {
@@ -52,7 +58,7 @@ const CompanyActionsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { companyDetails: company, loading, error } = useCompanyDetails(id || '');
+  const { companyDetails: company, loading, error, refetch } = useCompanyDetails(id || '');
   
   // States pour les actions
   const [suspendReason, setSuspendReason] = useState('');
@@ -129,52 +135,63 @@ const CompanyActionsPage = () => {
   ];
 
   const handleSuspendAccount = async () => {
-    if (!suspendReason || !suspendDuration) return;
+    if (!suspendReason || !suspendDuration || !id) return;
     
     setIsLoading(true);
-    console.log('Suspension du compte:', {
-      companyId: id,
-      reason: suspendReason,
-      duration: suspendDuration,
-      notifyClient,
-      backupData
-    });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsLoading(false);
-    
-    // Reset form
-    setSuspendReason('');
-    setSuspendDuration('');
-    setNotifyClient(true);
+    try {
+      const result = await suspendCompanyAccount({
+        companyId: id,
+        reason: suspendReason,
+        duration: suspendDuration,
+        notifyClient,
+        backupData
+      });
+      
+      if (result.success) {
+        // Reset form
+        setSuspendReason('');
+        setSuspendDuration('');
+        setNotifyClient(true);
+        await refetch();
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleReactivateAccount = async () => {
-    setIsLoading(true);
-    console.log('Réactivation du compte:', id);
+    if (!id) return;
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
+    setIsLoading(true);
+    try {
+      const result = await reactivateCompanyAccount(id);
+      
+      if (result.success) {
+        await refetch();
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
-    if (!deleteReason || confirmationText !== company.name) return;
+    if (!deleteReason || confirmationText !== company.name || !id) return;
     
     setIsLoading(true);
-    console.log('Suppression du compte:', {
-      companyId: id,
-      reason: deleteReason,
-      backupData
-    });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsLoading(false);
-    
-    // Redirect after deletion
-    navigate('/admin/leazr-saas-users');
+    try {
+      const result = await deleteCompanyAccount({
+        companyId: id,
+        reason: deleteReason,
+        backupData
+      });
+      
+      if (result.success) {
+        // Redirect after deletion
+        navigate('/admin/leazr-saas-users');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const isDeleteFormValid = deleteReason && confirmationText === company.name;
