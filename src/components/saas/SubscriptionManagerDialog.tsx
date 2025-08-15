@@ -18,6 +18,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import CompanyModulesManager from './CompanyModulesManager';
 
 interface SubscriptionManagerDialogProps {
   company: any;
@@ -298,21 +299,13 @@ const SubscriptionManagerDialog: React.FC<SubscriptionManagerDialogProps> = ({
             </TabsContent>
 
             <TabsContent value="modules" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Modules disponibles
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Configuration des modules</p>
-                    <p className="text-sm">À implémenter</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <CompanyModulesManager 
+                company={company} 
+                onModulesChange={(modules) => {
+                  // Optionnel: mettre à jour l'état local de l'entreprise
+                  console.log('Modules mis à jour:', modules);
+                }}
+              />
             </TabsContent>
           </Tabs>
         </div>
