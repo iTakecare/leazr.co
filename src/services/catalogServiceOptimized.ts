@@ -34,7 +34,7 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       `)
       .eq("company_id", companyId)
       .eq("active", true)
-      .or("admin_only.is.null,admin_only.eq.false")
+      .not("admin_only", "eq", true)
       .order("created_at", { ascending: false });
 
     if (error) {
