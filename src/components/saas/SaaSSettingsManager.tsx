@@ -13,11 +13,13 @@ import {
   BarChart3,
   Package,
   Building2,
-  MapPin
+  MapPin,
+  Layers
 } from "lucide-react";
 import SaaSPlansManager from "./SaaSPlansManager";
 import PlatformIdentitySettings from "./PlatformIdentitySettings";
 import { PostalCodeImport } from "@/components/admin/PostalCodeImport";
+import SaaSModulesManager from "./SaaSModulesManager";
 
 const SaaSSettingsManager = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -25,6 +27,7 @@ const SaaSSettingsManager = () => {
   const tabs = [
     { id: "general", label: "Général", icon: Settings },
     { id: "identity", label: "Identité", icon: Building2 },
+    { id: "modules", label: "Modules", icon: Layers },
     { id: "plans", label: "Plans & Tarifs", icon: Package },
     { id: "postal-codes", label: "Codes Postaux", icon: MapPin },
   ];
@@ -43,7 +46,7 @@ const SaaSSettingsManager = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             return (
@@ -84,6 +87,9 @@ const SaaSSettingsManager = () => {
           <PlatformIdentitySettings />
         </TabsContent>
 
+        <TabsContent value="modules" className="space-y-6">
+          <SaaSModulesManager />
+        </TabsContent>
 
         <TabsContent value="plans" className="space-y-6">
           <SaaSPlansManager />
