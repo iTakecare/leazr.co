@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useContext } from "react";
 import { useMemo } from "react";
 import { CompanyContext } from "@/context/CompanyContext";
+import { useRefreshableCompanyData } from "./useRefreshableCompanyData";
 
 // Safe wrapper that doesn't throw when provider is missing
 const useSafeCompanyContext = () => {
@@ -32,7 +33,11 @@ export interface ModuleAccessConfig {
 
 export const useModuleAccess = () => {
   const { user } = useAuth();
-  const { company } = useSafeCompanyContext();
+  const { company: contextCompany } = useSafeCompanyContext();
+  const { company: freshCompany, refresh: refreshCompanyData } = useRefreshableCompanyData();
+  
+  // Use fresh company data when available, fallback to context
+  const company = freshCompany || contextCompany;
 
   const moduleAccess = useMemo((): ModuleAccessConfig => {
     // If no user, deny access to everything
@@ -130,5 +135,6 @@ export const useModuleAccess = () => {
   return {
     moduleAccess,
     hasModuleAccess,
+    refresh: refreshCompanyData,
   };
 };
