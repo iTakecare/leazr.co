@@ -289,44 +289,43 @@ export const useModules = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Données simulées temporaires (table modules n'existe pas encore)
-    const simulatedModules: ModuleData[] = [
-      {
-        id: '1',
-        slug: 'leasing',
-        name: 'Module Leasing',
-        description: 'Gestion complète des contrats de leasing',
-        is_core: true,
-        price: 49,
-        features: ['Contrats', 'Facturation', 'Suivi'],
-        category: 'core'
-      },
-      {
-        id: '2',
-        slug: 'crm',
-        name: 'Module CRM',
-        description: 'Gestion de la relation client',
-        is_core: false,
-        price: 29,
-        features: ['Contacts', 'Historique', 'Rappels'],
-        category: 'addon'
-      },
-      {
-        id: '3',
-        slug: 'analytics',
-        name: 'Module Analytics',
-        description: 'Analyses et rapports avancés',
-        is_core: false,
-        price: 39,
-        features: ['Tableaux de bord', 'Rapports', 'Exports'],
-        category: 'addon'
-      }
-    ];
+    const fetchModules = async () => {
+      try {
+        console.log("📦 MODULES - Récupération des modules depuis la base");
+        
+        const { data: modulesData, error } = await supabase
+          .from('modules')
+          .select('*')
+          .order('name');
 
-    setTimeout(() => {
-      setModules(simulatedModules);
-      setLoading(false);
-    }, 300);
+        if (error) {
+          console.error("❌ MODULES - Erreur:", error);
+          throw error;
+        }
+
+        console.log("📦 MODULES - Modules récupérés:", modulesData?.length || 0);
+
+        const formattedModules = modulesData?.map(module => ({
+          id: module.id,
+          slug: module.slug,
+          name: module.name,
+          description: module.description || '',
+          is_core: module.is_core,
+          price: module.price_starter || 0, // Utiliser le prix starter par défaut
+          features: [], // Peut être ajouté plus tard
+          category: module.is_core ? 'core' : 'addon'
+        })) || [];
+
+        setModules(formattedModules);
+      } catch (error) {
+        console.error("❌ MODULES - Erreur lors du chargement:", error);
+        setModules([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModules();
   }, []);
 
   return { modules, loading };

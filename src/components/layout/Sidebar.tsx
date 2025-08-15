@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useLocation } from "react-router-dom";
 import { 
   BarChart3, 
@@ -35,6 +36,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { user } = useAuth();
   const { companyId } = useMultiTenant();
   const { settings, loading: settingsLoading } = useSiteSettings();
+  const { hasModuleAccess } = useModuleAccess();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -50,17 +52,74 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   // Mémoriser les éléments de menu avec des couleurs améliorées
   const menuItems = useMemo(() => {
     const basePrefix = companySlug ? `/${companySlug}` : '';
-    return [
-      { icon: BarChart3, label: "Dashboard", href: `${basePrefix}/admin/dashboard`, color: "blue" },
-      { icon: UserCheck, label: "CRM", href: `${basePrefix}/admin/clients`, color: "orange" },
-      { icon: FileText, label: "Contrats", href: `${basePrefix}/admin/contracts`, color: "red" },
-      { icon: ClipboardList, label: "Offres", href: `${basePrefix}/admin/offers`, color: "indigo" },
-      { icon: Calculator, label: "Factures", href: `${basePrefix}/admin/invoicing`, color: "pink" },
-      { icon: Package, label: "Catalogue", href: `${basePrefix}/admin/catalog`, color: "emerald" },
-      { icon: Mail, label: "Chat Admin", href: `${basePrefix}/admin/chat`, color: "violet" },
-      { icon: Settings, label: "Paramètres", href: `${basePrefix}/admin/settings`, color: "gray" },
+    
+    const allMenuItems = [
+      { 
+        icon: BarChart3, 
+        label: "Dashboard", 
+        href: `${basePrefix}/admin/dashboard`, 
+        color: "blue",
+        moduleSlug: "dashboard",
+        alwaysVisible: true 
+      },
+      { 
+        icon: UserCheck, 
+        label: "CRM", 
+        href: `${basePrefix}/admin/clients`, 
+        color: "orange",
+        moduleSlug: "crm" 
+      },
+      { 
+        icon: FileText, 
+        label: "Contrats", 
+        href: `${basePrefix}/admin/contracts`, 
+        color: "red",
+        moduleSlug: "contracts" 
+      },
+      { 
+        icon: ClipboardList, 
+        label: "Offres", 
+        href: `${basePrefix}/admin/offers`, 
+        color: "indigo",
+        moduleSlug: "offers" 
+      },
+      { 
+        icon: Calculator, 
+        label: "Factures", 
+        href: `${basePrefix}/admin/invoicing`, 
+        color: "pink",
+        moduleSlug: "invoicing" 
+      },
+      { 
+        icon: Package, 
+        label: "Catalogue", 
+        href: `${basePrefix}/admin/catalog`, 
+        color: "emerald",
+        moduleSlug: "catalog" 
+      },
+      { 
+        icon: Mail, 
+        label: "Chat Admin", 
+        href: `${basePrefix}/admin/chat`, 
+        color: "violet",
+        moduleSlug: "chat" 
+      },
+      { 
+        icon: Settings, 
+        label: "Paramètres", 
+        href: `${basePrefix}/admin/settings`, 
+        color: "gray",
+        moduleSlug: "settings",
+        alwaysVisible: true 
+      },
     ];
-  }, [companySlug]);
+
+    // Filtrer les items selon l'accès aux modules
+    return allMenuItems.filter(item => {
+      if (item.alwaysVisible) return true;
+      return hasModuleAccess(item.moduleSlug);
+    });
+  }, [companySlug, hasModuleAccess]);
 
   // Mémoriser la fonction isActive
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);

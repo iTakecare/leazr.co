@@ -8,6 +8,7 @@ interface Company {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
+  modules_enabled?: string[];
 }
 
 interface CompanyContextType {
