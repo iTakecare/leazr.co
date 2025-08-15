@@ -13,6 +13,7 @@ interface Company {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
+  modules_enabled?: string[];
 }
 
 const AmbassadorPrivateRoute = () => {
@@ -64,7 +65,7 @@ const AmbassadorPrivateRoute = () => {
       
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color')
+        .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color, modules_enabled')
         .eq('slug', companySlug)
         .single();
 

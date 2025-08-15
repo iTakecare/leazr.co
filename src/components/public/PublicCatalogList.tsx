@@ -11,6 +11,7 @@ interface Company {
   slug: string;
   logo_url?: string;
   description?: string;
+  modules_enabled?: string[];
 }
 
 const PublicCatalogList = () => {

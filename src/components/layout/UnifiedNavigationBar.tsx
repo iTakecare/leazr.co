@@ -16,6 +16,7 @@ interface Company {
   accent_color?: string;
   contact_phone?: string;
   contact_email?: string;
+  modules_enabled?: string[];
 }
 
 interface Category {

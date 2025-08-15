@@ -12,6 +12,7 @@ interface Company {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
+  modules_enabled?: string[];
 }
 
 const AmbassadorSlugGuard = () => {
@@ -41,10 +42,9 @@ const AmbassadorSlugGuard = () => {
     queryFn: async (): Promise<Company | null> => {
       console.log('🏢 AMBASSADOR SLUG GUARD - Fetching company for slug:', companySlug);
       
-      // Essayons d'abord avec une requête directe
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color')
+        .select('id, name, slug, logo_url, primary_color, secondary_color, accent_color, modules_enabled')
         .eq('slug', companySlug)
         .single();
 
@@ -62,6 +62,7 @@ const AmbassadorSlugGuard = () => {
             primary_color: null,
             secondary_color: null,
             accent_color: null,
+            modules_enabled: [],
           };
         }
         
@@ -78,6 +79,7 @@ const AmbassadorSlugGuard = () => {
         primary_color: data.primary_color,
         secondary_color: data.secondary_color,
         accent_color: data.accent_color,
+        modules_enabled: data.modules_enabled,
       };
     },
     enabled: !!companySlug,

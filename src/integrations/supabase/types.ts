@@ -5590,6 +5590,7 @@ export type Database = {
           accent_color: string
           id: string
           logo_url: string
+          modules_enabled: string[]
           name: string
           primary_color: string
           secondary_color: string
