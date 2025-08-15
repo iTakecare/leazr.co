@@ -22,7 +22,12 @@ import {
   Package,
   TrendingUp,
   HelpCircle,
-  Mail
+  Mail,
+  Brain,
+  Headphones,
+  Server,
+  Monitor,
+  Globe
 } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 import SidebarUserSection from "./SidebarUserSection";
@@ -103,6 +108,48 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         href: `${basePrefix}/admin/chat`, 
         color: "violet",
         moduleSlug: "chat" 
+      },
+      { 
+        icon: Monitor, 
+        label: "Équipements", 
+        href: `${basePrefix}/admin/equipment`, 
+        color: "cyan",
+        moduleSlug: "equipment" 
+      },
+      { 
+        icon: Globe, 
+        label: "Catalogue Public", 
+        href: `${basePrefix}/admin/public-catalog`, 
+        color: "teal",
+        moduleSlug: "public_catalog" 
+      },
+      { 
+        icon: TrendingUp, 
+        label: "Calculateur", 
+        href: `${basePrefix}/admin/calculator`, 
+        color: "green",
+        moduleSlug: "calculator" 
+      },
+      { 
+        icon: Brain, 
+        label: "Assistant IA", 
+        href: `${basePrefix}/admin/ai-assistant`, 
+        color: "purple",
+        moduleSlug: "ai_assistant" 
+      },
+      { 
+        icon: Server, 
+        label: "Générateur de Parc", 
+        href: `${basePrefix}/admin/fleet-generator`, 
+        color: "slate",
+        moduleSlug: "fleet_generator" 
+      },
+      { 
+        icon: Headphones, 
+        label: "SAV & Support", 
+        href: `${basePrefix}/admin/support`, 
+        color: "amber",
+        moduleSlug: "support" 
       },
       { 
         icon: Settings, 
