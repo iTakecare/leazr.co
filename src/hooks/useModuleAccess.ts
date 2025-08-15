@@ -55,36 +55,72 @@ export const useModuleAccess = () => {
       };
     }
 
-    // If no company context (e.g., in SaaS admin), allow all modules for authenticated users
+    // Always check enabled modules from the company data
     const enabledModules = company?.modules_enabled || [];
     const hasCompanyContext = !!company;
     
-    // Dashboard et Settings sont toujours accessibles
-    const baseAccess = {
-      dashboard: true,
-      settings: true,
-    };
+    // If no company context, check if user is super admin
+    // Super admins get access to all modules, regular users get none
+    if (!hasCompanyContext) {
+      const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+      if (isAdmin) {
+        // Super admins in SaaS interface have access to all modules
+        return {
+          dashboard: true,
+          crm: true,
+          contracts: true,
+          offers: true,
+          invoicing: true,
+          catalog: true,
+          chat: true,
+          equipment: true,
+          settings: true,
+          public_catalog: true,
+          calculator: true,
+          ai_assistant: true,
+          fleet_generator: true,
+          support: true,
+        };
+      }
+      // Regular users without company context get no access
+      return {
+        dashboard: false,
+        crm: false,
+        contracts: false,
+        offers: false,
+        invoicing: false,
+        catalog: false,
+        chat: false,
+        equipment: false,
+        settings: false,
+        public_catalog: false,
+        calculator: false,
+        ai_assistant: false,
+        fleet_generator: false,
+        support: false,
+      };
+    }
 
-    // Vérifier l'accès à chaque module
+    // Check each module against the enabled modules list
+    // No module is automatically granted - all must be explicitly enabled
     const moduleAccess = {
-      crm: hasCompanyContext ? enabledModules.includes('crm') : true,
-      contracts: hasCompanyContext ? enabledModules.includes('contracts') : true,
-      offers: hasCompanyContext ? enabledModules.includes('offers') : true,
-      invoicing: hasCompanyContext ? enabledModules.includes('invoicing') : true,
-      catalog: hasCompanyContext ? enabledModules.includes('catalog') : true,
-      chat: hasCompanyContext ? enabledModules.includes('chat') : true,
-      equipment: hasCompanyContext ? enabledModules.includes('equipment') : true,
-      public_catalog: hasCompanyContext ? enabledModules.includes('public_catalog') : true,
-      calculator: hasCompanyContext ? enabledModules.includes('calculator') : true,
-      ai_assistant: hasCompanyContext ? enabledModules.includes('ai_assistant') : true,
-      fleet_generator: hasCompanyContext ? enabledModules.includes('fleet_generator') : true,
-      support: hasCompanyContext ? enabledModules.includes('support') : true,
+      dashboard: enabledModules.includes('dashboard'),
+      crm: enabledModules.includes('clients'), // 'clients' maps to CRM functionality
+      contracts: enabledModules.includes('contracts'),
+      offers: enabledModules.includes('offers'),
+      invoicing: enabledModules.includes('invoicing'),
+      catalog: enabledModules.includes('catalog'),
+      chat: enabledModules.includes('chat'),
+      equipment: enabledModules.includes('equipment'),
+      settings: enabledModules.includes('settings'),
+      public_catalog: enabledModules.includes('public_catalog'),
+      calculator: enabledModules.includes('calculator'),
+      ai_assistant: enabledModules.includes('ai_assistant'),
+      fleet_generator: enabledModules.includes('fleet_generator'),
+      support: enabledModules.includes('support'),
     };
 
-    return {
-      ...baseAccess,
-      ...moduleAccess,
-    } as ModuleAccessConfig;
+    return moduleAccess;
   }, [user, company]);
 
   const hasModuleAccess = (moduleSlug: string): boolean => {
