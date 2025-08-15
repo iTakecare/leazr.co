@@ -12,6 +12,9 @@ export interface PublicSimplifiedFilterState {
 export const usePublicSimplifiedFilter = (products: Product[] = []) => {
   const [searchParams, setSearchParams] = useSearchParams();
   
+  // Debug logs
+  console.log('🔍 usePublicSimplifiedFilter - Products received:', products?.length || 0, products);
+  
   // Initialize state from URL params
   const [filters, setFilters] = useState<PublicSimplifiedFilterState>({
     searchQuery: searchParams.get('search') || '',
@@ -69,7 +72,12 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    if (!products || products.length === 0) return [];
+    console.log('🎯 Filtering products:', products?.length || 0, 'with filters:', filters);
+    
+    if (!products || products.length === 0) {
+      console.log('❌ No products available for filtering');
+      return [];
+    }
     
     let filtered = [...products];
     
@@ -114,6 +122,7 @@ export const usePublicSimplifiedFilter = (products: Product[] = []) => {
       return filters.sortOrder === 'desc' ? -comparison : comparison;
     });
     
+    console.log('✅ Filtered products result:', filtered.length, filtered);
     return filtered;
   }, [products, filters]);
 
