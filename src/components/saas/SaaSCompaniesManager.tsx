@@ -18,33 +18,51 @@ import {
 } from "lucide-react";
 import { useSaaSCompanies } from "@/hooks/useSaaSCompanies";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import CompanyDetailsDialog from "./CompanyDetailsDialog";
+import SubscriptionManagerDialog from "./SubscriptionManagerDialog";
+import CompanyActionDialog from "./CompanyActionDialog";
 
 const SaaSCompaniesManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Dialog states
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [currentAction, setCurrentAction] = useState<'suspend' | 'delete' | 'reactivate' | null>(null);
 
   const { companies, stats, loading } = useSaaSCompanies();
 
   // Actions des boutons
   const handleViewDetails = (company: any) => {
-    console.log("🔍 Voir détails de:", company.name);
-    // TODO: Ouvrir une modale avec les détails de l'entreprise
-    alert(`Détails de ${company.name}\nPlan: ${company.plan}\nStatut: ${company.account_status}\nUtilisateurs: ${company.user_count}`);
+    setSelectedCompany(company);
+    setDetailsDialogOpen(true);
   };
 
   const handleManageSubscription = (company: any) => {
-    console.log("⚙️ Gérer abonnement de:", company.name);
-    // TODO: Ouvrir le gestionnaire d'abonnement
-    alert(`Gestion d'abonnement pour ${company.name}\nPlan actuel: ${company.plan}`);
+    setSelectedCompany(company);
+    setSubscriptionDialogOpen(true);
   };
 
   const handleSuspendAccount = (company: any) => {
-    console.log("⏸️ Suspendre compte de:", company.name);
-    if (confirm(`Êtes-vous sûr de vouloir suspendre le compte de ${company.name} ?`)) {
-      // TODO: Implémenter la suspension du compte
-      alert(`Compte ${company.name} suspendu (simulation)`);
-    }
+    setSelectedCompany(company);
+    setCurrentAction('suspend');
+    setActionDialogOpen(true);
+  };
+
+  const handleActionConfirm = async (actionData: any) => {
+    console.log('Action confirmée:', actionData, 'pour:', selectedCompany?.name);
+    // TODO: Implémenter les actions réelles via API
+    // Simulation d'appel API
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Fermer les dialogs
+    setActionDialogOpen(false);
+    setSelectedCompany(null);
+    setCurrentAction(null);
   };
 
   const filteredCompanies = companies?.filter(company => {
@@ -291,7 +309,7 @@ const SaaSCompaniesManager = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                       <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDetails(company)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Voir détails
@@ -324,6 +342,37 @@ const SaaSCompaniesManager = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <CompanyDetailsDialog
+        company={selectedCompany}
+        isOpen={detailsDialogOpen}
+        onClose={() => {
+          setDetailsDialogOpen(false);
+          setSelectedCompany(null);
+        }}
+      />
+
+      <SubscriptionManagerDialog
+        company={selectedCompany}
+        isOpen={subscriptionDialogOpen}
+        onClose={() => {
+          setSubscriptionDialogOpen(false);
+          setSelectedCompany(null);
+        }}
+      />
+
+      <CompanyActionDialog
+        company={selectedCompany}
+        action={currentAction}
+        isOpen={actionDialogOpen}
+        onClose={() => {
+          setActionDialogOpen(false);
+          setSelectedCompany(null);
+          setCurrentAction(null);
+        }}
+        onConfirm={handleActionConfirm}
+      />
     </div>
   );
 };
