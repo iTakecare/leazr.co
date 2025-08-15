@@ -17,53 +17,53 @@ import {
   MapPin,
   CreditCard,
   Shield,
-  Globe
+  Globe,
+  Loader2
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
+import { useCompanyDetails } from "@/hooks/useCompanyDetails";
 
-// Mock data - replace with real API call
-const mockCompanyData = {
-  id: '1',
-  name: 'TechCorp Solutions',
-  slug: 'techcorp-solutions',
-  logo_url: 'https://via.placeholder.com/100',
-  plan: 'business',
-  account_status: 'active',
-  created_at: '2024-01-15T10:00:00Z',
-  subscription_ends_at: '2024-12-31T23:59:59Z',
-  user_count: 25,
-  modules_enabled: ['crm', 'inventory', 'analytics'],
-  primary_admin: {
-    first_name: 'Jean',
-    last_name: 'Dupont',
-    email: 'jean.dupont@techcorp.com',
-    phone: '+33 1 23 45 67 89'
-  },
-  address: '123 Rue de la Paix, 75001 Paris',
-  website: 'https://techcorp-solutions.com',
-  brand_colors: {
-    primary: '#2563eb',
-    secondary: '#64748b'
-  },
-  monthly_revenue: 299,
-  co2_saved: 1250,
-  equipment_count: 150,
-  client_count: 89,
-  activity_feed: [
-    { date: '2024-01-20', event: 'Ajout de 5 nouveaux utilisateurs', type: 'user' },
-    { date: '2024-01-18', event: 'Activation du module Analytics', type: 'module' },
-    { date: '2024-01-15', event: 'Création du compte', type: 'account' }
-  ]
-};
 
 const CompanyDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  // In real app, fetch company data based on id
-  const company = mockCompanyData;
+  const { companyDetails: company, loading, error } = useCompanyDetails(id || '');
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  if (error || !company) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-6">
+            <Button onClick={() => navigate('/admin/leazr-saas-users')} className="mb-4">
+              Retour à la liste
+            </Button>
+            <Card>
+              <CardContent className="py-6">
+                <p className="text-center text-muted-foreground">
+                  {error || 'Entreprise non trouvée'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   const handleBack = () => {
     navigate('/admin/leazr-saas-users');
@@ -247,24 +247,32 @@ const CompanyDetailsPage = () => {
                       </p>
                       <p className="text-sm text-muted-foreground">Administrateur Principal</p>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.primary_admin.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.primary_admin.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.address}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        {company.website}
-                      </a>
-                    </div>
+                     {company.primary_admin?.email && (
+                       <div className="flex items-center gap-2 text-sm">
+                         <Mail className="h-4 w-4 text-muted-foreground" />
+                         <span>{company.primary_admin.email}</span>
+                       </div>
+                     )}
+                     {company.customizations?.company_phone && (
+                       <div className="flex items-center gap-2 text-sm">
+                         <Phone className="h-4 w-4 text-muted-foreground" />
+                         <span>{company.customizations.company_phone}</span>
+                       </div>
+                     )}
+                     {company.customizations?.company_address && (
+                       <div className="flex items-center gap-2 text-sm">
+                         <MapPin className="h-4 w-4 text-muted-foreground" />
+                         <span>{company.customizations.company_address}</span>
+                       </div>
+                     )}
+                     {company.customizations?.quote_request_url && (
+                       <div className="flex items-center gap-2 text-sm">
+                         <Globe className="h-4 w-4 text-muted-foreground" />
+                         <a href={company.customizations.quote_request_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                           Site web
+                         </a>
+                       </div>
+                     )}
                   </CardContent>
                 </Card>
 
@@ -339,7 +347,7 @@ const CompanyDetailsPage = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Expire le</p>
-                      <p className="mt-1">{formatDate(company.subscription_ends_at)}</p>
+                      <p className="mt-1">{company.subscription_ends_at ? formatDate(company.subscription_ends_at) : 'N/A'}</p>
                     </div>
                   </div>
                   <Separator />
@@ -358,30 +366,36 @@ const CompanyDetailsPage = () => {
                   <CardTitle>Configuration de l'Entreprise</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-3">Couleurs de marque</h4>
-                    <div className="flex gap-4">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-6 h-6 rounded border"
-                          style={{ backgroundColor: company.brand_colors.primary }}
-                        />
-                        <span className="text-sm">Primaire: {company.brand_colors.primary}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-6 h-6 rounded border"
-                          style={{ backgroundColor: company.brand_colors.secondary }}
-                        />
-                        <span className="text-sm">Secondaire: {company.brand_colors.secondary}</span>
-                      </div>
-                    </div>
-                  </div>
+                     <div>
+                       <h4 className="font-medium mb-3">Couleurs de marque</h4>
+                       <div className="flex gap-4">
+                         {company.primary_color && (
+                           <div className="flex items-center gap-2">
+                             <div 
+                               className="w-6 h-6 rounded border"
+                               style={{ backgroundColor: company.primary_color }}
+                             />
+                             <span className="text-sm">Primaire: {company.primary_color}</span>
+                           </div>
+                         )}
+                         {company.secondary_color && (
+                           <div className="flex items-center gap-2">
+                             <div 
+                               className="w-6 h-6 rounded border"
+                               style={{ backgroundColor: company.secondary_color }}
+                             />
+                             <span className="text-sm">Secondaire: {company.secondary_color}</span>
+                           </div>
+                         )}
+                       </div>
+                     </div>
                   <Separator />
-                  <div>
-                    <h4 className="font-medium mb-3">Domaine personnalisé</h4>
-                    <p className="text-sm text-muted-foreground">Non configuré</p>
-                  </div>
+                     <div>
+                       <h4 className="font-medium mb-3">Domaine personnalisé</h4>
+                       <p className="text-sm text-muted-foreground">
+                         {company.slug ? `${company.slug}.leazr.co` : 'Non configuré'}
+                       </p>
+                     </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -394,22 +408,23 @@ const CompanyDetailsPage = () => {
                     Dernières actions importantes de cette entreprise
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {company.activity_feed.map((activity, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                        <div className="w-2 h-2 bg-primary rounded-full" />
-                        <div className="flex-1">
-                          <p className="text-sm">{activity.event}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(activity.date)}</p>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {activity.type}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
+                 <CardContent>
+                   <div className="space-y-4">
+                     <div className="flex items-center gap-3 p-3 border rounded-lg">
+                       <div className="w-2 h-2 bg-primary rounded-full" />
+                       <div className="flex-1">
+                         <p className="text-sm">Compte créé</p>
+                         <p className="text-xs text-muted-foreground">{formatDate(company.created_at)}</p>
+                       </div>
+                       <Badge variant="outline" className="text-xs">
+                         account
+                       </Badge>
+                     </div>
+                     <div className="text-center py-4 text-muted-foreground text-sm">
+                       L'historique détaillé des activités sera bientôt disponible
+                     </div>
+                   </div>
+                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>

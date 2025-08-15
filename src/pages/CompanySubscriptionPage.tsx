@@ -19,49 +19,73 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
+import { useCompanyDetails } from "@/hooks/useCompanyDetails";
 
-// Mock data
-const mockSubscriptionData = {
-  company: {
-    id: '1',
-    name: 'TechCorp Solutions',
-    plan: 'business',
-    account_status: 'active',
-    monthly_price: 299,
-    subscription_ends_at: '2024-12-31T23:59:59Z',
-    trial_ends_at: null,
-    created_at: '2024-01-15T10:00:00Z'
-  },
-  billing_history: [
-    { id: '1', date: '2024-01-15', amount: 299, status: 'paid', invoice_url: '#' },
-    { id: '2', date: '2023-12-15', amount: 299, status: 'paid', invoice_url: '#' },
-    { id: '3', date: '2023-11-15', amount: 299, status: 'paid', invoice_url: '#' },
-  ],
-  available_plans: [
-    { id: 'starter', name: 'Starter', price: 49, features: ['5 utilisateurs', 'CRM de base'] },
-    { id: 'pro', name: 'Pro', price: 149, features: ['20 utilisateurs', 'CRM avancé', 'Analytics'] },
-    { id: 'business', name: 'Business', price: 299, features: ['50 utilisateurs', 'Toutes fonctionnalités'] },
-    { id: 'enterprise', name: 'Enterprise', price: 599, features: ['Utilisateurs illimités', 'Support dédié'] }
-  ],
-  modules: [
-    { id: 'crm', name: 'CRM Avancé', price: 29, enabled: true },
-    { id: 'analytics', name: 'Analytics', price: 39, enabled: true },
-    { id: 'automation', name: 'Automation', price: 49, enabled: false },
-    { id: 'api', name: 'API Access', price: 19, enabled: false }
-  ]
-};
+const available_plans = [
+  { id: 'starter', name: 'Starter', price: 49, features: ['5 utilisateurs', 'CRM de base'] },
+  { id: 'pro', name: 'Pro', price: 149, features: ['20 utilisateurs', 'CRM avancé', 'Analytics'] },
+  { id: 'business', name: 'Business', price: 299, features: ['50 utilisateurs', 'Toutes fonctionnalités'] },
+  { id: 'enterprise', name: 'Enterprise', price: 599, features: ['Utilisateurs illimités', 'Support dédié'] }
+];
+
+const available_modules = [
+  { id: 'crm', name: 'CRM Avancé', price: 29 },
+  { id: 'analytics', name: 'Analytics', price: 39 },
+  { id: 'automation', name: 'Automation', price: 49 },
+  { id: 'api', name: 'API Access', price: 19 }
+];
 
 const CompanySubscriptionPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState(mockSubscriptionData.company.plan);
   
-  const subscription = mockSubscriptionData;
+  const { companyDetails: company, loading, error } = useCompanyDetails(id || '');
+  const [selectedPlan, setSelectedPlan] = useState(company?.plan || 'starter');
+
+  React.useEffect(() => {
+    if (company?.plan) {
+      setSelectedPlan(company.plan);
+    }
+  }, [company?.plan]);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  if (error || !company) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-6">
+            <Button onClick={() => navigate('/admin/leazr-saas-users')} className="mb-4">
+              Retour à la liste
+            </Button>
+            <Card>
+              <CardContent className="py-6">
+                <p className="text-center text-muted-foreground">
+                  {error || 'Entreprise non trouvée'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   const handleBack = () => {
     navigate(`/admin/leazr-saas-users/company/${id}/details`);
@@ -127,7 +151,7 @@ const CompanySubscriptionPage = () => {
             <Separator orientation="vertical" className="h-6" />
             <div>
               <h1 className="text-2xl font-bold">Gestion de l'Abonnement</h1>
-              <p className="text-muted-foreground">{subscription.company.name}</p>
+              <p className="text-muted-foreground">{company.name}</p>
             </div>
           </div>
 
@@ -143,19 +167,23 @@ const CompanySubscriptionPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Plan</p>
-                  <p className="text-xl font-bold capitalize">{subscription.company.plan}</p>
+                  <p className="text-xl font-bold capitalize">{company.plan}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Prix mensuel</p>
-                  <p className="text-xl font-bold text-green-600">{formatCurrency(subscription.company.monthly_price)}</p>
+                  <p className="text-xl font-bold text-green-600">{formatCurrency(company.monthly_revenue)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Statut</p>
-                  <Badge variant="default">Actif</Badge>
+                  <Badge variant={company.account_status === 'active' ? 'default' : 'secondary'}>
+                    {company.account_status === 'active' ? 'Actif' : company.account_status}
+                  </Badge>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Fin d'abonnement</p>
-                  <p className="text-lg font-semibold">{formatDate(subscription.company.subscription_ends_at)}</p>
+                  <p className="text-lg font-semibold">
+                    {company.subscription_ends_at ? formatDate(company.subscription_ends_at) : 'N/A'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -187,7 +215,7 @@ const CompanySubscriptionPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {subscription.available_plans.map((plan) => (
+                        {available_plans.map((plan) => (
                           <SelectItem key={plan.id} value={plan.id}>
                             {plan.name} - {formatCurrency(plan.price)}/mois
                           </SelectItem>
@@ -198,7 +226,7 @@ const CompanySubscriptionPage = () => {
 
                   {/* Plans disponibles */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {subscription.available_plans.map((plan) => (
+                    {available_plans.map((plan) => (
                       <Card key={plan.id} className={selectedPlan === plan.id ? "border-primary" : ""}>
                         <CardHeader className="pb-3">
                           <CardTitle className="text-lg">{plan.name}</CardTitle>
@@ -214,10 +242,10 @@ const CompanySubscriptionPage = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button onClick={handlePlanChange} disabled={selectedPlan === subscription.company.plan}>
+                    <Button onClick={handlePlanChange} disabled={selectedPlan === company.plan}>
                       Appliquer le changement
                     </Button>
-                    {selectedPlan !== subscription.company.plan && (
+                    {selectedPlan !== company.plan && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <AlertTriangle className="h-4 w-4" />
                         Le changement sera appliqué immédiatement avec calcul prorata
@@ -239,7 +267,7 @@ const CompanySubscriptionPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {subscription.modules.map((module) => (
+                    {available_modules.map((module) => (
                       <div key={module.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex-1">
                           <h4 className="font-medium">{module.name}</h4>
@@ -248,7 +276,7 @@ const CompanySubscriptionPage = () => {
                           </p>
                         </div>
                         <Switch 
-                          checked={module.enabled} 
+                          checked={company.modules_enabled.includes(module.id)} 
                           onCheckedChange={() => handleModuleToggle(module.id)}
                         />
                       </div>
@@ -272,25 +300,10 @@ const CompanySubscriptionPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {subscription.billing_history.map((bill) => (
-                      <div key={bill.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <p className="font-medium">{formatDate(bill.date)}</p>
-                            <p className="text-sm text-muted-foreground">Facture #{bill.id}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold">{formatCurrency(bill.amount)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(bill.status)}
-                          <Button variant="outline" size="sm">
-                            Télécharger
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Historique de facturation non disponible</p>
+                      <p className="text-sm mt-1">Cette fonctionnalité sera bientôt disponible avec l'intégration Stripe</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -329,9 +342,12 @@ const CompanySubscriptionPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      Cette entreprise n'est actuellement pas en période d'essai.
+                  <div className={`p-4 border rounded-lg ${company.trial_ends_at ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+                    <p className={`text-sm ${company.trial_ends_at ? 'text-amber-800' : 'text-blue-800'}`}>
+                      {company.trial_ends_at 
+                        ? `Période d'essai active jusqu'au ${formatDate(company.trial_ends_at)}`
+                        : "Cette entreprise n'est actuellement pas en période d'essai."
+                      }
                     </p>
                   </div>
                   

@@ -21,22 +21,13 @@ import {
   Clock,
   FileX,
   History,
-  User
+  User,
+  Loader2
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
-
-// Mock data
-const mockCompanyData = {
-  id: '1',
-  name: 'TechCorp Solutions',
-  account_status: 'active',
-  created_at: '2024-01-15T10:00:00Z',
-  last_login: '2024-02-20T14:30:00Z',
-  user_count: 25,
-  data_size: '2.5 GB'
-};
+import { useCompanyDetails } from "@/hooks/useCompanyDetails";
 
 const actionHistory = [
   {
@@ -61,6 +52,8 @@ const CompanyActionsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
+  const { companyDetails: company, loading, error } = useCompanyDetails(id || '');
+  
   // States pour les actions
   const [suspendReason, setSuspendReason] = useState('');
   const [suspendDuration, setSuspendDuration] = useState('');
@@ -70,7 +63,38 @@ const CompanyActionsPage = () => {
   const [backupData, setBackupData] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const company = mockCompanyData;
+  if (loading) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
+
+  if (error || !company) {
+    return (
+      <PageTransition>
+        <Container>
+          <div className="py-6">
+            <Button onClick={() => navigate('/admin/leazr-saas-users')} className="mb-4">
+              Retour à la liste
+            </Button>
+            <Card>
+              <CardContent className="py-6">
+                <p className="text-center text-muted-foreground">
+                  {error || 'Entreprise non trouvée'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
+      </PageTransition>
+    );
+  }
 
   const handleBack = () => {
     navigate(`/admin/leazr-saas-users/company/${id}/details`);
@@ -435,16 +459,20 @@ const CompanyActionsPage = () => {
                     <span>{formatDate(company.created_at)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Dernière connexion:</span>
-                    <span>{formatDate(company.last_login)}</span>
+                    <span className="text-muted-foreground">Plan actuel:</span>
+                    <span className="capitalize">{company.plan}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Utilisateurs:</span>
                     <span>{company.user_count}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Taille des données:</span>
-                    <span>{company.data_size}</span>
+                    <span className="text-muted-foreground">Clients:</span>
+                    <span>{company.client_count}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Équipements:</span>
+                    <span>{company.equipment_count}</span>
                   </div>
                 </CardContent>
               </Card>
