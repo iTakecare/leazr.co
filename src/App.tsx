@@ -67,6 +67,9 @@ import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaaSUsers from "@/pages/LeazrSaaSUsers";
+import CompanyDetailsPage from "@/pages/CompanyDetailsPage";
+import CompanySubscriptionPage from "@/pages/CompanySubscriptionPage";
+import CompanyActionsPage from "@/pages/CompanyActionsPage";
 import LeazrSaaSAnalytics from "@/pages/LeazrSaaSAnalytics";
 import LeazrSaaSBilling from "@/pages/LeazrSaaSBilling";
 import LeazrSaaSSettings from "@/pages/LeazrSaaSSettings";
@@ -163,6 +166,9 @@ const AppRoutes = () => (
     <Route path="/admin/leazr-saas-dashboard" element={<Layout><LeazrSaaSDashboard /></Layout>} />
     <Route path="/admin/leazr-saas-clients" element={<Layout><LeazrSaasClients /></Layout>} />
     <Route path="/admin/leazr-saas-users" element={<Layout><LeazrSaaSUsers /></Layout>} />
+    <Route path="/admin/leazr-saas-users/company/:id/details" element={<Layout><CompanyDetailsPage /></Layout>} />
+    <Route path="/admin/leazr-saas-users/company/:id/subscription" element={<Layout><CompanySubscriptionPage /></Layout>} />
+    <Route path="/admin/leazr-saas-users/company/:id/actions" element={<Layout><CompanyActionsPage /></Layout>} />
     <Route path="/admin/leazr-saas-analytics" element={<Layout><LeazrSaaSAnalytics /></Layout>} />
     <Route path="/admin/leazr-saas-billing" element={<Layout><LeazrSaaSBilling /></Layout>} />
     <Route path="/admin/leazr-saas-plans" element={<Layout><LeazrSaaSPlans /></Layout>} />
