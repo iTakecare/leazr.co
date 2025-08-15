@@ -42,10 +42,16 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       throw error;
     }
 
-    console.log("🏪 getPublicProductsOptimized - Raw products data:", {
-      count: productsData?.length || 0,
-      firstProducts: productsData?.slice(0, 3).map(p => ({ id: p.id, name: p.name, active: p.active, admin_only: p.admin_only }))
-    });
+    // Debug: Let's see exactly what we received
+    console.log("🏪 getPublicProductsOptimized - Raw products data TYPE:", typeof productsData);
+    console.log("🏪 getPublicProductsOptimized - Raw products data IS_ARRAY:", Array.isArray(productsData));
+    console.log("🏪 getPublicProductsOptimized - Raw products data LENGTH:", productsData?.length);
+    console.log("🏪 getPublicProductsOptimized - Raw products data FULL:", JSON.stringify(productsData?.slice(0, 2), null, 2));
+    
+    if (!productsData || !Array.isArray(productsData) || productsData.length === 0) {
+      console.error("🏪 getPublicProductsOptimized - NO VALID DATA:", { productsData, isArray: Array.isArray(productsData) });
+      return [];
+    }
 
     // Get variant prices for all products
     const productIds = productsData?.map(p => p.id) || [];
