@@ -428,10 +428,10 @@ export const getEnvironmentalData = async (companySlug: string): Promise<Environ
   console.log("🌱 getEnvironmentalData - Fetching environmental data for company:", companySlug);
   
   try {
-    const { data, error } = await supabase.functions.invoke('catalog-api', {
-      body: { 
-        companySlug,
-        endpoint: 'environmental/categories'
+    const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/environmental/categories`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
@@ -455,10 +455,10 @@ export const getCategoriesWithEnvironmentalData = async (companySlug: string): P
   console.log("🌱 getCategoriesWithEnvironmentalData - Fetching categories with CO2 data for company:", companySlug);
   
   try {
-    const { data, error } = await supabase.functions.invoke('catalog-api', {
-      body: { 
-        companySlug,
-        endpoint: 'categories'
+    const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/categories`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
@@ -482,10 +482,10 @@ export const getProductCO2Data = async (companySlug: string, productId: string):
   console.log("🌱 getProductCO2Data - Fetching CO2 data for product:", productId);
   
   try {
-    const { data, error } = await supabase.functions.invoke('catalog-api', {
-      body: { 
-        companySlug,
-        endpoint: `environmental/products/${productId}`
+    const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/environmental/products/${productId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
