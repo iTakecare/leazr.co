@@ -1,15 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
-import { useCompanyContext } from "@/context/CompanyContext";
+import { useContext } from "react";
 import { useMemo } from "react";
+import { CompanyContext } from "@/context/CompanyContext";
 
-// Safe wrapper to use CompanyContext that doesn't throw when provider is missing
+// Safe wrapper that doesn't throw when provider is missing
 const useSafeCompanyContext = () => {
-  try {
-    return useCompanyContext();
-  } catch (error) {
-    // Return null when CompanyProvider is not available (e.g., in SaaS admin routes)
+  const context = useContext(CompanyContext);
+  // If context is undefined, return safe defaults
+  if (context === undefined) {
     return { company: null, companyId: null, companySlug: null };
   }
+  return context;
 };
 
 export interface ModuleAccessConfig {

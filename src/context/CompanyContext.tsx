@@ -19,6 +19,9 @@ interface CompanyContextType {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
+// Export the context for safe usage
+export { CompanyContext };
+
 interface CompanyProviderProps {
   children: React.ReactNode;
   company: Company | null;
