@@ -2,6 +2,16 @@ import { useAuth } from "@/context/AuthContext";
 import { useCompanyContext } from "@/context/CompanyContext";
 import { useMemo } from "react";
 
+// Safe wrapper to use CompanyContext that doesn't throw when provider is missing
+const useSafeCompanyContext = () => {
+  try {
+    return useCompanyContext();
+  } catch (error) {
+    // Return null when CompanyProvider is not available (e.g., in SaaS admin routes)
+    return { company: null, companyId: null, companySlug: null };
+  }
+};
+
 export interface ModuleAccessConfig {
   dashboard: boolean;
   crm: boolean;
@@ -21,10 +31,11 @@ export interface ModuleAccessConfig {
 
 export const useModuleAccess = () => {
   const { user } = useAuth();
-  const { company } = useCompanyContext();
+  const { company } = useSafeCompanyContext();
 
   const moduleAccess = useMemo((): ModuleAccessConfig => {
-    if (!user || !company) {
+    // If no user, deny access to everything
+    if (!user) {
       return {
         dashboard: false,
         crm: false,
@@ -43,7 +54,9 @@ export const useModuleAccess = () => {
       };
     }
 
-    const enabledModules = company.modules_enabled || [];
+    // If no company context (e.g., in SaaS admin), allow all modules for authenticated users
+    const enabledModules = company?.modules_enabled || [];
+    const hasCompanyContext = !!company;
     
     // Dashboard et Settings sont toujours accessibles
     const baseAccess = {
@@ -53,18 +66,18 @@ export const useModuleAccess = () => {
 
     // Vérifier l'accès à chaque module
     const moduleAccess = {
-      crm: enabledModules.includes('crm'),
-      contracts: enabledModules.includes('contracts'),
-      offers: enabledModules.includes('offers'),
-      invoicing: enabledModules.includes('invoicing'),
-      catalog: enabledModules.includes('catalog'),
-      chat: enabledModules.includes('chat'),
-      equipment: enabledModules.includes('equipment'),
-      public_catalog: enabledModules.includes('public_catalog'),
-      calculator: enabledModules.includes('calculator'),
-      ai_assistant: enabledModules.includes('ai_assistant'),
-      fleet_generator: enabledModules.includes('fleet_generator'),
-      support: enabledModules.includes('support'),
+      crm: hasCompanyContext ? enabledModules.includes('crm') : true,
+      contracts: hasCompanyContext ? enabledModules.includes('contracts') : true,
+      offers: hasCompanyContext ? enabledModules.includes('offers') : true,
+      invoicing: hasCompanyContext ? enabledModules.includes('invoicing') : true,
+      catalog: hasCompanyContext ? enabledModules.includes('catalog') : true,
+      chat: hasCompanyContext ? enabledModules.includes('chat') : true,
+      equipment: hasCompanyContext ? enabledModules.includes('equipment') : true,
+      public_catalog: hasCompanyContext ? enabledModules.includes('public_catalog') : true,
+      calculator: hasCompanyContext ? enabledModules.includes('calculator') : true,
+      ai_assistant: hasCompanyContext ? enabledModules.includes('ai_assistant') : true,
+      fleet_generator: hasCompanyContext ? enabledModules.includes('fleet_generator') : true,
+      support: hasCompanyContext ? enabledModules.includes('support') : true,
     };
 
     return {
