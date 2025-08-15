@@ -3,11 +3,16 @@ import { Product, PublicPack } from "@/types/catalog";
 
 // Optimized service that loads only essential product data without variants
 export const getPublicProductsOptimized = async (companyId: string): Promise<Product[]> => {
+  console.log("🏪 getPublicProductsOptimized - START with companyId:", companyId);
+  
   if (!companyId) {
+    console.error("🏪 getPublicProductsOptimized - ERROR: No company ID provided");
     throw new Error("Company ID requis");
   }
 
   try {
+    console.log("🏪 getPublicProductsOptimized - Executing products query...");
+    
     // First get products
     const { data: productsData, error } = await supabase
       .from("products")
@@ -33,8 +38,14 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
       .order("created_at", { ascending: false });
 
     if (error) {
+      console.error("🏪 getPublicProductsOptimized - DB Error:", error);
       throw error;
     }
+
+    console.log("🏪 getPublicProductsOptimized - Raw products data:", {
+      count: productsData?.length || 0,
+      firstProducts: productsData?.slice(0, 3).map(p => ({ id: p.id, name: p.name, active: p.active, admin_only: p.admin_only }))
+    });
 
     // Get variant prices for all products
     const productIds = productsData?.map(p => p.id) || [];
@@ -73,12 +84,27 @@ export const getPublicProductsOptimized = async (companyId: string): Promise<Pro
         has_variants: minVariantPrice > 0,
         variants_count: 0, // Default value since column doesn't exist
         active: item.active || false,
+        createdAt: new Date(), // Add missing required fields
+        updatedAt: new Date(),
         // Don't load variants or variant_combination_prices for performance
         variants: [],
         variant_combination_prices: []
       };
     });
 
+    console.log("🏪 getPublicProductsOptimized - Mapped products:", {
+      count: mappedProducts.length,
+      firstProducts: mappedProducts.slice(0, 3).map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        brand: p.brand, 
+        category: p.category,
+        price: p.price,
+        monthly_price: p.monthly_price
+      }))
+    });
+
+    console.log("🏪 getPublicProductsOptimized - RETURNING:", mappedProducts.length, "products");
     return mappedProducts;
   } catch (error) {
     console.error("Error loading optimized products:", error);

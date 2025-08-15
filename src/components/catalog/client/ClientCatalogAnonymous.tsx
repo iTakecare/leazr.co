@@ -61,6 +61,9 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
     if (companyId && companyId !== prevCompanyId.current) {
       // Only invalidate if company actually changed
       queryClient.removeQueries({ queryKey: ['products'], exact: false });
+      // Also invalidate public products cache to ensure fresh data
+      queryClient.removeQueries({ queryKey: ['public-products-optimized'], exact: false });
+      queryClient.removeQueries({ queryKey: ['client-custom-catalog'], exact: false });
       prevCompanyId.current = companyId;
     }
   }, [companyId, queryClient]);
@@ -72,9 +75,24 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
   // Optimized products fetch - utilise le catalogue personnalisé si disponible
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: hasCustomCatalog ? ['client-custom-catalog', clientId] : ['public-products-optimized', companyId],
-    queryFn: () => hasCustomCatalog && clientId 
-      ? getClientCustomCatalog(clientId) 
-      : getPublicProductsOptimized(companyId!),
+    queryFn: async () => {
+      console.log('📱 CLIENT CATALOG - QueryFn executing with:', {
+        hasCustomCatalog,
+        clientId,
+        companyId
+      });
+      
+      const result = hasCustomCatalog && clientId 
+        ? await getClientCustomCatalog(clientId) 
+        : await getPublicProductsOptimized(companyId!);
+        
+      console.log('📱 CLIENT CATALOG - QueryFn result:', {
+        count: result?.length || 0,
+        firstProducts: result?.slice(0, 2)?.map(p => ({ id: p.id, name: p.name })) || []
+      });
+      
+      return result;
+    },
     enabled: !!companyId && (hasCustomCatalog ? !!clientId : true),
     staleTime: 10 * 60 * 1000, // 10 minutes cache
     refetchOnWindowFocus: false
@@ -160,7 +178,15 @@ const ClientCatalogAnonymous: React.FC<ClientCatalogAnonymousProps> = ({ company
 
   // Safari-compatible logging
   try {
-    console.log('📱 CLIENT CATALOG - Rendering products:', filteredProducts?.length || 0);
+    console.log('📱 CLIENT CATALOG - Debug info:', {
+      rawProducts: products?.length || 0,
+      filteredProducts: filteredProducts?.length || 0,
+      hasCustomCatalog,
+      companyId,
+      clientId,
+      isLoadingProducts,
+      productsError: productsError?.message
+    });
   } catch (e) {}
 
   return (

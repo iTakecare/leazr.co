@@ -12,6 +12,11 @@ interface OptimizedFilterState {
 }
 
 export const useOptimizedCatalogFilter = (products: Product[] = []) => {
+  console.log("🔍 useOptimizedCatalogFilter - Hook called with products:", {
+    count: products?.length || 0,
+    firstProducts: products?.slice(0, 2)?.map(p => ({ id: p.id, name: p.name })) || []
+  });
+  
   const [filters, setFilters] = useState<OptimizedFilterState>({
     searchQuery: "",
     selectedCategory: "",
@@ -62,7 +67,16 @@ export const useOptimizedCatalogFilter = (products: Product[] = []) => {
 
   // Optimized filtering
   const filteredProducts = useMemo(() => {
-    if (!products.length) return [];
+    console.log("🔍 useOptimizedCatalogFilter - Filtering products:", {
+      inputCount: products?.length || 0,
+      hasProducts: !!products.length,
+      currentFilters: filters
+    });
+    
+    if (!products.length) {
+      console.log("🔍 useOptimizedCatalogFilter - No products to filter, returning empty array");
+      return [];
+    }
     
     let filtered = [...products];
     
@@ -117,6 +131,11 @@ export const useOptimizedCatalogFilter = (products: Product[] = []) => {
           return 0; // Keep original order for newest
       }
       return filters.sortOrder === 'desc' ? -result : result;
+    });
+    
+    console.log("🔍 useOptimizedCatalogFilter - Final filtered products:", {
+      count: filtered.length,
+      firstProducts: filtered.slice(0, 2).map(p => ({ id: p.id, name: p.name }))
     });
     
     return filtered;
