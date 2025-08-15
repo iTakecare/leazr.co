@@ -26,7 +26,8 @@ import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { motion } from "framer-motion";
 import { useCompanyDetails } from "@/hooks/useCompanyDetails";
-import { updateCompanyModules, updateCompanyPlan } from "@/services/companyModulesService";
+import { updateCompanyPlan } from "@/services/companyModulesService";
+import CompanyModulesManager from "@/components/saas/CompanyModulesManager";
 
 const available_plans = [
   { id: 'starter', name: 'Starter', price: 49, features: ['5 utilisateurs', 'CRM de base'] },
@@ -35,12 +36,6 @@ const available_plans = [
   { id: 'enterprise', name: 'Enterprise', price: 599, features: ['Utilisateurs illimités', 'Support dédié'] }
 ];
 
-const available_modules = [
-  { id: 'crm', name: 'CRM Avancé', price: 29 },
-  { id: 'analytics', name: 'Analytics', price: 39 },
-  { id: 'automation', name: 'Automation', price: 49 },
-  { id: 'api', name: 'API Access', price: 19 }
-];
 
 const CompanySubscriptionPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -137,30 +132,6 @@ const CompanySubscriptionPage = () => {
     }
   };
 
-  const handleModuleToggle = async (moduleId: string) => {
-    if (!company || isUpdating) return;
-
-    setIsUpdating(true);
-    try {
-      const currentModules = company.modules_enabled || [];
-      const isEnabled = currentModules.includes(moduleId);
-      
-      let newModules: string[];
-      if (isEnabled) {
-        newModules = currentModules.filter(m => m !== moduleId);
-      } else {
-        newModules = [...currentModules, moduleId];
-      }
-
-      const result = await updateCompanyModules(company.id, newModules);
-      
-      if (result.success) {
-        await refetch();
-      }
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   return (
     <PageTransition>
@@ -298,33 +269,12 @@ const CompanySubscriptionPage = () => {
 
             {/* Gestion des modules */}
             <TabsContent value="modules" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Modules et Extensions</CardTitle>
-                  <CardDescription>
-                    Activez ou désactivez des modules spécifiques pour personnaliser l'expérience
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {available_modules.map((module) => (
-                      <div key={module.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{module.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {formatCurrency(module.price)}/mois par module
-                          </p>
-                        </div>
-                        <Switch 
-                          checked={company.modules_enabled.includes(module.id)} 
-                          onCheckedChange={() => handleModuleToggle(module.id)}
-                          disabled={isUpdating}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <CompanyModulesManager 
+                company={company} 
+                onModulesChange={(modules) => {
+                  refetch();
+                }}
+              />
             </TabsContent>
 
             {/* Historique de facturation */}
