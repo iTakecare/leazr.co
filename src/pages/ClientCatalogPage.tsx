@@ -3,35 +3,63 @@ import { useClientData } from '@/hooks/useClientData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ClientCatalogAnonymous from '@/components/catalog/client/ClientCatalogAnonymous';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Crown } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 const ClientCatalogPage: React.FC = () => {
   const { clientData, loading: clientLoading, error: clientError } = useClientData();
 
-  // Fetch company data for the authenticated client
+  // Fetch company data for authenticated users (clients or admins)
   const { data: company, isLoading: isLoadingCompany, error: companyError } = useQuery({
-    queryKey: ['client-company', clientData?.id],
+    queryKey: ['user-company', clientData?.id],
     queryFn: async () => {
-      if (!clientData?.id) return null;
-      
-      // Get the first company - adjust this logic based on your business rules
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching company for client:', error);
-        throw error;
+      if (clientData?.id) {
+        // User is a client - get their company via client relationship
+        console.log('🏢 CLIENT CATALOG - Fetching company for client:', clientData.id);
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching company for client:', error);
+          throw error;
+        }
+        
+        console.log('🏢 CLIENT CATALOG - Company loaded for client:', data?.name);
+        return data;
+      } else {
+        // No client data but user might be an admin - get their company directly
+        console.log('🏢 CLIENT CATALOG - No client data, checking for admin company');
+        const { data: adminCompanyId, error: adminError } = await supabase
+          .rpc('get_user_company_id');
+        
+        if (adminError || !adminCompanyId) {
+          console.error('Error getting admin company:', adminError);
+          throw new Error('Aucune entreprise trouvée pour cet utilisateur');
+        }
+        
+        const { data: adminCompany, error: companyError } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', adminCompanyId)
+          .single();
+        
+        if (companyError) {
+          console.error('Error fetching admin company:', companyError);
+          throw companyError;
+        }
+        
+        console.log('🏢 CLIENT CATALOG - Company loaded for admin:', adminCompany?.name);
+        return adminCompany;
       }
-      
-      console.log('🏢 CLIENT CATALOG - Company loaded for client:', data?.name);
-      return data;
     },
-    enabled: !!clientData?.id && !clientLoading,
+    enabled: !clientLoading, // Enable when client loading is done
   });
+
+  const isAdmin = !clientData && company;
 
   if (clientLoading || isLoadingCompany) {
     return (
@@ -71,9 +99,21 @@ const ClientCatalogPage: React.FC = () => {
 
   console.log('🏢 CLIENT CATALOG - Rendering catalog for company:', company.name);
   console.log('🏢 CLIENT CATALOG - Client has custom catalog:', clientData?.has_custom_catalog);
+  console.log('🏢 CLIENT CATALOG - Is admin preview:', isAdmin);
 
-  // Use the client-specific catalog component with client data
-  return <ClientCatalogAnonymous company={company} clientData={clientData} />;
+  return (
+    <div className="relative">
+      {isAdmin && (
+        <div className="fixed top-4 right-4 z-50">
+          <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20">
+            <Crown className="h-3 w-3 mr-1" />
+            Prévisualisation Admin
+          </Badge>
+        </div>
+      )}
+      <ClientCatalogAnonymous company={company} clientData={clientData} />
+    </div>
+  );
 };
 
 export default ClientCatalogPage;
