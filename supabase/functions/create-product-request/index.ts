@@ -339,6 +339,9 @@ serve(async (req) => {
       return matchingRange.coefficient;
     };
 
+    // Durée par défaut (36 mois)
+    const duration = 36;
+
     // Reproduire la logique itérative de calculateSalePriceWithLeaser
     // 1. Estimation initiale avec coefficient par défaut
     let estimatedAmount = (totalMonthlyPayment * 100) / 3.160;
