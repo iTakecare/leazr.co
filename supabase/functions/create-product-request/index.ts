@@ -281,7 +281,7 @@ serve(async (req) => {
       monthly_payment: totalMonthlyPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
-      margin: marginPercentage,
+      margin: marginAmount,
       commission: 0,
       type: "client_request",
       workflow_status: "draft",
@@ -319,7 +319,7 @@ serve(async (req) => {
           purchase_price: equipment.purchase_price,
           quantity: equipment.quantity,
           monthly_payment: equipment.monthly_payment,
-          margin: marginPercentage,
+          margin: marginAmount,
         };
         
         console.log("Création de l'équipement:", equipmentData);
@@ -550,7 +550,7 @@ serve(async (req) => {
       monthly_payment: totalMonthlyPayment,
       coefficient: coefficient,
       financed_amount: financedAmount,
-      margin: parseFloat(marginPercentage.toFixed(2)),
+      margin: parseFloat(marginAmount.toFixed(2)),
       created_at: new Date().toISOString()
     };
 
