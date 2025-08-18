@@ -342,38 +342,46 @@ serve(async (req) => {
     // Durée par défaut (36 mois)
     const duration = 36;
 
-    // FORMULE CORRECTE POUR LE CALCUL DU MONTANT FINANCÉ
-    // La formule standard de leasing : (mensualité × 100) / coefficient
-    // Le problème était dans le coefficient, pas dans la formule
+    // ======= LOGIQUE CORRECTE DU CALCULATEUR D'OFFRE =======
+    // 1. Calculer le montant financé pour chaque équipement avec sa marge
+    // 2. Sommer tous les montants financés individuels
+    // 3. Trouver le coefficient basé sur ce montant total financé
+    // 4. Calculer la mensualité finale avec : (montant_financé × coefficient) / 100
     
-    // 1. Estimation initiale avec coefficient par défaut
-    let estimatedAmount = (totalMonthlyPayment * 100) / 3.160;
+    // 1. Calculer le montant financé total selon la logique du calculateur
+    let totalFinancedAmount = 0;
     
-    // 2. Trouver le coefficient basé sur l'estimation
-    let coefficient = getCoefficientFromLeaser(defaultLeaser, estimatedAmount, duration);
-    
-    // 3. Calculer le montant financé avec la formule standard
-    let financedAmount = (totalMonthlyPayment * 100) / coefficient;
-    
-    // 4. Si le montant calculé diffère significativement, recalculer le coefficient
-    if (Math.abs(financedAmount - estimatedAmount) > estimatedAmount * 0.1) {
-      coefficient = getCoefficientFromLeaser(defaultLeaser, financedAmount, duration);
-      financedAmount = (totalMonthlyPayment * 100) / coefficient;
+    for (const item of detailedEquipmentList) {
+      // Utiliser les prix récupérés depuis la structure detailedEquipmentList
+      const equipmentPurchasePrice = item.purchase_price || 0;
+      const equipmentQuantity = item.quantity || 1;
+      
+      // Appliquer la marge par défaut de 80% si pas de marge spécifiée
+      const defaultMargin = 80; // 80% comme dans le calculateur
+      
+      // Calculer le montant financé pour cet équipement : prix × quantité × (1 + marge%)
+      const equipmentFinancedAmount = equipmentPurchasePrice * equipmentQuantity * (1 + defaultMargin / 100);
+      totalFinancedAmount += equipmentFinancedAmount;
+      
+      console.log(`Équipement ${item.title}: Prix=${equipmentPurchasePrice}€, Quantité=${equipmentQuantity}, Marge=${defaultMargin}%, Montant financé=${equipmentFinancedAmount.toFixed(2)}€`);
     }
     
-    // Debug: Vérifier quel coefficient aurait dû être utilisé pour obtenir 2915.03€
-    const expectedFinancedAmount = 2915.03;
-    const correctCoefficient = (totalMonthlyPayment * 100) / expectedFinancedAmount;
-    console.log(`Debug coefficient: Pour obtenir ${expectedFinancedAmount}€, il faudrait un coefficient de ${correctCoefficient.toFixed(3)}`)
+    console.log(`Montant financé total calculé: ${totalFinancedAmount.toFixed(2)}€`);
     
-    console.log(`Calculs financiers corrects:
-      - Mensualité totale: ${totalMonthlyPayment}€
+    // 2. Trouver le coefficient basé sur le montant financé total
+    const coefficient = getCoefficientFromLeaser(defaultLeaser, totalFinancedAmount, duration);
+    
+    // 3. Calculer la mensualité finale avec la bonne formule
+    const calculatedMonthlyPayment = (totalFinancedAmount * coefficient) / 100;
+    
+    console.log(`Calculs selon le calculateur d'offre:
+      - Prix d'achat total: ${totalPurchaseAmount}€
+      - Montant financé total: ${totalFinancedAmount.toFixed(2)}€
       - Coefficient utilisé: ${coefficient}
-      - Montant financé calculé: ${financedAmount}€
-      - Prix d'achat total: ${totalPurchaseAmount}€`);
+      - Mensualité calculée: ${calculatedMonthlyPayment.toFixed(2)}€`);
     
-    // Calculer la marge correcte: montant financé - prix d'achat
-    const marginAmount = financedAmount - totalPurchaseAmount;
+    // 4. Calculer la marge correcte: montant financé - prix d'achat
+    const marginAmount = totalFinancedAmount - totalPurchaseAmount;
     const marginPercentage = totalPurchaseAmount > 0 ? parseFloat(((marginAmount / totalPurchaseAmount) * 100).toFixed(2)) : 0;
     
     // Créer la description de l'équipement depuis la liste
@@ -389,9 +397,9 @@ serve(async (req) => {
       client_email: clientEmail,
       equipment_description: equipmentDescription,
       amount: totalPurchaseAmount,
-      monthly_payment: totalMonthlyPayment,
+      monthly_payment: calculatedMonthlyPayment,
       coefficient: coefficient,
-      financed_amount: financedAmount,
+      financed_amount: totalFinancedAmount,
       margin: marginAmount,
       commission: 0,
       type: "client_request",
@@ -724,9 +732,9 @@ serve(async (req) => {
       client_company: companyName,
       equipment_description: equipmentDescription,
       amount: totalPurchaseAmount,
-      monthly_payment: totalMonthlyPayment,
+      monthly_payment: calculatedMonthlyPayment,
       coefficient: coefficient,
-      financed_amount: financedAmount,
+      financed_amount: totalFinancedAmount,
       margin: parseFloat(marginAmount.toFixed(2)),
       created_at: new Date().toISOString()
     };
