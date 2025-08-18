@@ -284,13 +284,63 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // Utiliser les valeurs calculées ou les valeurs par défaut
-    const coefficient = 3.55; // Coefficient par défaut
-    const financedAmount = totalPurchaseAmount * coefficient; // Calculer le montant financé
+    // Récupérer le leaser par défaut ou utiliser Grenke comme fallback
+    let coefficient = 3.160; // Coefficient Grenke par défaut exact
     
-    // Calculer la marge correcte
+    try {
+      // Essayer de récupérer le coefficient depuis les leasers en base
+      const { data: leasers, error: leaserError } = await supabaseAdmin
+        .from('leasers')
+        .select(`
+          id, name, 
+          leaser_ranges!inner(
+            min, max, coefficient, 
+            leaser_duration_coefficients(duration_months, coefficient)
+          )
+        `)
+        .eq('company_id', targetCompanyId)
+        .eq('leaser_ranges.min', 2500)
+        .eq('leaser_ranges.max', 5000)
+        .limit(1);
+        
+      if (!leaserError && leasers && leasers.length > 0) {
+        const leaser = leasers[0];
+        if (leaser.leaser_ranges && leaser.leaser_ranges.length > 0) {
+          const range = leaser.leaser_ranges[0];
+          
+          // Chercher le coefficient pour 36 mois
+          if (range.leaser_duration_coefficients && range.leaser_duration_coefficients.length > 0) {
+            const durationCoeff = range.leaser_duration_coefficients.find(dc => dc.duration_months === duration);
+            if (durationCoeff) {
+              coefficient = durationCoeff.coefficient;
+              console.log(`Coefficient trouvé pour ${duration} mois:`, coefficient);
+            } else {
+              coefficient = range.coefficient;
+              console.log(`Coefficient de base utilisé:`, coefficient);
+            }
+          } else {
+            coefficient = range.coefficient;
+            console.log(`Coefficient de base utilisé:`, coefficient);
+          }
+        }
+      }
+    } catch (error) {
+      console.log("Erreur lors de la récupération du coefficient, utilisation du défaut:", error);
+    }
+    
+    // CORRECTION CRITIQUE: Calculer le montant financé depuis la mensualité
+    // Formule correcte: montant financé = (mensualité totale × 100) ÷ coefficient
+    const financedAmount = (totalMonthlyPayment * 100) / coefficient;
+    
+    console.log(`Calculs financiers corrects:
+      - Mensualité totale: ${totalMonthlyPayment}€
+      - Coefficient utilisé: ${coefficient}
+      - Montant financé calculé: ${financedAmount}€
+      - Prix d'achat total: ${totalPurchaseAmount}€`);
+    
+    // Calculer la marge correcte: montant financé - prix d'achat
     const marginAmount = financedAmount - totalPurchaseAmount;
-    const marginPercentage = totalPurchaseAmount > 0 ? parseFloat(((marginAmount / totalPurchaseAmount) * 100).toFixed(2)) : 82;
+    const marginPercentage = totalPurchaseAmount > 0 ? parseFloat(((marginAmount / totalPurchaseAmount) * 100).toFixed(2)) : 0;
     
     // Créer la description de l'équipement depuis la liste
     const equipmentDescription = equipmentList.length > 0 
