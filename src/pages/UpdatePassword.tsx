@@ -124,6 +124,8 @@ const UpdatePassword = () => {
         }
       } else if (customToken) {
         console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
+        console.log("UpdatePassword - Vérification du token dans custom_auth_tokens...");
+        
         // Vérifier notre token personnalisé dans la base de données
         try {
           const { data: tokenData, error: tokenError } = await supabase
@@ -134,8 +136,25 @@ const UpdatePassword = () => {
             .gt('expires_at', new Date().toISOString())
             .single();
 
+          console.log("UpdatePassword - Résultat de la requête token:", { 
+            tokenData: tokenData ? {
+              token_type: tokenData.token_type,
+              user_email: tokenData.user_email,
+              expires_at: tokenData.expires_at,
+              used_at: tokenData.used_at,
+              company_id: tokenData.company_id
+            } : null, 
+            tokenError 
+          });
+
           if (tokenError || !tokenData) {
-            console.error("Token personnalisé invalide ou expiré:", { tokenError, tokenData });
+            console.error("❌ UpdatePassword - Token personnalisé invalide ou expiré:", { 
+              error: tokenError?.message, 
+              code: tokenError?.code, 
+              details: tokenError?.details, 
+              hint: tokenError?.hint,
+              tokenExists: !!tokenData 
+            });
             toast.error("Lien d'activation invalide ou expiré");
             navigate('/login');
             return;

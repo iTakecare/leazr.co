@@ -28,10 +28,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Demande de réinitialisation de mot de passe pour ${email}`);
 
-    // 1. Vérifier si l'utilisateur existe
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+    // 1. Vérifier si l'utilisateur existe via les users
+    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
     
-    if (userError || !userData.user) {
+    if (listError) {
+      console.error('Erreur lors de la récupération des utilisateurs:', listError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur lors de la vérification de l\'utilisateur' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    const userData = usersData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    
+    if (!userData) {
+      console.log(`Utilisateur non trouvé pour l'email: ${email}`);
       // Pour des raisons de sécurité, on retourne toujours success même si l'utilisateur n'existe pas
       return new Response(
         JSON.stringify({ 
@@ -46,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: profile } = await supabase
       .from('profiles')
       .select('company_id, first_name, last_name')
-      .eq('id', userData.user.id)
+      .eq('id', userData.id)
       .single();
 
     const userCompanyId = companyId || profile?.company_id;
@@ -66,13 +77,13 @@ const handler = async (req: Request): Promise<Response> => {
     const { error: tokenError } = await supabase
       .from('custom_auth_tokens')
       .insert({
-        email,
+        user_email: email,
         token: resetToken,
         token_type: 'password_reset',
         company_id: userCompanyId,
         expires_at: expiresAt.toISOString(),
         metadata: {
-          user_id: userData.user.id,
+          user_id: userData.id,
           first_name: profile?.first_name,
           last_name: profile?.last_name
         }
@@ -133,8 +144,24 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     // 7. Préparer le contenu de l'email
-    const APP_URL = Deno.env.get('APP_URL') || 'https://preview--leazr.lovable.app';
+    // Déterminer l'URL de base à partir de l'en-tête de la requête
+    const origin = req.headers.get('origin') || req.headers.get('referer');
+    let APP_URL = 'https://preview--leazr.lovable.app'; // Fallback par défaut
+    
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        APP_URL = originUrl.origin;
+        console.log('URL détectée depuis origin:', APP_URL);
+      } catch (e) {
+        console.log('Impossible de parser origin, utilisation du fallback:', APP_URL);
+      }
+    } else {
+      console.log('Pas d\'origin détecté, utilisation du fallback:', APP_URL);
+    }
+    
     const resetUrl = `${APP_URL}/update-password?token=${resetToken}&type=password_reset`;
+    console.log('URL de réinitialisation générée:', resetUrl);
     
     let emailContent = emailTemplate?.html_content || `
       <!DOCTYPE html>

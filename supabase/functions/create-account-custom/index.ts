@@ -208,8 +208,22 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 9. Préparer le contenu de l'email
-    // Utiliser l'URL Lovable actuelle
-    const APP_URL = 'https://ad498fde-39d4-4047-b0b8-05fb528da9c9.lovableproject.com';
+    // Déterminer l'URL de base à partir de l'en-tête de la requête
+    const origin = req.headers.get('origin') || req.headers.get('referer');
+    let APP_URL = 'https://preview--leazr.lovable.app'; // Fallback par défaut
+    
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        APP_URL = originUrl.origin;
+        console.log('URL détectée depuis origin:', APP_URL);
+      } catch (e) {
+        console.log('Impossible de parser origin, utilisation du fallback:', APP_URL);
+      }
+    } else {
+      console.log('Pas d\'origin détecté, utilisation du fallback:', APP_URL);
+    }
+    
     const encodedToken = encodeURIComponent(activationToken);
     const encodedType = encodeURIComponent('invitation');
     const activationUrl = `${APP_URL}/update-password?token=${encodedToken}&type=${encodedType}`;
