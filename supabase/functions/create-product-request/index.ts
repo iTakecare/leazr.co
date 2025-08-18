@@ -555,18 +555,21 @@ serve(async (req) => {
       // Texte brut pour les clients qui ne peuvent pas afficher le HTML
       const text = stripHtml(htmlContent);
       
-      // Vérifier si une clé API Resend est disponible
-      if (!smtpSettings.resend_api_key) {
-        console.error("Clé API Resend non configurée dans la base de données");
+      // Utiliser la clé API Resend globale d'iTakecare en priorité
+      const globalResendKey = Deno.env.get('RESEND_API_KEY');
+      const resendApiKey = globalResendKey || smtpSettings.resend_api_key;
+      
+      if (!resendApiKey) {
+        console.error("Clé API Resend non configurée - ni en global ni dans la base de données");
         throw new Error("Clé API Resend non configurée");
       }
       
       // Initialiser Resend avec la clé API
-      const resend = new Resend(smtpSettings.resend_api_key);
+      const resend = new Resend(resendApiKey);
       
-      // Format d'expéditeur
-      const fromName = smtpSettings.from_name || "iTakecare";
-      const fromEmail = smtpSettings.from_email || "noreply@itakecare.app";
+      // Format d'expéditeur (utiliser iTakecare par défaut si clé globale utilisée)
+      const fromName = globalResendKey ? "iTakecare" : (smtpSettings.from_name || "iTakecare");
+      const fromEmail = globalResendKey ? "noreply@itakecare.be" : (smtpSettings.from_email || "noreply@itakecare.be");
       const from = `${fromName} <${fromEmail}>`;
       
       console.log(`Tentative d'envoi d'email via Resend à ${clientEmail} depuis ${from}`);
