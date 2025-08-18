@@ -555,8 +555,8 @@ serve(async (req) => {
       // Texte brut pour les clients qui ne peuvent pas afficher le HTML
       const text = stripHtml(htmlContent);
       
-      // Utiliser la clé API Resend globale d'iTakecare en priorité
-      const globalResendKey = Deno.env.get('RESEND_API_KEY');
+      // Utiliser la clé API Resend spécifique d'iTakecare en priorité
+      const globalResendKey = Deno.env.get('ITAKECARE_RESEND_API');
       const resendApiKey = globalResendKey || smtpSettings.resend_api_key;
       
       if (!resendApiKey) {
