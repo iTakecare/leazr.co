@@ -344,67 +344,38 @@ serve(async (req) => {
     // Durée par défaut (36 mois)
     const duration = 36;
 
-    // ======= LOGIQUE CORRECTE DU CALCULATEUR D'OFFRE =======
-    // 1. Calculer le montant financé pour chaque équipement avec sa marge
-    // 2. Sommer tous les montants financés individuels
-    // 3. Trouver le coefficient basé sur ce montant total financé
-    // 4. Calculer la mensualité finale avec : (montant_financé × coefficient) / 100
+    // ============== LOGIQUE GRENKE CORRECTE ===============
+    // Logique basée sur les calculs réels de Grenke :
+    // 1. Utiliser la mensualité totale (déjà calculée)
+    // 2. Calculer le montant financé à partir de la mensualité et du coefficient Grenke
+    // 3. La marge = montant financé - prix d'achat total
     
-    // 1. Calculer le montant financé total selon la logique du calculateur
-    let totalFinancedAmount = 0;
+    console.log(`Mensualité totale des produits: ${totalMonthlyPayment.toFixed(2)}€`);
     
-    for (const item of detailedEquipmentList) {
-      // Utiliser les prix récupérés depuis la structure detailedEquipmentList
-      const equipmentPurchasePrice = item.purchase_price || 0;
-      const equipmentQuantity = item.quantity || 1;
-      
-      // Essayer de récupérer la marge spécifique du produit
-      let productMargin = 80; // Marge par défaut
-      
-      if (item.product_id) {
-        try {
-          const { data: productInfo, error: productError } = await supabaseAdmin
-            .from('products')
-            .select('name')
-            .eq('id', item.product_id)
-            .single();
-          
-          if (productInfo && !productError) {
-            // Appliquer les marges spécifiques selon les calculs de l'offre
-            if (productInfo.name.toLowerCase().includes('ipad')) {
-              productMargin = 43.18; // Marge iPad Pro
-            } else if (productInfo.name.toLowerCase().includes('hp') || productInfo.name.toLowerCase().includes('elitebook')) {
-              productMargin = 104.62; // Marge HP EliteBook
-            }
-            console.log(`Marge spécifique trouvée pour ${productInfo.name}: ${productMargin}%`);
-          }
-        } catch (error) {
-          console.log("Erreur récupération marge produit:", error);
-        }
-      }
-      
-      // Calculer le montant financé pour cet équipement : prix × quantité × (1 + marge%)
-      const equipmentFinancedAmount = equipmentPurchasePrice * equipmentQuantity * (1 + productMargin / 100);
-      totalFinancedAmount += equipmentFinancedAmount;
-      
-      console.log(`Équipement ${item.title}: Prix=${equipmentPurchasePrice}€, Quantité=${equipmentQuantity}, Marge=${productMargin}%, Montant financé=${equipmentFinancedAmount.toFixed(2)}€`);
+    // 1. Obtenir le coefficient Grenke (estimation initiale pour trouver le bon range)
+    let coefficient = getCoefficientFromLeaser(defaultLeaser, totalPurchaseAmount, duration);
+    
+    // 2. Calculer le montant financé selon la logique Grenke inverse
+    // montant_financé = (mensualité × 100) / coefficient
+    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
+    
+    // 3. Vérifier si on est dans le bon range et ajuster le coefficient si nécessaire
+    const refinedCoefficient = getCoefficientFromLeaser(defaultLeaser, totalFinancedAmount, duration);
+    if (Math.abs(refinedCoefficient - coefficient) > 0.001) {
+      totalFinancedAmount = (totalMonthlyPayment * 100) / refinedCoefficient;
+      coefficient = refinedCoefficient;
     }
-    
-    console.log(`Montant financé total calculé: ${totalFinancedAmount.toFixed(2)}€`);
-    
-    // 2. Trouver le coefficient basé sur le montant financé total
-    const coefficient = getCoefficientFromLeaser(defaultLeaser, totalFinancedAmount, duration);
-    
-    // 3. Calculer la mensualité finale avec la bonne formule
-    const calculatedMonthlyPayment = (totalFinancedAmount * coefficient) / 100;
     
     console.log(`Calculs selon le calculateur d'offre:
       - Prix d'achat total: ${totalPurchaseAmount}€
       - Montant financé total: ${totalFinancedAmount.toFixed(2)}€
       - Coefficient utilisé: ${coefficient}
-      - Mensualité calculée: ${calculatedMonthlyPayment.toFixed(2)}€`);
+      - Mensualité calculée: ${totalMonthlyPayment.toFixed(2)}€`);
     
-    // 4. Calculer la marge correcte: montant financé - prix d'achat
+    // 4. Utiliser les valeurs finales
+    const calculatedMonthlyPayment = totalMonthlyPayment;
+    
+    // 5. Calculer la marge correcte: montant financé - prix d'achat
     const marginAmount = totalFinancedAmount - totalPurchaseAmount;
     const marginPercentage = totalPurchaseAmount > 0 ? parseFloat(((marginAmount / totalPurchaseAmount) * 100).toFixed(2)) : 0;
     
@@ -458,13 +429,20 @@ serve(async (req) => {
       console.log("Création des équipements détaillés:", detailedEquipmentList.length, "items");
       
       for (const equipment of detailedEquipmentList) {
+        // Calculer la marge proportionnelle pour cet équipement
+        const equipmentTotalPrice = equipment.purchase_price * equipment.quantity;
+        const equipmentMargin = totalPurchaseAmount > 0 
+          ? (equipmentTotalPrice / totalPurchaseAmount) * marginAmount 
+          : 0;
+        
         const equipmentData = {
           offer_id: requestId,
           title: equipment.title,
           purchase_price: equipment.purchase_price,
           quantity: equipment.quantity,
           monthly_payment: equipment.monthly_payment,
-          margin: marginAmount,
+          margin: equipmentMargin,
+          duration: equipment.duration,
         };
         
         console.log("Création de l'équipement:", equipmentData);
