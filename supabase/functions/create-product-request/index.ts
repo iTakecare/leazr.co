@@ -342,14 +342,17 @@ serve(async (req) => {
     // Durée par défaut (36 mois)
     const duration = 36;
 
-    // Reproduire la logique itérative de calculateSalePriceWithLeaser
+    // FORMULE CORRECTE POUR LE CALCUL DU MONTANT FINANCÉ
+    // La formule standard de leasing : (mensualité × 100) / coefficient
+    // Le problème était dans le coefficient, pas dans la formule
+    
     // 1. Estimation initiale avec coefficient par défaut
     let estimatedAmount = (totalMonthlyPayment * 100) / 3.160;
     
     // 2. Trouver le coefficient basé sur l'estimation
     let coefficient = getCoefficientFromLeaser(defaultLeaser, estimatedAmount, duration);
     
-    // 3. Calculer le montant financé avec le bon coefficient
+    // 3. Calculer le montant financé avec la formule standard
     let financedAmount = (totalMonthlyPayment * 100) / coefficient;
     
     // 4. Si le montant calculé diffère significativement, recalculer le coefficient
@@ -357,6 +360,11 @@ serve(async (req) => {
       coefficient = getCoefficientFromLeaser(defaultLeaser, financedAmount, duration);
       financedAmount = (totalMonthlyPayment * 100) / coefficient;
     }
+    
+    // Debug: Vérifier quel coefficient aurait dû être utilisé pour obtenir 2915.03€
+    const expectedFinancedAmount = 2915.03;
+    const correctCoefficient = (totalMonthlyPayment * 100) / expectedFinancedAmount;
+    console.log(`Debug coefficient: Pour obtenir ${expectedFinancedAmount}€, il faudrait un coefficient de ${correctCoefficient.toFixed(3)}`)
     
     console.log(`Calculs financiers corrects:
       - Mensualité totale: ${totalMonthlyPayment}€
