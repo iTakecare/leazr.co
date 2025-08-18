@@ -428,16 +428,21 @@ serve(async (req) => {
       const generateSummaryItems = (equipment: string, totalAmount: number, monthlyPayment: number): string => {
         let items = [`<li>📱 Équipement : ${equipment}</li>`];
         
-        // N'afficher le montant total que s'il est supérieur à 0
-        if (totalAmount > 0) {
-          items.push(`<li>💰 Montant total : ${formatAmount(totalAmount)} €</li>`);
-        }
-        
         items.push(`<li>📅 Paiement mensuel estimé : ${formatMonthlyPayment(monthlyPayment)} €/mois</li>`);
         
         return items.join('\n            ');
       };
 
+      // Récupérer les informations de la company iTakecare pour le logo
+      const { data: companyInfo, error: companyError } = await supabaseAdmin
+        .from('companies')
+        .select('name, logo_url')
+        .eq('id', targetCompanyId)
+        .single();
+      
+      const companyLogo = companyInfo?.logo_url || '';
+      const companyName = companyInfo?.name || 'iTakecare';
+      
       // Récupérer le modèle d'email de demande de produit
       const { data: emailTemplate, error: templateError } = await supabaseAdmin
         .from('email_templates')
@@ -446,11 +451,11 @@ serve(async (req) => {
         .eq('active', true)
         .single();
       
-      let subject = `🎉 Bienvenue sur iTakecare - Confirmation de votre demande`;
+      let subject = `🎉 Bienvenue sur ${companyName} - Confirmation de votre demande`;
       let htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #2d618f; margin-bottom: 10px;">🎉 iTakecare</h1>
+            ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${companyName}</h1>`}
           </div>
           <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
           <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
@@ -463,7 +468,7 @@ serve(async (req) => {
             <p style="margin: 0; color: #2d618f; font-weight: bold;">💡 Prochaines étapes :</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;">Un de nos experts vous contactera dans les plus brefs délais pour finaliser votre demande.</p>
           </div>
-          <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666;">🤝 Cordialement,<br><strong>L'équipe iTakecare</strong></p>
+          <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666;">🤝 Cordialement,<br><strong>L'équipe ${companyName}</strong></p>
         </div>
       `;
       
@@ -546,7 +551,7 @@ serve(async (req) => {
               htmlContent = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
                   <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="color: #2d618f; margin-bottom: 10px;">🎉 iTakecare</h1>
+                    ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${companyName}</h1>`}
                   </div>
                   <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
                   <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
@@ -569,11 +574,11 @@ serve(async (req) => {
                     <p style="margin: 0; color: #2d618f; font-weight: bold;">💡 Prochaines étapes :</p>
                     <p style="margin: 5px 0 0 0; font-size: 14px;">Un de nos experts vous contactera dans les plus brefs délais pour finaliser votre demande.</p>
                   </div>
-                  <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666;">🤝 Cordialement,<br><strong>L'équipe iTakecare</strong></p>
+                  <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666;">🤝 Cordialement,<br><strong>L'équipe ${companyName}</strong></p>
                 </div>
               `;
               
-              subject = `Bienvenue sur iTakecare - Créez votre mot de passe`;
+              subject = `Bienvenue sur ${companyName} - Créez votre mot de passe`;
             }
           }
         } catch (accountError) {
