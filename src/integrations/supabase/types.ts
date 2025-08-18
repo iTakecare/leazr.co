@@ -3440,6 +3440,7 @@ export type Database = {
           delivery_postal_code: string | null
           delivery_site_id: string | null
           delivery_type: string | null
+          duration: number
           id: string
           margin: number
           monthly_payment: number | null
@@ -3463,6 +3464,7 @@ export type Database = {
           delivery_postal_code?: string | null
           delivery_site_id?: string | null
           delivery_type?: string | null
+          duration?: number
           id?: string
           margin?: number
           monthly_payment?: number | null
@@ -3486,6 +3488,7 @@ export type Database = {
           delivery_postal_code?: string | null
           delivery_site_id?: string | null
           delivery_type?: string | null
+          duration?: number
           id?: string
           margin?: number
           monthly_payment?: number | null
