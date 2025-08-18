@@ -121,7 +121,32 @@ serve(async (req) => {
       for (const product of data.products) {
         console.log("Produit reçu:", JSON.stringify(product, null, 2));
         
-        const productName = product.product_name || product.name || 'Produit';
+        // Récupérer le nom du produit depuis la table products
+        let productName = product.product_name || product.name || 'Produit';
+        let productDescription = '';
+        
+        if (product.product_id) {
+          console.log(`Récupération du nom du produit pour product_id: ${product.product_id}`);
+          
+          try {
+            const { data: productInfo, error: productInfoError } = await supabaseAdmin
+              .from('products')
+              .select('name, description')
+              .eq('id', product.product_id)
+              .single();
+            
+            if (productInfo && !productInfoError) {
+              console.log(`Informations produit récupérées:`, productInfo);
+              productName = productInfo.name || productName;
+              productDescription = productInfo.description || '';
+            }
+          } catch (error) {
+            console.log(`Erreur lors de la récupération du nom du produit:`, error);
+          }
+        }
+        
+        // Récupérer les attributs du variant
+        let variantAttributes = {};
         const variantName = product.variant_name || '';
         const quantity = product.quantity || 1;
         const duration = product.duration || 36;
@@ -136,21 +161,22 @@ serve(async (req) => {
           totalPrice = unitPrice * duration / 3.5; // Coefficient moyen approximatif
         }
         
-        // Si on a un variant_id, essayer de récupérer les prix depuis product_variant_prices
+        // Si on a un variant_id, essayer de récupérer les prix et attributs depuis product_variant_prices
         if ((!unitPrice || !totalPrice) && product.variant_id) {
-          console.log(`Tentative de récupération des prix pour variant_id: ${product.variant_id}`);
+          console.log(`Tentative de récupération des prix et attributs pour variant_id: ${product.variant_id}`);
           
           try {
             const { data: variantData, error: variantError } = await supabaseAdmin
               .from('product_variant_prices')
-              .select('price, monthly_price')
+              .select('price, monthly_price, attributes')
               .eq('id', product.variant_id)
               .single();
             
             if (variantData && !variantError) {
-              console.log(`Prix récupérés de product_variant_prices:`, variantData);
+              console.log(`Prix et attributs récupérés de product_variant_prices:`, variantData);
               if (!unitPrice) unitPrice = variantData.monthly_price || 0;
               if (!totalPrice) totalPrice = variantData.price || 0;
+              variantAttributes = variantData.attributes || {};
             }
           } catch (error) {
             console.log(`Erreur lors de la récupération des prix variant:`, error);
@@ -201,7 +227,8 @@ serve(async (req) => {
           monthly_payment: unitPrice, // Prix mensuel pour cet équipement
           duration: duration,
           product_id: product.product_id,
-          variant_id: product.variant_id
+          variant_id: product.variant_id,
+          attributes: variantAttributes // Ajouter les attributs du variant
         });
       }
     }
@@ -323,16 +350,42 @@ serve(async (req) => {
         };
         
         console.log("Création de l'équipement:", equipmentData);
+        console.log("Attributs du variant à stocker:", equipment.attributes);
         
-        const { error: equipmentError } = await supabaseAdmin
+        const { data: equipmentResult, error: equipmentError } = await supabaseAdmin
           .from('offer_equipment')
-          .insert(equipmentData);
+          .insert(equipmentData)
+          .select('id')
+          .single();
         
         if (equipmentError) {
           console.error("Erreur lors de la création de l'équipement:", equipmentError);
           // On continue même si la création d'un équipement échoue
         } else {
           console.log("Équipement créé avec succès:", equipment.title);
+          
+          // Stocker les attributs du variant si disponibles
+          if (equipmentResult && equipment.attributes && Object.keys(equipment.attributes).length > 0) {
+            console.log("Stockage des attributs pour l'équipement ID:", equipmentResult.id);
+            
+            for (const [key, value] of Object.entries(equipment.attributes)) {
+              const attributeData = {
+                equipment_id: equipmentResult.id,
+                key: key,
+                value: String(value)
+              };
+              
+              const { error: attributeError } = await supabaseAdmin
+                .from('offer_equipment_attributes')
+                .insert(attributeData);
+              
+              if (attributeError) {
+                console.error(`Erreur lors de la création de l'attribut ${key}:`, attributeError);
+              } else {
+                console.log(`Attribut ${key}: ${value} créé avec succès`);
+              }
+            }
+          }
         }
       }
     }
