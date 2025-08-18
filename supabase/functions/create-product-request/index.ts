@@ -428,7 +428,7 @@ serve(async (req) => {
       const generateSummaryItems = (equipment: string, totalAmount: number, monthlyPayment: number): string => {
         let items = [`<li>📱 Équipement : ${equipment}</li>`];
         
-        items.push(`<li>📅 Paiement mensuel estimé : ${formatMonthlyPayment(monthlyPayment)} €/mois</li>`);
+        items.push(`<li>📅 Mensualité : ${formatMonthlyPayment(monthlyPayment)} €/mois</li>`);
         
         return items.join('\n            ');
       };
