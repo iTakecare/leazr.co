@@ -416,6 +416,28 @@ serve(async (req) => {
         use_resend: smtpSettings.use_resend
       });
 
+      // Fonctions utilitaires pour formatter les emails
+      const formatAmount = (amount: number): string => {
+        return parseFloat(amount.toFixed(2)).toString();
+      };
+      
+      const formatMonthlyPayment = (payment: number): string => {
+        return parseFloat(payment.toFixed(2)).toString();
+      };
+      
+      const generateSummaryItems = (equipment: string, totalAmount: number, monthlyPayment: number): string => {
+        let items = [`<li>📱 Équipement : ${equipment}</li>`];
+        
+        // N'afficher le montant total que s'il est supérieur à 0
+        if (totalAmount > 0) {
+          items.push(`<li>💰 Montant total : ${formatAmount(totalAmount)} €</li>`);
+        }
+        
+        items.push(`<li>📅 Paiement mensuel estimé : ${formatMonthlyPayment(monthlyPayment)} €/mois</li>`);
+        
+        return items.join('\n            ');
+      };
+
       // Récupérer le modèle d'email de demande de produit
       const { data: emailTemplate, error: templateError } = await supabaseAdmin
         .from('email_templates')
@@ -424,19 +446,24 @@ serve(async (req) => {
         .eq('active', true)
         .single();
       
-      let subject = `Bienvenue sur iTakecare - Confirmation de votre demande`;
+      let subject = `🎉 Bienvenue sur iTakecare - Confirmation de votre demande`;
       let htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-          <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${clientName || companyName},</h2>
-          <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
-          <p>Voici un récapitulatif de votre demande :</p>
-          <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <li>Équipement : ${equipmentDescription}</li>
-            <li>Montant total : ${totalPurchaseAmount} €</li>
-            <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #2d618f; margin-bottom: 10px;">🎉 iTakecare</h1>
+          </div>
+          <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
+          <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
+          <p style="font-size: 16px; line-height: 1.6;">📋 Voici un récapitulatif de votre demande :</p>
+          <ul style="background: linear-gradient(135deg, #f8fafd 0%, #e8f4fd 100%); padding: 20px; border-radius: 10px; list-style: none; margin: 20px 0; border-left: 4px solid #2d618f;">
+            ${generateSummaryItems(equipmentDescription, totalPurchaseAmount, totalMonthlyPayment)}
           </ul>
-          <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-          <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+          <p style="font-size: 16px; line-height: 1.6;">⏱️ Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+          <div style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4a90e2;">
+            <p style="margin: 0; color: #2d618f; font-weight: bold;">💡 Prochaines étapes :</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px;">Un de nos experts vous contactera dans les plus brefs délais pour finaliser votre demande.</p>
+          </div>
+          <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666;">🤝 Cordialement,<br><strong>L'équipe iTakecare</strong></p>
         </div>
       `;
       
@@ -517,27 +544,32 @@ serve(async (req) => {
               
               // Template spécial pour création de compte
               htmlContent = `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px;">
-                  <h2 style="color: #2d618f; border-bottom: 1px solid #eee; padding-bottom: 10px;">Bienvenue ${clientName || companyName},</h2>
-                  <p>Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
+                  <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #2d618f; margin-bottom: 10px;">🎉 iTakecare</h1>
+                  </div>
+                  <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
+                  <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
                   
-                  <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <h3 style="color: #2d618f; margin-top: 0;">🎉 Votre compte client a été créé !</h3>
-                    <p>Pour finaliser la création de votre compte et définir votre mot de passe, cliquez sur le bouton ci-dessous :</p>
-                    <div style="text-align: center; margin: 20px 0;">
-                      <a href="${passwordLink}" style="background-color: #2d618f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Définir mon mot de passe</a>
+                  <div style="background: linear-gradient(135deg, #e8f4fd 0%, #d1e9fc 100%); padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #2d618f;">
+                    <h3 style="color: #2d618f; margin-top: 0; display: flex; align-items: center;">🎉 Votre compte client a été créé !</h3>
+                    <p style="font-size: 16px; line-height: 1.6;">🔐 Pour finaliser la création de votre compte et définir votre mot de passe, cliquez sur le bouton ci-dessous :</p>
+                    <div style="text-align: center; margin: 25px 0;">
+                      <a href="${passwordLink}" style="background: linear-gradient(135deg, #2d618f 0%, #4a90e2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; box-shadow: 0 4px 15px rgba(45, 97, 143, 0.3);">🚀 Définir mon mot de passe</a>
                     </div>
-                    <p style="font-size: 12px; color: #666;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${passwordLink}</p>
+                    <p style="font-size: 12px; color: #666; text-align: center;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur : ${passwordLink}</p>
                   </div>
                   
-                  <p>Voici un récapitulatif de votre demande :</p>
-                  <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px;">
-                    <li>Équipement : ${equipmentDescription}</li>
-                     <li>Montant total : ${totalPurchaseAmount} €</li>
-                     <li>Paiement mensuel estimé : ${totalMonthlyPayment} €/mois</li>
+                  <p style="font-size: 16px; line-height: 1.6;">📋 Voici un récapitulatif de votre demande :</p>
+                  <ul style="background: linear-gradient(135deg, #f8fafd 0%, #e8f4fd 100%); padding: 20px; border-radius: 10px; list-style: none; margin: 20px 0; border-left: 4px solid #2d618f;">
+                    ${generateSummaryItems(equipmentDescription, totalPurchaseAmount, totalMonthlyPayment)}
                   </ul>
-                  <p>Notre équipe va étudier votre demande et vous contactera rapidement.</p>
-                  <p style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;">Cordialement,<br>L'équipe iTakecare</p>
+                  <p style="font-size: 16px; line-height: 1.6;">⏱️ Notre équipe va étudier votre demande et vous contactera rapidement.</p>
+                  <div style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4a90e2;">
+                    <p style="margin: 0; color: #2d618f; font-weight: bold;">💡 Prochaines étapes :</p>
+                    <p style="margin: 5px 0 0 0; font-size: 14px;">Un de nos experts vous contactera dans les plus brefs délais pour finaliser votre demande.</p>
+                  </div>
+                  <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666;">🤝 Cordialement,<br><strong>L'équipe iTakecare</strong></p>
                 </div>
               `;
               
