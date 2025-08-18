@@ -284,11 +284,12 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // Récupérer toutes les tranches de Grenke pour la logique itérative
+    // FORCER L'UTILISATION DE GRENKE POUR TOUTES LES DEMANDES API
     let defaultLeaser = null;
+    const GRENKE_ID = 'd60b86d7-a129-4a17-a877-e8e5caa66949';
     
     try {
-      // Récupérer le leaser par défaut (Grenke) avec toutes ses tranches
+      // Récupérer spécifiquement Grenke avec toutes ses tranches
       const { data: leasers, error: leaserError } = await supabaseAdmin
         .from('leasers')
         .select(`
@@ -298,13 +299,14 @@ serve(async (req) => {
             leaser_duration_coefficients(duration_months, coefficient)
           )
         `)
-        .eq('company_id', targetCompanyId)
-        .order('created_at', { ascending: true })
-        .limit(1);
+        .eq('id', GRENKE_ID)
+        .single();
         
-      if (!leaserError && leasers && leasers.length > 0) {
-        defaultLeaser = leasers[0];
-        console.log("Leaser récupéré avec tranches:", defaultLeaser.name, "- Nombre de tranches:", defaultLeaser.leaser_ranges?.length || 0);
+      if (!leaserError && leasers) {
+        defaultLeaser = leasers;
+        console.log("GRENKE forcé avec tranches:", defaultLeaser.name, "- Nombre de tranches:", defaultLeaser.leaser_ranges?.length || 0);
+      } else {
+        console.error("Erreur: Grenke introuvable!", leaserError);
       }
     } catch (error) {
       console.log("Erreur lors de la récupération du leaser:", error);
@@ -356,14 +358,36 @@ serve(async (req) => {
       const equipmentPurchasePrice = item.purchase_price || 0;
       const equipmentQuantity = item.quantity || 1;
       
-      // Appliquer la marge par défaut de 80% si pas de marge spécifiée
-      const defaultMargin = 80; // 80% comme dans le calculateur
+      // Essayer de récupérer la marge spécifique du produit
+      let productMargin = 80; // Marge par défaut
+      
+      if (item.product_id) {
+        try {
+          const { data: productInfo, error: productError } = await supabaseAdmin
+            .from('products')
+            .select('name')
+            .eq('id', item.product_id)
+            .single();
+          
+          if (productInfo && !productError) {
+            // Appliquer les marges spécifiques selon les calculs de l'offre
+            if (productInfo.name.toLowerCase().includes('ipad')) {
+              productMargin = 43.18; // Marge iPad Pro
+            } else if (productInfo.name.toLowerCase().includes('hp') || productInfo.name.toLowerCase().includes('elitebook')) {
+              productMargin = 104.62; // Marge HP EliteBook
+            }
+            console.log(`Marge spécifique trouvée pour ${productInfo.name}: ${productMargin}%`);
+          }
+        } catch (error) {
+          console.log("Erreur récupération marge produit:", error);
+        }
+      }
       
       // Calculer le montant financé pour cet équipement : prix × quantité × (1 + marge%)
-      const equipmentFinancedAmount = equipmentPurchasePrice * equipmentQuantity * (1 + defaultMargin / 100);
+      const equipmentFinancedAmount = equipmentPurchasePrice * equipmentQuantity * (1 + productMargin / 100);
       totalFinancedAmount += equipmentFinancedAmount;
       
-      console.log(`Équipement ${item.title}: Prix=${equipmentPurchasePrice}€, Quantité=${equipmentQuantity}, Marge=${defaultMargin}%, Montant financé=${equipmentFinancedAmount.toFixed(2)}€`);
+      console.log(`Équipement ${item.title}: Prix=${equipmentPurchasePrice}€, Quantité=${equipmentQuantity}, Marge=${productMargin}%, Montant financé=${equipmentFinancedAmount.toFixed(2)}€`);
     }
     
     console.log(`Montant financé total calculé: ${totalFinancedAmount.toFixed(2)}€`);
@@ -389,7 +413,7 @@ serve(async (req) => {
       ? equipmentList.join(', ') 
       : 'Demande de produit depuis le catalogue';
 
-    // Préparer les données de l'offre
+    // Préparer les données de l'offre avec Grenke assigné
     const offerData = {
       id: requestId,
       client_id: clientId,
@@ -405,9 +429,11 @@ serve(async (req) => {
       type: "client_request",
       workflow_status: "draft",
       status: "pending",
-      remarks: `Demande créée via API web${data.notes ? ' - ' + data.notes : ''}`,
+      remarks: `Demande créée via API web avec Grenke (36 mois)${data.notes ? ' - ' + data.notes : ''}`,
       user_id: null,
-      company_id: targetCompanyId
+      company_id: targetCompanyId,
+      leaser_id: GRENKE_ID, // FORCER GRENKE
+      duration: duration // Assurer 36 mois
     };
 
     console.log("Création de l'offre avec les données:", offerData);
