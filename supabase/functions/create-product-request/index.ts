@@ -284,53 +284,76 @@ serve(async (req) => {
       // On continue même si la création du client échoue
     }
 
-    // Récupérer le leaser par défaut ou utiliser Grenke comme fallback
-    let coefficient = 3.160; // Coefficient Grenke par défaut exact
+    // Récupérer toutes les tranches de Grenke pour la logique itérative
+    let defaultLeaser = null;
     
     try {
-      // Essayer de récupérer le coefficient depuis les leasers en base
+      // Récupérer le leaser par défaut (Grenke) avec toutes ses tranches
       const { data: leasers, error: leaserError } = await supabaseAdmin
         .from('leasers')
         .select(`
-          id, name, 
-          leaser_ranges!inner(
-            min, max, coefficient, 
+          id, name,
+          leaser_ranges(
+            id, min, max, coefficient,
             leaser_duration_coefficients(duration_months, coefficient)
           )
         `)
         .eq('company_id', targetCompanyId)
-        .eq('leaser_ranges.min', 2500)
-        .eq('leaser_ranges.max', 5000)
+        .order('created_at', { ascending: true })
         .limit(1);
         
       if (!leaserError && leasers && leasers.length > 0) {
-        const leaser = leasers[0];
-        if (leaser.leaser_ranges && leaser.leaser_ranges.length > 0) {
-          const range = leaser.leaser_ranges[0];
-          
-          // Chercher le coefficient pour 36 mois
-          if (range.leaser_duration_coefficients && range.leaser_duration_coefficients.length > 0) {
-            const durationCoeff = range.leaser_duration_coefficients.find(dc => dc.duration_months === duration);
-            if (durationCoeff) {
-              coefficient = durationCoeff.coefficient;
-              console.log(`Coefficient trouvé pour ${duration} mois:`, coefficient);
-            } else {
-              coefficient = range.coefficient;
-              console.log(`Coefficient de base utilisé:`, coefficient);
-            }
-          } else {
-            coefficient = range.coefficient;
-            console.log(`Coefficient de base utilisé:`, coefficient);
-          }
-        }
+        defaultLeaser = leasers[0];
+        console.log("Leaser récupéré avec tranches:", defaultLeaser.name, "- Nombre de tranches:", defaultLeaser.leaser_ranges?.length || 0);
       }
     } catch (error) {
-      console.log("Erreur lors de la récupération du coefficient, utilisation du défaut:", error);
+      console.log("Erreur lors de la récupération du leaser:", error);
     }
+
+    // Fonction helper pour trouver le coefficient selon le montant et la durée
+    const getCoefficientFromLeaser = (leaser: any, amount: number, duration: number = 36): number => {
+      if (!leaser || !leaser.leaser_ranges || leaser.leaser_ranges.length === 0) {
+        return 3.160; // Coefficient Grenke par défaut
+      }
+
+      // Trouver la tranche qui contient le montant
+      const matchingRange = leaser.leaser_ranges.find((range: any) => 
+        amount >= range.min && amount <= range.max
+      );
+
+      if (!matchingRange) {
+        return leaser.leaser_ranges[0]?.coefficient || 3.160;
+      }
+
+      // Si la tranche a des coefficients par durée, les utiliser
+      if (matchingRange.leaser_duration_coefficients && matchingRange.leaser_duration_coefficients.length > 0) {
+        const durationCoeff = matchingRange.leaser_duration_coefficients.find(
+          (dc: any) => dc.duration_months === duration
+        );
+        
+        if (durationCoeff) {
+          return durationCoeff.coefficient;
+        }
+      }
+
+      return matchingRange.coefficient;
+    };
+
+    // Reproduire la logique itérative de calculateSalePriceWithLeaser
+    // 1. Estimation initiale avec coefficient par défaut
+    let estimatedAmount = (totalMonthlyPayment * 100) / 3.160;
     
-    // CORRECTION CRITIQUE: Calculer le montant financé depuis la mensualité
-    // Formule correcte: montant financé = (mensualité totale × 100) ÷ coefficient
-    const financedAmount = (totalMonthlyPayment * 100) / coefficient;
+    // 2. Trouver le coefficient basé sur l'estimation
+    let coefficient = getCoefficientFromLeaser(defaultLeaser, estimatedAmount, duration);
+    
+    // 3. Calculer le montant financé avec le bon coefficient
+    let financedAmount = (totalMonthlyPayment * 100) / coefficient;
+    
+    // 4. Si le montant calculé diffère significativement, recalculer le coefficient
+    if (Math.abs(financedAmount - estimatedAmount) > estimatedAmount * 0.1) {
+      coefficient = getCoefficientFromLeaser(defaultLeaser, financedAmount, duration);
+      financedAmount = (totalMonthlyPayment * 100) / coefficient;
+    }
     
     console.log(`Calculs financiers corrects:
       - Mensualité totale: ${totalMonthlyPayment}€
