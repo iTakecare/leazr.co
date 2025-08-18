@@ -136,9 +136,30 @@ serve(async (req) => {
           totalPrice = unitPrice * duration / 3.5; // Coefficient moyen approximatif
         }
         
-        // Si on a un product_id, essayer de récupérer les prix depuis la DB
+        // Si on a un variant_id, essayer de récupérer les prix depuis product_variant_prices
+        if ((!unitPrice || !totalPrice) && product.variant_id) {
+          console.log(`Tentative de récupération des prix pour variant_id: ${product.variant_id}`);
+          
+          try {
+            const { data: variantData, error: variantError } = await supabaseAdmin
+              .from('product_variant_prices')
+              .select('price, monthly_price')
+              .eq('id', product.variant_id)
+              .single();
+            
+            if (variantData && !variantError) {
+              console.log(`Prix récupérés de product_variant_prices:`, variantData);
+              if (!unitPrice) unitPrice = variantData.monthly_price || 0;
+              if (!totalPrice) totalPrice = variantData.price || 0;
+            }
+          } catch (error) {
+            console.log(`Erreur lors de la récupération des prix variant:`, error);
+          }
+        }
+        
+        // Fallback: Si pas de variant_id ou pas de prix trouvé, essayer avec product_id dans products
         if ((!unitPrice || !totalPrice) && product.product_id) {
-          console.log(`Tentative de récupération des prix pour product_id: ${product.product_id}`);
+          console.log(`Fallback: tentative de récupération des prix pour product_id: ${product.product_id}`);
           
           try {
             const { data: productData, error: productError } = await supabaseAdmin
@@ -148,12 +169,12 @@ serve(async (req) => {
               .single();
             
             if (productData && !productError) {
-              console.log(`Prix récupérés de la DB:`, productData);
+              console.log(`Prix récupérés de products (fallback):`, productData);
               if (!unitPrice) unitPrice = productData.monthly_price || 0;
               if (!totalPrice) totalPrice = productData.price || 0;
             }
           } catch (error) {
-            console.log(`Erreur lors de la récupération des prix:`, error);
+            console.log(`Erreur lors de la récupération des prix product:`, error);
           }
         }
         
