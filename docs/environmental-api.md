@@ -1,8 +1,16 @@
 # Environmental Data API Documentation
 
+## Version 2024.3 - Mise à jour complète
+*Dernière mise à jour : 18 août 2025*
+
 ## Overview
 
 L'API environnementale d'iTakecare permet de gérer et récupérer les données d'impact CO2 pour les catégories de produits et les produits individuels. Cette API fournit des données d'économies carbone pour améliorer la transparence environnementale du catalogue.
+
+### État de l'implémentation
+- **Edge Functions** : Déployées et opérationnelles sur Supabase
+- **Endpoints** : Tous fonctionnels avec configuration CORS appropriée
+- **Services Frontend** : Intégrés dans `catalogService.ts` avec gestion d'erreurs robuste
 
 ## Architecture
 

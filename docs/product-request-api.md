@@ -271,6 +271,18 @@ Les logs sont disponibles dans le dashboard Supabase Edge Functions.
 
 ## Version et Compatibilité
 
-- **Version actuelle** : 2024.1
+- **Version actuelle** : 2024.3
 - **Compatibilité** : Toutes les versions du catalogue iTakecare
-- **Dernière mise à jour** : Correction du type d'offre `"client_request"`
+- **Dernière mise à jour** : 18 août 2025 - Corrections des clients libres et optimisations système
+
+### Améliorations version 2024.3
+- Correction complète de la fonction `getFreeClients` pour les offres internes
+- Support des clients libres (non rattachés aux ambassadeurs)
+- Amélioration de l'isolation multi-tenant des données clients
+- Optimisation des fonctions RPC sécurisées (`get_free_clients_secure`, `get_all_clients_secure`)
+- Logs de débogage améliorés pour un meilleur monitoring
+
+### Edge Functions déployées
+- `create-product-request`: Création automatique de clients et d'offres
+- `catalog-api`: API complète du catalogue avec données environnementales
+- Toutes les fonctions sont déployées sur Supabase avec configuration CORS appropriée

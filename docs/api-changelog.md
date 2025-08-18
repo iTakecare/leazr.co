@@ -1,5 +1,26 @@
 # API Changelog - Product Request
 
+## Version 2024.3 - Correction des clients libres et améliorations système
+*Date de mise à jour : 18 août 2025*
+
+### Corrections critiques
+
+**Correction de la fonction `getFreeClients`**
+- Implémentation complète de la fonction `getFreeClients` dans `clientService.ts`
+- Utilisation de la fonction RPC sécurisée `get_free_clients_secure()`
+- Correction du bug "Aucun client disponible" en mode offre interne
+- Ajout de logs détaillés pour le débogage
+
+**Corrections du système de clients**
+- Correction de la fonction `create_primary_collaborator_for_client`
+- Amélioration de l'isolation multi-tenant pour les clients libres
+- Optimisation des requêtes RPC pour les performances
+
+### Fonctionnalités techniques ajoutées
+- Support complet des clients libres (non rattachés aux ambassadeurs)
+- Mécanisme de sélection de clients optimisé pour les offres internes
+- Logging amélioré pour tous les services clients
+
 ## Version 2024.2 - Adresses de facturation et livraison séparées
 
 ### Nouvelles fonctionnalités
