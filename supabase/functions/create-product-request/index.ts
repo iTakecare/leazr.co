@@ -403,8 +403,7 @@ serve(async (req) => {
       remarks: `Demande créée via API web avec Grenke (36 mois)${data.notes ? ' - ' + data.notes : ''}`,
       user_id: null,
       company_id: targetCompanyId,
-      leaser_id: GRENKE_ID, // FORCER GRENKE
-      duration: duration // Assurer 36 mois
+      leaser_id: GRENKE_ID // FORCER GRENKE
     };
 
     console.log("Création de l'offre avec les données:", offerData);
