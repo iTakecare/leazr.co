@@ -115,16 +115,49 @@ serve(async (req) => {
     let equipmentList = [];
     let detailedEquipmentList = [];
     
-    console.log("Traitement des produits:", data.products);
+    console.log("Traitement des produits:", JSON.stringify(data.products, null, 2));
     
     if (data.products && Array.isArray(data.products)) {
       for (const product of data.products) {
+        console.log("Produit reçu:", JSON.stringify(product, null, 2));
+        
         const productName = product.product_name || product.name || 'Produit';
         const variantName = product.variant_name || '';
         const quantity = product.quantity || 1;
         const duration = product.duration || 36;
-        const unitPrice = product.unit_price || 0; // Prix mensuel
-        const totalPrice = product.total_price || 0; // Prix d'achat total
+        
+        // Essayer différentes propriétés possibles pour les prix
+        let unitPrice = product.unit_price || product.monthly_price || product.price || 0;
+        let totalPrice = product.total_price || product.purchase_price || 0;
+        
+        // Si pas de totalPrice mais on a un unitPrice, calculer approximativement
+        if (!totalPrice && unitPrice) {
+          // Estimation : prix mensuel * durée / coefficient moyen
+          totalPrice = unitPrice * duration / 3.5; // Coefficient moyen approximatif
+        }
+        
+        // Si on a un product_id, essayer de récupérer les prix depuis la DB
+        if ((!unitPrice || !totalPrice) && product.product_id) {
+          console.log(`Tentative de récupération des prix pour product_id: ${product.product_id}`);
+          
+          try {
+            const { data: productData, error: productError } = await supabaseAdmin
+              .from('products')
+              .select('price, monthly_price')
+              .eq('id', product.product_id)
+              .single();
+            
+            if (productData && !productError) {
+              console.log(`Prix récupérés de la DB:`, productData);
+              if (!unitPrice) unitPrice = productData.monthly_price || 0;
+              if (!totalPrice) totalPrice = productData.price || 0;
+            }
+          } catch (error) {
+            console.log(`Erreur lors de la récupération des prix:`, error);
+          }
+        }
+        
+        console.log(`Prix calculés - Unitaire: ${unitPrice}, Total: ${totalPrice}, Quantité: ${quantity}`)
         
         // Accumuler les montants (multiplier par la quantité)
         totalPurchaseAmount += totalPrice * quantity;
