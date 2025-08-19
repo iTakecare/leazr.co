@@ -23,7 +23,7 @@ serve(async (req) => {
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-    const { email, password, first_name, last_name, role } = await req.json()
+    const { email, password, first_name, last_name, role, company_id } = await req.json()
     
     console.log(`📧 Creating: ${email}`);
     
@@ -31,15 +31,32 @@ serve(async (req) => {
       throw new Error('Email et mot de passe requis')
     }
 
-    // Check if iTakecare company exists (we know it does from earlier logs)
-    const { data: company } = await supabaseAdmin
-      .from('companies')
-      .select('id')
-      .eq('name', 'iTakecare')
-      .single()
+    let finalCompanyId = company_id;
+    
+    if (company_id) {
+      // Verify the specific company exists
+      const { data: company } = await supabaseAdmin
+        .from('companies')
+        .select('id')
+        .eq('id', company_id)
+        .single()
 
-    if (!company) {
-      throw new Error('Société iTakecare non trouvée')
+      if (!company) {
+        throw new Error('Entreprise non trouvée')
+      }
+      finalCompanyId = company_id;
+    } else {
+      // Default to iTakecare if no company_id specified
+      const { data: company } = await supabaseAdmin
+        .from('companies')
+        .select('id')
+        .eq('name', 'iTakecare')
+        .single()
+
+      if (!company) {
+        throw new Error('Société iTakecare non trouvée')
+      }
+      finalCompanyId = company.id;
     }
 
     // Create user directly with Supabase Auth
@@ -68,7 +85,7 @@ serve(async (req) => {
         first_name: first_name || 'Admin',
         last_name: last_name || 'Leazr',
         role: role || 'admin',
-        company_id: company.id
+        company_id: finalCompanyId
       })
 
     if (profileError) {
