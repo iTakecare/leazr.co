@@ -5283,6 +5283,21 @@ export type Database = {
         Args: { ambassador_id: string; client_data: Json }
         Returns: string
       }
+      create_company_user: {
+        Args: {
+          p_company_id: string
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_password: string
+          p_role: string
+        }
+        Returns: {
+          message: string
+          success: boolean
+          user_id: string
+        }[]
+      }
       create_company_with_admin_complete: {
         Args: {
           p_admin_email: string

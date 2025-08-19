@@ -218,15 +218,13 @@ const MultiTenantUserManager = () => {
     }
     
     try {
-      const { data, error } = await supabase.functions.invoke('create-admin-user', {
-        body: {
-          email: newEmail,
-          password: newPassword,
-          first_name: newFirstName,
-          last_name: newLastName,
-          role: newRole,
-          company_id: newCompanyId
-        }
+      const { data, error } = await supabase.rpc('create_company_user', {
+        p_email: newEmail,
+        p_password: newPassword,
+        p_first_name: newFirstName,
+        p_last_name: newLastName,
+        p_role: newRole,
+        p_company_id: newCompanyId
       });
       
       if (error) throw error;
