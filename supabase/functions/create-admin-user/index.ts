@@ -15,15 +15,10 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting admin user creation process...');
+    console.log('=== STARTING ADMIN USER CREATION ===');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    console.log('Environment check:', {
-      hasUrl: !!supabaseUrl,
-      hasServiceKey: !!supabaseServiceKey
-    });
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing environment variables');
@@ -33,7 +28,7 @@ serve(async (req) => {
       );
     }
     
-    // Initialize the Supabase client with the service role key for admin privileges
+    // Initialize the Supabase client with admin privileges
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -44,11 +39,11 @@ serve(async (req) => {
     // Parse request body
     const { email, password, first_name, last_name, role } = await req.json();
     
-    console.log('Request data:', { email, first_name, last_name, role });
+    console.log('Request data received:', { email, first_name, last_name, role });
     
     // Validate input
     if (!email || !password) {
-      console.error('Missing required fields');
+      console.error('Missing required fields: email or password');
       return new Response(
         JSON.stringify({ error: 'Email and password are required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -56,91 +51,84 @@ serve(async (req) => {
     }
     
     // Check if user already exists
-    console.log('Checking if user exists...');
+    console.log('1. Checking if user already exists...');
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (listError) {
       console.error('Error checking existing users:', listError);
       return new Response(
-        JSON.stringify({ error: `Error checking existing users: ${listError.message}` }),
+        JSON.stringify({ error: `Error checking users: ${listError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
     const userExists = existingUsers.users?.some(user => user.email === email);
     if (userExists) {
-      console.log('User already exists');
+      console.log('User already exists with email:', email);
       return new Response(
         JSON.stringify({ error: 'Un utilisateur avec cet email existe déjà' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
-
-    // Step 1: Temporarily make company_id nullable
-    console.log('Making company_id nullable temporarily...');
-    try {
-      await supabaseAdmin.rpc('execute_sql', {
-        sql: 'ALTER TABLE public.profiles ALTER COLUMN company_id DROP NOT NULL;'
-      });
-      console.log('Successfully made company_id nullable');
-    } catch (error) {
-      console.log('Note: Could not alter company_id constraint, continuing...');
-    }
     
-    // Step 2: Find or create iTakecare company
+    // Find or create iTakecare company using native Supabase methods
+    console.log('2. Looking for iTakecare company...');
     let companyId: string | null = null;
     
-    console.log('Looking for iTakecare company...');
-    try {
-      // First try to find existing company
-      const { data: companies, error: companyFindError } = await supabaseAdmin
-        .from('companies')
-        .select('id')
-        .ilike('name', '%itakecare%')
-        .limit(1);
-      
-      if (!companyFindError && companies && companies.length > 0) {
-        companyId = companies[0].id;
-        console.log('Found existing iTakecare company:', companyId);
-      } else {
-        console.log('Creating iTakecare company...');
-        
-        // Generate a new UUID for the company
-        companyId = crypto.randomUUID();
-        
-        // Use direct SQL to create the company
-        const { error: createError } = await supabaseAdmin.rpc('execute_sql', {
-          sql: `
-            INSERT INTO public.companies (id, name, plan, is_active, created_at, updated_at)
-            VALUES ('${companyId}', 'iTakecare', 'business', true, NOW(), NOW());
-          `
-        });
-        
-        if (createError) {
-          console.error('Error creating company:', createError);
-          throw new Error('Failed to create iTakecare company');
-        }
-        
-        console.log('Created iTakecare company with ID:', companyId);
-      }
-    } catch (error) {
-      console.error('Error handling company creation:', error);
+    // Try to find existing iTakecare company
+    const { data: existingCompanies, error: companyFindError } = await supabaseAdmin
+      .from('companies')
+      .select('id, name')
+      .ilike('name', '%itakecare%')
+      .limit(1);
+    
+    if (companyFindError) {
+      console.error('Error finding company:', companyFindError);
       return new Response(
-        JSON.stringify({ error: 'Failed to setup company for admin user' }),
+        JSON.stringify({ error: 'Error finding iTakecare company' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
+    }
+    
+    if (existingCompanies && existingCompanies.length > 0) {
+      companyId = existingCompanies[0].id;
+      console.log('Found existing iTakecare company:', companyId, existingCompanies[0].name);
+    } else {
+      // Create iTakecare company using native upsert
+      console.log('Creating new iTakecare company...');
+      const { data: newCompany, error: createCompanyError } = await supabaseAdmin
+        .from('companies')
+        .upsert({
+          name: 'iTakecare',
+          plan: 'business',
+          is_active: true,
+          modules_enabled: ['dashboard', 'clients', 'offers', 'contracts', 'ambassadors']
+        })
+        .select('id')
+        .single();
+      
+      if (createCompanyError) {
+        console.error('Error creating iTakecare company:', createCompanyError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create iTakecare company' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      companyId = newCompany.id;
+      console.log('Created new iTakecare company with ID:', companyId);
     }
     
     if (!companyId) {
-      console.error('No company ID available');
+      console.error('No company ID available after company setup');
       return new Response(
-        JSON.stringify({ error: 'No company available for admin user' }),
+        JSON.stringify({ error: 'Failed to setup company' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
     
-    // Step 3: Create the user
-    console.log('Creating user...');
+    // Create the admin user using Supabase Auth
+    console.log('3. Creating admin user...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -155,63 +143,59 @@ serve(async (req) => {
     if (userError) {
       console.error('Error creating user:', userError);
       return new Response(
-        JSON.stringify({ error: `Erreur lors de la création: ${userError.message}` }),
+        JSON.stringify({ error: `Failed to create user: ${userError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
     
-    console.log('User created successfully:', userData.user?.id);
+    console.log('User created successfully with ID:', userData.user?.id);
     
-    // Step 4: Update the profile with the correct company_id
-    if (userData.user && companyId) {
-      console.log('Updating profile with company_id:', companyId);
-      
-      try {
-        const { error: profileUpdateError } = await supabaseAdmin.rpc('execute_sql', {
-          sql: `
-            UPDATE public.profiles 
-            SET 
-              company_id = '${companyId}',
-              first_name = '${(first_name || 'Admin').replace(/'/g, "''")}',
-              last_name = '${(last_name || 'Leazr').replace(/'/g, "''")}',
-              role = '${role || 'admin'}',
-              updated_at = NOW()
-            WHERE id = '${userData.user.id}';
-          `
+    // Create/update the user profile using native upsert
+    if (userData.user) {
+      console.log('4. Creating user profile...');
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+          id: userData.user.id,
+          company_id: companyId,
+          first_name: first_name || 'Admin',
+          last_name: last_name || 'Leazr',
+          role: role || 'admin'
         });
-        
-        if (profileUpdateError) {
-          console.error('Profile update failed:', profileUpdateError);
-        } else {
-          console.log('Profile updated successfully');
-        }
-      } catch (error) {
-        console.error('Error updating profile:', error);
+      
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        // Try to clean up the created user
+        await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
+        return new Response(
+          JSON.stringify({ error: `Failed to create profile: ${profileError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
+      
+      console.log('Profile created successfully');
     }
-
-    // Step 5: Restore company_id constraint
-    console.log('Restoring company_id NOT NULL constraint...');
-    try {
-      await supabaseAdmin.rpc('execute_sql', {
-        sql: 'ALTER TABLE public.profiles ALTER COLUMN company_id SET NOT NULL;'
-      });
-      console.log('Successfully restored company_id constraint');
-    } catch (error) {
-      console.log('Note: Could not restore company_id constraint, but user was created successfully');
-    }
+    
+    console.log('=== ADMIN USER CREATION COMPLETED SUCCESSFULLY ===');
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        user: userData,
+        user: {
+          id: userData.user?.id,
+          email: userData.user?.email
+        },
         company_id: companyId,
-        message: 'Utilisateur administrateur créé avec succès'
+        message: 'Utilisateur administrateur Leazr créé avec succès'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
+    
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('=== UNEXPECTED ERROR IN ADMIN USER CREATION ===');
+    console.error('Error details:', error);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
       JSON.stringify({ error: `Erreur inattendue: ${error.message}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
