@@ -6,8 +6,10 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
   try {
     console.log("🔍 RÉCUPÉRATION OFFRES - includeConverted:", includeConverted);
     
-    // Get current authenticated user
+    // Get current authenticated user and session
     const { data: authData, error: authError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
     if (authError) {
       console.error("❌ Erreur d'authentification:", authError);
       return [];
@@ -15,6 +17,20 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     console.log("👤 Utilisateur connecté:", authData.user?.id);
     console.log("📧 Email utilisateur:", authData.user?.email);
+    console.log("🔑 Session présente:", !!session);
+    console.log("🔑 Access token:", session?.access_token ? "présent" : "manquant");
+    
+    // Test de la fonction get_user_company_id_secure
+    try {
+      const { data: companyTest, error: companyError } = await supabase
+        .rpc('get_user_company_id_secure');
+      console.log("🏢 Test get_user_company_id_secure:", { 
+        result: companyTest, 
+        error: companyError?.message 
+      });
+    } catch (err) {
+      console.log("🏢 Erreur test company_id:", err);
+    }
     
     // Construction de la requête de base
     let query = supabase
