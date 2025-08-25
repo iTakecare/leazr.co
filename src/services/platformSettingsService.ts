@@ -46,7 +46,61 @@ export interface PlatformBranding {
 }
 
 /**
- * Get platform settings directly from the database
+ * Get default platform settings
+ */
+export const getDefaultSettings = (): PlatformSettings => ({
+  company_name: 'Leazr',
+  company_description: '',
+  company_address: '',
+  company_phone: '',
+  company_email: '',
+  logo_url: '/leazr-logo.png',
+  primary_color: '#3b82f6',
+  secondary_color: '#64748b',
+  accent_color: '#8b5cf6',
+  website_url: ''
+});
+
+/**
+ * Get platform settings for public display (safe fields only)
+ */
+export const getPublicPlatformSettings = async (): Promise<PlatformSettings | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('public_platform_settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching public platform settings:', error);
+      return getDefaultSettings();
+    }
+
+    if (!data) {
+      return getDefaultSettings();
+    }
+
+    return {
+      company_name: data.company_name || 'Leazr',
+      company_description: '', // Not available in public view
+      company_address: '', // Not available in public view
+      company_phone: '', // Not available in public view  
+      company_email: '', // Not available in public view
+      logo_url: data.logo_url || '/leazr-logo.png',
+      primary_color: data.primary_color || '#3b82f6',
+      secondary_color: data.secondary_color || '#64748b',
+      accent_color: data.accent_color || '#8b5cf6',
+      website_url: data.website_url || ''
+    };
+  } catch (error) {
+    console.error('Error fetching public platform settings:', error);
+    return getDefaultSettings();
+  }
+};
+
+/**
+ * Get platform settings directly from the database (admin access only)
  */
 export const getPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
@@ -58,35 +112,11 @@ export const getPlatformSettings = async (): Promise<PlatformSettings | null> =>
 
     if (error) {
       console.error('Error fetching platform settings:', error);
-      // Return default settings if fetch fails
-      return {
-        company_name: 'Leazr',
-        company_description: '',
-        company_address: '',
-        company_phone: '',
-        company_email: '',
-        logo_url: '/leazr-logo.png',
-        primary_color: '#3b82f6',
-        secondary_color: '#64748b',
-        accent_color: '#8b5cf6',
-        website_url: ''
-      };
+      return getDefaultSettings();
     }
 
     if (!data) {
-      // Return default settings if no data found
-      return {
-        company_name: 'Leazr',
-        company_description: '',
-        company_address: '',
-        company_phone: '',
-        company_email: '',
-        logo_url: '/leazr-logo.png',
-        primary_color: '#3b82f6',
-        secondary_color: '#64748b',
-        accent_color: '#8b5cf6',
-        website_url: ''
-      };
+      return getDefaultSettings();
     }
 
     return {
@@ -103,19 +133,7 @@ export const getPlatformSettings = async (): Promise<PlatformSettings | null> =>
     };
   } catch (error) {
     console.error('Error fetching platform settings:', error);
-    // Return default settings on exception
-    return {
-      company_name: 'Leazr',
-      company_description: '',
-      company_address: '',
-      company_phone: '',
-      company_email: '',
-      logo_url: '/leazr-logo.png',
-      primary_color: '#3b82f6',
-      secondary_color: '#64748b',
-      accent_color: '#8b5cf6',
-      website_url: ''
-    };
+    return getDefaultSettings();
   }
 };
 

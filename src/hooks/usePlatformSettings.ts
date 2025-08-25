@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPlatformSettings, PlatformSettings } from '@/services/platformSettingsService';
+import { getPublicPlatformSettings, PlatformSettings } from '@/services/platformSettingsService';
 
 export const usePlatformSettings = () => {
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
@@ -11,7 +11,7 @@ export const usePlatformSettings = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getPlatformSettings();
+        const data = await getPublicPlatformSettings();
         setSettings(data);
       } catch (err) {
         console.error("Erreur lors du chargement des paramètres de plateforme:", err);
