@@ -24,8 +24,17 @@ const UpdatePassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Password validation
+  // Password validation with debug logging
   const passwordValidation = usePasswordValidation(password);
+  
+  // Debug password validation
+  useEffect(() => {
+    console.log("🔐 Password validation state:", {
+      password: password ? `${password.length} chars` : 'empty',
+      validation: passwordValidation,
+      isValid: passwordValidation.isValid
+    });
+  }, [password, passwordValidation]);
 
   // Add state logging and timeout protection
   useEffect(() => {
@@ -36,15 +45,23 @@ const UpdatePassword = () => {
     });
   }, [isAuthenticating, sessionReady]);
 
-  // Safety timeout to prevent infinite loading
+  // Retry function for failed verification
+  const retryVerification = () => {
+    console.log("🔄 Retrying verification...");
+    setIsAuthenticating(true);
+    // Force re-run of the verification effect
+    window.location.reload();
+  };
+
+  // Reduced timeout to prevent infinite loading
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isAuthenticating) {
-        console.warn("⏰ UpdatePassword - Timeout reached, forcing interface unlock");
+        console.warn("⏰ UpdatePassword - Timeout reached after 5s, forcing interface unlock");
         setIsAuthenticating(false);
-        toast.error("Timeout de vérification - veuillez réessayer");
+        toast.error("Timeout de vérification - cliquez sur Réessayer si nécessaire");
       }
-    }, 10000); // 10 seconds timeout
+    }, 5000); // Reduced to 5 seconds
 
     return () => clearTimeout(timeoutId);
   }, [isAuthenticating]);
@@ -362,13 +379,21 @@ const UpdatePassword = () => {
     }
   };
 
-  // Afficher un loader pendant la configuration de la session
+  // Afficher un loader pendant la configuration de la session avec option de retry
   if (isAuthenticating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-blue-50 px-6 py-12">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Vérification du lien de réinitialisation...</p>
+          <Button 
+            variant="outline" 
+            onClick={retryVerification}
+            className="mt-4"
+            size="sm"
+          >
+            Réessayer
+          </Button>
         </div>
       </div>
     );
@@ -423,12 +448,23 @@ const UpdatePassword = () => {
                 </div>
               </div>
 
-              {/* Password validation display */}
+              {/* Password validation display with fallback */}
               {password && (
-                <PasswordValidationDisplay 
-                  validation={passwordValidation}
-                  className="mt-2"
-                />
+                <div className="mt-2">
+                  <PasswordValidationDisplay 
+                    validation={passwordValidation}
+                    className="mb-2"
+                  />
+                  {/* Fallback validation info if component fails */}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Debug: Validation={passwordValidation.isValid ? '✅' : '❌'} 
+                    | Length={passwordValidation.minLength ? '✅' : '❌'} 
+                    | Upper={passwordValidation.hasUppercase ? '✅' : '❌'} 
+                    | Lower={passwordValidation.hasLowercase ? '✅' : '❌'} 
+                    | Number={passwordValidation.hasNumber ? '✅' : '❌'} 
+                    | Special={passwordValidation.hasSpecialChar ? '✅' : '❌'}
+                  </div>
+                </div>
               )}
               
               <div className="space-y-2">

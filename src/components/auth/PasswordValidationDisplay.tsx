@@ -12,6 +12,18 @@ const PasswordValidationDisplay: React.FC<PasswordValidationDisplayProps> = ({
   validation, 
   className 
 }) => {
+  // Debug logging
+  console.log("🎯 PasswordValidationDisplay render:", { validation, className });
+  
+  // Error boundary fallback
+  if (!validation) {
+    console.error("❌ PasswordValidationDisplay: No validation object provided");
+    return (
+      <div className={cn("text-red-500 text-sm", className)}>
+        Erreur: Validation non disponible
+      </div>
+    );
+  }
   const requirements = [
     { 
       key: 'minLength', 
