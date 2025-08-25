@@ -124,47 +124,33 @@ const UpdatePassword = () => {
         }
       } else if (customToken && (type === 'invitation' || type === 'password_reset' || !type)) {
         console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
-        console.log("UpdatePassword - Vérification du token dans custom_auth_tokens...");
+        console.log("UpdatePassword - Vérification du token via edge function...");
         
-        // Vérifier notre token personnalisé dans la base de données
+        // Use edge function to verify token with service role permissions
         try {
-          const { data: tokenData, error: tokenError } = await supabase
-            .from('custom_auth_tokens')
-            .select('*')
-            .eq('token', customToken)
-            .is('used_at', null)
-            .gt('expires_at', new Date().toISOString())
-            .single();
+          const { data: verificationResult, error: functionError } = await supabase.functions.invoke(
+            'verify-custom-token',
+            {
+              body: { token: customToken, type }
+            }
+          );
 
-          console.log("UpdatePassword - Résultat de la requête token:", { 
-            tokenData: tokenData ? {
-              token_type: tokenData.token_type,
-              user_email: tokenData.user_email,
-              expires_at: tokenData.expires_at,
-              used_at: tokenData.used_at,
-              company_id: tokenData.company_id
-            } : null, 
-            tokenError 
-          });
+          console.log("UpdatePassword - Résultat vérification token:", { verificationResult, functionError });
 
-          if (tokenError || !tokenData) {
-            console.error("❌ UpdatePassword - Token personnalisé invalide ou expiré:", { 
-              error: tokenError?.message, 
-              code: tokenError?.code, 
-              details: tokenError?.details, 
-              hint: tokenError?.hint,
-              tokenExists: !!tokenData 
-            });
+          if (functionError || !verificationResult?.success) {
+            console.error("UpdatePassword - Token invalide ou expiré:", functionError || verificationResult?.error);
             toast.error("Lien d'activation invalide ou expiré");
             navigate('/login');
             return;
           }
 
+          const tokenData = verificationResult.token_data;
           console.log("Token personnalisé valide:", { 
             tokenType: tokenData.token_type, 
             userEmail: tokenData.user_email,
             metadata: tokenData.metadata 
           });
+          
           // Stocker les données du token pour utilisation lors de la mise à jour
           sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
           
@@ -272,12 +258,11 @@ const UpdatePassword = () => {
         
         const tokenData = JSON.parse(sessionStorage.getItem('custom_token_data') || '{}');
         
-        // Utiliser notre edge function pour mettre à jour le mot de passe
-        const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
+        // Utiliser l'edge function verify-auth-token pour mettre à jour le mot de passe
+        const { data: updateData, error: updateError } = await supabase.functions.invoke('verify-auth-token', {
           body: {
             token: customToken,
-            password: password,
-            email: tokenData.user_email
+            newPassword: password
           }
         });
 
@@ -303,11 +288,7 @@ const UpdatePassword = () => {
           return;
         }
 
-        // Marquer le token comme utilisé
-        await supabase
-          .from('custom_auth_tokens')
-          .update({ used_at: new Date().toISOString() })
-          .eq('token', customToken);
+        // Le token est automatiquement marqué comme utilisé par l'edge function
 
         sessionStorage.removeItem('custom_token_data');
         

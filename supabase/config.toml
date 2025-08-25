@@ -42,5 +42,8 @@ verify_jwt = false
 [functions.get-ambassador-company]
 verify_jwt = false
 
+[functions.verify-custom-token]
+verify_jwt = false
+
 [functions.get-secret]
 verify_jwt = true
