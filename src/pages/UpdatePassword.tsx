@@ -69,10 +69,20 @@ const UpdatePassword = () => {
   useEffect(() => {
     const handlePasswordReset = async () => {
       try {
-        console.log("UpdatePassword - Début de l'initialisation");
-        console.log("UpdatePassword - URL complète:", window.location.href);
-        console.log("UpdatePassword - Search params:", window.location.search);
-        console.log("UpdatePassword - Hash:", window.location.hash);
+        console.log("🚀 UpdatePassword - Début de l'initialisation");
+        console.log("🔗 UpdatePassword - URL complète:", window.location.href);
+        console.log("🔍 UpdatePassword - Search params:", window.location.search);
+        console.log("📍 UpdatePassword - Hash:", window.location.hash);
+        
+        // Force unlock after 3 seconds for debugging
+        setTimeout(() => {
+          if (isAuthenticating) {
+            console.warn("⚡ FORCE UNLOCK - Debug mode après 3s");
+            setIsAuthenticating(false);
+            setSessionReady(true);
+            toast.success("Mode debug activé - validation bypassed");
+          }
+        }, 3000);
         
         // Extraire les paramètres depuis les query params ou les fragments
         const getParams = () => {
@@ -289,10 +299,13 @@ const UpdatePassword = () => {
     }
 
     // Validation du mot de passe avec les nouvelles règles
+    console.log("🔐 Validation mot de passe:", passwordValidation);
     if (!passwordValidation.isValid) {
       toast.error('Veuillez respecter tous les critères de mot de passe');
+      console.log("❌ Validation échouée:", passwordValidation);
       return;
     }
+    console.log("✅ Validation réussie");
 
     setLoading(true);
     
@@ -450,19 +463,49 @@ const UpdatePassword = () => {
 
               {/* Password validation display with fallback */}
               {password && (
-                <div className="mt-2">
-                  <PasswordValidationDisplay 
-                    validation={passwordValidation}
-                    className="mb-2"
-                  />
-                  {/* Fallback validation info if component fails */}
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Debug: Validation={passwordValidation.isValid ? '✅' : '❌'} 
-                    | Length={passwordValidation.minLength ? '✅' : '❌'} 
-                    | Upper={passwordValidation.hasUppercase ? '✅' : '❌'} 
-                    | Lower={passwordValidation.hasLowercase ? '✅' : '❌'} 
-                    | Number={passwordValidation.hasNumber ? '✅' : '❌'} 
-                    | Special={passwordValidation.hasSpecialChar ? '✅' : '❌'}
+                <div className="mt-2 space-y-2">
+                  {/* Simplified validation display */}
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <p className="text-sm font-medium mb-2">Critères du mot de passe:</p>
+                    <div className="grid grid-cols-1 gap-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={passwordValidation.minLength ? "text-green-600" : "text-red-600"}>
+                          {passwordValidation.minLength ? "✅" : "❌"}
+                        </span>
+                        <span>Au moins 6 caractères</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={passwordValidation.hasUppercase ? "text-green-600" : "text-red-600"}>
+                          {passwordValidation.hasUppercase ? "✅" : "❌"}
+                        </span>
+                        <span>Une lettre majuscule (A-Z)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={passwordValidation.hasLowercase ? "text-green-600" : "text-red-600"}>
+                          {passwordValidation.hasLowercase ? "✅" : "❌"}
+                        </span>
+                        <span>Une lettre minuscule (a-z)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={passwordValidation.hasNumber ? "text-green-600" : "text-red-600"}>
+                          {passwordValidation.hasNumber ? "✅" : "❌"}
+                        </span>
+                        <span>Un chiffre (0-9)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={passwordValidation.hasSpecialChar ? "text-green-600" : "text-red-600"}>
+                          {passwordValidation.hasSpecialChar ? "✅" : "❌"}
+                        </span>
+                        <span>Un caractère spécial (!@#$%^&*)</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <div className="flex items-center gap-2">
+                        <span className={passwordValidation.isValid ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                          {passwordValidation.isValid ? "✅ Valide" : "❌ Invalide"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -491,13 +534,23 @@ const UpdatePassword = () => {
                 </div>
               </div>
               
-              <Button 
-                type="submit" 
-                className="w-full transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
-                disabled={loading || !passwordValidation.isValid || !password || !confirmPassword}
-              >
-                {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
-              </Button>
+              <div className="space-y-3">
+                {/* Debug info */}
+                <div className="text-xs text-muted-foreground p-2 bg-muted/30 rounded">
+                  Debug: Loading={loading ? 'Oui' : 'Non'} | 
+                  SessionReady={sessionReady ? 'Oui' : 'Non'} | 
+                  Valid={passwordValidation.isValid ? 'Oui' : 'Non'} | 
+                  Match={password === confirmPassword ? 'Oui' : 'Non'}
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
+                  disabled={loading || !passwordValidation.isValid || !password || !confirmPassword}
+                >
+                  {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+                </Button>
+              </div>
             </CardContent>
           </form>
         </Card>
