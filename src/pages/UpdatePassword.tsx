@@ -22,185 +22,221 @@ const UpdatePassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // Add state logging and timeout protection
+  useEffect(() => {
+    console.log("🔄 UpdatePassword - State change:", { 
+      isAuthenticating, 
+      sessionReady,
+      timestamp: new Date().toISOString()
+    });
+  }, [isAuthenticating, sessionReady]);
+
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isAuthenticating) {
+        console.warn("⏰ UpdatePassword - Timeout reached, forcing interface unlock");
+        setIsAuthenticating(false);
+        toast.error("Timeout de vérification - veuillez réessayer");
+      }
+    }, 10000); // 10 seconds timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [isAuthenticating]);
+
   useEffect(() => {
     const handlePasswordReset = async () => {
-      console.log("UpdatePassword - Début de l'initialisation");
-      console.log("UpdatePassword - URL complète:", window.location.href);
-      console.log("UpdatePassword - Search params:", window.location.search);
-      console.log("UpdatePassword - Hash:", window.location.hash);
-      
-      // Extraire les paramètres depuis les query params ou les fragments
-      const getParams = () => {
-        const params = new URLSearchParams();
+      try {
+        console.log("UpdatePassword - Début de l'initialisation");
+        console.log("UpdatePassword - URL complète:", window.location.href);
+        console.log("UpdatePassword - Search params:", window.location.search);
+        console.log("UpdatePassword - Hash:", window.location.hash);
         
-        // D'abord, récupérer les paramètres de l'URL normale
-        searchParams.forEach((value, key) => {
-          params.set(key, value);
-        });
-        
-        // Puis vérifier les fragments dans le hash (pour les redirections Supabase)
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-          hash.split('&').forEach(param => {
-            const [key, value] = param.split('=');
-            if (key && value) {
-              params.set(key, decodeURIComponent(value));
-            }
-          });
-        }
-        
-        return params;
-      };
-
-      const params = getParams();
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      const type = params.get('type');
-      const token = params.get('token');
-      const email = params.get('email');
-      const customToken = params.get('token');
-      
-      console.log("UpdatePassword - Paramètres détectés:", {
-        accessToken: !!accessToken,
-        refreshToken: !!refreshToken,
-        type,
-        token: !!token,
-        customToken: !!customToken,
-        url: window.location.href,
-        allParams: Object.fromEntries(params.entries())
-      });
-
-      // Vérifier la session actuelle
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      console.log("UpdatePassword - Session actuelle:", !!currentSession);
-      
-      if (accessToken && refreshToken && type === 'recovery') {
-        try {
-          console.log("UpdatePassword - Configuration avec tokens access/refresh");
-          // Définir la session avec les tokens reçus
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
+        // Extraire les paramètres depuis les query params ou les fragments
+        const getParams = () => {
+          const params = new URLSearchParams();
+          
+          // D'abord, récupérer les paramètres de l'URL normale
+          searchParams.forEach((value, key) => {
+            params.set(key, value);
           });
           
-          if (error) {
-            console.error("Erreur lors de la définition de la session:", error);
-            toast.error("Lien de réinitialisation invalide ou expiré");
-            navigate('/login');
-            return;
-          }
-          
-          console.log("Session définie avec succès pour la réinitialisation");
-          setSessionReady(true);
-          setIsAuthenticating(false);
-        } catch (err) {
-          console.error("Erreur lors de la configuration de la session:", err);
-          toast.error("Erreur lors de la configuration de la session");
-          navigate('/login');
-        }
-      } else if (token && type === 'recovery') {
-        console.log("UpdatePassword - Configuration avec token simple");
-        // Cas d'un token simple de récupération
-        try {
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'recovery'
-          });
-          
-          if (error) {
-            console.error("Erreur lors de la vérification du token:", error);
-            toast.error("Lien de réinitialisation invalide ou expiré");
-            navigate('/login');
-            return;
-          }
-          
-          console.log("Token vérifié avec succès");
-          setSessionReady(true);
-          setIsAuthenticating(false);
-        } catch (err) {
-          console.error("Erreur lors de la vérification du token:", err);
-          toast.error("Erreur lors de la vérification du token");
-          navigate('/login');
-        }
-      } else if (customToken && (type === 'invitation' || type === 'password_reset' || !type)) {
-        console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
-        console.log("UpdatePassword - Vérification du token via edge function...");
-        
-        // Use edge function to verify token with service role permissions
-        try {
-          const { data: verificationResult, error: functionError } = await supabase.functions.invoke(
-            'verify-custom-token',
-            {
-              body: { token: customToken, type }
-            }
-          );
-
-          console.log("UpdatePassword - Résultat vérification token:", { verificationResult, functionError });
-
-          if (functionError || !verificationResult?.success) {
-            console.error("UpdatePassword - Token invalide ou expiré:", functionError || verificationResult?.error);
-            toast.error("Lien d'activation invalide ou expiré");
-            navigate('/login');
-            return;
-          }
-
-          const tokenData = verificationResult.token_data;
-          console.log("Token personnalisé valide:", { 
-            tokenType: tokenData.token_type, 
-            userEmail: tokenData.user_email,
-            metadata: tokenData.metadata 
-          });
-          
-          // Stocker les données du token pour utilisation lors de la mise à jour
-          sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
-          
-          // Utiliser l'edge function pour récupérer le company_id via le service role
-          console.log("🔍 UpdatePassword - Token metadata:", tokenData.metadata);
-          
-          if (tokenData.metadata && tokenData.metadata.entity_id) {
-            console.log("🎯 UpdatePassword - Found entity_id:", tokenData.metadata.entity_id);
-            
-            try {
-              console.log("📡 UpdatePassword - Calling get-ambassador-company edge function...");
-              const { data: response, error: functionError } = await supabase.functions.invoke('get-ambassador-company', {
-                body: { token: customToken }
-              });
-              
-              console.log("🏢 UpdatePassword - Edge function response:", { response, functionError });
-              
-              if (!functionError && response?.success && response?.company_id) {
-                console.log("✅ UpdatePassword - Setting company_id:", response.company_id);
-                setCompanyId(response.company_id);
-              } else {
-                console.error("❌ UpdatePassword - Failed to get company from edge function:", functionError || response);
+          // Puis vérifier les fragments dans le hash (pour les redirections Supabase)
+          const hash = window.location.hash.substring(1);
+          if (hash) {
+            hash.split('&').forEach(param => {
+              const [key, value] = param.split('=');
+              if (key && value) {
+                params.set(key, decodeURIComponent(value));
               }
-            } catch (err) {
-              console.error("💥 UpdatePassword - Exception calling edge function:", err);
-            }
-          } else if (tokenData.metadata && tokenData.metadata.company_id) {
-            // Fallback pour les anciens tokens qui pourraient avoir company_id directement
-            console.log("🔄 UpdatePassword - Using direct company_id:", tokenData.metadata.company_id);
-            setCompanyId(tokenData.metadata.company_id);
-          } else {
-            console.log("⚠️ UpdatePassword - No entity_id or company_id in metadata");
+            });
           }
           
+          return params;
+        };
+
+        const params = getParams();
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const type = params.get('type');
+        const token = params.get('token');
+        const email = params.get('email');
+        const customToken = params.get('token');
+        
+        console.log("UpdatePassword - Paramètres détectés:", {
+          accessToken: !!accessToken,
+          refreshToken: !!refreshToken,
+          type,
+          token: !!token,
+          customToken: !!customToken,
+          url: window.location.href,
+          allParams: Object.fromEntries(params.entries())
+        });
+
+        // Vérifier la session actuelle
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("UpdatePassword - Session actuelle:", !!currentSession);
+        
+        if (accessToken && refreshToken && type === 'recovery') {
+          try {
+            console.log("UpdatePassword - Configuration avec tokens access/refresh");
+            // Définir la session avec les tokens reçus
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) {
+              console.error("Erreur lors de la définition de la session:", error);
+              toast.error("Lien de réinitialisation invalide ou expiré");
+              setIsAuthenticating(false);
+              navigate('/login');
+              return;
+            }
+            
+            console.log("Session définie avec succès pour la réinitialisation");
+            setSessionReady(true);
+            setIsAuthenticating(false);
+          } catch (err) {
+            console.error("Erreur lors de la configuration de la session:", err);
+            toast.error("Erreur lors de la configuration de la session");
+            setIsAuthenticating(false);
+            navigate('/login');
+          }
+        } else if (token && type === 'recovery') {
+          console.log("UpdatePassword - Configuration avec token simple");
+          // Cas d'un token simple de récupération
+          try {
+            const { error } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: 'recovery'
+            });
+            
+            if (error) {
+              console.error("Erreur lors de la vérification du token:", error);
+              toast.error("Lien de réinitialisation invalide ou expiré");
+              setIsAuthenticating(false);
+              navigate('/login');
+              return;
+            }
+            
+            console.log("Token vérifié avec succès");
+            setSessionReady(true);
+            setIsAuthenticating(false);
+          } catch (err) {
+            console.error("Erreur lors de la vérification du token:", err);
+            toast.error("Erreur lors de la vérification du token");
+            setIsAuthenticating(false);
+            navigate('/login');
+          }
+        } else if (customToken && (type === 'invitation' || type === 'password_reset' || !type)) {
+          console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
+          console.log("UpdatePassword - Vérification du token via edge function...");
+          
+          // Use edge function to verify token with service role permissions
+          try {
+            const { data: verificationResult, error: functionError } = await supabase.functions.invoke(
+              'verify-custom-token',
+              {
+                body: { token: customToken, type }
+              }
+            );
+
+            console.log("UpdatePassword - Résultat vérification token:", { verificationResult, functionError });
+
+            if (functionError || !verificationResult?.success) {
+              console.error("UpdatePassword - Token invalide ou expiré:", functionError || verificationResult?.error);
+              toast.error("Lien d'activation invalide ou expiré");
+              setIsAuthenticating(false);
+              navigate('/login');
+              return;
+            }
+
+            const tokenData = verificationResult.token_data;
+            console.log("Token personnalisé valide:", { 
+              tokenType: tokenData.token_type, 
+              userEmail: tokenData.user_email,
+              metadata: tokenData.metadata 
+            });
+            
+            // Stocker les données du token pour utilisation lors de la mise à jour
+            sessionStorage.setItem('custom_token_data', JSON.stringify(tokenData));
+            
+            // Utiliser l'edge function pour récupérer le company_id via le service role
+            console.log("🔍 UpdatePassword - Token metadata:", tokenData.metadata);
+            
+            if (tokenData.metadata && tokenData.metadata.entity_id) {
+              console.log("🎯 UpdatePassword - Found entity_id:", tokenData.metadata.entity_id);
+              
+              try {
+                console.log("📡 UpdatePassword - Calling get-ambassador-company edge function...");
+                const { data: response, error: functionError } = await supabase.functions.invoke('get-ambassador-company', {
+                  body: { token: customToken }
+                });
+                
+                console.log("🏢 UpdatePassword - Edge function response:", { response, functionError });
+                
+                if (!functionError && response?.success && response?.company_id) {
+                  console.log("✅ UpdatePassword - Setting company_id:", response.company_id);
+                  setCompanyId(response.company_id);
+                } else {
+                  console.error("❌ UpdatePassword - Failed to get company from edge function:", functionError || response);
+                }
+              } catch (err) {
+                console.error("💥 UpdatePassword - Exception calling edge function:", err);
+              }
+            } else if (tokenData.metadata && tokenData.metadata.company_id) {
+              // Fallback pour les anciens tokens qui pourraient avoir company_id directement
+              console.log("🔄 UpdatePassword - Using direct company_id:", tokenData.metadata.company_id);
+              setCompanyId(tokenData.metadata.company_id);
+            } else {
+              console.log("⚠️ UpdatePassword - No entity_id or company_id in metadata");
+            }
+            
+            setSessionReady(true);
+            setIsAuthenticating(false);
+          } catch (err) {
+            console.error("Erreur lors de la vérification du token personnalisé:", err);
+            toast.error("Erreur lors de la vérification du token");
+            setIsAuthenticating(false);
+            navigate('/login');
+          }
+        } else if (currentSession) {
+          console.log("UpdatePassword - Session existante détectée, permettre la réinitialisation");
+          // Si l'utilisateur est déjà connecté, on peut permettre la réinitialisation
           setSessionReady(true);
           setIsAuthenticating(false);
-        } catch (err) {
-          console.error("Erreur lors de la vérification du token personnalisé:", err);
-          toast.error("Erreur lors de la vérification du token");
+        } else {
+          console.log("UpdatePassword - Aucun paramètre valide trouvé");
+          console.log("UpdatePassword - Redirection vers login");
+          toast.error("Lien de réinitialisation invalide ou manquant");
+          setIsAuthenticating(false);
           navigate('/login');
         }
-      } else if (currentSession) {
-        console.log("UpdatePassword - Session existante détectée, permettre la réinitialisation");
-        // Si l'utilisateur est déjà connecté, on peut permettre la réinitialisation
-        setSessionReady(true);
+      } catch (error) {
+        console.error("💥 UpdatePassword - Exception globale:", error);
+        toast.error("Erreur lors de l'initialisation");
         setIsAuthenticating(false);
-      } else {
-        console.log("UpdatePassword - Aucun paramètre valide trouvé");
-        console.log("UpdatePassword - Redirection vers login");
-        toast.error("Lien de réinitialisation invalide ou manquant");
         navigate('/login');
       }
     };
