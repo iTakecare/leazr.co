@@ -6171,6 +6171,15 @@ export type Database = {
         Args: { p_permission_name: string; p_user_id: string }
         Returns: boolean
       }
+      validate_auth_token_secure: {
+        Args: { token_type_filter?: string; token_value: string }
+        Returns: {
+          expires_at: string
+          is_valid: boolean
+          token_type: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
