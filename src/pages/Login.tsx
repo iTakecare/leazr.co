@@ -154,23 +154,6 @@ const Login = () => {
     loading
   });
 
-  // Debug temporaire pour tester l'authentification
-  const handleDebugAuth = async () => {
-    try {
-      console.log("🔧 DEBUG - Test de connexion automatique");
-      const { error } = await signIn("hello@itakecare.be", "password");
-      if (error) {
-        console.error("🔧 DEBUG - Erreur:", error);
-        toast.error("Test debug échoué: " + error.message);
-      } else {
-        console.log("🔧 DEBUG - Connexion test réussie");
-        toast.success("Test debug réussi");
-      }
-    } catch (err) {
-      console.error("🔧 DEBUG - Exception:", err);
-    }
-  };
-
   return (
     <PageTransition className="min-h-screen flex overflow-hidden">
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
@@ -252,19 +235,9 @@ const Login = () => {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </span>
                   }
-                 </Button>
-                 
-                 {/* Bouton debug temporaire */}
-                 <Button 
-                   type="button"
-                   onClick={handleDebugAuth}
-                   variant="outline"
-                   className="w-full"
-                 >
-                   🔧 Test Debug Auth
-                 </Button>
-                 
-                 <div className="w-full text-center space-y-2">
+                </Button>
+                
+                <div className="w-full text-center space-y-2">
                   <Link to="/signup" className="text-sm text-blue-600 hover:underline block">
                     Pas de compte ? Inscrivez-vous
                   </Link>

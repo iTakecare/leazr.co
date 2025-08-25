@@ -54,15 +54,39 @@ export const getPlatformSettings = async (): Promise<PlatformSettings | null> =>
       .from('platform_settings')
       .select('*')
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching platform settings:', error);
-      return null;
+      // Return default settings if fetch fails
+      return {
+        company_name: 'Leazr',
+        company_description: '',
+        company_address: '',
+        company_phone: '',
+        company_email: '',
+        logo_url: '/leazr-logo.png',
+        primary_color: '#3b82f6',
+        secondary_color: '#64748b',
+        accent_color: '#8b5cf6',
+        website_url: ''
+      };
     }
 
     if (!data) {
-      return null;
+      // Return default settings if no data found
+      return {
+        company_name: 'Leazr',
+        company_description: '',
+        company_address: '',
+        company_phone: '',
+        company_email: '',
+        logo_url: '/leazr-logo.png',
+        primary_color: '#3b82f6',
+        secondary_color: '#64748b',
+        accent_color: '#8b5cf6',
+        website_url: ''
+      };
     }
 
     return {
@@ -71,7 +95,7 @@ export const getPlatformSettings = async (): Promise<PlatformSettings | null> =>
       company_address: data.company_address || '',
       company_phone: data.company_phone || '',
       company_email: data.company_email || '',
-      logo_url: data.logo_url || '',
+      logo_url: data.logo_url || '/leazr-logo.png',
       primary_color: data.primary_color || '#3b82f6',
       secondary_color: data.secondary_color || '#64748b',
       accent_color: data.accent_color || '#8b5cf6',
@@ -79,7 +103,19 @@ export const getPlatformSettings = async (): Promise<PlatformSettings | null> =>
     };
   } catch (error) {
     console.error('Error fetching platform settings:', error);
-    return null;
+    // Return default settings on exception
+    return {
+      company_name: 'Leazr',
+      company_description: '',
+      company_address: '',
+      company_phone: '',
+      company_email: '',
+      logo_url: '/leazr-logo.png',
+      primary_color: '#3b82f6',
+      secondary_color: '#64748b',
+      accent_color: '#8b5cf6',
+      website_url: ''
+    };
   }
 };
 
