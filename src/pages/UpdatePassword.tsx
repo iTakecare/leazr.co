@@ -9,6 +9,8 @@ import { Eye, EyeOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import CompanyLogoForToken from '@/components/layout/CompanyLogoForToken';
+import { usePasswordValidation } from '@/hooks/usePasswordValidation';
+import PasswordValidationDisplay from '@/components/auth/PasswordValidationDisplay';
 
 const UpdatePassword = () => {
   const [password, setPassword] = useState('');
@@ -21,6 +23,9 @@ const UpdatePassword = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Password validation
+  const passwordValidation = usePasswordValidation(password);
 
   // Add state logging and timeout protection
   useEffect(() => {
@@ -266,20 +271,9 @@ const UpdatePassword = () => {
       return;
     }
 
-    // Validation renforcée du mot de passe
-    if (password.length < 12) {
-      toast.error('Le mot de passe doit contenir au moins 12 caractères');
-      return;
-    }
-
-    // Vérification de la complexité du mot de passe
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
-      toast.error('Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial');
+    // Validation du mot de passe avec les nouvelles règles
+    if (!passwordValidation.isValid) {
+      toast.error('Veuillez respecter tous les critères de mot de passe');
       return;
     }
 
@@ -428,6 +422,14 @@ const UpdatePassword = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Password validation display */}
+              {password && (
+                <PasswordValidationDisplay 
+                  validation={passwordValidation}
+                  className="mt-2"
+                />
+              )}
               
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
@@ -456,7 +458,7 @@ const UpdatePassword = () => {
               <Button 
                 type="submit" 
                 className="w-full transition-all bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
-                disabled={loading || !sessionReady}
+                disabled={loading || !passwordValidation.isValid || !password || !confirmPassword}
               >
                 {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
               </Button>

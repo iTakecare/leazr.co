@@ -8,6 +8,8 @@ import Container from '@/components/layout/Container';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { toast } from 'sonner';
+import { usePasswordValidation } from '@/hooks/usePasswordValidation';
+import PasswordValidationDisplay from '@/components/auth/PasswordValidationDisplay';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +23,9 @@ const ResetPassword = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const token = searchParams.get('token');
+  
+  // Password validation
+  const passwordValidation = usePasswordValidation(newPassword);
 
   useEffect(() => {
     if (!token) {
@@ -30,8 +35,8 @@ const ResetPassword = () => {
   }, [token, navigate]);
 
   const validatePassword = () => {
-    if (newPassword.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères');
+    if (!passwordValidation.isValid) {
+      toast.error('Veuillez respecter tous les critères de mot de passe');
       return false;
     }
     if (newPassword !== confirmPassword) {
@@ -118,9 +123,12 @@ const ResetPassword = () => {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Au moins 6 caractères
-              </p>
+              {newPassword && (
+                <PasswordValidationDisplay 
+                  validation={passwordValidation}
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <div className="space-y-2">
@@ -154,7 +162,7 @@ const ResetPassword = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isSubmitting || loading}
+              disabled={isSubmitting || loading || !passwordValidation.isValid || !newPassword || !confirmPassword}
             >
               {isSubmitting ? (
                 <>
