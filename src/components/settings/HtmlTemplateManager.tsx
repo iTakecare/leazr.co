@@ -210,11 +210,18 @@ const HtmlTemplateManager: React.FC = () => {
 
       const compiledHtml = await templateService.previewTemplate(htmlContent, profile?.company_id);
       
-      // Ouvrir dans un nouvel onglet
-      const newWindow = window.open();
+      // Ouvrir dans un nouvel onglet avec une approche plus sécurisée
+      const newWindow = window.open('', '_blank');
       if (newWindow) {
-        newWindow.document.write(compiledHtml);
-        newWindow.document.close();
+        // Utiliser une approche plus sécurisée avec un Blob URL
+        const blob = new Blob([compiledHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        newWindow.location.href = url;
+        
+        // Nettoyer l'URL après un délai pour éviter les fuites mémoire
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 1000);
       }
       
       toast.success('Prévisualisation ouverte dans un nouvel onglet');

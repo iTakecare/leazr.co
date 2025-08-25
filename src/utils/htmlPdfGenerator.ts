@@ -391,11 +391,18 @@ export const previewHtmlTemplate = async (htmlTemplate: string, companyId?: stri
     // Utiliser les données réelles de l'entreprise ou données d'exemple
     const compiledHtml = await templateService.previewTemplate(htmlTemplate, companyId);
     
-    // Ouvrir dans une nouvelle fenêtre
+    // Ouvrir dans une nouvelle fenêtre avec une approche plus sécurisée
     const previewWindow = window.open('', '_blank');
     if (previewWindow) {
-      previewWindow.document.write(compiledHtml);
-      previewWindow.document.close();
+      // Utiliser une approche plus sécurisée avec un Blob URL
+      const blob = new Blob([compiledHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      previewWindow.location.href = url;
+      
+      // Nettoyer l'URL après un délai pour éviter les fuites mémoire
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
     }
     
     return previewWindow;

@@ -5935,6 +5935,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_company_id_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_id_by_email: {
         Args: { user_email: string }
         Returns: string
