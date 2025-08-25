@@ -122,7 +122,7 @@ const UpdatePassword = () => {
           toast.error("Erreur lors de la vérification du token");
           navigate('/login');
         }
-      } else if (customToken) {
+      } else if (customToken && (type === 'invitation' || type === 'password_reset' || !type)) {
         console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
         console.log("UpdatePassword - Vérification du token dans custom_auth_tokens...");
         
