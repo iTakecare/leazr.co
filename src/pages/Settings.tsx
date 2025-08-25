@@ -7,14 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, FileSignature, Users, Zap, MessageCircle, Shield, MapPin } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
 
 
 import LeaserManager from '@/components/settings/LeaserManager';
 import CommissionManager from '@/components/settings/CommissionManager';
-import ContractSettings from '@/components/settings/ContractSettings';
+
 import MultiTenantUserManager from '@/components/settings/MultiTenantUserManager';
 import PermissionProfilesManager from '@/components/settings/PermissionProfilesManager';
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
@@ -89,7 +89,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -109,10 +109,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="commissions" className="flex items-center gap-2">
             <BadgePercent className="h-4 w-4" />
             Commissions
-          </TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-2">
-            <FileSignature className="h-4 w-4" />
-            Contrats
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -157,9 +153,6 @@ const Settings: React.FC = () => {
           <CommissionManager />
         </TabsContent>
 
-        <TabsContent value="contracts" className="mt-6">
-          <ContractSettings />
-        </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
           <HtmlTemplateManager />
