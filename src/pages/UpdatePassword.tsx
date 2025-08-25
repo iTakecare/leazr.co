@@ -312,53 +312,55 @@ const UpdatePassword = () => {
     try {
       console.log("Tentative de mise à jour du mot de passe");
       
-      // Si c'est un token personnalisé, vérifier son type et utiliser la bonne approche
+      // Si c'est un token personnalisé, utiliser update-password-custom directement
       if (customToken) {
         console.log("🔑 Mise à jour mot de passe avec token personnalisé");
         
-        const tokenDataString = sessionStorage.getItem('custom_token_data');
-        console.log("🗃️ Raw sessionStorage data:", tokenDataString);
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlType = urlParams.get('type');
+        console.log("🔍 Type détecté depuis l'URL:", urlType);
         
-        const tokenData = JSON.parse(tokenDataString || '{}');
-        console.log("📋 Parsed Token data:", { 
-          tokenType: tokenData.token_type, 
-          userEmail: tokenData.user_email,
-          fullTokenData: tokenData 
-        });
-        
-        // Si pas de tokenData valide, essayer de détecter depuis l'URL
-        if (!tokenData.token_type) {
-          const urlParams = new URLSearchParams(window.location.search);
-          const urlType = urlParams.get('type');
-          console.log("🔍 Type détecté depuis l'URL:", urlType);
+        // Pour les tokens d'invitation, utiliser directement update-password-custom
+        if (urlType === 'invitation' || !urlType) {
+          console.log("🔄 Utilisation FORCÉE de update-password-custom pour invitation");
           
-          // Fallback: utiliser le type depuis l'URL ou déduire depuis le token
-          if (urlType === 'invitation') {
-            console.log("🔄 Utilisation de update-password-custom (détecté URL: invitation)");
+          try {
             const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
               body: {
                 token: customToken,
                 password: password,
-                email: tokenData.user_email || 'unknown@example.com'
+                email: 'user@example.com' // Email temporaire, sera récupéré par l'edge function
               }
             });
 
-            if (updateError || !updateData?.success) {
-              console.error("❌ Erreur update-password-custom:", { updateError, updateData });
-              toast.error(updateData?.error || updateError?.message || 'Erreur lors de la mise à jour');
+            console.log("📤 Réponse update-password-custom:", { updateData, updateError });
+
+            if (updateError) {
+              console.error("❌ Erreur edge function:", updateError);
+              toast.error(`Erreur technique: ${updateError.message}`);
+              return;
+            }
+
+            if (!updateData?.success) {
+              console.error("❌ Échec de la mise à jour:", updateData);
+              toast.error(updateData?.error || 'Erreur lors de la mise à jour du mot de passe');
               return;
             }
             
+            console.log("✅ Mot de passe mis à jour avec succès");
             toast.success("Mot de passe défini avec succès !");
+            
             sessionStorage.removeItem('custom_token_data');
             setTimeout(() => navigate('/login'), 2000);
             return;
+          } catch (err) {
+            console.error("💥 Exception lors de l'appel:", err);
+            toast.error("Erreur lors de la communication avec le serveur");
+            return;
           }
-        }
-        
-        // Déterminer le bon edge function selon le type de token
-        if (tokenData.token_type === 'password_reset') {
+        } else if (urlType === 'password_reset') {
           console.log("🔄 Utilisation de verify-auth-token pour password_reset");
+          
           const { data: updateData, error: updateError } = await supabase.functions.invoke('verify-auth-token', {
             body: {
               token: customToken,
@@ -373,48 +375,13 @@ const UpdatePassword = () => {
           }
           
           toast.success("Mot de passe mis à jour avec succès !");
-        } else if (tokenData.token_type === 'invitation') {
-          console.log("🔄 Utilisation de update-password-custom pour invitation");
-          const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
-            body: {
-              token: customToken,
-              password: password,
-              email: tokenData.user_email
-            }
-          });
-
-          if (updateError || !updateData?.success) {
-            console.error("❌ Erreur update-password-custom:", { updateError, updateData });
-            toast.error(updateData?.error || updateError?.message || 'Erreur lors de la mise à jour');
-            return;
-          }
-          
-          toast.success("Mot de passe défini avec succès !");
+          setTimeout(() => navigate('/login'), 2000);
+          return;
         } else {
-          console.error("❌ Type de token non supporté:", tokenData.token_type);
-          console.log("🔍 Tentative avec update-password-custom par défaut...");
-          
-          // Dernière tentative avec update-password-custom
-          const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
-            body: {
-              token: customToken,
-              password: password,
-              email: tokenData.user_email || 'unknown@example.com'
-            }
-          });
-
-          if (updateError || !updateData?.success) {
-            console.error("❌ Erreur update-password-custom (fallback):", { updateError, updateData });
-            toast.error(updateData?.error || updateError?.message || 'Type de token non supporté');
-            return;
-          }
-          
-          toast.success("Mot de passe défini avec succès !");
+          console.error("❌ Type de token inconnu:", urlType);
+          toast.error(`Type de token non reconnu: ${urlType}`);
+          return;
         }
-
-        sessionStorage.removeItem('custom_token_data');
-        setTimeout(() => navigate('/login'), 2000);
-        return;
       } else {
         console.log("🔄 Cas normal avec session Supabase");
         // Cas normal avec session Supabase - utiliser l'API native
