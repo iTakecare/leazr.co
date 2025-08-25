@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
-import { PostalCodeImport } from '@/components/admin/PostalCodeImport';
 import HtmlTemplateManager from '@/components/settings/HtmlTemplateManager';
 
 const Settings: React.FC = () => {
@@ -89,7 +87,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -121,10 +119,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             Chat
-          </TabsTrigger>
-          <TabsTrigger value="postal-codes" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Codes Postaux
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -183,10 +177,6 @@ const Settings: React.FC = () => {
 
         <TabsContent value="chat" className="mt-6">
           <ChatSettings />
-        </TabsContent>
-
-        <TabsContent value="postal-codes" className="mt-6">
-          <PostalCodeImport />
         </TabsContent>
 
         <TabsContent value="subscription" className="mt-6">
