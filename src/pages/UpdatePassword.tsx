@@ -312,67 +312,75 @@ const UpdatePassword = () => {
     try {
       console.log("Tentative de mise à jour du mot de passe");
       
-      // Si c'est un token personnalisé, utiliser notre edge function pour mettre à jour le mot de passe
+      // Si c'est un token personnalisé, vérifier son type et utiliser la bonne approche
       if (customToken) {
-        console.log("Mise à jour mot de passe avec token personnalisé");
+        console.log("🔑 Mise à jour mot de passe avec token personnalisé");
         
         const tokenData = JSON.parse(sessionStorage.getItem('custom_token_data') || '{}');
+        console.log("📋 Token data:", { tokenType: tokenData.token_type, userEmail: tokenData.user_email });
         
-        // Utiliser l'edge function verify-auth-token pour mettre à jour le mot de passe
-        const { data: updateData, error: updateError } = await supabase.functions.invoke('verify-auth-token', {
-          body: {
-            token: customToken,
-            newPassword: password
-          }
-        });
-
-        if (updateError || !updateData?.success) {
-          console.error("Erreur détaillée lors de la mise à jour du mot de passe:", {
-            updateError,
-            updateData,
-            context: updateError?.context
+        // Déterminer le bon edge function selon le type de token
+        if (tokenData.token_type === 'password_reset') {
+          console.log("🔄 Utilisation de verify-auth-token pour password_reset");
+          // Utiliser verify-auth-token pour les tokens de type password_reset
+          const { data: updateData, error: updateError } = await supabase.functions.invoke('verify-auth-token', {
+            body: {
+              token: customToken,
+              newPassword: password
+            }
           });
-          
-          // Essayer d'extraire le message d'erreur détaillé
-          let errorMessage = 'Erreur inconnue';
-          
-          if (updateData?.error) {
-            errorMessage = updateData.error;
-          } else if (updateError?.context?.body?.error) {
-            errorMessage = updateError.context.body.error;
-          } else if (updateError?.message) {
-            errorMessage = updateError.message;
+
+          if (updateError || !updateData?.success) {
+            console.error("❌ Erreur verify-auth-token:", { updateError, updateData });
+            toast.error(updateData?.error || updateError?.message || 'Erreur lors de la mise à jour');
+            return;
           }
           
-          toast.error(errorMessage);
+          toast.success("Mot de passe mis à jour avec succès !");
+        } else if (tokenData.token_type === 'invitation') {
+          console.log("🔄 Utilisation de update-password-custom pour invitation");
+          // Utiliser update-password-custom pour les tokens d'invitation  
+          const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
+            body: {
+              token: customToken,
+              password: password,
+              email: tokenData.user_email
+            }
+          });
+
+          if (updateError || !updateData?.success) {
+            console.error("❌ Erreur update-password-custom:", { updateError, updateData });
+            toast.error(updateData?.error || updateError?.message || 'Erreur lors de la mise à jour');
+            return;
+          }
+          
+          toast.success("Mot de passe défini avec succès !");
+        } else {
+          console.error("❌ Type de token non supporté:", tokenData.token_type);
+          toast.error("Type de token non supporté");
           return;
         }
 
-        // Le token est automatiquement marqué comme utilisé par l'edge function
-
         sessionStorage.removeItem('custom_token_data');
-        
-        // Rediriger vers la page de connexion pour le flux d'invitation
-        console.log("Mot de passe défini avec succès pour invitation");
-        toast.success("Mot de passe défini avec succès ! Redirection vers la page de connexion...");
         
         setTimeout(() => {
           navigate('/login');
         }, 2000);
         return;
       } else {
-        // Cas normal avec session Supabase
+        console.log("🔄 Cas normal avec session Supabase");
+        // Cas normal avec session Supabase - utiliser l'API native
         const { error } = await supabase.auth.updateUser({
           password: password
         });
 
         if (error) {
-          console.error("Erreur lors de la mise à jour du mot de passe:", error);
-          toast.error('Erreur lors de la mise à jour du mot de passe: ' + error.message);
+          console.error("❌ Erreur updateUser:", error);
+          toast.error('Erreur lors de la mise à jour: ' + error.message);
           return;
         }
         
-        console.log("Mot de passe mis à jour avec succès");
+        console.log("✅ Mot de passe mis à jour avec succès");
         toast.success('Mot de passe mis à jour avec succès');
       }
       
