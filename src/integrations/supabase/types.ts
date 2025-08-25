@@ -5560,6 +5560,12 @@ export type Database = {
           region: string
         }[]
       }
+      get_companies_with_active_upload_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          company_id: string
+        }[]
+      }
       get_company_ambassadors_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
