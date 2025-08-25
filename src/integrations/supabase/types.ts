@@ -5968,6 +5968,27 @@ export type Database = {
           trial_ends_at: string
         }[]
       }
+      get_visitor_conversations: {
+        Args: { p_visitor_id: string }
+        Returns: {
+          company_id: string
+          created_at: string
+          id: string
+          status: string
+          visitor_email: string
+          visitor_name: string
+        }[]
+      }
+      get_visitor_messages: {
+        Args: { p_conversation_id: string; p_visitor_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          sender_name: string
+          sender_type: string
+        }[]
+      }
       group_products_by_sku: {
         Args: Record<PropertyKey, never>
         Returns: {
