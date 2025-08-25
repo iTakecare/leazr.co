@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Building2, Globe, Code, Users, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { generateSecurePassword } from "@/utils/securePasswordGenerator";
 
 interface CompanyFormData {
   companyName: string;
@@ -51,44 +52,39 @@ const UnifiedClientSetup = () => {
       // Générer un email unique automatiquement
       const uniqueEmail = generateUniqueEmail(formData.companyName);
       
-      console.log("Création d'entreprise avec admin:", {
-        companyName: formData.companyName,
-        adminEmail: uniqueEmail
-      });
+      // Générer un mot de passe sécurisé temporaire
+      const secureTemporaryPassword = generateSecurePassword(16);
 
       const { data, error } = await supabase.functions.invoke('create-company-with-admin', {
         body: {
           companyName: formData.companyName,
           adminEmail: uniqueEmail,
-          adminPassword: 'TempPassword123!', // Mot de passe temporaire
+          adminPassword: secureTemporaryPassword,
           adminFirstName: 'Admin',
           adminLastName: 'User',
           plan: formData.plan || 'starter',
-          selectedModules: ['calculator', 'catalog'] // Modules par défaut
+          selectedModules: ['calculator', 'catalog'], // Modules par défaut
+          forcePasswordChange: true // Force l'utilisateur à changer son mot de passe au premier login
         }
       });
 
       if (error) {
-        console.error("Erreur fonction edge:", error);
         toast.error(`Erreur lors de la création de l'entreprise: ${error.message}`);
         return null;
       }
 
       if (data?.success) {
-        console.log("Entreprise créée:", data);
-        toast.success(`Entreprise créée avec succès. Email admin: ${uniqueEmail}`);
+        toast.success(`Entreprise créée avec succès. Email admin: ${uniqueEmail}. Mot de passe temporaire généré - l'utilisateur devra le changer au premier login.`);
         
         // Mettre à jour le formulaire avec l'email généré pour information
         setFormData(prev => ({ ...prev, adminEmail: uniqueEmail }));
         
         return data.companyId;
       } else {
-        console.error("Échec création entreprise:", data);
         toast.error(`Échec de la création: ${data?.error || 'Erreur inconnue'}`);
         return null;
       }
     } catch (error) {
-      console.error("Erreur création entreprise:", error);
       toast.error("Erreur lors de la création de l'entreprise");
       return null;
     }
@@ -114,7 +110,6 @@ const UnifiedClientSetup = () => {
         });
       }
     } catch (error) {
-      console.error("Erreur lors de la création:", error);
       toast.error("Erreur lors de la création de l'entreprise");
     } finally {
       setIsSubmitting(false);
@@ -235,7 +230,13 @@ const UnifiedClientSetup = () => {
             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-xs font-medium">2</span>
             </div>
-            <span>Génération automatique d'un email admin unique</span>
+            <span>Génération automatique d'un email admin unique avec mot de passe sécurisé</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-xs font-medium">3</span>
+            </div>
+            <span>Force le changement de mot de passe au premier login pour la sécurité</span>
           </div>
         </CardContent>
       </Card>

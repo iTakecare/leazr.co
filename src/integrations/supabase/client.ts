@@ -47,36 +47,14 @@ export const getFileUploadClient = () => {
 };
 
 /**
- * Récupère un client Supabase avec les privilèges d'administration
- * @returns Client Supabase avec privilèges admin
+ * SECURITY NOTE: Admin functionality has been moved to edge functions
+ * Service role keys should never be exposed to the frontend
+ * @deprecated Use edge functions for admin operations instead
+ * @returns Standard client (admin operations disabled for security)
  */
 export const getAdminSupabaseClient = () => {
-  // Vérifier d'abord si les variables d'environnement sont définies
-  const adminUrl = import.meta.env.VITE_SUPABASE_URL;
-  const adminKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!adminUrl || !adminKey) {
-    console.log("Variables d'environnement admin non définies, utilisation du client standard");
-    return getSupabaseClient(); // Utiliser la fonction pour récupérer le client standard
-  }
-  
-  try {
-    const supabaseAdmin = createClient(
-      adminUrl,
-      adminKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
-    return supabaseAdmin;
-  } catch (error) {
-    console.error("Erreur lors de la création du client admin Supabase:", error);
-    // Fallback au client standard en cas d'erreur
-    return getSupabaseClient();
-  }
+  console.warn('Admin client access from frontend is disabled for security. Use edge functions for admin operations.');
+  return getSupabaseClient(); // Return standard client only
 };
 
 // For backwards compatibility
