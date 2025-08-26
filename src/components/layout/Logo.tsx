@@ -28,8 +28,8 @@ const Logo: React.FC<LogoProps> = ({
     "2xl": "w-36 h-36"
   };
 
-  // If hideLogo is true or no logo is configured, don't render anything
-  if (hideLogo || (!loading && (!settings?.logo_url || settings.logo_url.trim() === ''))) {
+  // If hideLogo is true, don't render anything
+  if (hideLogo) {
     return null;
   }
 
@@ -43,8 +43,9 @@ const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  const logoUrl = settings?.logo_url;
-  const platformName = settings?.company_name || "Platform";
+  // Use fallback values if settings are missing or invalid
+  const logoUrl = settings?.logo_url?.trim() || "/leazr-logo.png";
+  const platformName = settings?.company_name || "Leazr";
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -54,14 +55,18 @@ const Logo: React.FC<LogoProps> = ({
           alt={`${platformName} Logo`}
           className="w-full h-full object-contain"
           onError={(e) => {
-            // If logo fails to load, hide the component
+            // If logo fails to load, fallback to Leazr logo
             const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
+            if (target.src !== "/leazr-logo.png") {
+              target.src = "/leazr-logo.png";
+            } else {
+              target.style.display = 'none';
+            }
           }}
         />
       </div>
-      {showText && settings?.company_name && (
-        <span className="font-semibold">{settings.company_name}</span>
+      {showText && (
+        <span className="font-semibold">{platformName}</span>
       )}
     </div>
   );
