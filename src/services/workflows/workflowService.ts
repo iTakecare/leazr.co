@@ -27,6 +27,22 @@ export const workflowService = {
     return data || [];
   },
 
+  // Get workflow for contract type
+  async getWorkflowForContractType(companyId: string, contractType: string = 'standard'): Promise<WorkflowStepConfig[]> {
+    const { data, error } = await supabase
+      .rpc('get_workflow_for_contract_type', {
+        p_company_id: companyId,
+        p_contract_type: contractType
+      });
+
+    if (error) {
+      console.error('Error getting workflow for contract type:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
   // Get all workflow templates for company
   async getWorkflowTemplates(companyId: string): Promise<WorkflowTemplate[]> {
     const { data, error } = await supabase

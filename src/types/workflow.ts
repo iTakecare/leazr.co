@@ -7,6 +7,7 @@ export interface WorkflowTemplate {
   contract_type?: string;
   is_active: boolean;
   is_default: boolean;
+  is_for_contracts: boolean;
   created_at: string;
   updated_at: string;
 }

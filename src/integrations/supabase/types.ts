@@ -5233,6 +5233,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          is_for_contracts: boolean
           name: string
           offer_type: string
           updated_at: string
@@ -5245,6 +5246,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_for_contracts?: boolean
           name: string
           offer_type: string
           updated_at?: string
@@ -5257,6 +5259,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_for_contracts?: boolean
           name?: string
           offer_type?: string
           updated_at?: string
@@ -6135,6 +6138,21 @@ export type Database = {
           message: string
           sender_name: string
           sender_type: string
+        }[]
+      }
+      get_workflow_for_contract_type: {
+        Args: { p_company_id: string; p_contract_type?: string }
+        Returns: {
+          color_class: string
+          icon_name: string
+          is_required: boolean
+          is_visible: boolean
+          step_description: string
+          step_key: string
+          step_label: string
+          step_order: number
+          template_id: string
+          template_name: string
         }[]
       }
       get_workflow_for_offer_type: {

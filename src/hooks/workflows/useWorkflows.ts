@@ -152,6 +152,97 @@ export const useWorkflowForOfferType = (companyId?: string, offerType?: OfferTyp
   };
 };
 
+export const useWorkflowForContractType = (companyId?: string, contractType: string = 'standard') => {
+  const [steps, setSteps] = useState<WorkflowStepConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (companyId && contractType) {
+      loadWorkflowSteps();
+    }
+  }, [companyId, contractType]);
+
+  const loadWorkflowSteps = async () => {
+    if (!companyId) return;
+    
+    try {
+      setLoading(true);
+      const data = await workflowService.getWorkflowForContractType(companyId, contractType);
+      setSteps(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading contract workflow steps:', err);
+      setError('Erreur lors du chargement du workflow');
+      // Fallback to default steps if database fails
+      setSteps(getDefaultStepsForContractType());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    steps,
+    loading,
+    error,
+    loadWorkflowSteps
+  };
+};
+
+// Fallback default steps for contracts if database is not available
+const getDefaultStepsForContractType = (): WorkflowStepConfig[] => {
+  return [
+    {
+      template_id: '',
+      template_name: 'Default',
+      step_key: 'contract_sent',
+      step_label: 'Envoyé',
+      step_description: 'Contrat envoyé au client',
+      step_order: 1,
+      icon_name: 'Send',
+      color_class: 'bg-blue-500',
+      is_required: true,
+      is_visible: true
+    },
+    {
+      template_id: '',
+      template_name: 'Default',
+      step_key: 'contract_signed',
+      step_label: 'Signé',
+      step_description: 'Contrat signé par le client',
+      step_order: 2,
+      icon_name: 'CheckCircle',
+      color_class: 'bg-green-500',
+      is_required: true,
+      is_visible: true
+    },
+    {
+      template_id: '',
+      template_name: 'Default',
+      step_key: 'equipment_ordered',
+      step_label: 'Commandé',
+      step_description: 'Équipement commandé',
+      step_order: 3,
+      icon_name: 'Package',
+      color_class: 'bg-orange-500',
+      is_required: true,
+      is_visible: true
+    },
+    {
+      template_id: '',
+      template_name: 'Default',
+      step_key: 'delivered',
+      step_label: 'Livré',
+      step_description: 'Équipement livré',
+      step_order: 4,
+      icon_name: 'Truck',
+      color_class: 'bg-green-500',
+      is_required: true,
+      is_visible: true
+    }
+  ];
+};
+
 // Fallback default steps if database is not available
 const getDefaultStepsForOfferType = (offerType: OfferType): WorkflowStepConfig[] => {
   const baseSteps = {
