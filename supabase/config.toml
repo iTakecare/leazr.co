@@ -45,5 +45,8 @@ verify_jwt = false
 [functions.verify-custom-token]
 verify_jwt = false
 
+[functions.send-document-rejection]
+verify_jwt = true
+
 [functions.get-secret]
 verify_jwt = true

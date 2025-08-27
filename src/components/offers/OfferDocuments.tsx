@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  FileText, 
-  Download, 
-  Check, 
-  X, 
-  MessageSquare,
-  Upload,
-  Trash2
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-  getOfferDocuments,
-  updateDocumentStatus,
-  downloadDocument,
-  deleteDocument,
-  OfferDocument,
-  DOCUMENT_TYPES
-} from "@/services/offers/offerDocuments";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Check, X, Download, Trash2, MessageSquare, Mail, FileText } from 'lucide-react';
+import { getOfferDocuments, updateDocumentStatus, deleteDocument, downloadDocument, rejectDocumentWithEmail, DOCUMENT_TYPES, type OfferDocument } from '@/services/offers/offerDocuments';
+import { toast } from 'sonner';
 
 interface OfferDocumentsProps {
   offerId: string;
@@ -31,8 +17,9 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
   const [documents, setDocuments] = useState<OfferDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingDoc, setUpdatingDoc] = useState<string | null>(null);
-  const [adminNotes, setAdminNotes] = useState<{ [key: string]: string }>({});
   const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
+  const [rejectingDoc, setRejectingDoc] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     loadDocuments();
@@ -72,6 +59,31 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
       toast.error("Erreur lors de la mise à jour");
     } finally {
       setUpdatingDoc(null);
+    }
+  };
+
+  const handleRejectWithEmail = async (documentId: string, notes: string) => {
+    if (!notes || notes.trim().length === 0) {
+      toast.error("Veuillez indiquer la raison du rejet avant d'envoyer l'email");
+      return;
+    }
+
+    try {
+      setRejectingDoc(documentId);
+      const result = await rejectDocumentWithEmail(documentId, notes);
+      
+      if (result.success) {
+        await loadDocuments();
+        toast.success(result.message);
+        setAdminNotes(prev => ({ ...prev, [documentId]: '' }));
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Erreur lors du rejet avec notification email");
+    } finally {
+      setRejectingDoc(null);
     }
   };
 
@@ -162,7 +174,7 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
       <CardContent>
         {documents.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <Upload className="mx-auto h-12 w-12 mb-4 opacity-50" />
+            <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
             <p>Aucun document uploadé</p>
           </div>
         ) : (
@@ -239,20 +251,72 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
                             <div className="flex gap-2">
                               <Button
                                 onClick={() => handleStatusUpdate(doc.id, 'approved', adminNotes[doc.id])}
-                                disabled={updatingDoc === doc.id}
+                                disabled={updatingDoc === doc.id || rejectingDoc === doc.id}
                                 className="bg-green-600 hover:bg-green-700"
                               >
-                                <Check className="mr-2 h-4 w-4" />
+                                {updatingDoc === doc.id ? (
+                                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                                ) : (
+                                  <Check className="mr-2 h-4 w-4" />
+                                )}
                                 Approuver
                               </Button>
-                              <Button
-                                onClick={() => handleStatusUpdate(doc.id, 'rejected', adminNotes[doc.id])}
-                                disabled={updatingDoc === doc.id}
-                                variant="destructive"
-                              >
-                                <X className="mr-2 h-4 w-4" />
-                                Rejeter
-                              </Button>
+                              
+                              <div className="flex gap-1">
+                                <Button
+                                  onClick={() => handleStatusUpdate(doc.id, 'rejected', adminNotes[doc.id])}
+                                  disabled={updatingDoc === doc.id || rejectingDoc === doc.id}
+                                  variant="destructive"
+                                  size="sm"
+                                >
+                                  <X className="mr-1 h-4 w-4" />
+                                  Rejeter
+                                </Button>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      disabled={updatingDoc === doc.id || rejectingDoc === doc.id || !adminNotes[doc.id]?.trim()}
+                                      variant="destructive"
+                                      size="sm"
+                                      title="Rejeter et notifier par email"
+                                    >
+                                      {rejectingDoc === doc.id ? (
+                                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                                      ) : (
+                                        <Mail className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Rejeter et notifier le client</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Êtes-vous sûr de vouloir rejeter ce document ? Cette action va :
+                                        <ul className="list-disc list-inside mt-2 space-y-1">
+                                          <li>Marquer le document comme rejeté</li>
+                                          <li>Supprimer le fichier du serveur</li>
+                                          <li>Envoyer un email au client avec la raison du rejet</li>
+                                          <li>Permettre au client de re-uploader le document corrigé</li>
+                                        </ul>
+                                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                          <p className="text-sm font-medium">Notes qui seront envoyées :</p>
+                                          <p className="text-sm mt-1">{adminNotes[doc.id]}</p>
+                                        </div>
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleRejectWithEmail(doc.id, adminNotes[doc.id])}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Rejeter et notifier
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </div>
                           </div>
                         </DialogContent>

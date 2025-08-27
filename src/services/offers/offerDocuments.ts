@@ -430,6 +430,120 @@ export const updateDocumentStatus = async (
   }
 };
 
+// Nouvelle fonction pour rejeter un document avec envoi d'email et suppression
+export const rejectDocumentWithEmail = async (
+  documentId: string,
+  adminNotes: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    // 1. Récupérer les informations du document et de l'offre
+    const { data: document, error: docError } = await supabase
+      .from('offer_documents')
+      .select(`
+        *,
+        offer:offers (
+          id,
+          client_name,
+          client_email,
+          company_id,
+          company:companies (
+            name
+          )
+        )
+      `)
+      .eq('id', documentId)
+      .single();
+
+    if (docError || !document) {
+      console.error('Erreur lors de la récupération du document:', docError);
+      return { success: false, message: 'Document non trouvé' };
+    }
+
+    if (!document.offer?.client_email) {
+      return { success: false, message: 'Email du client non disponible' };
+    }
+
+    // 2. Supprimer le fichier du storage
+    console.log('🗑️ Suppression du fichier:', document.file_path);
+    const { error: storageError } = await supabase.storage
+      .from('offer-documents')
+      .remove([document.file_path]);
+
+    if (storageError) {
+      console.error('Erreur lors de la suppression du storage:', storageError);
+      // Continue malgré l'erreur de suppression
+    }
+
+    // 3. Mettre à jour le statut du document
+    const { error: updateError } = await supabase
+      .from('offer_documents')
+      .update({
+        status: 'rejected',
+        admin_notes: adminNotes,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', documentId);
+
+    if (updateError) {
+      console.error('Erreur lors de la mise à jour:', updateError);
+      return { success: false, message: 'Erreur lors du rejet du document' };
+    }
+
+    // 4. Créer un nouveau lien d'upload pour ce document spécifique
+    const uploadToken = await createUploadLink(
+      document.offer.id, 
+      [document.document_type], 
+      `Document rejeté: ${getDocumentTypeName(document.document_type)}. Raison: ${adminNotes}`,
+      'internal'
+    );
+
+    if (!uploadToken) {
+      return { success: false, message: 'Erreur lors de la création du lien de re-upload' };
+    }
+
+    // 5. Construire le lien d'upload
+    const uploadLink = `${window.location.origin}/upload/${uploadToken}`;
+
+    // 6. Envoyer l'email de rejet
+    const { data: emailData, error: emailError } = await supabase.functions.invoke('send-document-rejection', {
+      body: {
+        clientEmail: document.offer.client_email,
+        clientName: document.offer.client_name,
+        documentType: getDocumentTypeName(document.document_type),
+        rejectionReason: adminNotes,
+        uploadLink: uploadLink,
+        companyName: document.offer.company?.name || 'iTakecare'
+      }
+    });
+
+    if (emailError || !emailData?.success) {
+      console.error('Erreur lors de l\'envoi de l\'email:', emailError);
+      return { 
+        success: false, 
+        message: 'Document rejeté mais erreur lors de l\'envoi de l\'email' 
+      };
+    }
+
+    console.log('✅ Document rejeté avec succès, email envoyé');
+    return { 
+      success: true, 
+      message: 'Document rejeté et email de notification envoyé au client' 
+    };
+
+  } catch (error) {
+    console.error('Erreur lors du rejet avec email:', error);
+    return { success: false, message: 'Erreur inattendue lors du rejet' };
+  }
+};
+
+// Helper function pour obtenir le nom lisible du type de document
+const getDocumentTypeName = (docType: string): string => {
+  if (docType.startsWith('custom:')) {
+    return docType.replace('custom:', '');
+  }
+  return DOCUMENT_TYPES[docType] || docType;
+};
+
 export const downloadDocument = async (filePath: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase.storage
