@@ -5165,6 +5165,104 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_steps: {
+        Row: {
+          color_class: string | null
+          conditions: Json | null
+          created_at: string
+          icon_name: string | null
+          id: string
+          is_required: boolean
+          is_visible: boolean
+          notifications: Json | null
+          step_description: string | null
+          step_key: string
+          step_label: string
+          step_order: number
+          updated_at: string
+          workflow_template_id: string
+        }
+        Insert: {
+          color_class?: string | null
+          conditions?: Json | null
+          created_at?: string
+          icon_name?: string | null
+          id?: string
+          is_required?: boolean
+          is_visible?: boolean
+          notifications?: Json | null
+          step_description?: string | null
+          step_key: string
+          step_label: string
+          step_order: number
+          updated_at?: string
+          workflow_template_id: string
+        }
+        Update: {
+          color_class?: string | null
+          conditions?: Json | null
+          created_at?: string
+          icon_name?: string | null
+          id?: string
+          is_required?: boolean
+          is_visible?: boolean
+          notifications?: Json | null
+          step_description?: string | null
+          step_key?: string
+          step_label?: string
+          step_order?: number
+          updated_at?: string
+          workflow_template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_steps_workflow_template_id_fkey"
+            columns: ["workflow_template_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_templates: {
+        Row: {
+          company_id: string
+          contract_type: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          offer_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          contract_type?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          offer_type: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          contract_type?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          offer_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_platform_settings: {
@@ -6037,6 +6135,21 @@ export type Database = {
           message: string
           sender_name: string
           sender_type: string
+        }[]
+      }
+      get_workflow_for_offer_type: {
+        Args: { p_company_id: string; p_offer_type: string }
+        Returns: {
+          color_class: string
+          icon_name: string
+          is_required: boolean
+          is_visible: boolean
+          step_description: string
+          step_key: string
+          step_label: string
+          step_order: number
+          template_id: string
+          template_name: string
         }[]
       }
       group_products_by_sku: {
