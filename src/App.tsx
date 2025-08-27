@@ -19,6 +19,8 @@ import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Signup from "@/pages/Signup";
 import UpdatePassword from "@/pages/UpdatePassword";
+import AuthCallback from "@/pages/AuthCallback";
+import ResetPassword from "@/pages/auth/ResetPassword";
 
 // Public pages
 import HomePage from "@/pages/HomePage";
@@ -135,6 +137,8 @@ const AppRoutes = () => (
     <Route path="/signup" element={<Signup />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/update-password" element={<UpdatePassword />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/register" element={<Signup />} />
     
     {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}
