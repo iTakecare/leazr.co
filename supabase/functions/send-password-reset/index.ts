@@ -71,50 +71,61 @@ serve(async (req) => {
 
     console.log("Lien de réinitialisation généré avec succès");
 
-    // Envoyer l'email via la fonction send-resend-email
-    const emailResponse = await supabase.functions.invoke('send-resend-email', {
-      body: {
-        to: email,
-        subject: 'Réinitialisation de votre mot de passe',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-            <h1 style="color: #2563eb; text-align: center; margin-bottom: 30px;">Réinitialisation de mot de passe</h1>
-            
-            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Bonjour,
-            </p>
-            
-            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :
-            </p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetData.properties?.action_link}" 
-                 style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                Réinitialiser mon mot de passe
-              </a>
-            </div>
-            
-            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 10px; color: #666;">
-              Si le bouton ne fonctionne pas, vous pouvez copier et coller ce lien dans votre navigateur :
-            </p>
-            
-            <p style="font-size: 12px; word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
-              ${resetData.properties?.action_link}
-            </p>
-            
-            <p style="font-size: 14px; line-height: 1.6; color: #666;">
-              Ce lien expirera dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.
-            </p>
-            
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-            
-            <p style="font-size: 12px; color: #999; text-align: center;">
-              Cet email a été envoyé automatiquement, merci de ne pas y répondre.
-            </p>
+    // Envoyer l'email directement via Resend
+    const resendApiKey = Deno.env.get('ITAKECARE_RESEND_API');
+    
+    if (!resendApiKey) {
+      console.error("Clé API Resend iTakecare manquante");
+      throw new Error("Configuration email manquante");
+    }
+
+    // Importer Resend
+    const { Resend } = await import("https://esm.sh/resend@2.0.0");
+    const resend = new Resend(resendApiKey);
+
+    const emailResponse = await resend.emails.send({
+      from: 'iTakecare <hello@itakecare.be>',
+      to: email,
+      subject: 'Réinitialisation de votre mot de passe',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <h1 style="color: #2563eb; text-align: center; margin-bottom: 30px;">Réinitialisation de mot de passe</h1>
+          
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Bonjour,
+          </p>
+          
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetData.properties?.action_link}" 
+               style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Réinitialiser mon mot de passe
+            </a>
           </div>
-        `,
-        text: `
+          
+          <p style="font-size: 14px; line-height: 1.6; margin-bottom: 10px; color: #666;">
+            Si le bouton ne fonctionne pas, vous pouvez copier et coller ce lien dans votre navigateur :
+          </p>
+          
+          <p style="font-size: 12px; word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
+            ${resetData.properties?.action_link}
+          </p>
+          
+          <p style="font-size: 14px; line-height: 1.6; color: #666;">
+            Ce lien expirera dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.
+          </p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          
+          <p style="font-size: 12px; color: #999; text-align: center;">
+            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+          </p>
+        </div>
+      `,
+      text: `
 Réinitialisation de mot de passe
 
 Bonjour,
@@ -125,8 +136,7 @@ Cliquez sur ce lien pour créer un nouveau mot de passe :
 ${resetData.properties?.action_link}
 
 Ce lien expirera dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.
-        `
-      }
+      `
     });
 
     if (emailResponse.error) {
