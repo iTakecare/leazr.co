@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const RESEND_API_KEY = Deno.env.get('ITAKECARE_RESEND_API')
 
 serve(async (req) => {
   // Handle CORS
@@ -19,7 +19,7 @@ serve(async (req) => {
     
     if (!RESEND_API_KEY) {
       console.error("❌ Clé API Resend manquante")
-      throw new Error('RESEND_API_KEY is not set')
+      throw new Error('ITAKECARE_RESEND_API is not set')
     }
 
     const { 
