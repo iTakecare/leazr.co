@@ -262,61 +262,57 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
                                 Approuver
                               </Button>
                               
-                              <div className="flex gap-1">
-                                <Button
-                                  onClick={() => handleStatusUpdate(doc.id, 'rejected', adminNotes[doc.id])}
-                                  disabled={updatingDoc === doc.id || rejectingDoc === doc.id}
-                                  variant="destructive"
-                                  size="sm"
-                                >
-                                  <X className="mr-1 h-4 w-4" />
-                                  Rejeter
-                                </Button>
-                                
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      disabled={updatingDoc === doc.id || rejectingDoc === doc.id || !adminNotes[doc.id]?.trim()}
-                                      variant="destructive"
-                                      size="sm"
-                                      title="Rejeter et notifier par email"
-                                    >
-                                      {rejectingDoc === doc.id ? (
-                                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                                      ) : (
-                                        <Mail className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Rejeter et notifier le client</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Êtes-vous sûr de vouloir rejeter ce document ? Cette action va :
-                                        <ul className="list-disc list-inside mt-2 space-y-1">
-                                          <li>Marquer le document comme rejeté</li>
-                                          <li>Supprimer le fichier du serveur</li>
-                                          <li>Envoyer un email au client avec la raison du rejet</li>
-                                          <li>Permettre au client de re-uploader le document corrigé</li>
-                                        </ul>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    disabled={updatingDoc === doc.id || rejectingDoc === doc.id || !adminNotes[doc.id]?.trim()}
+                                    variant="destructive"
+                                    size="sm"
+                                  >
+                                    {rejectingDoc === doc.id ? (
+                                      <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1" />
+                                    ) : (
+                                      <X className="mr-1 h-4 w-4" />
+                                    )}
+                                    Rejeter
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Rejeter le document</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Êtes-vous sûr de vouloir rejeter ce document ? Cette action va automatiquement :
+                                      <ul className="list-disc list-inside mt-2 space-y-1">
+                                        <li>Marquer le document comme rejeté</li>
+                                        <li>Supprimer le fichier du serveur</li>
+                                        <li>Envoyer un email au client avec la raison du rejet</li>
+                                        <li>Permettre au client de re-uploader le document corrigé</li>
+                                      </ul>
+                                      {adminNotes[doc.id]?.trim() && (
                                         <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                                          <p className="text-sm font-medium">Notes qui seront envoyées :</p>
+                                          <p className="text-sm font-medium">Raison du rejet qui sera envoyée :</p>
                                           <p className="text-sm mt-1">{adminNotes[doc.id]}</p>
                                         </div>
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleRejectWithEmail(doc.id, adminNotes[doc.id])}
-                                        className="bg-red-600 hover:bg-red-700"
-                                      >
-                                        Rejeter et notifier
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
+                                      )}
+                                      {!adminNotes[doc.id]?.trim() && (
+                                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                                          <p className="text-sm text-red-600">⚠️ Veuillez ajouter une note expliquant la raison du rejet avant de continuer.</p>
+                                        </div>
+                                      )}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRejectWithEmail(doc.id, adminNotes[doc.id])}
+                                      disabled={!adminNotes[doc.id]?.trim()}
+                                      className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                      Rejeter et notifier
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </div>
                         </DialogContent>
