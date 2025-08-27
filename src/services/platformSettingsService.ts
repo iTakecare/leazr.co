@@ -67,7 +67,7 @@ export const getDefaultSettings = (): PlatformSettings => ({
 export const getPublicPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
     const { data, error } = await supabase
-      .from('public_platform_settings')
+      .from('platform_settings')
       .select('*')
       .limit(1)
       .maybeSingle();

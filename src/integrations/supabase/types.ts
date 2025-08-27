@@ -5268,51 +5268,7 @@ export type Database = {
       }
     }
     Views: {
-      public_platform_settings: {
-        Row: {
-          accent_color: string | null
-          company_name: string | null
-          created_at: string | null
-          favicon_url: string | null
-          id: string | null
-          linkedin_url: string | null
-          logo_url: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          twitter_url: string | null
-          updated_at: string | null
-          website_url: string | null
-        }
-        Insert: {
-          accent_color?: string | null
-          company_name?: string | null
-          created_at?: string | null
-          favicon_url?: string | null
-          id?: string | null
-          linkedin_url?: string | null
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          twitter_url?: string | null
-          updated_at?: string | null
-          website_url?: string | null
-        }
-        Update: {
-          accent_color?: string | null
-          company_name?: string | null
-          created_at?: string | null
-          favicon_url?: string | null
-          id?: string | null
-          linkedin_url?: string | null
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          twitter_url?: string | null
-          updated_at?: string | null
-          website_url?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       activate_prospect: {
