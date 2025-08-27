@@ -162,6 +162,9 @@ const AppRoutes = () => (
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
     
+    {/* Company-specific login route - must be before generic company slug routes */}
+    <Route path="/:companySlug/login" element={<Login />} />
+    
     {/* Redirect route removed - now handled by edge function redirect-upload */}
     
     {/* Document upload routes - moved to proper position to avoid slug conflicts */}
