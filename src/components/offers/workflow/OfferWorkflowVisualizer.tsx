@@ -3,8 +3,9 @@ import React from "react";
 import { format } from "date-fns";
 import { Clock, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { OFFER_STATUSES } from "../OfferStatusBadge";
-import { KANBAN_COLUMNS } from "../kanban/kanbanConfig";
+import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
+import { useAuth } from "@/context/AuthContext";
+import type { OfferType } from "@/types/workflow";
 
 interface OfferWorkflowVisualizerProps {
   currentStatus: string;
@@ -12,6 +13,7 @@ interface OfferWorkflowVisualizerProps {
   onStatusChange?: (newStatus: string) => void;
   lastUpdated?: string | null;
   completionPercentage?: number;
+  offerType?: OfferType;
 }
 
 const OfferWorkflowVisualizer: React.FC<OfferWorkflowVisualizerProps> = ({
@@ -20,24 +22,24 @@ const OfferWorkflowVisualizer: React.FC<OfferWorkflowVisualizerProps> = ({
   onStatusChange,
   lastUpdated,
   completionPercentage = 0,
+  offerType = 'standard',
 }) => {
-  // Nouveau workflow à 5 étapes principales
-  const workflowSteps = KANBAN_COLUMNS.filter(
-    (column) => [
-      OFFER_STATUSES.DRAFT.id,
-      OFFER_STATUSES.SENT.id,
-      OFFER_STATUSES.INTERNAL_REVIEW.id,
-      OFFER_STATUSES.LEASER_REVIEW.id,
-      OFFER_STATUSES.VALIDATED.id
-    ].includes(column.id)
+  const { user } = useAuth();
+  const { steps: workflowSteps, loading } = useWorkflowForOfferType(
+    user?.user_metadata?.company_id,
+    offerType
   );
+
+  if (loading || !workflowSteps?.length) {
+    return <div className="animate-pulse h-32 bg-gray-100 rounded"></div>;
+  }
 
   // Déterminer le pourcentage de progression
   const calculateCompletionPercentage = () => {
     if (completionPercentage > 0) return completionPercentage;
     
     const totalSteps = workflowSteps.length;
-    const currentStepIndex = workflowSteps.findIndex(step => step.id === currentStatus);
+    const currentStepIndex = workflowSteps.findIndex(step => step.step_key === currentStatus);
     
     if (currentStepIndex === -1) return 0;
     return Math.round(((currentStepIndex + 1) / totalSteps) * 100);
@@ -63,36 +65,39 @@ const OfferWorkflowVisualizer: React.FC<OfferWorkflowVisualizerProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${workflowSteps.length}, 1fr)` }}>
         {workflowSteps.map((step, index) => {
-          const StepIcon = step.icon;
-          const completed = isCompleted(step.id);
-          const active = isActive(step.id);
+          const completed = isCompleted(step.step_key);
+          const active = isActive(step.step_key);
           
           return (
             <div 
-              key={step.id} 
+              key={step.step_key} 
               className="flex flex-col items-center"
-              onClick={() => onStatusChange && onStatusChange(step.id)}
+              onClick={() => onStatusChange && onStatusChange(step.step_key)}
             >
               <div 
                 className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center transition-all",
-                  completed ? step.color : "bg-gray-100",
+                  "w-16 h-16 rounded-full flex items-center justify-center transition-all border-2",
+                  completed 
+                    ? "bg-green-500 border-green-500 text-white" 
+                    : active 
+                      ? "bg-blue-500 border-blue-500 text-white"
+                      : "bg-gray-100 border-gray-300 text-gray-400",
                   onStatusChange && "cursor-pointer hover:opacity-80"
                 )}
               >
                 {completed ? (
-                  <Check className={cn("h-8 w-8", step.textColor)} />
+                  <Check className="h-8 w-8" />
                 ) : (
-                  <StepIcon className="h-8 w-8 text-gray-400" />
+                  <Clock className="h-8 w-8" />
                 )}
               </div>
               <span className={cn(
                 "mt-2 text-center text-sm", 
                 active ? "font-semibold" : "text-muted-foreground"
               )}>
-                {step.title}
+                {step.step_label}
               </span>
             </div>
           );
