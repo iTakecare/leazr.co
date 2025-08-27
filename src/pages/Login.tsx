@@ -238,9 +238,6 @@ const Login = () => {
                 </Button>
                 
                 <div className="w-full text-center space-y-2">
-                  <Link to="/signup" className="text-sm text-blue-600 hover:underline block">
-                    Pas de compte ? Inscrivez-vous
-                  </Link>
                   <button
                     type="button"
                     onClick={() => navigate('/')}
