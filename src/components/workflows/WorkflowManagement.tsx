@@ -5,15 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Copy, Settings } from 'lucide-react';
 import { useWorkflows } from '@/hooks/workflows/useWorkflows';
-import { useAuth } from '@/context/AuthContext';
+import { useMultiTenant } from '@/hooks/useMultiTenant';
 import { WorkflowTemplateForm } from './WorkflowTemplateForm';
 import { WorkflowStepsManager } from './WorkflowStepsManager';
 import type { WorkflowTemplate } from '@/types/workflow';
 
 const WorkflowManagement: React.FC = () => {
-  const { user } = useAuth();
-  const companyId = user?.company;
-  const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useWorkflows(companyId);
+  const { companyId, loading: companyLoading } = useMultiTenant();
+  const { templates, loading: templatesLoading, createTemplate, updateTemplate, deleteTemplate } = useWorkflows(companyId || undefined);
   
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -57,10 +56,21 @@ const WorkflowManagement: React.FC = () => {
     return colors[offerType] || colors.standard;
   };
 
-  if (loading) {
+  if (companyLoading || templatesLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!companyId) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Accès non autorisé</h3>
+          <p className="text-muted-foreground">Vous devez être associé à une entreprise pour gérer les workflows.</p>
+        </div>
       </div>
     );
   }
