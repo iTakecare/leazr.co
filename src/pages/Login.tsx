@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CardTitle, CardDescription, CardHeader, CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,12 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, user, isAdmin, isClient, isAmbassador, isSuperAdmin, isLoading, session } = useAuth();
+
+  // Detect company slug from URL path
+  const companySlug = location.pathname.split('/')[1];
+  const isItakecare = companySlug === 'itakecare';
 
   // Redirection automatique - corrigée pour éviter les conflits
   useEffect(() => {
@@ -159,7 +164,21 @@ const Login = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center justify-center mb-6">
-            <Logo showText={false} logoSize="2xl" className="mb-16" />
+            {isItakecare ? (
+              <div className="mb-16 flex flex-col items-center">
+                <img 
+                  src="https://www.itakecare.be/app/plugins/slogan-plugin/assets/images/takecare-logo.svg" 
+                  alt="iTakecare Logo" 
+                  className="w-36 h-36 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+            ) : (
+              <Logo showText={false} logoSize="2xl" className="mb-16" />
+            )}
           </div>
           
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
@@ -275,12 +294,25 @@ const Login = () => {
         ></div>
         
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          <h3 className="text-2xl font-bold text-white mb-2">
-            Leazr.co
-          </h3>
-          <p className="text-white/90">
-            Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
-          </p>
+          {isItakecare ? (
+            <>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Leazr.co × iTakecare
+              </h3>
+              <p className="text-white/90">
+                Une collaboration innovante pour digitaliser la gestion de vos contrats de leasing et optimiser le suivi de vos équipements en toute simplicité.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Leazr.co
+              </h3>
+              <p className="text-white/90">
+                Une plateforme sécurisée pour gérer vos offres, contrats et équipements depuis n'importe où, à tout moment.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </PageTransition>
