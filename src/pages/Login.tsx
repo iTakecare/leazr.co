@@ -10,6 +10,7 @@ import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle, ShieldCheck, Home } f
 import PageTransition from '@/components/layout/PageTransition';
 import Logo from '@/components/layout/Logo';
 import { getCompanySlugForUser } from '@/services/companySlugService';
+import { useCompanyBranding } from '@/hooks/useCompanyBranding';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -22,14 +23,7 @@ const Login = () => {
 
   // Detect company slug from URL path
   const companySlug = location.pathname.split('/')[1];
-  const isItakecare = companySlug === 'itakecare';
-  
-  // Debug logs for company detection
-  console.log("🏢 LOGIN COMPANY DETECTION:", {
-    pathname: location.pathname, 
-    companySlug, 
-    isItakecare
-  });
+  const { branding: companyBranding, loading: brandingLoading } = useCompanyBranding(companySlug || null);
 
   // Redirection automatique - corrigée pour éviter les conflits
   useEffect(() => {
@@ -171,36 +165,34 @@ const Login = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 py-12 lg:px-8 bg-gradient-to-br from-white to-blue-50 relative z-10">
         <div className="w-full max-w-md space-y-8">
           <div className="flex flex-col items-center justify-center mb-6">
-            {isItakecare ? (
-              <div className="mb-16 flex flex-col items-center">
+            {/* Logo dynamique basé sur la company */}
+            <div className="mb-16 flex flex-col items-center">
+              {brandingLoading ? (
+                <div className="w-36 h-36 bg-muted animate-pulse rounded" />
+              ) : companyBranding?.logo_url ? (
                 <img 
-                  src="https://www.itakecare.be/app/plugins/slogan-plugin/assets/images/takecare-logo.svg" 
-                  alt="iTakecare Logo" 
+                  src={companyBranding.logo_url} 
+                  alt={`${companyBranding.name} Logo`} 
                   className="w-36 h-36 object-contain"
-                  onLoad={() => console.log("🖼️ iTakecare logo loaded successfully")}
                   onError={(e) => {
-                    console.log("❌ iTakecare logo failed to load, trying fallback");
                     const target = e.target as HTMLImageElement;
-                    // Try our local logo as fallback
-                    if (!target.src.includes('itakecare-logo.png')) {
-                      target.src = '/src/assets/itakecare-logo.png';
-                    } else {
-                      // If both fail, show text logo
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent && !parent.querySelector('.text-fallback')) {
-                        const textLogo = document.createElement('div');
-                        textLogo.className = 'text-fallback text-4xl font-bold text-blue-600 mb-4';
-                        textLogo.textContent = 'iTakecare';
-                        parent.appendChild(textLogo);
-                      }
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector('.fallback-logo')) {
+                      const fallback = document.createElement('div');
+                      fallback.className = 'fallback-logo';
+                      parent.appendChild(fallback);
+                      // Show default logo
+                      const logoContainer = document.createElement('div');
+                      logoContainer.innerHTML = '<div class="w-36 h-36 flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" class="w-16 h-16 text-blue-600" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+                      fallback.appendChild(logoContainer);
                     }
                   }}
                 />
-              </div>
-            ) : (
-              <Logo showText={false} logoSize="2xl" className="mb-16" />
-            )}
+              ) : (
+                <Logo showText={false} logoSize="2xl" />
+              )}
+            </div>
           </div>
           
           <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
@@ -316,10 +308,10 @@ const Login = () => {
         ></div>
         
         <div className="absolute bottom-12 left-12 right-12 p-6 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 z-20">
-          {isItakecare ? (
+          {companyBranding ? (
             <>
               <h3 className="text-2xl font-bold text-white mb-2">
-                Leazr.co × iTakecare
+                Leazr.co × {companyBranding.name}
               </h3>
               <p className="text-white/90">
                 Une collaboration innovante pour digitaliser la gestion de vos contrats de leasing et optimiser le suivi de vos équipements en toute simplicité.
