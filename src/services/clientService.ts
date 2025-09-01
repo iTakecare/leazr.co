@@ -367,11 +367,24 @@ const areVariants = (name1: string, name2: string): boolean => {
   const base2 = normalizeForComparison(extractBaseName(name2));
   if (base1 === base2) return true;
   
-  // Variantes connues spécifiques
+  // Cas spécial: AR Saint Ghislain - tous sont le même client
+  if (norm1.includes('ar saint ghislain') && norm2.includes('ar saint ghislain')) {
+    return true;
+  }
+  
+  // Variantes connues spécifiques iTakecare
   const variants = [
-    ['winfinance', 'win finance'],
-    ['skillset', 'skillset srl'],
-    ['marie sergi', 'honesty'], // Cas spécial: même personne, entreprises différentes
+    ['winfinance', 'win finance'], // Winfinance = Win Finance
+    ['skillset', 'skillset srl'], // Skillset = Skillset SRL
+    ['apik', 'apik'], // Toutes les variantes Apik
+    ['alarmes de clerck', 'alarmes de clerck'], // Toutes les variantes Alarmes De Clerck
+    ['infra route srl', 'infra route srl'], // Toutes les variantes Infra Route
+    ['coach naci', 'coach naci'], // Toutes les variantes Coach Naci
+    ['engine of passion', 'engine of passion'], // Engine of Passion
+    ['eurofood bank', 'about it'], // Eurofood Bank | About IT
+    ['legrow studio', 'legrow studio'], // LeGrow Studio
+    ['xprove scs', 'xprove scs'], // Xprove SCS
+    ['v infra', 'v infra'], // v infra
   ];
   
   for (const [v1, v2] of variants) {
@@ -388,7 +401,7 @@ const areVariants = (name1: string, name2: string): boolean => {
  * Traite les données brutes d'import pour créer des clients uniques avec nettoyage avancé
  */
 export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
-  const clientMap = new Map<string, BulkClientData>();
+  const clientMap = new Map<string, BulkClientData & { rawEntries: string[] }>();
   const cleaningReport = {
     raw_entries: rawData.length,
     duplicates_merged: [] as string[],
@@ -396,7 +409,9 @@ export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
     skipped_entries: [] as string[]
   };
   
-  rawData.forEach(entry => {
+  console.log('🧹 Début du nettoyage de', rawData.length, 'entrées');
+  
+  rawData.forEach((entry, index) => {
     const trimmed = entry.trim();
     if (!trimmed) {
       cleaningReport.skipped_entries.push('(entrée vide)');
@@ -406,64 +421,99 @@ export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
     let contactName: string;
     let clientName: string;
     
-    // Parse selon différents formats
+    // Parse selon les formats iTakecare
     if (trimmed.includes(' - ')) {
       // Format: "Prénom Nom - Entreprise"
       const parts = trimmed.split(' - ', 2);
       contactName = parts[0].trim();
       clientName = parts[1].trim();
+      
+      // Cas spécial: AR Saint Ghislain - toujours utiliser "AR Saint Ghislain" comme nom client
+      if (clientName.toLowerCase().includes('ar saint ghislain')) {
+        clientName = 'AR Saint Ghislain';
+      }
     } else {
       // Format sans séparateur: "Entreprise" ou "Prénom Nom"
       contactName = trimmed;
       clientName = trimmed;
     }
     
-    // Nettoyage des noms de base (suppression des #X)
+    // Nettoyage des noms de base (suppression des #X et autres suffixes)
     const baseClientName = extractBaseName(clientName);
     const baseContactName = extractBaseName(contactName);
     
+    console.log(`Traitement [${index}]: "${trimmed}" → Client: "${baseClientName}", Contact: "${baseContactName}"`);
+    
     // Recherche de variantes/doublons existants
+    let existingEntry: typeof clientMap extends Map<string, infer T> ? T : never | null = null;
     let existingKey: string | null = null;
+    
     for (const [key, existing] of clientMap.entries()) {
-      if (areVariants(baseClientName, existing.name) || 
-          areVariants(baseClientName, key)) {
+      if (areVariants(baseClientName, existing.name)) {
+        existingEntry = existing;
         existingKey = key;
         break;
       }
     }
     
-    if (existingKey) {
+    if (existingEntry && existingKey) {
       // Fusion avec client existant
-      const existing = clientMap.get(existingKey)!;
+      console.log(`🔗 Fusion détectée: "${baseClientName}" → "${existingEntry.name}"`);
       
-      // Garder le nom le plus complet (sans #X si possible)
-      if (baseClientName.length > existing.name.length || 
-          (!existing.name.includes('#') && clientName.includes('#'))) {
-        existing.name = baseClientName;
+      // Améliorer le nom du client si nécessaire
+      let shouldUpdateName = false;
+      let newName = existingEntry.name;
+      
+      // Préférer les noms sans numéros (#X)
+      if (!baseClientName.includes('#') && existingEntry.name.includes('#')) {
+        newName = baseClientName;
+        shouldUpdateName = true;
       }
+      // Préférer les noms plus longs et informatifs
+      else if (baseClientName.length > existingEntry.name.length && !baseClientName.includes('#')) {
+        newName = baseClientName;
+        shouldUpdateName = true;
+      }
+      // Cas spéciaux iTakecare
+      else if (baseClientName === 'AR Saint Ghislain' && !existingEntry.name.includes('AR Saint Ghislain')) {
+        newName = 'AR Saint Ghislain';
+        shouldUpdateName = true;
+      }
+      
+      if (shouldUpdateName) {
+        existingEntry.name = newName;
+        console.log(`📝 Nom mis à jour: "${newName}"`);
+      }
+      
+      // Ajouter à la liste des entrées brutes fusionnées
+      existingEntry.rawEntries.push(trimmed);
       
       // Log de la fusion
-      if (baseClientName !== existing.name) {
-        cleaningReport.duplicates_merged.push(`${trimmed} → ${existing.name}`);
+      if (trimmed.includes('#')) {
+        cleaningReport.series_merged.push(`${trimmed} → ${existingEntry.name}`);
       } else {
-        cleaningReport.series_merged.push(`${trimmed} → ${existing.name}`);
+        cleaningReport.duplicates_merged.push(`${trimmed} → ${existingEntry.name}`);
       }
     } else {
-      // Nouveau client
-      const normalizedKey = normalizeForComparison(baseClientName);
+      // Nouveau client unique
+      const normalizedKey = normalizeForComparison(baseClientName) + '_' + index; // Ajouter index pour éviter collisions
+      console.log(`✨ Nouveau client: "${baseClientName}"`);
+      
       clientMap.set(normalizedKey, {
         name: baseClientName,
         contact_name: baseContactName,
         email: '', // Vide comme demandé
         status: 'active',
-        company_id: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0' // iTakecare
+        company_id: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0', // iTakecare
+        rawEntries: [trimmed]
       });
     }
   });
   
-  const result = Array.from(clientMap.values());
+  // Convertir en résultat final
+  const result = Array.from(clientMap.values()).map(({ rawEntries, ...client }) => client);
   
-  // Log du rapport de nettoyage
+  // Rapport de nettoyage final
   const report = {
     raw_entries: rawData.length,
     cleaned_entries: result.length,
@@ -472,7 +522,9 @@ export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
     skipped_entries: cleaningReport.skipped_entries
   };
   
-  console.log('📊 Rapport de nettoyage:', report);
+  console.log('📊 Rapport de nettoyage final:', report);
+  console.log('🎯 Réduction:', rawData.length, '→', result.length, 'clients (', 
+    Math.round((1 - result.length / rawData.length) * 100), '% de réduction)');
   
   // Store the cleaning report for later use
   (result as any).__cleaning_report = report;
