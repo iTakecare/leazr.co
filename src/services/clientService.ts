@@ -325,34 +325,135 @@ export interface BulkImportResult {
   failed: number;
   errors: { client: string; error: string }[];
   created_clients: Client[];
+  cleaning_report?: {
+    raw_entries: number;
+    cleaned_entries: number;
+    duplicates_merged: string[];
+    series_merged: string[];
+    skipped_entries: string[];
+  };
 }
 
 /**
- * Traite les données brutes d'import pour créer des clients uniques
+ * Normalise un nom pour la comparaison (supprime espaces multiples, caractères spéciaux, casse)
+ */
+const normalizeForComparison = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Remplace caractères spéciaux par espaces
+    .replace(/\s+/g, ' ') // Remplace espaces multiples par un seul
+    .trim();
+};
+
+/**
+ * Extrait le nom de base en supprimant les numéros de série (#1, #2, etc.)
+ */
+const extractBaseName = (name: string): string => {
+  return name.replace(/\s*#\d+.*$/, '').trim();
+};
+
+/**
+ * Détecte si deux noms sont des variantes du même client
+ */
+const areVariants = (name1: string, name2: string): boolean => {
+  const norm1 = normalizeForComparison(name1);
+  const norm2 = normalizeForComparison(name2);
+  
+  // Comparaison exacte après normalisation
+  if (norm1 === norm2) return true;
+  
+  // Comparaison des noms de base (sans #X)
+  const base1 = normalizeForComparison(extractBaseName(name1));
+  const base2 = normalizeForComparison(extractBaseName(name2));
+  if (base1 === base2) return true;
+  
+  // Variantes connues spécifiques
+  const variants = [
+    ['winfinance', 'win finance'],
+    ['skillset', 'skillset srl'],
+    ['marie sergi', 'honesty'], // Cas spécial: même personne, entreprises différentes
+  ];
+  
+  for (const [v1, v2] of variants) {
+    if ((norm1.includes(v1) && norm2.includes(v2)) || 
+        (norm1.includes(v2) && norm2.includes(v1))) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+/**
+ * Traite les données brutes d'import pour créer des clients uniques avec nettoyage avancé
  */
 export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
   const clientMap = new Map<string, BulkClientData>();
+  const cleaningReport = {
+    raw_entries: rawData.length,
+    duplicates_merged: [] as string[],
+    series_merged: [] as string[],
+    skipped_entries: [] as string[]
+  };
   
   rawData.forEach(entry => {
     const trimmed = entry.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      cleaningReport.skipped_entries.push('(entrée vide)');
+      return;
+    }
     
-    // Parse "Prénom Nom - Entreprise" ou "Prénom Nom - Prénom Nom"
-    const parts = trimmed.split(' - ');
-    if (parts.length !== 2) return;
+    let contactName: string;
+    let clientName: string;
     
-    const contactName = parts[0].trim();
-    const clientName = parts[1].trim();
+    // Parse selon différents formats
+    if (trimmed.includes(' - ')) {
+      // Format: "Prénom Nom - Entreprise"
+      const parts = trimmed.split(' - ', 2);
+      contactName = parts[0].trim();
+      clientName = parts[1].trim();
+    } else {
+      // Format sans séparateur: "Entreprise" ou "Prénom Nom"
+      contactName = trimmed;
+      clientName = trimmed;
+    }
     
-    // Déterminer si c'est un individu ou une entreprise
-    const isIndividual = contactName === clientName;
-    const finalClientName = isIndividual ? contactName : clientName;
+    // Nettoyage des noms de base (suppression des #X)
+    const baseClientName = extractBaseName(clientName);
+    const baseContactName = extractBaseName(contactName);
     
-    // Éviter les doublons en utilisant le nom du client comme clé
-    if (!clientMap.has(finalClientName)) {
-      clientMap.set(finalClientName, {
-        name: finalClientName,
-        contact_name: contactName,
+    // Recherche de variantes/doublons existants
+    let existingKey: string | null = null;
+    for (const [key, existing] of clientMap.entries()) {
+      if (areVariants(baseClientName, existing.name) || 
+          areVariants(baseClientName, key)) {
+        existingKey = key;
+        break;
+      }
+    }
+    
+    if (existingKey) {
+      // Fusion avec client existant
+      const existing = clientMap.get(existingKey)!;
+      
+      // Garder le nom le plus complet (sans #X si possible)
+      if (baseClientName.length > existing.name.length || 
+          (!existing.name.includes('#') && clientName.includes('#'))) {
+        existing.name = baseClientName;
+      }
+      
+      // Log de la fusion
+      if (baseClientName !== existing.name) {
+        cleaningReport.duplicates_merged.push(`${trimmed} → ${existing.name}`);
+      } else {
+        cleaningReport.series_merged.push(`${trimmed} → ${existing.name}`);
+      }
+    } else {
+      // Nouveau client
+      const normalizedKey = normalizeForComparison(baseClientName);
+      clientMap.set(normalizedKey, {
+        name: baseClientName,
+        contact_name: baseContactName,
         email: '', // Vide comme demandé
         status: 'active',
         company_id: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0' // iTakecare
@@ -360,7 +461,23 @@ export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
     }
   });
   
-  return Array.from(clientMap.values());
+  const result = Array.from(clientMap.values());
+  
+  // Log du rapport de nettoyage
+  const report = {
+    raw_entries: rawData.length,
+    cleaned_entries: result.length,
+    duplicates_merged: cleaningReport.duplicates_merged,
+    series_merged: cleaningReport.series_merged,
+    skipped_entries: cleaningReport.skipped_entries
+  };
+  
+  console.log('📊 Rapport de nettoyage:', report);
+  
+  // Store the cleaning report for later use
+  (result as any).__cleaning_report = report;
+  
+  return result;
 };
 
 /**
@@ -376,7 +493,8 @@ export const bulkCreateClients = async (
     success: 0,
     failed: 0,
     errors: [],
-    created_clients: []
+    created_clients: [],
+    cleaning_report: (clientsData as any).__cleaning_report
   };
   
   console.log(`🔄 Début de l'import en masse de ${clientsData.length} clients`);

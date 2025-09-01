@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Users, AlertCircle, CheckCircle, Download, FileText } from 'lucide-react';
+import { Upload, Users, AlertCircle, CheckCircle, Download, FileText, Sparkles } from 'lucide-react';
 import { processBulkClientData, bulkCreateClients, BulkImportResult } from '@/services/clientService';
 
 const BulkClientImport: React.FC = () => {
@@ -417,6 +417,56 @@ Isabelle Barbosa - Ecrin Santé`;
                 <div className="text-sm text-muted-foreground">Échecs</div>
               </div>
             </div>
+
+            {/* Rapport de nettoyage */}
+            {importResult.cleaning_report && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Rapport de nettoyage
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                  <div>
+                    <span className="font-medium">Entrées originales:</span> {importResult.cleaning_report.raw_entries}
+                  </div>
+                  <div>
+                    <span className="font-medium">Clients uniques:</span> {importResult.cleaning_report.cleaned_entries}
+                  </div>
+                </div>
+                
+                {importResult.cleaning_report.duplicates_merged.length > 0 && (
+                  <div className="mb-3">
+                    <div className="font-medium text-blue-600 mb-1">
+                      Doublons fusionnés: {importResult.cleaning_report.duplicates_merged.length}
+                    </div>
+                    <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto">
+                      {importResult.cleaning_report.duplicates_merged.slice(0, 5).map((merge, i) => (
+                        <div key={i}>• {merge}</div>
+                      ))}
+                      {importResult.cleaning_report.duplicates_merged.length > 5 && (
+                        <div>... et {importResult.cleaning_report.duplicates_merged.length - 5} autres</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {importResult.cleaning_report.series_merged.length > 0 && (
+                  <div className="mb-3">
+                    <div className="font-medium text-purple-600 mb-1">
+                      Séries fusionnées: {importResult.cleaning_report.series_merged.length}
+                    </div>
+                    <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto">
+                      {importResult.cleaning_report.series_merged.slice(0, 5).map((merge, i) => (
+                        <div key={i}>• {merge}</div>
+                      ))}
+                      {importResult.cleaning_report.series_merged.length > 5 && (
+                        <div>... et {importResult.cleaning_report.series_merged.length - 5} autres</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {importResult.errors.length > 0 && (
               <Alert>
