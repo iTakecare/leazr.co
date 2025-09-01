@@ -23,6 +23,13 @@ const Login = () => {
   // Detect company slug from URL path
   const companySlug = location.pathname.split('/')[1];
   const isItakecare = companySlug === 'itakecare';
+  
+  // Debug logs for company detection
+  console.log("🏢 LOGIN COMPANY DETECTION:", {
+    pathname: location.pathname, 
+    companySlug, 
+    isItakecare
+  });
 
   // Redirection automatique - corrigée pour éviter les conflits
   useEffect(() => {
@@ -170,9 +177,24 @@ const Login = () => {
                   src="https://www.itakecare.be/app/plugins/slogan-plugin/assets/images/takecare-logo.svg" 
                   alt="iTakecare Logo" 
                   className="w-36 h-36 object-contain"
+                  onLoad={() => console.log("🖼️ iTakecare logo loaded successfully")}
                   onError={(e) => {
+                    console.log("❌ iTakecare logo failed to load, trying fallback");
                     const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
+                    // Try our local logo as fallback
+                    if (!target.src.includes('itakecare-logo.png')) {
+                      target.src = '/src/assets/itakecare-logo.png';
+                    } else {
+                      // If both fail, show text logo
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.text-fallback')) {
+                        const textLogo = document.createElement('div');
+                        textLogo.className = 'text-fallback text-4xl font-bold text-blue-600 mb-4';
+                        textLogo.textContent = 'iTakecare';
+                        parent.appendChild(textLogo);
+                      }
+                    }
                   }}
                 />
               </div>
