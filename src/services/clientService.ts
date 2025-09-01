@@ -232,7 +232,8 @@ export const getClientCollaborators = async (clientId: string): Promise<Collabor
  */
 export const createCollaborator = async (
   clientId: string,
-  collaboratorData: Omit<Collaborator, 'id' | 'client_id' | 'created_at' | 'updated_at' | 'is_primary'>
+  collaboratorData: Omit<Collaborator, 'id' | 'client_id' | 'created_at' | 'updated_at' | 'is_primary'>,
+  isPrimary: boolean = false
 ): Promise<Collaborator> => {
   try {
     const { data, error } = await supabase
@@ -240,7 +241,7 @@ export const createCollaborator = async (
       .insert({
         client_id: clientId,
         ...collaboratorData,
-        is_primary: false
+        is_primary: isPrimary
       })
       .select()
       .single();
@@ -305,4 +306,139 @@ export const deleteCollaborator = async (collaboratorId: string): Promise<boolea
     console.error("❌ Exception lors de la suppression du collaborateur:", error);
     return false;
   }
+};
+
+/**
+ * Structure pour les données d'import en masse
+ */
+export interface BulkClientData {
+  name: string;
+  contact_name: string;
+  email?: string;
+  status: 'active' | 'inactive' | 'lead';
+  company_id: string;
+}
+
+export interface BulkImportResult {
+  total: number;
+  success: number;
+  failed: number;
+  errors: { client: string; error: string }[];
+  created_clients: Client[];
+}
+
+/**
+ * Traite les données brutes d'import pour créer des clients uniques
+ */
+export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
+  const clientMap = new Map<string, BulkClientData>();
+  
+  rawData.forEach(entry => {
+    const trimmed = entry.trim();
+    if (!trimmed) return;
+    
+    // Parse "Prénom Nom - Entreprise" ou "Prénom Nom - Prénom Nom"
+    const parts = trimmed.split(' - ');
+    if (parts.length !== 2) return;
+    
+    const contactName = parts[0].trim();
+    const clientName = parts[1].trim();
+    
+    // Déterminer si c'est un individu ou une entreprise
+    const isIndividual = contactName === clientName;
+    const finalClientName = isIndividual ? contactName : clientName;
+    
+    // Éviter les doublons en utilisant le nom du client comme clé
+    if (!clientMap.has(finalClientName)) {
+      clientMap.set(finalClientName, {
+        name: finalClientName,
+        contact_name: contactName,
+        email: '', // Vide comme demandé
+        status: 'active',
+        company_id: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0' // iTakecare
+      });
+    }
+  });
+  
+  return Array.from(clientMap.values());
+};
+
+/**
+ * Importe les clients par lots avec gestion des erreurs
+ */
+export const bulkCreateClients = async (
+  clientsData: BulkClientData[],
+  batchSize: number = 10,
+  onProgress?: (processed: number, total: number) => void
+): Promise<BulkImportResult> => {
+  const result: BulkImportResult = {
+    total: clientsData.length,
+    success: 0,
+    failed: 0,
+    errors: [],
+    created_clients: []
+  };
+  
+  console.log(`🔄 Début de l'import en masse de ${clientsData.length} clients`);
+  
+  // Traiter par lots
+  for (let i = 0; i < clientsData.length; i += batchSize) {
+    const batch = clientsData.slice(i, i + batchSize);
+    
+    // Traiter chaque client du lot individuellement pour capturer les erreurs
+    for (const clientData of batch) {
+      try {
+        console.log(`➕ Création du client: ${clientData.name}`);
+        
+        // Créer le client
+        const client = await createClient(clientData);
+        if (client) {
+          result.created_clients.push(client);
+          result.success++;
+          
+          // Créer le collaborateur principal automatiquement
+          try {
+            await createCollaborator(client.id, {
+              name: clientData.contact_name,
+              role: 'Contact principal',
+              email: clientData.email || '',
+              phone: '',
+              department: ''
+            }, true); // isPrimary = true
+            console.log(`✅ Collaborateur principal créé pour ${client.name}`);
+          } catch (collabError) {
+            console.warn(`⚠️ Erreur lors de la création du collaborateur pour ${client.name}:`, collabError);
+          }
+          
+        } else {
+          result.failed++;
+          result.errors.push({
+            client: clientData.name,
+            error: 'Échec de la création du client'
+          });
+        }
+      } catch (error) {
+        result.failed++;
+        result.errors.push({
+          client: clientData.name,
+          error: error instanceof Error ? error.message : 'Erreur inconnue'
+        });
+        console.error(`❌ Erreur lors de la création de ${clientData.name}:`, error);
+      }
+    }
+    
+    // Notifier du progrès
+    const processed = Math.min(i + batchSize, clientsData.length);
+    if (onProgress) {
+      onProgress(processed, clientsData.length);
+    }
+    
+    // Petite pause entre les lots pour ne pas surcharger la DB
+    if (processed < clientsData.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  
+  console.log(`✅ Import terminé: ${result.success} succès, ${result.failed} échecs`);
+  return result;
 };
