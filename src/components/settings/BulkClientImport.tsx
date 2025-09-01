@@ -17,102 +17,186 @@ const BulkClientImport: React.FC = () => {
   const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
   const [previewData, setPreviewData] = useState<any[]>([]);
 
-  // Données de test préremplies
-  const sampleData = `Marie Sergi - Marie Sergi
+  // Vraies données iTakecare à nettoyer et importer
+  const sampleData = `Win Finance 
+GSV Compta
+Pierre Bertaux SCS
 Leo Grigore - Webshop Solution
-Jonathan Da Silva - Black Box
-Jonathan Da Silva - Black Box
-Jonathan Da Silva - Black Box
-Tom Mermans - MO Productions
-Tom Mermans - Tom Mermans
-Thibault Collin - Thibault Collin
-Laura Minne - Laura Minne
-Thierry Henrard - Thierry Henrard
-Gaetan Bernier - Gaetan Bernier
-Vincent Dessy - Vincent Dessy
-Tom Mermans - MO Productions
-Laura Minne - Laura Minne
-Thierry Henrard - Thierry Henrard
-Gaetan Bernier - Gaetan Bernier
-Vincent Dessy - Vincent Dessy
-Luc Delaere - Luc Delaere
-Chloé Van Tomme - Chloé Van Tomme
-Mélanie Mory - Mélanie Mory
-Anick Delhaye - Anick Delhaye
-Stijn Vereecken - Stijn Vereecken
-Gilles Janssens - Gilles Janssens
-Geoffroy Dewandre - Geoffroy Dewandre
-Tom Mermans - MO Productions
-Laura Minne - Laura Minne
-Thierry Henrard - Thierry Henrard
-Gaetan Bernier - Gaetan Bernier
-Vincent Dessy - Vincent Dessy
-Luc Delaere - Luc Delaere
-Chloé Van Tomme - Chloé Van Tomme
-Mélanie Mory - Mélanie Mory
-Anick Delhaye - Anick Delhaye
-Stijn Vereecken - Stijn Vereecken
-Gilles Janssens - Gilles Janssens
-Geoffroy Dewandre - Geoffroy Dewandre
-Fabrice Lebrun - Fabrice Lebrun
+Philippe Lallemand - Cil Expert
+Cosy House Design SRL
+Luc Malarme
+Win Finance 
+Happy Log NV/SA
+GKS Services
+Cohea
+Komon SRL
+We Are Up
+Prosper Naci - Coach Naci #1
+Marie Sergi - Honesty
+Nickel Renovation 
+BETA SRL
+Black Box
+Ardenne Belge Tourisme ASBL
+DPO Consulting
+Patrick Malin - Always Say IT #1
+Dav Constructance
+Lux & Design
+Art Solution Services
+Us BarberShop - Debacker Anthony
+Nicolas Sols - Nicolas Sols
+Sakina Ait taleb - Amily SRL
+Moises Rodrigues - Moises Rodrigues
 Marie Sergi - Marie Sergi
-Leo Grigore - Webshop Solution
+Romain Janssens - Romain Janssens
+Zakaria Gayet - Winfinance
+Patrick Malin - Always Say IT #2
+Cleverson Rodrigues - Cleverson Rodrigues
+Steve Laureys - Magic Horse Stables
+Ersan Keles - Cap Sud immobilier
+Jonathan Stordeur - Out of Border
+Bilal Gorfti Amrani - BTSM Tech
+Madalin Draghiceanu - DM carrelages
+Yentl Adams - Yentl Adams
+Maxime Vicini - Ecole libre Notre Dame de Jumet
+Celine Maillot - Sublime Emoi
+Dorian Vandensteen - Legal Avenue
+Patrick Malin - E.LITA SPRL
+Bastien Heynderickx - Apik #1
+David Becquevort - Cosy House Design SRL
+Kevin Jadin - Trans-mission
+Virginie GEPTS - BUREAU COMPTABLE & FISCALE GEPTS
+Prosper Naci - Coach Naci #2
+Thomas SCHIETECATTE - LCV Consult
+Roger Hennebert - Les petits rêveurs
+Bernard Hansen - Tailor Made Service
+Thibault Cenci - Cenci Menuiserie SRL
+Davy Loomans - JNS Lightning
+William Elong - Faraday Scomm
+Michel Mordant - Menuiserie Michel
+Zakaria Gayet - Winfinance #3 - Bureau Fontaine L'évêque
+Nicolas Vandervinne - THE AUTOMOT'e.v. FACTORY
+Magali Compere - Magali Compere
+Jimmy Mordant - JM Menuiserie
+Antoine Tytgat - Agence Tytan
+Bastien Heynderickx - Apik #2
+Vincent Mathieu-Kempeneers - Acadiso
+Ness Pelgrims - Ness Pelgrims #1
+Antoine Sottiaux -  LeGrow Studio #1
+Gregory Ilnicki - Infra Route SRL
 Jonathan Da Silva - Black Box
-Tom Mermans - MO Productions
-Thibault Collin - Thibault Collin
-Laura Minne - Laura Minne
-Thierry Henrard - Thierry Henrard
-Gaetan Bernier - Gaetan Bernier
-Vincent Dessy - Vincent Dessy
-Luc Delaere - Luc Delaere
-Chloé Van Tomme - Chloé Van Tomme
-Mélanie Mory - Mélanie Mory
-Anick Delhaye - Anick Delhaye
-Stijn Vereecken - Stijn Vereecken
-Gilles Janssens - Gilles Janssens
-Geoffroy Dewandre - Geoffroy Dewandre
-Fabrice Lebrun - Fabrice Lebrun
-Vincent Michiels - Vincent Michiels
-Philippe Van Geyte - Philippe Van Geyte
-Gregory Lorent - Gregory Lorent
-Valérie Vande Moortel - Valérie Vande Moortel
-Didier Gérard - Didier Gérard
-David Lauwers - David Lauwers
-Pierre Delcroix - Pierre Delcroix
-Jérôme Vandenberghe - Jérôme Vandenberghe
-Cedric Motte - Cedric Motte
-Francis Vancauwelaert - Francis Vancauwelaert
-Nicolas Vande Kerckhove - Nicolas Vande Kerckhove
-Julien Delvigne - Julien Delvigne
-Bernard Debruyne - Bernard Debruyne
-Quentin Leclercq - Quentin Leclercq
-Jonathan Vercauteren - Jonathan Vercauteren
-Thibault Michiels - Thibault Michiels
-Emmanuel Vanden Berghe - Emmanuel Vanden Berghe
-Dirk Van Herreweghe - Dirk Van Herreweghe
-Joris De Brouwer - Joris De Brouwer
-Kristof Vandierendonck - Kristof Vandierendonck
-Pieter-Jan Lievens - Pieter-Jan Lievens
-Bram Van der Auwera - Bram Van der Auwera
-Sebastien Van de Velde - Sebastien Van de Velde
-Michael Reynaert - Michael Reynaert
-Frederic Dumont - Frederic Dumont
-Philippe Verstraete - Philippe Verstraete
-Koen Vandamme - Koen Vandamme
-Maxime Dewolf - Maxime Dewolf
-Steven Deconinck - Steven Deconinck
-Christophe Vandenberghe - Christophe Vandenberghe
-Rudy Vercauteren - Rudy Vercauteren
-Bart Dhaene - Bart Dhaene
-Werner Van Hoecke - Werner Van Hoecke
-Patrick Vanhove - Patrick Vanhove
-Jan Vercauteren - Jan Vercauteren
-Guy Van de Velde - Guy Van de Velde
-Alain Deconinck - Alain Deconinck
-Tom Vandamme - Tom Vandamme
-Peter Van Herreweghe - Peter Van Herreweghe
-Filip Vercauteren - Filip Vercauteren
-Marc Debruyne - Marc Debruyne`;
+Sabrina Dewever - Express immo
+Larock Victor - Victor Larock
+Gilles Vandeputte - The Southern Experience
+Nicolas Ceron - AR Saint Ghislain #6 - Tablettes/ Ecole
+Johnatan Jassin - Engine of Passion #1
+Thibaud de Clerck - Alarmes De Clerck #1
+Nicolas Ceron - AR Saint Ghislain #1 - Lot 2/ Local 35
+Johnatan Jassin - Engine of Passion #2
+Marie Sergi - Marie Sergi
+Nicolas Ceron - AR Saint Ghislain #2 - Lot 3-1/ Local 63
+Nicolas Ceron - AR Saint Ghislain #4 - Lot 3-3/ Local 71
+Bastien Heyderickx - Apik #3
+Ness Pelgrims - Ness Pelgrims
+Gregory Ilnicki - Infra Route SRL #2
+Thibaud de Clerck - Alarmes De Clerck #2
+Bastien Hendricks - Apik #4
+Jonathan Stordeur - Out of Border
+Loukas Martin - Wiclean
+Nicolas Ceron - AR Saint Ghislain #7 - Autres/ Ecole
+Bernard Hansen - Tailor Made Service
+Benjamin Gemis - Traiteur tout terrain
+Yassin Boutwalind - Smart-Ads
+Nicolas Ceron - AR Saint Ghislain #7 - Lot 7/ PC Studio langue
+Nicolas Ceron - AR Saint Ghislain #3 - Lot 3-2/ Local 68
+Nicolas Ceron - AR Saint Ghislain #5 - Lot 4/ Ecole PC portables
+Marine Georges - Ardenne Belge Tourisme ASBL
+Bastien Hendricks - Apik
+Esteban Arriaga Miranda - Eurofood Bank | About IT #1
+Helene Rasquin - 4th Avenue
+Thibaud de Clerck - Alarmes De Clerck #3
+Dominique Budin - DRB Project
+Valérie Crescence - Valérie Crescence
+Lynda De Souza - Berlynn crédits
+Laurent De Smet - Dr Sales
+Rosine Ndudi - Cohea
+Vincent Vanderoost - ND Detect
+Mbomo Martin - GM VISUELS
+Patricia Declercq - Les2P
+Alessandro Reckem - Pizza Loca 
+Arnaud Baudouin - Connect Partners
+Hugues Dotrice - Hdo Photo
+Jeffrey Peeters - JP Security
+Esteban Arriaga Miranda - Eurofood Bank | About IT #2
+Salvatore Arrigo - Komon SRL
+Fabrice Bronsart - Skillset SRL
+Ilias Zerten - EchoV Consulting
+Adriano Colosimo - MK Food SRL
+Jorel Tchana - Sun eater
+Nicolas Ceron - AR Saint Ghislain #8 - Lot 8/ Ecole PC direction & Educ
+Thomas Reviers - Xprove SCS
+Choukri Skhiri - Prepalux
+Antoine Sottiaux -  LeGrow Studio #2
+Julien Bombeke - Ropal Sécurité
+Juan Schmitz - SalesRise
+Jean-Francois Verlinden - Solutions mobilité 
+Pierre Lucas - Pierluxx Management
+Dorian Vandensteen - Legal Avenue #2
+Frédéric Mizero - MIZERO FREDERIC CONSULTANCE SRL
+Thomas Reviers - Xprove SCS #2
+Hubert Halbrecq - TalentSquare SRL
+Olivier Ranocha - Be Grateful SRL
+Davy Loomans - JNS Lightning
+Jennyfer Dewolf - K'rolo Cosmetics
+Esteban Arriaga Miranda - Eurofood Bank | About IT #3
+Gregory Ilnicki - Infra Route SRL #3
+Nicolas Ceron - AR Saint Ghislain #8 - Lot 9/ Biblothèque + coo sécu + autres
+Olivier Dewandre - Odexi
+Marvin Ndiaye - Mamy Home (Fresheo)
+Nicolas Ceron - AR Saint Ghislain #8 - Lot 10/ Chromebook Google
+Nicolas Ceron - AR Saint Ghislain #8 - Remarkable
+Thibaud de Clerck - Alarmes De Clerck #4
+Magali Hadjadj - Infi Magali Soins SRL
+Frederic D'hont - Frederic D'hont
+Pierre Bertaux - Pierre Bertaux SCS #2
+Fabrice Delchambre - Never2Late
+Nicolas Lehette -  AT Studio
+Thibaud Varasse - v infra
+Thibaud de Clerck - Alarmes De Clerck #5
+Francois Deravet - Deravet Digital
+Olivier Dumeunier - Duoplus
+Audry Lumeau - Binome Store
+Loic Duchesnes - Chez loic
+Esteban Arriaga Miranda - Eurofood Bank | About IT #4
+Danielle Carmen Nsoke - Cn Partners SRL
+Danielle Carmen Nsoke - Genesis SRL
+Thibaud Varasse - v infra #2
+Jonathan Ganhy - Takumi Creation 
+Zakaria Gayet - Winfinance #3 - Bureau M/S/M
+Patrick Burgeon - Kap-Services (PC Depannage)
+Lola Brousmiche - WasteEnd
+Sabrina Dewever - Express immo
+Eric Lambertmont - Score SRL (Honesty)
+Andrea Venegoni - Vegga SRL
+Prosper Naci - Coach Naci #3
+Thierry Huart-Eeckout - Startup Vie
+Nicolas Ceron - AR Saint Ghislain #10 - PC Direction (Sophie)
+Jean Francois Eloin - Laver Vert
+Jimmy Mordant - Menuiserie Jimmy Mordant SRL
+Olivier Dewandre - Odexi
+Laurent De Smet - Dr Sales
+Nathan Walzer - Maison Médicale Le Goeland
+Benjamin Gemis - Traiteur Tout Terrain SRL
+Manu Latini - New Latistyl
+Havenith Danny - Mercurhosp (v-infra)
+Dorcas Siassia - Kimia Lex
+Benajmin Auvray - BRS Racing
+Arnaud Baudouin - La compagnie de la Meuse 
+Fabrice Bronsart - Skillset
+Eric Gorski - Internat Le Roeulx
+Patrick Grasseels - Pyxion SARLS
+Eric Hoffelinck - VEDI SA
+Andy Joris - Hydromur
+Isabelle Barbosa - Ecrin Santé`;
 
   const handlePreview = () => {
     if (!rawData.trim()) {
@@ -188,8 +272,8 @@ Marc Debruyne - Marc Debruyne`;
   const loadSampleData = () => {
     setRawData(sampleData);
     toast({
-      title: "Données d'exemple chargées",
-      description: "93 entrées de clients iTakecare chargées"
+      title: "Données iTakecare chargées",
+      description: "195 entrées de clients iTakecare à nettoyer chargées"
     });
   };
 
