@@ -102,30 +102,30 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-2">
         {loading && (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         )}
 
         {!loading && collaborators.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Aucun collaborateur trouvé pour ce client.</p>
+          <div className="text-center py-6 text-muted-foreground">
+            <User className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">Aucun collaborateur trouvé pour ce client.</p>
           </div>
         )}
 
         {!loading && collaborators.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {collaborators.map((collaborator) => (
               <Card key={collaborator.id}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="w-4 h-4" />
                     {collaborator.name}
                     {collaborator.is_primary && (
-                      <Badge variant="secondary">Principal</Badge>
+                      <Badge variant="secondary" className="text-xs">Principal</Badge>
                     )}
                   </CardTitle>
                   <div className="flex items-center space-x-1">
@@ -133,8 +133,9 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => setEditingCollaborator(collaborator)}
+                      className="h-7 w-7 p-0"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3.5 w-3.5" />
                     </Button>
                     {collaborator.email && (
                       <Button
@@ -142,11 +143,12 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
                         size="sm"
                         onClick={() => handleCreateAccount(collaborator.id)}
                         disabled={creatingAccount === collaborator.id}
+                        className="h-7 w-7 p-0"
                       >
                         {creatingAccount === collaborator.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <UserPlus className="h-4 w-4" />
+                          <UserPlus className="h-3.5 w-3.5" />
                         )}
                       </Button>
                     )}
@@ -155,47 +157,47 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeletingCollaborator(collaborator)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive h-7 w-7 p-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3">
-                      <Briefcase className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-500">Fonction</p>
-                        <p className="font-medium">{collaborator.role || "Non spécifiée"}</p>
+                <CardContent className="p-4 pt-0 space-y-2">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500">Fonction</p>
+                        <p className="text-sm font-medium truncate">{collaborator.role || "Non spécifiée"}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium">{collaborator.email || "Non renseigné"}</p>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="text-sm font-medium truncate">{collaborator.email || "Non renseigné"}</p>
                       </div>
                     </div>
                     
                     {collaborator.phone && (
-                      <div className="flex items-center gap-3">
-                        <Phone className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm text-gray-500">Téléphone</p>
-                          <p className="font-medium">{collaborator.phone}</p>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Téléphone</p>
+                          <p className="text-sm font-medium truncate">{collaborator.phone}</p>
                         </div>
                       </div>
                     )}
                     
                     {collaborator.department && (
-                      <div className="flex items-center gap-3">
-                        <Building className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm text-gray-500">Département</p>
-                          <p className="font-medium">{collaborator.department}</p>
+                      <div className="flex items-center gap-2">
+                        <Building className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-500">Département</p>
+                          <p className="text-sm font-medium truncate">{collaborator.department}</p>
                         </div>
                       </div>
                     )}
