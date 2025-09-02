@@ -210,9 +210,16 @@ export const addCollaborator = async (clientId: string, collaboratorData: any): 
   }
 };
 
-export const getCollaboratorsByClientId = async (clientId: string): Promise<any[]> => {
-  console.warn("getCollaboratorsByClientId not implemented yet");
-  return [];
+export const getCollaboratorsByClientId = async (clientId: string): Promise<Collaborator[]> => {
+  try {
+    console.log("🔍 Récupération des collaborateurs pour le client:", clientId);
+    
+    // Utiliser la fonction getClientCollaborators qui est déjà implémentée
+    return await getClientCollaborators(clientId);
+  } catch (error) {
+    console.error("❌ Erreur lors de la récupération des collaborateurs:", error);
+    return [];
+  }
 };
 
 export const updateClientFromProfile = async (userId: string, firstName: string, lastName: string, phone: string): Promise<boolean> => {
