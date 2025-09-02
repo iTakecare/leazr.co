@@ -25,7 +25,7 @@ import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropMa
 import ClientUserAccount from "./ClientUserAccount";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 import DeliverySitesManager from "./DeliverySitesManager";
-
+import { VATLookupButton } from "./VATLookupButton";
 import { ClientLogoUploader } from "./ClientLogoUploader";
 
 interface UnifiedClientViewProps {
@@ -44,6 +44,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   const [client, setClient] = useState<Client>(initialClient);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSaving, setIsSaving] = useState(false);
+  const [isVATLookupLoading, setIsVATLookupLoading] = useState(false);
 
   console.log('🎯 UNIFIED CLIENT VIEW - Component rendering:', {
     isEditing,
@@ -214,6 +215,20 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
       toast.error("Erreur lors de la mise à jour du client");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleVATLookupSuccess = (data: { companyName: string; address: string }) => {
+    // Auto-fill company name if not already set or if user confirms
+    if (!formData.company || formData.company.trim() === '') {
+      handleInputChange('company', data.companyName);
+      toast.success('Nom de l\'entreprise mis à jour');
+    }
+    
+    // Auto-fill billing address if not already set
+    if (!formData.billing_address || formData.billing_address.trim() === '') {
+      handleInputChange('billing_address', data.address);
+      toast.success('Adresse de facturation mise à jour');
     }
   };
 
@@ -483,7 +498,30 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                   {renderField("Email", "email", client.email, "email")}
                   {renderField("Société", "company", client.company)}
                   {renderField("Téléphone", "phone", client.phone, "tel")}
-                  {renderField("Numéro de TVA", "vat_number", client.vat_number)}
+                  
+                  {/* ID entreprise avec bouton VIES */}
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="vat_number">ID entreprise</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="vat_number"
+                          value={formData.vat_number}
+                          onChange={(e) => handleInputChange('vat_number', e.target.value)}
+                          placeholder="BE0123456789"
+                          className="flex-1"
+                        />
+                        <VATLookupButton
+                          vatNumber={formData.vat_number}
+                          onLookupSuccess={handleVATLookupSuccess}
+                          disabled={isVATLookupLoading || isSaving}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    renderField("ID entreprise", "vat_number", client.vat_number)
+                  )}
+                  
                   {renderField("Statut", "status", client.status, "select", [
                     { value: "active", label: "Actif" },
                     { value: "inactive", label: "Inactif" },
