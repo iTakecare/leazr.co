@@ -25,7 +25,7 @@ import EquipmentDragDropManager from "@/components/equipment/EquipmentDragDropMa
 import ClientUserAccount from "./ClientUserAccount";
 import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 import DeliverySitesManager from "./DeliverySitesManager";
-import { VATLookupButton } from "./VATLookupButton";
+import { CompanyLookupButton } from "./CompanyLookupButton";
 import { ClientLogoUploader } from "./ClientLogoUploader";
 
 interface UnifiedClientViewProps {
@@ -535,8 +535,8 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                           placeholder="BE0123456789"
                           className="flex-1"
                         />
-                        <VATLookupButton
-                          vatNumber={formData.vat_number}
+                        <CompanyLookupButton
+                          companyNumber={formData.vat_number}
                           onLookupSuccess={handleVATLookupSuccess}
                           disabled={isVATLookupLoading || isSaving}
                         />
