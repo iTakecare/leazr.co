@@ -197,21 +197,6 @@ serve(async (req) => {
         );
       }
 
-    } catch (apiError) {
-      console.error('Luxembourg API error:', apiError);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Luxembourg company lookup temporarily unavailable' 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
   } catch (error) {
     console.error('Luxembourg lookup error:', error);
     
