@@ -259,6 +259,27 @@ export const createCollaborator = async (
   isPrimary: boolean = false
 ): Promise<Collaborator> => {
   try {
+    // Si on essaie de créer un collaborateur principal, vérifier qu'il n'en existe pas déjà un
+    if (isPrimary) {
+      const { data: existingPrimary, error: checkError } = await supabase
+        .from('collaborators')
+        .select('id')
+        .eq('client_id', clientId)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("❌ Erreur lors de la vérification du collaborateur principal:", checkError);
+        throw checkError;
+      }
+
+      if (existingPrimary) {
+        console.log("⚠️ Un collaborateur principal existe déjà pour ce client");
+        // Ne pas créer de doublon, retourner l'existant ou lever une erreur
+        throw new Error("Un collaborateur principal existe déjà pour ce client");
+      }
+    }
+
     const { data, error } = await supabase
       .from('collaborators')
       .insert({
@@ -589,16 +610,28 @@ export const bulkCreateClients = async (
           result.created_clients.push(client);
           result.success++;
           
-          // Créer le collaborateur principal automatiquement
+          // Créer le collaborateur principal automatiquement s'il n'existe pas déjà
           try {
-            await createCollaborator(client.id, {
-              name: clientData.contact_name,
-              role: 'Contact principal',
-              email: clientData.email || '',
-              phone: '',
-              department: ''
-            }, true); // isPrimary = true
-            console.log(`✅ Collaborateur principal créé pour ${client.name}`);
+            // Vérifier d'abord s'il y a déjà un collaborateur principal
+            const { data: existingPrimary } = await supabase
+              .from('collaborators')
+              .select('id')
+              .eq('client_id', client.id)
+              .eq('is_primary', true)
+              .maybeSingle();
+
+            if (!existingPrimary) {
+              await createCollaborator(client.id, {
+                name: clientData.contact_name,
+                role: 'Contact principal',
+                email: clientData.email || '',
+                phone: '',
+                department: ''
+              }, true); // isPrimary = true
+              console.log(`✅ Collaborateur principal créé pour ${client.name}`);
+            } else {
+              console.log(`ℹ️ Collaborateur principal déjà existant pour ${client.name}`);
+            }
           } catch (collabError) {
             console.warn(`⚠️ Erreur lors de la création du collaborateur pour ${client.name}:`, collabError);
           }
