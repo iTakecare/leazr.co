@@ -41,13 +41,53 @@ export const VATLookupButton: React.FC<VATLookupButtonProps> = ({
         cleanVatNumber = cleanVatNumber.substring(2);
       } else {
         // Try to detect country from format
-        if (cleanVatNumber.startsWith('BE')) {
-          countryCode = 'BE';
-          cleanVatNumber = cleanVatNumber.substring(2);
-        } else {
-          toast.error('Format du numéro de TVA non reconnu. Utilisez le format: BE0123456789');
+        const supportedCountries = ['BE', 'FR', 'LU'];
+        let detected = false;
+        
+        for (const country of supportedCountries) {
+          if (cleanVatNumber.startsWith(country)) {
+            countryCode = country;
+            cleanVatNumber = cleanVatNumber.substring(2);
+            detected = true;
+            break;
+          }
+        }
+        
+        if (!detected) {
+          toast.error('Format du numéro de TVA non reconnu. Formats acceptés: BE0123456789, FR12345678901, LU12345678');
           return;
         }
+      }
+
+      // Validate country is supported by VIES
+      const supportedCountries = ['BE', 'FR', 'LU'];
+      if (!supportedCountries.includes(countryCode)) {
+        toast.error(`Pays non supporté: ${countryCode}. Pays supportés: BE, FR, LU`);
+        return;
+      }
+
+      // Validate VAT number format by country
+      const validateVATFormat = (country: string, vatNum: string): boolean => {
+        switch (country) {
+          case 'BE': // Belgium: 10 digits
+            return /^\d{10}$/.test(vatNum);
+          case 'FR': // France: 11 characters (2 letters + 9 digits OR 11 digits)
+            return /^[A-Z]{2}\d{9}$/.test(vatNum) || /^\d{11}$/.test(vatNum);
+          case 'LU': // Luxembourg: 8 digits
+            return /^\d{8}$/.test(vatNum);
+          default:
+            return false;
+        }
+      };
+
+      if (!validateVATFormat(countryCode, cleanVatNumber)) {
+        const formats = {
+          'BE': 'BE + 10 chiffres (ex: BE0123456789)',
+          'FR': 'FR + 11 caractères (ex: FR12345678901 ou FRAB123456789)',
+          'LU': 'LU + 8 chiffres (ex: LU12345678)'
+        };
+        toast.error(`Format invalide pour ${countryCode}. Format attendu: ${formats[countryCode as keyof typeof formats]}`);
+        return;
       }
 
       console.log('🔍 VIES Lookup:', { countryCode, cleanVatNumber });
