@@ -189,9 +189,25 @@ export const getFreeClients = async (): Promise<Client[]> => {
   }
 };
 
-export const addCollaborator = async (clientId: string, collaboratorData: any): Promise<any> => {
-  console.warn("addCollaborator not implemented yet");
-  return null;
+export const addCollaborator = async (clientId: string, collaboratorData: any): Promise<Collaborator | null> => {
+  try {
+    console.log("➕ Ajout d'un collaborateur pour le client:", clientId);
+    
+    // Appeler la fonction createCollaborator qui est déjà implémentée
+    const collaborator = await createCollaborator(clientId, {
+      name: collaboratorData.name,
+      role: collaboratorData.role,
+      email: collaboratorData.email || "",
+      phone: collaboratorData.phone || "",
+      department: collaboratorData.department || ""
+    });
+    
+    console.log("✅ Collaborateur ajouté avec succès:", collaborator.id);
+    return collaborator;
+  } catch (error) {
+    console.error("❌ Erreur lors de l'ajout du collaborateur:", error);
+    return null;
+  }
 };
 
 export const getCollaboratorsByClientId = async (clientId: string): Promise<any[]> => {
