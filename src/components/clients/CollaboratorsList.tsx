@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import InlineCollaboratorEdit from "./InlineCollaboratorEdit";
+import EditCollaboratorModal from "./EditCollaboratorModal";
 
 interface CollaboratorsListProps {
   clientId: string;
@@ -32,7 +32,7 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
 }) => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>(initialCollaborators);
   const [loading, setLoading] = useState(false);
-  const [editingCollaboratorId, setEditingCollaboratorId] = useState<string | null>(null);
+  const [editingCollaborator, setEditingCollaborator] = useState<Collaborator | null>(null);
   const [deletingCollaborator, setDeletingCollaborator] = useState<Collaborator | null>(null);
   const [creatingAccount, setCreatingAccount] = useState<string | null>(null);
 
@@ -60,7 +60,7 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
   }, [initialCollaborators]);
 
   const handleEditSuccess = () => {
-    setEditingCollaboratorId(null);
+    setEditingCollaborator(null);
     fetchCollaborators();
     if (onRefreshNeeded) {
       onRefreshNeeded();
@@ -119,67 +119,59 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
         {!loading && collaborators.length > 0 && (
           <div className="space-y-4">
             {collaborators.map((collaborator) => (
-              <div key={collaborator.id}>
-                {editingCollaboratorId === collaborator.id ? (
-                  <InlineCollaboratorEdit
-                    collaborator={collaborator}
-                    onSave={handleEditSuccess}
-                    onCancel={() => setEditingCollaboratorId(null)}
-                  />
-                ) : (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            {collaborator.name}
-                            {collaborator.is_primary && (
-                              <Badge variant="default" className="text-xs">
-                                <Crown className="h-3 w-3 mr-1" />
-                                Principal
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          {collaborator.role && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {collaborator.role}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-3">
-                      {collaborator.email && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="truncate">{collaborator.email}</span>
-                        </div>
+              <Card key={collaborator.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {collaborator.name}
+                        {collaborator.is_primary && (
+                          <Badge variant="default" className="text-xs">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Principal
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      {collaborator.role && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {collaborator.role}
+                        </p>
                       )}
-                      
-                      {collaborator.phone && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span>{collaborator.phone}</span>
-                        </div>
-                      )}
-                      
-                      {collaborator.department && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span>{collaborator.department}</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-2 pt-2 flex-wrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingCollaboratorId(collaborator.id)}
-                        >
-                          <Edit2 className="h-4 w-4 mr-1" />
-                          Modifier
-                        </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-3">
+                  {collaborator.email && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="truncate">{collaborator.email}</span>
+                    </div>
+                  )}
+                  
+                  {collaborator.phone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{collaborator.phone}</span>
+                    </div>
+                  )}
+                  
+                  {collaborator.department && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span>{collaborator.department}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 pt-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingCollaborator(collaborator)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
                         
                         {collaborator.email && (
                           <Button
@@ -208,15 +200,21 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
                             Supprimer
                           </Button>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal d'édition */}
+      <EditCollaboratorModal
+        collaborator={editingCollaborator}
+        isOpen={editingCollaborator !== null}
+        onClose={() => setEditingCollaborator(null)}
+        onSave={handleEditSuccess}
+      />
 
       {/* Dialog de confirmation de suppression */}
       <AlertDialog open={deletingCollaborator !== null} onOpenChange={() => setDeletingCollaborator(null)}>
