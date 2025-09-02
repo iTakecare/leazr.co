@@ -202,6 +202,14 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim()
       };
+
+      // Clean UUID fields - convert empty strings to null to prevent PostgreSQL errors
+      const uuidFields = ['default_leaser_id', 'user_id', 'ambassador_client_id'];
+      uuidFields.forEach(field => {
+        if (updateData[field as keyof typeof updateData] === '') {
+          (updateData as any)[field] = null;
+        }
+      });
       
       const updatedClient = await updateClient(client.id, updateData);
       if (updatedClient) {
