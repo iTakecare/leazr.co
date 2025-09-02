@@ -308,33 +308,52 @@ export const createCollaborator = async (
 export const updateCollaborator = async (
   collaboratorId: string,
   updates: Partial<Omit<Collaborator, 'id' | 'client_id' | 'created_at' | 'updated_at'>>
-): Promise<boolean> => {
+): Promise<Collaborator> => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('collaborators')
       .update({
         ...updates,
         updated_at: new Date().toISOString()
       })
-      .eq('id', collaboratorId);
+      .eq('id', collaboratorId)
+      .select()
+      .single();
 
     if (error) {
       console.error("❌ Erreur lors de la mise à jour du collaborateur:", error);
-      return false;
+      throw error;
     }
 
-    return true;
+    console.log("✅ Collaborateur mis à jour:", data);
+    return data;
   } catch (error) {
     console.error("❌ Exception lors de la mise à jour du collaborateur:", error);
-    return false;
+    throw error;
   }
 };
 
 /**
  * Supprime un collaborateur
  */
-export const deleteCollaborator = async (collaboratorId: string): Promise<boolean> => {
+export const deleteCollaborator = async (collaboratorId: string): Promise<void> => {
   try {
+    // Vérifier d'abord si c'est un collaborateur principal
+    const { data: collaborator, error: fetchError } = await supabase
+      .from('collaborators')
+      .select('is_primary, name')
+      .eq('id', collaboratorId)
+      .single();
+
+    if (fetchError) {
+      console.error("❌ Erreur lors de la récupération du collaborateur:", fetchError);
+      throw fetchError;
+    }
+
+    if (collaborator.is_primary) {
+      throw new Error("Impossible de supprimer le collaborateur principal");
+    }
+
     const { error } = await supabase
       .from('collaborators')
       .delete()
@@ -342,13 +361,13 @@ export const deleteCollaborator = async (collaboratorId: string): Promise<boolea
 
     if (error) {
       console.error("❌ Erreur lors de la suppression du collaborateur:", error);
-      return false;
+      throw error;
     }
 
-    return true;
+    console.log("✅ Collaborateur supprimé");
   } catch (error) {
     console.error("❌ Exception lors de la suppression du collaborateur:", error);
-    return false;
+    throw error;
   }
 };
 

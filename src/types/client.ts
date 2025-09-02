@@ -7,6 +7,7 @@ export interface Collaborator {
   email: string;
   phone?: string;
   department?: string;
+  is_primary?: boolean;
 }
 
 export interface Client {
