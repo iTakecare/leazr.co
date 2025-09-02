@@ -9,6 +9,8 @@ interface VATLookupButtonProps {
   onLookupSuccess: (data: {
     companyName: string;
     address: string;
+    postalCode?: string;
+    city?: string;
   }) => void;
   disabled?: boolean;
 }
@@ -67,9 +69,47 @@ export const VATLookupButton: React.FC<VATLookupButtonProps> = ({
 
       if (data?.valid) {
         toast.success('Données récupérées avec succès depuis VIES');
+        
+        // Parse address to extract postal code and city
+        const parseAddress = (fullAddress: string) => {
+          // Split by newlines and filter empty lines
+          const lines = fullAddress.split('\n').filter(line => line.trim() !== '');
+          
+          let streetAddress = '';
+          let postalCode = '';
+          let city = '';
+          
+          if (lines.length >= 2) {
+            // First line(s) are usually the street address
+            streetAddress = lines[0].trim();
+            
+            // Look for postal code + city pattern in remaining lines
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              // Match postal code (4-5 digits) followed by city name
+              const match = line.match(/^(\d{4,5})\s+(.+)$/);
+              if (match) {
+                postalCode = match[1];
+                city = match[2];
+                break;
+              }
+            }
+          }
+          
+          return {
+            streetAddress: streetAddress || fullAddress,
+            postalCode,
+            city
+          };
+        };
+        
+        const parsedAddress = parseAddress(data.address || '');
+        
         onLookupSuccess({
           companyName: data.companyName || '',
-          address: data.address || ''
+          address: parsedAddress.streetAddress,
+          postalCode: parsedAddress.postalCode,
+          city: parsedAddress.city
         });
       } else {
         toast.warning('Numéro de TVA non trouvé dans la base VIES');

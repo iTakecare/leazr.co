@@ -218,8 +218,13 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     }
   };
 
-  const handleVATLookupSuccess = (data: { companyName: string; address: string }) => {
-    // Auto-fill company name if not already set or if user confirms
+  const handleVATLookupSuccess = (data: { 
+    companyName: string; 
+    address: string; 
+    postalCode?: string; 
+    city?: string; 
+  }) => {
+    // Auto-fill company name if not already set
     if (!formData.company || formData.company.trim() === '') {
       handleInputChange('company', data.companyName);
       toast.success('Nom de l\'entreprise mis à jour');
@@ -228,8 +233,19 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     // Auto-fill billing address if not already set
     if (!formData.billing_address || formData.billing_address.trim() === '') {
       handleInputChange('billing_address', data.address);
-      toast.success('Adresse de facturation mise à jour');
     }
+    
+    // Auto-fill postal code if parsed successfully and not already set
+    if (data.postalCode && (!formData.billing_postal_code || formData.billing_postal_code.trim() === '')) {
+      handleInputChange('billing_postal_code', data.postalCode);
+    }
+    
+    // Auto-fill city if parsed successfully and not already set
+    if (data.city && (!formData.billing_city || formData.billing_city.trim() === '')) {
+      handleInputChange('billing_city', data.city);
+    }
+    
+    toast.success('Informations d\'entreprise mises à jour depuis VIES');
   };
 
   const handleCancel = () => {
