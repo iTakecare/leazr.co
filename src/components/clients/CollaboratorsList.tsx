@@ -1,15 +1,23 @@
-
-import React, { useEffect, useState } from "react";
-import { Loader2, UserPlus, User, Mail, Phone, Briefcase, Edit2, Trash2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Collaborator } from "@/types/client";
+import { getCollaboratorsByClientId, deleteCollaborator, createCollaboratorAccount } from "@/services/clientService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Collaborator } from "@/types/client";
-import { getCollaboratorsByClientId, deleteCollaborator } from "@/services/clientService";
-import EditCollaboratorForm from "./EditCollaboratorForm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Mail, Phone, Edit2, Trash2, Building2, User, UserPlus, Crown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import InlineCollaboratorEdit from "./InlineCollaboratorEdit";
 
 interface CollaboratorsListProps {
   clientId: string;
@@ -17,15 +25,16 @@ interface CollaboratorsListProps {
   onRefreshNeeded?: () => void;
 }
 
-const CollaboratorsList = ({ 
-  clientId, 
-  initialCollaborators,
+const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
+  clientId,
+  initialCollaborators = [],
   onRefreshNeeded
-}: CollaboratorsListProps) => {
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(initialCollaborators || []);
-  const [loading, setLoading] = useState(!initialCollaborators);
-  const [editingCollaborator, setEditingCollaborator] = useState<Collaborator | null>(null);
-  const [deletingCollaboratorId, setDeletingCollaboratorId] = useState<string | null>(null);
+}) => {
+  const [collaborators, setCollaborators] = useState<Collaborator[]>(initialCollaborators);
+  const [loading, setLoading] = useState(false);
+  const [editingCollaboratorId, setEditingCollaboratorId] = useState<string | null>(null);
+  const [deletingCollaborator, setDeletingCollaborator] = useState<Collaborator | null>(null);
+  const [creatingAccount, setCreatingAccount] = useState<string | null>(null);
 
   const fetchCollaborators = async () => {
     setLoading(true);
@@ -33,170 +42,196 @@ const CollaboratorsList = ({
       const data = await getCollaboratorsByClientId(clientId);
       setCollaborators(data);
     } catch (error) {
-      console.error("Error fetching collaborators:", error);
+      console.error("Erreur lors de la récupération des collaborateurs:", error);
+      toast.error("Erreur lors de la récupération des collaborateurs");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!initialCollaborators) {
+    if (initialCollaborators.length === 0) {
       fetchCollaborators();
     }
-  }, [clientId, initialCollaborators]);
+  }, [clientId]);
 
-  // Update collaborators when initialCollaborators changes
   useEffect(() => {
-    if (initialCollaborators) {
-      setCollaborators(initialCollaborators);
-      setLoading(false);
-    }
+    setCollaborators(initialCollaborators);
   }, [initialCollaborators]);
 
   const handleEditSuccess = () => {
-    setEditingCollaborator(null);
+    setEditingCollaboratorId(null);
     fetchCollaborators();
-    onRefreshNeeded?.();
+    if (onRefreshNeeded) {
+      onRefreshNeeded();
+    }
+  };
+
+  const handleCreateAccount = async (collaboratorId: string) => {
+    setCreatingAccount(collaboratorId);
+    try {
+      const result = await createCollaboratorAccount(collaboratorId);
+      if (result.success) {
+        toast.success(result.message);
+        fetchCollaborators(); // Rafraîchir pour afficher les nouvelles données
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la création du compte");
+      console.error(error);
+    } finally {
+      setCreatingAccount(null);
+    }
   };
 
   const handleDeleteCollaborator = async (collaboratorId: string) => {
     try {
       await deleteCollaborator(collaboratorId);
       toast.success("Collaborateur supprimé avec succès");
-      setDeletingCollaboratorId(null);
+      setDeletingCollaborator(null);
       fetchCollaborators();
-      onRefreshNeeded?.();
-    } catch (error: any) {
-      console.error("Erreur lors de la suppression:", error);
-      toast.error(error.message || "Erreur lors de la suppression du collaborateur");
+      if (onRefreshNeeded) {
+        onRefreshNeeded();
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la suppression du collaborateur");
+      console.error(error);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="ml-2">Chargement des collaborateurs...</span>
-      </div>
-    );
-  }
-
-  if (collaborators.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-        <p className="text-muted-foreground">Aucun collaborateur ajouté pour ce client</p>
-        <p className="text-sm text-muted-foreground">Utilisez le formulaire ci-dessus pour ajouter des collaborateurs</p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        {collaborators.map((collaborator) => (
-          <Card key={collaborator.id} className="overflow-hidden border-l-4 border-l-primary">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-grow">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-lg">{collaborator.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                          {collaborator.role}
-                        </Badge>
-                        {collaborator.is_primary && (
-                          <Badge variant="secondary" className="text-xs">
-                            Principal
-                          </Badge>
+      <div className="space-y-4">
+        {loading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        )}
+
+        {!loading && collaborators.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Aucun collaborateur trouvé pour ce client.</p>
+          </div>
+        )}
+
+        {!loading && collaborators.length > 0 && (
+          <div className="space-y-4">
+            {collaborators.map((collaborator) => (
+              <div key={collaborator.id}>
+                {editingCollaboratorId === collaborator.id ? (
+                  <InlineCollaboratorEdit
+                    collaborator={collaborator}
+                    onSave={handleEditSuccess}
+                    onCancel={() => setEditingCollaboratorId(null)}
+                  />
+                ) : (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {collaborator.name}
+                            {collaborator.is_primary && (
+                              <Badge variant="default" className="text-xs">
+                                <Crown className="h-3 w-3 mr-1" />
+                                Principal
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          {collaborator.role && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {collaborator.role}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-3">
+                      {collaborator.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate">{collaborator.email}</span>
+                        </div>
+                      )}
+                      
+                      {collaborator.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span>{collaborator.phone}</span>
+                        </div>
+                      )}
+                      
+                      {collaborator.department && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span>{collaborator.department}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 pt-2 flex-wrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingCollaboratorId(collaborator.id)}
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                        
+                        {collaborator.email && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCreateAccount(collaborator.id)}
+                            disabled={creatingAccount === collaborator.id}
+                          >
+                            {creatingAccount === collaborator.id ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <UserPlus className="h-4 w-4 mr-1" />
+                            )}
+                            Créer compte
+                          </Button>
+                        )}
+                        
+                        {!collaborator.is_primary && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeletingCollaborator(collaborator)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Supprimer
+                          </Button>
                         )}
                       </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingCollaborator(collaborator)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      {!collaborator.is_primary && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeletingCollaboratorId(collaborator.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-1 text-sm">
-                    {collaborator.department && (
-                      <div className="flex items-center text-muted-foreground">
-                        <Briefcase className="h-3.5 w-3.5 mr-2" />
-                        <span>{collaborator.department}</span>
-                      </div>
-                    )}
-                    {collaborator.email && (
-                      <div className="flex items-center text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5 mr-2" />
-                        <a href={`mailto:${collaborator.email}`} className="hover:text-primary">
-                          {collaborator.email}
-                        </a>
-                      </div>
-                    )}
-                    {collaborator.phone && (
-                      <div className="flex items-center text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5 mr-2" />
-                        <a href={`tel:${collaborator.phone}`} className="hover:text-primary">
-                          {collaborator.phone}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Dialog pour éditer un collaborateur */}
-      <Dialog open={!!editingCollaborator} onOpenChange={() => setEditingCollaborator(null)}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Modifier le collaborateur</DialogTitle>
-          </DialogHeader>
-          {editingCollaborator && (
-            <EditCollaboratorForm
-              collaborator={editingCollaborator}
-              onSuccess={handleEditSuccess}
-              onCancel={() => setEditingCollaborator(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de confirmation pour supprimer un collaborateur */}
-      <AlertDialog open={!!deletingCollaboratorId} onOpenChange={() => setDeletingCollaboratorId(null)}>
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={deletingCollaborator !== null} onOpenChange={() => setDeletingCollaborator(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce collaborateur ? Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer le collaborateur "{deletingCollaborator?.name}" ?
+              Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingCollaboratorId && handleDeleteCollaborator(deletingCollaboratorId)}
+              onClick={() => deletingCollaborator && handleDeleteCollaborator(deletingCollaborator.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Supprimer

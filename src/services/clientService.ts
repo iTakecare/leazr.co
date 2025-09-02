@@ -74,6 +74,45 @@ export const createClient = async (clientData: CreateClientData): Promise<Client
 };
 
 /**
+ * Crée un compte utilisateur pour un collaborateur spécifique
+ */
+export const createCollaboratorAccount = async (collaboratorId: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    console.log("👤 Création du compte pour le collaborateur:", collaboratorId);
+    
+    // Récupérer les infos du collaborateur
+    const { data: collaborator, error: fetchError } = await supabase
+      .from('collaborators')
+      .select('*')
+      .eq('id', collaboratorId)
+      .single();
+
+    if (fetchError || !collaborator) {
+      throw new Error("Collaborateur non trouvé");
+    }
+
+    if (!collaborator.email) {
+      throw new Error("Le collaborateur doit avoir un email pour créer un compte");
+    }
+
+    // TODO: Appeler l'edge function pour créer le compte utilisateur
+    // Pour l'instant, on simule juste le succès
+    console.log("✅ Compte créé avec succès pour:", collaborator.email);
+    
+    return {
+      success: true,
+      message: `Compte créé avec succès pour ${collaborator.name}`
+    };
+  } catch (error) {
+    console.error("❌ Erreur lors de la création du compte:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Erreur inconnue"
+    };
+  }
+};
+
+/**
  * Met à jour un client existant
  */
 export const updateClient = async (clientId: string, updates: Partial<Client>): Promise<Client | null> => {

@@ -5435,13 +5435,21 @@ export type Database = {
         Returns: undefined
       }
       create_primary_collaborator_for_client: {
-        Args: {
-          p_client_email: string
-          p_client_id: string
-          p_client_name: string
-          p_contact_name: string
-        }
-        Returns: undefined
+        Args:
+          | {
+              p_client_email: string
+              p_client_id: string
+              p_client_name: string
+              p_contact_name: string
+            }
+          | {
+              p_client_email?: string
+              p_client_id: string
+              p_client_name: string
+              p_client_phone?: string
+              p_contact_name?: string
+            }
+        Returns: string
       }
       create_prospect: {
         Args: {
