@@ -28,32 +28,104 @@ serve(async (req) => {
 
     const cleanNumber = number.replace(/\s/g, '').toUpperCase();
 
-    // Try Luxembourg Business Register (LBR) API
-    // Note: This may require authentication or have access restrictions
+    // Try Luxembourg Business Register API
     try {
-      // Example URL structure (actual endpoints may vary)
-      const lbrUrl = `https://www.lbr.lu/mjrcs/rcs_presentation/controller/entreprise_details.jsp?action=PDF&rcs=${cleanNumber}`;
+      // Try the public Luxembourg Business Register search API
+      const searchUrl = `https://www.lbr.lu/mjrcs/rcs_presentation/index.jsp`;
       
-      // For now, we'll implement a basic fallback since LBR API access may be restricted
-      const mockResponse = {
-        success: true,
-        data: {
-          companyName: `Société luxembourgeoise ${cleanNumber}`,
-          address: 'Adresse à compléter',
-          postalCode: '',
-          city: 'Luxembourg'
+      // Attempt to use OpenCorporates as a fallback for Luxembourg data
+      const openCorpUrl = `https://api.opencorporates.com/v0.4/companies/lu/${cleanNumber}`;
+      
+      let companyData = null;
+      
+      // Try OpenCorporates first (has Luxembourg data)
+      try {
+        console.log(`🔍 Trying OpenCorporates for ${cleanNumber}`);
+        const openCorpResponse = await fetch(openCorpUrl, {
+          headers: {
+            'User-Agent': 'Luxembourg Company Lookup Service'
+          }
+        });
+        
+        if (openCorpResponse.ok) {
+          const openCorpData = await openCorpResponse.json();
+          if (openCorpData?.results?.company) {
+            const company = openCorpData.results.company;
+            companyData = {
+              companyName: company.name || '',
+              address: company.registered_address_in_full || company.address || '',
+              postalCode: '',
+              city: company.jurisdiction_code === 'lu' ? 'Luxembourg' : '',
+              registrationNumber: company.company_number
+            };
+            console.log('✅ OpenCorporates data found:', companyData);
+          }
         }
-      };
-
-      console.log('🎯 Luxembourg Result:', mockResponse);
-
-      return new Response(
-        JSON.stringify(mockResponse),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      } catch (openCorpError) {
+        console.log('OpenCorporates not available:', openCorpError.message);
+      }
+      
+      // If no data found, try Luxembourg Business Register website scraping
+      if (!companyData) {
+        try {
+          console.log(`🔍 Trying Luxembourg Business Register search for ${cleanNumber}`);
+          const lbrSearchUrl = `https://www.lbr.lu/mjrcs/rcs_presentation/controller/recherche_entreprise.jsp?recherche=${cleanNumber}&type=matricule`;
+          
+          const lbrResponse = await fetch(lbrSearchUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          if (lbrResponse.ok) {
+            const html = await lbrResponse.text();
+            
+            // Basic extraction from HTML (simplified approach)
+            const nameMatch = html.match(/<td[^>]*>([^<]+)<\/td>/);
+            
+            if (nameMatch && nameMatch[1] && !nameMatch[1].includes('Aucun')) {
+              companyData = {
+                companyName: nameMatch[1].trim(),
+                address: 'Informations complètes disponibles sur lbr.lu',
+                postalCode: '',
+                city: 'Luxembourg'
+              };
+              console.log('✅ LBR data extracted:', companyData);
+            }
+          }
+        } catch (lbrError) {
+          console.log('LBR scraping failed:', lbrError.message);
         }
-      );
+      }
+      
+      if (companyData && companyData.companyName && companyData.companyName.trim() !== '') {
+        const successResponse = {
+          success: true,
+          data: companyData
+        };
+        
+        console.log('🎯 Luxembourg Result:', successResponse);
+        return new Response(
+          JSON.stringify(successResponse),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      } else {
+        // No valid data found
+        console.log('❌ No valid company data found for:', cleanNumber);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Aucune entreprise trouvée avec le numéro RCS ${cleanNumber}. Veuillez vérifier le numéro ou consulter directement lbr.lu` 
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
 
     } catch (apiError) {
       console.error('Luxembourg API error:', apiError);
