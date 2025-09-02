@@ -8,7 +8,20 @@ export const getClientById = async (clientId: string): Promise<Client | null> =>
   try {
     const { data, error } = await supabase
       .from('clients')
-      .select('*')
+      .select(`
+        *,
+        collaborators (
+          id,
+          name,
+          role,
+          email,
+          phone,
+          department,
+          is_primary,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('id', clientId)
       .single();
 
