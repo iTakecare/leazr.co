@@ -4,7 +4,7 @@ import { getCollaboratorsByClientId, deleteCollaborator, createCollaboratorAccou
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, Edit2, Trash2, Building2, User, UserPlus, Crown } from "lucide-react";
+import { Mail, Phone, Edit, Trash2, Building, User, UserPlus, Briefcase } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -120,86 +120,85 @@ const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
           <div className="space-y-4">
             {collaborators.map((collaborator) => (
               <Card key={collaborator.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {collaborator.name}
-                        {collaborator.is_primary && (
-                          <Badge variant="default" className="text-xs">
-                            <Crown className="h-3 w-3 mr-1" />
-                            Principal
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      {collaborator.role && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {collaborator.role}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-3">
-                  {collaborator.email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="truncate">{collaborator.email}</span>
-                    </div>
-                  )}
-                  
-                  {collaborator.phone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{collaborator.phone}</span>
-                    </div>
-                  )}
-                  
-                  {collaborator.department && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span>{collaborator.department}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2 pt-2 flex-wrap">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    {collaborator.name}
+                    {collaborator.is_primary && (
+                      <Badge variant="secondary">Principal</Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center space-x-1">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => setEditingCollaborator(collaborator)}
                     >
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Modifier
+                      <Edit className="h-4 w-4" />
                     </Button>
-                        
-                        {collaborator.email && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCreateAccount(collaborator.id)}
-                            disabled={creatingAccount === collaborator.id}
-                          >
-                            {creatingAccount === collaborator.id ? (
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            ) : (
-                              <UserPlus className="h-4 w-4 mr-1" />
-                            )}
-                            Créer compte
-                          </Button>
+                    {collaborator.email && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCreateAccount(collaborator.id)}
+                        disabled={creatingAccount === collaborator.id}
+                      >
+                        {creatingAccount === collaborator.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
                         )}
-                        
-                        {!collaborator.is_primary && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDeletingCollaborator(collaborator)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Supprimer
-                          </Button>
-                        )}
+                      </Button>
+                    )}
+                    {!collaborator.is_primary && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingCollaborator(collaborator)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-500">Fonction</p>
+                        <p className="font-medium">{collaborator.role || "Non spécifiée"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium">{collaborator.email || "Non renseigné"}</p>
+                      </div>
+                    </div>
+                    
+                    {collaborator.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm text-gray-500">Téléphone</p>
+                          <p className="font-medium">{collaborator.phone}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {collaborator.department && (
+                      <div className="flex items-center gap-3">
+                        <Building className="w-4 h-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm text-gray-500">Département</p>
+                          <p className="font-medium">{collaborator.department}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
