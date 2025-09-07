@@ -387,7 +387,6 @@ export class ExcelImportService {
 
         // Création de l'offre
         const offerData: OfferData = {
-          id: offerId,
           client_id: clientId,
           client_name: row['Client'],
           client_email: row['Email'] || undefined,
@@ -398,7 +397,7 @@ export class ExcelImportService {
           commission: row['Commission'] || 0,
           workflow_status: workflowStatus,
           status: workflowStatus === OfferWorkflowStatus.SIGNED ? 'accepted' : 'pending',
-          dossier_number: row['N° dossier'] || undefined,
+          dossier_number: offerId, // Utilisation de l'ID généré comme numéro de dossier
           source: row['Source'] || undefined,
           company_id: companyId,
           user_id: userId,
