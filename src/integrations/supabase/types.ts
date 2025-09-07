@@ -6342,6 +6342,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      recalculate_offer_to_target_monthly: {
+        Args: { p_offer_id: string; p_target_monthly_payment: number }
+        Returns: {
+          coefficient: number
+          equipment_id: string
+          new_monthly_payment: number
+          new_selling_price: number
+          old_monthly_payment: number
+          old_selling_price: number
+        }[]
+      }
       refresh_admin_pending_requests: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -6430,13 +6441,11 @@ export type Database = {
         Returns: boolean
       }
       update_equipment_with_global_margin: {
-        Args:
-          | { p_global_margin_percent: number; p_offer_id: string }
-          | {
-              p_leaser_id: string
-              p_margin_percentage: number
-              p_offer_id: string
-            }
+        Args: {
+          p_leaser_id: string
+          p_margin_percentage: number
+          p_offer_id: string
+        }
         Returns: {
           message: string
           success: boolean
