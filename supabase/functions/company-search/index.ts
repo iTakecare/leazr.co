@@ -122,46 +122,12 @@ serve(async (req) => {
 });
 
 async function searchByName(query: string, country: string, limit: number): Promise<CompanyResult[]> {
-  try {
-    // Recherche via OpenCorporates API (gratuite avec limitations)
-    const searchUrl = `https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(query)}&jurisdiction_code=${country.toLowerCase()}&per_page=${limit}&format=json`;
-    
-    console.log(`[company-search] OpenCorporates URL: ${searchUrl}`);
-    
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'iTakecare-Search/1.0'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenCorporates API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const companies = data.results?.companies || [];
-
-    return companies.map((item: any) => {
-      const company = item.company;
-      return {
-        name: company.name,
-        country: company.jurisdiction_code?.toUpperCase(),
-        address: company.registered_address_in_full,
-        city: company.registered_address?.locality,
-        postal_code: company.registered_address?.postal_code,
-        vat_number: company.company_number,
-        sector: company.company_type,
-        legal_form: company.company_type,
-        creation_date: company.incorporation_date,
-        source: 'opencorporates',
-        confidence: calculateConfidence(query, company.name)
-      } as CompanyResult;
-    });
-
-  } catch (error) {
-    console.error('[company-search] Erreur OpenCorporates:', error);
-    return [];
-  }
+  console.log(`[company-search] Recherche gratuite pour "${query}" dans ${country}`);
+  
+  // Use only free sources - return empty array to force using identifier search
+  // This will redirect to the specific country functions that use free APIs
+  console.log(`[company-search] Redirection vers la recherche par identifiant pour des sources gratuites`);
+  return [];
 }
 
 async function searchByIdentifier(query: string, country: string, searchType: string, supabase: any): Promise<CompanyResult[]> {
@@ -224,50 +190,41 @@ async function searchByIdentifier(query: string, country: string, searchType: st
 }
 
 async function searchVATNumber(vatNumber: string, country: string): Promise<CompanyResult[]> {
+  console.log(`[company-search] Recherche VAT via VIES: ${vatNumber} (${country})`);
+  
   try {
-    // Essayer d'abord avec VIES (UE)
-    const viesUrl = `http://ec.europa.eu/taxation_customs/vies/services/checkVatService`;
-    
-    // Pour les numéros TVA, on peut aussi essayer via OpenCorporates
-    const cleanVat = vatNumber.replace(/[^\w]/g, '');
-    const searchUrl = `https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(cleanVat)}&jurisdiction_code=${country.toLowerCase()}&format=json&per_page=5`;
-    
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'iTakecare-Search/1.0'
-      }
+    // Use VIES service for VAT validation (free EU service)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const viesResponse = await supabase.functions.invoke('vies-verify', {
+      body: { vatNumber, country }
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      const companies = data.results?.companies || [];
-      
-      return companies
-        .filter((item: any) => {
-          const company = item.company;
-          return company.company_number && company.company_number.includes(cleanVat.slice(-8));
-        })
-        .map((item: any) => {
-          const company = item.company;
-          return {
-            name: company.name,
-            country: company.jurisdiction_code?.toUpperCase(),
-            address: company.registered_address_in_full,
-            city: company.registered_address?.locality,
-            postal_code: company.registered_address?.postal_code,
-            vat_number: vatNumber,
-            sector: company.company_type,
-            legal_form: company.company_type,
-            source: 'opencorporates-vat',
-            confidence: 0.8
-          } as CompanyResult;
-        });
+    if (viesResponse.error) {
+      console.log(`[company-search] Erreur VIES: ${viesResponse.error.message}`);
+      return [];
     }
 
+    const viesData = viesResponse.data;
+    
+    if (viesData?.valid && viesData.companyName) {
+      return [{
+        name: viesData.companyName,
+        country: country.toUpperCase(),
+        address: viesData.address || '',
+        city: '',
+        postal_code: '',
+        vat_number: `${country.toUpperCase()}${vatNumber}`,
+        source: 'VIES',
+        confidence: 0.95
+      }];
+    }
+    
     return [];
-
   } catch (error) {
-    console.error('[company-search] Erreur recherche TVA:', error);
+    console.log(`[company-search] Erreur VIES: ${error.message}`);
     return [];
   }
 }

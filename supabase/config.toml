@@ -60,5 +60,11 @@ verify_jwt = false
 [functions.belgium-company-lookup]
 verify_jwt = false
 
+[functions.belgium-company-lookup-enhanced]
+verify_jwt = false
+
+[functions.vies-verify]
+verify_jwt = false
+
 [functions.luxembourg-company-lookup]
 verify_jwt = false

@@ -241,11 +241,12 @@ export const CompanySearchModal: React.FC<CompanySearchModalProps> = ({
                 </ul>
               </div>
               <div>
-                <h4 className="font-medium mb-2">📊 Sources de données</h4>
+                <h4 className="font-medium mb-2">🆓 Sources gratuites</h4>
                 <ul className="space-y-1">
-                  <li>• OpenCorporates (monde entier)</li>
-                  <li>• Registres nationaux officiels</li>
+                  <li>• API Sirene INSEE (France)</li>
+                  <li>• CBE Belgique (registre officiel)</li>
                   <li>• Base VIES (TVA européenne)</li>
+                  <li>• Registres publics Luxembourg</li>
                 </ul>
               </div>
             </div>

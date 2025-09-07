@@ -32,44 +32,53 @@ serve(async (req) => {
     // Format for CBE: add dots if not present (0000.000.000 format)
     const formattedNumber = `${cleanNumber.substring(0, 4)}.${cleanNumber.substring(4, 7)}.${cleanNumber.substring(7, 10)}`;
 
-    // Call Belgian CBE (Crossroads Bank for Enterprises) API
-    // Note: This is a simplified version - the real CBE API may require authentication
-    const apiUrl = `https://kbopub.economie.fgov.be/kbopub/toonondernemingps.html?ondernemingsnummer=${cleanNumber}`;
-    
-    // For demonstration, we'll use a mock response structure
-    // In production, you would need to implement proper CBE API integration
-    
-    // Try alternative public APIs or scraping approach
-    const searchUrl = `https://api.company.info/be/${cleanNumber}`;
+    // Try CBE public API (free but limited)
+    const cbePublicUrl = `https://kbopub.economie.fgov.be/kbopub/zoekenondernemingform.html`;
     
     try {
-      const response = await fetch(searchUrl);
+      // Try scraping the public CBE website
+      const response = await fetch(`https://kbopub.economie.fgov.be/kbopub/toonondernemingps.html?ondernemingsnummer=${cleanNumber}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Belgium Company Lookup)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      });
       
       if (response.ok) {
-        const data = await response.json();
+        const html = await response.text();
         
-        const result = {
-          success: true,
-          data: {
-            companyName: data.name || `Entreprise ${formattedNumber}`,
-            address: data.address || '',
-            postalCode: data.postalCode || '',
-            city: data.city || ''
-          }
-        };
+        // Extract company information from HTML
+        const nameMatch = html.match(/<h3[^>]*>([^<]+)<\/h3>/i) || 
+                         html.match(/Dénomination[^:]*:\s*([^<\n]+)/i) ||
+                         html.match(/Denomination[^:]*:\s*([^<\n]+)/i);
+                         
+        const addressMatch = html.match(/Adresse[^:]*:\s*([^<\n]+)/i) ||
+                           html.match(/Adres[^:]*:\s*([^<\n]+)/i);
+        
+        if (nameMatch && nameMatch[1]) {
+          const result = {
+            success: true,
+            data: {
+              companyName: nameMatch[1].trim(),
+              address: addressMatch?.[1]?.trim() || '',
+              postalCode: '',
+              city: 'Belgique'
+            }
+          };
 
-        console.log('🎯 Belgium Result:', result);
-        
-        return new Response(
-          JSON.stringify(result),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+          console.log('🎯 Belgium CBE Result:', result);
+          
+          return new Response(
+            JSON.stringify(result),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
       }
     } catch (apiError) {
-      console.log('Primary API failed, using fallback');
+      console.log('CBE scraping failed, using fallback:', apiError.message);
     }
 
     // Fallback: return basic info with formatted number

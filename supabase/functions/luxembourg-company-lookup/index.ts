@@ -40,39 +40,10 @@ serve(async (req) => {
 
     let companyData = null;
     
-    // Try OpenCorporates with different formats
-    for (const format of formats) {
-      try {
-        console.log(`🔍 Trying OpenCorporates for format: ${format}`);
-        const openCorpUrl = `https://api.opencorporates.com/v0.4/companies/lu/${encodeURIComponent(format)}`;
-        
-        const openCorpResponse = await fetch(openCorpUrl, {
-          headers: {
-            'User-Agent': 'Luxembourg Company Lookup Service'
-          }
-        });
-        
-        if (openCorpResponse.ok) {
-          const openCorpData = await openCorpResponse.json();
-          if (openCorpData?.results?.company) {
-            const company = openCorpData.results.company;
-            companyData = {
-              companyName: company.name || '',
-              address: company.registered_address_in_full || company.address || '',
-              postalCode: '',
-              city: company.jurisdiction_code === 'lu' ? 'Luxembourg' : '',
-              registrationNumber: company.company_number
-            };
-            console.log('✅ OpenCorporates data found:', companyData);
-            break;
-          }
-        }
-      } catch (openCorpError) {
-        console.log(`OpenCorporates error for ${format}:`, openCorpError.message);
-      }
-    }
+    // Skip OpenCorporates (paid service) - go directly to free sources
+    console.log('🔍 Using only free Luxembourg sources');
       
-    // If no data found, try Luxembourg Business Register website with enhanced scraping
+    // Try Luxembourg Business Register website with enhanced scraping
     if (!companyData) {
       for (const format of formats) {
         try {

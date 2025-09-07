@@ -43,7 +43,7 @@ export const useCompanySearch = () => {
     setError(null);
 
     try {
-      console.log('Recherche entreprise avec params:', params);
+      console.log('🆓 Recherche avec sources gratuites uniquement:', params);
 
       const { data, error: funcError } = await supabase.functions.invoke('company-search', {
         body: params
@@ -59,13 +59,13 @@ export const useCompanySearch = () => {
         throw new Error(response.error || 'Erreur inconnue lors de la recherche');
       }
 
-      console.log(`Recherche terminée: ${response.count} résultats (${response.cached ? 'cache' : 'API'})`);
+      console.log(`✅ Sources gratuites: ${response.count} résultats (${response.cached ? 'cache' : response.source})`);
       
       return response.results || [];
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur de recherche d\'entreprise';
-      console.error('Erreur useCompanySearch:', err);
+      console.error('Erreur useCompanySearch (sources gratuites):', err);
       setError(errorMessage);
       throw err;
     } finally {
