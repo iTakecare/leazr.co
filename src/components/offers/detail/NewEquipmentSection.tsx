@@ -53,9 +53,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     return purchasePrice * (1 + margin / 100);
   };
 
-  // Calculate coefficient automatically (mensualité * 36 / prix_achat)
-  const calculateCoefficient = (monthlyPayment: number, purchasePrice: number, duration: number = 36) => {
-    return purchasePrice > 0 ? (monthlyPayment * duration) / purchasePrice : 0;
+  // Calculate coefficient automatically (mensualité / prix_achat)
+  const calculateCoefficient = (monthlyPayment: number, purchasePrice: number) => {
+    return purchasePrice > 0 ? monthlyPayment / purchasePrice : 0;
   };
 
   const handleEdit = (item: any) => {
@@ -67,7 +67,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       margin: item.margin || 0,
       monthly_payment: item.monthly_payment || 0,
       selling_price: item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0),
-      coefficient: item.coefficient || calculateCoefficient(item.monthly_payment || 0, item.purchase_price, 36)
+      coefficient: item.coefficient || calculateCoefficient(item.monthly_payment || 0, item.purchase_price)
     });
   };
 
@@ -86,8 +86,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     if (field === 'monthly_payment' || field === 'purchase_price') {
       newValues.coefficient = calculateCoefficient(
         field === 'monthly_payment' ? value : newValues.monthly_payment,
-        field === 'purchase_price' ? value : newValues.purchase_price,
-        36
+        field === 'purchase_price' ? value : newValues.purchase_price
       );
     }
     
@@ -191,19 +190,25 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       // Mettre à jour tous les équipements proportionnellement
       const updatePromises = equipment.map(async (item) => {
         const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
-        const newSellingPrice = newMonthlyPayment * 36;
-        const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
+        
+        // Recalculer la marge pour maintenir le prix de vente cohérent
+        const currentSellingPrice = item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0);
+        const newMargin = item.purchase_price > 0 ? 
+          ((currentSellingPrice - item.purchase_price) / item.purchase_price) * 100 : 0;
+        
+        const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price);
         
         console.log(`🔥 TOTAL MONTHLY - Item ${item.id}:`, {
           oldMonthly: item.monthly_payment,
           newMonthly: newMonthlyPayment,
-          newSellingPrice: newSellingPrice,
+          sellingPrice: currentSellingPrice,
+          newMargin: newMargin,
           coefficient: newCoefficient
         });
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
-          selling_price: newSellingPrice,
+          margin: newMargin,
           coefficient: newCoefficient
         });
       });
