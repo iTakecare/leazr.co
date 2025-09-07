@@ -6430,11 +6430,13 @@ export type Database = {
         Returns: boolean
       }
       update_equipment_with_global_margin: {
-        Args: {
-          p_leaser_id: string
-          p_margin_percentage: number
-          p_offer_id: string
-        }
+        Args:
+          | { p_global_margin_percent: number; p_offer_id: string }
+          | {
+              p_leaser_id: string
+              p_margin_percentage: number
+              p_offer_id: string
+            }
         Returns: {
           message: string
           success: boolean
