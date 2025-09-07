@@ -5,20 +5,24 @@ import { OfferData, OfferWorkflowStatus } from "./offers/types";
 import { toast } from "sonner";
 
 export interface ExcelRowData {
-  'Client': string;
+  'N° du dossier': string;
+  'Client': string; // Sera mappé depuis une colonne client du fichier
   'Email': string;
-  'Demandeur': string;
-  'Equipement': string;
-  'Montant HT': number;
-  'Coefficient': number;
-  'Mensualité HT': number;
-  'Commission': number;
-  'Statut': string;
-  'N° dossier': string;
+  'Localisation': string;
+  'Pays Source': string;
+  'Leaser': string;
   'Date dossier': string;
-  'Date facture': string;
-  'Date paiement': string;
-  'Source': string;
+  'Date contrat': string;
+  'Facture leaser': string;
+  'Achat de vente': string;
+  'Marge en €': number; // Le montant réel
+  'E confirmés': number;
+  'E manquants': number;
+  'Taux de marge': number; // Pourrait servir de coefficient
+  'Mensualité client offres': number; // La vraie mensualité
+  'Mensualité': number;
+  'Statut': string;
+  'Relations': string;
 }
 
 // Mapping des statuts Excel vers les statuts de workflow
@@ -98,20 +102,22 @@ export class ExcelImportService {
     
     // Mapping des colonnes attendues vers leurs variantes possibles
     const columnMappings: Record<string, string[]> = {
-      'montantht': ['montant ht', 'montantht', 'montant', 'amount', 'prix', 'price'],
-      'coefficient': ['coefficient', 'coeff', 'coef'],
-      'mensualiteht': ['mensualite ht', 'mensualiteht', 'mensualite', 'monthly'],
-      'commission': ['commission', 'comm'],
-      'client': ['client', 'nom', 'name', 'customer'],
+      'margeen': ['marge en €', 'marge en euros', 'marge', 'montant', 'amount'],
+      'tauxdemarge': ['taux de marge', 'taux marge', 'coefficient', 'coeff', 'coef'],
+      'mensualiteclientoffres': ['mensualité client offres', 'mensualite client offres', 'mensualité offres', 'mensualité', 'monthly'],
+      'mensualite': ['mensualité', 'mensualite', 'monthly payment'],
+      'client': ['client', 'nom client', 'name', 'customer'],  
+      'leaser': ['leaser', 'nom leaser', 'fournisseur'],
       'email': ['email', 'mail'],
-      'demandeur': ['demandeur', 'requester'],
-      'equipement': ['equipement', 'equipment', 'produit', 'product'],
+      'localisation': ['localisation', 'location', 'lieu'],
       'statut': ['statut', 'status', 'etat', 'state'],
-      'nodossier': ['n dossier', 'numero dossier', 'dossier', 'file number'],
-      'source': ['source', 'origine', 'origin'],
+      'nodossier': ['n° du dossier', 'numero dossier', 'dossier', 'file number', 'n du dossier'],
+      'payssource': ['pays source', 'source', 'pays', 'country'],
       'datedossier': ['date dossier', 'date creation', 'creation date'],
-      'datefacture': ['date facture', 'facture date', 'invoice date'],
-      'datepaiement': ['date paiement', 'payment date', 'paiement']
+      'datecontrat': ['date contrat', 'contract date'],
+      'relations': ['relations', 'relation', 'type relation'],
+      'econfirmes': ['e confirmés', 'e confirmes', 'confirmes'],
+      'emanquants': ['e manquants', 'e manquant', 'manquants']
     };
 
     // Chercher d'abord une correspondance exacte
@@ -165,22 +171,26 @@ export class ExcelImportService {
           console.log(`📋 Headers détectés: ${headers.join(', ')}`);
           console.log(`📊 ${rows.length} lignes de données détectées`);
           
-          // Créer un mapping des colonnes flexibles
+          // Créer un mapping des colonnes flexibles basé sur le vrai fichier Excel
           const columnMapping: Record<string, string | null> = {
-            'Client': this.findColumnMatch('client', headers),
+            'N° du dossier': this.findColumnMatch('nodossier', headers),
+            'Client': this.findColumnMatch('client', headers) || this.findColumnMatch('leaser', headers),
             'Email': this.findColumnMatch('email', headers),
-            'Demandeur': this.findColumnMatch('demandeur', headers),
-            'Equipement': this.findColumnMatch('equipement', headers),
-            'Montant HT': this.findColumnMatch('montantht', headers),
-            'Coefficient': this.findColumnMatch('coefficient', headers),
-            'Mensualité HT': this.findColumnMatch('mensualiteht', headers),
-            'Commission': this.findColumnMatch('commission', headers),
-            'Statut': this.findColumnMatch('statut', headers),
-            'N° dossier': this.findColumnMatch('nodossier', headers),
+            'Localisation': this.findColumnMatch('localisation', headers),
+            'Pays Source': this.findColumnMatch('pays', headers) || this.findColumnMatch('source', headers),
+            'Leaser': this.findColumnMatch('leaser', headers),
             'Date dossier': this.findColumnMatch('datedossier', headers),
-            'Date facture': this.findColumnMatch('datefacture', headers),
-            'Date paiement': this.findColumnMatch('datepaiement', headers),
-            'Source': this.findColumnMatch('source', headers)
+            'Date contrat': this.findColumnMatch('datecontrat', headers),
+            'Facture leaser': this.findColumnMatch('factureleaser', headers),
+            'Achat de vente': this.findColumnMatch('achatdevente', headers),
+            'Marge en €': this.findColumnMatch('marge', headers) || this.findColumnMatch('montant', headers),
+            'E confirmés': this.findColumnMatch('econfirmes', headers),
+            'E manquants': this.findColumnMatch('emanquants', headers),
+            'Taux de marge': this.findColumnMatch('tauxdemarge', headers) || this.findColumnMatch('coefficient', headers),
+            'Mensualité client offres': this.findColumnMatch('mensualiteclientoffres', headers) || this.findColumnMatch('mensualite', headers),
+            'Mensualité': this.findColumnMatch('mensualite', headers),
+            'Statut': this.findColumnMatch('statut', headers),
+            'Relations': this.findColumnMatch('relations', headers)
           };
 
           console.log('🔗 Mapping des colonnes:', columnMapping);
@@ -195,40 +205,48 @@ export class ExcelImportService {
             };
 
             const rawData = {
-              'Client': getValue(columnMapping['Client']),
+              'N° du dossier': getValue(columnMapping['N° du dossier']),
+              'Client': getValue(columnMapping['Client']) || getValue(columnMapping['Leaser']), // Fallback sur Leaser
               'Email': getValue(columnMapping['Email']),
-              'Demandeur': getValue(columnMapping['Demandeur']),
-              'Equipement': getValue(columnMapping['Equipement']),
-              'Montant HT': getValue(columnMapping['Montant HT']),
-              'Coefficient': getValue(columnMapping['Coefficient']),
-              'Mensualité HT': getValue(columnMapping['Mensualité HT']),
-              'Commission': getValue(columnMapping['Commission']),
-              'Statut': getValue(columnMapping['Statut']),
-              'N° dossier': getValue(columnMapping['N° dossier']),
+              'Localisation': getValue(columnMapping['Localisation']),
+              'Pays Source': getValue(columnMapping['Pays Source']),
+              'Leaser': getValue(columnMapping['Leaser']),
               'Date dossier': getValue(columnMapping['Date dossier']),
-              'Date facture': getValue(columnMapping['Date facture']),
-              'Date paiement': getValue(columnMapping['Date paiement']),
-              'Source': getValue(columnMapping['Source'])
+              'Date contrat': getValue(columnMapping['Date contrat']),
+              'Facture leaser': getValue(columnMapping['Facture leaser']),
+              'Achat de vente': getValue(columnMapping['Achat de vente']),
+              'Marge en €': getValue(columnMapping['Marge en €']),
+              'E confirmés': getValue(columnMapping['E confirmés']),
+              'E manquants': getValue(columnMapping['E manquants']),
+              'Taux de marge': getValue(columnMapping['Taux de marge']),
+              'Mensualité client offres': getValue(columnMapping['Mensualité client offres']),
+              'Mensualité': getValue(columnMapping['Mensualité']),
+              'Statut': getValue(columnMapping['Statut']),
+              'Relations': getValue(columnMapping['Relations'])
             };
 
             console.log(`📝 Ligne ${index + 1} - Données brutes:`, rawData);
             
             // Parser les valeurs numériques avec la nouvelle fonction
             const parsedData: ExcelRowData = {
+              'N° du dossier': String(rawData['N° du dossier']).trim() || '',
               'Client': String(rawData['Client']).trim() || '',
               'Email': String(rawData['Email']).trim() || '',
-              'Demandeur': String(rawData['Demandeur']).trim() || '',
-              'Equipement': String(rawData['Equipement']).trim() || '',
-              'Montant HT': this.parseNumericValue(rawData['Montant HT']),
-              'Coefficient': this.parseNumericValue(rawData['Coefficient']),
-              'Mensualité HT': this.parseNumericValue(rawData['Mensualité HT']),
-              'Commission': this.parseNumericValue(rawData['Commission']),
-              'Statut': String(rawData['Statut']).trim() || 'Brouillon',
-              'N° dossier': String(rawData['N° dossier']).trim() || '',
+              'Localisation': String(rawData['Localisation']).trim() || '',
+              'Pays Source': String(rawData['Pays Source']).trim() || '',
+              'Leaser': String(rawData['Leaser']).trim() || '',
               'Date dossier': String(rawData['Date dossier']).trim() || '',
-              'Date facture': String(rawData['Date facture']).trim() || '',
-              'Date paiement': String(rawData['Date paiement']).trim() || '',
-              'Source': String(rawData['Source']).trim() || ''
+              'Date contrat': String(rawData['Date contrat']).trim() || '',
+              'Facture leaser': String(rawData['Facture leaser']).trim() || '',
+              'Achat de vente': String(rawData['Achat de vente']).trim() || '',
+              'Marge en €': this.parseNumericValue(rawData['Marge en €']),
+              'E confirmés': this.parseNumericValue(rawData['E confirmés']),
+              'E manquants': this.parseNumericValue(rawData['E manquants']),
+              'Taux de marge': this.parseNumericValue(rawData['Taux de marge']),
+              'Mensualité client offres': this.parseNumericValue(rawData['Mensualité client offres']),
+              'Mensualité': this.parseNumericValue(rawData['Mensualité']),
+              'Statut': String(rawData['Statut']).trim() || 'Brouillon',
+              'Relations': String(rawData['Relations']).trim() || ''
             };
 
             console.log(`✅ Ligne ${index + 1} - Données parsées:`, parsedData);
@@ -336,35 +354,35 @@ export class ExcelImportService {
       const rowNumber = i + 2; // +2 car Excel commence à 1 et on skip les headers
       
       try {
-        // Validation et nettoyage des données obligatoires
-        const clientName = String(row['Client'] || '').trim();
-        const montantHT = row['Montant HT'];
-        let coefficient = row['Coefficient'];
-        let monthlyPayment = row['Mensualité HT'];
+        // Validation et nettoyage des données obligatoires avec les nouvelles colonnes
+        const clientName = String(row['Client'] || row['Leaser'] || '').trim();
+        const montantHT = row['Marge en €']; // Utiliser "Marge en €" comme montant
+        let coefficient = row['Taux de marge'] || 1; // Utiliser "Taux de marge" comme coefficient
+        let monthlyPayment = row['Mensualité client offres'] || row['Mensualité']; // Priorité à "Mensualité client offres"
         
-        console.log(`🔍 Validation ligne ${rowNumber}: Client="${clientName}", Montant HT=${montantHT}, Coefficient=${coefficient}, Mensualité=${monthlyPayment}`);
+        console.log(`🔍 Validation ligne ${rowNumber}: Client="${clientName}", Marge=${montantHT}, Taux de marge=${coefficient}, Mensualité=${monthlyPayment}`);
         
         // Validation du nom client (obligatoire)
         if (!clientName) {
           result.errors.push({
             row: rowNumber,
-            error: "Le nom du client est obligatoire"
+            error: "Le nom du client (Client ou Leaser) est obligatoire"
           });
           continue;
         }
 
-        // Validation du montant HT (obligatoire)
+        // Validation du montant HT (obligatoire) - utiliser "Marge en €"
         if (montantHT === undefined || montantHT === null || isNaN(Number(montantHT))) {
           result.errors.push({
             row: rowNumber,
-            error: `Montant HT obligatoire et doit être un nombre valide. Valeur reçue: "${montantHT}"`
+            error: `Marge en € obligatoire et doit être un nombre valide. Valeur reçue: "${montantHT}"`
           });
           continue;
         }
 
         // Validation et valeur par défaut pour le coefficient (obligatoire)
         if (coefficient === undefined || coefficient === null || isNaN(Number(coefficient)) || coefficient === 0) {
-          console.log(`⚠️ Coefficient manquant ou invalide pour la ligne ${rowNumber}, utilisation de la valeur par défaut 1`);
+          console.log(`⚠️ Taux de marge manquant ou invalide pour la ligne ${rowNumber}, utilisation de la valeur par défaut 1`);
           coefficient = 1; // Valeur par défaut
         }
 
@@ -387,10 +405,10 @@ export class ExcelImportService {
         }
 
         // Recherche ou création du client
-        let clientId = await this.findClientByName(row['Client'], companyId);
+        let clientId = await this.findClientByName(clientName, companyId);
         
         if (!clientId) {
-          clientId = await this.createClient(row['Client'], row['Email'], companyId);
+          clientId = await this.createClient(clientName, row['Email'], companyId);
           if (!clientId) {
             result.errors.push({
               row: rowNumber,
@@ -400,8 +418,8 @@ export class ExcelImportService {
           }
         }
 
-        // Génération de l'ID d'offre
-        const offerId = await this.generateOfferId();
+        // Génération de l'ID d'offre - utiliser le N° du dossier s'il existe
+        const offerId = row['N° du dossier'] || await this.generateOfferId();
 
         // Mapping du statut
         const workflowStatus = STATUS_MAPPING[row['Statut']] || OfferWorkflowStatus.DRAFT;
@@ -411,15 +429,15 @@ export class ExcelImportService {
           client_id: clientId,
           client_name: clientName, // Utiliser la valeur nettoyée
           client_email: row['Email'] || undefined,
-          equipment_description: row['Equipement'] || undefined,
-          amount: Number(montantHT), // S'assurer que c'est un nombre
-          coefficient: Number(coefficient), // Utiliser la valeur validée
+          equipment_description: `${row['Localisation']} - ${row['Relations']}` || undefined,
+          amount: Number(montantHT), // S'assurer que c'est un nombre (Marge en €)
+          coefficient: Number(coefficient), // Utiliser la valeur validée (Taux de marge)
           monthly_payment: Number(monthlyPayment), // Utiliser la valeur validée/calculée
-          commission: row['Commission'] || 0,
+          commission: 0, // Pas de commission dans ce fichier
           workflow_status: workflowStatus,
           status: workflowStatus === OfferWorkflowStatus.SIGNED ? 'accepted' : 'pending',
-          dossier_number: offerId, // Utilisation de l'ID généré comme numéro de dossier
-          source: row['Source'] || undefined,
+          dossier_number: offerId, // Utilisation de l'ID généré ou existant comme numéro de dossier
+          source: row['Pays Source'] || undefined,
           company_id: companyId,
           user_id: userId,
           type: 'admin_offer'
@@ -466,16 +484,22 @@ export class ExcelImportService {
    * Valide le format du fichier Excel avec matching flexible
    */
   static validateExcelFormat(headers: string[]): string[] {
-    const requiredColumns = ['client', 'montantht']; // Version normalisée
+    const requiredColumns = ['margeen', 'client']; // Colonnes obligatoires: Marge en € et Client (ou Leaser)
     const missingHeaders: string[] = [];
     
     console.log(`🔍 Validation des headers: ${headers.join(', ')}`);
     
     for (const requiredCol of requiredColumns) {
-      const found = this.findColumnMatch(requiredCol, headers);
+      let found = this.findColumnMatch(requiredCol, headers);
+      
+      // Pour le client, essayer aussi leaser comme alternative
+      if (!found && requiredCol === 'client') {
+        found = this.findColumnMatch('leaser', headers);
+      }
+      
       if (!found) {
         // Retourner le nom lisible pour l'utilisateur
-        const readableName = requiredCol === 'client' ? 'Client' : 'Montant HT';
+        const readableName = requiredCol === 'margeen' ? 'Marge en €' : 'Client (ou Leaser)';
         missingHeaders.push(readableName);
       }
     }
