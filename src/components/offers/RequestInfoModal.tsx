@@ -139,7 +139,7 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             {DOCUMENT_OPTIONS.map((doc) => (
-              <React.Fragment key={doc.id}>
+              <div key={doc.id}>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id={`doc-${doc.id}`} 
@@ -160,7 +160,7 @@ const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
                     Si vous n'avez qu'un seul document reprenant le recto et le verso, téléchargez-le ici !
                   </div>
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </div>
 
