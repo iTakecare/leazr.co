@@ -30,7 +30,8 @@ const TYPE_OPTIONS = [
   { value: 'client_request', label: 'Demande client' },
   { value: 'internal_offer', label: 'Offre interne' },
   { value: 'partner_offer', label: 'Offre partenaire' },
-  { value: 'admin_offer', label: 'Offre admin' }
+  { value: 'admin_offer', label: 'Offre admin' },
+  { value: 'web_request', label: 'Demande web' }
 ];
 
 const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
