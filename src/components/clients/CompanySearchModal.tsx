@@ -58,12 +58,18 @@ export const CompanySearchModal: React.FC<CompanySearchModalProps> = ({
   useEffect(() => {
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toUpperCase();
-      if (/^[A-Z]{2}[\d\w]{8,12}$/.test(query)) {
+      // Détection spécifique pour les numéros belges (BE + 10 chiffres)
+      if (/^BE\d{10}$/.test(query) || /^BE\d{4}\.\d{3}\.\d{3}$/.test(query)) {
+        setSearchType('siren'); // Traiter les numéros belges comme "siren" pour le routage
+      } else if (/^[A-Z]{2}[\d\w]{8,12}$/.test(query)) {
         setSearchType('vat');
       } else if (/^\d{9}$/.test(query)) {
         setSearchType('siren');
       } else if (/^\d{14}$/.test(query)) {
         setSearchType('siret');
+      } else if (/^\d{10}$/.test(query) || /^\d{4}\.\d{3}\.\d{3}$/.test(query)) {
+        // Numéros belges sans préfixe BE
+        setSearchType('siren');
       } else {
         setSearchType('name');
       }

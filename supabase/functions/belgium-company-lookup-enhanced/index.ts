@@ -26,14 +26,16 @@ serve(async (req) => {
 
     console.log(`🇧🇪 Enhanced Belgium Lookup: ${number}`);
 
-    // Clean the number (remove dots and spaces)
-    const cleanNumber = number.replace(/[\s.]/g, '');
+    // Clean the number (remove BE prefix, dots, and spaces)
+    let cleanNumber = number.toString().replace(/^BE/i, '').replace(/[\s.]/g, '');
     
-    // Format for CBE: add dots if not present (0000.000.000 format)
-    let formattedNumber = cleanNumber;
-    if (cleanNumber.length === 10 && !cleanNumber.includes('.')) {
-      formattedNumber = `${cleanNumber.substring(0, 4)}.${cleanNumber.substring(4, 7)}.${cleanNumber.substring(7, 10)}`;
+    // Ensure we have exactly 10 digits
+    if (cleanNumber.length !== 10) {
+      throw new Error(`Numéro belge invalide: ${number} (doit contenir 10 chiffres)`);
     }
+    
+    // Format for CBE: add dots (0000.000.000 format)
+    const formattedNumber = `${cleanNumber.substring(0, 4)}.${cleanNumber.substring(4, 7)}.${cleanNumber.substring(7, 10)}`;
 
     console.log(`📋 Formatted number: ${formattedNumber}`);
 
@@ -123,7 +125,9 @@ serve(async (req) => {
             address: foundAddress || '',
             postalCode: '',
             city: 'Belgique',
-            status: foundStatus || 'Actif'
+            status: foundStatus || 'Actif',
+            vat_number: `BE${cleanNumber}`,
+            company_number: formattedNumber
           };
         }
       }
@@ -158,7 +162,9 @@ serve(async (req) => {
               companyName: nameMatch[1].trim(),
               address: 'Informations détaillées disponibles',
               postalCode: '',
-              city: 'Belgique'
+              city: 'Belgique',
+              vat_number: `BE${cleanNumber}`,
+              company_number: formattedNumber
             };
           }
         }
@@ -191,7 +197,9 @@ serve(async (req) => {
         companyName: `Entreprise belge ${formattedNumber}`,
         address: 'Adresse à compléter - Consultez kbopub.economie.fgov.be',
         postalCode: '',
-        city: 'Belgique'
+        city: 'Belgique',
+        vat_number: `BE${cleanNumber}`,
+        company_number: formattedNumber
       }
     };
 

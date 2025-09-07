@@ -140,16 +140,17 @@ async function searchByIdentifier(query: string, country: string, searchType: st
         functionName = 'france-company-lookup';
         params = { number: query, type: searchType };
         break;
-      case country === 'BE':
-        functionName = 'belgium-company-lookup';
-        params = { number: query };
+      case country === 'BE' && (searchType === 'siren' || searchType === 'vat'):
+        // Rediriger les numéros belges vers la fonction améliorée
+        functionName = 'belgium-company-lookup-enhanced';
+        params = { number: query.replace(/^BE/, '') }; // Enlever le préfixe BE si présent
         break;
       case country === 'LU':
         functionName = 'luxembourg-company-lookup';
         params = { number: query };
         break;
       case searchType === 'vat':
-        // Pour les numéros TVA, essayer différentes sources
+        // Pour les autres numéros TVA (non belges), utiliser VIES
         return await searchVATNumber(query, country);
       default:
         throw new Error(`Recherche non supportée: ${searchType} pour ${country}`);
@@ -163,7 +164,25 @@ async function searchByIdentifier(query: string, country: string, searchType: st
       throw error;
     }
 
-    if (data && data.name) {
+    if (data && data.success && data.data) {
+      const companyInfo = data.data;
+      return [{
+        name: companyInfo.companyName || companyInfo.name,
+        country: country,
+        address: companyInfo.address,
+        city: companyInfo.city,
+        postal_code: companyInfo.postalCode || companyInfo.postal_code,
+        vat_number: companyInfo.vat_number || companyInfo.company_number,
+        siren: companyInfo.siren,
+        siret: companyInfo.siret,
+        sector: companyInfo.sector || companyInfo.activity,
+        legal_form: companyInfo.legal_form,
+        creation_date: companyInfo.creation_date,
+        source: functionName,
+        confidence: 0.9
+      }];
+    } else if (data && data.name) {
+      // Format pour les anciennes fonctions
       return [{
         name: data.name,
         country: country,
