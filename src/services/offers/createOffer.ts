@@ -88,6 +88,8 @@ export const createOffer = async (offerData: OfferData) => {
       commission_status: offerData.commission_status,
       commission_paid_at: offerData.commission_paid_at,
       converted_to_contract: offerData.converted_to_contract,
+      dossier_number: offerData.dossier_number, // Ajouter le numéro de dossier
+      source: offerData.source, // Ajouter la source
       // Utiliser la marge calculée depuis les équipements si disponible, sinon utiliser celle fournie
       margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : (
         offerData.margin !== undefined && offerData.margin !== null ?

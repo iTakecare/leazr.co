@@ -302,17 +302,11 @@ export class ExcelImportService {
    */
   static async generateOfferId(): Promise<string> {
     try {
-      const { data, error } = await supabase.rpc('generate_offer_id');
-      
-      if (error || !data) {
-        console.error("Erreur lors de la génération de l'ID d'offre:", error);
-        // Fallback: générer un ID temporaire
-        const year = new Date().getFullYear();
-        const timestamp = Date.now().toString().slice(-4);
-        return `ITC-${year}-OFF-${timestamp}`;
-      }
-      
-      return data;
+      // Générer directement un ID sans appel RPC
+      const year = new Date().getFullYear();
+      const timestamp = Date.now().toString().slice(-4);
+      const randomNumber = Math.floor(Math.random() * 9000) + 1000; // Entre 1000 et 9999
+      return `ITC-${year}-OFF-${randomNumber}`;
     } catch (error) {
       console.error("Exception lors de la génération de l'ID d'offre:", error);
       const year = new Date().getFullYear();
