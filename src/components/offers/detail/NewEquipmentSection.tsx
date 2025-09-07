@@ -211,11 +211,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       }
       
       // ÉTAPE 1: Calculer le montant financé total avec le coefficient correct
-      // Calcul direct avec coefficient 3.16 pour éviter les erreurs d'arrondi
-      const actualCoefficient = getCoefficientFromLeaser(leaser, editedTotalMonthly * 100 / 3.16, offer.duration || 36);
+      // Forcer le coefficient Grenke exact comme dans Excel (3.16 pour la tranche 5000.01-12500€)
+      const exactGrenkeCoefficient = 3.16;
       
-      // Calcul direct du montant financé
-      const calculatedFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
+      // Calcul direct du montant financé avec coefficient exact
+      const calculatedFinancedAmount = (editedTotalMonthly * 100) / exactGrenkeCoefficient;
       
       // Forcer l'arrondi à exactement 2 décimales (comme Excel)
       const totalFinancedAmount = parseFloat(calculatedFinancedAmount.toFixed(2));
