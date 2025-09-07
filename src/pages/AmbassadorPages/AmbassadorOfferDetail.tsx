@@ -30,6 +30,7 @@ import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
 import CompactEquipmentSection from "@/components/offers/detail/CompactEquipmentSection";
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
+import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
 
 const AmbassadorOfferDetail = () => {
   console.log('🔥 AMBASSADOR OFFER DETAIL - Component starting to execute');
@@ -337,6 +338,19 @@ const AmbassadorOfferDetail = () => {
                 onDownloadPdf={handlePrintPdf}
                 sendingEmail={sendingEmail}
                 isPdfGenerating={isPrintingPdf}
+              />
+
+              <OfferEditConfiguration
+                offerId={offer.id}
+                currentSource={offer.source}
+                currentType={offer.type}
+                onUpdate={() => {
+                  fetchOffer();
+                  if (id) {
+                    fetchWorkflowLogs(id);
+                    fetchOfferNotes(id);
+                  }
+                }}
               />
 
               <AmbassadorOfferNotes notes={offerNotes} loading={notesLoading} />

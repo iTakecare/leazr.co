@@ -9,12 +9,8 @@ export const translateOfferType = (type: string | undefined | null): string => {
   switch (type.toLowerCase()) {
     case 'ambassador_offer':
       return "Offre ambassadeur";
-    case 'partner_offer':
-      return "Offre partenaire";
     case 'direct_offer':
       return "Offre directe";
-    case 'admin_offer':
-      return "Offre administrative";
     case 'client_request':
       return "Demande client";
     case 'internal_offer':

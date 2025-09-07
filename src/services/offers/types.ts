@@ -95,9 +95,10 @@ export interface OfferStatusCounts {
 }
 
 export enum OfferType {
-  ADMIN = 'admin_offer',
-  PARTNER = 'partner_offer',
   AMBASSADOR = 'ambassador_offer',
   CLIENT = 'client_request',
-  INTERNAL = 'internal_offer'
+  INTERNAL = 'internal_offer',
+  DIRECT = 'direct_offer',
+  WEB_OFFER = 'web_offer',
+  WEB_REQUEST = 'web_request'
 }
