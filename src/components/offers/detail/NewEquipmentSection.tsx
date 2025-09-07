@@ -211,8 +211,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       }
       
       // ÉTAPE 1: Calculer le prix total financé selon la logique du leaser
-      // Utiliser la formule inverse de calculateSalePriceWithLeaser: Prix_financé = (Mensualité * 100) / Coefficient_leaser
-      const totalFinancedAmount = calculateSalePriceWithLeaser(editedTotalMonthly, leaser, offer.duration || 36);
+      // Calcul direct pour éviter les erreurs d'arrondi des calculs itératifs
+      const estimatedAmount = currentTotalPurchasePrice * 2; // Estimation raisonnable pour trouver le bon coefficient
+      const leaserCoefficient = getCoefficientFromLeaser(leaser, estimatedAmount, offer.duration || 36);
+      const totalFinancedAmount = (editedTotalMonthly * 100) / leaserCoefficient;
       
       // ÉTAPE 2: Calculer le coefficient global de répartition
       const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
