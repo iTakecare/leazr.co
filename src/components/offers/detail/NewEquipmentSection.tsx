@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit, Save, X } from "lucide-react";
+import { Loader2, Edit, Save, X, Edit3, Calculator } from "lucide-react";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
 import { updateOfferEquipment } from "@/services/offers/offerEquipment";
@@ -31,6 +31,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedValues, setEditedValues] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditingTotalMonthly, setIsEditingTotalMonthly] = useState(false);
+  const [editedTotalMonthly, setEditedTotalMonthly] = useState(0);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -131,10 +133,24 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       return acc + (item.monthly_payment || 0);
     }, 0);
 
+    const totalSellingPrice = equipment.reduce((acc, item) => {
+      const sellingPrice = item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0);
+      return acc + (sellingPrice * item.quantity);
+    }, 0);
+
     // Calculer la marge totale en utilisant la même logique que l'onglet financier
     const totalMargin = calculateOfferMargin(offer, equipment) || 0;
 
-    return { totalPrice, totalMonthlyPayment, totalMargin };
+    // Calculer le coefficient global (total mensualité * 36 / total prix achat)
+    const globalCoefficient = totalPrice > 0 ? (totalMonthlyPayment * 36) / totalPrice : 0;
+
+    return { 
+      totalPrice, 
+      totalMonthlyPayment, 
+      totalSellingPrice,
+      totalMargin, 
+      globalCoefficient 
+    };
   };
 
   const calculateEquipmentMargin = (item: any, totalPurchasePrice: number, totalMargin: number) => {
@@ -144,6 +160,55 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     
     // Répartir la marge totale proportionnellement
     return totalMargin * proportion;
+  };
+
+  const handleEditTotalMonthly = () => {
+    const totals = calculateTotals();
+    setEditedTotalMonthly(totals.totalMonthlyPayment);
+    setIsEditingTotalMonthly(true);
+  };
+
+  const handleSaveTotalMonthly = async () => {
+    const currentTotals = calculateTotals();
+    const currentTotal = currentTotals.totalMonthlyPayment;
+    
+    if (currentTotal === 0 || editedTotalMonthly === currentTotal) {
+      setIsEditingTotalMonthly(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Calculer le ratio de répartition
+      const ratio = editedTotalMonthly / currentTotal;
+      
+      // Mettre à jour tous les équipements proportionnellement
+      const updatePromises = equipment.map(async (item) => {
+        const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
+        const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
+        
+        return updateOfferEquipment(item.id, {
+          monthly_payment: newMonthlyPayment,
+          coefficient: newCoefficient
+        });
+      });
+
+      await Promise.all(updatePromises);
+      
+      toast.success("Mensualités mises à jour proportionnellement");
+      setIsEditingTotalMonthly(false);
+      refresh();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour des mensualités:", error);
+      toast.error("Erreur lors de la mise à jour");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelTotalMonthly = () => {
+    setIsEditingTotalMonthly(false);
+    setEditedTotalMonthly(0);
   };
 
   if (loading) {
@@ -362,19 +427,83 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                 );
               })}
               
-              {/* Ligne de totaux */}
+              {/* Ligne de totaux - Première ligne */}
               <TableRow className="border-t-2 bg-muted/50">
-                <TableCell colSpan={3} className="font-bold text-right">
-                  TOTAUX GÉNÉRAUX
+                <TableCell colSpan={2} className="font-bold text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Calculator className="w-4 h-4" />
+                    TOTAUX GÉNÉRAUX
+                  </div>
                 </TableCell>
-                <TableCell className="text-right font-mono font-bold text-lg">
-                  {formatPrice(totals.totalPrice)}
+                <TableCell className="text-right">
+                  <div className="text-xs text-muted-foreground">Prix d'achat total</div>
+                  <div className="font-mono font-bold text-lg">
+                    {formatPrice(totals.totalPrice)}
+                  </div>
                 </TableCell>
-                <TableCell></TableCell>
-                <TableCell className="text-right font-mono font-bold text-lg text-blue-600">
-                  {formatPrice(totals.totalMonthlyPayment)}
+                <TableCell className="text-right">
+                  <div className="text-xs text-muted-foreground">Marge totale</div>
+                  <div className="font-mono font-bold text-lg text-green-600">
+                    {formatPrice(totals.totalMargin)}
+                  </div>
                 </TableCell>
-                <TableCell></TableCell>
+                <TableCell className="text-right">
+                  <div className="text-xs text-muted-foreground">Prix de vente total</div>
+                  <div className="font-mono font-bold text-lg text-green-600">
+                    {formatPrice(totals.totalSellingPrice)}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="text-xs text-muted-foreground">Mensualité totale</div>
+                  {isEditingTotalMonthly ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={editedTotalMonthly}
+                        onChange={(e) => setEditedTotalMonthly(parseFloat(e.target.value) || 0)}
+                        className="w-28 text-right font-mono"
+                        step="0.01"
+                        min="0"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSaveTotalMonthly}
+                        disabled={isSaving}
+                      >
+                        <Save className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelTotalMonthly}
+                        disabled={isSaving}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="font-mono font-bold text-lg text-blue-600">
+                        {formatPrice(totals.totalMonthlyPayment)}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEditTotalMonthly}
+                        className="p-1 h-6 w-6"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="text-xs text-muted-foreground">Coefficient global</div>
+                  <div className="font-mono font-bold text-lg text-purple-600">
+                    {totals.globalCoefficient.toFixed(3)}
+                  </div>
+                </TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableBody>
