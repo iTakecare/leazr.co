@@ -1585,6 +1585,45 @@ export type Database = {
           },
         ]
       }
+      company_enrichment_cache: {
+        Row: {
+          company_data: Json
+          confidence_score: number | null
+          country_code: string
+          created_at: string
+          expires_at: string
+          id: string
+          search_key: string
+          search_type: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          company_data: Json
+          confidence_score?: number | null
+          country_code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          search_key: string
+          search_type: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          company_data?: Json
+          confidence_score?: number | null
+          country_code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          search_key?: string
+          search_type?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_integrations: {
         Row: {
           api_credentials: Json
