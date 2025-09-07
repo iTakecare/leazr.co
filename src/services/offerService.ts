@@ -74,5 +74,5 @@ export {
 // Export functions from offerDetail directly
 export * from './offers/offerDetail';
 
-// Export utility functions
-export { translateOfferType, hasCommission } from '@/utils/offerTypeTranslator';
+// Import the Excel import service
+export { ExcelImportService } from './excelImportService';

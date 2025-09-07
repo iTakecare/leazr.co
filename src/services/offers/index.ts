@@ -114,6 +114,30 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
     }
 
     console.log("Création d'une nouvelle offre avec les données:", dataToSave);
+    
+    // Generate offer ID if not provided
+    if (!dataToSave.id) {
+      try {
+        const { data: generatedId, error: idError } = await supabase.rpc('generate_offer_id');
+        if (idError) {
+          console.error("Erreur lors de la génération de l'ID:", idError);
+          // Fallback: generate temporary ID
+          const year = new Date().getFullYear();
+          const timestamp = Date.now().toString().slice(-4);
+          dataToSave.id = `ITC-${year}-OFF-${timestamp}`;
+        } else {
+          dataToSave.id = generatedId;
+        }
+        console.log("ID d'offre généré:", dataToSave.id);
+      } catch (error) {
+        console.error("Exception lors de la génération de l'ID:", error);
+        // Fallback: generate temporary ID
+        const year = new Date().getFullYear();
+        const timestamp = Date.now().toString().slice(-4);
+        dataToSave.id = `ITC-${year}-OFF-${timestamp}`;
+      }
+    }
+    
     const { data, error } = await supabase.from('offers').insert([dataToSave]).select('*');
 
     if (error) {

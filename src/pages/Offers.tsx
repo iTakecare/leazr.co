@@ -12,6 +12,7 @@ import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
+import { ExcelImportDialog } from "@/components/excel/ExcelImportDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -70,10 +71,17 @@ const Offers = () => {
       <div className="w-full p-4 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <OffersHeader />
-          <Button onClick={() => navigateToAdmin("create-offer")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouvelle offre
-          </Button>
+          <div className="flex gap-2">
+            <ExcelImportDialog onImportComplete={fetchOffers}>
+              <Button variant="outline">
+                Importer Excel
+              </Button>
+            </ExcelImportDialog>
+            <Button onClick={() => navigateToAdmin("create-offer")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle offre
+            </Button>
+          </div>
         </div>
         
         <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">

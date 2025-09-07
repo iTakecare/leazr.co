@@ -34,6 +34,8 @@ export interface OfferData {
   company_id: string; // Champ obligatoire pour la base de données
   margin_difference?: number; // Différence de marge calculée
   total_margin_with_difference?: number; // Marge totale avec différence
+  dossier_number?: string; // Numéro de dossier
+  source?: string; // Canal d'acquisition (recommandation, Google, client existant, etc.)
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;

@@ -36,6 +36,11 @@ export interface Contract {
   estimated_delivery?: string;
   delivery_status?: string;
   delivery_carrier?: string;
+  contract_number?: string;
+  dossier_date?: string;
+  invoice_date?: string;
+  payment_date?: string;
+  contract_start_date?: string;
 }
 
 export interface ContractEquipment {
