@@ -342,11 +342,25 @@ export class ExcelImportService {
       const rowNumber = i + 2; // +2 car Excel commence à 1 et on skip les headers
       
       try {
-        // Validation des données obligatoires
-        if (!row['Client'] || !row['Montant HT']) {
+        // Validation des données obligatoires - amélioration pour accepter les montants à 0
+        const clientName = String(row['Client'] || '').trim();
+        const montantHT = row['Montant HT'];
+        
+        console.log(`🔍 Validation ligne ${rowNumber}: Client="${clientName}", Montant HT=${montantHT} (type: ${typeof montantHT})`);
+        
+        if (!clientName) {
           result.errors.push({
             row: rowNumber,
-            error: "Nom du client et montant HT sont obligatoires"
+            error: "Le nom du client est obligatoire"
+          });
+          continue;
+        }
+
+        // Accepter les montants à 0, mais pas undefined/null/NaN
+        if (montantHT === undefined || montantHT === null || isNaN(Number(montantHT))) {
+          result.errors.push({
+            row: rowNumber,
+            error: `Montant HT invalide: "${montantHT}" (doit être un nombre)`
           });
           continue;
         }
@@ -391,7 +405,14 @@ export class ExcelImportService {
           type: 'admin_offer'
         };
 
-        console.log(`📝 Création de l'offre pour ${row['Client']} (ligne ${rowNumber})`);
+        console.log(`📝 Création de l'offre pour ${row['Client']} (ligne ${rowNumber}):`, {
+          id: offerId,
+          clientName: row['Client'],
+          amount: row['Montant HT'],
+          coefficient: row['Coefficient'],
+          monthlyPayment: row['Mensualité HT'],
+          workflowStatus
+        });
         
         const { data, error } = await createOffer(offerData);
         
