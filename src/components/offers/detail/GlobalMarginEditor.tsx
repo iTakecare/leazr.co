@@ -6,16 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Percent, Calculator, Save, X } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Leaser } from "@/types/equipment";
-import { getCoefficientFromLeaser } from "@/utils/leaserCalculator";
-import { updateOfferEquipment } from "@/services/offers/offerEquipment";
-import { updateOffer } from "@/services/offers/offerDetail";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface GlobalMarginEditorProps {
   offer: any;
   totalPurchasePrice: number;
   totalMonthlyPayment: number;
-  displayMargin: number;
+  displayMargin: string;
   marginPercentage: number;
   leaser: Leaser | null;
   equipment: any[];
@@ -35,92 +33,62 @@ export const GlobalMarginEditor: React.FC<GlobalMarginEditorProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [newMarginPercent, setNewMarginPercent] = useState(marginPercentage);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
 
   // Update local state when prop changes
   useEffect(() => {
     setNewMarginPercent(marginPercentage);
   }, [marginPercentage]);
 
+  // Calculate new values based on margin percentage
   const calculateNewValues = (marginPercent: number) => {
-    // Calculate new total selling price based on margin %
     const newTotalSellingPrice = totalPurchasePrice * (1 + marginPercent / 100);
-    
-    // Use the offer's duration (default to 36 months)
-    const duration = offer.duration || 36;
-    
-    // Get coefficient from leaser for the new selling price
-    const coefficient = getCoefficientFromLeaser(leaser, newTotalSellingPrice, duration);
-    
-    // Calculate new total monthly payment
-    const newTotalMonthlyPayment = (newTotalSellingPrice * coefficient) / 100;
+    // Use a simpler coefficient calculation for now
+    const defaultCoefficient = 2.0;
+    const newTotalMonthlyPayment = newTotalSellingPrice / 36 * defaultCoefficient;
+    const newMargin = newTotalSellingPrice - totalPurchasePrice;
+    const newCoefficient = totalPurchasePrice > 0 ? (newTotalMonthlyPayment * 36) / totalPurchasePrice : 0;
     
     return {
       newTotalSellingPrice,
       newTotalMonthlyPayment,
-      coefficient,
-      newMargin: newTotalSellingPrice - totalPurchasePrice
+      newMargin,
+      coefficient: newCoefficient
     };
   };
 
+  // Handle saving the new margin percentage using database function
   const handleSave = async () => {
-    if (newMarginPercent < 0) {
-      toast({
-        title: "Erreur",
-        description: "La marge ne peut pas être négative",
-        variant: "destructive"
-      });
+    if (newMarginPercent === marginPercentage) {
+      setIsEditing(false);
       return;
     }
 
     setIsSaving(true);
-
     try {
-      const { newTotalSellingPrice, newTotalMonthlyPayment, coefficient, newMargin } = calculateNewValues(newMarginPercent);
-
-      // Update each equipment proportionally
-      const updatePromises = equipment.map(async (item) => {
-        const equipmentPurchaseTotal = item.purchase_price * item.quantity;
-        const equipmentRatio = equipmentPurchaseTotal / totalPurchasePrice;
-        
-        // Calculate proportional values for this equipment
-        const newEquipmentMonthlyTotal = newTotalMonthlyPayment * equipmentRatio;
-        const newEquipmentMonthlyPayment = newEquipmentMonthlyTotal / item.quantity;
-        const newEquipmentSellingPrice = (newTotalSellingPrice * equipmentRatio) / item.quantity;
-        const newEquipmentMargin = newEquipmentSellingPrice - item.purchase_price;
-
-        return updateOfferEquipment(item.id, {
-          monthly_payment: newEquipmentMonthlyPayment,
-          selling_price: newEquipmentSellingPrice,
-          margin: newEquipmentMargin,
-          coefficient: coefficient
-        });
+      // Use the database function to update equipment with global margin
+      const { data, error } = await supabase.rpc('update_equipment_with_global_margin', {
+        p_offer_id: offer.id,
+        p_margin_percentage: newMarginPercent,
+        p_leaser_id: leaser?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949' // Default to Grenke
       });
-
-      await Promise.all(updatePromises);
-
-      // Update the offer with new totals
-      await updateOffer(offer.id, {
-        monthly_payment: newTotalMonthlyPayment,
-        financed_amount: newTotalSellingPrice,
-        margin: newMargin,
-        coefficient: coefficient
-      });
-
-      toast({
-        title: "Succès",
-        description: `Marge mise à jour à ${newMarginPercent.toFixed(1)}%`,
-      });
-
-      setIsEditing(false);
-      onUpdate();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        const result = data[0];
+        if (result.success) {
+          toast.success("Marge globale mise à jour avec succès");
+          setIsEditing(false);
+          onUpdate?.();
+        } else {
+          throw new Error(result.message);
+        }
+      }
     } catch (error) {
-      console.error("Error updating margin:", error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la mise à jour de la marge",
-        variant: "destructive"
-      });
+      console.error("Erreur lors de la mise à jour:", error);
+      toast.error("Erreur lors de la mise à jour de la marge");
     } finally {
       setIsSaving(false);
     }
@@ -157,7 +125,7 @@ export const GlobalMarginEditor: React.FC<GlobalMarginEditorProps> = ({
             </Button>
           </div>
           <div className="mt-2 text-xs text-amber-600">
-            {formatCurrency(displayMargin)} de marge sur {formatCurrency(totalPurchasePrice)}
+            {displayMargin} de marge sur {formatCurrency(totalPurchasePrice)}
           </div>
         </CardContent>
       </Card>
@@ -207,7 +175,7 @@ export const GlobalMarginEditor: React.FC<GlobalMarginEditorProps> = ({
             
             <div>
               <span className="text-gray-600">Coefficient :</span>
-              <div className="font-bold text-orange-700">{previewValues.coefficient}</div>
+              <div className="font-bold text-orange-700">{previewValues.coefficient.toFixed(3)}</div>
             </div>
           </div>
         </div>

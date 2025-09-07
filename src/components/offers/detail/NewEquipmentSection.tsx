@@ -7,6 +7,7 @@ import { Loader2, Edit, Save, X, Edit3, Calculator } from "lucide-react";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
 import { updateOfferEquipment } from "@/services/offers/offerEquipment";
+import { GlobalMarginEditor } from "./GlobalMarginEditor";
 import { toast } from "sonner";
 import {
   Table,
@@ -23,6 +24,7 @@ interface NewEquipmentSectionProps {
     amount?: number;
     financed_amount?: number;
     equipment_description?: string;
+    leaser_id?: string;
   };
 }
 
@@ -138,8 +140,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       return acc + (sellingPrice * item.quantity);
     }, 0);
 
-    // Calculer la marge totale en utilisant la même logique que l'onglet financier
-    const totalMargin = calculateOfferMargin(offer, equipment) || 0;
+    // Calculer la marge totale correctement : Prix de vente total - Prix d'achat total
+    const totalMargin = totalSellingPrice - totalPrice;
+    
+    // Calculer le pourcentage de marge : (marge / prix d'achat) * 100
+    const marginPercentage = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
 
     // Calculer le coefficient global (total mensualité * 36 / total prix achat)
     const globalCoefficient = totalPrice > 0 ? (totalMonthlyPayment * 36) / totalPrice : 0;
@@ -149,6 +154,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       totalMonthlyPayment, 
       totalSellingPrice,
       totalMargin, 
+      marginPercentage,
       globalCoefficient 
     };
   };
@@ -442,8 +448,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="text-xs text-muted-foreground">Marge totale</div>
+                  <div className="text-xs text-muted-foreground">Marge totale (%)</div>
                   <div className="font-mono font-bold text-lg text-green-600">
+                    {totals.marginPercentage.toFixed(2)}%
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
                     {formatPrice(totals.totalMargin)}
                   </div>
                 </TableCell>
@@ -508,6 +517,20 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
               </TableRow>
             </TableBody>
           </Table>
+        </div>
+        
+        {/* Global Margin Editor */}
+        <div className="mt-6 pt-4 border-t">
+          <GlobalMarginEditor
+            offer={offer}
+            totalPurchasePrice={totals.totalPrice}
+            totalMonthlyPayment={totals.totalMonthlyPayment}
+            displayMargin={formatPrice(totals.totalMargin)}
+            marginPercentage={totals.marginPercentage}
+            leaser={offer.leaser_id ? { id: offer.leaser_id, name: "Grenke Lease", ranges: [] } : null}
+            equipment={equipment}
+            onUpdate={refresh}
+          />
         </div>
       </CardContent>
     </Card>
