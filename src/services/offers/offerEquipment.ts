@@ -440,3 +440,39 @@ export const forceMigrateEquipmentData = async (offerId: string): Promise<boolea
     return false;
   }
 };
+
+/**
+ * Met à jour un équipement existant
+ */
+export const updateOfferEquipment = async (
+  equipmentId: string,
+  updates: Partial<Pick<OfferEquipment, 'title' | 'purchase_price' | 'quantity' | 'margin' | 'monthly_payment' | 'selling_price' | 'coefficient' | 'serial_number'>>
+): Promise<boolean> => {
+  try {
+    console.log("Updating equipment:", equipmentId, "with:", updates);
+    
+    const { data, error } = await supabase
+      .rpc('update_offer_equipment_secure', {
+        p_equipment_id: equipmentId,
+        p_title: updates.title || null,
+        p_purchase_price: updates.purchase_price || null,
+        p_quantity: updates.quantity || null,
+        p_margin: updates.margin || null,
+        p_monthly_payment: updates.monthly_payment || null,
+        p_selling_price: updates.selling_price || null,
+        p_coefficient: updates.coefficient || null,
+        p_serial_number: updates.serial_number || null
+      });
+    
+    if (error) {
+      console.error("Erreur lors de la mise à jour de l'équipement:", error);
+      throw new Error(error.message);
+    }
+    
+    console.log("Equipment updated successfully");
+    return data;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de l'équipement:", error);
+    throw error;
+  }
+};

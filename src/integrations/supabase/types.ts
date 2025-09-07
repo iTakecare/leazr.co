@@ -3482,6 +3482,7 @@ export type Database = {
       }
       offer_equipment: {
         Row: {
+          coefficient: number | null
           collaborator_id: string | null
           created_at: string
           delivery_address: string | null
@@ -3501,11 +3502,13 @@ export type Database = {
           offer_id: string
           purchase_price: number
           quantity: number
+          selling_price: number | null
           serial_number: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          coefficient?: number | null
           collaborator_id?: string | null
           created_at?: string
           delivery_address?: string | null
@@ -3525,11 +3528,13 @@ export type Database = {
           offer_id: string
           purchase_price?: number
           quantity?: number
+          selling_price?: number | null
           serial_number?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          coefficient?: number | null
           collaborator_id?: string | null
           created_at?: string
           delivery_address?: string | null
@@ -3549,6 +3554,7 @@ export type Database = {
           offer_id?: string
           purchase_price?: number
           quantity?: number
+          selling_price?: number | null
           serial_number?: string | null
           title?: string
           updated_at?: string
@@ -6416,6 +6422,20 @@ export type Database = {
           p_last_name: string
           p_role: string
           p_user_id: string
+        }
+        Returns: boolean
+      }
+      update_offer_equipment_secure: {
+        Args: {
+          p_coefficient?: number
+          p_equipment_id: string
+          p_margin?: number
+          p_monthly_payment?: number
+          p_purchase_price?: number
+          p_quantity?: number
+          p_selling_price?: number
+          p_serial_number?: string
+          p_title?: string
         }
         Returns: boolean
       }

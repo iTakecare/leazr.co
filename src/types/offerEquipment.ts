@@ -7,6 +7,8 @@ export interface OfferEquipment {
   quantity: number;
   margin: number;
   monthly_payment?: number;
+  selling_price?: number;
+  coefficient?: number;
   serial_number?: string;
   // Delivery information fields
   collaborator_id?: string;

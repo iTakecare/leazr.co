@@ -1,11 +1,11 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Hash, Euro, Truck, User, Building, MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Package } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { calculateEquipmentTotals, calculateOfferMargin } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import EditableEquipmentCard from "./EditableEquipmentCard";
 
 interface EquipmentSectionProps {
   offer: any;
@@ -23,6 +23,8 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
     quantity: item.quantity,
     margin: item.margin,
     monthlyPayment: item.monthly_payment,
+    sellingPrice: item.selling_price,
+    coefficient: item.coefficient,
     serialNumber: item.serial_number,
     // Convertir les attributs de array vers object pour l'affichage
     attributes: item.attributes?.reduce((acc: any, attr: any) => {
@@ -79,63 +81,7 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
     );
   }
 
-  // Function to render delivery information
-  const renderDeliveryInfo = (item: any) => {
-    if (!item.deliveryType) {
-      return null;
-    }
-
-    let icon, label, details;
-
-    switch (item.deliveryType) {
-      case 'main_client':
-        icon = <Building className="w-4 h-4" />;
-        label = 'Client principal';
-        details = 'Livraison à l\'adresse principale du client';
-        break;
-      case 'collaborator':
-        icon = <User className="w-4 h-4" />;
-        label = 'Collaborateur';
-        details = item.collaboratorId ? 'Livraison au collaborateur assigné' : 'Collaborateur non spécifié';
-        break;
-      case 'predefined_site':
-        icon = <Building className="w-4 h-4" />;
-        label = 'Site prédéfini';
-        details = item.deliverySiteId ? 'Livraison au site prédéfini' : 'Site non spécifié';
-        break;
-      case 'specific_address':
-        icon = <MapPin className="w-4 h-4" />;
-        label = 'Adresse spécifique';
-        details = item.deliveryAddress 
-          ? `${item.deliveryAddress}, ${item.deliveryCity} ${item.deliveryPostalCode || ''}`
-          : 'Adresse non spécifiée';
-        break;
-      default:
-        return null;
-    }
-
-    return (
-      <div className="mt-3 pt-3 border-t">
-        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-          <Truck className="w-4 h-4" />
-          Informations de livraison
-        </p>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            {icon}
-            <Badge variant="secondary">{label}</Badge>
-          </div>
-          <p className="text-sm text-gray-600">{details}</p>
-          {item.deliveryContactName && (
-            <p className="text-sm text-gray-600">
-              Contact: {item.deliveryContactName}
-              {item.deliveryContactEmail && ` (${item.deliveryContactEmail})`}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const { refresh } = useOfferEquipment(offer.id);
 
   return (
     <Card>
@@ -149,83 +95,12 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
         {equipmentItems.length > 0 ? (
           <div className="space-y-4">
             {equipmentItems.map((item: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-medium text-lg">{item.title || `Équipement ${index + 1}`}</h4>
-                  {item.quantity && (
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Hash className="w-4 h-4" />
-                      Qté: {item.quantity}
-                    </div>
-                  )}
-                </div>
-                
-                {item.description && (
-                  <p className="text-gray-600 mb-3">{item.description}</p>
-                )}
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  {item.purchasePrice && (
-                    <div className="flex items-center gap-2">
-                      <Euro className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-gray-500">Prix d'achat</p>
-                        <p className="font-medium">{formatCurrency(item.purchasePrice)}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {item.monthlyPayment && (
-                    <div className="flex items-center gap-2">
-                      <Euro className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-gray-500">Mensualité</p>
-                        <p className="font-medium">{formatCurrency(item.monthlyPayment)}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {item.margin && item.purchasePrice && (
-                    <div className="flex items-center gap-2">
-                      <span className="w-4 h-4 text-gray-500">%</span>
-                      <div>
-                        <p className="text-gray-500">Marge (%)</p>
-                        <p className="font-medium">{item.margin.toFixed(1)}%</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {item.attributes && Object.keys(item.attributes).length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Caractéristiques</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(item.attributes).map(([key, value]: [string, any]) => (
-                        <div key={key} className="text-sm">
-                          <span className="text-gray-500">{key}:</span>
-                          <span className="ml-2 font-medium">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {item.specifications && Object.keys(item.specifications).length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Spécifications</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(item.specifications).map(([key, value]: [string, any]) => (
-                        <div key={key} className="text-sm">
-                          <span className="text-gray-500">{key}:</span>
-                          <span className="ml-2 font-medium">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {renderDeliveryInfo(item)}
-              </div>
+              <EditableEquipmentCard
+                key={item.id || index}
+                item={item}
+                index={index}
+                onUpdate={refresh}
+              />
             ))}
           </div>
         ) : (
