@@ -6454,6 +6454,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_offer_leaser: {
+        Args: { p_leaser_id: string; p_offer_id: string }
+        Returns: boolean
+      }
       update_offer_margins: {
         Args: Record<PropertyKey, never>
         Returns: undefined
