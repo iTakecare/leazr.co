@@ -112,7 +112,9 @@ export const createOffer = async (offerData: OfferData) => {
       amount: dbOfferData.amount,
       monthly_payment: dbOfferData.monthly_payment,
       margin: dbOfferData.margin,
-      ambassador_id: dbOfferData.ambassador_id
+      ambassador_id: dbOfferData.ambassador_id,
+      dossier_number: dbOfferData.dossier_number,
+      has_id_field: 'id' in dbOfferData // Vérifier si id est présent
     });
 
     // Calculer le montant financé si non défini

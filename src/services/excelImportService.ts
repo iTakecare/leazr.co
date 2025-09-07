@@ -399,13 +399,15 @@ export class ExcelImportService {
         };
 
         console.log(`📝 Création de l'offre pour ${row['Client']} (ligne ${rowNumber}):`, {
-          id: offerId,
+          dossier_number: offerId, // L'ID personnalisé va dans dossier_number, PAS dans id
           clientName: row['Client'],
           amount: row['Montant HT'],
           coefficient: row['Coefficient'],
           monthlyPayment: row['Mensualité HT'],
           workflowStatus
         });
+
+        console.log("🚨 DEBUG: offerData envoyé à createOffer:", JSON.stringify(offerData, null, 2));
         
         const { data, error } = await createOffer(offerData);
         
