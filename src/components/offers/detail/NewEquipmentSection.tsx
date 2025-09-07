@@ -231,10 +231,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
         // Prix de vente unitaire = Prix d'achat × Coefficient global
         const newSellingPrice = item.purchase_price * globalCoefficient;
         
-        // Calculer la mensualité avec le coefficient du leaser pour ce montant
-        const financedAmountForItem = newSellingPrice * item.quantity;
-        const leaserCoefficient = getCoefficientFromLeaser(leaser, financedAmountForItem, offer.duration || 36);
-        const newMonthlyPayment = (financedAmountForItem * leaserCoefficient) / 100;
+        // Répartir proportionnellement la mensualité totale saisie par l'utilisateur
+        const itemWeight = item.purchase_price * item.quantity;
+        const newMonthlyPayment = editedTotalMonthly * (itemWeight / currentTotalPurchasePrice);
+        const leaserCoefficient = getCoefficientFromLeaser(leaser, newSellingPrice * item.quantity, offer.duration || 36);
         
         // Marge = ((Prix de vente - Prix d'achat) / Prix d'achat) × 100
         const newMargin = item.purchase_price > 0 ? 
@@ -244,8 +244,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
           purchasePrice: item.purchase_price,
           quantity: item.quantity,
           newSellingPrice,
-          financedAmountForItem,
-          leaserCoefficient,
+          itemWeight,
           newMonthlyPayment,
           newMargin,
           globalCoefficient
