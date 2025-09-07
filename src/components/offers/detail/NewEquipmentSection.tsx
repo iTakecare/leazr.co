@@ -49,9 +49,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     return purchasePrice * (1 + margin / 100);
   };
 
-  // Calculate coefficient automatically
-  const calculateCoefficient = (monthlyPayment: number, purchasePrice: number) => {
-    return purchasePrice > 0 ? monthlyPayment / purchasePrice : 0;
+  // Calculate coefficient automatically (mensualité * 36 / prix_achat)
+  const calculateCoefficient = (monthlyPayment: number, purchasePrice: number, duration: number = 36) => {
+    return purchasePrice > 0 ? (monthlyPayment * duration) / purchasePrice : 0;
   };
 
   const handleEdit = (item: any) => {
@@ -63,7 +63,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       margin: item.margin || 0,
       monthly_payment: item.monthly_payment || 0,
       selling_price: item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0),
-      coefficient: item.coefficient || calculateCoefficient(item.monthly_payment || 0, item.purchase_price)
+      coefficient: item.coefficient || calculateCoefficient(item.monthly_payment || 0, item.purchase_price, 36)
     });
   };
 
@@ -82,7 +82,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     if (field === 'monthly_payment' || field === 'purchase_price') {
       newValues.coefficient = calculateCoefficient(
         field === 'monthly_payment' ? value : newValues.monthly_payment,
-        field === 'purchase_price' ? value : newValues.purchase_price
+        field === 'purchase_price' ? value : newValues.purchase_price,
+        36
       );
     }
     
@@ -126,10 +127,14 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       return acc + (item.purchase_price * item.quantity);
     }, 0);
 
+    const totalMonthlyPayment = equipment.reduce((acc, item) => {
+      return acc + (item.monthly_payment || 0);
+    }, 0);
+
     // Calculer la marge totale en utilisant la même logique que l'onglet financier
     const totalMargin = calculateOfferMargin(offer, equipment) || 0;
 
-    return { totalPrice, totalMargin };
+    return { totalPrice, totalMonthlyPayment, totalMargin };
   };
 
   const calculateEquipmentMargin = (item: any, totalPurchasePrice: number, totalMargin: number) => {
@@ -209,7 +214,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                 <TableHead className="text-right">Prix de vente</TableHead>
                 <TableHead className="text-right">Mensualité</TableHead>
                 <TableHead className="text-right">Coefficient</TableHead>
-                <TableHead className="text-right">Prix total</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -320,12 +324,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono text-purple-600">
-                        {(values.coefficient || calculateCoefficient(values.monthly_payment || 0, values.purchase_price)).toFixed(3)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
-                      {formatPrice(totalPrice)}
+                       <span className="font-mono text-purple-600">
+                         {(values.coefficient || calculateCoefficient(values.monthly_payment || 0, values.purchase_price, 36)).toFixed(3)}
+                       </span>
                     </TableCell>
                     <TableCell className="text-center">
                       {isEditing ? (
@@ -363,12 +364,17 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
               
               {/* Ligne de totaux */}
               <TableRow className="border-t-2 bg-muted/50">
-                <TableCell colSpan={7} className="font-bold text-right">
+                <TableCell colSpan={3} className="font-bold text-right">
                   TOTAUX GÉNÉRAUX
                 </TableCell>
                 <TableCell className="text-right font-mono font-bold text-lg">
                   {formatPrice(totals.totalPrice)}
                 </TableCell>
+                <TableCell></TableCell>
+                <TableCell className="text-right font-mono font-bold text-lg text-blue-600">
+                  {formatPrice(totals.totalMonthlyPayment)}
+                </TableCell>
+                <TableCell></TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableBody>
