@@ -284,7 +284,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                 <TableHead className="text-right">Marge (%)</TableHead>
                 <TableHead className="text-right">Prix de vente</TableHead>
                 <TableHead className="text-right">Mensualité</TableHead>
-                <TableHead className="text-right">Coefficient</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -394,11 +393,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                       <span className="font-mono text-purple-600">
-                         {(values.coefficient || calculateCoefficient(values.monthly_payment || 0, values.purchase_price, 36)).toFixed(3)}
-                       </span>
-                    </TableCell>
                     <TableCell className="text-center">
                       {isEditing ? (
                         <div className="flex gap-1 justify-center">
@@ -433,87 +427,93 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                 );
               })}
               
-              {/* Ligne de totaux - Première ligne */}
-              <TableRow className="border-t-2 bg-muted/50">
-                <TableCell colSpan={2} className="font-bold text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Calculator className="w-4 h-4" />
-                    TOTAUX GÉNÉRAUX
+              {/* Ligne de totaux - Plus espacée et élégante */}
+              <TableRow className="border-t-2 bg-muted/30 hover:bg-muted/50 transition-colors">
+                <TableCell colSpan={2} className="font-bold text-right py-8">
+                  <div className="flex items-center justify-end gap-3">
+                    <Calculator className="w-5 h-5 text-primary" />
+                    <span className="text-lg">TOTAUX GÉNÉRAUX</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="text-xs text-muted-foreground">Prix d'achat total</div>
-                  <div className="font-mono font-bold text-lg">
-                    {formatPrice(totals.totalPrice)}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="text-xs text-muted-foreground">Marge totale (%)</div>
-                  <div className="font-mono font-bold text-lg text-green-600">
-                    {totals.marginPercentage.toFixed(2)}%
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {formatPrice(totals.totalMargin)}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="text-xs text-muted-foreground">Prix de vente total</div>
-                  <div className="font-mono font-bold text-lg text-green-600">
-                    {formatPrice(totals.totalSellingPrice)}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="text-xs text-muted-foreground">Mensualité totale</div>
-                  {isEditingTotalMonthly ? (
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={editedTotalMonthly}
-                        onChange={(e) => setEditedTotalMonthly(parseFloat(e.target.value) || 0)}
-                        className="w-28 text-right font-mono"
-                        step="0.01"
-                        min="0"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSaveTotalMonthly}
-                        disabled={isSaving}
-                      >
-                        <Save className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelTotalMonthly}
-                        disabled={isSaving}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
+                <TableCell className="text-right py-8">
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Prix d'achat total</div>
+                    <div className="font-mono font-bold text-xl text-foreground">
+                      {formatPrice(totals.totalPrice)}
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="font-mono font-bold text-lg text-blue-600">
-                        {formatPrice(totals.totalMonthlyPayment)}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right py-8">
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Marge totale</div>
+                    <div className="font-mono font-bold text-xl text-green-600">
+                      {totals.marginPercentage.toFixed(2)}%
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium mt-1">
+                      {formatPrice(totals.totalMargin)}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right py-8">
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Prix de vente total</div>
+                    <div className="font-mono font-bold text-xl text-green-600">
+                      {formatPrice(totals.totalSellingPrice)}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right py-8">
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Mensualité totale</div>
+                    {isEditingTotalMonthly ? (
+                      <div className="flex items-center gap-2 justify-end">
+                        <Input
+                          type="number"
+                          value={editedTotalMonthly}
+                          onChange={(e) => setEditedTotalMonthly(parseFloat(e.target.value) || 0)}
+                          className="w-32 text-right font-mono text-lg"
+                          step="0.01"
+                          min="0"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveTotalMonthly}
+                            disabled={isSaving}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Save className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelTotalMonthly}
+                            disabled={isSaving}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleEditTotalMonthly}
-                        className="p-1 h-6 w-6"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="text-xs text-muted-foreground">Coefficient global</div>
-                  <div className="font-mono font-bold text-lg text-purple-600">
-                    {totals.globalCoefficient.toFixed(3)}
+                    ) : (
+                      <div className="flex items-center gap-3 justify-end">
+                        <div className="font-mono font-bold text-xl text-blue-600">
+                          {formatPrice(totals.totalMonthlyPayment)}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleEditTotalMonthly}
+                          className="p-2 h-8 w-8 hover:bg-muted"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </TableCell>
-                <TableCell></TableCell>
+                <TableCell className="py-8"></TableCell>
               </TableRow>
             </TableBody>
           </Table>

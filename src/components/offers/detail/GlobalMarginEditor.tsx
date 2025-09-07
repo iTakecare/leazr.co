@@ -173,10 +173,6 @@ export const GlobalMarginEditor: React.FC<GlobalMarginEditorProps> = ({
               <div className="font-bold text-purple-700">{formatCurrency(previewValues.newMargin)}</div>
             </div>
             
-            <div>
-              <span className="text-gray-600">Coefficient :</span>
-              <div className="font-bold text-orange-700">{previewValues.coefficient.toFixed(3)}</div>
-            </div>
           </div>
         </div>
 

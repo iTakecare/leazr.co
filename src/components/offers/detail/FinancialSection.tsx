@@ -257,16 +257,6 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
               </span>
             </div>}
 
-          {/* Coefficient */}
-          {offer.coefficient && <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-700">Coefficient appliqué</span>
-              </div>
-              <span className="text-lg font-bold text-orange-900">
-                {offer.coefficient}
-              </span>
-            </div>}
 
           {/* Commission - Conditionnelle selon le type d'offre */}
           {shouldShowCommission && <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">

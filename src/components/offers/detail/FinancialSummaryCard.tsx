@@ -69,12 +69,6 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </div>
           )}
           
-          {coefficient && (
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="font-semibold text-lg">{coefficient}</div>
-              <div className="text-sm text-muted-foreground">Coefficient</div>
-            </div>
-          )}
           
           {margin !== undefined && (
             <div className="text-center p-3 bg-gray-50 rounded-lg">
