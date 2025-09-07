@@ -191,10 +191,19 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       // Mettre à jour tous les équipements proportionnellement
       const updatePromises = equipment.map(async (item) => {
         const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
+        const newSellingPrice = newMonthlyPayment * 36;
         const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
+        
+        console.log(`🔥 TOTAL MONTHLY - Item ${item.id}:`, {
+          oldMonthly: item.monthly_payment,
+          newMonthly: newMonthlyPayment,
+          newSellingPrice: newSellingPrice,
+          coefficient: newCoefficient
+        });
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
+          selling_price: newSellingPrice,
           coefficient: newCoefficient
         });
       });
