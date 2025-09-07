@@ -1,5 +1,8 @@
 project_id = "cifbetjefyfocafanlhv"
 
+[functions.company-search]
+verify_jwt = false
+
 [functions.catalog-api]
 verify_jwt = false
 

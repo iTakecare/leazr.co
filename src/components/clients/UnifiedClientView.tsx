@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Building2, Mail, Phone, MapPin, FileText, Clock, User, CheckCircle, 
-  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe
+  AlertCircle, Info, Loader2, Save, Edit3, Calendar, Package, Globe, Search
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -27,6 +27,7 @@ import { PostalCodeInput } from "@/components/form/PostalCodeInput";
 import DeliverySitesManager from "./DeliverySitesManager";
 import { CompanyLookupButton } from "./CompanyLookupButton";
 import { ClientLogoUploader } from "./ClientLogoUploader";
+import { CompanySearchModal } from "./CompanySearchModal";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -45,6 +46,7 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isSaving, setIsSaving] = useState(false);
   const [isVATLookupLoading, setIsVATLookupLoading] = useState(false);
+  const [isCompanySearchOpen, setIsCompanySearchOpen] = useState(false);
 
   console.log('🎯 UNIFIED CLIENT VIEW - Component rendering:', {
     isEditing,
@@ -254,6 +256,53 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
     }
     
     toast.success('Informations d\'entreprise mises à jour depuis VIES');
+  };
+
+  const handleCompanyEnrich = (companyData: any) => {
+    // Mettre à jour tous les champs disponibles s'ils ne sont pas déjà remplis
+    const updates: any = {};
+    let updatedFields: string[] = [];
+
+    if (companyData.name && (!formData.company || formData.company.trim() === '')) {
+      updates.company = companyData.name;
+      updatedFields.push('nom d\'entreprise');
+    }
+
+    if (companyData.address && (!formData.billing_address || formData.billing_address.trim() === '')) {
+      updates.billing_address = companyData.address;
+      updatedFields.push('adresse');
+    }
+
+    if (companyData.city && (!formData.billing_city || formData.billing_city.trim() === '')) {
+      updates.billing_city = companyData.city;
+      updatedFields.push('ville');
+    }
+
+    if (companyData.postal_code && (!formData.billing_postal_code || formData.billing_postal_code.trim() === '')) {
+      updates.billing_postal_code = companyData.postal_code;
+      updatedFields.push('code postal');
+    }
+
+    if (companyData.country && (!formData.billing_country || formData.billing_country.trim() === '')) {
+      updates.billing_country = companyData.country;
+      updatedFields.push('pays');
+    }
+
+    if (companyData.vat_number && (!formData.vat_number || formData.vat_number.trim() === '')) {
+      updates.vat_number = companyData.vat_number;
+      updatedFields.push('numéro TVA');
+    }
+
+    // Appliquer les mises à jour
+    Object.keys(updates).forEach(field => {
+      handleInputChange(field, updates[field]);
+    });
+
+    if (updatedFields.length > 0) {
+      toast.success(`Informations enrichies: ${updatedFields.join(', ')}`);
+    } else {
+      toast.info('Toutes les informations sont déjà remplies');
+    }
   };
 
   const handleCancel = () => {
@@ -519,9 +568,37 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                   {renderField("Nom de famille", "last_name", 
                     isEditing ? formData.last_name : (client.last_name || parseExistingName(client).last_name)
                   )}
-                  {renderField("Email", "email", client.email, "email")}
-                  {renderField("Société", "company", client.company)}
-                  {renderField("Téléphone", "phone", client.phone, "tel")}
+                   {renderField("Email", "email", client.email, "email")}
+                   
+                   {/* Société avec bouton de recherche enrichie */}
+                   {isEditing ? (
+                     <div className="space-y-2">
+                       <Label htmlFor="company">Société</Label>
+                       <div className="flex gap-2">
+                         <Input
+                           id="company"
+                           value={formData.company}
+                           onChange={(e) => handleInputChange('company', e.target.value)}
+                           placeholder="Nom de l'entreprise"
+                           className="flex-1"
+                         />
+                         <Button
+                           type="button"
+                           variant="outline"
+                           size="icon"
+                           onClick={() => setIsCompanySearchOpen(true)}
+                           disabled={isSaving}
+                           title="Rechercher et enrichir les données d'entreprise"
+                         >
+                           <Search className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     </div>
+                   ) : (
+                     renderField("Société", "company", client.company)
+                   )}
+                   
+                   {renderField("Téléphone", "phone", client.phone, "tel")}
                   
                   {/* ID entreprise avec bouton VIES */}
                   {isEditing ? (
@@ -810,6 +887,18 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
         </TabsContent>
 
       </Tabs>
+
+      {/* Modale de recherche d'entreprise */}
+      <CompanySearchModal
+        isOpen={isCompanySearchOpen}
+        onClose={() => setIsCompanySearchOpen(false)}
+        onCompanySelect={handleCompanyEnrich}
+        initialData={{
+          name: formData.company,
+          vat_number: formData.vat_number,
+          country: formData.billing_country || 'BE'
+        }}
+      />
     </div>
   );
 };
