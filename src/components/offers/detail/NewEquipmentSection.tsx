@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2, Edit, Save, X } from "lucide-react";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
+import { updateOfferEquipment } from "@/services/offers/offerEquipment";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -23,7 +27,10 @@ interface NewEquipmentSectionProps {
 }
 
 const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
-  const { equipment, loading, error } = useOfferEquipment(offer.id);
+  const { equipment, loading, error, refresh } = useOfferEquipment(offer.id);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedValues, setEditedValues] = useState<any>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -35,6 +42,83 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   const formatAttributes = (attributes: Array<{ key: string; value: string }> = []) => {
     if (!attributes.length) return "";
     return attributes.map(attr => `${attr.key}: ${attr.value}`).join(", ");
+  };
+
+  // Calculate selling price automatically
+  const calculateSellingPrice = (purchasePrice: number, margin: number) => {
+    return purchasePrice * (1 + margin / 100);
+  };
+
+  // Calculate coefficient automatically
+  const calculateCoefficient = (monthlyPayment: number, purchasePrice: number) => {
+    return purchasePrice > 0 ? monthlyPayment / purchasePrice : 0;
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingId(item.id);
+    setEditedValues({
+      title: item.title,
+      purchase_price: item.purchase_price,
+      quantity: item.quantity,
+      margin: item.margin || 0,
+      monthly_payment: item.monthly_payment || 0,
+      selling_price: item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0),
+      coefficient: item.coefficient || calculateCoefficient(item.monthly_payment || 0, item.purchase_price)
+    });
+  };
+
+  const handleFieldChange = (field: string, value: any) => {
+    const newValues = { ...editedValues, [field]: value };
+    
+    // Auto-calculate selling price when purchase price or margin changes
+    if (field === 'purchase_price' || field === 'margin') {
+      newValues.selling_price = calculateSellingPrice(
+        field === 'purchase_price' ? value : newValues.purchase_price,
+        field === 'margin' ? value : newValues.margin
+      );
+    }
+    
+    // Auto-calculate coefficient when monthly payment or purchase price changes
+    if (field === 'monthly_payment' || field === 'purchase_price') {
+      newValues.coefficient = calculateCoefficient(
+        field === 'monthly_payment' ? value : newValues.monthly_payment,
+        field === 'purchase_price' ? value : newValues.purchase_price
+      );
+    }
+    
+    setEditedValues(newValues);
+  };
+
+  const handleSave = async () => {
+    if (!editingId) return;
+
+    setIsSaving(true);
+    try {
+      await updateOfferEquipment(editingId, {
+        title: editedValues.title,
+        purchase_price: editedValues.purchase_price,
+        quantity: editedValues.quantity,
+        margin: editedValues.margin,
+        monthly_payment: editedValues.monthly_payment,
+        selling_price: editedValues.selling_price,
+        coefficient: editedValues.coefficient
+      });
+      
+      toast.success("Équipement mis à jour avec succès");
+      setEditingId(null);
+      setEditedValues({});
+      refresh();
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setEditedValues({});
   };
 
   const calculateTotals = () => {
@@ -118,16 +202,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[300px]">Description</TableHead>
-                <TableHead className="text-center">Quantité</TableHead>
-                <TableHead className="text-right">Prix unitaire</TableHead>
+                <TableHead className="min-w-[250px]">Description</TableHead>
+                <TableHead className="text-center">Qté</TableHead>
+                <TableHead className="text-right">Prix d'achat</TableHead>
+                <TableHead className="text-right">Marge (%)</TableHead>
+                <TableHead className="text-right">Prix de vente</TableHead>
+                <TableHead className="text-right">Mensualité</TableHead>
+                <TableHead className="text-right">Coefficient</TableHead>
                 <TableHead className="text-right">Prix total</TableHead>
-                <TableHead className="text-right">Marge totale</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {equipment.map((item) => {
-                const totalPrice = item.purchase_price * item.quantity;
+                const isEditing = editingId === item.id;
+                const values = isEditing ? editedValues : item;
+                const totalPrice = values.purchase_price * values.quantity;
                 const equipmentMargin = calculateEquipmentMargin(item, totals.totalPrice, totals.totalMargin);
                 const attributes = formatAttributes(item.attributes);
 
@@ -135,7 +225,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div className="space-y-1">
-                        <div className="font-medium">{item.title}</div>
+                        {isEditing ? (
+                          <Input
+                            value={values.title}
+                            onChange={(e) => handleFieldChange('title', e.target.value)}
+                            className="font-medium"
+                          />
+                        ) : (
+                          <div className="font-medium">{item.title}</div>
+                        )}
                         {attributes && (
                           <div className="text-sm text-muted-foreground">
                             {attributes}
@@ -149,16 +247,115 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline">{item.quantity}</Badge>
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={values.quantity}
+                          onChange={(e) => handleFieldChange('quantity', parseInt(e.target.value) || 1)}
+                          className="w-16 text-center"
+                          min="1"
+                        />
+                      ) : (
+                        <Badge variant="outline">{item.quantity}</Badge>
+                      )}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatPrice(item.purchase_price)}
+                    <TableCell className="text-right">
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={values.purchase_price}
+                          onChange={(e) => handleFieldChange('purchase_price', parseFloat(e.target.value) || 0)}
+                          className="w-32 text-right"
+                          step="0.01"
+                          min="0"
+                        />
+                      ) : (
+                        <span className="font-mono">{formatPrice(item.purchase_price)}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={values.margin || 0}
+                          onChange={(e) => handleFieldChange('margin', parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right"
+                          step="0.1"
+                          min="0"
+                        />
+                      ) : (
+                        <span className="font-mono">{(item.margin || 0).toFixed(1)}%</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={values.selling_price || 0}
+                          onChange={(e) => handleFieldChange('selling_price', parseFloat(e.target.value) || 0)}
+                          className="w-32 text-right"
+                          step="0.01"
+                          min="0"
+                        />
+                      ) : (
+                        <span className="font-mono text-green-600">
+                          {formatPrice(item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0))}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          value={values.monthly_payment || 0}
+                          onChange={(e) => handleFieldChange('monthly_payment', parseFloat(e.target.value) || 0)}
+                          className="w-32 text-right"
+                          step="0.01"
+                          min="0"
+                        />
+                      ) : (
+                        <span className="font-mono text-blue-600">
+                          {formatPrice(item.monthly_payment || 0)}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono text-purple-600">
+                        {(values.coefficient || calculateCoefficient(values.monthly_payment || 0, values.purchase_price)).toFixed(3)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
                       {formatPrice(totalPrice)}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-medium text-primary">
-                      {formatPrice(equipmentMargin)}
+                    <TableCell className="text-center">
+                      {isEditing ? (
+                        <div className="flex gap-1 justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                          >
+                            <Save className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancel}
+                            disabled={isSaving}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(item)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -166,15 +363,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
               
               {/* Ligne de totaux */}
               <TableRow className="border-t-2 bg-muted/50">
-                <TableCell colSpan={3} className="font-bold text-right">
+                <TableCell colSpan={7} className="font-bold text-right">
                   TOTAUX GÉNÉRAUX
                 </TableCell>
                 <TableCell className="text-right font-mono font-bold text-lg">
                   {formatPrice(totals.totalPrice)}
                 </TableCell>
-                <TableCell className="text-right font-mono font-bold text-lg text-primary">
-                  {formatPrice(totals.totalMargin)}
-                </TableCell>
+                <TableCell></TableCell>
               </TableRow>
             </TableBody>
           </Table>
