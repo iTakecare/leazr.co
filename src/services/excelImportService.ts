@@ -369,17 +369,21 @@ export class ExcelImportService {
         }
 
         // Validation et calcul automatique pour la mensualité (obligatoire)
-        if (monthlyPayment === undefined || monthlyPayment === null || isNaN(Number(monthlyPayment)) || monthlyPayment === 0) {
-          console.log(`⚠️ Mensualité manquante ou invalide pour la ligne ${rowNumber}, calcul automatique`);
-          // Calcul simple: montant / coefficient / 12 (exemple de calcul basique)
-          monthlyPayment = Math.round((Number(montantHT) / Number(coefficient) / 12) * 100) / 100;
-          if (monthlyPayment === 0) {
-            result.errors.push({
-              row: rowNumber,
-              error: `Impossible de calculer la mensualité automatiquement. Montant: ${montantHT}, Coefficient: ${coefficient}`
-            });
-            continue;
+        if (monthlyPayment === undefined || monthlyPayment === null || isNaN(Number(monthlyPayment))) {
+          console.log(`⚠️ Mensualité manquante pour la ligne ${rowNumber}, calcul automatique`);
+          // Si le montant est 0, accepter une mensualité à 0
+          if (Number(montantHT) === 0) {
+            monthlyPayment = 0;
+          } else {
+            // Calcul simple: montant / coefficient / 12 (exemple de calcul basique)
+            monthlyPayment = Math.round((Number(montantHT) / Number(coefficient) / 12) * 100) / 100;
           }
+        }
+        
+        // Pour les cas où monthlyPayment était 0 dans l'Excel mais le montant n'est pas 0
+        if (Number(monthlyPayment) === 0 && Number(montantHT) > 0) {
+          console.log(`⚠️ Mensualité à 0 mais montant > 0 pour la ligne ${rowNumber}, calcul automatique`);
+          monthlyPayment = Math.round((Number(montantHT) / Number(coefficient) / 12) * 100) / 100;
         }
 
         // Recherche ou création du client
