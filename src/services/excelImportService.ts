@@ -40,6 +40,101 @@ export interface ImportResult {
 
 export class ExcelImportService {
   /**
+   * Parse une valeur numérique depuis Excel en gérant les formats français et anglais
+   */
+  static parseNumericValue(value: any): number {
+    if (typeof value === 'number') return value;
+    if (!value || value === '') return 0;
+    
+    // Convertir en string et nettoyer
+    const str = String(value).trim();
+    if (str === '') return 0;
+    
+    console.log(`🔢 Parsing numeric value: "${str}"`);
+    
+    // Supprimer les espaces, symboles monétaires, etc.
+    let cleaned = str
+      .replace(/[€$£¥\s]/g, '') // Supprimer les symboles monétaires et espaces
+      .replace(/\s+/g, ''); // Supprimer tous les espaces
+    
+    // Gérer les formats avec virgule comme séparateur décimal (format français)
+    if (cleaned.includes(',') && !cleaned.includes('.')) {
+      cleaned = cleaned.replace(',', '.');
+    }
+    // Gérer les formats avec virgule pour les milliers et point pour les décimales
+    else if (cleaned.includes(',') && cleaned.includes('.')) {
+      // Si le dernier '.' est après la dernière ',', alors ',' = milliers et '.' = décimales
+      const lastCommaIndex = cleaned.lastIndexOf(',');
+      const lastDotIndex = cleaned.lastIndexOf('.');
+      if (lastDotIndex > lastCommaIndex) {
+        cleaned = cleaned.replace(/,/g, ''); // Supprimer les virgules (milliers)
+      } else {
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.'); // Point = milliers, virgule = décimales
+      }
+    }
+    
+    const result = parseFloat(cleaned) || 0;
+    console.log(`🔢 Parsed "${str}" -> ${result}`);
+    return result;
+  }
+
+  /**
+   * Normalise un nom de colonne pour le matching flexible
+   */
+  static normalizeColumnName(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+      .replace(/[^a-z0-9]/g, '') // Garder seulement lettres et chiffres
+      .trim();
+  }
+
+  /**
+   * Trouve la correspondance d'une colonne dans les headers Excel
+   */
+  static findColumnMatch(targetColumn: string, headers: string[]): string | null {
+    const normalizedTarget = this.normalizeColumnName(targetColumn);
+    
+    // Mapping des colonnes attendues vers leurs variantes possibles
+    const columnMappings: Record<string, string[]> = {
+      'montantht': ['montant ht', 'montantht', 'montant', 'amount', 'prix', 'price'],
+      'coefficient': ['coefficient', 'coeff', 'coef'],
+      'mensualiteht': ['mensualite ht', 'mensualiteht', 'mensualite', 'monthly'],
+      'commission': ['commission', 'comm'],
+      'client': ['client', 'nom', 'name', 'customer'],
+      'email': ['email', 'mail'],
+      'demandeur': ['demandeur', 'requester'],
+      'equipement': ['equipement', 'equipment', 'produit', 'product'],
+      'statut': ['statut', 'status', 'etat', 'state'],
+      'nodossier': ['n dossier', 'numero dossier', 'dossier', 'file number'],
+      'source': ['source', 'origine', 'origin'],
+      'datedossier': ['date dossier', 'date creation', 'creation date'],
+      'datefacture': ['date facture', 'facture date', 'invoice date'],
+      'datepaiement': ['date paiement', 'payment date', 'paiement']
+    };
+
+    // Chercher d'abord une correspondance exacte
+    for (const header of headers) {
+      if (this.normalizeColumnName(header) === normalizedTarget) {
+        return header;
+      }
+    }
+
+    // Chercher dans les mappings
+    const possibleNames = columnMappings[normalizedTarget] || [];
+    for (const possibleName of possibleNames) {
+      for (const header of headers) {
+        if (this.normalizeColumnName(header) === this.normalizeColumnName(possibleName)) {
+          return header;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Parse le fichier Excel et retourne les données
    */
   static parseExcelFile(file: File): Promise<ExcelRowData[]> {
@@ -67,30 +162,77 @@ export class ExcelImportService {
           const headers = jsonData[0];
           const rows = jsonData.slice(1);
           
-          // Mapper les données
+          console.log(`📋 Headers détectés: ${headers.join(', ')}`);
+          console.log(`📊 ${rows.length} lignes de données détectées`);
+          
+          // Créer un mapping des colonnes flexibles
+          const columnMapping: Record<string, string | null> = {
+            'Client': this.findColumnMatch('client', headers),
+            'Email': this.findColumnMatch('email', headers),
+            'Demandeur': this.findColumnMatch('demandeur', headers),
+            'Equipement': this.findColumnMatch('equipement', headers),
+            'Montant HT': this.findColumnMatch('montantht', headers),
+            'Coefficient': this.findColumnMatch('coefficient', headers),
+            'Mensualité HT': this.findColumnMatch('mensualiteht', headers),
+            'Commission': this.findColumnMatch('commission', headers),
+            'Statut': this.findColumnMatch('statut', headers),
+            'N° dossier': this.findColumnMatch('nodossier', headers),
+            'Date dossier': this.findColumnMatch('datedossier', headers),
+            'Date facture': this.findColumnMatch('datefacture', headers),
+            'Date paiement': this.findColumnMatch('datepaiement', headers),
+            'Source': this.findColumnMatch('source', headers)
+          };
+
+          console.log('🔗 Mapping des colonnes:', columnMapping);
+          
+          // Mapper les données avec le nouveau système flexible
           const mappedData: ExcelRowData[] = rows.map((row, index) => {
-            const rowData: any = {};
-            headers.forEach((header: string, colIndex: number) => {
-              rowData[header] = row[colIndex] || '';
-            });
-            
-            // Validation des types numériques
-            return {
-              'Client': rowData['Client'] || '',
-              'Email': rowData['Email'] || '',
-              'Demandeur': rowData['Demandeur'] || '',
-              'Equipement': rowData['Equipement'] || '',
-              'Montant HT': parseFloat(rowData['Montant HT']) || 0,
-              'Coefficient': parseFloat(rowData['Coefficient']) || 0,
-              'Mensualité HT': parseFloat(rowData['Mensualité HT']) || 0,
-              'Commission': parseFloat(rowData['Commission']) || 0,
-              'Statut': rowData['Statut'] || 'Brouillon',
-              'N° dossier': rowData['N° dossier'] || '',
-              'Date dossier': rowData['Date dossier'] || '',
-              'Date facture': rowData['Date facture'] || '',
-              'Date paiement': rowData['Date paiement'] || '',
-              'Source': rowData['Source'] || ''
+            // Créer un objet avec les valeurs mappées
+            const getValue = (mappedColumn: string | null): any => {
+              if (!mappedColumn) return '';
+              const colIndex = headers.indexOf(mappedColumn);
+              return colIndex >= 0 ? (row[colIndex] || '') : '';
             };
+
+            const rawData = {
+              'Client': getValue(columnMapping['Client']),
+              'Email': getValue(columnMapping['Email']),
+              'Demandeur': getValue(columnMapping['Demandeur']),
+              'Equipement': getValue(columnMapping['Equipement']),
+              'Montant HT': getValue(columnMapping['Montant HT']),
+              'Coefficient': getValue(columnMapping['Coefficient']),
+              'Mensualité HT': getValue(columnMapping['Mensualité HT']),
+              'Commission': getValue(columnMapping['Commission']),
+              'Statut': getValue(columnMapping['Statut']),
+              'N° dossier': getValue(columnMapping['N° dossier']),
+              'Date dossier': getValue(columnMapping['Date dossier']),
+              'Date facture': getValue(columnMapping['Date facture']),
+              'Date paiement': getValue(columnMapping['Date paiement']),
+              'Source': getValue(columnMapping['Source'])
+            };
+
+            console.log(`📝 Ligne ${index + 1} - Données brutes:`, rawData);
+            
+            // Parser les valeurs numériques avec la nouvelle fonction
+            const parsedData: ExcelRowData = {
+              'Client': String(rawData['Client']).trim() || '',
+              'Email': String(rawData['Email']).trim() || '',
+              'Demandeur': String(rawData['Demandeur']).trim() || '',
+              'Equipement': String(rawData['Equipement']).trim() || '',
+              'Montant HT': this.parseNumericValue(rawData['Montant HT']),
+              'Coefficient': this.parseNumericValue(rawData['Coefficient']),
+              'Mensualité HT': this.parseNumericValue(rawData['Mensualité HT']),
+              'Commission': this.parseNumericValue(rawData['Commission']),
+              'Statut': String(rawData['Statut']).trim() || 'Brouillon',
+              'N° dossier': String(rawData['N° dossier']).trim() || '',
+              'Date dossier': String(rawData['Date dossier']).trim() || '',
+              'Date facture': String(rawData['Date facture']).trim() || '',
+              'Date paiement': String(rawData['Date paiement']).trim() || '',
+              'Source': String(rawData['Source']).trim() || ''
+            };
+
+            console.log(`✅ Ligne ${index + 1} - Données parsées:`, parsedData);
+            return parsedData;
           });
           
           resolve(mappedData);
@@ -278,19 +420,24 @@ export class ExcelImportService {
   }
 
   /**
-   * Valide le format du fichier Excel
+   * Valide le format du fichier Excel avec matching flexible
    */
   static validateExcelFormat(headers: string[]): string[] {
-    const requiredHeaders = ['Client', 'Montant HT'];
-    const optionalHeaders = [
-      'Email', 'Demandeur', 'Equipement', 'Coefficient', 
-      'Mensualité HT', 'Commission', 'Statut', 'N° dossier', 
-      'Date dossier', 'Date facture', 'Date paiement', 'Source'
-    ];
+    const requiredColumns = ['client', 'montantht']; // Version normalisée
+    const missingHeaders: string[] = [];
     
-    const allExpectedHeaders = [...requiredHeaders, ...optionalHeaders];
-    const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+    console.log(`🔍 Validation des headers: ${headers.join(', ')}`);
     
+    for (const requiredCol of requiredColumns) {
+      const found = this.findColumnMatch(requiredCol, headers);
+      if (!found) {
+        // Retourner le nom lisible pour l'utilisateur
+        const readableName = requiredCol === 'client' ? 'Client' : 'Montant HT';
+        missingHeaders.push(readableName);
+      }
+    }
+    
+    console.log(`❌ Headers manquants: ${missingHeaders.join(', ')}`);
     return missingHeaders;
   }
 }

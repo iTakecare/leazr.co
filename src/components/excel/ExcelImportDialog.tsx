@@ -24,6 +24,7 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [previewData, setPreviewData] = useState<ExcelRowData[]>([]);
+  const [fullData, setFullData] = useState<ExcelRowData[]>([]); // Stocker toutes les données
   const [showPreview, setShowPreview] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,26 +44,35 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
       setIsProcessing(true);
       setUploadProgress(25);
       
+      console.log(`📂 Début de l'analyse du fichier: ${file.name}`);
+      
       // Parse Excel file
       const parsedData = await ExcelImportService.parseExcelFile(file);
       
+      console.log(`📊 ${parsedData.length} lignes parsées`);
+      console.log('🔍 Échantillon des données parsées:', parsedData.slice(0, 2));
+      
       setUploadProgress(50);
       
-      // Validate format
+      // Validate format using the first row to get headers
       const headers = Object.keys(parsedData[0] || {});
       const missingHeaders = ExcelImportService.validateExcelFormat(headers);
       
       if (missingHeaders.length > 0) {
+        console.error(`❌ Colonnes manquantes: ${missingHeaders.join(', ')}`);
         toast.error(`Colonnes manquantes: ${missingHeaders.join(', ')}`);
         setIsProcessing(false);
         setUploadProgress(0);
         return;
       }
 
+      // Stocker toutes les données et l'aperçu
+      setFullData(parsedData);
       setPreviewData(parsedData.slice(0, 5)); // Show first 5 rows for preview
       setShowPreview(true);
       setUploadProgress(100);
       
+      console.log(`✅ Fichier analysé avec succès: ${parsedData.length} lignes`);
       toast.success(`${parsedData.length} lignes détectées. Vérifiez l'aperçu avant d'importer.`);
       
     } catch (error: any) {
@@ -74,27 +84,30 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
   };
 
   const handleImport = async () => {
-    if (!companyId || previewData.length === 0) {
+    if (!companyId || fullData.length === 0) {
+      console.error("❌ Données manquantes pour l'import:", { companyId, dataLength: fullData.length });
       toast.error("Données manquantes pour l'import");
       return;
     }
 
     try {
+      console.log(`🚀 Début de l'import de ${fullData.length} lignes`);
+      
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
+        console.error("❌ Utilisateur non authentifié:", userError);
         toast.error("Utilisateur non authentifié");
         return;
       }
 
+      console.log(`👤 Utilisateur authentifié: ${user.id}`);
+      
       setIsProcessing(true);
       setUploadProgress(0);
       
-      // Get all data, not just preview
-      const file = fileInputRef.current?.files?.[0];
-      if (!file) return;
-      
-      const fullData = await ExcelImportService.parseExcelFile(file);
+      // Utiliser les données déjà parsées au lieu de re-parser le fichier
+      console.log('📋 Utilisation des données déjà parsées:', fullData.slice(0, 2));
       
       // Import offers
       const result = await ExcelImportService.importOffers(fullData, companyId, user.id);
@@ -121,6 +134,7 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
 
   const resetDialog = () => {
     setPreviewData([]);
+    setFullData([]);
     setShowPreview(false);
     setImportResult(null);
     setUploadProgress(0);
@@ -211,16 +225,24 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {previewData.map((row, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="p-2">{row['Client']}</td>
-                        <td className="p-2">{row['Email']}</td>
-                        <td className="p-2">{row['Montant HT']}€</td>
-                        <td className="p-2">{row['Coefficient']}</td>
-                        <td className="p-2">{row['Statut']}</td>
-                        <td className="p-2">{row['Source']}</td>
-                      </tr>
-                    ))}
+                     {previewData.map((row, index) => (
+                       <tr key={index} className="border-b">
+                         <td className="p-2">{row['Client']}</td>
+                         <td className="p-2">{row['Email']}</td>
+                         <td className="p-2 font-mono">
+                           {typeof row['Montant HT'] === 'number' 
+                             ? `${row['Montant HT'].toFixed(2)}€` 
+                             : `${row['Montant HT']}€`}
+                         </td>
+                         <td className="p-2 font-mono">
+                           {typeof row['Coefficient'] === 'number' 
+                             ? row['Coefficient'].toFixed(2)
+                             : row['Coefficient']}
+                         </td>
+                         <td className="p-2">{row['Statut']}</td>
+                         <td className="p-2">{row['Source']}</td>
+                       </tr>
+                     ))}
                   </tbody>
                 </table>
               </div>
