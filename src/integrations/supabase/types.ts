@@ -5601,6 +5601,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string[]
       }
+      fix_offer_data_inconsistencies: {
+        Args: { p_leaser_id: string; p_offer_id: string }
+        Returns: boolean
+      }
       generate_company_slug: {
         Args: { company_name: string }
         Returns: string
@@ -6424,6 +6428,17 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      update_equipment_with_global_margin: {
+        Args: {
+          p_leaser_id: string
+          p_margin_percentage: number
+          p_offer_id: string
+        }
+        Returns: {
+          message: string
+          success: boolean
+        }[]
       }
       update_offer_equipment_secure: {
         Args: {
