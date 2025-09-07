@@ -178,7 +178,12 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     const currentTotals = calculateTotals();
     const currentTotal = currentTotals.totalMonthlyPayment;
     
+    console.log("🔧 DEBUG - handleSaveTotalMonthly called");
+    console.log("🔧 DEBUG - Current total:", currentTotal);
+    console.log("🔧 DEBUG - Edited total:", editedTotalMonthly);
+    
     if (currentTotal === 0 || editedTotalMonthly === currentTotal) {
+      console.log("🔧 DEBUG - No change needed, exiting");
       setIsEditingTotalMonthly(false);
       return;
     }
@@ -187,6 +192,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     try {
       // Calculer le ratio de répartition
       const ratio = editedTotalMonthly / currentTotal;
+      console.log("🔧 DEBUG - Ratio calculated:", ratio);
       
       // Mettre à jour tous les équipements proportionnellement
       const updatePromises = equipment.map(async (item) => {
@@ -194,6 +200,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
         const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
         // Calculer le nouveau prix de vente basé sur la nouvelle mensualité (36 mois de financement)
         const newSellingPrice = newMonthlyPayment * 36;
+        
+        console.log(`🔧 DEBUG - Updating equipment ${item.id}:`, {
+          oldMonthlyPayment: item.monthly_payment,
+          newMonthlyPayment,
+          newCoefficient,
+          newSellingPrice
+        });
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
