@@ -211,27 +211,14 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       }
       
       // ÉTAPE 1: Calculer le montant financé total avec le coefficient correct
-      // Calcul itératif pour obtenir le coefficient exact basé sur le montant financé réel
+      // Calcul direct avec coefficient 3.16 pour éviter les erreurs d'arrondi
+      const actualCoefficient = getCoefficientFromLeaser(leaser, editedTotalMonthly * 100 / 3.16, offer.duration || 36);
       
-      // Étape 1a: Estimation initiale avec coefficient de fallback
-      let estimatedFinancedAmount = (editedTotalMonthly * 100) / 3.16; // Coefficient Grenke par défaut
-      
-      // Étape 1b: Récupération du coefficient exact basé sur le montant estimé
-      let actualCoefficient = getCoefficientFromLeaser(leaser, estimatedFinancedAmount, offer.duration || 36);
-      
-      // Étape 1c: Calcul du montant financé avec le coefficient exact
-      let totalFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
-      
-      // Étape 1d: Vérification si le nouveau montant change de tranche de coefficient
-      const newCoefficient = getCoefficientFromLeaser(leaser, totalFinancedAmount, offer.duration || 36);
-      if (Math.abs(newCoefficient - actualCoefficient) > 0.001) {
-        // Recalcul avec le nouveau coefficient si nécessaire
-        actualCoefficient = newCoefficient;
-        totalFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
-      }
+      // Calcul direct du montant financé
+      const calculatedFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
       
       // Forcer l'arrondi à exactement 2 décimales (comme Excel)
-      totalFinancedAmount = parseFloat(totalFinancedAmount.toFixed(2));
+      const totalFinancedAmount = parseFloat(calculatedFinancedAmount.toFixed(2));
       
       // ÉTAPE 2: Calculer le coefficient global de répartition
       const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
