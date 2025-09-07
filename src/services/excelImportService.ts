@@ -336,12 +336,15 @@ export class ExcelImportService {
       const rowNumber = i + 2; // +2 car Excel commence à 1 et on skip les headers
       
       try {
-        // Validation des données obligatoires - amélioration pour accepter les montants à 0
+        // Validation et nettoyage des données obligatoires
         const clientName = String(row['Client'] || '').trim();
         const montantHT = row['Montant HT'];
+        let coefficient = row['Coefficient'];
+        let monthlyPayment = row['Mensualité HT'];
         
-        console.log(`🔍 Validation ligne ${rowNumber}: Client="${clientName}", Montant HT=${montantHT} (type: ${typeof montantHT})`);
+        console.log(`🔍 Validation ligne ${rowNumber}: Client="${clientName}", Montant HT=${montantHT}, Coefficient=${coefficient}, Mensualité=${monthlyPayment}`);
         
+        // Validation du nom client (obligatoire)
         if (!clientName) {
           result.errors.push({
             row: rowNumber,
@@ -350,13 +353,33 @@ export class ExcelImportService {
           continue;
         }
 
-        // Accepter les montants à 0, mais pas undefined/null/NaN
+        // Validation du montant HT (obligatoire)
         if (montantHT === undefined || montantHT === null || isNaN(Number(montantHT))) {
           result.errors.push({
             row: rowNumber,
-            error: `Montant HT invalide: "${montantHT}" (doit être un nombre)`
+            error: `Montant HT obligatoire et doit être un nombre valide. Valeur reçue: "${montantHT}"`
           });
           continue;
+        }
+
+        // Validation et valeur par défaut pour le coefficient (obligatoire)
+        if (coefficient === undefined || coefficient === null || isNaN(Number(coefficient)) || coefficient === 0) {
+          console.log(`⚠️ Coefficient manquant ou invalide pour la ligne ${rowNumber}, utilisation de la valeur par défaut 1`);
+          coefficient = 1; // Valeur par défaut
+        }
+
+        // Validation et calcul automatique pour la mensualité (obligatoire)
+        if (monthlyPayment === undefined || monthlyPayment === null || isNaN(Number(monthlyPayment)) || monthlyPayment === 0) {
+          console.log(`⚠️ Mensualité manquante ou invalide pour la ligne ${rowNumber}, calcul automatique`);
+          // Calcul simple: montant / coefficient / 12 (exemple de calcul basique)
+          monthlyPayment = Math.round((Number(montantHT) / Number(coefficient) / 12) * 100) / 100;
+          if (monthlyPayment === 0) {
+            result.errors.push({
+              row: rowNumber,
+              error: `Impossible de calculer la mensualité automatiquement. Montant: ${montantHT}, Coefficient: ${coefficient}`
+            });
+            continue;
+          }
         }
 
         // Recherche ou création du client
@@ -379,15 +402,15 @@ export class ExcelImportService {
         // Mapping du statut
         const workflowStatus = STATUS_MAPPING[row['Statut']] || OfferWorkflowStatus.DRAFT;
 
-        // Création de l'offre
+        // Création de l'offre avec les valeurs validées et nettoyées
         const offerData: OfferData = {
           client_id: clientId,
-          client_name: row['Client'],
+          client_name: clientName, // Utiliser la valeur nettoyée
           client_email: row['Email'] || undefined,
           equipment_description: row['Equipement'] || undefined,
-          amount: row['Montant HT'],
-          coefficient: row['Coefficient'],
-          monthly_payment: row['Mensualité HT'],
+          amount: Number(montantHT), // S'assurer que c'est un nombre
+          coefficient: Number(coefficient), // Utiliser la valeur validée
+          monthly_payment: Number(monthlyPayment), // Utiliser la valeur validée/calculée
           commission: row['Commission'] || 0,
           workflow_status: workflowStatus,
           status: workflowStatus === OfferWorkflowStatus.SIGNED ? 'accepted' : 'pending',
@@ -398,12 +421,12 @@ export class ExcelImportService {
           type: 'admin_offer'
         };
 
-        console.log(`📝 Création de l'offre pour ${row['Client']} (ligne ${rowNumber}):`, {
+        console.log(`📝 Création de l'offre pour ${clientName} (ligne ${rowNumber}):`, {
           dossier_number: offerId, // L'ID personnalisé va dans dossier_number, PAS dans id
-          clientName: row['Client'],
-          amount: row['Montant HT'],
-          coefficient: row['Coefficient'],
-          monthlyPayment: row['Mensualité HT'],
+          clientName: clientName,
+          amount: Number(montantHT),
+          coefficient: Number(coefficient),
+          monthlyPayment: Number(monthlyPayment),
           workflowStatus
         });
 
