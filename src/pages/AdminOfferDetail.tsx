@@ -26,6 +26,7 @@ import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistor
 import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
+import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -362,7 +363,7 @@ const AdminOfferDetail = () => {
               </div>
 
               {/* Sidebar des actions compacte */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1 space-y-4">
                 <CompactActionsSidebar
                   offer={offer}
                   onSendEmail={handleSendEmail}
@@ -372,6 +373,27 @@ const AdminOfferDetail = () => {
                   onDownloadPdf={handlePrintPdf}
                   sendingEmail={sendingEmail}
                   isGeneratingPdf={isPrintingPdf}
+                />
+                
+                {/* Configuration de l'offre */}
+                <OfferEditConfiguration
+                  offerId={offer.id}
+                  currentSource={offer.source}
+                  currentType={offer.type}
+                  onUpdate={() => {
+                    // Recharger les données de l'offre
+                    const fetchOfferDetails = async () => {
+                      try {
+                        const offerData = await getOfferById(offer.id);
+                        if (offerData) {
+                          setOffer(offerData);
+                        }
+                      } catch (error) {
+                        console.error("Erreur lors du rechargement:", error);
+                      }
+                    };
+                    fetchOfferDetails();
+                  }}
                 />
               </div>
             </div>
