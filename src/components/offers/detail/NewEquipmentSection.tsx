@@ -178,12 +178,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     const currentTotals = calculateTotals();
     const currentTotal = currentTotals.totalMonthlyPayment;
     
-    console.log("🔧 DEBUG - handleSaveTotalMonthly called");
-    console.log("🔧 DEBUG - Current total:", currentTotal);
-    console.log("🔧 DEBUG - Edited total:", editedTotalMonthly);
-    
     if (currentTotal === 0 || editedTotalMonthly === currentTotal) {
-      console.log("🔧 DEBUG - No change needed, exiting");
       setIsEditingTotalMonthly(false);
       return;
     }
@@ -192,37 +187,21 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
     try {
       // Calculer le ratio de répartition
       const ratio = editedTotalMonthly / currentTotal;
-      console.log("🔧 DEBUG - Ratio calculated:", ratio);
       
       // Mettre à jour tous les équipements proportionnellement
       const updatePromises = equipment.map(async (item) => {
         const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
         const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
-        // Calculer le nouveau prix de vente UNITAIRE basé sur la nouvelle mensualité (36 mois de financement)
-        const newSellingPrice = (newMonthlyPayment * 36) / item.quantity;
-        
-        console.log(`🔧 DEBUG - Updating equipment ${item.id}:`, {
-          title: item.title,
-          quantity: item.quantity,
-          purchasePrice: item.purchase_price,
-          oldMonthlyPayment: item.monthly_payment,
-          newMonthlyPayment,
-          newCoefficient,
-          newSellingPrice: `${newSellingPrice.toFixed(2)} (unitaire)`,
-          totalSellingValue: `${(newSellingPrice * item.quantity).toFixed(2)} (total pour ${item.quantity} unités)`,
-          calculation: `(${newMonthlyPayment.toFixed(2)} * 36) / ${item.quantity} = ${newSellingPrice.toFixed(2)}`
-        });
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
-          coefficient: newCoefficient,
-          selling_price: newSellingPrice
+          coefficient: newCoefficient
         });
       });
 
       await Promise.all(updatePromises);
       
-      toast.success("Mensualités et prix de vente mis à jour proportionnellement");
+      toast.success("Mensualités mises à jour proportionnellement");
       setIsEditingTotalMonthly(false);
       refresh();
     } catch (error) {
