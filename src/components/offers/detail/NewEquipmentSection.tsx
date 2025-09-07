@@ -230,8 +230,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
         totalFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
       }
       
-      // Arrondir le montant financé à 2 décimales exactement
-      totalFinancedAmount = Math.round(totalFinancedAmount * 100) / 100;
+      // Forcer l'arrondi à exactement 2 décimales (comme Excel)
+      totalFinancedAmount = parseFloat(totalFinancedAmount.toFixed(2));
       
       // ÉTAPE 2: Calculer le coefficient global de répartition
       const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
