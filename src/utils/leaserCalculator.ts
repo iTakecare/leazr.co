@@ -9,8 +9,8 @@ export const getCoefficientFromLeaser = (
   duration: number = 36
 ): number => {
   if (!leaser || !leaser.ranges || leaser.ranges.length === 0) {
-    // Use exact Grenke coefficient as fallback (3.160 for 2500-5000 range)
-    return 3.160;
+    // Use Grenke coefficient as fallback - for 7000€ range (5000.01-12500)
+    return 3.16;
   }
 
   // Find the range that contains the amount
@@ -19,11 +19,11 @@ export const getCoefficientFromLeaser = (
   );
 
   if (!matchingRange) {
-    // If no range matches, use exact coefficient as fallback
-    return leaser.ranges[0]?.coefficient || 3.160;
+    // If no range matches, use first range coefficient or Grenke fallback
+    return leaser.ranges[0]?.coefficient || 3.16;
   }
 
-  // If the range has duration coefficients, use them
+  // If the range has duration coefficients, use them (priority)
   if (matchingRange.duration_coefficients && matchingRange.duration_coefficients.length > 0) {
     const durationCoeff = matchingRange.duration_coefficients.find(
       dc => dc.duration_months === duration
@@ -35,7 +35,7 @@ export const getCoefficientFromLeaser = (
   }
 
   // Fallback to the range's base coefficient
-  return matchingRange.coefficient;
+  return matchingRange.coefficient || 3.16;
 };
 
 /**
@@ -48,7 +48,7 @@ export const calculateSalePriceWithLeaser = (
 ): number => {
   // Start with a reasonable estimate for the financed amount to find the correct coefficient
   // We estimate the financed amount first, then iterate to find the precise coefficient
-  let estimatedAmount = (monthlyPrice * 100) / 3.160; // Use exact default coefficient for initial estimate
+  let estimatedAmount = (monthlyPrice * 100) / 3.16; // Use Grenke coefficient for initial estimate
   
   // Get coefficient based on the estimated financed amount
   let coefficient = getCoefficientFromLeaser(leaser, estimatedAmount, duration);
