@@ -5756,6 +5756,16 @@ export type Database = {
           role: string
         }[]
       }
+      get_contract_statistics_by_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          count: number
+          status: string
+          total_margin: number
+          total_purchases: number
+          total_revenue: number
+        }[]
+      }
       get_contract_workflow_logs: {
         Args: { p_contract_id: string }
         Returns: {
@@ -5847,6 +5857,20 @@ export type Database = {
           location: string
           name: string
           updated_at: string
+        }[]
+      }
+      get_monthly_financial_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          contracts_count: number
+          margin: number
+          margin_percentage: number
+          month_name: string
+          month_number: number
+          offers_count: number
+          purchases: number
+          revenue: number
+          year: number
         }[]
       }
       get_offer_by_id_public: {

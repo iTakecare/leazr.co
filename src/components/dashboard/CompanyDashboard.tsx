@@ -33,21 +33,14 @@ const CompanyDashboard = () => {
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
 
-  // Données mensuelles mockées pour le tableau financier
-  const monthlyData = [
-    { month: 'Janvier', ca: 45000, achats: 32000, marge: 13000, margePercent: 28.9 },
-    { month: 'Février', ca: 52000, achats: 38000, marge: 14000, margePercent: 26.9 },
-    { month: 'Mars', ca: 48000, achats: 34000, marge: 14000, margePercent: 29.2 },
-    { month: 'Avril', ca: 55000, achats: 40000, marge: 15000, margePercent: 27.3 },
-    { month: 'Mai', ca: 62000, achats: 44000, marge: 18000, margePercent: 29.0 },
-    { month: 'Juin', ca: 58000, achats: 41000, marge: 17000, margePercent: 29.3 },
-    { month: 'Juillet', ca: 51000, achats: 36000, marge: 15000, margePercent: 29.4 },
-    { month: 'Août', ca: 49000, achats: 35000, marge: 14000, margePercent: 28.6 },
-    { month: 'Septembre', ca: 64000, achats: 46000, marge: 18000, margePercent: 28.1 },
-    { month: 'Octobre', ca: 68000, achats: 48000, marge: 20000, margePercent: 29.4 },
-    { month: 'Novembre', ca: 72000, achats: 51000, marge: 21000, margePercent: 29.2 },
-    { month: 'Décembre', ca: 76000, achats: 54000, marge: 22000, margePercent: 28.9 }
-  ];
+  // Traitement des données mensuelles réelles
+  const monthlyData = metrics?.monthly_data?.map(month => ({
+    month: month.month_name,
+    ca: Number(month.revenue),
+    achats: Number(month.purchases),
+    marge: Number(month.margin),
+    margePercent: Number(month.margin_percentage)
+  })) || [];
 
   const totals = {
     ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
@@ -56,11 +49,17 @@ const CompanyDashboard = () => {
   };
 
   const moyennes = {
-    ca: Math.round(totals.ca / 12),
-    achats: Math.round(totals.achats / 12),
-    marge: Math.round(totals.marge / 12),
-    margePercent: Math.round((totals.marge / totals.ca) * 1000) / 10
+    ca: monthlyData.length ? Math.round(totals.ca / monthlyData.length) : 0,
+    achats: monthlyData.length ? Math.round(totals.achats / monthlyData.length) : 0,
+    marge: monthlyData.length ? Math.round(totals.marge / monthlyData.length) : 0,
+    margePercent: totals.ca > 0 ? Math.round((totals.marge / totals.ca) * 1000) / 10 : 0
   };
+
+  // Traitement des statistiques par statut
+  const contractStats = metrics?.contract_stats || [];
+  const realizedStats = contractStats.find(stat => stat.status === 'realized');
+  const pendingStats = contractStats.find(stat => stat.status === 'pending');
+  const refusedStats = contractStats.find(stat => stat.status === 'refused');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -158,15 +157,23 @@ const CompanyDashboard = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {monthlyData.map((month, index) => (
-                    <TableRow key={month.month} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                      <TableCell className="font-medium">{month.month}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(month.ca)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(month.achats)}</TableCell>
-                      <TableCell className="text-right font-medium text-green-600">{formatCurrency(month.marge)}</TableCell>
-                      <TableCell className="text-right font-medium">{month.margePercent}%</TableCell>
+                  {monthlyData.length > 0 ? (
+                    monthlyData.map((month, index) => (
+                      <TableRow key={month.month} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                        <TableCell className="font-medium">{month.month}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.ca)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.achats)}</TableCell>
+                        <TableCell className="text-right font-medium text-green-600">{formatCurrency(month.marge)}</TableCell>
+                        <TableCell className="text-right font-medium">{month.margePercent}%</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Aucune donnée disponible pour cette période
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                   <TableRow className="bg-muted border-t-2 font-semibold">
                     <TableCell className="font-bold">TOTAL</TableCell>
                     <TableCell className="text-right font-bold">{formatCurrency(totals.ca)}</TableCell>
@@ -229,15 +236,15 @@ const CompanyDashboard = () => {
               </div>
               <div className="flex justify-between items-center py-1 border-b border-muted">
                 <span className="text-sm text-muted-foreground">Montant CA</span>
-                <span className="font-medium">{formatCurrency(520000)}</span>
+                <span className="font-medium">{formatCurrency(Number(realizedStats?.total_revenue || 0))}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-muted">
                 <span className="text-sm text-muted-foreground">Achats</span>
-                <span className="font-medium">{formatCurrency(370000)}</span>
+                <span className="font-medium">{formatCurrency(Number(realizedStats?.total_purchases || 0))}</span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-sm text-muted-foreground">Marge</span>
-                <span className="font-medium text-green-600">{formatCurrency(150000)}</span>
+                <span className="font-medium text-green-600">{formatCurrency(Number(realizedStats?.total_margin || 0))}</span>
               </div>
             </CardContent>
           </Card>
@@ -257,11 +264,11 @@ const CompanyDashboard = () => {
               </div>
               <div className="flex justify-between items-center py-1 border-b border-muted">
                 <span className="text-sm text-muted-foreground">Montant potentiel</span>
-                <span className="font-medium">{formatCurrency(125000)}</span>
+                <span className="font-medium">{formatCurrency(Number(pendingStats?.total_revenue || 0))}</span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-sm text-muted-foreground">Marge potentielle</span>
-                <span className="font-medium text-orange-500">{formatCurrency(35000)}</span>
+                <span className="font-medium text-orange-500">{formatCurrency(Number(pendingStats?.total_margin || 0))}</span>
               </div>
             </CardContent>
           </Card>
@@ -277,15 +284,15 @@ const CompanyDashboard = () => {
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center py-1 border-b border-muted">
                 <span className="text-sm text-muted-foreground">Nombre</span>
-                <Badge variant="destructive">12</Badge>
+                <Badge variant="destructive">{refusedStats?.count || 0}</Badge>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-muted">
                 <span className="text-sm text-muted-foreground">Montant perdu</span>
-                <span className="font-medium text-red-500">{formatCurrency(85000)}</span>
+                <span className="font-medium text-red-500">{formatCurrency(Number(refusedStats?.total_revenue || 0))}</span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-sm text-muted-foreground">Marge perdue</span>
-                <span className="font-medium text-red-500">{formatCurrency(25000)}</span>
+                <span className="font-medium text-red-500">{formatCurrency(Number(refusedStats?.total_margin || 0))}</span>
               </div>
             </CardContent>
           </Card>

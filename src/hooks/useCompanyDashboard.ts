@@ -3,6 +3,26 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 
+export interface MonthlyFinancialData {
+  month_name: string;
+  month_number: number;
+  year: number;
+  revenue: number;
+  purchases: number;
+  margin: number;
+  margin_percentage: number;
+  contracts_count: number;
+  offers_count: number;
+}
+
+export interface ContractStatistics {
+  status: string;
+  count: number;
+  total_revenue: number;
+  total_purchases: number;
+  total_margin: number;
+}
+
 export interface CompanyDashboardMetrics {
   total_revenue: number;
   total_clients: number;
@@ -10,8 +30,9 @@ export interface CompanyDashboardMetrics {
   total_contracts: number;
   pending_offers: number;
   active_contracts: number;
-  monthly_growth_revenue: number;
-  monthly_growth_clients: number;
+  recent_signups: number;
+  monthly_data?: MonthlyFinancialData[];
+  contract_stats?: ContractStatistics[];
 }
 
 export interface RecentActivity {
@@ -45,6 +66,38 @@ export const useCompanyDashboard = () => {
     },
     enabled: !companyLoading && !!companyId,
     refetchInterval: 30000, // Actualisation toutes les 30 secondes
+  });
+
+  // Récupérer les données financières mensuelles
+  const { 
+    data: monthlyData = [], 
+    isLoading: monthlyLoading 
+  } = useQuery({
+    queryKey: ['company-monthly-data', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_monthly_financial_data');
+
+      if (error) throw error;
+      return data as MonthlyFinancialData[] || [];
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000, // Actualisation toutes les minutes
+  });
+
+  // Récupérer les statistiques par statut
+  const { 
+    data: contractStats = [], 
+    isLoading: statsLoading 
+  } = useQuery({
+    queryKey: ['company-contract-stats', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_contract_statistics_by_status');
+
+      if (error) throw error;
+      return data as ContractStatistics[] || [];
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000, // Actualisation toutes les minutes
   });
 
   // Récupérer l'activité récente
@@ -113,9 +166,9 @@ export const useCompanyDashboard = () => {
   }, [companyId, refetchMetrics]);
 
   return {
-    metrics: realTimeMetrics || metrics,
+    metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
-    isLoading: metricsLoading || activityLoading || companyLoading,
+    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading,
     refetch: refetchMetrics
   };
 };
