@@ -174,40 +174,62 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   };
 
   const handleSaveTotalMonthly = async () => {
-    const currentTotals = calculateTotals();
-    const currentTotal = currentTotals.totalMonthlyPayment;
-    
-    if (currentTotal === 0 || editedTotalMonthly === currentTotal) {
-      setIsEditingTotalMonthly(false);
+    if (!editedTotalMonthly || editedTotalMonthly <= 0) {
+      toast.error("Veuillez entrer une mensualité totale valide");
       return;
     }
 
     setIsSaving(true);
+    
     try {
-      // Calculer le ratio de répartition
-      const ratio = editedTotalMonthly / currentTotal;
+      const currentTotalPurchasePrice = equipment.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
       
-      // Mettre à jour tous les équipements proportionnellement
+      if (currentTotalPurchasePrice === 0) {
+        toast.error("Impossible de calculer avec un prix d'achat total de 0");
+        return;
+      }
+      
+      // Calculer le nouveau prix total leaser à partir de la mensualité souhaitée (Excel Logic)
+      const newTotalLeaserPrice = editedTotalMonthly * 36;
+      
+      // Calculer le nouveau coefficient global (prix total leaser / prix d'achat total)
+      const globalCoefficient = newTotalLeaserPrice / currentTotalPurchasePrice;
+      
+      console.log("🔥 TOTAL MONTHLY - Excel Logic Calculation:", {
+        currentTotalPurchasePrice,
+        newTotalMonthlyPayment: editedTotalMonthly,
+        newTotalLeaserPrice,
+        globalCoefficient
+      });
+      
+      // Mettre à jour tous les équipements avec le nouveau coefficient global
       const updatePromises = equipment.map(async (item) => {
-        const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
+        // Appliquer le coefficient global au prix d'achat pour obtenir le nouveau prix de vente
+        const newSellingPrice = item.purchase_price * globalCoefficient;
         
-        // Recalculer la marge pour maintenir le prix de vente cohérent
-        const currentSellingPrice = item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0);
+        // Dériver la mensualité à partir du prix de vente (prix de vente ÷ 36)
+        const newMonthlyPayment = newSellingPrice / 36;
+        
+        // Recalculer la marge : ((prix de vente - prix d'achat) / prix d'achat) * 100
         const newMargin = item.purchase_price > 0 ? 
-          ((currentSellingPrice - item.purchase_price) / item.purchase_price) * 100 : 0;
+          ((newSellingPrice - item.purchase_price) / item.purchase_price) * 100 : 0;
         
+        // Calculer le coefficient pour affichage (mensualité / prix d'achat)
         const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price);
         
-        console.log(`🔥 TOTAL MONTHLY - Item ${item.id}:`, {
+        console.log(`🔥 TOTAL MONTHLY - Item ${item.id} Excel Logic:`, {
+          purchasePrice: item.purchase_price,
           oldMonthly: item.monthly_payment,
-          newMonthly: newMonthlyPayment,
-          sellingPrice: currentSellingPrice,
+          newSellingPrice: newSellingPrice,
+          newMonthlyPayment: newMonthlyPayment,
           newMargin: newMargin,
-          coefficient: newCoefficient
+          coefficient: newCoefficient,
+          globalCoefficient
         });
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
+          selling_price: newSellingPrice,
           margin: newMargin,
           coefficient: newCoefficient
         });
@@ -215,12 +237,12 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
 
       await Promise.all(updatePromises);
       
-      toast.success("Mensualités mises à jour proportionnellement");
+      toast.success("Mensualité totale mise à jour selon la logique Excel");
+      await refresh();
       setIsEditingTotalMonthly(false);
-      refresh();
     } catch (error) {
-      console.error("Erreur lors de la mise à jour des mensualités:", error);
-      toast.error("Erreur lors de la mise à jour");
+      console.error("Erreur lors de la mise à jour:", error);
+      toast.error("Erreur lors de la mise à jour de la mensualité totale");
     } finally {
       setIsSaving(false);
     }
