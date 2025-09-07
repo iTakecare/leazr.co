@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { calculateOfferMargin } from "@/utils/marginCalculations";
 import { updateOfferEquipment } from "@/services/offers/offerEquipment";
 import { GlobalMarginEditor } from "./GlobalMarginEditor";
 import { toast } from "sonner";
+import { getLeaserById } from "@/services/leaserService";
+import { Leaser } from "@/types/equipment";
+import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
 import {
   Table,
   TableBody,
@@ -25,6 +28,7 @@ interface NewEquipmentSectionProps {
     financed_amount?: number;
     equipment_description?: string;
     leaser_id?: string;
+    duration?: number;
   };
 }
 
@@ -35,6 +39,23 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingTotalMonthly, setIsEditingTotalMonthly] = useState(false);
   const [editedTotalMonthly, setEditedTotalMonthly] = useState(0);
+  const [leaser, setLeaser] = useState<Leaser | null>(null);
+
+  // Load leaser data
+  useEffect(() => {
+    const loadLeaser = async () => {
+      if (offer.leaser_id) {
+        try {
+          const leaserData = await getLeaserById(offer.leaser_id);
+          setLeaser(leaserData);
+        } catch (error) {
+          console.error("Error loading leaser:", error);
+        }
+      }
+    };
+    
+    loadLeaser();
+  }, [offer.leaser_id]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -189,41 +210,44 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
         return;
       }
       
-      // Calculer le nouveau prix total leaser à partir de la mensualité souhaitée (Excel Logic)
-      const newTotalLeaserPrice = editedTotalMonthly * 36;
+      // ÉTAPE 1: Calculer le prix total financé selon la logique du leaser
+      // Utiliser la formule inverse de calculateSalePriceWithLeaser: Prix_financé = (Mensualité * 100) / Coefficient_leaser
+      const totalFinancedAmount = calculateSalePriceWithLeaser(editedTotalMonthly, leaser, offer.duration || 36);
       
-      // Calculer le nouveau coefficient global (prix total leaser / prix d'achat total)
-      const globalCoefficient = newTotalLeaserPrice / currentTotalPurchasePrice;
+      // ÉTAPE 2: Calculer le coefficient global de répartition
+      const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
       
-      console.log("🔥 TOTAL MONTHLY - Excel Logic Calculation:", {
+      console.log("🔥 TOTAL MONTHLY - Leaser Logic Calculation:", {
         currentTotalPurchasePrice,
-        newTotalMonthlyPayment: editedTotalMonthly,
-        newTotalLeaserPrice,
-        globalCoefficient
+        editedTotalMonthly,
+        totalFinancedAmount,
+        globalCoefficient,
+        leaserName: leaser?.name,
+        duration: offer.duration || 36
       });
       
-      // Mettre à jour tous les équipements avec le nouveau coefficient global
+      // ÉTAPE 3: Répartir proportionnellement sur chaque équipement
       const updatePromises = equipment.map(async (item) => {
-        // Appliquer le coefficient global au prix d'achat pour obtenir le nouveau prix de vente
+        // Prix de vente unitaire = Prix d'achat × Coefficient global
         const newSellingPrice = item.purchase_price * globalCoefficient;
         
-        // Dériver la mensualité à partir du prix de vente (prix de vente ÷ 36)
-        const newMonthlyPayment = newSellingPrice / 36;
+        // Calculer la mensualité avec le coefficient du leaser pour ce montant
+        const financedAmountForItem = newSellingPrice * item.quantity;
+        const leaserCoefficient = getCoefficientFromLeaser(leaser, financedAmountForItem, offer.duration || 36);
+        const newMonthlyPayment = (financedAmountForItem * leaserCoefficient) / 100;
         
-        // Recalculer la marge : ((prix de vente - prix d'achat) / prix d'achat) * 100
+        // Marge = ((Prix de vente - Prix d'achat) / Prix d'achat) × 100
         const newMargin = item.purchase_price > 0 ? 
           ((newSellingPrice - item.purchase_price) / item.purchase_price) * 100 : 0;
         
-        // Calculer le coefficient pour affichage (mensualité / prix d'achat)
-        const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price);
-        
-        console.log(`🔥 TOTAL MONTHLY - Item ${item.id} Excel Logic:`, {
+        console.log(`🔥 TOTAL MONTHLY - Item ${item.id}:`, {
           purchasePrice: item.purchase_price,
-          oldMonthly: item.monthly_payment,
-          newSellingPrice: newSellingPrice,
-          newMonthlyPayment: newMonthlyPayment,
-          newMargin: newMargin,
-          coefficient: newCoefficient,
+          quantity: item.quantity,
+          newSellingPrice,
+          financedAmountForItem,
+          leaserCoefficient,
+          newMonthlyPayment,
+          newMargin,
           globalCoefficient
         });
         
@@ -231,7 +255,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
           monthly_payment: newMonthlyPayment,
           selling_price: newSellingPrice,
           margin: newMargin,
-          coefficient: newCoefficient
+          coefficient: leaserCoefficient
         });
       });
 
