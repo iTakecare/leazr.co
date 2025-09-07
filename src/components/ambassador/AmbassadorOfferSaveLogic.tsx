@@ -115,7 +115,7 @@ export const useAmbassadorOfferSave = ({
       const offerData = {
         client_id: client.id,
         client_name: client.name,
-        client_email: client.email,
+        client_email: client.email || null,
         // SUPPRIMÉ: equipment_description pour éviter la duplication
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,

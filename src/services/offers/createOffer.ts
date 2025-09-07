@@ -11,8 +11,8 @@ export const createOffer = async (offerData: OfferData) => {
     console.log("📋 DONNÉES REÇUES:", offerData);
     
     // Vérifier que les données obligatoires sont présentes
-    if (!offerData.client_name || !offerData.client_email) {
-      throw new Error("Les informations client (nom et email) sont obligatoires");
+    if (!offerData.client_name) {
+      throw new Error("Le nom du client est obligatoire");
     }
     
     // Récupérer le company_id de l'utilisateur connecté si pas fourni

@@ -498,7 +498,7 @@ const CreateOffer = () => {
         company_id: userCompanyId,
         // Champ obligatoire
         client_name: clientName,
-        client_email: clientEmail,
+        client_email: clientEmail || null,
         client_id: clientId,
         equipment_description: JSON.stringify(equipmentData),
         amount: totalAmount,
