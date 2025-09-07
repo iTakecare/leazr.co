@@ -192,16 +192,19 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       const updatePromises = equipment.map(async (item) => {
         const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
         const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
+        // Calculer le nouveau prix de vente basé sur la nouvelle mensualité (36 mois de financement)
+        const newSellingPrice = newMonthlyPayment * 36;
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
-          coefficient: newCoefficient
+          coefficient: newCoefficient,
+          selling_price: newSellingPrice
         });
       });
 
       await Promise.all(updatePromises);
       
-      toast.success("Mensualités mises à jour proportionnellement");
+      toast.success("Mensualités et prix de vente mis à jour proportionnellement");
       setIsEditingTotalMonthly(false);
       refresh();
     } catch (error) {
