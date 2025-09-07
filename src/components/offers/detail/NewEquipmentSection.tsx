@@ -214,7 +214,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       // Calcul direct pour éviter les erreurs d'arrondi des calculs itératifs
       const estimatedAmount = currentTotalPurchasePrice * 2; // Estimation raisonnable pour trouver le bon coefficient
       const leaserCoefficient = getCoefficientFromLeaser(leaser, estimatedAmount, offer.duration || 36);
-      const totalFinancedAmount = (editedTotalMonthly * 100) / leaserCoefficient;
+      // Arrondir le montant financé à 2 décimales pour éviter les erreurs d'arrondi
+      const totalFinancedAmount = Math.round((editedTotalMonthly * 100) / leaserCoefficient * 100) / 100;
       
       // ÉTAPE 2: Calculer le coefficient global de répartition
       const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
@@ -230,17 +231,17 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       
       // ÉTAPE 3: Répartir proportionnellement sur chaque équipement
       const updatePromises = equipment.map(async (item) => {
-        // Prix de vente unitaire = Prix d'achat × Coefficient global
-        const newSellingPrice = item.purchase_price * globalCoefficient;
-        
-        // Répartir proportionnellement la mensualité totale saisie par l'utilisateur
-        const itemWeight = item.purchase_price * item.quantity;
-        const newMonthlyPayment = editedTotalMonthly * (itemWeight / currentTotalPurchasePrice);
-        const leaserCoefficient = getCoefficientFromLeaser(leaser, newSellingPrice * item.quantity, offer.duration || 36);
-        
-        // Marge = ((Prix de vente - Prix d'achat) / Prix d'achat) × 100
-        const newMargin = item.purchase_price > 0 ? 
-          ((newSellingPrice - item.purchase_price) / item.purchase_price) * 100 : 0;
+         // Prix de vente unitaire = Prix d'achat × Coefficient global (arrondi à 2 décimales)
+         const newSellingPrice = Math.round(item.purchase_price * globalCoefficient * 100) / 100;
+         
+         // Répartir proportionnellement la mensualité totale saisie par l'utilisateur (arrondi à 2 décimales)
+         const itemWeight = item.purchase_price * item.quantity;
+         const newMonthlyPayment = Math.round(editedTotalMonthly * (itemWeight / currentTotalPurchasePrice) * 100) / 100;
+         const leaserCoefficient = getCoefficientFromLeaser(leaser, newSellingPrice * item.quantity, offer.duration || 36);
+         
+         // Marge = ((Prix de vente - Prix d'achat) / Prix d'achat) × 100 (arrondi à 2 décimales)
+         const newMargin = item.purchase_price > 0 ? 
+           Math.round(((newSellingPrice - item.purchase_price) / item.purchase_price) * 100 * 100) / 100 : 0;
         
         console.log(`🔥 TOTAL MONTHLY - Item ${item.id}:`, {
           purchasePrice: item.purchase_price,
