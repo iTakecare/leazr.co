@@ -210,12 +210,28 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
         return;
       }
       
-      // ÉTAPE 1: Calculer le prix total financé selon la logique du leaser
-      // Calcul direct pour éviter les erreurs d'arrondi des calculs itératifs
-      const estimatedAmount = currentTotalPurchasePrice * 2; // Estimation raisonnable pour trouver le bon coefficient
-      const leaserCoefficient = getCoefficientFromLeaser(leaser, estimatedAmount, offer.duration || 36);
-      // Arrondir le montant financé à 2 décimales pour éviter les erreurs d'arrondi
-      const totalFinancedAmount = Math.round((editedTotalMonthly * 100) / leaserCoefficient * 100) / 100;
+      // ÉTAPE 1: Calculer le montant financé total avec le coefficient correct
+      // Calcul itératif pour obtenir le coefficient exact basé sur le montant financé réel
+      
+      // Étape 1a: Estimation initiale avec coefficient de fallback
+      let estimatedFinancedAmount = (editedTotalMonthly * 100) / 3.16; // Coefficient Grenke par défaut
+      
+      // Étape 1b: Récupération du coefficient exact basé sur le montant estimé
+      let actualCoefficient = getCoefficientFromLeaser(leaser, estimatedFinancedAmount, offer.duration || 36);
+      
+      // Étape 1c: Calcul du montant financé avec le coefficient exact
+      let totalFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
+      
+      // Étape 1d: Vérification si le nouveau montant change de tranche de coefficient
+      const newCoefficient = getCoefficientFromLeaser(leaser, totalFinancedAmount, offer.duration || 36);
+      if (Math.abs(newCoefficient - actualCoefficient) > 0.001) {
+        // Recalcul avec le nouveau coefficient si nécessaire
+        actualCoefficient = newCoefficient;
+        totalFinancedAmount = (editedTotalMonthly * 100) / actualCoefficient;
+      }
+      
+      // Arrondir le montant financé à 2 décimales exactement
+      totalFinancedAmount = Math.round(totalFinancedAmount * 100) / 100;
       
       // ÉTAPE 2: Calculer le coefficient global de répartition
       const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
