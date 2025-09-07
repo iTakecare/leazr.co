@@ -439,31 +439,21 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                   </div>
                 </TableCell>
                 
-                <TableCell colSpan={3} className="py-4">
-                  <div className="flex items-center justify-center gap-8">
-                    <div className="text-center">
-                      <div className="font-mono font-bold text-base text-foreground">
-                        {formatPrice(totals.totalPrice)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Prix d'achat total</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="font-mono font-bold text-base text-green-600">
-                        {formatPrice(totals.totalMargin)}
-                      </div>
-                      <div className="text-xs text-green-700">
-                        {totals.marginPercentage.toFixed(1)}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">Marge totale</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="font-mono font-bold text-base text-blue-600">
-                        {formatPrice(totals.totalSellingPrice)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Prix de vente total</div>
-                    </div>
+                <TableCell className="text-right py-4">
+                  <div className="font-mono font-bold text-base text-foreground">
+                    {formatPrice(totals.totalPrice)}
+                  </div>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
+                  <div className="font-mono font-bold text-base text-green-600">
+                    {formatPrice(totals.totalMargin)}
+                  </div>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
+                  <div className="font-mono font-bold text-base text-blue-600">
+                    {formatPrice(totals.totalSellingPrice)}
                   </div>
                 </TableCell>
                 
@@ -501,11 +491,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 justify-end">
-                      <div className="text-center">
-                        <div className="font-mono font-bold text-base text-blue-600">
-                          {formatPrice(totals.totalMonthlyPayment)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Mensualité totale</div>
+                      <div className="font-mono font-bold text-base text-blue-600">
+                        {formatPrice(totals.totalMonthlyPayment)}
                       </div>
                       <Button
                         variant="ghost"
