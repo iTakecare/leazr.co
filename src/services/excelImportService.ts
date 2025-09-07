@@ -36,6 +36,20 @@ const STATUS_MAPPING: Record<string, OfferWorkflowStatus> = {
   'Rejeté': OfferWorkflowStatus.REJECTED
 };
 
+export interface ColumnMapping {
+  detected: string | null;
+  required: boolean;
+  field: string;
+  label: string;
+}
+
+export interface ColumnDetectionResult {
+  mappings: Record<string, ColumnMapping>;
+  detectedHeaders: string[];
+  missingRequired: string[];
+  isValid: boolean;
+}
+
 export interface ImportResult {
   success: number;
   errors: Array<{ row: number; error: string }>;
@@ -141,9 +155,70 @@ export class ExcelImportService {
   }
 
   /**
-   * Parse le fichier Excel et retourne les données
+   * Détecte et mappe les colonnes du fichier Excel
    */
-  static parseExcelFile(file: File): Promise<ExcelRowData[]> {
+  static detectColumns(headers: string[]): ColumnDetectionResult {
+    console.log(`🔍 Détection des colonnes pour: ${headers.join(', ')}`);
+    
+    const requiredFields = {
+      'client': { label: 'Client', required: true },
+      'amount': { label: 'Montant/Marge', required: true },
+      'monthly_payment': { label: 'Mensualité', required: false },
+      'coefficient': { label: 'Coefficient/Taux', required: false },
+      'email': { label: 'Email', required: false },
+      'dossier_number': { label: 'N° Dossier', required: false },
+      'status': { label: 'Statut', required: false }
+    };
+
+    const mappings: Record<string, ColumnMapping> = {};
+    
+    // Map each required field
+    for (const [field, config] of Object.entries(requiredFields)) {
+      let detected: string | null = null;
+      
+      if (field === 'client') {
+        detected = this.findColumnMatch('client', headers) || this.findColumnMatch('leaser', headers);
+      } else if (field === 'amount') {
+        detected = this.findColumnMatch('margeen', headers) || this.findColumnMatch('montant', headers);
+      } else if (field === 'monthly_payment') {
+        detected = this.findColumnMatch('mensualiteclientoffres', headers) || this.findColumnMatch('mensualite', headers);
+      } else if (field === 'coefficient') {
+        detected = this.findColumnMatch('tauxdemarge', headers) || this.findColumnMatch('coefficient', headers);
+      } else if (field === 'email') {
+        detected = this.findColumnMatch('email', headers);
+      } else if (field === 'dossier_number') {
+        detected = this.findColumnMatch('nodossier', headers);
+      } else if (field === 'status') {
+        detected = this.findColumnMatch('statut', headers);
+      }
+      
+      mappings[field] = {
+        detected,
+        required: config.required,
+        field,
+        label: config.label
+      };
+    }
+
+    const missingRequired = Object.entries(mappings)
+      .filter(([_, mapping]) => mapping.required && !mapping.detected)
+      .map(([_, mapping]) => mapping.label);
+
+    console.log('🗺️ Mapping détecté:', mappings);
+    console.log('❌ Champs requis manquants:', missingRequired);
+
+    return {
+      mappings,
+      detectedHeaders: headers,
+      missingRequired,
+      isValid: missingRequired.length === 0
+    };
+  }
+
+  /**
+   * Parse le fichier Excel et retourne les données avec détection des colonnes
+   */
+  static parseExcelFile(file: File): Promise<{ data: ExcelRowData[], columnDetection: ColumnDetectionResult }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
@@ -171,89 +246,62 @@ export class ExcelImportService {
           console.log(`📋 Headers détectés: ${headers.join(', ')}`);
           console.log(`📊 ${rows.length} lignes de données détectées`);
           
-          // Créer un mapping des colonnes flexibles basé sur le vrai fichier Excel
-          const columnMapping: Record<string, string | null> = {
-            'N° du dossier': this.findColumnMatch('nodossier', headers),
-            'Client': this.findColumnMatch('client', headers) || this.findColumnMatch('leaser', headers),
-            'Email': this.findColumnMatch('email', headers),
-            'Localisation': this.findColumnMatch('localisation', headers),
-            'Pays Source': this.findColumnMatch('pays', headers) || this.findColumnMatch('source', headers),
-            'Leaser': this.findColumnMatch('leaser', headers),
-            'Date dossier': this.findColumnMatch('datedossier', headers),
-            'Date contrat': this.findColumnMatch('datecontrat', headers),
-            'Facture leaser': this.findColumnMatch('factureleaser', headers),
-            'Achat de vente': this.findColumnMatch('achatdevente', headers),
-            'Marge en €': this.findColumnMatch('marge', headers) || this.findColumnMatch('montant', headers),
-            'E confirmés': this.findColumnMatch('econfirmes', headers),
-            'E manquants': this.findColumnMatch('emanquants', headers),
-            'Taux de marge': this.findColumnMatch('tauxdemarge', headers) || this.findColumnMatch('coefficient', headers),
-            'Mensualité client offres': this.findColumnMatch('mensualiteclientoffres', headers) || this.findColumnMatch('mensualite', headers),
-            'Mensualité': this.findColumnMatch('mensualite', headers),
-            'Statut': this.findColumnMatch('statut', headers),
-            'Relations': this.findColumnMatch('relations', headers)
-          };
-
-          console.log('🔗 Mapping des colonnes:', columnMapping);
+          // Detect column mappings
+          const columnDetection = this.detectColumns(headers);
           
-          // Mapper les données avec le nouveau système flexible
+          if (!columnDetection.isValid) {
+            resolve({
+              data: [],
+              columnDetection
+            });
+            return;
+          }
+          
+          // Map data using detected columns
           const mappedData: ExcelRowData[] = rows.map((row, index) => {
-            // Créer un objet avec les valeurs mappées
-            const getValue = (mappedColumn: string | null): any => {
-              if (!mappedColumn) return '';
-              const colIndex = headers.indexOf(mappedColumn);
+            const getValue = (field: string): any => {
+              const mapping = columnDetection.mappings[field];
+              if (!mapping || !mapping.detected) return '';
+              const colIndex = headers.indexOf(mapping.detected);
               return colIndex >= 0 ? (row[colIndex] || '') : '';
             };
 
-            const rawData = {
-              'N° du dossier': getValue(columnMapping['N° du dossier']),
-              'Client': getValue(columnMapping['Client']) || getValue(columnMapping['Leaser']), // Fallback sur Leaser
-              'Email': getValue(columnMapping['Email']),
-              'Localisation': getValue(columnMapping['Localisation']),
-              'Pays Source': getValue(columnMapping['Pays Source']),
-              'Leaser': getValue(columnMapping['Leaser']),
-              'Date dossier': getValue(columnMapping['Date dossier']),
-              'Date contrat': getValue(columnMapping['Date contrat']),
-              'Facture leaser': getValue(columnMapping['Facture leaser']),
-              'Achat de vente': getValue(columnMapping['Achat de vente']),
-              'Marge en €': getValue(columnMapping['Marge en €']),
-              'E confirmés': getValue(columnMapping['E confirmés']),
-              'E manquants': getValue(columnMapping['E manquants']),
-              'Taux de marge': getValue(columnMapping['Taux de marge']),
-              'Mensualité client offres': getValue(columnMapping['Mensualité client offres']),
-              'Mensualité': getValue(columnMapping['Mensualité']),
-              'Statut': getValue(columnMapping['Statut']),
-              'Relations': getValue(columnMapping['Relations'])
-            };
-
-            console.log(`📝 Ligne ${index + 1} - Données brutes:`, rawData);
+            const clientValue = getValue('client');
+            const amountValue = getValue('amount');
+            const monthlyValue = getValue('monthly_payment');
+            const coeffValue = getValue('coefficient');
             
-            // Parser les valeurs numériques avec la nouvelle fonction
+            console.log(`📝 Ligne ${index + 1} - Valeurs brutes:`, { clientValue, amountValue, monthlyValue, coeffValue });
+            
             const parsedData: ExcelRowData = {
-              'N° du dossier': String(rawData['N° du dossier']).trim() || '',
-              'Client': String(rawData['Client']).trim() || '',
-              'Email': String(rawData['Email']).trim() || '',
-              'Localisation': String(rawData['Localisation']).trim() || '',
-              'Pays Source': String(rawData['Pays Source']).trim() || '',
-              'Leaser': String(rawData['Leaser']).trim() || '',
-              'Date dossier': String(rawData['Date dossier']).trim() || '',
-              'Date contrat': String(rawData['Date contrat']).trim() || '',
-              'Facture leaser': String(rawData['Facture leaser']).trim() || '',
-              'Achat de vente': String(rawData['Achat de vente']).trim() || '',
-              'Marge en €': this.parseNumericValue(rawData['Marge en €']),
-              'E confirmés': this.parseNumericValue(rawData['E confirmés']),
-              'E manquants': this.parseNumericValue(rawData['E manquants']),
-              'Taux de marge': this.parseNumericValue(rawData['Taux de marge']),
-              'Mensualité client offres': this.parseNumericValue(rawData['Mensualité client offres']),
-              'Mensualité': this.parseNumericValue(rawData['Mensualité']),
-              'Statut': String(rawData['Statut']).trim() || 'Brouillon',
-              'Relations': String(rawData['Relations']).trim() || ''
+              'N° du dossier': String(getValue('dossier_number')).trim() || '',
+              'Client': String(clientValue).trim() || '',
+              'Email': String(getValue('email')).trim() || '',
+              'Localisation': '',
+              'Pays Source': '',
+              'Leaser': String(clientValue).trim() || '',
+              'Date dossier': '',
+              'Date contrat': '',
+              'Facture leaser': '',
+              'Achat de vente': '',
+              'Marge en €': this.parseNumericValue(amountValue),
+              'E confirmés': 0,
+              'E manquants': 0,
+              'Taux de marge': this.parseNumericValue(coeffValue) || 1,
+              'Mensualité client offres': this.parseNumericValue(monthlyValue),
+              'Mensualité': this.parseNumericValue(monthlyValue),
+              'Statut': String(getValue('status')).trim() || 'Brouillon',
+              'Relations': ''
             };
 
             console.log(`✅ Ligne ${index + 1} - Données parsées:`, parsedData);
             return parsedData;
           });
           
-          resolve(mappedData);
+          resolve({
+            data: mappedData,
+            columnDetection
+          });
         } catch (error) {
           reject(error);
         }

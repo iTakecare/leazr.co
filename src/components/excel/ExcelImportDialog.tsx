@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ExcelImportService, ImportResult, ExcelRowData } from "@/services/excelImportService";
+import { ExcelImportService, ImportResult, ExcelRowData, ColumnDetectionResult } from "@/services/excelImportService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
@@ -24,7 +24,8 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [previewData, setPreviewData] = useState<ExcelRowData[]>([]);
-  const [fullData, setFullData] = useState<ExcelRowData[]>([]); // Stocker toutes les données
+  const [fullData, setFullData] = useState<ExcelRowData[]>([]);
+  const [columnDetection, setColumnDetection] = useState<ColumnDetectionResult | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,34 +47,32 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
       
       console.log(`📂 Début de l'analyse du fichier: ${file.name}`);
       
-      // Parse Excel file
-      const parsedData = await ExcelImportService.parseExcelFile(file);
+      // Parse Excel file with column detection
+      const result = await ExcelImportService.parseExcelFile(file);
       
-      console.log(`📊 ${parsedData.length} lignes parsées`);
-      console.log('🔍 Échantillon des données parsées:', parsedData.slice(0, 2));
+      console.log(`📊 ${result.data.length} lignes parsées`);
+      console.log('🔍 Détection des colonnes:', result.columnDetection);
       
       setUploadProgress(50);
       
-      // Validate format using the first row to get headers
-      const headers = Object.keys(parsedData[0] || {});
-      const missingHeaders = ExcelImportService.validateExcelFormat(headers);
-      
-      if (missingHeaders.length > 0) {
-        console.error(`❌ Colonnes manquantes: ${missingHeaders.join(', ')}`);
-        toast.error(`Colonnes manquantes: ${missingHeaders.join(', ')}`);
+      // Check if column detection is valid
+      if (!result.columnDetection.isValid) {
+        console.error(`❌ Colonnes manquantes: ${result.columnDetection.missingRequired.join(', ')}`);
+        toast.error(`Colonnes requises manquantes: ${result.columnDetection.missingRequired.join(', ')}`);
         setIsProcessing(false);
         setUploadProgress(0);
         return;
       }
 
-      // Stocker toutes les données et l'aperçu
-      setFullData(parsedData);
-      setPreviewData(parsedData.slice(0, 5)); // Show first 5 rows for preview
+      // Store data and column detection
+      setFullData(result.data);
+      setPreviewData(result.data.slice(0, 5));
+      setColumnDetection(result.columnDetection);
       setShowPreview(true);
       setUploadProgress(100);
       
-      console.log(`✅ Fichier analysé avec succès: ${parsedData.length} lignes`);
-      toast.success(`${parsedData.length} lignes détectées. Vérifiez l'aperçu avant d'importer.`);
+      console.log(`✅ Fichier analysé avec succès: ${result.data.length} lignes`);
+      toast.success(`${result.data.length} lignes détectées. Vérifiez l'aperçu avant d'importer.`);
       
     } catch (error: any) {
       console.error("Erreur lors de l'analyse du fichier:", error);
@@ -135,6 +134,7 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
   const resetDialog = () => {
     setPreviewData([]);
     setFullData([]);
+    setColumnDetection(null);
     setShowPreview(false);
     setImportResult(null);
     setUploadProgress(0);
@@ -203,8 +203,27 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
           )}
 
           {/* Preview Section */}
-          {showPreview && !importResult && (
+          {showPreview && !importResult && columnDetection && (
             <div className="space-y-4">
+              {/* Column Detection Results */}
+              <Alert>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription>
+                  <div className="font-medium mb-2">Colonnes détectées automatiquement:</div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {Object.entries(columnDetection.mappings).map(([field, mapping]) => (
+                      <div key={field} className="flex justify-between">
+                        <span className="font-medium">{mapping.label}:</span>
+                        <span className={mapping.detected ? "text-green-600" : "text-red-600"}>
+                          {mapping.detected || "Non trouvé"}
+                          {mapping.required && !mapping.detected && " (Requis)"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </AlertDescription>
+              </Alert>
+
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -218,29 +237,33 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
                     <tr className="border-b bg-muted/50">
                       <th className="p-2 text-left">Client</th>
                       <th className="p-2 text-left">Email</th>
-                      <th className="p-2 text-left">Montant HT</th>
-                      <th className="p-2 text-left">Coefficient</th>
+                      <th className="p-2 text-left">Marge/Montant</th>
+                      <th className="p-2 text-left">Taux/Coefficient</th>
+                      <th className="p-2 text-left">Mensualité</th>
                       <th className="p-2 text-left">Statut</th>
-                      <th className="p-2 text-left">Source</th>
                     </tr>
                   </thead>
                   <tbody>
                      {previewData.map((row, index) => (
                        <tr key={index} className="border-b">
-                         <td className="p-2">{row['Client']}</td>
+                         <td className="p-2">{row['Client'] || row['Leaser']}</td>
                          <td className="p-2">{row['Email']}</td>
                          <td className="p-2 font-mono">
-                           {typeof row['Montant HT'] === 'number' 
-                             ? `${row['Montant HT'].toFixed(2)}€` 
-                             : `${row['Montant HT']}€`}
+                           {typeof row['Marge en €'] === 'number' 
+                             ? `${row['Marge en €'].toFixed(2)}€` 
+                             : `${row['Marge en €']}€`}
                          </td>
                          <td className="p-2 font-mono">
-                           {typeof row['Coefficient'] === 'number' 
-                             ? row['Coefficient'].toFixed(2)
-                             : row['Coefficient']}
+                           {typeof row['Taux de marge'] === 'number' 
+                             ? row['Taux de marge'].toFixed(2)
+                             : row['Taux de marge']}
+                         </td>
+                         <td className="p-2 font-mono">
+                           {typeof row['Mensualité client offres'] === 'number' 
+                             ? `${row['Mensualité client offres'].toFixed(2)}€` 
+                             : `${row['Mensualité client offres']}€`}
                          </td>
                          <td className="p-2">{row['Statut']}</td>
-                         <td className="p-2">{row['Source']}</td>
                        </tr>
                      ))}
                   </tbody>
