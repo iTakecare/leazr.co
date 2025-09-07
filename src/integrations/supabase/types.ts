@@ -2035,18 +2035,23 @@ export type Database = {
           client_id: string | null
           client_name: string
           company_id: string
+          contract_number: string | null
+          contract_start_date: string | null
           created_at: string
           delivery_carrier: string | null
           delivery_status: string | null
+          dossier_date: string | null
           equipment_description: string | null
           estimated_delivery: string | null
           id: string
+          invoice_date: string | null
           invoice_generated: boolean
           invoice_id: string | null
           leaser_logo: string | null
           leaser_name: string
           monthly_payment: number
           offer_id: string
+          payment_date: string | null
           status: string
           tracking_number: string | null
           updated_at: string
@@ -2056,18 +2061,23 @@ export type Database = {
           client_id?: string | null
           client_name: string
           company_id: string
+          contract_number?: string | null
+          contract_start_date?: string | null
           created_at?: string
           delivery_carrier?: string | null
           delivery_status?: string | null
+          dossier_date?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
           id?: string
+          invoice_date?: string | null
           invoice_generated?: boolean
           invoice_id?: string | null
           leaser_logo?: string | null
           leaser_name: string
           monthly_payment?: number
           offer_id: string
+          payment_date?: string | null
           status?: string
           tracking_number?: string | null
           updated_at?: string
@@ -2077,18 +2087,23 @@ export type Database = {
           client_id?: string | null
           client_name?: string
           company_id?: string
+          contract_number?: string | null
+          contract_start_date?: string | null
           created_at?: string
           delivery_carrier?: string | null
           delivery_status?: string | null
+          dossier_date?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
           id?: string
+          invoice_date?: string | null
           invoice_generated?: boolean
           invoice_id?: string | null
           leaser_logo?: string | null
           leaser_name?: string
           monthly_payment?: number
           offer_id?: string
+          payment_date?: string | null
           status?: string
           tracking_number?: string | null
           updated_at?: string
@@ -3766,6 +3781,7 @@ export type Database = {
           company_id: string
           converted_to_contract: boolean | null
           created_at: string | null
+          dossier_number: string | null
           equipment_description: string | null
           financed_amount: number | null
           id: string
@@ -3781,6 +3797,7 @@ export type Database = {
           signed_at: string | null
           signer_ip: string | null
           signer_name: string | null
+          source: string | null
           status: string
           total_margin_with_difference: number | null
           type: string | null
@@ -3801,6 +3818,7 @@ export type Database = {
           company_id: string
           converted_to_contract?: boolean | null
           created_at?: string | null
+          dossier_number?: string | null
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
@@ -3816,6 +3834,7 @@ export type Database = {
           signed_at?: string | null
           signer_ip?: string | null
           signer_name?: string | null
+          source?: string | null
           status?: string
           total_margin_with_difference?: number | null
           type?: string | null
@@ -3836,6 +3855,7 @@ export type Database = {
           company_id?: string
           converted_to_contract?: boolean | null
           created_at?: string | null
+          dossier_number?: string | null
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
@@ -3851,6 +3871,7 @@ export type Database = {
           signed_at?: string | null
           signer_ip?: string | null
           signer_name?: string | null
+          source?: string | null
           status?: string
           total_margin_with_difference?: number | null
           type?: string | null
@@ -5299,6 +5320,10 @@ export type Database = {
         Args: { p_profile_id: string; p_user_id: string }
         Returns: boolean
       }
+      calculate_contract_start_date: {
+        Args: { invoice_date: string }
+        Returns: string
+      }
       calculate_total_revenue: {
         Args: { time_filter: string }
         Returns: {
@@ -5537,6 +5562,10 @@ export type Database = {
       }
       generate_company_subdomain: {
         Args: { company_name: string }
+        Returns: string
+      }
+      generate_offer_id: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_all_clients_secure: {
@@ -5888,6 +5917,7 @@ export type Database = {
           company_id: string
           converted_to_contract: boolean | null
           created_at: string | null
+          dossier_number: string | null
           equipment_description: string | null
           financed_amount: number | null
           id: string
@@ -5903,6 +5933,7 @@ export type Database = {
           signed_at: string | null
           signer_ip: string | null
           signer_name: string | null
+          source: string | null
           status: string
           total_margin_with_difference: number | null
           type: string | null
