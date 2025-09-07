@@ -198,14 +198,19 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       const updatePromises = equipment.map(async (item) => {
         const newMonthlyPayment = (item.monthly_payment || 0) * ratio;
         const newCoefficient = calculateCoefficient(newMonthlyPayment, item.purchase_price, 36);
-        // Calculer le nouveau prix de vente basé sur la nouvelle mensualité (36 mois de financement)
-        const newSellingPrice = newMonthlyPayment * 36;
+        // Calculer le nouveau prix de vente UNITAIRE basé sur la nouvelle mensualité (36 mois de financement)
+        const newSellingPrice = (newMonthlyPayment * 36) / item.quantity;
         
         console.log(`🔧 DEBUG - Updating equipment ${item.id}:`, {
+          title: item.title,
+          quantity: item.quantity,
+          purchasePrice: item.purchase_price,
           oldMonthlyPayment: item.monthly_payment,
           newMonthlyPayment,
           newCoefficient,
-          newSellingPrice
+          newSellingPrice: `${newSellingPrice.toFixed(2)} (unitaire)`,
+          totalSellingValue: `${(newSellingPrice * item.quantity).toFixed(2)} (total pour ${item.quantity} unités)`,
+          calculation: `(${newMonthlyPayment.toFixed(2)} * 36) / ${item.quantity} = ${newSellingPrice.toFixed(2)}`
         });
         
         return updateOfferEquipment(item.id, {
