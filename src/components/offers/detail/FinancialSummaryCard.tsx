@@ -23,6 +23,14 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   margin,
   coefficient
 }) => {
+  console.log("🔍 FinancialSummaryCard - Props received:", {
+    monthlyPayment,
+    financedAmount,
+    totalAmount,
+    commission,
+    margin,
+    coefficient
+  });
   return (
     <Card>
       <CardHeader className="pb-3">

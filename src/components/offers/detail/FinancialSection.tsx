@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import { useOfferUpdate } from "@/hooks/offers/useOfferUpdate";
+import RecalculateFinancialsButton from "./RecalculateFinancialsButton";
 interface FinancialSectionProps {
   offer: any;
 }
@@ -13,6 +15,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
 }) => {
   // Use the equipment hook to get structured data
   const { equipment: offerEquipment, loading: equipmentLoading } = useOfferEquipment(offer.id);
+  const { updateOffer } = useOfferUpdate();
   
   // Vérifier si ce type d'offre a une commission
   const shouldShowCommission = hasCommission(offer.type);
@@ -75,6 +78,56 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
   };
   const totals = calculateEquipmentTotals();
   
+  // Auto-update offer financials when equipment data is available
+  useEffect(() => {
+    const updateOfferFinancials = async () => {
+      if (offerEquipment && offerEquipment.length > 0 && !equipmentLoading) {
+        console.log("🔄 AUTO-UPDATE: Recalculating offer financials based on equipment");
+        
+        const currentTotals = calculateEquipmentTotals();
+        
+        // Calculate new values
+        const newTotalAmount = currentTotals.totalPurchasePrice;
+        const newMonthlyPayment = currentTotals.totalMonthlyPayment;
+        const newMargin = (offer.financed_amount || offer.amount || 0) - currentTotals.totalPurchasePrice;
+        
+        console.log("🔄 AUTO-UPDATE: New calculations:", {
+          currentAmount: offer.amount,
+          newTotalAmount,
+          currentMonthlyPayment: offer.monthly_payment,
+          newMonthlyPayment,
+          currentMargin: offer.margin,
+          newMargin
+        });
+        
+        // Check if values need updating (avoid unnecessary updates)
+        const needsUpdate = (
+          Math.abs((offer.amount || 0) - newTotalAmount) > 0.01 ||
+          Math.abs((offer.monthly_payment || 0) - newMonthlyPayment) > 0.01 ||
+          Math.abs((offer.margin || 0) - newMargin) > 0.01
+        );
+        
+        if (needsUpdate) {
+          console.log("🔄 AUTO-UPDATE: Values need updating, calling updateOffer");
+          try {
+            await updateOffer(offer.id, {
+              amount: newTotalAmount,
+              monthly_payment: newMonthlyPayment,
+              margin: newMargin
+            });
+            console.log("✅ AUTO-UPDATE: Offer financials updated successfully");
+          } catch (error) {
+            console.error("❌ AUTO-UPDATE: Failed to update offer financials:", error);
+          }
+        } else {
+          console.log("🔄 AUTO-UPDATE: No update needed, values are current");
+        }
+      }
+    };
+    
+    updateOfferFinancials();
+  }, [offerEquipment, equipmentLoading, offer.id]);
+  
   // Utiliser le vrai montant financé
   const financedAmount = offer.financed_amount || 0;
 
@@ -85,12 +138,19 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
   const marginPercentage = totals.totalPurchasePrice > 0 ? (displayMargin / totals.totalPurchasePrice) * 100 : 0;
 
   const displayCommission = shouldShowCommission ? offer.commission || 0 : 0;
+
   return <Card className="border-gray-200 shadow-sm">
       <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
-        <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-          <DollarSign className="w-6 h-6 text-blue-600" />
-          Résumé financier
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
+            <DollarSign className="w-6 h-6 text-blue-600" />
+            Résumé financier
+          </CardTitle>
+          <RecalculateFinancialsButton 
+            offerId={offer.id} 
+            onRecalculated={() => window.location.reload()}
+          />
+        </div>
       </CardHeader>
       <CardContent className="p-6">
         
