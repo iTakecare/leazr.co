@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
@@ -6,7 +6,10 @@ import { hasCommission } from "@/utils/offerTypeTranslator";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { useOfferUpdate } from "@/hooks/offers/useOfferUpdate";
+import { getLeaserById } from "@/services/leaserService";
+import { Leaser } from "@/types/equipment";
 import RecalculateFinancialsButton from "./RecalculateFinancialsButton";
+import { GlobalMarginEditor } from "./GlobalMarginEditor";
 interface FinancialSectionProps {
   offer: any;
 }
@@ -14,8 +17,25 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
   offer
 }) => {
   // Use the equipment hook to get structured data
-  const { equipment: offerEquipment, loading: equipmentLoading } = useOfferEquipment(offer.id);
+  const { equipment: offerEquipment, loading: equipmentLoading, refresh } = useOfferEquipment(offer.id);
   const { updateOffer } = useOfferUpdate();
+  const [leaser, setLeaser] = useState<Leaser | null>(null);
+
+  // Load leaser data
+  useEffect(() => {
+    const loadLeaser = async () => {
+      if (offer.leaser_id) {
+        try {
+          const leaserData = await getLeaserById(offer.leaser_id);
+          setLeaser(leaserData);
+        } catch (error) {
+          console.error("Error loading leaser:", error);
+        }
+      }
+    };
+    
+    loadLeaser();
+  }, [offer.leaser_id]);
   
   // Vérifier si ce type d'offre a une commission
   const shouldShowCommission = hasCommission(offer.type);
@@ -154,6 +174,22 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
       </CardHeader>
       <CardContent className="p-6">
         
+        {/* Global Margin Editor */}
+        {totals.totalPurchasePrice > 0 && (
+          <div className="mb-6">
+            <GlobalMarginEditor
+              offer={offer}
+              totalPurchasePrice={totals.totalPurchasePrice}
+              totalMonthlyPayment={totals.totalMonthlyPayment}
+              displayMargin={displayMargin}
+              marginPercentage={marginPercentage}
+              leaser={leaser}
+              equipment={offerEquipment || []}
+              onUpdate={refresh}
+            />
+          </div>
+        )}
+
         {/* Principales métriques - Layout en 3 colonnes */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           
