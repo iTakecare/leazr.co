@@ -1,9 +1,9 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,359 +16,322 @@ serve(async (req) => {
     
     if (!number) {
       return new Response(
-        JSON.stringify({ error: 'Company number is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Company number is required' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(`🇧🇪 Enhanced Belgium Lookup: ${number}`);
-
-    // Clean the number (remove BE prefix, dots, and spaces)
-    let cleanNumber = number.toString().replace(/^BE/i, '').replace(/[\s.]/g, '');
     
-    // Ensure we have exactly 10 digits
-    if (cleanNumber.length !== 10) {
-      throw new Error(`Numéro belge invalide: ${number} (doit contenir 10 chiffres)`);
-    }
-    
-    // Format for CBE: add dots (0000.000.000 format)
-    const formattedNumber = `${cleanNumber.substring(0, 4)}.${cleanNumber.substring(4, 7)}.${cleanNumber.substring(7, 10)}`;
+    // Clean and format the number
+    const cleanNumber = number.replace(/\D/g, '');
+    const formattedNumber = cleanNumber.padStart(10, '0');
+    const displayNumber = `${formattedNumber.slice(0, 4)}.${formattedNumber.slice(4, 7)}.${formattedNumber.slice(7)}`;
+    console.log(`📋 Formatted number: ${displayNumber}`);
 
-    console.log(`📋 Formatted number: ${formattedNumber}`);
+    let result = null;
 
-    // Try multiple free Belgian sources
-    let companyData = null;
-
-    // 1. Try CBE Open Data Portal (free but requires proper handling)
+    // Method 1: Try VIES first (most reliable for basic validation)
+    console.log('🔍 Step 1: Trying VIES validation');
     try {
-      console.log('🔍 Trying CBE Open Data');
-      const cbeUrl = `https://opendata.belgium.be/en/organization/kbo-bce`;
-      
-      // Note: CBE doesn't have a direct free API, but we can try scraping the public website
-      const publicCbeUrl = `https://kbopub.economie.fgov.be/kbopub/toonondernemingps.html?ondernemingsnummer=${cleanNumber}`;
-      
-      const response = await fetch(publicCbeUrl, {
+      const viesUrl = `https://ec.europa.eu/taxation_customs/vies/services/checkVatService`;
+      const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:tns1="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
+  <soap:Header>
+  </soap:Header>
+  <soap:Body>
+    <tns1:checkVat>
+      <tns1:countryCode>BE</tns1:countryCode>
+      <tns1:vatNumber>${formattedNumber}</tns1:vatNumber>
+    </tns1:checkVat>
+  </soap:Body>
+</soap:Envelope>`;
+
+      const viesResponse = await fetch(viesUrl, {
+        method: 'POST',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Belgium Company Search)',
-          'Accept': 'text/html,application/xhtml+xml'
-        }
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': ''
+        },
+        body: soapBody
       });
-      
-      if (response.ok) {
-        const html = await response.text();
-        console.log(`📄 CBE HTML length: ${html.length}`);
+
+      if (viesResponse.ok) {
+        const xmlText = await viesResponse.text();
+        console.log(`📊 VIES XML Response: ${xmlText.substring(0, 500)}...`);
         
-        // Extract company information using enhanced Belgian-specific patterns
-        const patterns = {
-          name: [
-            // CBE site patterns for company names
-            /<h3[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h3>/i,
-            /<div[^>]*class="[^"]*denomination[^"]*"[^>]*>([^<]+)<\/div>/i,
-            /<td[^>]*>Dénomination[^<]*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i,
-            /<td[^>]*>\s*Dénomination\s*<\/td>\s*<td[^>]*>\s*([^<\n\r]+)\s*<\/td>/i,
-            /<strong>([A-Z][^<]{3,})<\/strong>/i,
-            // Alternative patterns for Belgian sites
-            /<h1[^>]*>([^<]{5,})<\/h1>/i,
-            /<span[^>]*class="[^"]*name[^"]*"[^>]*>([^<]+)<\/span>/i
-          ],
-          address: [
-            // Enhanced address patterns for Belgian sites
-            /<td[^>]*>Adresses?[^<]*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i,
-            /<td[^>]*>\s*Adresse\s*<\/td>\s*<td[^>]*>\s*([^<\n\r]+)\s*<\/td>/i,
-            /<div[^>]*class="[^"]*address[^"]*"[^>]*>([^<]+)<\/div>/i,
-            /<span[^>]*class="[^"]*address[^"]*"[^>]*>([^<]+)<\/span>/i,
-            // Pattern for multi-line addresses
-            /<td[^>]*>Adresse[^<]*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/i,
-            // Alternative Belgian address formats
-            /Adresse[:\s]*([^<\n]{10,})/i,
-            /Avenue|Rue|Boulevard|Place|Chaussée[^<\n]+\d{4}[^<\n]*/i
-          ],
-          status: [
-            /<td[^>]*>Statut[^<]*<\/td>\s*<td[^>]*>([^<]+)<\/td>/i,
-            /<td[^>]*>\s*Statut\s*<\/td>\s*<td[^>]*>\s*([^<\n\r]+)\s*<\/td>/i,
-            /<div[^>]*class="[^"]*status[^"]*"[^>]*>([^<]+)<\/div>/i,
-            /Statut[:\s]*([^<\n]+)/i
-          ],
-          postalCode: [
-            // Belgian postal code patterns (4 digits)
-            /\b(\d{4})\s+([A-Z][a-zA-ZÀ-ÿ\s-]+)/i,
-            /(\d{4})\s*([A-Z][A-Za-zÀ-ÿ\s-]{2,})/i
-          ]
-        };
+        // Parse VIES response
+        const validMatch = xmlText.match(/<ns2:valid>([^<]+)<\/ns2:valid>/);
+        const nameMatch = xmlText.match(/<ns2:name>([^<]+)<\/ns2:name>/);
+        const addressMatch = xmlText.match(/<ns2:address>([^<]+)<\/ns2:address>/);
         
-        let foundName = null;
-        let foundAddress = null;
-        let foundStatus = null;
-        let foundPostalCode = null;
-        let foundCity = null;
-
-        // Debug: Save some HTML for analysis if needed
-        console.log(`🔍 HTML snippet: ${html.substring(0, 500)}...`);
-
-        // Try to extract company name
-        for (const pattern of patterns.name) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            const text = match[1].trim().replace(/\s+/g, ' ').replace(/&[a-zA-Z]+;/g, '');
-            if (text && 
-                !text.toLowerCase().includes('aucun') && 
-                !text.toLowerCase().includes('recherche') &&
-                !text.toLowerCase().includes('resultat') &&
-                text.length > 3) {
-              foundName = text;
-              console.log(`✅ Found name: ${foundName}`);
-              break;
-            }
-          }
-        }
-
-        // Try to extract address with enhanced parsing
-        for (const pattern of patterns.address) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            let addressText = match[1].trim()
-              .replace(/\s+/g, ' ')
-              .replace(/<[^>]*>/g, '') // Remove HTML tags
-              .replace(/&[a-zA-Z]+;/g, ''); // Remove HTML entities
-            
-            console.log(`📍 Raw address found: ${addressText}`);
-            
-            // Try to parse postal code and city from address
-            const postalMatch = addressText.match(/\b(\d{4})\s+([A-Z][a-zA-ZÀ-ÿ\s-]+)/i);
-            if (postalMatch) {
-              foundPostalCode = postalMatch[1];
-              foundCity = postalMatch[2].trim();
-              // Remove postal code and city from address
-              addressText = addressText.replace(postalMatch[0], '').trim();
-              console.log(`📮 Extracted postal code: ${foundPostalCode}, city: ${foundCity}`);
-            }
-            
-            if (addressText && addressText.length > 5) {
-              foundAddress = addressText;
-              console.log(`🏠 Final address: ${foundAddress}`);
-              break;
-            }
-          }
-        }
-
-        // If no address found yet, try specific postal code patterns
-        if (!foundPostalCode) {
-          for (const pattern of patterns.postalCode) {
-            const match = html.match(pattern);
-            if (match && match[1] && match[2]) {
-              foundPostalCode = match[1];
-              foundCity = match[2].trim();
-              console.log(`📮 Found postal code via pattern: ${foundPostalCode}, city: ${foundCity}`);
-              break;
-            }
-          }
-        }
-
-        // Try to extract status
-        for (const pattern of patterns.status) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            foundStatus = match[1].trim().replace(/&[a-zA-Z]+;/g, '');
-            console.log(`📊 Found status: ${foundStatus}`);
-            break;
-          }
-        }
-
-        if (foundName) {
-          companyData = {
-            companyName: foundName,
-            address: foundAddress || 'Adresse à compléter',
-            postalCode: foundPostalCode || '',
-            city: foundCity || 'Belgique',
-            status: foundStatus || 'Actif',
-            vat_number: `BE${cleanNumber}`,
-            company_number: formattedNumber
-          };
+        if (validMatch && validMatch[1] === 'true') {
+          console.log(`✅ VIES validation successful`);
           
-          console.log(`✅ CBE extraction successful:`, {
-            name: foundName,
-            address: foundAddress,
-            postal: foundPostalCode,
-            city: foundCity,
-            status: foundStatus
-          });
-        }
-      }
-    } catch (cbeError) {
-      console.log('CBE lookup failed:', cbeError.message);
-    }
-
-    // 2. Try VIES validation for additional info
-    if (!companyData) {
-      try {
-        console.log('🔍 Trying VIES validation for basic info');
-        
-        const viesUrl = `https://ec.europa.eu/taxation_customs/vies/services/checkVatService`;
-        const viesQuery = `BE${cleanNumber}`;
-        
-        // Simple validation check - VIES doesn't provide detailed address but confirms existence
-        console.log(`🇪🇺 VIES validation for: ${viesQuery}`);
-        
-        // For now, create a basic entry if we have a valid format
-        if (cleanNumber.length === 10) {
-          companyData = {
-            companyName: `Entreprise belge ${formattedNumber}`,
-            address: 'Adresse à compléter - Consultez kbopub.economie.fgov.be',
-            postalCode: '',
-            city: 'Belgique',
-            status: 'À vérifier',
-            vat_number: `BE${cleanNumber}`,
-            company_number: formattedNumber
+          const viesName = nameMatch ? nameMatch[1].trim() : null;
+          const viesAddress = addressMatch ? addressMatch[1].trim() : null;
+          
+          // Parse address to extract postal code and city
+          let postalCode = '';
+          let city = '';
+          let cleanAddress = viesAddress;
+          
+          if (viesAddress) {
+            // Belgian postal code pattern: 4 digits followed by city
+            const postalMatch = viesAddress.match(/(\d{4})\s+([A-Za-z][A-Za-z\s\-']+)/);
+            if (postalMatch) {
+              postalCode = postalMatch[1];
+              city = postalMatch[2].trim();
+              // Remove postal code and city from address
+              cleanAddress = viesAddress.replace(/\d{4}\s+[A-Za-z][A-Za-z\s\-']+.*$/, '').trim();
+            }
+          }
+          
+          result = {
+            companyName: viesName || "Nom non disponible",
+            address: cleanAddress || "Adresse à compléter",
+            postalCode: postalCode,
+            city: city,
+            status: "Actif (VIES validé)",
+            vat_number: `BE${formattedNumber}`,
+            company_number: displayNumber
           };
-          console.log('✅ Created basic VIES-validated entry');
         }
-      } catch (viesError) {
-        console.log('VIES validation failed:', viesError.message);
+      }
+    } catch (error) {
+      console.error('❌ VIES lookup failed:', error);
+    }
+
+    // Method 2: Try Company-web.be for enrichment
+    if (!result || result.companyName === "Nom non disponible") {
+      console.log('🔍 Step 2: Trying Company-web.be');
+      try {
+        const companyWebUrl = `https://www.companyweb.be/fr/company/${formattedNumber}`;
+        const response = await fetch(companyWebUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'fr-BE,fr;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+          }
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          console.log(`📄 Company-web HTML length: ${html.length}`);
+          
+          // Extract company name
+          const namePatterns = [
+            /<h1[^>]*class="[^"]*company-title[^"]*"[^>]*>(.*?)<\/h1>/i,
+            /<h1[^>]*>(.*?)<\/h1>/i,
+            /<title>([^|]+)/i
+          ];
+          
+          let companyName = null;
+          for (const pattern of namePatterns) {
+            const match = html.match(pattern);
+            if (match) {
+              companyName = match[1].trim().replace(/&[^;]+;/g, ' ').replace(/\s+/g, ' ');
+              if (companyName && !companyName.includes('404') && !companyName.includes('Error')) {
+                console.log(`✅ Company-web name found: ${companyName}`);
+                break;
+              }
+            }
+          }
+          
+          // Extract address
+          const addressPatterns = [
+            /<div[^>]*class="[^"]*address[^"]*"[^>]*>(.*?)<\/div>/is,
+            /<span[^>]*class="[^"]*address[^"]*"[^>]*>(.*?)<\/span>/is,
+            /Adresse\s*:?\s*<[^>]*>(.*?)<\/[^>]*>/is
+          ];
+          
+          let address = null;
+          let postalCode = '';
+          let city = '';
+          
+          for (const pattern of addressPatterns) {
+            const match = html.match(pattern);
+            if (match) {
+              const rawAddress = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+              
+              // Extract postal code and city
+              const postalMatch = rawAddress.match(/(\d{4})\s+([A-Za-z][A-Za-z\s\-']+)/);
+              if (postalMatch) {
+                postalCode = postalMatch[1];
+                city = postalMatch[2].trim();
+                address = rawAddress.replace(/\d{4}\s+[A-Za-z][A-Za-z\s\-']+.*$/, '').trim();
+              } else {
+                address = rawAddress;
+              }
+              
+              if (address) {
+                console.log(`✅ Company-web address found: ${address}`);
+                break;
+              }
+            }
+          }
+          
+          if (companyName) {
+            result = {
+              companyName: companyName,
+              address: address || result?.address || "Adresse à compléter",
+              postalCode: postalCode || result?.postalCode || '',
+              city: city || result?.city || '',
+              status: "Actif",
+              vat_number: `BE${formattedNumber}`,
+              company_number: displayNumber
+            };
+          }
+        }
+      } catch (error) {
+        console.error('❌ Company-web lookup failed:', error);
       }
     }
 
-    // 3. Try alternative Belgian company sources
-    if (!companyData || companyData.address === 'Adresse à compléter - Consultez kbopub.economie.fgov.be') {
+    // Method 3: Try CBE Open Data Portal
+    if (!result) {
+      console.log('🔍 Step 3: Trying CBE Open Data Portal');
       try {
-        console.log('🔍 Trying alternative Belgian business directories');
-        
-        // Try Yellow Pages Belgium (Les Pages d'Or)
-        const yellowUrl = `https://www.pagesdor.be/search/${encodeURIComponent(formattedNumber)}`;
-        
-        const yellowResponse = await fetch(yellowUrl, {
+        const cbeUrl = `https://kbopub.economie.fgov.be/kbopub/zoeknummerform.html?nummer=${formattedNumber}&actionLu=Rechercher`;
+        const cbeResponse = await fetch(cbeUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'fr-BE,fr;q=0.9,en;q=0.8,nl;q=0.7',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+          }
+        });
+
+        if (cbeResponse.ok) {
+          const html = await cbeResponse.text();
+          console.log(`📄 CBE HTML length: ${html.length}`);
+          
+          // More robust patterns for CBE
+          const namePatterns = [
+            /<title>([^|<]+)/i,
+            /<h1[^>]*>(.*?)<\/h1>/i,
+            /<div[^>]*class="[^"]*title[^"]*"[^>]*>(.*?)<\/div>/i
+          ];
+          
+          let companyName = null;
+          for (const pattern of namePatterns) {
+            const match = html.match(pattern);
+            if (match) {
+              const name = match[1].trim().replace(/&[^;]+;/g, ' ').replace(/\s+/g, ' ');
+              if (name && !name.includes('KBO') && !name.includes('Search') && name.length > 3) {
+                companyName = name;
+                console.log(`✅ CBE name found: ${companyName}`);
+                break;
+              }
+            }
+          }
+          
+          if (companyName && companyName !== "Gegevens van de geregistreerde entiteit") {
+            result = {
+              companyName: companyName,
+              address: "Adresse à compléter",
+              postalCode: "",
+              city: "",
+              status: "Actif",
+              vat_number: `BE${formattedNumber}`,
+              company_number: displayNumber
+            };
+          }
+        }
+      } catch (error) {
+        console.error('❌ CBE lookup failed:', error);
+      }
+    }
+
+    // Method 4: Try alternative Belgian sources
+    if (!result) {
+      console.log('🔍 Step 4: Trying alternative sources');
+      try {
+        // Try Pages d'Or Belgium
+        const pagesOrUrl = `https://www.pagesdor.be/search?what=${formattedNumber}`;
+        const pagesOrResponse = await fetch(pagesOrUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
           }
         });
 
-        if (yellowResponse.ok) {
-          const html = await yellowResponse.text();
-          console.log(`📄 Yellow Pages HTML length: ${html.length}`);
+        if (pagesOrResponse.ok) {
+          const html = await pagesOrResponse.text();
           
-          // Enhanced patterns for Belgian Yellow Pages
-          const yellowPatterns = {
-            name: [
-              /<h1[^>]*class="[^"]*company-name[^"]*"[^>]*>([^<]+)<\/h1>/i,
-              /<span[^>]*class="[^"]*name[^"]*"[^>]*>([^<]+)<\/span>/i,
-              /<div[^>]*class="[^"]*business-name[^"]*"[^>]*>([^<]+)<\/div>/i
-            ],
-            address: [
-              /<div[^>]*class="[^"]*address[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-              /<span[^>]*class="[^"]*street[^"]*"[^>]*>([^<]+)<\/span>/i,
-              /<p[^>]*class="[^"]*location[^"]*"[^>]*>([^<]+)<\/p>/i
-            ]
-          };
+          const namePatterns = [
+            /<h1[^>]*class="[^"]*company[^"]*"[^>]*>(.*?)<\/h1>/i,
+            /<h2[^>]*class="[^"]*name[^"]*"[^>]*>(.*?)<\/h2>/i,
+            /<div[^>]*class="[^"]*business-name[^"]*"[^>]*>(.*?)<\/div>/i
+          ];
           
-          // Try to extract improved data
-          for (const pattern of yellowPatterns.name) {
+          for (const pattern of namePatterns) {
             const match = html.match(pattern);
-            if (match && match[1]) {
-              const name = match[1].trim().replace(/&[a-zA-Z]+;/g, '');
-              if (name.length > 3 && !name.toLowerCase().includes('recherche')) {
-                if (companyData) {
-                  companyData.companyName = name;
-                } else {
-                  companyData = {
-                    companyName: name,
-                    address: 'Adresse à compléter',
-                    postalCode: '',
-                    city: 'Belgique',
-                    vat_number: `BE${cleanNumber}`,
-                    company_number: formattedNumber
-                  };
-                }
-                console.log(`📞 Yellow Pages name: ${name}`);
-                break;
-              }
-            }
-          }
-          
-          // Try to extract address from Yellow Pages
-          for (const pattern of yellowPatterns.address) {
-            const match = html.match(pattern);
-            if (match && match[1]) {
-              let address = match[1].trim()
-                .replace(/<[^>]*>/g, '')
-                .replace(/&[a-zA-Z]+;/g, '')
-                .replace(/\s+/g, ' ');
-              
-              if (address.length > 10 && companyData) {
-                // Parse postal code and city
-                const postalMatch = address.match(/\b(\d{4})\s+([A-Z][a-zA-ZÀ-ÿ\s-]+)/i);
-                if (postalMatch) {
-                  companyData.postalCode = postalMatch[1];
-                  companyData.city = postalMatch[2].trim();
-                  address = address.replace(postalMatch[0], '').trim();
-                }
-                
-                companyData.address = address;
-                console.log(`📞 Yellow Pages address: ${address}`);
+            if (match) {
+              const name = match[1].trim().replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
+              if (name && name.length > 3) {
+                result = {
+                  companyName: name,
+                  address: "Adresse à compléter",
+                  postalCode: "",
+                  city: "",
+                  status: "Actif",
+                  vat_number: `BE${formattedNumber}`,
+                  company_number: displayNumber
+                };
+                console.log(`✅ Pages d'Or name found: ${name}`);
                 break;
               }
             }
           }
         }
-      } catch (altError) {
-        console.log('Alternative sources failed:', altError.message);
+      } catch (error) {
+        console.error('❌ Alternative sources lookup failed:', error);
       }
     }
 
-    if (companyData && companyData.companyName) {
-      const result = {
+    if (result) {
+      console.log(`🎯 Belgium Enhanced Result: ${JSON.stringify({
         success: true,
-        data: companyData
-      };
-
-      console.log('🎯 Belgium Enhanced Result:', result);
+        data: result
+      })}`);
       
       return new Response(
-        JSON.stringify(result),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({
+          success: true,
+          data: result
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      console.log(`❌ No data found for ${displayNumber} in any source`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Company not found in available free sources',
+          searched_number: displayNumber,
+          sources_tried: ['VIES', 'Company-web.be', 'CBE Open Data', 'Pages d\'Or Belgium']
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fallback: return basic info with formatted number
-    const fallbackResult = {
-      success: true,
-      data: {
-        companyName: `Entreprise belge ${formattedNumber}`,
-        address: 'Adresse à compléter - Consultez kbopub.economie.fgov.be',
-        postalCode: '',
-        city: 'Belgique',
-        vat_number: `BE${cleanNumber}`,
-        company_number: formattedNumber
-      }
-    };
-
-    console.log('🎯 Belgium Fallback Result:', fallbackResult);
-
-    return new Response(
-      JSON.stringify(fallbackResult),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-
   } catch (error) {
-    console.error('Belgium enhanced lookup error:', error);
-    
+    console.error('🚨 Belgium Enhanced Lookup Error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error.message || 'Unknown error occurred' 
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
