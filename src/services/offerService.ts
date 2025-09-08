@@ -40,7 +40,8 @@ import {
   saveEquipment,
   migrateEquipmentFromJson,
   convertEquipmentToJson,
-  forceMigrateEquipmentData
+  forceMigrateEquipmentData,
+  deleteOfferEquipment
 } from './offers/offerEquipment';
 
 // Import and re-export from other offer service files
@@ -68,7 +69,8 @@ export {
   saveEquipment,
   migrateEquipmentFromJson,
   convertEquipmentToJson,
-  forceMigrateEquipmentData
+  forceMigrateEquipmentData,
+  deleteOfferEquipment
 };
 
 // Export functions from offerDetail directly

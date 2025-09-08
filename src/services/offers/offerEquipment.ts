@@ -476,3 +476,49 @@ export const updateOfferEquipment = async (
     throw error;
   }
 };
+
+/**
+ * Supprime un équipement existant et toutes ses données liées
+ */
+export const deleteOfferEquipment = async (equipmentId: string): Promise<boolean> => {
+  try {
+    console.log("Deleting equipment:", equipmentId);
+    
+    // Supprimer d'abord les attributs
+    const { error: attributesError } = await supabase
+      .from('offer_equipment_attributes')
+      .delete()
+      .eq('equipment_id', equipmentId);
+    
+    if (attributesError) {
+      console.error("Erreur lors de la suppression des attributs:", attributesError);
+    }
+    
+    // Supprimer les spécifications
+    const { error: specificationsError } = await supabase
+      .from('offer_equipment_specifications')
+      .delete()
+      .eq('equipment_id', equipmentId);
+    
+    if (specificationsError) {
+      console.error("Erreur lors de la suppression des spécifications:", specificationsError);
+    }
+    
+    // Supprimer l'équipement principal
+    const { error: equipmentError } = await supabase
+      .from('offer_equipment')
+      .delete()
+      .eq('id', equipmentId);
+    
+    if (equipmentError) {
+      console.error("Erreur lors de la suppression de l'équipement:", equipmentError);
+      throw new Error(equipmentError.message);
+    }
+    
+    console.log("Equipment deleted successfully");
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'équipement:", error);
+    throw error;
+  }
+};

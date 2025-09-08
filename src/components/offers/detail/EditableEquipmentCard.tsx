@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/utils/formatters";
-import { updateOfferEquipment } from "@/services/offers/offerEquipment";
+import { updateOfferEquipment, deleteOfferEquipment } from "@/services/offers/offerEquipment";
 import { toast } from "sonner";
-import { Hash, Euro, Truck, User, Building, MapPin, Save, Edit, X } from "lucide-react";
+import { Hash, Euro, Truck, User, Building, MapPin, Save, Edit, X, Trash2 } from "lucide-react";
 
 interface EditableEquipmentCardProps {
   item: any;
@@ -25,6 +26,7 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
     coefficient: item.coefficient || 0
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Calculate selling price automatically when purchase price or margin changes
   const calculateSellingPrice = (purchasePrice: number, margin: number) => {
@@ -98,6 +100,25 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
       coefficient: item.coefficient || 0
     });
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (!item.id || item.id.startsWith('temp-')) {
+      toast.error("Impossible de supprimer cet équipement");
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      await deleteOfferEquipment(item.id);
+      toast.success("Équipement supprimé avec succès");
+      onUpdate();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Function to render delivery information
@@ -194,14 +215,48 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
           )}
           
           {!isEditing ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-              className="ml-2"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer l'équipement</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir supprimer cet équipement ? Cette action est irréversible.
+                      <br />
+                      <strong>"{item.title || `Équipement ${index + 1}`}"</strong>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Suppression..." : "Supprimer"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           ) : (
             <div className="flex gap-1">
               <Button
