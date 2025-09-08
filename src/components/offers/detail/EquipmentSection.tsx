@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateEquipmentTotals, calculateOfferMargin } from "@/utils/marginCalculations";
+import { calculateEquipmentTotals, calculateOfferMargin, formatMarginDisplay } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import EditableEquipmentCard from "./EditableEquipmentCard";
 
@@ -134,7 +134,7 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
                 <div className="font-medium">
                   <p className="text-gray-500 mb-1">Marge totale</p>
                   <p className="text-lg font-bold text-purple-600">
-                    {formatCurrency(calculatedMargin || 0)}
+                    {formatMarginDisplay(calculatedMargin)}
                   </p>
                 </div>
               </div>

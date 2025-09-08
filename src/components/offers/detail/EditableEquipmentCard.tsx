@@ -103,7 +103,8 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
   };
 
   const handleDelete = async () => {
-    if (!item.id || item.id.startsWith('temp-')) {
+    console.log("🗑️ DELETE - item.id:", item.id, "type:", typeof item.id);
+    if (!item.id || item.id.toString().startsWith('temp-')) {
       toast.error("Impossible de supprimer cet équipement");
       return;
     }
@@ -224,38 +225,43 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
                 <Edit className="w-4 h-4" />
               </Button>
               
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer l'équipement</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir supprimer cet équipement ? Cette action est irréversible.
-                      <br />
-                      <strong>"{item.title || `Équipement ${index + 1}`}"</strong>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-red-600 hover:bg-red-700"
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? "Suppression..." : "Supprimer"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {(() => {
+                console.log("🗑️ RENDER DELETE - Showing delete button for:", item.id, !(!item.id || item.id.toString().startsWith('temp-')));
+                return item.id && !item.id.toString().startsWith('temp-') && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer l'équipement</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Êtes-vous sûr de vouloir supprimer cet équipement ? Cette action est irréversible.
+                          <br />
+                          <strong>"{item.title || `Équipement ${index + 1}`}"</strong>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-red-600 hover:bg-red-700"
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? "Suppression..." : "Supprimer"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                );
+              })()}
             </div>
           ) : (
             <div className="flex gap-1">

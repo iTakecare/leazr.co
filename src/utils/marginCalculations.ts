@@ -66,8 +66,8 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
 };
 
 /**
- * Calculate margin consistently across all components
- * Uses the exact same logic as FinancialSection: montant financé (amount) - prix d'achat des équipements
+ * Calculate margin consistently across all components as a percentage
+ * Formula: (montant financé - prix d'achat total) / prix d'achat total * 100
  */
 export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
   console.log("🔍 calculateOfferMargin - offer.financed_amount:", offer.financed_amount);
@@ -81,25 +81,39 @@ export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?:
   const financedAmount = getFinancedAmount(offer);
   console.log("🔍 calculateOfferMargin - financedAmount:", financedAmount);
 
-  // Calculer la marge directement : montant financé - prix d'achat total
-  const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
-  console.log("🔍 calculateOfferMargin - displayMargin calculated:", displayMargin);
+  // Si pas de prix d'achat total, retourner 0
+  if (totals.totalPurchasePrice <= 0) {
+    console.log("🔍 calculateOfferMargin - No purchase price, returning 0");
+    return 0;
+  }
+
+  // Calculer la marge en pourcentage : (montant financé - prix d'achat total) / prix d'achat total * 100
+  const marginPercentage = ((financedAmount - totals.totalPurchasePrice) / totals.totalPurchasePrice) * 100;
+  console.log("🔍 calculateOfferMargin - marginPercentage calculated:", marginPercentage);
   
-  return displayMargin;
+  return marginPercentage;
 };
 
 /**
- * Format margin for display
+ * Format margin for display as percentage
  */
 export const formatMarginDisplay = (margin: number | null): string => {
   if (margin === null) {
     return "N/A";
   }
   
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(margin);
+  return `${margin.toFixed(2)}%`;
+};
+
+/**
+ * Calculate margin amount in euros (for components that still need the amount)
+ */
+export const calculateOfferMarginAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
+  const totals = calculateEquipmentTotals(offer, equipmentItems);
+  const financedAmount = getFinancedAmount(offer);
+  
+  // Calculer la marge en montant : montant financé - prix d'achat total
+  const marginAmount = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
+  
+  return marginAmount;
 };
