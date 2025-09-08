@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Edit, Save, X, Edit3, Calculator } from "lucide-react";
+import AddCustomEquipmentDialog from "./AddCustomEquipmentDialog";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
 import { updateOfferEquipment } from "@/services/offers/offerEquipment";
@@ -329,9 +330,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Équipements
-          <Badge variant="secondary">{equipment.length}</Badge>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            Équipements
+            <Badge variant="secondary">{equipment.length}</Badge>
+          </div>
+          <AddCustomEquipmentDialog 
+            offerId={offer.id} 
+            onEquipmentAdded={refresh}
+          />
         </CardTitle>
       </CardHeader>
       <CardContent>
