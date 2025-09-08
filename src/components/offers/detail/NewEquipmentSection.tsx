@@ -266,7 +266,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
 
       await Promise.all(updatePromises);
       
-      toast.success("Mensualité totale mise à jour selon la logique Excel");
       await refresh();
       setIsEditingTotalMonthly(false);
     } catch (error) {
