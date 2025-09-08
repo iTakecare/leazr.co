@@ -210,12 +210,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
         return;
       }
       
-      // ÉTAPE 1: Calculer le montant financé total avec le coefficient correct
-      // Forcer le coefficient Grenke exact comme dans Excel (3.16 pour la tranche 5000.01-12500€)
-      const exactGrenkeCoefficient = 3.16;
-      
-      // Calcul direct du montant financé avec coefficient exact
-      const calculatedFinancedAmount = (editedTotalMonthly * 100) / exactGrenkeCoefficient;
+      // ÉTAPE 1: Calculer le montant financé total avec le coefficient correct du leaser
+      // Utiliser la logique du leaser pour trouver le montant financé exact
+      const calculatedFinancedAmount = calculateSalePriceWithLeaser(editedTotalMonthly, leaser, offer.duration || 36);
       
       // Forcer l'arrondi à exactement 2 décimales (comme Excel)
       const totalFinancedAmount = parseFloat(calculatedFinancedAmount.toFixed(2));
