@@ -15,6 +15,15 @@ interface EditableEquipmentCardProps {
 }
 
 const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, index, onUpdate }) => {
+  // 🔥 DEBUG: Log item data at the start
+  console.log("🔥 EQUIPMENT CARD RENDER - Item data:", {
+    id: item.id,
+    idType: typeof item.id,
+    title: item.title,
+    hasValidId: !(!item.id || item.id.toString().startsWith('temp-')),
+    fullItem: item
+  });
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedItem, setEditedItem] = useState({
     title: item.title || '',
@@ -182,6 +191,14 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
 
   return (
     <div className="border rounded-lg p-4">
+      {/* 🔥 TEMPORARY DEBUG INFO */}
+      <div className="bg-yellow-100 border border-yellow-300 p-2 mb-3 text-xs">
+        <strong>DEBUG INFO:</strong><br/>
+        ID: {item.id} (Type: {typeof item.id})<br/>
+        Starts with temp: {item.id ? item.id.toString().startsWith('temp-') ? 'YES' : 'NO' : 'NO ID'}<br/>
+        Should show delete: {item.id && !item.id.toString().startsWith('temp-') ? 'YES ✅' : 'NO ❌'}
+      </div>
+      
       <div className="flex justify-between items-start mb-3">
         {isEditing ? (
           <Input
@@ -226,17 +243,26 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
               </Button>
               
               {(() => {
-                console.log("🗑️ RENDER DELETE - Showing delete button for:", item.id, !(!item.id || item.id.toString().startsWith('temp-')));
-                return item.id && !item.id.toString().startsWith('temp-') && (
+                const hasValidId = item.id && !item.id.toString().startsWith('temp-');
+                console.log("🗑️ RENDER DELETE - Debug info:", {
+                  itemId: item.id,
+                  itemIdType: typeof item.id,
+                  startsWithTemp: item.id ? item.id.toString().startsWith('temp-') : 'no id',
+                  hasValidId: hasValidId,
+                  willShowButton: hasValidId
+                });
+                
+                return hasValidId && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="bg-red-100 border-red-300 text-red-700 hover:bg-red-200 hover:text-red-800 font-bold shadow-lg"
                         disabled={isDeleting}
                       >
                         <Trash2 className="w-4 h-4" />
+                        DELETE
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
