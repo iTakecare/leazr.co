@@ -3,11 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit, Save, X, Edit3, Calculator } from "lucide-react";
+import { Loader2, Edit, Save, X, Edit3, Calculator, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import AddCustomEquipmentDialog from "./AddCustomEquipmentDialog";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
-import { updateOfferEquipment } from "@/services/offers/offerEquipment";
+import { updateOfferEquipment, deleteOfferEquipment } from "@/services/offers/offerEquipment";
 import { GlobalMarginEditor } from "./GlobalMarginEditor";
 import { toast } from "sonner";
 import { getLeaserById } from "@/services/leaserService";
@@ -41,6 +52,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   const [isEditingTotalMonthly, setIsEditingTotalMonthly] = useState(false);
   const [editedTotalMonthly, setEditedTotalMonthly] = useState(0);
   const [leaser, setLeaser] = useState<Leaser | null>(null);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   // Load leaser data
   useEffect(() => {
@@ -145,6 +157,20 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
   const handleCancel = () => {
     setEditingId(null);
     setEditedValues({});
+  };
+
+  const handleDelete = async (equipmentId: string, equipmentTitle: string) => {
+    setIsDeletingId(equipmentId);
+    try {
+      await deleteOfferEquipment(equipmentId);
+      toast.success(`Équipement "${equipmentTitle}" supprimé avec succès`);
+      refresh();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression de l'équipement");
+    } finally {
+      setIsDeletingId(null);
+    }
   };
 
   const calculateTotals = () => {
@@ -461,36 +487,71 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {isEditing ? (
-                        <div className="flex gap-1 justify-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSave}
-                            disabled={isSaving}
-                          >
-                            <Save className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCancel}
-                            disabled={isSaving}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </TableCell>
+                     <TableCell className="text-center">
+                       {isEditing ? (
+                         <div className="flex gap-1 justify-center">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={handleSave}
+                             disabled={isSaving}
+                           >
+                             <Save className="w-4 h-4" />
+                           </Button>
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={handleCancel}
+                             disabled={isSaving}
+                           >
+                             <X className="w-4 h-4" />
+                           </Button>
+                         </div>
+                       ) : (
+                         <div className="flex gap-1 justify-center">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => handleEdit(item)}
+                           >
+                             <Edit className="w-4 h-4" />
+                           </Button>
+                           <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 disabled={isDeletingId === item.id}
+                               >
+                                 {isDeletingId === item.id ? (
+                                   <Loader2 className="w-4 h-4 animate-spin" />
+                                 ) : (
+                                   <Trash2 className="w-4 h-4 text-destructive" />
+                                 )}
+                               </Button>
+                             </AlertDialogTrigger>
+                             <AlertDialogContent>
+                               <AlertDialogHeader>
+                                 <AlertDialogTitle>Supprimer l'équipement</AlertDialogTitle>
+                                 <AlertDialogDescription>
+                                   Êtes-vous sûr de vouloir supprimer l'équipement "{item.title}" ? 
+                                   Cette action est irréversible.
+                                 </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                 <AlertDialogAction 
+                                   onClick={() => handleDelete(item.id, item.title)}
+                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                 >
+                                   Supprimer
+                                 </AlertDialogAction>
+                               </AlertDialogFooter>
+                             </AlertDialogContent>
+                           </AlertDialog>
+                         </div>
+                       )}
+                     </TableCell>
                   </TableRow>
                 );
               })}
