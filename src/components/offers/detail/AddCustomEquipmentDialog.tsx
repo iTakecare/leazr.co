@@ -41,8 +41,13 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
     // Auto-calculate margin when selling price changes (if purchase price exists)
     if (field === 'selling_price' && newData.purchase_price > 0) {
       const sellingPrice = Number(value);
-      const calculatedMargin = ((sellingPrice - newData.purchase_price) / newData.purchase_price) * 100;
-      newData.margin = Number(calculatedMargin.toFixed(2));
+      // Si le prix de vente est 0 (équipement offert), la marge est de 0%
+      if (sellingPrice === 0) {
+        newData.margin = 0;
+      } else {
+        const calculatedMargin = ((sellingPrice - newData.purchase_price) / newData.purchase_price) * 100;
+        newData.margin = Number(calculatedMargin.toFixed(2));
+      }
     }
     
     setFormData(newData);
@@ -228,7 +233,13 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span>Prix de vente unitaire:</span>
-                  <span className="font-mono text-green-600">{formatPrice(formData.selling_price)}</span>
+                  <span className="font-mono text-green-600">
+                    {formData.selling_price === 0 ? (
+                      <span className="text-blue-600">Offert (0€)</span>
+                    ) : (
+                      formatPrice(formData.selling_price)
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Marge unitaire:</span>
