@@ -252,7 +252,8 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
                   willShowButton: hasValidId
                 });
                 
-                return hasValidId && (
+                // 🔥 FORCE DISPLAY FOR ALL ITEMS TO DEBUG
+                return true && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
