@@ -168,11 +168,10 @@ const AddCustomEquipmentDialog: React.FC<AddCustomEquipmentDialogProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="margin">Marge (%)</Label>
-              <Input
+               <Input
                 id="margin"
                 type="number"
                 step="0.1"
-                min="0"
                 value={formData.margin === 0 ? '' : formData.margin}
                 onChange={(e) => handleInputChange('margin', parseFloat(e.target.value) || 0)}
                 placeholder="0.0"
