@@ -13,7 +13,7 @@ interface EquipmentSectionProps {
 
 const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
   // Utiliser le hook pour récupérer les équipements depuis les nouvelles tables
-  const { equipment, loading, error } = useOfferEquipment(offer.id);
+  const { equipment, loading, error, refresh } = useOfferEquipment(offer.id);
   
   // Convertir les données de la base de données au format attendu par les calculs
   const equipmentItems = equipment.map(item => ({
@@ -81,7 +81,7 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
     );
   }
 
-  const { refresh } = useOfferEquipment(offer.id);
+  
 
   return (
     <Card>
