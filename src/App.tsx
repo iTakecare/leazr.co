@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/context/AuthContext";
 import { CompanyBrandingProvider } from "@/context/CompanyBrandingContext";
 import { CartProvider } from "@/context/CartContext";
@@ -304,23 +305,25 @@ function App() {
   
   return (
     <ErrorBoundaryWrapper>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-          <TooltipProvider>
-            <BrowserRouter>
-              <AuthProvider>
-                <CompanyBrandingProvider>
-                  <CartProvider>
-                    <AppRoutes />
-                  </CartProvider>
-                </CompanyBrandingProvider>
-              </AuthProvider>
-            </BrowserRouter>
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+            <TooltipProvider>
+              <BrowserRouter>
+                <AuthProvider>
+                  <CompanyBrandingProvider>
+                    <CartProvider>
+                      <AppRoutes />
+                    </CartProvider>
+                  </CompanyBrandingProvider>
+                </AuthProvider>
+              </BrowserRouter>
+              <Toaster />
+              <Sonner />
+            </TooltipProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
     </ErrorBoundaryWrapper>
   );
 }

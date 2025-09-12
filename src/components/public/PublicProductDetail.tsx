@@ -16,6 +16,7 @@ import { useAttributeHelpers } from "@/components/product-detail/ProductAttribut
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Container from "@/components/layout/Container";
+import ProductStructuredData from "@/components/seo/ProductStructuredData";
 
 interface PublicProductDetailProps {
   companyId: string;
@@ -145,7 +146,14 @@ const PublicProductDetail: React.FC<PublicProductDetailProps> = ({
 
   return (
     <div className="min-h-screen bg-white">
-      <UnifiedNavigationBar 
+      {/* SEO and Structured Data */}
+      <ProductStructuredData 
+        product={product}
+        company={company}
+        companySlug={companySlug}
+      />
+      
+      <UnifiedNavigationBar
         company={company}
         showFilters={false}
         showCartButton={true}
