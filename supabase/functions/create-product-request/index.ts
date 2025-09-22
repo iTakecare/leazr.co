@@ -528,7 +528,7 @@ serve(async (req) => {
         return items.join('\n            ');
       };
 
-      // Récupérer les informations de la company iTakecare pour le logo
+      // Récupérer les informations de l'entreprise pour personnaliser les emails (client ET admin)
       const { data: companyInfo, error: companyError } = await supabaseAdmin
         .from('companies')
         .select('name, logo_url')
@@ -537,6 +537,8 @@ serve(async (req) => {
       
       const companyLogo = companyInfo?.logo_url || '';
       const companyName = companyInfo?.name || 'iTakecare';
+
+      if (clientEmail) {
       
       // Récupérer le modèle d'email de demande de produit
       const { data: emailTemplate, error: templateError } = await supabaseAdmin
