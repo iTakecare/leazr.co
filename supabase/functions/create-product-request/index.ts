@@ -155,12 +155,12 @@ serve(async (req) => {
         id,
         name,
         leaser_ranges (
-          min_amount,
-          max_amount,
-          coefficient_36
+          min,
+          max,
+          coefficient
         )
       `)
-      .eq('name', 'Grenke Lease')
+      .eq('name', '1. Grenke Lease')
       .single();
 
     if (!leaserData || !leaserData.leaser_ranges) {
@@ -171,17 +171,17 @@ serve(async (req) => {
 
     // Fonction pour trouver le coefficient selon le montant
     function getCoefficientForAmount(amount: number, ranges: any[]): number {
-      const sortedRanges = ranges.sort((a, b) => a.min_amount - b.min_amount);
+      const sortedRanges = ranges.sort((a, b) => a.min - b.min);
       
       for (const range of sortedRanges) {
-        if (amount >= range.min_amount && amount <= range.max_amount) {
-          return range.coefficient_36 || 3.53; // Fallback par défaut
+        if (amount >= range.min && amount <= range.max) {
+          return range.coefficient || 3.53; // Fallback par défaut
         }
       }
       
       // Si pas de tranche trouvée, utiliser la dernière tranche
       const lastRange = sortedRanges[sortedRanges.length - 1];
-      return lastRange?.coefficient_36 || 3.53;
+      return lastRange?.coefficient || 3.53;
     }
 
     // Calcul itératif pour trouver le bon coefficient
