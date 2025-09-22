@@ -148,9 +148,57 @@ serve(async (req) => {
     console.log("Liste d'équipements:", equipmentList);
     console.log("Mensualité totale des produits:", totalMonthlyPayment + "€");
 
-    // Calculs selon le calculateur d'offre
-    const coefficient = 3.53; // Coefficient Grenke 36 mois
-    const totalFinancedAmount = totalMonthlyPayment * coefficient;
+    // Récupérer le leaser Grenke et ses tranches
+    const { data: leaserData } = await supabaseAdmin
+      .from('leasers')
+      .select(`
+        id,
+        name,
+        leaser_ranges (
+          min_amount,
+          max_amount,
+          coefficient_36
+        )
+      `)
+      .eq('name', 'Grenke Lease')
+      .single();
+
+    if (!leaserData || !leaserData.leaser_ranges) {
+      throw new Error('Leaser Grenke non trouvé ou tranches manquantes');
+    }
+
+    console.log("GRENKE trouvé avec tranches:", leaserData.name, "- Nombre de tranches:", leaserData.leaser_ranges.length);
+
+    // Fonction pour trouver le coefficient selon le montant
+    function getCoefficientForAmount(amount: number, ranges: any[]): number {
+      const sortedRanges = ranges.sort((a, b) => a.min_amount - b.min_amount);
+      
+      for (const range of sortedRanges) {
+        if (amount >= range.min_amount && amount <= range.max_amount) {
+          return range.coefficient_36 || 3.53; // Fallback par défaut
+        }
+      }
+      
+      // Si pas de tranche trouvée, utiliser la dernière tranche
+      const lastRange = sortedRanges[sortedRanges.length - 1];
+      return lastRange?.coefficient_36 || 3.53;
+    }
+
+    // Calcul itératif pour trouver le bon coefficient
+    let estimatedFinancedAmount = totalMonthlyPayment * 3.53; // Estimation initiale
+    let coefficient = getCoefficientForAmount(estimatedFinancedAmount, leaserData.leaser_ranges);
+    let totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient; // Formule correcte
+    
+    // Itération pour convergence (max 3 itérations)
+    for (let i = 0; i < 3; i++) {
+      const newCoefficient = getCoefficientForAmount(totalFinancedAmount, leaserData.leaser_ranges);
+      if (Math.abs(newCoefficient - coefficient) < 0.001) {
+        break; // Convergence atteinte
+      }
+      coefficient = newCoefficient;
+      totalFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
+    }
+
     const marginAmount = totalFinancedAmount - totalPurchaseAmount;
     const marginPercentage = totalPurchaseAmount > 0 ? ((marginAmount / totalPurchaseAmount) * 100).toFixed(1) : "0.0";
     const calculatedMonthlyPayment = totalMonthlyPayment;
@@ -159,9 +207,8 @@ serve(async (req) => {
       "      - Prix d'achat total: " + totalPurchaseAmount + "€\n" +
       "      - Montant financé total: " + totalFinancedAmount.toFixed(2) + "€\n" +
       "      - Coefficient utilisé: " + coefficient + "\n" +
-      "      - Mensualité calculée: " + calculatedMonthlyPayment + "€");
-
-    console.log("GRENKE forcé avec tranches: 1. Grenke Lease - Nombre de tranches: 5");
+      "      - Mensualité calculée: " + calculatedMonthlyPayment + "€\n" +
+      "      - Marge calculée: " + marginAmount.toFixed(2) + "€ (" + marginPercentage + "%)");
 
     // Génération d'un ID unique pour la demande
     const requestId = crypto.randomUUID();
