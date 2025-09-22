@@ -258,13 +258,13 @@ serve(async (req) => {
     }
 
     // Déterminer le leaser (Grenke pour ce cas)
-    const { data: leaserData } = await supabaseAdmin
+    const { data: leaserIdData } = await supabaseAdmin
       .from('leasers')
       .select('id')
       .eq('name', 'Grenke Lease')
       .single();
 
-    const leaserId = leaserData?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
+    const leaserId = leaserIdData?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
 
     // Création de l'offre
     const offerData = {
