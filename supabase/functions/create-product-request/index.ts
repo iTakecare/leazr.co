@@ -662,25 +662,41 @@ serve(async (req) => {
               </div>
             `;
             
-            // Envoyer l'email à chaque administrateur
-            for (const admin of adminEmails) {
-              try {
-                const adminEmailResult = await resend.emails.send({
+            // Envoyer un email groupé à tous les administrateurs pour éviter le rate limit
+            const recipients = adminEmails.map(a => a.email);
+            try {
+              let adminEmailResult = await resend.emails.send({
+                from,
+                to: recipients,
+                subject: adminSubject,
+                html: adminHtmlContent,
+                text: stripHtml(adminHtmlContent),
+              });
+
+              // Gestion simple du rate limit (429)
+              if (
+                adminEmailResult.error &&
+                ((adminEmailResult.error as any).name === 'rate_limit_exceeded' ||
+                  /Too many requests/i.test(((adminEmailResult.error as any).message) || ''))
+              ) {
+                console.log('Rate limit détecté, nouvel essai dans 800ms...');
+                await new Promise((r) => setTimeout(r, 800));
+                adminEmailResult = await resend.emails.send({
                   from,
-                  to: admin.email,
+                  to: recipients,
                   subject: adminSubject,
                   html: adminHtmlContent,
                   text: stripHtml(adminHtmlContent),
                 });
-                
-                if (adminEmailResult.error) {
-                  console.error(`Erreur lors de l'envoi à ${admin.email}:`, adminEmailResult.error);
-                } else {
-                  console.log(`Email admin envoyé avec succès à ${admin.name} (${admin.email})`);
-                }
-              } catch (adminEmailError) {
-                console.error(`Exception lors de l'envoi à ${admin.email}:`, adminEmailError);
               }
+
+              if (adminEmailResult.error) {
+                console.error('Erreur lors de l\'envoi groupé aux admins:', adminEmailResult.error);
+              } else {
+                console.log(`Email admin groupé envoyé avec succès à: ${recipients.join(', ')}`);
+              }
+            } catch (adminEmailError) {
+              console.error('Exception lors de l\'envoi groupé aux admins:', adminEmailError);
             }
           }
         }
