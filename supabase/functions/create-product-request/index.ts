@@ -726,6 +726,147 @@ serve(async (req) => {
       // On ne bloque pas le processus même si l'envoi d'email échoue
     }
 
+    // ========= NOTIFICATION AUX ADMINISTRATEURS ==========
+    try {
+      console.log("Début de l'envoi des notifications aux administrateurs...");
+      
+      // Récupérer tous les administrateurs de l'entreprise
+      const { data: adminUsers, error: adminError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('company_id', targetCompanyId)
+        .eq('role', 'admin');
+      
+      if (adminError) {
+        console.error("Erreur lors de la récupération des administrateurs:", adminError);
+      } else if (!adminUsers || adminUsers.length === 0) {
+        console.log("Aucun administrateur trouvé pour l'entreprise");
+      } else {
+        console.log(`${adminUsers.length} administrateur(s) trouvé(s)`);
+        
+        // Récupérer les emails des administrateurs depuis auth.users
+        const adminEmails = [];
+        for (const admin of adminUsers) {
+          const { data: userAuth, error: userError } = await supabaseAdmin.auth.admin.getUserById(admin.id);
+          if (!userError && userAuth?.user?.email) {
+            adminEmails.push({
+              email: userAuth.user.email,
+              name: `${admin.first_name || ''} ${admin.last_name || ''}`.trim() || 'Administrateur'
+            });
+          }
+        }
+        
+        if (adminEmails.length === 0) {
+          console.log("Aucun email d'administrateur récupéré");
+        } else {
+          console.log(`Envoi de notifications à ${adminEmails.length} administrateur(s)`);
+          
+          // Utiliser les mêmes paramètres email que pour le client
+          const globalResendKey = Deno.env.get('ITAKECARE_RESEND_API');
+          const { data: smtpSettings } = await supabaseAdmin
+            .from('smtp_settings')
+            .select('resend_api_key, from_email, from_name')
+            .eq('id', 1)
+            .single();
+          
+          const resendApiKey = globalResendKey || smtpSettings?.resend_api_key;
+          
+          if (resendApiKey) {
+            const resend = new Resend(resendApiKey);
+            const fromName = globalResendKey ? "iTakecare" : (smtpSettings?.from_name || "iTakecare");
+            const fromEmail = globalResendKey ? "noreply@itakecare.be" : (smtpSettings?.from_email || "noreply@itakecare.be");
+            const from = `${fromName} <${fromEmail}>`;
+            
+            // Template d'email pour les administrateurs
+            const adminSubject = `🚨 Nouvelle demande d'offre reçue - ${clientName || companyName}`;
+            const adminHtmlContent = `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${companyName}</h1>`}
+                </div>
+                
+                <h2 style="color: #d73527; border-bottom: 2px solid #d73527; padding-bottom: 10px;">🚨 Nouvelle demande d'offre reçue</h2>
+                
+                <div style="background: linear-gradient(135deg, #fff3f3 0%, #ffe8e8 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #d73527;">
+                  <h3 style="color: #d73527; margin-top: 0;">📋 Informations client</h3>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="margin: 8px 0;"><strong>👤 Nom :</strong> ${clientName || 'Non renseigné'}</li>
+                    <li style="margin: 8px 0;"><strong>🏢 Entreprise :</strong> ${companyName}</li>
+                    <li style="margin: 8px 0;"><strong>📧 Email :</strong> ${clientEmail}</li>
+                    <li style="margin: 8px 0;"><strong>📞 Téléphone :</strong> ${data.contact_info.phone || 'Non renseigné'}</li>
+                    <li style="margin: 8px 0;"><strong>🏠 Adresse :</strong> ${data.company_info.address || 'Non renseignée'}, ${data.company_info.city || ''} ${data.company_info.postal_code || ''}</li>
+                    ${data.company_info.vat_number ? `<li style="margin: 8px 0;"><strong>🆔 N° TVA :</strong> ${data.company_info.vat_number}</li>` : ''}
+                  </ul>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f0f8ff 0%, #e1f0ff 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2d618f;">
+                  <h3 style="color: #2d618f; margin-top: 0;">💰 Détails financiers</h3>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="margin: 8px 0;"><strong>📱 Équipement :</strong> ${equipmentDescription}</li>
+                    <li style="margin: 8px 0;"><strong>💶 Prix d'achat total :</strong> ${totalPurchaseAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</li>
+                    <li style="margin: 8px 0;"><strong>📅 Mensualité :</strong> ${totalMonthlyPayment.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/mois</li>
+                    <li style="margin: 8px 0;"><strong>🔢 Coefficient :</strong> ${coefficient}</li>
+                    <li style="margin: 8px 0;"><strong>💵 Montant financé :</strong> ${totalFinancedAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</li>
+                    <li style="margin: 8px 0;"><strong>📈 Marge :</strong> ${marginAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € (${marginPercentage}%)</li>
+                  </ul>
+                </div>
+                
+                ${data.delivery_info ? `
+                <div style="background: linear-gradient(135deg, #f8fff0 0%, #efffdc 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #4caf50;">
+                  <h3 style="color: #2e7d32; margin-top: 0;">🚚 Adresse de livraison</h3>
+                  <p style="margin: 0;">${data.delivery_info.address || ''}<br>
+                  ${data.delivery_info.city || ''} ${data.delivery_info.postal_code || ''}<br>
+                  ${data.delivery_info.country || ''}</p>
+                </div>
+                ` : ''}
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${Deno.env.get('SITE_URL') || 'https://app.itakecare.be'}/offers/${requestId}" 
+                     style="background: linear-gradient(135deg, #2d618f 0%, #4a90e2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; box-shadow: 0 4px 15px rgba(45, 97, 143, 0.3);">
+                    👀 Voir l'offre dans l'interface admin
+                  </a>
+                </div>
+                
+                <div style="background-color: #fff8e1; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+                  <p style="margin: 0; color: #f57c00; font-weight: bold;">⚡ Action requise</p>
+                  <p style="margin: 5px 0 0 0; font-size: 14px;">Cette demande nécessite votre attention. Connectez-vous à l'interface d'administration pour traiter la demande.</p>
+                </div>
+                
+                <p style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
+                  📧 Cet email a été envoyé automatiquement suite à une demande d'offre via le catalogue web.<br>
+                  🕐 Demande reçue le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
+                </p>
+              </div>
+            `;
+            
+            // Envoyer l'email à chaque administrateur
+            for (const admin of adminEmails) {
+              try {
+                const adminEmailResult = await resend.emails.send({
+                  from,
+                  to: admin.email,
+                  subject: adminSubject,
+                  html: adminHtmlContent,
+                  text: stripHtml(adminHtmlContent),
+                });
+                
+                if (adminEmailResult.error) {
+                  console.error(`Erreur lors de l'envoi à ${admin.email}:`, adminEmailResult.error);
+                } else {
+                  console.log(`Email admin envoyé avec succès à ${admin.name} (${admin.email})`);
+                }
+              } catch (adminEmailError) {
+                console.error(`Exception lors de l'envoi à ${admin.email}:`, adminEmailError);
+              }
+            }
+          }
+        }
+      }
+    } catch (adminNotificationError) {
+      console.error("Exception lors de l'envoi des notifications admin:", adminNotificationError);
+      // Ne pas bloquer le processus même si les notifications admin échouent
+    }
+
     // Préparer les données de réponse
     const responseData = {
       id: requestId,
