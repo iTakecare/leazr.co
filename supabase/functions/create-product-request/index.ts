@@ -401,7 +401,6 @@ serve(async (req) => {
             <h3 style="color: #2e7d32; margin-top: 0; display: flex; align-items: center;">🎯 Prochaines étapes</h3>
             <ol style="color: #2e7d32; padding-left: 20px; line-height: 1.8;">
               <li><strong>Traitement de votre demande</strong> : Notre équipe analyse votre demande sous 24h ouvrées</li>
-              <li><strong>Proposition personnalisée</strong> : Vous recevrez une offre détaillée adaptée à vos besoins</li>
               <li><strong>Validation et signature</strong> : Une fois acceptée, nous finalisons ensemble votre contrat</li>
             </ol>
           </div>
