@@ -264,16 +264,18 @@ serve(async (req) => {
         .single();
 
       let monthlyPrice = 0;
+      let purchasePrice = 0;
       let attributes = {};
 
       if (product.variant_id) {
         const { data: variantData } = await supabaseAdmin
           .from('product_variant_prices')
-          .select('monthly_price, attributes')
+          .select('price, monthly_price, attributes')
           .eq('id', product.variant_id)
           .single();
         
         if (variantData) {
+          purchasePrice = variantData.price || 0;
           monthlyPrice = variantData.monthly_price || 0;
           attributes = variantData.attributes || {};
         }
@@ -282,7 +284,7 @@ serve(async (req) => {
       const equipmentData = {
         offer_id: requestId,
         title: productInfo?.name || 'Produit',
-        purchase_price: 0,
+        purchase_price: purchasePrice,
         quantity: product.quantity,
         monthly_payment: monthlyPrice * product.quantity,
         margin: 0,
