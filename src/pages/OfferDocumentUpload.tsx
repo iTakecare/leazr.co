@@ -224,26 +224,37 @@ const OfferDocumentUpload = () => {
           {companyInfo && (
             <div className="mb-8 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="logo-container">
+                <div className="flex flex-col items-center space-y-2">
                   {companyInfo.logo_url ? (
                     <img 
                       src={companyInfo.logo_url} 
                       alt={`Logo ${companyInfo.name}`}
-                      className="h-12 w-auto"
+                      className="h-20 w-auto max-w-xs object-contain"
                       onError={(e) => {
-                        console.error('🔍 DEBUG - Erreur de chargement du logo (succès):', e);
-                        console.error('🔍 DEBUG - URL du logo qui a échoué (succès):', companyInfo.logo_url);
-                        e.currentTarget.style.display = 'none';
+                        console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
+                        console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
+                        const target = e.currentTarget;
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `
+                            <div class="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
+                              <div class="text-xl font-bold">${companyInfo.name.substring(0, 2).toUpperCase()}</div>
+                              <div class="text-xs opacity-70">Logo</div>
+                            </div>
+                          `;
+                        }
                       }}
                       onLoad={() => {
-                        console.log('🔍 DEBUG - Logo chargé avec succès (succès):', companyInfo.logo_url);
+                        console.log('🔍 DEBUG - Logo chargé avec succès:', companyInfo.logo_url);
                       }}
                     />
                   ) : (
-                    <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-                      Pas de logo
+                    <div className="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
+                      <div className="text-xl font-bold">{companyInfo.name.substring(0, 2).toUpperCase()}</div>
+                      <div className="text-xs opacity-70">Logo</div>
                     </div>
                   )}
+                  <h2 className="text-xl font-semibold text-gray-800">{companyInfo.name}</h2>
                 </div>
               </div>
             </div>
@@ -304,26 +315,37 @@ const OfferDocumentUpload = () => {
         {companyInfo && (
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center mb-4">
-              <div className="logo-container">
+              <div className="flex flex-col items-center space-y-2">
                 {companyInfo.logo_url ? (
                   <img 
                     src={companyInfo.logo_url} 
                     alt={`Logo ${companyInfo.name}`}
-                    className="h-12 w-auto"
+                    className="h-20 w-auto max-w-xs object-contain"
                     onError={(e) => {
                       console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
                       console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
-                      e.currentTarget.style.display = 'none';
+                      const target = e.currentTarget;
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div class="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
+                            <div class="text-xl font-bold">${companyInfo.name.substring(0, 2).toUpperCase()}</div>
+                            <div class="text-xs opacity-70">Logo</div>
+                          </div>
+                        `;
+                      }
                     }}
                     onLoad={() => {
                       console.log('🔍 DEBUG - Logo chargé avec succès:', companyInfo.logo_url);
                     }}
                   />
                 ) : (
-                  <div className="h-12 w-12 bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-                    Pas de logo
+                  <div className="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
+                    <div className="text-xl font-bold">{companyInfo.name.substring(0, 2).toUpperCase()}</div>
+                    <div className="text-xs opacity-70">Logo</div>
                   </div>
                 )}
+                <h2 className="text-xl font-semibold text-gray-800">{companyInfo.name}</h2>
               </div>
             </div>
           </div>
