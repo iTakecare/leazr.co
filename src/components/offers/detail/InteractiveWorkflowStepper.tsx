@@ -44,7 +44,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   }
 
   // Get dynamic workflow based on offer type and company
-  const offerType = (offer?.type || 'ambassador_offer') as OfferType;
+  const offerType = (offer?.type || 'client_request') as OfferType;
   const companyId = offer?.company_id || user?.company;
   
   const { steps: workflowSteps, loading: workflowLoading } = useWorkflowForOfferType(
