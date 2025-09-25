@@ -210,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
     // 9. Préparer le contenu de l'email
     // Déterminer l'URL de base à partir de l'en-tête de la requête
     const origin = req.headers.get('origin') || req.headers.get('referer');
-    let APP_URL = 'https://preview--leazr.lovable.app'; // Fallback par défaut
+    let APP_URL = 'https://www.leazr.co'; // Fallback par défaut
     
     if (origin) {
       try {

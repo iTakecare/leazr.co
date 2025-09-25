@@ -51,6 +51,9 @@ verify_jwt = false
 [functions.send-document-rejection]
 verify_jwt = true
 
+[functions.send-document-request]
+verify_jwt = false
+
 [functions.get-secret]
 verify_jwt = true
 

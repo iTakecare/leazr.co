@@ -186,7 +186,7 @@ serve(async (req) => {
         }
       } else {
         console.warn("APP_URL et origin non disponibles, utilisation URL par défaut");
-        appUrl = 'https://preview--leazr.lovable.app';
+        appUrl = 'https://www.leazr.co';
       }
     }
     
