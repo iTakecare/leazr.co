@@ -178,7 +178,7 @@ serve(async (req) => {
 
       } catch (invoiceError) {
         console.error(`❌ Erreur traitement facture ${invoice.id}:`, invoiceError);
-        errors.push(`Facture ${invoice.id}: ${invoiceError.message}`);
+        errors.push(`Facture ${invoice.id}: ${invoiceError instanceof Error ? invoiceError.message : 'Unknown error'}`);
       }
     }
 
@@ -200,7 +200,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message || String(error),
+      error: error instanceof Error ? error.message : String(error),
       message: "Erreur lors de la synchronisation"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -78,7 +78,7 @@ serve(async (req) => {
         }
       }
     } catch (apiError) {
-      console.log('CBE scraping failed, using fallback:', apiError.message);
+      console.log('CBE scraping failed, using fallback:', apiError instanceof Error ? apiError.message : 'Unknown error');
     }
 
     // Fallback: return basic info with formatted number

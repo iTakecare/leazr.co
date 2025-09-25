@@ -90,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     } catch (error) {
       console.error('❌ Échec création entreprise:', error);
-      throw new Error(`Erreur création entreprise: ${error.message}`);
+      throw new Error(`Erreur création entreprise: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // ÉTAPE 2: Créer l'utilisateur admin
@@ -128,7 +128,7 @@ const handler = async (req: Request): Promise<Response> => {
         await supabaseAdmin.from('companies').delete().eq('id', companyId);
       }
       
-      throw new Error(`Erreur création utilisateur: ${error.message}`);
+      throw new Error(`Erreur création utilisateur: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // ÉTAPE 3: Créer le profil

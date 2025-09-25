@@ -107,7 +107,7 @@ async function handleBillitTest(companyId: string) {
         } catch (apiError) {
           testResults.api_connection = {
             success: false,
-            error: `Erreur de connexion: ${apiError.message}`
+            error: `Erreur de connexion: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`
           };
         }
       }
@@ -128,7 +128,7 @@ async function handleBillitTest(companyId: string) {
     console.error("❌ Erreur test Billit:", error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       test_results: {}
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -223,7 +223,7 @@ async function handleSendExistingInvoice(invoiceId: string) {
     console.error("❌ Erreur envoi facture:", error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
@@ -711,7 +711,7 @@ serve(async (req) => {
       }
     } catch (fetchError) {
       console.error("❌ Erreur de connexion à Billit:", fetchError);
-      throw new Error(`Connexion à Billit impossible: ${fetchError.message}`);
+      throw new Error(`Connexion à Billit impossible: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
     }
 
     // Récupérer les détails complets de la facture depuis Billit
@@ -871,28 +871,29 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("❌ Erreur dans billit-integration:", error);
-    console.error("📚 Stack trace:", error.stack);
+    console.error("📚 Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
     
     // Déterminer le type d'erreur pour un meilleur diagnostic
     let errorCategory = "unknown";
     let userMessage = "Erreur lors de la génération de la facture";
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
-    if (error.message?.includes("Variables d'environnement")) {
+    if (errorMessage?.includes("Variables d'environnement")) {
       errorCategory = "environment";
       userMessage = "Configuration serveur manquante";
-    } else if (error.message?.includes("Intégration Billit")) {
+    } else if (errorMessage?.includes("Intégration Billit")) {
       errorCategory = "integration";
       userMessage = "Intégration Billit non configurée ou désactivée";
-    } else if (error.message?.includes("Contrat non trouvé") || error.message?.includes("Client non trouvé")) {
+    } else if (errorMessage?.includes("Contrat non trouvé") || errorMessage?.includes("Client non trouvé")) {
       errorCategory = "data";
       userMessage = "Données manquantes pour générer la facture";
-    } else if (error.message?.includes("Numéros de série")) {
+    } else if (errorMessage?.includes("Numéros de série")) {
       errorCategory = "serial_numbers";
       userMessage = "Numéros de série manquants sur les équipements";
-    } else if (error.message?.includes("API Billit") || error.message?.includes("Connexion à Billit")) {
+    } else if (errorMessage?.includes("API Billit") || errorMessage?.includes("Connexion à Billit")) {
       errorCategory = "billit_api";
       userMessage = "Erreur de communication avec Billit";
-    } else if (error.message?.includes("unique constraint")) {
+    } else if (errorMessage?.includes("unique constraint")) {
       errorCategory = "database";
       userMessage = "Contrainte de base de données violée";
     }
@@ -901,14 +902,14 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message || String(error),
+      error: errorMessage,
       message: userMessage,
       error_category: errorCategory,
       timestamp: new Date().toISOString(),
       details: {
-        stack: error.stack,
-        name: error.name,
-        cause: error.cause
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined,
+        cause: error instanceof Error ? error.cause : undefined
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -434,7 +434,7 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
   })
 
   // Enrich categories with environmental impact data
-  const enrichedCategories = categories?.map(category => ({
+  const enrichedCategories = categories?.map((category: any) => ({
     ...category,
     co2_savings_kg: category.category_environmental_data?.[0]?.co2_savings_kg || 0,
     environmental_impact: category.category_environmental_data?.[0] ? {
@@ -542,7 +542,7 @@ async function getEnvironmentalCategories(supabase: any, companyId: string, perm
     data: environmentalData?.slice(0, 2) // First 2 for debugging
   })
 
-  const enrichedData = environmentalData?.map(item => ({
+  const enrichedData = environmentalData?.map((item: any) => ({
     id: item.id,
     category: {
       id: item.categories.id,

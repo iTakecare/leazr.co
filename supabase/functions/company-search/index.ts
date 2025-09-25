@@ -112,7 +112,7 @@ serve(async (req) => {
     console.error('[company-search] Erreur:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Erreur lors de la recherche d\'entreprise',
+      error: error instanceof Error ? error.message : 'Erreur lors de la recherche d\'entreprise',
       results: []
     }), {
       status: 500,
@@ -243,7 +243,7 @@ async function searchVATNumber(vatNumber: string, country: string): Promise<Comp
     
     return [];
   } catch (error) {
-    console.log(`[company-search] Erreur VIES: ${error.message}`);
+    console.log(`[company-search] Erreur VIES: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return [];
   }
 }
