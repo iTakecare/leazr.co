@@ -42,9 +42,10 @@ interface NewEquipmentSectionProps {
     leaser_id?: string;
     duration?: number;
   };
+  onOfferUpdate?: () => void;
 }
 
-const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
+const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOfferUpdate }) => {
   const { equipment, loading, error, refresh } = useOfferEquipment(offer.id);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedValues, setEditedValues] = useState<any>({});
@@ -146,6 +147,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       setEditingId(null);
       setEditedValues({});
       refresh();
+      onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error("Erreur lors de la sauvegarde");
@@ -165,6 +167,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       await deleteOfferEquipment(equipmentId);
       toast.success(`Équipement "${equipmentTitle}" supprimé avec succès`);
       refresh();
+      onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       toast.error("Erreur lors de la suppression de l'équipement");
@@ -292,6 +295,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
       
       await refresh();
       setIsEditingTotalMonthly(false);
+      onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       toast.error("Erreur lors de la mise à jour de la mensualité totale");
@@ -363,7 +367,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer }) => {
           </div>
           <AddCustomEquipmentDialog 
             offerId={offer.id} 
-            onEquipmentAdded={refresh}
+            onEquipmentAdded={() => {
+              refresh();
+              onOfferUpdate?.();
+            }}
           />
         </CardTitle>
       </CardHeader>
