@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createContractFromOffer } from "../contractService";
 
+/**
+ * Détermine si un statut est un statut final qui déclenche la conversion en contrat
+ */
+const isFinalStatus = (status: string): boolean => {
+  const finalStatuses = ['validated', 'offer_validation', 'financed'];
+  return finalStatuses.includes(status);
+};
+
 export const deleteOffer = async (offerId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -103,9 +111,10 @@ export const updateOfferStatus = async (
       console.log("Log created successfully:", logData);
     }
 
-    // Si le statut est financed, créer automatiquement un contrat
-    if (newStatus === 'financed') {
+    // Si le statut est un statut final (validated, offer_validation, financed), créer automatiquement un contrat
+    if (isFinalStatus(newStatus)) {
       console.log("🔄 DÉBUT: Conversion automatique vers contrat pour l'offre:", offerId);
+      console.log("🔄 Statut final détecté:", newStatus);
       console.log("🔄 Statut précédent:", safePreviousStatus, "-> Nouveau statut:", newStatus);
       
       try {

@@ -125,7 +125,10 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     }
 
     // Confirmation spéciale pour la finalisation (conversion en contrat)
-    const confirmMessage = targetStatus === 'validated' 
+    const finalStatuses = ['validated', 'offer_validation', 'financed'];
+    const isFinalStatus = finalStatuses.includes(targetStatus);
+    
+    const confirmMessage = isFinalStatus
       ? `Confirmer la finalisation de l'offre ? Cela créera automatiquement un contrat.`
       : targetIndex > currentIndex 
         ? `Confirmer le passage à l'étape "${activeSteps[targetIndex].label}" ?`
@@ -143,7 +146,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         offerId,
         targetStatus,
         currentStatus,
-        targetStatus === 'validated' 
+        isFinalStatus
           ? `Finalisation manuelle - Conversion en contrat`
           : `Changement manuel depuis le stepper`
       );
@@ -154,7 +157,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         }
 
         // Message de succès spécial pour la finalisation
-        if (targetStatus === 'validated') {
+        if (isFinalStatus) {
           toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
         } else {
           toast.success(`Statut mis à jour vers "${activeSteps[targetIndex].label}"`);
