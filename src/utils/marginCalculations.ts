@@ -14,6 +14,7 @@ export interface OfferFinancialData {
 
 /**
  * Calculate equipment totals consistently (exact logic extracted from FinancialSection)
+ * Returns totalPurchasePrice, totalMonthlyPayment, and totalSellingPrice
  */
 export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentItems?: any[]) => {
   // Utiliser les équipements passés en paramètre ou fallback sur equipment_description
@@ -36,15 +37,20 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
       // Utiliser purchasePrice ou purchase_price pour le prix d'achat
       const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
       const quantity = parseInt(item.quantity) || 1;
-      // Utiliser monthlyPayment ou monthly_payment pour la mensualité
+      // Utiliser monthlyPayment ou monthly_payment pour la mensualité (déjà inclut la quantité)
       const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
+      // Utiliser selling_price pour le prix de vente
+      const sellingPrice = parseFloat(item.selling_price) || 0;
+      
       return {
         totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-        totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment * quantity
+        totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
+        totalSellingPrice: acc.totalSellingPrice + sellingPrice * quantity
       };
     }, {
       totalPurchasePrice: 0,
-      totalMonthlyPayment: 0
+      totalMonthlyPayment: 0,
+      totalSellingPrice: 0
     });
   }
 
@@ -53,15 +59,31 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
   const isClientRequest = offer.type === 'client_request';
   return {
     totalPurchasePrice: isClientRequest ? (offer.amount || 0) : 0,
-    totalMonthlyPayment: offer.monthly_payment || 0
+    totalMonthlyPayment: offer.monthly_payment || 0,
+    totalSellingPrice: 0
   };
 };
 
 /**
- * Calculate financed amount consistently
+ * Calculate financed amount consistently - prioritizes totalSellingPrice from equipment
  */
 export const getFinancedAmount = (offer: OfferFinancialData): number => {
   // Utiliser offer.financed_amount en priorité, puis offer.amount comme fallback
+  return offer.financed_amount || offer.amount || 0;
+};
+
+/**
+ * Get effective financed amount - prioritizes equipment selling price
+ */
+export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
+  const totals = calculateEquipmentTotals(offer, equipmentItems);
+  
+  // Priorité 1: totalSellingPrice depuis les équipements
+  if (totals.totalSellingPrice > 0) {
+    return totals.totalSellingPrice;
+  }
+  
+  // Priorité 2: financed_amount ou amount depuis l'offre
   return offer.financed_amount || offer.amount || 0;
 };
 
@@ -77,9 +99,9 @@ export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?:
   const totals = calculateEquipmentTotals(offer, equipmentItems);
   console.log("🔍 calculateOfferMargin - totals:", totals);
   
-  // Utiliser offer.financed_amount en priorité pour le calcul de marge
-  const financedAmount = getFinancedAmount(offer);
-  console.log("🔍 calculateOfferMargin - financedAmount:", financedAmount);
+  // Utiliser le montant financé effectif (priorité au totalSellingPrice)
+  const financedAmount = getEffectiveFinancedAmount(offer, equipmentItems);
+  console.log("🔍 calculateOfferMargin - effectiveFinancedAmount:", financedAmount);
 
   // Si pas de prix d'achat total, retourner 0
   if (totals.totalPurchasePrice <= 0) {
@@ -110,7 +132,7 @@ export const formatMarginDisplay = (margin: number | null): string => {
  */
 export const calculateOfferMarginAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
   const totals = calculateEquipmentTotals(offer, equipmentItems);
-  const financedAmount = getFinancedAmount(offer);
+  const financedAmount = getEffectiveFinancedAmount(offer, equipmentItems);
   
   // Calculer la marge en montant : montant financé - prix d'achat total
   const marginAmount = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
-import { calculateOfferMargin } from "@/utils/marginCalculations";
+import { calculateOfferMargin, getEffectiveFinancedAmount } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { useOfferUpdate } from "@/hooks/offers/useOfferUpdate";
 import { getLeaserById } from "@/services/leaserService";
@@ -59,13 +59,16 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const purchasePrice = parseFloat(item.purchase_price) || 0;
         const quantity = parseInt(item.quantity) || 1;
         const monthlyPayment = parseFloat(item.monthly_payment) || 0;
+        const sellingPrice = parseFloat(item.selling_price) || 0;
         return {
           totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment
+          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
+          totalSellingPrice: acc.totalSellingPrice + sellingPrice * quantity
         };
       }, {
         totalPurchasePrice: 0,
-        totalMonthlyPayment: 0
+        totalMonthlyPayment: 0,
+        totalSellingPrice: 0
       });
     }
 
@@ -90,13 +93,16 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const quantity = parseInt(item.quantity) || 1;
         // Utiliser monthlyPayment ou monthly_payment pour la mensualité
         const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
+        const sellingPrice = parseFloat(item.selling_price) || 0;
         return {
           totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment
+          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
+          totalSellingPrice: acc.totalSellingPrice + sellingPrice * quantity
         };
       }, {
         totalPurchasePrice: 0,
-        totalMonthlyPayment: 0
+        totalMonthlyPayment: 0,
+        totalSellingPrice: 0
       });
     }
 
@@ -104,7 +110,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     // For client requests, the 'amount' field now contains the estimated purchase price
     return {
       totalPurchasePrice: offer.amount || 0,
-      totalMonthlyPayment: offer.monthly_payment || 0
+      totalMonthlyPayment: offer.monthly_payment || 0,
+      totalSellingPrice: 0
     };
   };
   const totals = calculateEquipmentTotals();
@@ -117,16 +124,22 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         
         const currentTotals = calculateEquipmentTotals();
         
-        // Calculate new values
+        // Calculate financed amount: prioritize totalSellingPrice, fallback to calculation
+        const newFinancedAmount = currentTotals.totalSellingPrice > 0 
+          ? currentTotals.totalSellingPrice 
+          : (currentTotals.totalMonthlyPayment * (offer.coefficient || 3.27));
+        
         const newTotalAmount = currentTotals.totalPurchasePrice;
         const newMonthlyPayment = currentTotals.totalMonthlyPayment;
-        const newMargin = (offer.financed_amount || offer.amount || 0) - currentTotals.totalPurchasePrice;
+        const newMargin = newFinancedAmount - currentTotals.totalPurchasePrice;
         
         console.log("🔄 AUTO-UPDATE: New calculations:", {
           currentAmount: offer.amount,
           newTotalAmount,
           currentMonthlyPayment: offer.monthly_payment,
           newMonthlyPayment,
+          currentFinancedAmount: offer.financed_amount,
+          newFinancedAmount,
           currentMargin: offer.margin,
           newMargin
         });
@@ -135,6 +148,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const needsUpdate = (
           Math.abs((offer.amount || 0) - newTotalAmount) > 0.01 ||
           Math.abs((offer.monthly_payment || 0) - newMonthlyPayment) > 0.01 ||
+          Math.abs((offer.financed_amount || 0) - newFinancedAmount) > 0.01 ||
           Math.abs((offer.margin || 0) - newMargin) > 0.01
         );
         
@@ -144,6 +158,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
             await updateOffer(offer.id, {
               amount: newTotalAmount,
               monthly_payment: newMonthlyPayment,
+              financed_amount: newFinancedAmount,
               margin: newMargin
             });
             console.log("✅ AUTO-UPDATE: Offer financials updated successfully");
@@ -161,11 +176,13 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     updateOfferFinancials();
   }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated]);
   
-  // Utiliser le vrai montant financé
-  const financedAmount = offer.financed_amount || 0;
+  // Calculate effective financed amount (prioritize totalSellingPrice)
+  const effectiveFinancedAmount = totals.totalSellingPrice > 0 
+    ? totals.totalSellingPrice 
+    : (offer.financed_amount || (totals.totalMonthlyPayment * (offer.coefficient || 3.27)));
 
-  // Calculer la marge directement : montant financé - prix d'achat total
-  const displayMargin = totals.totalPurchasePrice > 0 ? financedAmount - totals.totalPurchasePrice : 0;
+  // Calculer la marge directement : montant financé effectif - prix d'achat total
+  const displayMargin = totals.totalPurchasePrice > 0 ? effectiveFinancedAmount - totals.totalPurchasePrice : 0;
   
   // Calculer le pourcentage de marge basé sur le prix d'achat
   const marginPercentage = totals.totalPurchasePrice > 0 ? (displayMargin / totals.totalPurchasePrice) * 100 : 0;
@@ -260,13 +277,13 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
           
           {/* Montant financé */}
-          {financedAmount > 0 && financedAmount !== totals.totalPurchasePrice && <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+          {effectiveFinancedAmount > 0 && effectiveFinancedAmount !== totals.totalPurchasePrice && <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center gap-2">
                 <Euro className="w-4 h-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Montant financé</span>
               </div>
               <span className="text-lg font-bold text-gray-900">
-                {formatCurrency(financedAmount)}
+                {formatCurrency(effectiveFinancedAmount)}
               </span>
             </div>}
 

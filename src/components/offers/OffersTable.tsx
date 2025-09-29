@@ -42,7 +42,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
-import { calculateOfferMargin, formatMarginDisplay, getFinancedAmount } from "@/utils/marginCalculations";
+import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount } from "@/utils/marginCalculations";
 
 interface OffersTableProps {
   offers: any[];
@@ -188,7 +188,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   )}
                   {!isAmbassador() && (
                     <TableCell className="text-right">
-                      {formatCurrency(getFinancedAmount(offer))}
+                      {formatCurrency(getEffectiveFinancedAmount(offer))}
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium">

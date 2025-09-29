@@ -30,28 +30,30 @@ const RecalculateFinancialsButton: React.FC<RecalculateFinancialsButtonProps> = 
       console.log("🔄 MANUAL RECALCULATE: Starting for offer:", offerId);
       console.log("🔄 MANUAL RECALCULATE: Equipment found:", equipment.length, "items");
 
-      // Calculate totals from equipment
+      // Calculate totals from equipment (no quantity multiplication for monthly_payment)
       const totals = equipment.reduce((acc, item) => {
         const purchasePrice = Number(item.purchase_price) || 0;
         const quantity = Number(item.quantity) || 1;
         const monthlyPayment = Number(item.monthly_payment) || 0;
+        const sellingPrice = Number(item.selling_price) || 0;
         
         return {
           totalPurchasePrice: acc.totalPurchasePrice + (purchasePrice * quantity),
-          totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity)
+          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
+          totalSellingPrice: acc.totalSellingPrice + (sellingPrice * quantity)
         };
       }, {
         totalPurchasePrice: 0,
-        totalMonthlyPayment: 0
+        totalMonthlyPayment: 0,
+        totalSellingPrice: 0
       });
 
       console.log("🔄 MANUAL RECALCULATE: Calculated totals:", totals);
 
-      // Calculate margin (financed amount - purchase price)
-      // We'll need to get the current offer data to get financed_amount
+      // Get current offer data to get coefficient
       const { data: offerData, error: offerError } = await supabase
         .from('offers')
-        .select('financed_amount, amount')
+        .select('coefficient')
         .eq('id', offerId)
         .single();
 
@@ -59,12 +61,21 @@ const RecalculateFinancialsButton: React.FC<RecalculateFinancialsButtonProps> = 
         throw new Error(`Failed to get offer data: ${offerError.message}`);
       }
 
-      const financedAmount = offerData.financed_amount || offerData.amount || 0;
+      // Calculate financed amount: prioritize totalSellingPrice, fallback to calculation
+      const coefficient = offerData.coefficient || 3.27;
+      const financedAmount = totals.totalSellingPrice > 0 
+        ? totals.totalSellingPrice 
+        : totals.totalMonthlyPayment * coefficient;
+      
       const calculatedMargin = financedAmount - totals.totalPurchasePrice;
+
+      console.log("🔄 MANUAL RECALCULATE: financedAmount:", financedAmount);
+      console.log("🔄 MANUAL RECALCULATE: calculatedMargin:", calculatedMargin);
 
       const updates = {
         amount: totals.totalPurchasePrice,
         monthly_payment: totals.totalMonthlyPayment,
+        financed_amount: financedAmount,
         margin: calculatedMargin
       };
 
