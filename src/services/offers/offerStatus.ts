@@ -161,15 +161,43 @@ export const updateOfferStatus = async (
           user_id: offerData.user_id
         });
         
-        // Récupérer le premier leaser disponible de l'entreprise
-        const { data: availableLeasers } = await supabase
-          .from('leasers')
-          .select('name, logo_url')
-          .eq('company_id', offerData.company_id)
-          .limit(1);
+        // Récupérer le leaser sélectionné dans l'offre
+        console.log("🏢 ÉTAPE 2: Récupération du bailleur sélectionné...");
+        console.log("📋 leaser_id de l'offre:", offerData.leaser_id);
         
-        const leaserName = availableLeasers?.[0]?.name || "Leaser par défaut";
-        const leaserLogo = availableLeasers?.[0]?.logo_url || null;
+        let leaserName = "Leaser par défaut";
+        let leaserLogo = null;
+        
+        if (offerData.leaser_id) {
+          // Utiliser le leaser sélectionné dans l'offre
+          const { data: selectedLeaser } = await supabase
+            .from('leasers')
+            .select('name, logo_url')
+            .eq('id', offerData.leaser_id)
+            .single();
+          
+          if (selectedLeaser) {
+            leaserName = selectedLeaser.name;
+            leaserLogo = selectedLeaser.logo_url;
+            console.log("✅ Bailleur trouvé depuis l'offre:", leaserName);
+          } else {
+            console.warn("⚠️ Leaser ID dans l'offre mais leaser introuvable, utilisation du fallback");
+          }
+        } else {
+          // Fallback: récupérer le premier leaser disponible de l'entreprise
+          console.warn("⚠️ Aucun leaser_id dans l'offre, utilisation du premier disponible");
+          const { data: availableLeasers } = await supabase
+            .from('leasers')
+            .select('name, logo_url')
+            .eq('company_id', offerData.company_id)
+            .limit(1);
+          
+          if (availableLeasers?.[0]) {
+            leaserName = availableLeasers[0].name;
+            leaserLogo = availableLeasers[0].logo_url;
+            console.log("✅ Bailleur fallback utilisé:", leaserName);
+          }
+        }
         
         console.log("🏢 ÉTAPE 2: Création du contrat avec le bailleur:", leaserName);
         
