@@ -13,15 +13,24 @@ import { GlobalMarginEditor } from "./GlobalMarginEditor";
 interface FinancialSectionProps {
   offer: any;
   onOfferUpdated?: () => void;
+  refreshKey?: number;
 }
 const FinancialSection: React.FC<FinancialSectionProps> = ({
   offer,
-  onOfferUpdated
+  onOfferUpdated,
+  refreshKey
 }) => {
   // Use the equipment hook to get structured data
   const { equipment: offerEquipment, loading: equipmentLoading, refresh } = useOfferEquipment(offer.id);
   const { updateOffer } = useOfferUpdate();
   const [leaser, setLeaser] = useState<Leaser | null>(null);
+
+  // Refresh equipment in this section when parent signals a change
+  useEffect(() => {
+    if (typeof refreshKey !== 'undefined') {
+      refresh();
+    }
+  }, [refreshKey, refresh]);
 
   // Load leaser data
   useEffect(() => {
@@ -52,7 +61,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const monthlyPayment = parseFloat(item.monthly_payment) || 0;
         return {
           totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment * quantity
+          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment
         };
       }, {
         totalPurchasePrice: 0,
@@ -83,7 +92,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
         return {
           totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment * quantity
+          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment
         };
       }, {
         totalPurchasePrice: 0,

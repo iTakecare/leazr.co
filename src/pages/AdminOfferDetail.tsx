@@ -42,6 +42,7 @@ const AdminOfferDetail = () => {
   const [scoringLoading, setScoringLoading] = useState(false);
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
+  const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
 
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
 
@@ -345,11 +346,11 @@ const AdminOfferDetail = () => {
                   
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
-                    <NewEquipmentSection offer={offer} onOfferUpdate={fetchOfferDetails} />
+                    <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
                   </TabsContent>
                   
                   <TabsContent value="financial" className="mt-4 overflow-visible">
-                    <FinancialSection offer={offer} onOfferUpdated={fetchOfferDetails} />
+                    <FinancialSection offer={offer} onOfferUpdated={fetchOfferDetails} refreshKey={equipmentRefreshKey} />
                   </TabsContent>
                   
                   <TabsContent value="documents" className="space-y-4 mt-4 overflow-visible">
