@@ -4,6 +4,7 @@ import { Package, Plus, Edit, Copy, Trash2, Eye, ToggleLeft, ToggleRight, Star }
 import { Badge } from "@/components/ui/badge";
 import { usePackManagement } from "@/hooks/packs/usePackManagement";
 import { PackCreator } from "./PackCreator";
+import { getEffectivePackPrice, getSavingsVsIndividuals, isPromoActive, formatPrice } from "@/utils/packPricing";
 
 export const PackManager = () => {
   const {
@@ -93,81 +94,104 @@ export const PackManager = () => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {packs.map((pack) => (
-            <Card key={pack.id} className="relative">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{pack.name}</CardTitle>
-                    {pack.description && (
-                      <CardDescription className="line-clamp-2">
-                        {pack.description}
-                      </CardDescription>
+          {packs.map((pack) => {
+            const effectivePrice = getEffectivePackPrice(pack);
+            const savings = getSavingsVsIndividuals(pack);
+            const isPromoCurrentlyActive = isPromoActive(pack);
+            const oldPrice = isPromoCurrentlyActive 
+              ? (pack.pack_monthly_price || pack.total_monthly_price)
+              : (pack.pack_monthly_price ? pack.total_monthly_price : 0);
+
+            return (
+              <Card key={pack.id} className="relative">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{pack.name}</CardTitle>
+                      {pack.description && (
+                        <CardDescription className="line-clamp-2">
+                          {pack.description}
+                        </CardDescription>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleTogglePackStatus(pack)}
+                      >
+                        {pack.is_active ? (
+                          <ToggleRight className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <ToggleLeft className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleTogglePackFeatured(pack)}
+                      >
+                        <Star className={`h-4 w-4 ${pack.is_featured ? 'text-yellow-500 fill-current' : 'text-gray-400'}`} />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant={pack.is_active ? "default" : "secondary"}>
+                      {pack.is_active ? "Actif" : "Inactif"}
+                    </Badge>
+                    {pack.is_featured && (
+                      <Badge variant="outline">
+                        <Star className="h-3 w-3 mr-1" />
+                        Mis en avant
+                      </Badge>
+                    )}
+                    {isPromoCurrentlyActive && (
+                      <Badge variant="destructive">PROMO</Badge>
+                    )}
+                    {pack.admin_only && (
+                      <Badge variant="destructive">Admin uniquement</Badge>
                     )}
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleTogglePackStatus(pack)}
-                    >
-                      {pack.is_active ? (
-                        <ToggleRight className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleTogglePackFeatured(pack)}
-                    >
-                      <Star className={`h-4 w-4 ${pack.is_featured ? 'text-yellow-500 fill-current' : 'text-gray-400'}`} />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Badge variant={pack.is_active ? "default" : "secondary"}>
-                    {pack.is_active ? "Actif" : "Inactif"}
-                  </Badge>
-                  {pack.is_featured && (
-                    <Badge variant="outline">
-                      <Star className="h-3 w-3 mr-1" />
-                      Mis en avant
-                    </Badge>
-                  )}
-                  {pack.admin_only && (
-                    <Badge variant="destructive">Admin uniquement</Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Prix d'achat:</span>
-                    <span className="font-medium">{pack.total_purchase_price.toFixed(2)}€</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Prix de vente:</span>
-                    <span className="font-medium">{(pack.total_purchase_price + pack.total_margin).toFixed(2)}€</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Marge:</span>
-                    <span className="font-medium text-green-600">
-                      +{pack.total_margin.toFixed(2)}€ ({pack.total_purchase_price > 0 ? ((pack.total_margin / pack.total_purchase_price) * 100).toFixed(1) : 0}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Prix mensuel:</span>
-                    <span className="font-medium">{pack.total_monthly_price.toFixed(2)}€</span>
-                  </div>
-                  {pack.items && (
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Produits:</span>
-                      <span className="font-medium">{pack.items.length}</span>
+                      <span className="text-muted-foreground">Prix d'achat:</span>
+                      <span className="font-medium">{pack.total_purchase_price.toFixed(2)}€</span>
                     </div>
-                  )}
-                </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Prix de vente:</span>
+                      <span className="font-medium">{(pack.total_purchase_price + pack.total_margin).toFixed(2)}€</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Marge:</span>
+                      <span className="font-medium text-green-600">
+                        +{pack.total_margin.toFixed(2)}€ ({pack.total_purchase_price > 0 ? ((pack.total_margin / pack.total_purchase_price) * 100).toFixed(1) : 0}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Prix mensuel:</span>
+                      <div className="flex flex-col items-end">
+                        <span className="font-medium text-primary">{formatPrice(effectivePrice)}</span>
+                        {oldPrice > 0 && savings > 0 && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatPrice(oldPrice)}
+                          </span>
+                        )}
+                        {savings > 0 && (
+                          <span className="text-xs text-green-600">
+                            -{formatPrice(savings)} économie
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {pack.items && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Produits:</span>
+                        <span className="font-medium">{pack.items.length}</span>
+                      </div>
+                    )}
+                  </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -193,10 +217,11 @@ export const PackManager = () => {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

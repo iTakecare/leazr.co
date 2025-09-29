@@ -6,6 +6,7 @@ import { PackItemFormData } from "@/hooks/packs/usePackCreator";
 import { PackCalculation } from "@/types/pack";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getEffectivePackPrice, getSavingsVsIndividuals, isPromoActive, formatPrice as formatCurrency } from "@/utils/packPricing";
 
 interface PackPreviewProps {
   packData: {
@@ -17,6 +18,12 @@ interface PackPreviewProps {
     admin_only: boolean;
     valid_from?: Date;
     valid_to?: Date;
+    // Promotion fields
+    promo_active?: boolean;
+    pack_promo_price?: number;
+    promo_valid_from?: Date | string;
+    promo_valid_to?: Date | string;
+    pack_monthly_price?: number;
   };
   packItems: PackItemFormData[];
   calculations: PackCalculation;
@@ -40,14 +47,18 @@ export const PackPreview = ({ packData, packItems, calculations }: PackPreviewPr
     return format(date, "PPP", { locale: fr });
   };
 
-  const individualTotal = packItems.reduce((sum, item) => {
-    // Simulate individual pricing (would come from actual product prices)
-    const individualPrice = item.unit_monthly_price * 1.1; // 10% markup for individual purchase
-    return sum + (individualPrice * item.quantity);
-  }, 0);
+  // Créer un objet pack temporaire pour les calculs
+  const tempPack = {
+    ...packData,
+    total_monthly_price: calculations.total_monthly_price,
+  } as any;
 
-  const savings = individualTotal - calculations.total_monthly_price;
+  // Calculer le prix effectif et les économies
+  const effectivePrice = getEffectivePackPrice(tempPack);
+  const individualTotal = calculations.total_monthly_price;
+  const savings = getSavingsVsIndividuals(tempPack);
   const savingsPercentage = individualTotal > 0 ? (savings / individualTotal) * 100 : 0;
+  const isPromoCurrentlyActive = isPromoActive(tempPack);
 
   return (
     <div className="space-y-6">
@@ -98,13 +109,24 @@ export const PackPreview = ({ packData, packItems, calculations }: PackPreviewPr
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
               <div>
-                <p className="text-2xl font-bold text-primary">{formatPrice(calculations.total_monthly_price)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(effectivePrice)}</p>
+                  {isPromoCurrentlyActive && (
+                    <Badge variant="destructive">PROMO</Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">Prix du pack</p>
+                {isPromoCurrentlyActive && packData.pack_monthly_price && (
+                  <p className="text-sm text-muted-foreground">
+                    <span className="line-through">{formatCurrency(packData.pack_monthly_price)}</span>
+                    <span className="ml-2 text-green-600">au lieu de</span>
+                  </p>
+                )}
               </div>
               {savings > 0 && (
                 <div className="text-right">
                   <p className="text-lg font-semibold text-green-600">
-                    -{formatPrice(savings)}
+                    -{formatCurrency(savings)}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Économie de {savingsPercentage.toFixed(0)}%
@@ -113,9 +135,9 @@ export const PackPreview = ({ packData, packItems, calculations }: PackPreviewPr
               )}
             </div>
 
-            {savings > 0 && (
+            {savings > 0 && !isPromoCurrentlyActive && (
               <div className="text-sm text-muted-foreground text-center">
-                <span className="line-through">{formatPrice(individualTotal)}</span>
+                <span className="line-through">{formatCurrency(individualTotal)}</span>
                 <span className="ml-2">au lieu de</span>
               </div>
             )}

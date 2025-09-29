@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPackById } from '@/services/packService';
 import { ProductPack } from '@/types/pack';
+import { getEffectivePackPrice, isPromoActive } from '@/utils/packPricing';
 // Local getCO2Savings function
 const getCO2Savings = (category: string): number => {
   switch (category.toLowerCase()) {
@@ -36,28 +37,7 @@ export const usePackDetails = (packId: string | undefined) => {
   // Calculate current price considering promotions
   const currentPrice = useMemo(() => {
     if (!pack) return 0;
-    
-    // Check if promotion is active
-    if (pack.promo_active && pack.pack_promo_price) {
-      const now = new Date();
-      const promoStart = pack.promo_valid_from ? new Date(pack.promo_valid_from) : null;
-      const promoEnd = pack.promo_valid_to ? new Date(pack.promo_valid_to) : null;
-      
-      const isPromoValid = (!promoStart || now >= promoStart) && (!promoEnd || now <= promoEnd);
-      
-      if (isPromoValid) {
-        return pack.pack_promo_price;
-      }
-    }
-    
-    // CORRECTION: Priorité au prix personnalisé du pack
-    // Si un prix de pack personnalisé est défini, l'utiliser
-    if (pack.pack_monthly_price && pack.pack_monthly_price > 0) {
-      return pack.pack_monthly_price;
-    }
-    
-    // Sinon utiliser le total calculé des produits individuels
-    return pack.total_monthly_price;
+    return getEffectivePackPrice(pack);
   }, [pack]);
 
   // Calculate total price based on quantity
@@ -80,13 +60,8 @@ export const usePackDetails = (packId: string | undefined) => {
 
   // Check if promotion is currently active
   const hasActivePromo = useMemo(() => {
-    if (!pack || !pack.promo_active || !pack.pack_promo_price) return false;
-    
-    const now = new Date();
-    const promoStart = pack.promo_valid_from ? new Date(pack.promo_valid_from) : null;
-    const promoEnd = pack.promo_valid_to ? new Date(pack.promo_valid_to) : null;
-    
-    return (!promoStart || now >= promoStart) && (!promoEnd || now <= promoEnd);
+    if (!pack) return false;
+    return isPromoActive(pack);
   }, [pack]);
 
   // Calculate savings percentage if promotion is active

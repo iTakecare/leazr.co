@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Package, Plus, Check } from 'lucide-react';
 import { ProductPack } from '@/types/pack';
 import { getPacks } from '@/services/packService';
+import { getEffectivePackPrice, getSavingsVsIndividuals, isPromoActive, formatPrice } from '@/utils/packPricing';
 
 interface PackSelectorProps {
   selectedPacks: Array<{
@@ -49,16 +50,9 @@ const PackSelector: React.FC<PackSelectorProps> = ({
 
   const handlePackAdd = (pack: ProductPack) => {
     const quantity = quantities[pack.id] || 1;
-    const price = pack.pack_monthly_price || pack.total_monthly_price;
+    const price = getEffectivePackPrice(pack);
     onPackSelect(pack, quantity);
     setQuantities(prev => ({ ...prev, [pack.id]: 1 })); // Reset quantity
-  };
-
-  const calculatePackSavings = (pack: ProductPack) => {
-    if (!pack.pack_monthly_price || pack.pack_monthly_price >= pack.total_monthly_price) {
-      return 0;
-    }
-    return pack.total_monthly_price - pack.pack_monthly_price;
   };
 
   if (isLoading) {
@@ -124,8 +118,9 @@ const PackSelector: React.FC<PackSelectorProps> = ({
         {filteredPacks.map((pack) => {
           const isSelected = isPackSelected(pack.id);
           const currentQuantity = quantities[pack.id] || 1;
-          const packPrice = pack.pack_monthly_price || pack.total_monthly_price;
-          const savings = calculatePackSavings(pack);
+          const packPrice = getEffectivePackPrice(pack);
+          const savings = getSavingsVsIndividuals(pack);
+          const isPromoCurrentlyActive = isPromoActive(pack);
 
           return (
             <Card key={pack.id} className={`transition-colors ${isSelected ? 'ring-2 ring-primary' : ''}`}>
@@ -162,16 +157,21 @@ const PackSelector: React.FC<PackSelectorProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Prix du pack:</span>
-                    <span className="font-bold text-primary">
-                      {packPrice.toFixed(2)}€/mois
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-primary">
+                        {formatPrice(packPrice)}
+                      </span>
+                      {isPromoCurrentlyActive && (
+                        <Badge variant="destructive">PROMO</Badge>
+                      )}
+                    </div>
                   </div>
                   
                   {savings > 0 && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Prix individuel:</span>
                       <span className="line-through text-muted-foreground">
-                        {pack.total_monthly_price.toFixed(2)}€/mois
+                        {formatPrice(pack.total_monthly_price)}
                       </span>
                     </div>
                   )}
@@ -180,15 +180,9 @@ const PackSelector: React.FC<PackSelectorProps> = ({
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-green-600">Économie:</span>
                       <span className="font-medium text-green-600">
-                        -{savings.toFixed(2)}€/mois
+                        -{formatPrice(savings)}
                       </span>
                     </div>
-                  )}
-
-                  {pack.promo_active && pack.pack_promo_price && (
-                    <Badge variant="destructive" className="w-full justify-center">
-                      Promotion active: {pack.pack_promo_price.toFixed(2)}€/mois
-                    </Badge>
                   )}
                 </div>
 
