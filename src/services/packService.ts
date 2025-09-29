@@ -210,14 +210,21 @@ export const updatePackCalculations = async (packId: string): Promise<void> => {
   
   const calculations = calculatePackTotals(items || [], leaser, packData?.selected_duration || 36);
 
-  // Update pack with calculated values
+  // CORRECTION: Mise à jour avec préservation des prix personnalisés
+  // Ne pas écraser pack_monthly_price ou pack_promo_price lors des recalculs
+  const updateData: any = {
+    total_purchase_price: calculations.total_purchase_price,
+    total_monthly_price: calculations.total_monthly_price,
+    total_margin: calculations.total_margin,
+    updated_at: new Date().toISOString()
+  };
+
+  // Les prix pack_monthly_price et pack_promo_price sont préservés
+  // Ils ne sont modifiés que lors d'une édition explicite par l'utilisateur
+
   const { error: updateError } = await supabase
     .from('product_packs')
-    .update({
-      total_purchase_price: calculations.total_purchase_price,
-      total_monthly_price: calculations.total_monthly_price,
-      total_margin: calculations.total_margin,
-    })
+    .update(updateData)
     .eq('id', packId);
 
   if (updateError) {

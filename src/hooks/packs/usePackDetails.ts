@@ -50,8 +50,14 @@ export const usePackDetails = (packId: string | undefined) => {
       }
     }
     
-    // Return custom pack price or calculated total monthly price
-    return pack.pack_monthly_price || pack.total_monthly_price;
+    // CORRECTION: Priorité au prix personnalisé du pack
+    // Si un prix de pack personnalisé est défini, l'utiliser
+    if (pack.pack_monthly_price && pack.pack_monthly_price > 0) {
+      return pack.pack_monthly_price;
+    }
+    
+    // Sinon utiliser le total calculé des produits individuels
+    return pack.total_monthly_price;
   }, [pack]);
 
   // Calculate total price based on quantity
