@@ -516,7 +516,10 @@ const CreateOffer = () => {
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0),
         // Assigner l'ambassadeur si c'est une offre ambassadeur
-        ambassador_id: ambassadorId
+        ambassador_id: ambassadorId,
+        // CORRECTION: Sauvegarder le bailleur et la durée sélectionnés
+        leaser_id: selectedLeaser?.id,
+        duration: selectedDuration
       };
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);

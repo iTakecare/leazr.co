@@ -20,6 +20,8 @@ interface AmbassadorOfferSaveLogicProps {
   setIsSubmitting: (value: boolean) => void;
   totalMonthlyPayment: number;
   totalMargin?: number;
+  selectedLeaser?: any;
+  selectedDuration?: number;
 }
 
 export const useAmbassadorOfferSave = ({
@@ -33,7 +35,9 @@ export const useAmbassadorOfferSave = ({
   userId,
   setIsSubmitting,
   totalMonthlyPayment,
-  totalMargin = 0
+  totalMargin = 0,
+  selectedLeaser,
+  selectedDuration = 36
 }: AmbassadorOfferSaveLogicProps) => {
   const navigate = useNavigate();
   const { navigateToAmbassador } = useRoleNavigation();
@@ -129,7 +133,10 @@ export const useAmbassadorOfferSave = ({
         company_id: ambassador.company_id,
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifference,
-        margin: marginAmount
+        margin: marginAmount,
+        // CORRECTION: Sauvegarder le bailleur et la durée sélectionnés
+        leaser_id: selectedLeaser?.id,
+        duration: selectedDuration
       };
       
       console.log("💾 AmbassadorOfferSaveLogic - Saving offer with data:", offerData);

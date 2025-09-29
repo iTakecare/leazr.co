@@ -16,6 +16,7 @@ export const useAmbassadorOfferState = () => {
   const [leaserSelectorOpen, setLeaserSelectorOpen] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [selectedLeaser, setSelectedLeaser] = useState<any>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number>(36);
   const [ambassadorId, setAmbassadorId] = useState<string>('');
 
   // Charger les données de l'ambassadeur connecté
@@ -139,6 +140,8 @@ export const useAmbassadorOfferState = () => {
     remarks,
     setRemarks,
     selectedLeaser,
+    selectedDuration,
+    setSelectedDuration,
     ambassadorId,
     user,
     handleSelectClient,

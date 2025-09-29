@@ -35,6 +35,8 @@ export interface OfferData {
   total_margin_with_difference?: number; // Marge totale avec différence
   dossier_number?: string; // Numéro de dossier
   source?: string; // Canal d'acquisition (recommandation, Google, client existant, etc.)
+  leaser_id?: string; // ID du bailleur sélectionné
+  duration?: number; // Durée du financement en mois
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;

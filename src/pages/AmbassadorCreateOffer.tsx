@@ -42,6 +42,8 @@ const AmbassadorCreateOffer = () => {
     remarks,
     setRemarks,
     selectedLeaser,
+    selectedDuration,
+    setSelectedDuration,
     ambassadorId,
     user,
     handleSelectClient,
@@ -119,7 +121,9 @@ const AmbassadorCreateOffer = () => {
       userId: user?.id,
       setIsSubmitting,
       totalMonthlyPayment,
-      totalMargin
+      totalMargin,
+      selectedLeaser,
+      selectedDuration
     });
   } catch (error) {
     console.error("❌ Error in useAmbassadorOfferSave:", error);
