@@ -9,9 +9,10 @@ import EditableEquipmentCard from "./EditableEquipmentCard";
 
 interface EquipmentSectionProps {
   offer: any;
+  onOfferUpdate?: () => void;
 }
 
-const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
+const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer, onOfferUpdate }) => {
   // Utiliser le hook pour récupérer les équipements depuis les nouvelles tables
   const { equipment, loading, error, refresh } = useOfferEquipment(offer.id);
   
@@ -100,6 +101,7 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer }) => {
                 item={item}
                 index={index}
                 onUpdate={refresh}
+                onOfferUpdate={onOfferUpdate}
               />
             ))}
           </div>

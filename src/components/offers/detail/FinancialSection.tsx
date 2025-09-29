@@ -12,9 +12,11 @@ import RecalculateFinancialsButton from "./RecalculateFinancialsButton";
 import { GlobalMarginEditor } from "./GlobalMarginEditor";
 interface FinancialSectionProps {
   offer: any;
+  onOfferUpdated?: () => void;
 }
 const FinancialSection: React.FC<FinancialSectionProps> = ({
-  offer
+  offer,
+  onOfferUpdated
 }) => {
   // Use the equipment hook to get structured data
   const { equipment: offerEquipment, loading: equipmentLoading, refresh } = useOfferEquipment(offer.id);
@@ -136,6 +138,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
               margin: newMargin
             });
             console.log("✅ AUTO-UPDATE: Offer financials updated successfully");
+            // Déclencher le refresh de l'offre parent
+            onOfferUpdated?.();
           } catch (error) {
             console.error("❌ AUTO-UPDATE: Failed to update offer financials:", error);
           }
@@ -146,7 +150,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     };
     
     updateOfferFinancials();
-  }, [offerEquipment, equipmentLoading, offer.id]);
+  }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated]);
   
   // Utiliser le vrai montant financé
   const financedAmount = offer.financed_amount || 0;

@@ -12,9 +12,10 @@ interface EditableEquipmentCardProps {
   item: any;
   index: number;
   onUpdate: () => void;
+  onOfferUpdate?: () => void;
 }
 
-const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, index, onUpdate }) => {
+const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, index, onUpdate, onOfferUpdate }) => {
   // 🔥 DEBUG: Log item data at the start
   console.log("🔥 EQUIPMENT CARD RENDER - Item data:", {
     id: item.id,
@@ -90,6 +91,8 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
       toast.success("Équipement mis à jour avec succès");
       setIsEditing(false);
       onUpdate();
+      // Déclencher un refresh de l'offre pour synchroniser les données
+      onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error("Erreur lors de la sauvegarde");
@@ -123,6 +126,8 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
       await deleteOfferEquipment(item.id);
       toast.success("Équipement supprimé avec succès");
       onUpdate();
+      // Déclencher un refresh de l'offre pour synchroniser les données
+      onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       toast.error("Erreur lors de la suppression");

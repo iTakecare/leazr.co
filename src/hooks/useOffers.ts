@@ -58,6 +58,7 @@ export const useOffers = () => {
     handleDownloadPdf,
     handleUpdateWorkflowStatus,
     handleRequestInfo,
-    handleProcessInfoResponse
+    handleProcessInfoResponse,
+    refreshOffers: fetchOffers
   };
 };

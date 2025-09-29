@@ -65,32 +65,32 @@ const AdminOfferDetail = () => {
     onStatusChange: handleStatusChange
   });
 
-  useEffect(() => {
-    const fetchOfferDetails = async () => {
-      if (!id) return;
+  const fetchOfferDetails = useCallback(async () => {
+    if (!id) return;
 
-      try {
-        setLoading(true);
-        const offerData = await getOfferById(id);
+    try {
+      setLoading(true);
+      const offerData = await getOfferById(id);
 
-        if (!offerData) {
-          setError("Offre non trouvée");
-          toast.error("Offre non trouvée");
-          return;
-        }
-
-        setOffer(offerData);
-      } catch (err) {
-        console.error("Erreur lors du chargement de l'offre:", err);
-        setError("Impossible de charger les détails de l'offre");
-        toast.error("Erreur lors du chargement des détails de l'offre");
-      } finally {
-        setLoading(false);
+      if (!offerData) {
+        setError("Offre non trouvée");
+        toast.error("Offre non trouvée");
+        return;
       }
-    };
 
-    fetchOfferDetails();
+      setOffer(offerData);
+    } catch (err) {
+      console.error("Erreur lors du chargement de l'offre:", err);
+      setError("Impossible de charger les détails de l'offre");
+      toast.error("Erreur lors du chargement des détails de l'offre");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchOfferDetails();
+  }, [fetchOfferDetails]);
 
   const handleSendEmail = async () => {
     if (!offer || !offer.id) {
@@ -349,7 +349,7 @@ const AdminOfferDetail = () => {
                   </TabsContent>
                   
                   <TabsContent value="financial" className="mt-4 overflow-visible">
-                    <FinancialSection offer={offer} />
+                    <FinancialSection offer={offer} onOfferUpdated={fetchOfferDetails} />
                   </TabsContent>
                   
                   <TabsContent value="documents" className="space-y-4 mt-4 overflow-visible">
