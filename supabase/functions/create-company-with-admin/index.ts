@@ -164,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
         await supabaseAdmin.from('companies').delete().eq('id', companyId);
       }
       
-      throw new Error(`Erreur création profil: ${error.message}`);
+      throw new Error(`Erreur création profil: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // ÉTAPE 4: Modules (optionnel - ne pas faire échouer si ça ne marche pas)

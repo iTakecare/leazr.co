@@ -780,7 +780,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Erreur dans la fonction Edge:", error);
     return new Response(
-      JSON.stringify({ error: `Une erreur est survenue: ${error.message}` }),
+      JSON.stringify({ error: `Une erreur est survenue: ${error instanceof Error ? error.message : 'Unknown error'}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
