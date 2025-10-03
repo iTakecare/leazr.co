@@ -4481,6 +4481,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_product_pack_items_pack_id"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_product_pack_items_product_id"
             columns: ["product_id"]
             isOneToOne: false
@@ -5334,7 +5341,118 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      product_pack_items_public: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          pack_id: string | null
+          position: number | null
+          product_id: string | null
+          quantity: number | null
+          variant_price_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_product_pack_items_pack_id"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_pack_items_pack_id"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_pack_items_product_id"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_pack_items_variant_price_id"
+            columns: ["variant_price_id"]
+            isOneToOne: false
+            referencedRelation: "product_variant_prices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_packs_public: {
+        Row: {
+          admin_only: boolean | null
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          leaser_id: string | null
+          name: string | null
+          pack_monthly_price: number | null
+          pack_promo_price: number | null
+          promo_active: boolean | null
+          promo_valid_from: string | null
+          promo_valid_to: string | null
+          selected_duration: number | null
+          total_monthly_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_only?: boolean | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          leaser_id?: string | null
+          name?: string | null
+          pack_monthly_price?: number | null
+          pack_promo_price?: number | null
+          promo_active?: boolean | null
+          promo_valid_from?: string | null
+          promo_valid_to?: string | null
+          selected_duration?: number | null
+          total_monthly_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_only?: boolean | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          leaser_id?: string | null
+          name?: string | null
+          pack_monthly_price?: number | null
+          pack_promo_price?: number | null
+          promo_active?: boolean | null
+          promo_valid_from?: string | null
+          promo_valid_to?: string | null
+          selected_duration?: number | null
+          total_monthly_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_packs_leaser_id_fkey"
+            columns: ["leaser_id"]
+            isOneToOne: false
+            referencedRelation: "leasers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_prospect: {
