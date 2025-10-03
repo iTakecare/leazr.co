@@ -194,8 +194,8 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     // 8. Initialiser le client Resend et définir les paramètres d'expédition
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    console.log('🔑 RESEND_API_KEY présente:', !!resendApiKey);
+    const resendApiKey = Deno.env.get('ITAKECARE_RESEND_API');
+    console.log('🔑 ITAKECARE_RESEND_API présente:', !!resendApiKey);
     
     const resend = resendApiKey ? new Resend(resendApiKey) : null;
     
