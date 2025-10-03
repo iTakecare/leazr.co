@@ -193,6 +193,18 @@ const handler = async (req: Request): Promise<Response> => {
       .limit(1)
       .single();
 
+    // 8. Initialiser le client Resend et définir les paramètres d'expédition
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    console.log('🔑 RESEND_API_KEY présente:', !!resendApiKey);
+    
+    const resend = resendApiKey ? new Resend(resendApiKey) : null;
+    
+    // Définir l'expéditeur avec fallbacks sécurisés
+    const fromEmail = smtpSettings?.from_email || Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@itakecare.be';
+    const fromName = smtpSettings?.from_name || company?.name || 'iTakecare';
+    
+    console.log('📧 Expéditeur configuré:', `${fromName} <${fromEmail}>`);
+
     // Déterminer l'URL de base avec ordre de priorité
     let BASE_URL = 'https://leazr.co'; // Base sans slug
 
@@ -558,21 +570,38 @@ ${entityType === 'ambassador' ?
     `.trim();
 
     // 11. Envoyer l'email via Resend avec version HTML et texte
-    const emailResult = await resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
-      to: [email],
-      subject: emailSubject,
-      html: emailContent,
-      text: textContent,
-    });
+    let emailSent = false;
+    let emailMessage = '';
+    
+    if (resend) {
+      try {
+        const emailResult = await resend.emails.send({
+          from: `${fromName} <${fromEmail}>`,
+          to: [email],
+          subject: emailSubject,
+          html: emailContent,
+          text: textContent,
+        });
 
-    console.log('Email envoyé:', emailResult);
+        console.log('✅ Email envoyé avec succès:', emailResult);
+        emailSent = true;
+        emailMessage = 'Compte créé et email d\'activation envoyé via Resend';
+      } catch (emailError: any) {
+        console.error('❌ Erreur lors de l\'envoi de l\'email:', emailError);
+        emailMessage = `Compte créé mais email non envoyé: ${emailError.message}`;
+      }
+    } else {
+      console.log('⚠️ RESEND_API_KEY non configurée - email non envoyé');
+      emailMessage = 'Compte créé (email non envoyé - clé Resend manquante)';
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         user_id: userData.user.id,
-        message: 'Compte créé et email d\'activation envoyé via Resend'
+        activation_url: activationUrl,
+        email_sent: emailSent,
+        message: emailMessage
       }),
       {
         status: 200,
