@@ -403,43 +403,16 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
   }
 
   try {
-    // Get active packs with their items
+    // Use secure RPC function that excludes sensitive pricing data
     const { data: packsData, error } = await supabase
-      .from("product_packs")
-      .select(`
-        id,
-        name,
-        description,
-        image_url,
-        is_featured,
-        is_active,
-        pack_monthly_price,
-        pack_promo_price,
-        promo_active,
-        total_monthly_price,
-        product_pack_items(
-          quantity,
-          products(
-            id,
-            name,
-            image_url,
-            category_name,
-            categories(name, translation)
-          )
-        )
-      `)
-      .eq("company_id", companyId)
-      .eq("is_active", true)
-      .or("admin_only.is.null,admin_only.eq.false")
-      .order("is_featured", { ascending: false })
-      .order("created_at", { ascending: false });
+      .rpc('get_public_packs', { p_company_id: companyId });
 
     if (error) {
       throw error;
     }
 
-    // Map to PublicPack format
-    const mappedPacks: PublicPack[] = (packsData || []).map(pack => ({
+    // Map RPC result to PublicPack format
+    const mappedPacks: PublicPack[] = (packsData || []).map((pack: any) => ({
       id: pack.id,
       name: pack.name || "",
       description: pack.description || "",
@@ -449,13 +422,13 @@ export const getPublicPacksOptimized = async (companyId: string): Promise<Public
       pack_promo_price: pack.pack_promo_price || 0,
       promo_active: pack.promo_active || false,
       total_monthly_price: pack.total_monthly_price || 0,
-      items: (pack.product_pack_items || []).map(item => ({
+      items: (pack.pack_items || []).map((item: any) => ({
         quantity: item.quantity || 1,
         product: {
-          id: item.products?.id || "",
-          name: item.products?.name || "",
-          image_url: item.products?.image_url || "",
-          category: item.products?.categories?.name || item.products?.category_name || ""
+          id: item.product?.id || "",
+          name: item.product?.name || "",
+          image_url: item.product?.image_url || "",
+          category: item.product?.category || ""
         }
       }))
     }));
