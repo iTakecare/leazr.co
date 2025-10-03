@@ -104,47 +104,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return await supabase.auth.signUp({ email, password, options });
   };
 
-  // Fonctions de vérification des rôles avec logging amélioré
+  // ⚠️ IMPORTANT: Ces fonctions sont UNIQUEMENT pour l'UI (afficher/masquer des éléments)
+  // La vraie sécurité est gérée par les politiques RLS côté Supabase avec user_roles table
   const isAdmin = () => {
-    const result = user?.role === 'admin' || (!user?.role && !user?.partner_id && !user?.ambassador_id && !user?.client_id);
-    console.log("🔍 isAdmin check:", {
-      userRole: user?.role,
-      partnerId: user?.partner_id,
-      ambassadorId: user?.ambassador_id,
-      clientId: user?.client_id,
-      result
-    });
+    const result = user?.role === 'admin' || user?.role === 'super_admin';
     return result;
   };
 
   const isClient = () => {
-    const result = user?.role === 'client' || !!user?.client_id;
-    console.log("🔍 isClient check:", {
-      userRole: user?.role,
-      clientId: user?.client_id,
-      result
-    });
-    return result;
+    return user?.role === 'client' || !!user?.client_id;
   };
 
-
   const isAmbassador = () => {
-    const result = user?.role === 'ambassador' || !!user?.ambassador_id;
-    console.log("🔍 isAmbassador check:", {
-      userRole: user?.role,
-      ambassadorId: user?.ambassador_id,
-      result
-    });
-    return result;
+    return user?.role === 'ambassador' || !!user?.ambassador_id;
   };
 
   const isSuperAdmin = () => {
-    const result = user?.role === 'super_admin';
-    console.log("🔍 isSuperAdmin check:", {
-      userRole: user?.role,
-      result
-    });
-    return result;
+    return user?.role === 'super_admin';
   };
 
   // Fonction pour enrichir les données utilisateur avec gestion d'erreur améliorée
@@ -232,11 +208,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
 
+      // ⚠️ SÉCURITÉ: Ne jamais mettre de rôle par défaut = les rôles viennent de user_roles table
       const enrichedUser = {
         ...baseUser,
         first_name: profile?.first_name || '',
         last_name: profile?.last_name || '',
-        role: profile?.role || 'admin',
+        role: profile?.role || 'user', // Fallback sûr : 'user' sans privilèges
         company: profile?.company || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: ambassadorId,
