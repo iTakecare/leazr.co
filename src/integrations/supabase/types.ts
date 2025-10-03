@@ -5195,6 +5195,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       woocommerce_configs: {
         Row: {
           company_id: string
@@ -6265,6 +6289,13 @@ export type Database = {
           variation_attributes: Json
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       immediate_global_cleanup: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -6509,7 +6540,13 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin"
+        | "super_admin"
+        | "ambassador"
+        | "partner"
+        | "client"
+        | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6636,6 +6673,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin",
+        "super_admin",
+        "ambassador",
+        "partner",
+        "client",
+        "user",
+      ],
+    },
   },
 } as const
