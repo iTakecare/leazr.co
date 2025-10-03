@@ -293,18 +293,29 @@ const handler = async (req: Request): Promise<Response> => {
         console.log('render_email_template(subject) a échoué, fallback sujet brut');
       }
 
-      emailContent = (renderedHtml as string) || rawContent
-        .replace(/{{user_name}}/g, templateVars.user_name)
-        .replace(/{{user_email}}/g, templateVars.user_email)
-        .replace(/{{activation_url}}/g, templateVars.activation_url)
-        .replace(/{{company_name}}/g, templateVars.company_name)
-        .replace(/{{company_logo}}/g, templateVars.company_logo)
-        .replace(/{{company_address}}/g, templateVars.company_address)
-        .replace(/{{current_year}}/g, templateVars.current_year);
+  emailContent = (renderedHtml as string) || rawContent
+    .replace(/{{user_name}}/g, templateVars.user_name)
+    .replace(/{{user_email}}/g, templateVars.user_email)
+    .replace(/{{activation_url}}/g, templateVars.activation_url)
+    .replace(/{{company_name}}/g, templateVars.company_name)
+    .replace(/{{company_logo}}/g, templateVars.company_logo)
+    .replace(/{{company_address}}/g, templateVars.company_address)
+    .replace(/{{current_year}}/g, templateVars.current_year);
 
-      // Backward compat: certains templates utilisent encore {{login_link}}
-      emailContent = emailContent.replace(/{{login_link}}/g, templateVars.activation_url);
-      emailSubject = (renderedSubject as string) || (emailTemplate.subject || 'Activation de votre compte');
+  // Backward compat: certains templates utilisent encore {{login_link}}
+  emailContent = emailContent.replace(/{{login_link}}/g, templateVars.activation_url);
+  
+  // Gérer le sujet avec fallback manuel si le RPC échoue
+  if (renderedSubject && !renderSubjectError) {
+    emailSubject = renderedSubject as string;
+  } else {
+    // Fallback: remplacer manuellement les variables dans le sujet
+    emailSubject = (emailTemplate.subject || 'Activation de votre compte')
+      .replace(/{{user_name}}/g, templateVars.user_name)
+      .replace(/{{user_email}}/g, templateVars.user_email)
+      .replace(/{{company_name}}/g, templateVars.company_name)
+      .replace(/{{current_year}}/g, templateVars.current_year);
+  }
     } else {
       // Template par défaut amélioré selon le type d'entité
       emailSubject = `Activation de votre compte ${entityNames[entityType]}`;
