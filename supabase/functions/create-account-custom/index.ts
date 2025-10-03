@@ -178,6 +178,15 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('company_id', companyId)
       .single();
 
+    // Récupérer le template d'email pour l'activation
+    const { data: emailTemplate } = await supabase
+      .from('template_library')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('template_type', 'account_activation')
+      .eq('is_active', true)
+      .single();
+
     const { data: platformSettings } = await supabase
       .from('platform_settings')
       .select('website_url, company_address')
