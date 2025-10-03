@@ -93,6 +93,31 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // 3.5. Créer le rôle dans user_roles (nouveau système de sécurité Phase 1)
+    const roleMapping = {
+      'partner': 'partner',
+      'ambassador': 'ambassador',
+      'client': 'client'
+    };
+    
+    const { error: roleError } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: userData.user.id,
+        role: roleMapping[entityType]
+      });
+
+    if (roleError) {
+      console.error('Erreur création rôle user_roles:', roleError);
+      // Supprimer l'utilisateur et le profil si le rôle échoue
+      await supabase.from('profiles').delete().eq('id', userData.user.id);
+      await supabase.auth.admin.deleteUser(userData.user.id);
+      return new Response(
+        JSON.stringify({ error: 'Erreur lors de la création du rôle utilisateur' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     // 4. Mettre à jour l'entité avec user_id et has_user_account
     const tableMap = {
       'partner': 'partners',

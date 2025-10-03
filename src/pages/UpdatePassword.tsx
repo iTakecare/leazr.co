@@ -328,8 +328,8 @@ const UpdatePassword = () => {
             const { data: updateData, error: updateError } = await supabase.functions.invoke('update-password-custom', {
               body: {
                 token: customToken,
-                password: password,
-                email: 'user@example.com' // Email temporaire, sera récupéré par l'edge function
+                password: password
+                // L'email sera automatiquement récupéré depuis le token par l'edge function
               }
             });
 

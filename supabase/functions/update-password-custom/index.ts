@@ -9,7 +9,6 @@ const corsHeaders = {
 interface UpdatePasswordRequest {
   token: string;
   password: string;
-  email: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -32,9 +31,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { token, password, email }: UpdatePasswordRequest = await req.json();
+    const { token, password }: UpdatePasswordRequest = await req.json();
 
-    console.log(`📧 Mise à jour du mot de passe pour: ${email}`);
     console.log(`🔑 Token reçu: ${token.substring(0, 8)}...`);
 
     // 1. Vérifier le token
@@ -56,7 +54,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`✅ Token valide trouvé, type: ${tokenData.token_type}`);
 
-    // 2. Trouver l'utilisateur par email
+    // 2. Récupérer l'email depuis le token au lieu du body
+    const email = tokenData.user_email;
+    console.log(`📧 Email récupéré depuis le token: ${email}`);
+
+    // 3. Trouver l'utilisateur par email
     const { data: usersData, error: userError } = await supabase.auth.admin.listUsers();
     
     if (userError || !usersData.users) {
@@ -78,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`👤 Utilisateur trouvé: ${user.id}`);
 
-    // 3. Mettre à jour le mot de passe
+    // 4. Mettre à jour le mot de passe
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       user.id,
       { 
@@ -110,7 +112,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("✅ Mot de passe mis à jour avec succès");
 
-    // 4. Marquer le token comme utilisé
+    // 5. Marquer le token comme utilisé
     const { error: tokenUpdateError } = await supabase
       .from('custom_auth_tokens')
       .update({ used_at: new Date().toISOString() })
