@@ -208,11 +208,26 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 9. Préparer le contenu de l'email
-    // Déterminer l'URL de base à partir de l'en-tête de la requête
+    // Déterminer l'URL de base d'abord via les paramètres de plateforme, puis fallback
+    const { data: platformSettings } = await supabase
+      .from('platform_settings')
+      .select('website_url, company_address')
+      .limit(1)
+      .single();
+
     const origin = req.headers.get('origin') || req.headers.get('referer');
     let APP_URL = 'https://www.leazr.co'; // Fallback par défaut
-    
-    if (origin) {
+
+    if (platformSettings?.website_url) {
+      try {
+        APP_URL = new URL(platformSettings.website_url).origin;
+        console.log('URL détectée depuis platform_settings.website_url:', APP_URL);
+      } catch (_) {
+        console.log('website_url invalide dans platform_settings, on essaie origin.');
+      }
+    }
+
+    if ((!platformSettings?.website_url) && origin) {
       try {
         const originUrl = new URL(origin);
         APP_URL = originUrl.origin;
@@ -220,16 +235,27 @@ const handler = async (req: Request): Promise<Response> => {
       } catch (e) {
         console.log('Impossible de parser origin, utilisation du fallback:', APP_URL);
       }
-    } else {
+    } else if (!platformSettings?.website_url && !origin) {
       console.log('Pas d\'origin détecté, utilisation du fallback:', APP_URL);
     }
-    
+
     const encodedToken = encodeURIComponent(activationToken);
     const encodedType = encodeURIComponent('invitation');
     const activationUrl = `${APP_URL}/update-password?token=${encodedToken}&type=${encodedType}`;
-    
+
     console.log('URL d\'activation générée:', activationUrl);
     console.log('Token brut:', activationToken);
+
+    // Variables communes pour le rendu des templates
+    const templateVars: Record<string, string> = {
+      user_name: `${firstName || ''} ${lastName || ''}`.trim(),
+      user_email: email,
+      activation_url: activationUrl,
+      company_name: company?.name || '',
+      company_logo: company?.logo_url || '',
+      company_address: platformSettings?.company_address || '',
+      current_year: new Date().getFullYear().toString(),
+    };
     
     const entityNames = {
       'partner': 'partenaire',
@@ -241,27 +267,44 @@ const handler = async (req: Request): Promise<Response> => {
     let emailSubject;
 
     if (emailTemplate) {
-      // Utiliser le template personnalisé et traiter les conditions Handlebars
-      emailContent = emailTemplate.html_content;
-      emailSubject = emailTemplate.subject;
-      
-      // Traiter les conditions {{#if company_logo}} dans le template
+      // Utiliser le template personnalisé et rendre via la fonction SQL render_email_template
+      // Gérer optionnellement le bloc conditionnel {{#if company_logo}}
       const hasLogo = company?.logo_url && company.logo_url.trim() !== '';
-      
-      // Remplacer les conditions Handlebars par le contenu approprié
-      emailContent = emailContent.replace(
+      const rawContent = (emailTemplate.html_content || '').replace(
         /{{#if\s+company_logo}}([\s\S]*?){{\/if}}/g,
         hasLogo ? '$1' : ''
       );
-      
-      // Remplacer les variables dans le template personnalisé
-      emailContent = emailContent
-        .replace(/{{user_name}}/g, `${firstName || ''} ${lastName || ''}`.trim())
-        .replace(/{{activation_url}}/g, activationUrl)
-        .replace(/{{company_name}}/g, company?.name || '')
-        .replace(/{{company_logo}}/g, company?.logo_url || '')
-        .replace(/{{company_address}}/g, emailTemplate.company_address || '')
-        .replace(/{{current_year}}/g, new Date().getFullYear().toString());
+
+      // Rendu via la fonction SQL pour remplacer toutes les variables
+      const { data: renderedHtml, error: renderHtmlError } = await supabase.rpc('render_email_template', {
+        template_content: rawContent,
+        variables: templateVars
+      });
+
+      const { data: renderedSubject, error: renderSubjectError } = await supabase.rpc('render_email_template', {
+        template_content: emailTemplate.subject || 'Activation de votre compte',
+        variables: templateVars
+      });
+
+      if (renderHtmlError) {
+        console.log('render_email_template(html) a échoué, fallback aux remplacements simples');
+      }
+      if (renderSubjectError) {
+        console.log('render_email_template(subject) a échoué, fallback sujet brut');
+      }
+
+      emailContent = (renderedHtml as string) || rawContent
+        .replace(/{{user_name}}/g, templateVars.user_name)
+        .replace(/{{user_email}}/g, templateVars.user_email)
+        .replace(/{{activation_url}}/g, templateVars.activation_url)
+        .replace(/{{company_name}}/g, templateVars.company_name)
+        .replace(/{{company_logo}}/g, templateVars.company_logo)
+        .replace(/{{company_address}}/g, templateVars.company_address)
+        .replace(/{{current_year}}/g, templateVars.current_year);
+
+      // Backward compat: certains templates utilisent encore {{login_link}}
+      emailContent = emailContent.replace(/{{login_link}}/g, templateVars.activation_url);
+      emailSubject = (renderedSubject as string) || (emailTemplate.subject || 'Activation de votre compte');
     } else {
       // Template par défaut amélioré selon le type d'entité
       emailSubject = `Activation de votre compte ${entityNames[entityType]}`;
