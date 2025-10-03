@@ -171,97 +171,48 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('id', companyId)
       .single();
 
-    // 7. Récupérer les paramètres SMTP/Email de l'entreprise
+    // 6.5. Récupérer le domaine de l'entreprise depuis company_domains
+    const { data: companyDomain } = await supabase
+      .from('company_domains')
+      .select('subdomain, domain')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .eq('is_primary', true)
+      .single();
+
+    // 7. Récupérer les paramètres SMTP/Email et platform_settings de l'entreprise
     const { data: smtpSettings } = await supabase
       .from('smtp_settings')
       .select('*')
       .eq('company_id', companyId)
       .single();
 
-    // Déterminer quelle clé API Resend utiliser
-    let resendApiKey = Deno.env.get("LEAZR_RESEND_API");
-    let fromEmail = 'noreply@leazr.co';
-    let fromName = 'Leazr';
-
-    // Traitement spécial pour iTakecare - utiliser ITAKECARE_RESEND_API
-    if (companyId === 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0') {
-      console.log('Utilisation de la clé API Resend spéciale iTakecare (ITAKECARE_RESEND_API)');
-      resendApiKey = Deno.env.get("ITAKECARE_RESEND_API");
-      console.log('Clé API iTakecare (masquée):', resendApiKey ? resendApiKey.substring(0, 8) + '...' : 'non définie');
-      fromEmail = 'noreply@itakecare.be';
-      fromName = 'iTakecare';
-    } else if (smtpSettings && smtpSettings.resend_api_key && smtpSettings.resend_api_key.trim() !== '') {
-      console.log('Utilisation de la clé API Resend de l\'entreprise');
-      console.log('Clé API entreprise (masquée):', smtpSettings.resend_api_key.substring(0, 8) + '...');
-      resendApiKey = smtpSettings.resend_api_key.trim(); // Nettoyer les espaces
-      fromEmail = smtpSettings.from_email || fromEmail;
-      fromName = smtpSettings.from_name || fromName;
-    } else {
-      console.log('Utilisation de la clé API Resend de fallback (LEAZR_RESEND_API)');
-      console.log('Clé API fallback (masquée):', resendApiKey ? resendApiKey.substring(0, 8) + '...' : 'non définie');
-    }
-
-    if (!resendApiKey) {
-      console.error('Aucune clé API Resend disponible');
-      return new Response(
-        JSON.stringify({ error: 'Configuration API Resend manquante' }),
-        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      );
-    }
-
-    const resend = new Resend(resendApiKey);
-
-    // 8. Récupérer le template d'email approprié selon le type d'entité
-    const templateType = entityType === 'ambassador' ? 'ambassador_account' : 
-                        entityType === 'partner' ? 'partner_account' : 
-                        'client_account';
-    
-    console.log(`Recherche du template: ${templateType} pour l'entreprise ${companyId}`);
-    
-    const { data: emailTemplate } = await supabase
-      .from('email_templates')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('type', templateType)
-      .eq('active', true)
-      .single();
-
-    if (emailTemplate) {
-      console.log(`Template ${templateType} trouvé et utilisé`);
-    } else {
-      console.log(`Aucun template ${templateType} trouvé, utilisation du template par défaut`);
-    }
-
-    // 9. Préparer le contenu de l'email
-    // Déterminer l'URL de base d'abord via les paramètres de plateforme, puis fallback
     const { data: platformSettings } = await supabase
       .from('platform_settings')
       .select('website_url, company_address')
       .limit(1)
       .single();
 
-    const origin = req.headers.get('origin') || req.headers.get('referer');
+    // Déterminer l'URL de base avec ordre de priorité
     let APP_URL = 'https://www.leazr.co'; // Fallback par défaut
 
-    if (platformSettings?.website_url) {
+    // Priorité 1 : Utiliser le sous-domaine depuis company_domains
+    if (companyDomain?.subdomain && companyDomain?.domain) {
+      APP_URL = `https://${companyDomain.subdomain}.${companyDomain.domain}`;
+      console.log('✅ URL détectée depuis company_domains:', APP_URL);
+    } 
+    // Priorité 2 : Utiliser platform_settings.website_url
+    else if (platformSettings?.website_url) {
       try {
         APP_URL = new URL(platformSettings.website_url).origin;
-        console.log('URL détectée depuis platform_settings.website_url:', APP_URL);
-      } catch (_) {
-        console.log('website_url invalide dans platform_settings, on essaie origin.');
-      }
-    }
-
-    if ((!platformSettings?.website_url) && origin) {
-      try {
-        const originUrl = new URL(origin);
-        APP_URL = originUrl.origin;
-        console.log('URL détectée depuis origin:', APP_URL);
+        console.log('✅ URL détectée depuis platform_settings:', APP_URL);
       } catch (e) {
-        console.log('Impossible de parser origin, utilisation du fallback:', APP_URL);
+        console.log('⚠️ website_url invalide dans platform_settings, utilisation du fallback');
       }
-    } else if (!platformSettings?.website_url && !origin) {
-      console.log('Pas d\'origin détecté, utilisation du fallback:', APP_URL);
+    } 
+    // Priorité 3 : Fallback
+    else {
+      console.log('⚠️ Pas de domaine configuré, utilisation du fallback:', APP_URL);
     }
 
     const encodedToken = encodeURIComponent(activationToken);
