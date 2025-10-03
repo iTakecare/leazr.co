@@ -6352,12 +6352,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_client: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_company_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_company_chat_available: {
         Args: { p_company_id: string }
+        Returns: boolean
+      }
+      is_partner: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_saas_admin: {
