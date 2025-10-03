@@ -142,6 +142,9 @@ const AppRoutes = () => (
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/register" element={<Signup />} />
     
+    {/* Company-specific update password route */}
+    <Route path="/:companySlug/update-password" element={<UpdatePassword />} />
+    
     {/* PUBLIC INFORMATION PAGES - Must come before slug routes */}
     <Route path="/solutions" element={<SolutionsPage />} />
     <Route path="/solutions/entreprises" element={<EnterprisesSolutionsPage />} />

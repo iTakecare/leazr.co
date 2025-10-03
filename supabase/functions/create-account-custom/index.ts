@@ -164,20 +164,11 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Erreur création token:', tokenError);
     }
 
-    // 6. Récupérer les informations de l'entreprise
+    // 6. Récupérer les informations de l'entreprise avec le slug
     const { data: company } = await supabase
       .from('companies')
-      .select('name, logo_url')
+      .select('name, logo_url, slug')
       .eq('id', companyId)
-      .single();
-
-    // 6.5. Récupérer le domaine de l'entreprise depuis company_domains
-    const { data: companyDomain } = await supabase
-      .from('company_domains')
-      .select('subdomain, domain')
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .eq('is_primary', true)
       .single();
 
     // 7. Récupérer les paramètres SMTP/Email et platform_settings de l'entreprise
@@ -194,30 +185,23 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     // Déterminer l'URL de base avec ordre de priorité
-    let APP_URL = 'https://www.leazr.co'; // Fallback par défaut
+    let BASE_URL = 'https://leazr.co'; // Base sans slug
 
-    // Priorité 1 : Utiliser le sous-domaine depuis company_domains
-    if (companyDomain?.subdomain && companyDomain?.domain) {
-      APP_URL = `https://${companyDomain.subdomain}.${companyDomain.domain}`;
-      console.log('✅ URL détectée depuis company_domains:', APP_URL);
-    } 
-    // Priorité 2 : Utiliser platform_settings.website_url
-    else if (platformSettings?.website_url) {
+    // Priorité 1 : Utiliser platform_settings.website_url comme base
+    if (platformSettings?.website_url) {
       try {
-        APP_URL = new URL(platformSettings.website_url).origin;
-        console.log('✅ URL détectée depuis platform_settings:', APP_URL);
+        BASE_URL = new URL(platformSettings.website_url).origin;
+        console.log('✅ URL base détectée depuis platform_settings:', BASE_URL);
       } catch (e) {
         console.log('⚠️ website_url invalide dans platform_settings, utilisation du fallback');
       }
-    } 
-    // Priorité 3 : Fallback
-    else {
-      console.log('⚠️ Pas de domaine configuré, utilisation du fallback:', APP_URL);
     }
 
+    // Construire l'URL avec le slug de l'entreprise
+    const companySlug = company?.slug || 'company';
     const encodedToken = encodeURIComponent(activationToken);
     const encodedType = encodeURIComponent('invitation');
-    const activationUrl = `${APP_URL}/update-password?token=${encodedToken}&type=${encodedType}`;
+    const activationUrl = `${BASE_URL}/${companySlug}/update-password?token=${encodedToken}&type=${encodedType}`;
 
     console.log('URL d\'activation générée:', activationUrl);
     console.log('Token brut:', activationToken);

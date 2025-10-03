@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,9 +23,15 @@ const UpdatePassword = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { companySlug } = useParams<{ companySlug?: string }>();
 
   // Password validation with debug logging
   const passwordValidation = usePasswordValidation(password);
+  
+  // Helper function to get the correct login path
+  const getLoginPath = () => {
+    return companySlug ? `/${companySlug}/login` : '/login';
+  };
   
   // Debug password validation
   useEffect(() => {
@@ -73,6 +79,23 @@ const UpdatePassword = () => {
         console.log("🔗 UpdatePassword - URL complète:", window.location.href);
         console.log("🔍 UpdatePassword - Search params:", window.location.search);
         console.log("📍 UpdatePassword - Hash:", window.location.hash);
+        console.log("🏢 UpdatePassword - Company slug from URL:", companySlug);
+        
+        // Si on a un companySlug dans l'URL, récupérer le company_id
+        if (companySlug) {
+          console.log("🔍 UpdatePassword - Fetching company_id from slug:", companySlug);
+          const { data: companyData, error: companyError } = await supabase
+            .rpc('get_company_by_slug', { company_slug: companySlug });
+          
+          if (companyError) {
+            console.error("❌ UpdatePassword - Error fetching company by slug:", companyError);
+          } else if (companyData && companyData.length > 0) {
+            console.log("✅ UpdatePassword - Company found:", companyData[0].id);
+            setCompanyId(companyData[0].id);
+          } else {
+            console.warn("⚠️ UpdatePassword - No company found for slug:", companySlug);
+          }
+        }
         
         // Force unlock after 3 seconds for debugging
         setTimeout(() => {
@@ -142,7 +165,7 @@ const UpdatePassword = () => {
               console.error("Erreur lors de la définition de la session:", error);
               toast.error("Lien de réinitialisation invalide ou expiré");
               setIsAuthenticating(false);
-              navigate('/login');
+              navigate(getLoginPath());
               return;
             }
             
@@ -153,7 +176,7 @@ const UpdatePassword = () => {
             console.error("Erreur lors de la configuration de la session:", err);
             toast.error("Erreur lors de la configuration de la session");
             setIsAuthenticating(false);
-            navigate('/login');
+            navigate(getLoginPath());
           }
         } else if (token && type === 'recovery') {
           console.log("UpdatePassword - Configuration avec token simple");
@@ -168,7 +191,7 @@ const UpdatePassword = () => {
               console.error("Erreur lors de la vérification du token:", error);
               toast.error("Lien de réinitialisation invalide ou expiré");
               setIsAuthenticating(false);
-              navigate('/login');
+              navigate(getLoginPath());
               return;
             }
             
@@ -179,7 +202,7 @@ const UpdatePassword = () => {
             console.error("Erreur lors de la vérification du token:", err);
             toast.error("Erreur lors de la vérification du token");
             setIsAuthenticating(false);
-            navigate('/login');
+            navigate(getLoginPath());
           }
         } else if (customToken && (type === 'invitation' || type === 'password_reset' || !type)) {
           console.log("UpdatePassword - Token personnalisé détecté:", { customToken, type });
@@ -200,7 +223,7 @@ const UpdatePassword = () => {
               console.error("UpdatePassword - Token invalide ou expiré:", functionError || verificationResult?.error);
               toast.error("Lien d'activation invalide ou expiré");
               setIsAuthenticating(false);
-              navigate('/login');
+              navigate(getLoginPath());
               return;
             }
 
@@ -251,7 +274,7 @@ const UpdatePassword = () => {
             console.error("Erreur lors de la vérification du token personnalisé:", err);
             toast.error("Erreur lors de la vérification du token");
             setIsAuthenticating(false);
-            navigate('/login');
+            navigate(getLoginPath());
           }
         } else if (currentSession) {
           console.log("UpdatePassword - Session existante détectée, permettre la réinitialisation");
@@ -263,18 +286,18 @@ const UpdatePassword = () => {
           console.log("UpdatePassword - Redirection vers login");
           toast.error("Lien de réinitialisation invalide ou manquant");
           setIsAuthenticating(false);
-          navigate('/login');
+          navigate(getLoginPath());
         }
       } catch (error) {
         console.error("💥 UpdatePassword - Exception globale:", error);
         toast.error("Erreur lors de l'initialisation");
         setIsAuthenticating(false);
-        navigate('/login');
+        navigate(getLoginPath());
       }
     };
 
     handlePasswordReset();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, companySlug]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -351,7 +374,7 @@ const UpdatePassword = () => {
             toast.success("Mot de passe défini avec succès !");
             
             sessionStorage.removeItem('custom_token_data');
-            setTimeout(() => navigate('/login'), 2000);
+            setTimeout(() => navigate(getLoginPath()), 2000);
             return;
           } catch (err) {
             console.error("💥 Exception lors de l'appel:", err);
@@ -375,7 +398,7 @@ const UpdatePassword = () => {
           }
           
           toast.success("Mot de passe mis à jour avec succès !");
-          setTimeout(() => navigate('/login'), 2000);
+          setTimeout(() => navigate(getLoginPath()), 2000);
           return;
         } else {
           console.error("❌ Type de token inconnu:", urlType);
@@ -404,7 +427,7 @@ const UpdatePassword = () => {
       
       // Rediriger vers la page de connexion après un délai
       setTimeout(() => {
-        navigate('/login', { replace: true });
+        navigate(getLoginPath(), { replace: true });
       }, 2000);
       
     } catch (error: any) {
