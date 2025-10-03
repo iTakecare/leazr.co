@@ -63,6 +63,9 @@ export const getDefaultSettings = (): PlatformSettings => ({
 
 /**
  * Get platform settings for public display (safe fields only)
+ * 🔒 SECURITY: This function filters sensitive fields (email, phone, address)
+ * Only returns: company_name, logo_url, colors, website_url
+ * For full access including sensitive fields, use getPlatformSettings() (requires authentication)
  */
 export const getPublicPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
@@ -81,12 +84,13 @@ export const getPublicPlatformSettings = async (): Promise<PlatformSettings | nu
       return getDefaultSettings();
     }
 
+    // 🔒 SECURITY: Sensitive fields are explicitly set to empty strings for public access
     return {
       company_name: data.company_name || 'Leazr',
-      company_description: '', // Not available in public view
-      company_address: '', // Not available in public view
-      company_phone: '', // Not available in public view  
-      company_email: '', // Not available in public view
+      company_description: '', // 🔒 RESTRICTED: Requires authentication
+      company_address: '', // 🔒 RESTRICTED: Requires authentication
+      company_phone: '', // 🔒 RESTRICTED: Requires authentication
+      company_email: '', // 🔒 RESTRICTED: Requires authentication
       logo_url: data.logo_url || '/leazr-logo.png',
       primary_color: data.primary_color || '#3b82f6',
       secondary_color: data.secondary_color || '#64748b',
@@ -100,7 +104,9 @@ export const getPublicPlatformSettings = async (): Promise<PlatformSettings | nu
 };
 
 /**
- * Get platform settings directly from the database (admin access only)
+ * Get platform settings directly from the database (authenticated users only)
+ * 🔓 FULL ACCESS: Returns all fields including sensitive data (email, phone, address)
+ * Should only be called for authenticated users
  */
 export const getPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
