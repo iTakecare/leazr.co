@@ -218,11 +218,12 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Construire l'URL avec le slug de l'entreprise
+    // Construire l'URL compatible avec query params (pas de slug dans le path)
     const companySlug = company?.slug || 'company';
     const encodedToken = encodeURIComponent(activationToken);
     const encodedType = encodeURIComponent('invitation');
-    const activationUrl = `${BASE_URL}/${companySlug}/update-password?token=${encodedToken}&type=${encodedType}`;
+    const encodedSlug = encodeURIComponent(companySlug);
+    const activationUrl = `${BASE_URL}/update-password?token=${encodedToken}&type=${encodedType}&companySlug=${encodedSlug}`;
 
     console.log('URL d\'activation générée:', activationUrl);
     console.log('Token brut:', activationToken);

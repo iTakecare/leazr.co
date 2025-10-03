@@ -23,7 +23,10 @@ const UpdatePassword = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { companySlug } = useParams<{ companySlug?: string }>();
+  const { companySlug: pathCompanySlug } = useParams<{ companySlug?: string }>();
+  
+  // Read companySlug from URL path OR query params
+  const companySlug = pathCompanySlug || searchParams.get('companySlug') || undefined;
 
   // Password validation with debug logging
   const passwordValidation = usePasswordValidation(password);
