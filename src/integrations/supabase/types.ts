@@ -6305,24 +6305,50 @@ export type Database = {
         Returns: boolean
       }
       insert_offer_equipment_attributes_secure: {
-        Args: { p_attributes: Json; p_equipment_id: string }
-        Returns: undefined
+        Args:
+          | { p_attributes: Json; p_equipment_id: string }
+          | { p_equipment_id: string; p_key: string; p_value: string }
+        Returns: string
       }
       insert_offer_equipment_secure: {
-        Args: {
-          p_margin: number
-          p_monthly_payment?: number
-          p_offer_id: string
-          p_purchase_price: number
-          p_quantity: number
-          p_serial_number?: string
-          p_title: string
-        }
+        Args:
+          | {
+              p_coefficient?: number
+              p_collaborator_id?: string
+              p_delivery_address?: string
+              p_delivery_city?: string
+              p_delivery_contact_email?: string
+              p_delivery_contact_name?: string
+              p_delivery_contact_phone?: string
+              p_delivery_country?: string
+              p_delivery_postal_code?: string
+              p_delivery_site_id?: string
+              p_delivery_type?: string
+              p_margin: number
+              p_monthly_payment?: number
+              p_offer_id: string
+              p_purchase_price: number
+              p_quantity: number
+              p_selling_price?: number
+              p_serial_number?: string
+              p_title: string
+            }
+          | {
+              p_margin: number
+              p_monthly_payment?: number
+              p_offer_id: string
+              p_purchase_price: number
+              p_quantity: number
+              p_serial_number?: string
+              p_title: string
+            }
         Returns: string
       }
       insert_offer_equipment_specifications_secure: {
-        Args: { p_equipment_id: string; p_specifications: Json }
-        Returns: undefined
+        Args:
+          | { p_equipment_id: string; p_key: string; p_value: string }
+          | { p_equipment_id: string; p_specifications: Json }
+        Returns: string
       }
       insert_postal_codes_bulk: {
         Args: { p_country_code: string; p_postal_codes: Json }

@@ -208,7 +208,19 @@ export const saveEquipment = async (
         p_quantity: equipment.quantity,
         p_margin: equipment.margin,
         p_monthly_payment: equipment.monthly_payment,
-        p_serial_number: equipment.serial_number
+        p_selling_price: equipment.selling_price,
+        p_coefficient: equipment.coefficient,
+        p_serial_number: equipment.serial_number,
+        p_collaborator_id: equipment.collaborator_id,
+        p_delivery_site_id: equipment.delivery_site_id,
+        p_delivery_type: equipment.delivery_type,
+        p_delivery_address: equipment.delivery_address,
+        p_delivery_city: equipment.delivery_city,
+        p_delivery_postal_code: equipment.delivery_postal_code,
+        p_delivery_country: equipment.delivery_country,
+        p_delivery_contact_name: equipment.delivery_contact_name,
+        p_delivery_contact_email: equipment.delivery_contact_email,
+        p_delivery_contact_phone: equipment.delivery_contact_phone
       });
     
     if (equipmentError) {
@@ -221,38 +233,37 @@ export const saveEquipment = async (
     // 2. Insérer les attributs en utilisant la fonction SECURITY DEFINER
     if (Object.keys(attributes).length > 0) {
       console.log("Inserting attributes:", attributes);
-      const { error: attributesError } = await supabase
-        .rpc('insert_offer_equipment_attributes_secure', {
-          p_equipment_id: equipmentId,
-          p_attributes: attributes
-        });
-      
-      if (attributesError) {
-        console.error("Erreur lors de la sauvegarde des attributs:", attributesError);
-      } else {
-        console.log("Attributes saved successfully");
+      for (const [key, value] of Object.entries(attributes)) {
+        const { error: attributeError } = await supabase
+          .rpc('insert_offer_equipment_attributes_secure', {
+            p_equipment_id: equipmentId,
+            p_key: key,
+            p_value: value
+          });
+        
+        if (attributeError) {
+          console.error("Erreur lors de la sauvegarde de l'attribut:", attributeError);
+        }
       }
+      console.log("Attributes saved successfully");
     }
     
     // 3. Insérer les spécifications en utilisant la fonction SECURITY DEFINER
     if (Object.keys(specifications).length > 0) {
-      // Convertir les valeurs en string pour la fonction
-      const specStrings = Object.fromEntries(
-        Object.entries(specifications).map(([key, value]) => [key, String(value)])
-      );
-      
-      console.log("Inserting specifications:", specStrings);
-      const { error: specificationsError } = await supabase
-        .rpc('insert_offer_equipment_specifications_secure', {
-          p_equipment_id: equipmentId,
-          p_specifications: specStrings
-        });
-      
-      if (specificationsError) {
-        console.error("Erreur lors de la sauvegarde des spécifications:", specificationsError);
-      } else {
-        console.log("Specifications saved successfully");
+      console.log("Inserting specifications:", specifications);
+      for (const [key, value] of Object.entries(specifications)) {
+        const { error: specificationError } = await supabase
+          .rpc('insert_offer_equipment_specifications_secure', {
+            p_equipment_id: equipmentId,
+            p_key: key,
+            p_value: String(value)
+          });
+        
+        if (specificationError) {
+          console.error("Erreur lors de la sauvegarde de la spécification:", specificationError);
+        }
       }
+      console.log("Specifications saved successfully");
     }
     
     // Retourner l'équipement avec ses attributs et spécifications
