@@ -6315,37 +6315,27 @@ export type Database = {
         Returns: string
       }
       insert_offer_equipment_secure: {
-        Args:
-          | {
-              p_coefficient?: number
-              p_collaborator_id?: string
-              p_delivery_address?: string
-              p_delivery_city?: string
-              p_delivery_contact_email?: string
-              p_delivery_contact_name?: string
-              p_delivery_contact_phone?: string
-              p_delivery_country?: string
-              p_delivery_postal_code?: string
-              p_delivery_site_id?: string
-              p_delivery_type?: string
-              p_margin: number
-              p_monthly_payment?: number
-              p_offer_id: string
-              p_purchase_price: number
-              p_quantity: number
-              p_selling_price?: number
-              p_serial_number?: string
-              p_title: string
-            }
-          | {
-              p_margin: number
-              p_monthly_payment?: number
-              p_offer_id: string
-              p_purchase_price: number
-              p_quantity: number
-              p_serial_number?: string
-              p_title: string
-            }
+        Args: {
+          p_coefficient?: number
+          p_collaborator_id?: string
+          p_delivery_address?: string
+          p_delivery_city?: string
+          p_delivery_contact_email?: string
+          p_delivery_contact_name?: string
+          p_delivery_contact_phone?: string
+          p_delivery_country?: string
+          p_delivery_postal_code?: string
+          p_delivery_site_id?: string
+          p_delivery_type?: string
+          p_margin: number
+          p_monthly_payment?: number
+          p_offer_id: string
+          p_purchase_price: number
+          p_quantity: number
+          p_selling_price?: number
+          p_serial_number?: string
+          p_title: string
+        }
         Returns: string
       }
       insert_offer_equipment_specifications_secure: {
