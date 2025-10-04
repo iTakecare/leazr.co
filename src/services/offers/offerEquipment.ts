@@ -454,14 +454,14 @@ export const updateOfferEquipment = async (
     const { data, error } = await supabase
       .rpc('update_offer_equipment_secure', {
         p_equipment_id: equipmentId,
-        p_title: updates.title || null,
-        p_purchase_price: updates.purchase_price || null,
-        p_quantity: updates.quantity || null,
-        p_margin: updates.margin || null,
-        p_monthly_payment: updates.monthly_payment || null,
-        p_selling_price: updates.selling_price || null,
-        p_coefficient: updates.coefficient || null,
-        p_serial_number: updates.serial_number || null
+        p_title: updates.title ?? null,
+        p_purchase_price: updates.purchase_price ?? null,
+        p_quantity: updates.quantity ?? null,
+        p_margin: updates.margin ?? null,
+        p_monthly_payment: updates.monthly_payment ?? null,
+        p_selling_price: updates.selling_price ?? null,
+        p_coefficient: updates.coefficient ?? null,
+        p_serial_number: updates.serial_number ?? null
       });
     
     if (error) {
@@ -469,8 +469,8 @@ export const updateOfferEquipment = async (
       throw new Error(error.message);
     }
     
-    console.log("Equipment updated successfully");
-    return data;
+    console.log("Equipment updated successfully:", data);
+    return true;
   } catch (error) {
     console.error("Erreur lors de la mise à jour de l'équipement:", error);
     throw error;
