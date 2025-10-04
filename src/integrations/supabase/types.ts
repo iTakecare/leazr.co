@@ -3827,6 +3827,7 @@ export type Database = {
           converted_to_contract: boolean | null
           created_at: string | null
           dossier_number: string | null
+          duration: number | null
           equipment_description: string | null
           financed_amount: number | null
           id: string
@@ -3864,6 +3865,7 @@ export type Database = {
           converted_to_contract?: boolean | null
           created_at?: string | null
           dossier_number?: string | null
+          duration?: number | null
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
@@ -3901,6 +3903,7 @@ export type Database = {
           converted_to_contract?: boolean | null
           created_at?: string | null
           dossier_number?: string | null
+          duration?: number | null
           equipment_description?: string | null
           financed_amount?: number | null
           id?: string
@@ -5992,6 +5995,7 @@ export type Database = {
           converted_to_contract: boolean | null
           created_at: string | null
           dossier_number: string | null
+          duration: number | null
           equipment_description: string | null
           financed_amount: number | null
           id: string
