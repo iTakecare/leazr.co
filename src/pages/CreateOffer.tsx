@@ -644,22 +644,7 @@ const CreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
                     // Transmettre les infos commission pour l'affichage
-                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} 
-                    // Pass offer data for edit mode
-                    offerData={isEditMode && loadedOfferData ? {
-                       totalPurchasePrice: (() => {
-                         const equipmentTotals = calculateEquipmentTotals(loadedOfferData);
-                         return equipmentTotals.totalPurchasePrice;
-                       })(),
-                       totalFinancedAmount: getFinancedAmount(loadedOfferData),
-                       totalMargin: (() => {
-                         const equipmentTotals = calculateEquipmentTotals(loadedOfferData);
-                         const financedAmount = getFinancedAmount(loadedOfferData);
-                         return financedAmount - equipmentTotals.totalPurchasePrice;
-                       })(),
-                       monthlyPayment: loadedOfferData.monthly_payment || 0,
-                       coefficient: loadedOfferData.coefficient || 0
-                    } : undefined} />
+                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} />
                         
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} />
                       </div>
