@@ -533,11 +533,14 @@ const CreateOffer = () => {
       let result;
       if (isEditMode && offerId) {
         result = await updateOffer(offerId, offerData);
-        if (result) {
+        if (result && result.data) {
           console.log("✅ OFFRE MISE À JOUR avec succès:", result);
           toast.success("Offre mise à jour avec succès !");
         } else {
-          throw new Error("Failed to update offer");
+          const errMsg = result?.error?.message || "Échec de la mise à jour de l'offre";
+          console.error("❌ ÉCHEC MISE À JOUR OFFRE:", result);
+          toast.error(errMsg);
+          throw new Error(errMsg);
         }
       } else {
         result = await createOffer(offerData);
