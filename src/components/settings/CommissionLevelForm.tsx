@@ -27,7 +27,8 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
 }) => {
   const [name, setName] = useState(level?.name || '');
   const [isDefault, setIsDefault] = useState(level?.is_default || false);
-  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price'>(level?.calculation_mode || 'margin');
+  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment'>(level?.calculation_mode || 'margin');
+  const [fixedRate, setFixedRate] = useState<number>(level?.fixed_rate || 100);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = Boolean(level);
@@ -37,12 +38,14 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
     setName(level?.name || '');
     setIsDefault(level?.is_default || false);
     setCalculationMode(level?.calculation_mode || 'margin');
+    setFixedRate(level?.fixed_rate || 100);
   }, [level]);
 
   const resetForm = () => {
     setName(level?.name || '');
     setIsDefault(level?.is_default || false);
     setCalculationMode(level?.calculation_mode || 'margin');
+    setFixedRate(level?.fixed_rate || 100);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,13 +55,20 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
       return;
     }
 
+    // Validation pour le mode monthly_payment
+    if (calculationMode === 'monthly_payment' && (!fixedRate || fixedRate <= 0)) {
+      toast.error("Le taux de commission est requis pour le mode mensualité");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (isEditing && level) {
         await updateCommissionLevel(level.id, {
           name,
           is_default: isDefault,
-          calculation_mode: calculationMode
+          calculation_mode: calculationMode,
+          fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined
         });
         toast.success("Barème mis à jour avec succès");
       } else {
@@ -66,7 +76,8 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           name,
           type,
           is_default: isDefault,
-          calculation_mode: calculationMode
+          calculation_mode: calculationMode,
+          fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined
         });
         toast.success("Barème créé avec succès");
       }
@@ -76,6 +87,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
         name, 
         is_default: isDefault,
         calculation_mode: calculationMode,
+        fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined,
         type
       });
     } catch (error) {
@@ -113,22 +125,43 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="calculationMode">Mode de calcul</Label>
-              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price') => setCalculationMode(value)}>
+              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment') => setCalculationMode(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner le mode de calcul" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="margin">% sur marge</SelectItem>
                   <SelectItem value="purchase_price">% sur prix d'achat</SelectItem>
+                  <SelectItem value="monthly_payment">% sur mensualité client</SelectItem>
                 </SelectContent>
               </Select>
               <div className="text-sm text-muted-foreground">
                 {calculationMode === 'margin' 
                   ? 'Commission calculée en pourcentage de la marge générée'
-                  : 'Commission calculée en pourcentage du prix d\'achat total HTVA'
+                  : calculationMode === 'purchase_price'
+                  ? 'Commission calculée en pourcentage du prix d\'achat total HTVA'
+                  : 'Commission calculée en pourcentage de la mensualité totale du client'
                 }
               </div>
             </div>
+            {calculationMode === 'monthly_payment' && (
+              <div className="grid gap-2">
+                <Label htmlFor="fixedRate">Taux de commission (%)</Label>
+                <Input
+                  id="fixedRate"
+                  type="number"
+                  value={fixedRate}
+                  onChange={(e) => setFixedRate(Number(e.target.value))}
+                  placeholder="Ex: 100 pour 100%"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+                <div className="text-sm text-muted-foreground">
+                  Exemple : Si vous saisissez 100%, l'ambassadeur recevra 100% de la mensualité en commission
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <Label htmlFor="isDefault">Barème par défaut</Label>
               <Switch

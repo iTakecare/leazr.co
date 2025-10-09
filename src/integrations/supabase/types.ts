@@ -1258,6 +1258,7 @@ export type Database = {
           calculation_mode: string
           company_id: string
           created_at: string
+          fixed_rate: number | null
           id: string
           is_default: boolean | null
           name: string
@@ -1268,6 +1269,7 @@ export type Database = {
           calculation_mode?: string
           company_id: string
           created_at?: string
+          fixed_rate?: number | null
           id?: string
           is_default?: boolean | null
           name: string
@@ -1278,6 +1280,7 @@ export type Database = {
           calculation_mode?: string
           company_id?: string
           created_at?: string
+          fixed_rate?: number | null
           id?: string
           is_default?: boolean | null
           name?: string

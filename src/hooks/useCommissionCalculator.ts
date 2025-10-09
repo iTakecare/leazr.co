@@ -51,10 +51,11 @@ export const useCommissionCalculator = (
         console.log("useCommissionCalculator - Calling calculateAmbassadorCommission with:", {
           ambassadorId,
           totalMargin,
-          totalPurchaseAmount
+          totalPurchaseAmount,
+          totalMonthlyPayment
         });
 
-        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin, totalPurchaseAmount);
+        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin, totalPurchaseAmount, totalMonthlyPayment);
 
         console.log("useCommissionCalculator - Commission result:", result);
 

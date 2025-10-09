@@ -26,10 +26,11 @@ export interface AmbassadorCommission {
 export const calculateAmbassadorCommission = async (
   ambassadorId: string,
   marginAmount: number,
-  purchaseAmount?: number
+  purchaseAmount?: number,
+  totalMonthlyPayment?: number
 ): Promise<AmbassadorCommissionData> => {
   try {
-    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}, purchase: ${purchaseAmount}`);
+    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}, purchase: ${purchaseAmount}, monthly: ${totalMonthlyPayment}`);
     
     // Récupérer le niveau de commission de l'ambassadeur
     const commissionLevel = await getAmbassadorCommissionLevel(ambassadorId);
@@ -46,7 +47,37 @@ export const calculateAmbassadorCommission = async (
 
     console.log("[calculateAmbassadorCommission] Found commission level:", commissionLevel.name);
 
-    // Récupérer les taux du niveau de commission
+    // Déterminer le mode de calcul
+    const calculationMode = commissionLevel.calculation_mode || 'margin';
+    
+    // Mode mensualité : utilise le taux fixe sur la mensualité totale
+    if (calculationMode === 'monthly_payment') {
+      console.log(`[calculateAmbassadorCommission] Using monthly_payment mode with fixed rate: ${commissionLevel.fixed_rate}%`);
+      
+      if (!totalMonthlyPayment || totalMonthlyPayment <= 0) {
+        console.log("[calculateAmbassadorCommission] Monthly payment mode requires valid monthly payment amount");
+        return {
+          amount: 0,
+          rate: 0,
+          levelName: commissionLevel.name,
+          marginAmount
+        };
+      }
+      
+      const fixedRate = commissionLevel.fixed_rate || 0;
+      const commissionAmount = Math.round(totalMonthlyPayment * (fixedRate / 100));
+      
+      console.log(`[calculateAmbassadorCommission] Monthly payment commission: ${commissionAmount} (${fixedRate}% of ${totalMonthlyPayment})`);
+      
+      return {
+        amount: commissionAmount,
+        rate: fixedRate,
+        levelName: `${commissionLevel.name} (% sur mensualité)`,
+        marginAmount
+      };
+    }
+
+    // Récupérer les taux du niveau de commission pour les modes margin et purchase_price
     const rates = await getCommissionRates(commissionLevel.id);
     
     if (!rates || rates.length === 0) {
@@ -62,7 +93,6 @@ export const calculateAmbassadorCommission = async (
     console.log("[calculateAmbassadorCommission] Found rates:", rates);
 
     // Déterminer le montant de base pour le calcul selon le mode de calcul
-    const calculationMode = commissionLevel.calculation_mode || 'margin';
     const baseAmount = calculationMode === 'purchase_price' ? (purchaseAmount || 0) : marginAmount;
     
     console.log(`[calculateAmbassadorCommission] Using calculation mode: ${calculationMode}, base amount: ${baseAmount}`);
