@@ -143,8 +143,14 @@ const recoverFileFromCorruptedData = async (data: any): Promise<File | null> => 
           }
         }
         
-        if (binaryData instanceof ArrayBuffer || binaryData instanceof Uint8Array) {
+        if (binaryData instanceof ArrayBuffer) {
           return new File([binaryData], data.name, { type: correctMimeType });
+        }
+        
+        if (binaryData instanceof Uint8Array) {
+          // Convert to standard Uint8Array to ensure compatibility with BlobPart
+          const buffer = new Uint8Array(binaryData);
+          return new File([buffer], data.name, { type: correctMimeType });
         }
 
         // Essayer via stream
