@@ -59,7 +59,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const purchasePrice = parseFloat(item.purchase_price) || 0;
         const quantity = parseInt(item.quantity) || 1;
         const monthlyPayment = parseFloat(item.monthly_payment) || 0;
-        const sellingPrice = parseFloat(item.selling_price) || 0;
+        const marginPercent = parseFloat(item.margin) || 0;
+        const sellingPrice = parseFloat(item.selling_price) || (purchasePrice > 0 ? purchasePrice * (1 + marginPercent / 100) : 0);
         return {
           totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
           totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
@@ -93,7 +94,12 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         const quantity = parseInt(item.quantity) || 1;
         // Utiliser monthlyPayment ou monthly_payment pour la mensualité
         const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
-        const sellingPrice = parseFloat(item.selling_price) || 0;
+        const marginPercent = parseFloat(item.margin) || 0;
+        const explicitSelling = item.selling_price ?? item.sellingPrice;
+        const sellingParsed = explicitSelling != null ? parseFloat(explicitSelling) : NaN;
+        const sellingPrice = Number.isFinite(sellingParsed) && sellingParsed > 0
+          ? sellingParsed
+          : (purchasePrice > 0 ? purchasePrice * (1 + marginPercent / 100) : 0);
         return {
           totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
           totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,

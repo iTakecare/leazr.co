@@ -39,8 +39,13 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
       const quantity = parseInt(item.quantity) || 1;
       // Utiliser monthlyPayment ou monthly_payment pour la mensualité (déjà inclut la quantité)
       const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
-      // Utiliser selling_price pour le prix de vente
-      const sellingPrice = parseFloat(item.selling_price || item.sellingPrice) || 0;
+      // Utiliser selling_price si disponible, sinon le calculer via la marge
+      const marginPercent = parseFloat(item.margin || item.marginPercent || item.margin_percentage) || 0;
+      const explicitSelling = item.selling_price ?? item.sellingPrice;
+      const parsedSelling = explicitSelling != null ? parseFloat(explicitSelling) : NaN;
+      const sellingPrice = Number.isFinite(parsedSelling) && parsedSelling > 0
+        ? parsedSelling
+        : (purchasePrice > 0 ? purchasePrice * (1 + marginPercent / 100) : 0);
       
       return {
         totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
@@ -86,7 +91,14 @@ export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentI
     return totals.totalSellingPrice;
   }
   
-  // Priorité 2: financed_amount depuis l'offre (si mis à jour en base)
+  // Priorité 2: si on a un coefficient global et une mensualité totale, calculer à partir de là
+  if ((offer.coefficient || 0) > 0 && totals.totalMonthlyPayment > 0) {
+    const computed = totals.totalMonthlyPayment * (offer.coefficient as number);
+    console.log("✅ Using monthly_payment * coefficient:", computed);
+    return computed;
+  }
+  
+  // Priorité 3: financed_amount depuis l'offre (si mis à jour en base)
   if (offer.financed_amount && offer.financed_amount > 0) {
     console.log("✅ Using offer.financed_amount:", offer.financed_amount);
     return offer.financed_amount;
