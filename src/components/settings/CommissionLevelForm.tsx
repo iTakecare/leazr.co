@@ -63,35 +63,44 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
 
     setIsSubmitting(true);
     try {
+      console.log("[CommissionLevelForm] Submitting form with data:", { name, type, isDefault, calculationMode, fixedRate });
+      
+      let result;
       if (isEditing && level) {
-        await updateCommissionLevel(level.id, {
+        result = await updateCommissionLevel(level.id, {
           name,
           is_default: isDefault,
           calculation_mode: calculationMode,
           fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined
         });
+        console.log("[CommissionLevelForm] Update result:", result);
         toast.success("Barème mis à jour avec succès");
       } else {
-        await createCommissionLevel({
+        result = await createCommissionLevel({
           name,
           type,
           is_default: isDefault,
           calculation_mode: calculationMode,
           fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined
         });
+        console.log("[CommissionLevelForm] Create result:", result);
         toast.success("Barème créé avec succès");
       }
       
-      // Call onSave with the form data
-      onSave({ 
-        name, 
-        is_default: isDefault,
-        calculation_mode: calculationMode,
-        fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined,
-        type
-      });
+      // Call onSave with the form data only if successful
+      if (result) {
+        onSave({ 
+          name, 
+          is_default: isDefault,
+          calculation_mode: calculationMode,
+          fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined,
+          type
+        });
+      } else {
+        toast.error("Erreur: Aucune donnée retournée");
+      }
     } catch (error) {
-      console.error("Error saving commission level:", error);
+      console.error("[CommissionLevelForm] Error saving commission level:", error);
       toast.error("Erreur lors de l'enregistrement du barème");
     } finally {
       setIsSubmitting(false);

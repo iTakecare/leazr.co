@@ -131,8 +131,11 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
   try {
     const { name, type, is_default = false, calculation_mode = 'margin', fixed_rate } = levelData;
     
+    console.log("[createCommissionLevel] Creating commission level:", levelData);
+    
     // Obtenir l'ID de l'entreprise actuelle
     const company_id = await getCurrentUserCompanyId();
+    console.log("[createCommissionLevel] Company ID:", company_id);
     
     if (is_default) {
       // Si le nouveau niveau est défini comme par défaut, mettre à jour tous les autres niveaux pour les définir comme non par défaut
@@ -151,14 +154,15 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
       .select();
     
     if (error) {
-      console.error("Error creating commission level:", error);
+      console.error("[createCommissionLevel] Error creating commission level:", error);
       throw error;
     }
     
+    console.log("[createCommissionLevel] Successfully created:", data);
     return data[0] || null;
   } catch (error) {
-    console.error("Error:", error);
-    return null;
+    console.error("[createCommissionLevel] Caught error:", error);
+    throw error; // Re-throw pour que le formulaire puisse gérer l'erreur
   }
 };
 
@@ -169,6 +173,8 @@ export const updateCommissionLevel = async (id: string, levelData: { name: strin
   try {
     const { name, is_default = false, calculation_mode, fixed_rate } = levelData;
     
+    console.log("[updateCommissionLevel] Updating commission level:", id, levelData);
+    
     const { data: levelData_, error: levelError } = await supabase
       .from('commission_levels')
       .select('type')
@@ -176,7 +182,7 @@ export const updateCommissionLevel = async (id: string, levelData: { name: strin
       .single();
     
     if (levelError) {
-      console.error("Error fetching commission level type:", levelError);
+      console.error("[updateCommissionLevel] Error fetching commission level type:", levelError);
       throw levelError;
     }
     
@@ -201,14 +207,15 @@ export const updateCommissionLevel = async (id: string, levelData: { name: strin
       .select();
     
     if (error) {
-      console.error("Error updating commission level:", error);
+      console.error("[updateCommissionLevel] Error updating commission level:", error);
       throw error;
     }
     
+    console.log("[updateCommissionLevel] Successfully updated:", data);
     return data[0] || null;
   } catch (error) {
-    console.error("Error:", error);
-    return null;
+    console.error("[updateCommissionLevel] Caught error:", error);
+    throw error; // Re-throw pour que le formulaire puisse gérer l'erreur
   }
 };
 
