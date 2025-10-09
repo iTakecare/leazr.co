@@ -40,7 +40,7 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
       // Utiliser monthlyPayment ou monthly_payment pour la mensualité (déjà inclut la quantité)
       const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
       // Utiliser selling_price pour le prix de vente
-      const sellingPrice = parseFloat(item.selling_price) || 0;
+      const sellingPrice = parseFloat(item.selling_price || item.sellingPrice) || 0;
       
       return {
         totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
@@ -54,18 +54,16 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
     });
   }
 
-  // Fallback: For client requests, use offer.amount as purchase price
-  // For other offers, return 0 to avoid incorrect calculations
-  const isClientRequest = offer.type === 'client_request';
+  // Fallback: return zeros if no equipment data is available
   return {
-    totalPurchasePrice: isClientRequest ? (offer.amount || 0) : 0,
+    totalPurchasePrice: 0,
     totalMonthlyPayment: offer.monthly_payment || 0,
     totalSellingPrice: 0
   };
 };
 
 /**
- * Calculate financed amount consistently - prioritizes totalSellingPrice from equipment
+ * Calculate financed amount from database (deprecated - use getEffectiveFinancedAmount instead)
  */
 export const getFinancedAmount = (offer: OfferFinancialData): number => {
   // Utiliser offer.financed_amount en priorité, puis offer.amount comme fallback
@@ -78,13 +76,25 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
 export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
   const totals = calculateEquipmentTotals(offer, equipmentItems);
   
-  // Priorité 1: totalSellingPrice depuis les équipements
+  console.log("🔍 getEffectiveFinancedAmount - totals:", totals);
+  console.log("🔍 getEffectiveFinancedAmount - offer.financed_amount:", offer.financed_amount);
+  console.log("🔍 getEffectiveFinancedAmount - offer.amount:", offer.amount);
+  
+  // Priorité 1: totalSellingPrice depuis les équipements (prix de vente calculé)
   if (totals.totalSellingPrice > 0) {
+    console.log("✅ Using totalSellingPrice:", totals.totalSellingPrice);
     return totals.totalSellingPrice;
   }
   
-  // Priorité 2: financed_amount ou amount depuis l'offre
-  return offer.financed_amount || offer.amount || 0;
+  // Priorité 2: financed_amount depuis l'offre (si mis à jour en base)
+  if (offer.financed_amount && offer.financed_amount > 0) {
+    console.log("✅ Using offer.financed_amount:", offer.financed_amount);
+    return offer.financed_amount;
+  }
+  
+  // Priorité 3: Fallback sur offer.amount
+  console.log("⚠️ Fallback to offer.amount:", offer.amount || 0);
+  return offer.amount || 0;
 };
 
 /**
