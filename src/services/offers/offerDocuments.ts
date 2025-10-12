@@ -323,6 +323,27 @@ export const uploadDocument = async (
     console.log('MIME type final:', detectedMimeType);
     console.log('Chemin final:', fileName);
     
+    // Notifier les admins en arrière-plan (ne bloque pas l'upload)
+    try {
+      console.log('📧 Envoi notification admins...');
+      supabase.functions.invoke('notify-admins-document-upload', {
+        body: {
+          offerId: uploadLink.offer_id,
+          documentType: DOCUMENT_TYPES[documentType as keyof typeof DOCUMENT_TYPES] || documentType,
+          fileName: file.name,
+          uploaderEmail: uploaderEmail || null
+        }
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('⚠️ Erreur notification admins (non bloquant):', error);
+        } else {
+          console.log('✅ Notification admins envoyée:', data);
+        }
+      });
+    } catch (notifError) {
+      console.error('⚠️ Erreur lors de la notification admins (non bloquant):', notifError);
+    }
+    
     return true;
   } catch (error) {
     console.error('=== ❌ ERREUR GÉNÉRALE UPLOAD ===');

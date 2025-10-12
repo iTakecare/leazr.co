@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.luxembourg-company-lookup]
 verify_jwt = false
+
+[functions.notify-admins-document-upload]
+verify_jwt = true
