@@ -86,19 +86,32 @@ serve(async (req) => {
     const pdfUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/documents/modalites_leasing_itakecare.pdf`;
     let pdfAttachment = null;
     
+    console.log('[LEASING-ACCEPTANCE] Fetching PDF from:', pdfUrl);
+    
     try {
       const pdfResponse = await fetch(pdfUrl);
+      console.log('[LEASING-ACCEPTANCE] PDF fetch response status:', pdfResponse.status);
+      console.log('[LEASING-ACCEPTANCE] PDF fetch response ok:', pdfResponse.ok);
+      
       if (pdfResponse.ok) {
         const pdfBuffer = await pdfResponse.arrayBuffer();
+        console.log('[LEASING-ACCEPTANCE] PDF buffer size (bytes):', pdfBuffer.byteLength);
+        
         const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+        console.log('[LEASING-ACCEPTANCE] Base64 PDF length:', base64Pdf.length);
+        
         pdfAttachment = {
           filename: 'modalites_leasing_itakecare.pdf',
           content: base64Pdf,
         };
-        console.log('[LEASING-ACCEPTANCE] PDF attachment prepared');
+        console.log('[LEASING-ACCEPTANCE] PDF attachment prepared successfully');
+      } else {
+        console.error('[LEASING-ACCEPTANCE] PDF fetch failed with status:', pdfResponse.status);
+        console.error('[LEASING-ACCEPTANCE] PDF response status text:', pdfResponse.statusText);
       }
     } catch (pdfError) {
-      console.error('[LEASING-ACCEPTANCE] Could not fetch PDF for attachment:', pdfError);
+      console.error('[LEASING-ACCEPTANCE] Could not fetch PDF for attachment - Error:', pdfError);
+      console.error('[LEASING-ACCEPTANCE] Error message:', pdfError instanceof Error ? pdfError.message : String(pdfError));
     }
 
     // HTML email template
@@ -266,8 +279,14 @@ www.itakecare.be | hello@itakecare.be
     };
 
     // Add attachment if available
+    console.log('[LEASING-ACCEPTANCE] PDF attachment available:', !!pdfAttachment);
     if (pdfAttachment) {
       emailPayload.attachments = [pdfAttachment];
+      console.log('[LEASING-ACCEPTANCE] PDF attachment added to email payload');
+      console.log('[LEASING-ACCEPTANCE] Attachment filename:', pdfAttachment.filename);
+      console.log('[LEASING-ACCEPTANCE] Attachment content length:', pdfAttachment.content?.length || 0);
+    } else {
+      console.warn('[LEASING-ACCEPTANCE] No PDF attachment - email will be sent without it');
     }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
