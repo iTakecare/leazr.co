@@ -82,35 +82,39 @@ serve(async (req) => {
 
     console.log('[LEASING-ACCEPTANCE] Sending acceptance email to:', clientEmail);
 
-    // Fetch PDF as base64 for attachment
-    const pdfUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/documents/modalites_leasing_itakecare.pdf`;
+    // Fetch PDF as base64 for attachment using Supabase Storage (more reliable than public URL)
+    const bucket = 'documents';
+    const pdfPath = 'modalites_leasing_itakecare.pdf';
     let pdfAttachment = null;
-    
-    console.log('[LEASING-ACCEPTANCE] Fetching PDF from:', pdfUrl);
-    
+
+    console.log('[LEASING-ACCEPTANCE] Downloading PDF from storage:', { bucket, pdfPath });
+
     try {
-      const pdfResponse = await fetch(pdfUrl);
-      console.log('[LEASING-ACCEPTANCE] PDF fetch response status:', pdfResponse.status);
-      console.log('[LEASING-ACCEPTANCE] PDF fetch response ok:', pdfResponse.ok);
-      
-      if (pdfResponse.ok) {
-        const pdfBuffer = await pdfResponse.arrayBuffer();
+      const { data: pdfFile, error: pdfDownloadError } = await supabase
+        .storage
+        .from(bucket)
+        .download(pdfPath);
+
+      if (pdfDownloadError) {
+        console.error('[LEASING-ACCEPTANCE] Storage download error:', pdfDownloadError);
+      } else if (pdfFile) {
+        const pdfBuffer = await pdfFile.arrayBuffer();
         console.log('[LEASING-ACCEPTANCE] PDF buffer size (bytes):', pdfBuffer.byteLength);
-        
+
         const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
         console.log('[LEASING-ACCEPTANCE] Base64 PDF length:', base64Pdf.length);
-        
+
         pdfAttachment = {
           filename: 'modalites_leasing_itakecare.pdf',
           content: base64Pdf,
-        };
-        console.log('[LEASING-ACCEPTANCE] PDF attachment prepared successfully');
+          contentType: 'application/pdf',
+        } as any;
+        console.log('[LEASING-ACCEPTANCE] PDF attachment prepared successfully from storage');
       } else {
-        console.error('[LEASING-ACCEPTANCE] PDF fetch failed with status:', pdfResponse.status);
-        console.error('[LEASING-ACCEPTANCE] PDF response status text:', pdfResponse.statusText);
+        console.warn('[LEASING-ACCEPTANCE] No pdfFile returned from storage.download');
       }
     } catch (pdfError) {
-      console.error('[LEASING-ACCEPTANCE] Could not fetch PDF for attachment - Error:', pdfError);
+      console.error('[LEASING-ACCEPTANCE] Could not prepare PDF attachment - Error:', pdfError);
       console.error('[LEASING-ACCEPTANCE] Error message:', pdfError instanceof Error ? pdfError.message : String(pdfError));
     }
 
