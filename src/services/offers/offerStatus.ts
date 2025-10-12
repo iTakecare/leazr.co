@@ -111,8 +111,8 @@ export const updateOfferStatus = async (
       console.log("Log created successfully:", logData);
     }
 
-    // Send leasing acceptance email when status becomes validated
-    if (newStatus === 'validated' && safePreviousStatus !== 'validated') {
+    // Send leasing acceptance email when offer is validated after leaser approval
+    if (newStatus === 'offer_validation' && safePreviousStatus === 'leaser_approved') {
       console.log("📧 Envoi de l'email de félicitations pour acceptation du leasing");
       try {
         await supabase.functions.invoke('send-leasing-acceptance-email', {
