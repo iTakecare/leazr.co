@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Upload, FileText } from "lucide-react";
-import { useCompanyContext } from "@/context/CompanyContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 export default function CompanyDocuments() {
   const navigate = useNavigate();
-  const { companyId } = useCompanyContext();
+  const { companyId } = useMultiTenant();
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
