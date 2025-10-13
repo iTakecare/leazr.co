@@ -85,57 +85,67 @@ serve(async (req) => {
     console.log('[LEASING-ACCEPTANCE] Sending acceptance email to:', clientEmail);
 
     // Fetch PDF as base64 for attachment using Supabase Storage
-    // Multi-tenant path: use env variable or calculate from company_id
+    // Multi-tenant path with robust fallback strategy
     const bucket = Deno.env.get('LEASING_PDF_BUCKET') || 'platform-assets';
-    const pdfPath = Deno.env.get('LEASING_PDF_PATH') || 
-      `company-${offer.company_id}/documents/modalites_leasing_itakecare.pdf`;
+
+    const defaultFilename = Deno.env.get('LEASING_PDF_FILENAME') || 'modalites_leasing_itakecare.pdf';
+    const rawEnvPath = (Deno.env.get('LEASING_PDF_PATH') || '').trim();
+    const templatedEnvPath = rawEnvPath
+      ? rawEnvPath
+          .replace('{companyId}', offer.company_id)
+          .replace('{company_id}', offer.company_id)
+      : '';
+
+    // Try company-scoped first, then env override (templated), then legacy flat path
+    const candidatePaths = Array.from(
+      new Set(
+        [
+          `company-${offer.company_id}/documents/${defaultFilename}`,
+          templatedEnvPath,
+          `documents/${defaultFilename}`,
+        ].filter((p) => p && p.length > 0)
+      )
+    );
+
     let pdfAttachment = null;
 
-    console.log('[LEASING-ACCEPTANCE] Using storage configuration:', { bucket, pdfPath });
-    console.log('[LEASING-ACCEPTANCE] Attempting to download PDF from storage...');
+    console.log('[LEASING-ACCEPTANCE] Using storage configuration:', { bucket, candidatePaths });
+    console.log('[LEASING-ACCEPTANCE] Attempting to download PDF from storage (with fallbacks)...');
 
-    try {
-      const { data: pdfFile, error: pdfDownloadError } = await supabase
-        .storage
-        .from(bucket)
-        .download(pdfPath);
+    for (const pdfPath of candidatePaths) {
+      try {
+        const { data: pdfFile, error: pdfDownloadError } = await supabase
+          .storage
+          .from(bucket)
+          .download(pdfPath);
 
-      if (pdfDownloadError) {
-        console.error('[LEASING-ACCEPTANCE] ❌ Storage download error:', pdfDownloadError);
-        
-        // Distinguish between bucket not found and object not found
-        const errorMessage = pdfDownloadError.message?.toLowerCase() || '';
-        if (errorMessage.includes('bucket') || errorMessage.includes('not found')) {
-          console.error('[LEASING-ACCEPTANCE] ❌ BUCKET NOT FOUND - Please ensure bucket exists:', bucket);
-        } else if (errorMessage.includes('object') || errorMessage.includes('key')) {
-          console.error('[LEASING-ACCEPTANCE] ❌ PDF FILE NOT FOUND in bucket');
-          console.error('[LEASING-ACCEPTANCE] 📋 ACTION REQUIRED: Upload the PDF to:', `${bucket}/${pdfPath}`);
-          console.error('[LEASING-ACCEPTANCE] 📋 Go to: https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/storage/buckets');
-        } else {
-          console.error('[LEASING-ACCEPTANCE] ❌ Unknown storage error - check logs above');
+        if (pdfDownloadError) {
+          console.warn('[LEASING-ACCEPTANCE] Storage download failed for path:', pdfPath, '-', pdfDownloadError.message || pdfDownloadError);
+          continue; // Try next candidate
         }
-      } else if (pdfFile) {
-        const pdfBuffer = await pdfFile.arrayBuffer();
-        console.log('[LEASING-ACCEPTANCE] ✅ PDF downloaded successfully - Buffer size (bytes):', pdfBuffer.byteLength);
 
-        const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
-        console.log('[LEASING-ACCEPTANCE] ✅ Base64 conversion completed - Length:', base64Pdf.length);
+        if (pdfFile) {
+          const pdfBuffer = await pdfFile.arrayBuffer();
+          console.log('[LEASING-ACCEPTANCE] ✅ PDF downloaded successfully from', pdfPath, '- size (bytes):', pdfBuffer.byteLength);
 
-        pdfAttachment = {
-          filename: 'modalites_leasing_itakecare.pdf',
-          content: base64Pdf,
-          contentType: 'application/pdf',
-        } as any;
-        console.log('[LEASING-ACCEPTANCE] ✅ PDF attachment prepared successfully');
-      } else {
-        console.warn('[LEASING-ACCEPTANCE] ⚠️ No pdfFile returned from storage.download (no data, no error)');
-        console.warn('[LEASING-ACCEPTANCE] 📋 This usually means the file does not exist at:', `${bucket}/${pdfPath}`);
-        console.warn('[LEASING-ACCEPTANCE] 📋 ACTION REQUIRED: Upload the PDF to Supabase Storage');
+          const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+          pdfAttachment = {
+            filename: defaultFilename,
+            content: base64Pdf,
+            contentType: 'application/pdf',
+          } as any;
+          console.log('[LEASING-ACCEPTANCE] ✅ PDF attachment prepared successfully from path:', pdfPath);
+          break; // Stop on first success
+        }
+      } catch (pdfError) {
+        console.error('[LEASING-ACCEPTANCE] ❌ Exception during PDF download for path:', pdfPath, '-', pdfError);
+        // Try next candidate
       }
-    } catch (pdfError) {
-      console.error('[LEASING-ACCEPTANCE] ❌ Exception during PDF preparation:', pdfError);
-      console.error('[LEASING-ACCEPTANCE] Error details:', pdfError instanceof Error ? pdfError.message : String(pdfError));
-      console.error('[LEASING-ACCEPTANCE] 📋 Check that the bucket and file path are correct:', { bucket, pdfPath });
+    }
+
+    if (!pdfAttachment) {
+      console.warn('[LEASING-ACCEPTANCE] ⚠️ No PDF found after trying paths:', candidatePaths);
+      console.warn('[LEASING-ACCEPTANCE] 📋 Ensure the file exists in one of these paths in bucket:', bucket);
     }
 
     // HTML email template
