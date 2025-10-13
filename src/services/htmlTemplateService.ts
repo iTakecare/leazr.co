@@ -86,6 +86,47 @@ const setupHandlebarsHelpers = () => {
   });
 };
 
+// Grouper les équipements par catégorie et générer le HTML
+const groupEquipmentByCategory = (equipment: any[]): string => {
+  if (!equipment || equipment.length === 0) {
+    return '<p style="text-align: center; color: #666;">Aucun équipement spécifié</p>';
+  }
+  
+  const grouped = equipment.reduce((acc, item) => {
+    const category = item.category || 'AUTRES';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(item);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  return Object.entries(grouped).map(([category, items]) => `
+    <div class="equipment-category">
+      <h3>${category.toUpperCase()}</h3>
+      ${items.map(item => `
+        <div class="equipment-item">
+          <p>${item.title || item.description}</p>
+          <p class="quantity">Quantité : ${item.quantity}</p>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+};
+
+// Formater la date au format "2 OCTOBRE 2025"
+const formatOfferDate = (dateString: string): string => {
+  const date = new Date(dateString || Date.now());
+  const months = [
+    'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
+    'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'
+  ];
+  
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  
+  return `${day} ${month} ${year}`;
+};
+
 // Convertir les données d'offre Leazr vers le format template HTML
 export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => {
   // Parser les équipements
@@ -110,40 +151,50 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
   const products = equipment.map((item: any) => ({
     category: item.category || 'Informatique',
     description: item.title || item.description || 'Équipement',
-    quantity: item.quantity || 1
+    quantity: item.quantity || 1,
+    title: item.title || item.description || 'Équipement'
   }));
 
-  // Calculer l'assurance (exemple : 3.5% du montant total)
-  const totalAmount = offerData.amount || offerData.financed_amount || 0;
-  const insuranceAmount = Math.round(totalAmount * 0.035);
+  // Calculer l'assurance : 3.2% du montant total pour 1 an
+  const totalAmount = offerData.financed_amount || offerData.amount || 0;
+  const annualInsurance = Math.round(totalAmount * 0.032);
 
   // Formater la date
   const offerDate = new Date(offerData.created_at || Date.now()).toLocaleDateString('fr-FR');
 
+  // Préparer les données client
+  const clientPostalCode = offerData.clients?.postal_code || offerData.client_postal_code || '';
+  const clientCity = offerData.clients?.city || offerData.client_city || '';
+
   return {
     client_name: offerData.client_name || 'Client',
     company_name: offerData.client_company || offerData.clients?.company || 'Entreprise',
-    client_address: formatClientAddress(offerData),
+    client_address: offerData.clients?.address || offerData.client_address || 'Adresse non renseignée',
+    client_postal_code: clientPostalCode,
+    client_city: clientCity,
     offer_date: offerDate,
+    offer_date_canva: formatOfferDate(offerData.created_at || Date.now()), // Format "2 OCTOBRE 2025"
     monthly_price: formatCurrency(offerData.monthly_payment || 0),
-    insurance: `${insuranceAmount} €`,
-    insurance_amount: `${insuranceAmount} €`,
-    setup_fee: '150 €', // Valeur par défaut, à rendre configurable
-    contract_duration: '36', // Durée par défaut, à rendre configurable
+    monthly_payment: `${(offerData.monthly_payment || 0).toFixed(2)}€ HTVA`,
+    insurance: `${annualInsurance} €`,
+    insurance_amount: `${annualInsurance}€`,
+    setup_fee: '75€ HTVA', // Frais de dossier unique
+    contract_duration: '36',
     products: products,
-    insurance_example: `Pour un contrat de ${formatCurrency(totalAmount)}, assurance = ${formatCurrency(insuranceAmount)}/an`,
+    equipment_by_category: groupEquipmentByCategory(products),
+    insurance_example: `Pour un contrat de ${formatCurrency(totalAmount)}, assurance = ${formatCurrency(annualInsurance)}/an`,
     // Images base64 - à injecter par la suite
-    base64_image_cover: '', // Image de couverture (bureau/ordinateur)
-    base64_image_vision: '', // Image de vision (mains avec globe)
-    base64_image_logo: '', // Logo iTakecare
+    base64_image_cover: '',
+    base64_image_vision: '',
+    base64_image_logo: '',
     // Stats d'entreprise (valeurs par défaut)
     company_stats_clients: '150',
     company_stats_devices: '2500',
     company_stats_co2: '45.5',
     company_started_year: '2020',
-  // Logos clients (grille HTML par défaut)
-  client_logos_count: '12',
-      client_logos: generateClientLogosHtml([]) // Utilise une fonction pour générer le HTML
+    // Logos clients (grille HTML par défaut)
+    client_logos_count: '12',
+    client_logos: generateClientLogosHtml([])
   };
 };
 
