@@ -51,6 +51,8 @@ serve(async (req) => {
       throw new Error('Offer not found');
     }
 
+    console.log('[LEASING-ACCEPTANCE] Offer company_id:', offer.company_id);
+
     // Fetch equipment for this offer
     const { data: equipment, error: equipmentError } = await supabase
       .from('offer_equipment')
@@ -83,9 +85,10 @@ serve(async (req) => {
     console.log('[LEASING-ACCEPTANCE] Sending acceptance email to:', clientEmail);
 
     // Fetch PDF as base64 for attachment using Supabase Storage
-    // Configurable via environment variables with sensible defaults
+    // Multi-tenant path: use env variable or calculate from company_id
     const bucket = Deno.env.get('LEASING_PDF_BUCKET') || 'platform-assets';
-    const pdfPath = Deno.env.get('LEASING_PDF_PATH') || 'documents/modalites_leasing_itakecare.pdf';
+    const pdfPath = Deno.env.get('LEASING_PDF_PATH') || 
+      `company-${offer.company_id}/documents/modalites_leasing_itakecare.pdf`;
     let pdfAttachment = null;
 
     console.log('[LEASING-ACCEPTANCE] Using storage configuration:', { bucket, pdfPath });

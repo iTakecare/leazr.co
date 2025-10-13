@@ -66,6 +66,7 @@ import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
 import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
 import InvoiceEditPage from "@/pages/InvoiceEditPage";
+import CompanyDocuments from "@/pages/CompanyDocuments";
 
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
@@ -224,6 +225,7 @@ const AppRoutes = () => (
       <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
       <Route path="contracts" element={<Layout><Contracts /></Layout>} />
       <Route path="settings" element={<Layout><Settings /></Layout>} />
+      <Route path="documents" element={<Layout><CompanyDocuments /></Layout>} />
       <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
       <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />
       <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
