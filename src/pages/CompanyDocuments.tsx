@@ -43,6 +43,7 @@ export default function CompanyDocuments() {
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
           upsert: true,
+          contentType: 'application/pdf',
         });
 
       if (uploadError) {
