@@ -82,12 +82,14 @@ serve(async (req) => {
 
     console.log('[LEASING-ACCEPTANCE] Sending acceptance email to:', clientEmail);
 
-    // Fetch PDF as base64 for attachment using Supabase Storage (more reliable than public URL)
-    const bucket = 'documents';
-    const pdfPath = 'modalites_leasing_itakecare.pdf';
+    // Fetch PDF as base64 for attachment using Supabase Storage
+    // Configurable via environment variables with sensible defaults
+    const bucket = Deno.env.get('LEASING_PDF_BUCKET') || 'platform-assets';
+    const pdfPath = Deno.env.get('LEASING_PDF_PATH') || 'documents/modalites_leasing_itakecare.pdf';
     let pdfAttachment = null;
 
-    console.log('[LEASING-ACCEPTANCE] Downloading PDF from storage:', { bucket, pdfPath });
+    console.log('[LEASING-ACCEPTANCE] Using storage configuration:', { bucket, pdfPath });
+    console.log('[LEASING-ACCEPTANCE] Attempting to download PDF from storage...');
 
     try {
       const { data: pdfFile, error: pdfDownloadError } = await supabase
@@ -96,26 +98,41 @@ serve(async (req) => {
         .download(pdfPath);
 
       if (pdfDownloadError) {
-        console.error('[LEASING-ACCEPTANCE] Storage download error:', pdfDownloadError);
+        console.error('[LEASING-ACCEPTANCE] ❌ Storage download error:', pdfDownloadError);
+        
+        // Distinguish between bucket not found and object not found
+        const errorMessage = pdfDownloadError.message?.toLowerCase() || '';
+        if (errorMessage.includes('bucket') || errorMessage.includes('not found')) {
+          console.error('[LEASING-ACCEPTANCE] ❌ BUCKET NOT FOUND - Please ensure bucket exists:', bucket);
+        } else if (errorMessage.includes('object') || errorMessage.includes('key')) {
+          console.error('[LEASING-ACCEPTANCE] ❌ PDF FILE NOT FOUND in bucket');
+          console.error('[LEASING-ACCEPTANCE] 📋 ACTION REQUIRED: Upload the PDF to:', `${bucket}/${pdfPath}`);
+          console.error('[LEASING-ACCEPTANCE] 📋 Go to: https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/storage/buckets');
+        } else {
+          console.error('[LEASING-ACCEPTANCE] ❌ Unknown storage error - check logs above');
+        }
       } else if (pdfFile) {
         const pdfBuffer = await pdfFile.arrayBuffer();
-        console.log('[LEASING-ACCEPTANCE] PDF buffer size (bytes):', pdfBuffer.byteLength);
+        console.log('[LEASING-ACCEPTANCE] ✅ PDF downloaded successfully - Buffer size (bytes):', pdfBuffer.byteLength);
 
         const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
-        console.log('[LEASING-ACCEPTANCE] Base64 PDF length:', base64Pdf.length);
+        console.log('[LEASING-ACCEPTANCE] ✅ Base64 conversion completed - Length:', base64Pdf.length);
 
         pdfAttachment = {
           filename: 'modalites_leasing_itakecare.pdf',
           content: base64Pdf,
           contentType: 'application/pdf',
         } as any;
-        console.log('[LEASING-ACCEPTANCE] PDF attachment prepared successfully from storage');
+        console.log('[LEASING-ACCEPTANCE] ✅ PDF attachment prepared successfully');
       } else {
-        console.warn('[LEASING-ACCEPTANCE] No pdfFile returned from storage.download');
+        console.warn('[LEASING-ACCEPTANCE] ⚠️ No pdfFile returned from storage.download (no data, no error)');
+        console.warn('[LEASING-ACCEPTANCE] 📋 This usually means the file does not exist at:', `${bucket}/${pdfPath}`);
+        console.warn('[LEASING-ACCEPTANCE] 📋 ACTION REQUIRED: Upload the PDF to Supabase Storage');
       }
     } catch (pdfError) {
-      console.error('[LEASING-ACCEPTANCE] Could not prepare PDF attachment - Error:', pdfError);
-      console.error('[LEASING-ACCEPTANCE] Error message:', pdfError instanceof Error ? pdfError.message : String(pdfError));
+      console.error('[LEASING-ACCEPTANCE] ❌ Exception during PDF preparation:', pdfError);
+      console.error('[LEASING-ACCEPTANCE] Error details:', pdfError instanceof Error ? pdfError.message : String(pdfError));
+      console.error('[LEASING-ACCEPTANCE] 📋 Check that the bucket and file path are correct:', { bucket, pdfPath });
     }
 
     // HTML email template
