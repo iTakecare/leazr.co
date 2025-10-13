@@ -99,7 +99,7 @@ const groupEquipmentByCategory = (equipment: any[]): string => {
     return acc;
   }, {} as Record<string, any[]>);
 
-  return Object.entries(grouped).map(([category, items]) => `
+  return Object.entries(grouped).map(([category, items]: [string, any[]]) => `
     <div class="equipment-category">
       <h3>${category.toUpperCase()}</h3>
       ${items.map(item => `
@@ -129,8 +129,8 @@ const formatOfferDate = (dateString: string): string => {
 
 // Convertir les données d'offre Leazr vers le format template HTML
 export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => {
-  // Parser les équipements
-  let equipment = [];
+  // Parser les équipements avec typage explicite
+  let equipment: any[] = [];
   try {
     if (offerData.equipment_description) {
       const parsed = typeof offerData.equipment_description === 'string' 

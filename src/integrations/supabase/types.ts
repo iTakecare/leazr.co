@@ -5855,14 +5855,13 @@ export type Database = {
           | Record<PropertyKey, never>
           | { p_company_id: string; role_filter?: string }
         Returns: {
+          company_id: string
           created_at: string
           email: string
           first_name: string
-          has_user_account: boolean
+          id: string
           last_name: string
-          last_sign_in_at: string
           role: string
-          user_id: string
         }[]
       }
       get_contract_statistics_by_status: {
