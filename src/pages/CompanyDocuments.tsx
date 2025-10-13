@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getFileUploadClient } from "@/integrations/supabase/client";
 import { ArrowLeft, Upload, FileText } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 
@@ -38,7 +38,8 @@ export default function CompanyDocuments() {
       
       console.log('Uploading to:', filePath);
       
-      const { error: uploadError } = await supabase.storage
+      const uploadClient = getFileUploadClient();
+      const { error: uploadError } = await uploadClient.storage
         .from('platform-assets')
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
