@@ -107,7 +107,18 @@ serve(async (req) => {
       )
     );
 
-    let pdfAttachment = null;
+    let pdfAttachment = null as any;
+
+    // Helper to base64 encode bytes safely in chunks
+    const bytesToBase64 = (bytes: Uint8Array): string => {
+      let binary = '';
+      const chunkSize = 0x8000; // 32KB chunks to avoid call stack limits
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    };
 
     console.log('[LEASING-ACCEPTANCE] Using storage configuration:', { bucket, candidatePaths });
     console.log('[LEASING-ACCEPTANCE] Attempting to download PDF from storage (with fallbacks)...');
@@ -128,7 +139,7 @@ serve(async (req) => {
           const pdfBuffer = await pdfFile.arrayBuffer();
           console.log('[LEASING-ACCEPTANCE] ✅ PDF downloaded successfully from', pdfPath, '- size (bytes):', pdfBuffer.byteLength);
 
-          const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+          const base64Pdf = bytesToBase64(new Uint8Array(pdfBuffer));
           pdfAttachment = {
             filename: defaultFilename,
             content: base64Pdf,
@@ -140,6 +151,44 @@ serve(async (req) => {
       } catch (pdfError) {
         console.error('[LEASING-ACCEPTANCE] ❌ Exception during PDF download for path:', pdfPath, '-', pdfError);
         // Try next candidate
+      }
+    }
+
+    // Fallback: list storage folder to discover the PDF if direct paths failed
+    if (!pdfAttachment) {
+      try {
+        const folder = `company-${offer.company_id}/documents`;
+        console.log('[LEASING-ACCEPTANCE] Fallback listing folder:', folder);
+        const { data: entries, error: listError } = await supabase
+          .storage
+          .from(bucket)
+          .list(folder, { search: 'modalites', limit: 100 });
+
+        if (listError) {
+          console.warn('[LEASING-ACCEPTANCE] Storage list failed:', listError.message || listError);
+        } else if (entries && entries.length) {
+          const candidate = entries.find((e: any) => e.name?.toLowerCase().endsWith('.pdf')) || entries[0];
+          if (candidate?.name) {
+            const guessedPath = `${folder}/${candidate.name}`;
+            console.log('[LEASING-ACCEPTANCE] Trying fallback file:', guessedPath);
+            const { data: pdfFile2, error: pdfErr2 } = await supabase
+              .storage
+              .from(bucket)
+              .download(guessedPath);
+            if (!pdfErr2 && pdfFile2) {
+              const buf2 = await pdfFile2.arrayBuffer();
+              const base64Pdf2 = bytesToBase64(new Uint8Array(buf2));
+              pdfAttachment = {
+                filename: candidate.name,
+                content: base64Pdf2,
+                contentType: 'application/pdf',
+              } as any;
+              console.log('[LEASING-ACCEPTANCE] ✅ PDF attachment prepared via fallback from path:', guessedPath);
+            }
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('[LEASING-ACCEPTANCE] ❌ Exception during storage fallback listing:', fallbackErr);
       }
     }
 
