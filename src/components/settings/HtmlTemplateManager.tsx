@@ -336,11 +336,11 @@ const HtmlTemplateManager: React.FC = () => {
       templateData.company_stats_devices = companyStatsData.devices_count.toString();
       templateData.company_stats_co2 = `${companyStatsData.co2_saved} tonnes`;
       templateData.company_started_year = companyStatsData.started_year.toString();
-      templateData.client_logos_count = clientLogos.length.toString();
       
-      // Générer le HTML des logos
+      // Générer le HTML des logos - SANS images externes placeholder
       let clientLogosHtml = '';
       if (clientLogos.length > 0) {
+        templateData.client_logos_count = clientLogos.length.toString();
         const logosHtml = clientLogos.map(logo => `
           <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <img src="${logo.url}" alt="${logo.name}" style="max-width: 100%; height: auto; max-height: 60px;"/>
@@ -349,30 +349,86 @@ const HtmlTemplateManager: React.FC = () => {
         `).join('\n');
         clientLogosHtml = `<div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">${logosHtml}</div>`;
       } else {
-        clientLogosHtml = `<div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
-          <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+1" alt="Logo Client 1" style="max-width: 100%; height: auto; max-height: 60px;"/>
-            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 1</p>
-          </div>
-          <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+2" alt="Logo Client 2" style="max-width: 100%; height: auto; max-height: 60px;"/>
-            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 2</p>
-          </div>
-        </div>`;
+        // Pas de logos = section vide, pas d'images externes
+        templateData.client_logos_count = '0';
+        clientLogosHtml = '<div style="padding: 20px; text-align: center; color: #999; border: 1px dashed #ddd; border-radius: 8px;">Aucun logo client configuré</div>';
       }
       templateData.client_logos = clientLogosHtml;
 
-      // Compiler le template avec les données (exactement comme la prévisualisation)
+      // Compiler le template avec les données
       const compiledHtml = templateService.compileTemplate(htmlContent, templateData);
       
-      console.log('📄 Template compilé avec succès, taille finale:', compiledHtml.length);
-      console.log('📄 Aperçu HTML (premiers 500 chars):', compiledHtml.substring(0, 500));
-      console.log('📄 Aperçu HTML (derniers 500 chars):', compiledHtml.substring(compiledHtml.length - 500));
+      console.log('📄 Template compilé - longueur:', compiledHtml.length);
 
-      // Générer le PDF à partir du HTML compilé
+      // Générer le PDF à partir du HTML compilé via IFRAME
       const html2pdf = (await import('html2pdf.js')).default;
-      const DOMPurify = (await import('dompurify')).default;
 
+      // Créer un iframe hors-écran
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position: absolute; top: -10000px; left: -10000px; width: 210mm; height: 297mm;';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Impossible d\'accéder au document de l\'iframe');
+      }
+
+      // Écrire le HTML complet dans l'iframe (avec <head>, <style>, etc.)
+      iframeDoc.open();
+      iframeDoc.write(compiledHtml);
+      iframeDoc.close();
+
+      console.log('🚀 Iframe créé, attente du chargement...');
+
+      // Attendre que le document soit complètement chargé
+      await new Promise<void>((resolve) => {
+        if (iframeDoc.readyState === 'complete') {
+          resolve();
+        } else {
+          iframe.onload = () => resolve();
+        }
+      });
+
+      console.log('📚 Document chargé, attente des polices...');
+
+      // Attendre les polices Google Fonts
+      if (iframeDoc.fonts && 'ready' in iframeDoc.fonts) {
+        await iframeDoc.fonts.ready;
+        console.log('✅ Polices chargées');
+      }
+
+      // Attendre que toutes les images soient chargées
+      const images = iframeDoc.getElementsByTagName('img');
+      console.log('🖼️ Nombre d\'images:', images.length);
+      
+      if (images.length > 0) {
+        const imagePromises = Array.from(images).map((img, index) => {
+          if (img.complete && img.naturalHeight > 0) {
+            console.log(`✅ Image ${index} déjà chargée`);
+            return Promise.resolve();
+          }
+          return new Promise<void>((resolve) => {
+            img.onload = () => {
+              console.log(`✅ Image ${index} chargée`);
+              resolve();
+            };
+            img.onerror = () => {
+              console.warn(`⚠️ Erreur image ${index}`);
+              resolve(); // Continuer même si erreur
+            };
+            setTimeout(() => {
+              console.warn(`⏱️ Timeout image ${index}`);
+              resolve();
+            }, 15000);
+          });
+        });
+        
+        await Promise.all(imagePromises);
+      }
+
+      console.log('🎨 Début de la conversion HTML vers PDF...');
+
+      // Options PDF optimisées
       const pdfOptions = {
         margin: [10, 10, 10, 10],
         filename: `template-demo-${Date.now()}.pdf`,
@@ -383,18 +439,21 @@ const HtmlTemplateManager: React.FC = () => {
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          logging: true, // Activer pour déboguer
-          allowTaint: false,
+          allowTaint: true, // Permettre les images même sans CORS parfait
           backgroundColor: '#ffffff',
-          imageTimeout: 30000, // Augmenter le timeout à 30s
-          removeContainer: false, // Ne pas supprimer pour déboguer
-          foreignObjectRendering: false // Désactiver pour éviter les problèmes
+          logging: false,
+          imageTimeout: 30000,
+          removeContainer: true,
+          foreignObjectRendering: true, // Meilleur pour CSS complexes
+          scrollX: 0,
+          scrollY: 0
         },
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
           orientation: 'portrait' as 'portrait',
-          compress: true
+          compress: true,
+          precision: 16
         },
         pagebreak: { 
           mode: ['avoid-all', 'css', 'legacy'],
@@ -404,94 +463,29 @@ const HtmlTemplateManager: React.FC = () => {
         }
       };
 
-      // Créer un conteneur temporaire
-      const container = document.createElement('div');
-      // Rendre le container visible temporairement pour le déboggage
-      container.style.cssText = `
-        width: 210mm;
-        min-height: 297mm;
-        margin: 0;
-        padding: 20mm;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 9999;
-        background: white;
-        overflow: visible;
-        font-family: 'Montserrat', 'Segoe UI', sans-serif;
-        color: #333;
-        font-size: 14px;
-        line-height: 1.6;
-      `;
-      
-      const sanitizedHtml = DOMPurify.sanitize(compiledHtml, {
-        ALLOWED_TAGS: ['div', 'p', 'span', 'img', 'strong', 'em', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'tr', 'td', 'th', 'tbody', 'thead'],
-        ALLOWED_ATTR: ['src', 'alt', 'class', 'style', 'width', 'height', 'colspan', 'rowspan']
-      });
-      container.innerHTML = sanitizedHtml;
-
-      document.body.appendChild(container);
-      
-      console.log('🚀 Démarrage génération PDF...');
-      console.log('📦 Container dimensions:', container.offsetWidth, 'x', container.offsetHeight);
-      console.log('📦 Container innerHTML length:', container.innerHTML.length);
-      console.log('📦 Container visible:', container.offsetParent !== null);
-
       try {
-        // Attendre que toutes les images soient chargées
-        const images = container.getElementsByTagName('img');
-        console.log('🖼️ Nombre d\'images à charger:', images.length);
-        
-        const imagePromises = Array.from(images).map((img, index) => {
-          if (img.complete) {
-            console.log(`✅ Image ${index} déjà chargée:`, img.src.substring(0, 50));
-            return Promise.resolve();
-          }
-          return new Promise((resolve, reject) => {
-            img.onload = () => {
-              console.log(`✅ Image ${index} chargée:`, img.src.substring(0, 50));
-              resolve(null);
-            };
-            img.onerror = (err) => {
-              console.error(`❌ Erreur image ${index}:`, img.src.substring(0, 50), err);
-              resolve(null); // Continuer même si une image échoue
-            };
-            setTimeout(() => {
-              console.warn(`⏱️ Timeout image ${index}`);
-              resolve(null);
-            }, 10000);
-          });
-        });
-        
-        await Promise.all(imagePromises);
-
-        console.log('🎨 Début de la conversion HTML vers PDF...');
-        
         await html2pdf()
-          .from(container)
+          .from(iframeDoc.body)
           .set(pdfOptions)
           .toPdf()
           .get('pdf')
           .then((pdf: any) => {
-            console.log('✅ PDF généré - nombre de pages:', pdf.internal.getNumberOfPages());
-            console.log('✅ PDF format:', pdf.internal.pageSize.getWidth(), 'x', pdf.internal.pageSize.getHeight());
+            console.log('✅ PDF généré - pages:', pdf.internal.getNumberOfPages());
           })
-          .save()
-          .catch((err: any) => {
-            console.error('❌ Erreur lors de la génération du PDF:', err);
-            throw err;
-          });
+          .save();
 
-        console.log('🧹 Nettoyage du container...');
-        toast.success(`PDF de démonstration généré: ${pdfOptions.filename}`);
+        console.log('✅ PDF téléchargé avec succès');
+        toast.success('PDF généré avec succès');
+      } catch (pdfError) {
+        console.error('❌ Erreur génération PDF:', pdfError);
+        toast.error('Erreur lors de la génération du PDF');
       } finally {
-        if (container.parentNode) {
-          document.body.removeChild(container);
-        }
+        // Nettoyer l'iframe
+        document.body.removeChild(iframe);
       }
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
-      toast.error('Erreur lors de la génération du PDF de démonstration');
+      toast.error('Erreur lors de la génération du PDF');
     } finally {
       setIsGeneratingPdf(false);
     }
