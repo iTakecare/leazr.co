@@ -26,7 +26,7 @@ interface PDFTemplate {
 
 const PdfTemplatesManager = () => {
   const { user } = useAuth();
-  const companyId = user?.company_id;
+  const companyId = user?.company;
   const [templates, setTemplates] = useState<PDFTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPage, setSelectedPage] = useState('1');
