@@ -33,8 +33,11 @@ export const updateOfferStatus = async (
   previousStatus: string | null,
   reason?: string
 ): Promise<boolean> => {
-  try {
-    console.log(`Updating offer ${offerId} from ${previousStatus || 'draft'} to ${newStatus} with reason: ${reason || 'Aucune'}`);
+  const { withSession } = await import('@/utils/sessionManager');
+  
+  return await withSession(async () => {
+    try {
+      console.log(`Updating offer ${offerId} from ${previousStatus || 'draft'} to ${newStatus} with reason: ${reason || 'Aucune'}`);
 
     // Vérifier que les statuts sont valides
     if (!newStatus) {
@@ -246,6 +249,7 @@ export const updateOfferStatus = async (
     console.error("Error updating offer status:", error);
     return false;
   }
+  });
 };
 
 export const getWorkflowHistory = async (offerId: string) => {

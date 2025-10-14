@@ -194,14 +194,17 @@ export const saveEquipment = async (
   attributes: Record<string, string> = {},
   specifications: Record<string, string | number> = {}
 ): Promise<OfferEquipment | null> => {
-  try {
-    console.log("Saving equipment for offer:", equipment.offer_id);
-    console.log("Equipment attributes to save:", attributes);
-    console.log("Equipment specifications to save:", specifications);
-    
-    // 1. Insérer l'équipement principal en utilisant la fonction SECURITY DEFINER
-    const { data: equipmentId, error: equipmentError } = await supabase
-      .rpc('insert_offer_equipment_secure', {
+  const { withSession } = await import('@/utils/sessionManager');
+  
+  return await withSession(async () => {
+    try {
+      console.log("Saving equipment for offer:", equipment.offer_id);
+      console.log("Equipment attributes to save:", attributes);
+      console.log("Equipment specifications to save:", specifications);
+      
+      // 1. Insérer l'équipement principal en utilisant la fonction SECURITY DEFINER
+      const { data: equipmentId, error: equipmentError } = await supabase
+        .rpc('insert_offer_equipment_secure', {
         p_offer_id: equipment.offer_id,
         p_title: equipment.title,
         p_purchase_price: equipment.purchase_price,
@@ -293,6 +296,7 @@ export const saveEquipment = async (
     console.error("Erreur lors de la sauvegarde de l'équipement:", error);
     return null;
   }
+  });
 };
 
 /**
