@@ -100,7 +100,9 @@ export class HtmlToReactPdfConverter {
         errors: this.errors,
       };
     } catch (error) {
-      this.errors.push(`Erreur de conversion: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('❌ Erreur de conversion HTML→React-PDF:', error);
+      this.errors.push(`Erreur de conversion: ${message}`);
       return {
         document: (
           <Document>
@@ -188,9 +190,9 @@ export class HtmlToReactPdfConverter {
 
       case 'p':
         return (
-          <Text key={index} style={{ ...styles.paragraph, ...inlineStyles }}>
+          <View key={index} style={{ ...styles.paragraph, ...inlineStyles }}>
             {children}
-          </Text>
+          </View>
         );
 
       case 'h1':
@@ -217,6 +219,13 @@ export class HtmlToReactPdfConverter {
       case 'span':
         return (
           <Text key={index} style={{ ...styles.text, ...inlineStyles }}>
+            {children}
+          </Text>
+        );
+
+      case 'a':
+        return (
+          <Text key={index} style={{ color: '#2563eb', textDecoration: 'underline', ...inlineStyles }}>
             {children}
           </Text>
         );
@@ -280,7 +289,7 @@ export class HtmlToReactPdfConverter {
 
       case 'tr':
         return (
-          <View key={index} style={{ flexDirection: 'row', borderBottom: '1px solid #e0e0e0' }}>
+          <View key={index} style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e0e0e0', borderStyle: 'solid' }}>
             {children}
           </View>
         );

@@ -42,8 +42,14 @@ export class OfferPdfGenerator {
     }
     
     // 6. Générer le Blob PDF
-    const blob = await pdf(pdfDocument).toBlob();
-    console.log('✅ PDF généré, taille:', (blob.size / 1024).toFixed(2), 'KB');
+    let blob: Blob;
+    try {
+      blob = await pdf(pdfDocument).toBlob();
+      console.log('✅ PDF généré, taille:', (blob.size / 1024).toFixed(2), 'KB');
+    } catch (err) {
+      console.error('❌ Échec de génération du Blob PDF:', err);
+      throw err;
+    }
     
     // 7. Upload vers Storage
     const { path, url } = await this.uploadPdfToStorage(offerId, companyId, blob);
