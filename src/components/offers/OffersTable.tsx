@@ -49,7 +49,6 @@ interface OffersTableProps {
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   onDeleteOffer: (offerId: string) => Promise<void>;
   onResendOffer?: (offerId: string) => void;
-  onDownloadPdf?: (offerId: string) => void;
   isUpdatingStatus: boolean;
 }
 
@@ -58,7 +57,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onStatusChange,
   onDeleteOffer,
   onResendOffer,
-  onDownloadPdf,
   isUpdatingStatus,
 }) => {
   const navigate = useNavigate();
@@ -221,13 +219,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           >
                             <Send className="mr-2 h-4 w-4" />
                             Envoyer au client
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onDownloadPdf && !isAmbassador() && (
-                          <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Télécharger PDF
                           </DropdownMenuItem>
                         )}
                         

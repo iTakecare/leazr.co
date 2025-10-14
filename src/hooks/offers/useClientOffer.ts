@@ -1,7 +1,6 @@
 
 import { useLoadClientOffer } from "./useLoadClientOffer";
 import { useSignature } from "./useSignature";
-import { usePdfGeneration } from "./usePdfGeneration";
 
 export const useClientOffer = (offerId: string | undefined) => {
   // Charger les données de l'offre
@@ -15,12 +14,6 @@ export const useClientOffer = (offerId: string | undefined) => {
     setOffer
   } = useLoadClientOffer(offerId);
 
-  // Gérer la génération de PDF
-  const {
-    isPrintingPdf,
-    handlePrintPdf
-  } = usePdfGeneration(offerId);
-
   // Gérer la signature
   const {
     signerName,
@@ -29,7 +22,7 @@ export const useClientOffer = (offerId: string | undefined) => {
     signature,
     handleSignature,
     clientIp
-  } = useSignature(offerId, offer, setSigned, setOffer, handlePrintPdf);
+  } = useSignature(offerId, offer, setSigned, setOffer);
 
   return {
     offer,
@@ -40,10 +33,8 @@ export const useClientOffer = (offerId: string | undefined) => {
     isSigning,
     signed,
     signature,
-    isPrintingPdf,
     debugInfo,
     handleSignature,
-    handlePrintPdf,
     clientIp
   };
 };

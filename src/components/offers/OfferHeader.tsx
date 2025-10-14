@@ -7,15 +7,11 @@ import { Button } from "@/components/ui/button";
 interface OfferHeaderProps {
   offerId: string;
   signed: boolean;
-  isPrintingPdf: boolean;
-  onPrintPdf: () => void;
 }
 
 const OfferHeader: React.FC<OfferHeaderProps> = ({ 
   offerId, 
-  signed, 
-  isPrintingPdf, 
-  onPrintPdf 
+  signed
 }) => {
   return (
     <div className="mb-8">
@@ -29,38 +25,16 @@ const OfferHeader: React.FC<OfferHeaderProps> = ({
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <Badge 
-            variant={signed ? "secondary" : "outline"} 
-            className={`text-sm px-3 py-1 ${
-              signed 
-                ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" 
-                : "bg-orange-100 text-orange-800 border-orange-200"
-            }`}
-          >
-            {signed ? "✓ Signée" : "⏳ En attente de signature"}
-          </Badge>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onPrintPdf}
-            disabled={isPrintingPdf}
-            className="whitespace-nowrap hover:bg-blue-50 border-blue-200"
-          >
-            {isPrintingPdf ? (
-              <span className="flex items-center">
-                <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-blue-600 rounded-full"></span>
-                Génération PDF...
-              </span>
-            ) : (
-              <span className="flex items-center">
-                <Printer className="mr-2 h-4 w-4" />
-                Imprimer PDF
-              </span>
-            )}
-          </Button>
-        </div>
+        <Badge 
+          variant={signed ? "secondary" : "outline"} 
+          className={`text-sm px-3 py-1 ${
+            signed 
+              ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" 
+              : "bg-orange-100 text-orange-800 border-orange-200"
+          }`}
+        >
+          {signed ? "✓ Signée" : "⏳ En attente de signature"}
+        </Badge>
       </div>
       
       {/* Ligne de séparation */}

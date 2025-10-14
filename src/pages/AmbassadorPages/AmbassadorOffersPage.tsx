@@ -284,7 +284,6 @@ const AmbassadorOffersPage = () => {
               onStatusChange={handleUpdateWorkflowStatus}
               onDeleteOffer={handleDeleteOffer}
               onResendOffer={handleResendOffer}
-              onDownloadPdf={handleDownloadPdf}
               isUpdatingStatus={false}
             />
           )}

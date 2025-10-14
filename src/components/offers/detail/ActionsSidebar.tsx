@@ -140,15 +140,7 @@ const ActionsSidebar: React.FC<ActionsSidebarProps> = ({
             </Button>
           )}
           
-          <Button 
-            variant="outline" 
-            className="w-full justify-start"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Télécharger PDF
-          </Button>
-          
-          <Button 
+          <Button
             variant="outline" 
             className="w-full justify-start"
           >
