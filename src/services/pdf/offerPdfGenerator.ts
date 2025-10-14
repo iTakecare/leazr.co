@@ -19,27 +19,34 @@ export class OfferPdfGenerator {
     console.log('🎨 Génération du PDF pour l\'offre:', offerId);
 
     // 1. Récupérer les données de l'offre
-    const offerData = await this.fetchOfferData(offerId);
+    const rawOfferData = await this.fetchOfferData(offerId);
     
-    // 2. Récupérer le template HTML
-    const template = await this.fetchOfferTemplate(offerData.company_id);
+    // 2. Extraire company_id avant conversion
+    const companyId = rawOfferData.company_id;
     
-    // 3. Compiler le template avec les données
-    const compiledHtml = this.templateService.compileTemplate(template, offerData);
+    if (!companyId) {
+      throw new Error('company_id manquant dans les données de l\'offre');
+    }
     
-    // 4. Convertir HTML → React-PDF
+    // 3. Récupérer le template HTML
+    const template = await this.fetchOfferTemplate(companyId);
+    
+    // 4. Compiler le template avec les données
+    const compiledHtml = this.templateService.compileTemplate(template, rawOfferData);
+    
+    // 5. Convertir HTML → React-PDF
     const { document: pdfDocument, errors } = htmlToReactPdfConverter.convert(compiledHtml);
     
     if (errors.length > 0) {
       console.warn('⚠️ Avertissements lors de la conversion:', errors);
     }
     
-    // 5. Générer le Blob PDF
+    // 6. Générer le Blob PDF
     const blob = await pdf(pdfDocument).toBlob();
     console.log('✅ PDF généré, taille:', (blob.size / 1024).toFixed(2), 'KB');
     
-    // 6. Upload vers Storage
-    const { path, url } = await this.uploadPdfToStorage(offerId, offerData.company_id, blob);
+    // 7. Upload vers Storage
+    const { path, url } = await this.uploadPdfToStorage(offerId, companyId, blob);
     
     console.log('✅ PDF stocké:', path);
     
@@ -88,13 +95,18 @@ export class OfferPdfGenerator {
       console.warn('Erreur lors de la récupération des équipements:', equipmentError);
     }
 
-    // Convertir au format template
+    // Convertir au format template mais GARDER les champs originaux nécessaires
     const templateData = convertOfferToTemplateData({
       ...offer,
       equipment_data: equipment || [],
     });
 
-    return templateData;
+    // Retourner les données template + company_id original
+    return {
+      ...templateData,
+      company_id: offer.company_id, // Préserver le company_id
+      id: offer.id // Préserver l'id
+    };
   }
 
   /**
