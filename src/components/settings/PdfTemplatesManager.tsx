@@ -26,12 +26,19 @@ interface PDFTemplate {
 
 const PdfTemplatesManager = () => {
   const { user } = useAuth();
-  const companyId = user?.company;
+  const companyId = user?.company_id;
   const [templates, setTemplates] = useState<PDFTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPage, setSelectedPage] = useState('1');
   const [editingTemplate, setEditingTemplate] = useState<PDFTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState('');
+
+  console.log('🎨 PdfTemplatesManager - Render', {
+    hasUser: !!user,
+    companyId,
+    loading,
+    templatesCount: templates.length
+  });
 
   const pageNames = [
     "Page d'entête",
@@ -43,36 +50,53 @@ const PdfTemplatesManager = () => {
     "Page de fin"
   ];
 
-  useEffect(() => {
-    if (companyId) {
-      loadTemplates();
-    }
-  }, [companyId]);
-
   const loadTemplates = async () => {
+    if (!companyId) {
+      console.log('❌ PdfTemplatesManager - No company ID available');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      console.log('🔍 PdfTemplatesManager - Loading templates for company:', companyId);
+      
       const { data, error } = await supabase
         .from('pdf_templates')
         .select('*')
         .eq('company_id', companyId)
         .order('page_number', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ PdfTemplatesManager - Error loading templates:', error);
+        throw error;
+      }
+
+      console.log('✅ PdfTemplatesManager - Templates loaded:', data?.length || 0);
 
       if (data && data.length > 0) {
         setTemplates(data);
       } else {
-        // Créer les templates par défaut
+        console.log('📝 PdfTemplatesManager - No templates found, creating defaults');
         await createDefaultTemplates();
       }
     } catch (error: any) {
-      console.error('Error loading templates:', error);
+      console.error('❌ PdfTemplatesManager - Error in loadTemplates:', error);
       toast.error('Erreur lors du chargement des templates');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (companyId) {
+      console.log('🔄 PdfTemplatesManager - useEffect triggered, loading templates');
+      loadTemplates();
+    } else {
+      console.log('⏸️ PdfTemplatesManager - No companyId yet, waiting...');
+      setLoading(false);
+    }
+  }, [companyId]);
 
   const createDefaultTemplates = async () => {
     try {

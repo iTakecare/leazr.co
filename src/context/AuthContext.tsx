@@ -11,6 +11,7 @@ interface ExtendedUser extends User {
   last_name?: string;
   role?: string;
   company?: string;
+  company_id?: string;
   partner_id?: string;
   ambassador_id?: string;
   client_id?: string;
@@ -215,6 +216,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         last_name: profile?.last_name || '',
         role: profile?.role || 'user', // Fallback sûr : 'user' sans privilèges
         company: profile?.company || '',
+        company_id: profile?.company_id || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: ambassadorId,
         client_id: clientId,
