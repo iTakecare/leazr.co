@@ -365,7 +365,7 @@ const HtmlTemplateManager: React.FC = () => {
 
       // Créer un iframe hors-écran
       const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position: absolute; top: -10000px; left: -10000px; width: 210mm; height: 297mm;';
+      iframe.style.cssText = 'position:fixed; top:0; left:0; opacity:0; pointer-events:none; border:0;';
       document.body.appendChild(iframe);
 
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -426,6 +426,16 @@ const HtmlTemplateManager: React.FC = () => {
         await Promise.all(imagePromises);
       }
 
+      // Mesure du contenu et redimensionnement de l'iframe
+      const bodyEl = iframeDoc.body;
+      const htmlEl = iframeDoc.documentElement;
+      const contentWidth = Math.max(bodyEl.scrollWidth, htmlEl.scrollWidth, bodyEl.offsetWidth, htmlEl.offsetWidth);
+      const contentHeight = Math.max(bodyEl.scrollHeight, htmlEl.scrollHeight, bodyEl.offsetHeight, htmlEl.offsetHeight);
+      iframe.style.width = contentWidth + 'px';
+      iframe.style.height = contentHeight + 'px';
+      console.log('📦 Dimensions contenu:', { contentWidth, contentHeight });
+      console.log('📐 iframe size:', iframe.style.width, iframe.style.height);
+
       console.log('🎨 Début de la conversion HTML vers PDF...');
 
       // Options PDF optimisées
@@ -439,14 +449,16 @@ const HtmlTemplateManager: React.FC = () => {
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          allowTaint: true, // Permettre les images même sans CORS parfait
+          allowTaint: false,
           backgroundColor: '#ffffff',
-          logging: false,
+          logging: true,
           imageTimeout: 30000,
           removeContainer: true,
-          foreignObjectRendering: true, // Meilleur pour CSS complexes
+          foreignObjectRendering: false,
           scrollX: 0,
-          scrollY: 0
+          scrollY: 0,
+          windowWidth: contentWidth,
+          windowHeight: contentHeight,
         },
         jsPDF: { 
           unit: 'mm', 
@@ -456,16 +468,17 @@ const HtmlTemplateManager: React.FC = () => {
           precision: 16
         },
         pagebreak: { 
-          mode: ['avoid-all', 'css', 'legacy'],
+          mode: ['css'],
           before: '.page-break-before',
           after: '.page-break-after',
-          avoid: ['tr', 'td', 'th', 'img', '.avoid-break']
+          avoid: ['.avoid-break']
         }
       };
 
       try {
+        console.log('🎯 Élément source:', 'documentElement');
         await html2pdf()
-          .from(iframeDoc.body)
+          .from(iframeDoc.documentElement)
           .set(pdfOptions)
           .toPdf()
           .get('pdf')
