@@ -155,7 +155,7 @@ const AmbassadorOfferDetail = () => {
 
       // 1. Générer et stocker le PDF
       const { offerPdfGenerator } = await import("@/services/pdf/offerPdfGenerator");
-      await offerPdfGenerator.generateAndStoreOfferPdf(offer.id);
+      const { path: pdfPath } = await offerPdfGenerator.generateAndStoreOfferPdf(offer.id);
 
       // 2. Envoyer l'email via Edge Function
       const { data, error } = await supabase.functions.invoke("send-offer-email", {
@@ -164,6 +164,7 @@ const AmbassadorOfferDetail = () => {
           recipientEmail: emailRecipient,
           recipientName: offer.client_name,
           message: emailMessage || undefined,
+          pdfPath: pdfPath
         },
       });
 

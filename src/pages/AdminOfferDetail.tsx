@@ -12,6 +12,10 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
@@ -43,6 +47,10 @@ const AdminOfferDetail = () => {
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
+  const [isSendingPdfEmail, setIsSendingPdfEmail] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
 
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
 
@@ -180,6 +188,63 @@ const AdminOfferDetail = () => {
     // Ouvrir l'aperçu de l'offre dans un nouvel onglet avec la bonne route
     const previewUrl = `/client/offer/${id}`;
     window.open(previewUrl, '_blank');
+  };
+
+  const openEmailDialog = () => {
+    if (offer?.client_email) {
+      setEmailRecipient(offer.client_email);
+      setEmailMessage(`Bonjour ${offer.client_name},\n\nVeuillez trouver ci-joint votre offre de financement.\n\nCordialement`);
+    }
+    setShowEmailDialog(true);
+  };
+
+  const handleSendPdfEmail = async () => {
+    if (!id || !emailRecipient) {
+      toast.error("Veuillez renseigner un email destinataire");
+      return;
+    }
+
+    try {
+      setIsSendingPdfEmail(true);
+      
+      // Importer le service de génération PDF
+      const { offerPdfGenerator } = await import("@/services/pdf/offerPdfGenerator");
+      
+      // Générer et uploader le PDF
+      const { path: pdfPath } = await offerPdfGenerator.generateAndStoreOfferPdf(id);
+      
+      if (!pdfPath) {
+        toast.error("Erreur lors de la génération du PDF");
+        return;
+      }
+
+      // Envoyer l'email via l'edge function
+      const { data, error } = await supabase.functions.invoke('send-offer-email', {
+        body: {
+          offerId: id,
+          recipientEmail: emailRecipient,
+          recipientName: offer?.client_name || emailRecipient,
+          message: emailMessage,
+          pdfPath: pdfPath
+        }
+      });
+
+      if (error) {
+        console.error("Erreur lors de l'envoi de l'email:", error);
+        toast.error("Erreur lors de l'envoi de l'email");
+        return;
+      }
+
+      toast.success("Email envoyé avec succès");
+      setShowEmailDialog(false);
+      setEmailRecipient("");
+      setEmailMessage("");
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du PDF par email:", error);
+      toast.error("Erreur lors de l'envoi du PDF par email");
+    } finally {
+      setIsSendingPdfEmail(false);
+    }
   };
 
 
@@ -372,8 +437,10 @@ const AdminOfferDetail = () => {
                   onEdit={handleEditOffer}
                   onPreview={handlePreview}
                   onDownloadPdf={handlePrintPdf}
+                  onSendPdfEmail={openEmailDialog}
                   sendingEmail={sendingEmail}
                   isGeneratingPdf={isPrintingPdf}
+                  isSendingPdfEmail={isSendingPdfEmail}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -419,6 +486,55 @@ const AdminOfferDetail = () => {
           onScoreAssigned={scoringAnalysisType === 'internal' ? handleInternalScoring : handleLeaserScoring}
           isLoading={scoringLoading}
         />
+
+        {/* Dialog d'envoi de PDF par email */}
+        <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Envoyer le PDF par email</DialogTitle>
+              <DialogDescription>
+                Le PDF sera généré et envoyé au destinataire.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email du destinataire</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  placeholder="email@exemple.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="message">Message personnalisé</Label>
+                <Textarea
+                  id="message"
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  rows={5}
+                  placeholder="Votre message..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailDialog(false)}
+                disabled={isSendingPdfEmail}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleSendPdfEmail}
+                disabled={isSendingPdfEmail || !emailRecipient}
+              >
+                {isSendingPdfEmail ? "Envoi en cours..." : "Envoyer"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Container>
     </PageTransition>
   );
