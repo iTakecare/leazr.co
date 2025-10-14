@@ -31,6 +31,10 @@ import CompactEquipmentSection from "@/components/offers/detail/CompactEquipment
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const AmbassadorOfferDetail = () => {
   console.log('🔥 AMBASSADOR OFFER DETAIL - Component starting to execute');
@@ -55,6 +59,10 @@ const AmbassadorOfferDetail = () => {
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
+  const [isSendingPdfEmail, setIsSendingPdfEmail] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
   
   const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
   
@@ -128,6 +136,51 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
+  const openEmailDialog = () => {
+    if (offer?.client_email) {
+      setEmailRecipient(offer.client_email);
+    }
+    setShowEmailDialog(true);
+  };
+
+  const handleSendPdfEmail = async () => {
+    if (!offer || !emailRecipient) {
+      toast.error("Veuillez saisir un email destinataire");
+      return;
+    }
+
+    try {
+      setIsSendingPdfEmail(true);
+      toast.info("Génération du PDF en cours...");
+
+      // 1. Générer et stocker le PDF
+      const { offerPdfGenerator } = await import("@/services/pdf/offerPdfGenerator");
+      await offerPdfGenerator.generateAndStoreOfferPdf(offer.id);
+
+      // 2. Envoyer l'email via Edge Function
+      const { data, error } = await supabase.functions.invoke("send-offer-email", {
+        body: {
+          offerId: offer.id,
+          recipientEmail: emailRecipient,
+          recipientName: offer.client_name,
+          message: emailMessage || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`PDF envoyé à ${emailRecipient}`);
+      setShowEmailDialog(false);
+      setEmailRecipient("");
+      setEmailMessage("");
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de l'email:", error);
+      toast.error("Erreur lors de l'envoi de l'email");
+    } finally {
+      setIsSendingPdfEmail(false);
+    }
+  };
+
   const shareSignatureLink = async () => {
     if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
       toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
@@ -336,8 +389,10 @@ const AmbassadorOfferDetail = () => {
                 offerId={offer.id}
                 onSendSignatureLink={shareSignatureLink}
                 onDownloadPdf={handlePrintPdf}
+                onSendPdfEmail={openEmailDialog}
                 sendingEmail={sendingEmail}
                 isPdfGenerating={isPrintingPdf}
+                isSendingPdfEmail={isSendingPdfEmail}
               />
 
               <OfferEditConfiguration
@@ -358,6 +413,58 @@ const AmbassadorOfferDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Dialog pour l'envoi d'email */}
+        <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Envoyer le PDF par email</DialogTitle>
+              <DialogDescription>
+                Le PDF sera généré automatiquement et envoyé à l'adresse indiquée.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email destinataire *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="client@example.com"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="message">Message personnalisé (optionnel)</Label>
+                <Textarea
+                  id="message"
+                  placeholder="Ajoutez un message qui sera inclus dans l'email..."
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  rows={4}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailDialog(false)}
+                disabled={isSendingPdfEmail}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleSendPdfEmail}
+                disabled={!emailRecipient || isSendingPdfEmail}
+              >
+                {isSendingPdfEmail ? "Envoi en cours..." : "Envoyer"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Container>
     </PageTransition>
   );

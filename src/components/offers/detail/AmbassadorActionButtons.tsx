@@ -9,9 +9,11 @@ interface ActionButtonsProps {
   offerId: string;
   onSendSignatureLink: () => void;
   onDownloadPdf?: () => void;
+  onSendPdfEmail?: () => void;
   onFinalizeFinancing?: () => void;
   sendingEmail: boolean;
   isPdfGenerating?: boolean;
+  isSendingPdfEmail?: boolean;
   isUpdatingStatus?: boolean;
 }
 
@@ -20,9 +22,11 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
   offerId,
   onSendSignatureLink,
   onDownloadPdf,
+  onSendPdfEmail,
   onFinalizeFinancing,
   sendingEmail,
   isPdfGenerating = false,
+  isSendingPdfEmail = false,
   isUpdatingStatus = false
 }) => {
   const canSendSignature = status === 'draft' || status === 'sent';
@@ -108,6 +112,27 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
               <Copy className="mr-2 h-4 w-4" />
               Copier le lien de signature
             </Button>
+
+            {onSendPdfEmail && (
+              <Button 
+                variant="outline"
+                onClick={onSendPdfEmail}
+                disabled={isSendingPdfEmail}
+                className="w-full"
+              >
+                {isSendingPdfEmail ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></div>
+                    Envoi du PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Envoyer PDF par email
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 
