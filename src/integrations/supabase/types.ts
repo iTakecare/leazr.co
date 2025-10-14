@@ -1353,6 +1353,8 @@ export type Database = {
           co2_saved: number | null
           created_at: string
           custom_domain: string | null
+          default_pdf_customizations: Json | null
+          default_pdf_template_id: string | null
           devices_count: number | null
           favicon_url: string | null
           id: string
@@ -1379,6 +1381,8 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_pdf_customizations?: Json | null
+          default_pdf_template_id?: string | null
           devices_count?: number | null
           favicon_url?: string | null
           id?: string
@@ -1405,6 +1409,8 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_pdf_customizations?: Json | null
+          default_pdf_template_id?: string | null
           devices_count?: number | null
           favicon_url?: string | null
           id?: string

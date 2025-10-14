@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload, FolderOpen, FileImage } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
-import PdfTemplatesManager from '@/components/settings/PdfTemplatesManager';
+import OfferTemplateSettings from '@/components/settings/OfferTemplateSettings';
 
 
 import LeaserManager from '@/components/settings/LeaserManager';
@@ -199,7 +199,7 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="pdf-templates" className="mt-6">
-          <PdfTemplatesManager />
+          <OfferTemplateSettings />
         </TabsContent>
 
         <TabsContent value="chat" className="mt-6">
