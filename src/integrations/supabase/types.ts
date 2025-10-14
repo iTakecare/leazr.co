@@ -3840,6 +3840,8 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
+          pdf_customizations: Json | null
+          pdf_template_id: string | null
           previous_status: string | null
           remarks: string | null
           signature_data: string | null
@@ -3878,6 +3880,8 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
+          pdf_customizations?: Json | null
+          pdf_template_id?: string | null
           previous_status?: string | null
           remarks?: string | null
           signature_data?: string | null
@@ -3916,6 +3920,8 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
+          pdf_customizations?: Json | null
+          pdf_template_id?: string | null
           previous_status?: string | null
           remarks?: string | null
           signature_data?: string | null
@@ -4795,59 +4801,6 @@ export type Database = {
           },
           {
             foreignKeyName: "products_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      professional_pdf_templates: {
-        Row: {
-          company_id: string
-          created_at: string
-          css_styles: string
-          display_order: number
-          html_content: string
-          id: string
-          is_active: boolean
-          name: string
-          page_name: string
-          page_number: number
-          updated_at: string
-          variables: string[]
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          css_styles?: string
-          display_order?: number
-          html_content?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          page_name: string
-          page_number: number
-          updated_at?: string
-          variables?: string[]
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          css_styles?: string
-          display_order?: number
-          html_content?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          page_name?: string
-          page_number?: number
-          updated_at?: string
-          variables?: string[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "professional_pdf_templates_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -6060,6 +6013,8 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
+          pdf_customizations: Json | null
+          pdf_template_id: string | null
           previous_status: string | null
           remarks: string | null
           signature_data: string | null
