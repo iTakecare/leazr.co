@@ -33,6 +33,8 @@ const PdfTemplatesManager = () => {
   const [editingTemplate, setEditingTemplate] = useState<PDFTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState('');
   const [isLoadingRef, setIsLoadingRef] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<Record<string, string[]>>({});
+  const [lastUploadedUrl, setLastUploadedUrl] = useState<Record<string, string>>({});
 
   console.log('🎨 PdfTemplatesManager - Render', {
     hasUser: !!user,
@@ -185,27 +187,86 @@ const PdfTemplatesManager = () => {
     setPreviewHtml(fullHtml);
   };
 
-  const handleUploadImage = async (templateId: string, file: File) => {
+  const handleUploadImage = async (templateId: string, file: File, inputElement?: HTMLInputElement) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${companyId}/${templateId}/${Date.now()}.${fileExt}`;
+
+      console.log('📤 Upload Image - Starting', { fileName, fileSize: file.size, fileType: file.type, bucket: 'pdf-templates-assets' });
 
       const { error: uploadError } = await supabase.storage
         .from('pdf-templates-assets')
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('❌ Upload Error:', uploadError);
+        throw uploadError;
+      }
 
       const { data } = supabase.storage
         .from('pdf-templates-assets')
         .getPublicUrl(fileName);
 
-      toast.success('Image uploadée avec succès');
-      return data.publicUrl;
+      const publicUrl = data.publicUrl;
+      console.log('✅ Upload Success - Public URL:', publicUrl);
+
+      // Update state
+      setUploadedImages(prev => ({ 
+        ...prev, 
+        [templateId]: [publicUrl, ...(prev[templateId] || [])].slice(0, 4) 
+      }));
+      setLastUploadedUrl(prev => ({ ...prev, [templateId]: publicUrl }));
+
+      // Copy to clipboard
+      try {
+        await navigator.clipboard?.writeText(publicUrl);
+        toast.success('Image uploadée. URL copiée dans le presse-papiers.');
+      } catch (clipError) {
+        console.warn('⚠️ Clipboard copy failed:', clipError);
+        toast.success('Image uploadée avec succès');
+      }
+
+      // Reset input for re-upload
+      if (inputElement) {
+        inputElement.value = '';
+      }
+
+      // Test image loading
+      const testImg = new Image();
+      testImg.onload = () => console.log('✅ Image loads successfully:', publicUrl);
+      testImg.onerror = (e) => console.error('❌ Image failed to load:', publicUrl, e);
+      testImg.src = publicUrl;
+
+      return publicUrl;
     } catch (error: any) {
-      console.error('Error uploading image:', error);
-      toast.error('Erreur lors de l\'upload de l\'image');
+      console.error('❌ Error uploading image:', error);
+      const errorMsg = error.statusCode ? `Erreur ${error.statusCode}: ${error.message}` : 'Erreur lors de l\'upload de l\'image';
+      toast.error(errorMsg);
       return null;
+    }
+  };
+
+  const insertImageTag = (template: PDFTemplate, url: string) => {
+    const imgTag = `<img src="${url}" alt="image" style="max-width:100%;height:auto;" />`;
+    const currentContent = editingTemplate?.id === template.id 
+      ? editingTemplate.html_content 
+      : template.html_content;
+    
+    setEditingTemplate({ 
+      ...template, 
+      html_content: currentContent + '\n' + imgTag 
+    });
+    
+    toast.info('Balise <img> ajoutée au HTML (non sauvegardé)');
+  };
+
+  const copyUrlToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('URL copiée dans le presse-papiers');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Erreur lors de la copie');
     }
   };
 
@@ -313,10 +374,7 @@ const PdfTemplatesManager = () => {
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const url = await handleUploadImage(template.id, file);
-                                if (url) {
-                                  console.log('Image URL:', url);
-                                }
+                                await handleUploadImage(template.id, file, e.target);
                               }
                             }}
                             className="hidden"
@@ -331,6 +389,48 @@ const PdfTemplatesManager = () => {
                             Upload Image
                           </Button>
                         </div>
+
+                        {uploadedImages[template.id] && uploadedImages[template.id].length > 0 && (
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <p className="text-sm font-semibold mb-3">Images récemment uploadées :</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {uploadedImages[template.id].map((url, idx) => (
+                                <div key={idx} className="border rounded-lg p-2 bg-background">
+                                  <img 
+                                    src={url} 
+                                    alt={`Upload ${idx + 1}`}
+                                    className="w-full h-24 object-cover rounded mb-2"
+                                    onError={(e) => {
+                                      console.error('❌ Failed to load image:', url);
+                                      e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EError%3C/text%3E%3C/svg%3E';
+                                    }}
+                                  />
+                                  <div className="flex gap-1">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      onClick={() => copyUrlToClipboard(url)}
+                                      className="flex-1 text-xs"
+                                    >
+                                      Copier URL
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="default" 
+                                      onClick={() => insertImageTag(template, url)}
+                                      className="flex-1 text-xs"
+                                    >
+                                      Insérer
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              💡 Cliquez sur "Insérer" pour ajouter l'image au HTML, puis "Prévisualiser" et "Sauvegarder"
+                            </p>
+                          </div>
+                        )}
 
                         <div className="text-sm text-muted-foreground">
                           <p className="font-semibold mb-2">Variables disponibles :</p>
