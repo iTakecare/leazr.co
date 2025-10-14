@@ -240,38 +240,221 @@ const HtmlTemplateManager: React.FC = () => {
 
       setIsGeneratingPdf(true);
       
-      // Créer des données d'exemple pour la génération PDF
-      const sampleData = {
+      // Obtenir le company_id pour charger les vraies données
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      const companyId = profile?.company_id;
+
+      // Charger les stats de l'entreprise
+      let companyStatsData = {
+        clients_count: 150,
+        devices_count: 2500,
+        co2_saved: 45.5,
+        started_year: 2020
+      };
+      let clientLogos: Array<{ url: string; name: string }> = [];
+
+      if (companyId) {
+        try {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('clients_count, devices_count, co2_saved, started_year')
+            .eq('id', companyId)
+            .single();
+
+          if (company) {
+            companyStatsData = {
+              clients_count: company.clients_count || 150,
+              devices_count: company.devices_count || 2500,
+              co2_saved: company.co2_saved || 45.5,
+              started_year: company.started_year || 2020
+            };
+          }
+
+          // Charger les logos clients
+          const { data: files } = await supabase.storage
+            .from('client-logos')
+            .list(`company-${companyId}/`, { limit: 10 });
+
+          if (files && files.length > 0) {
+            clientLogos = files.map(file => ({
+              url: `${SUPABASE_URL}/storage/v1/object/public/client-logos/company-${companyId}/${file.name}`,
+              name: file.name.replace(/client-.*?-logo\..*$/, '').replace(/^.*-/, '') || file.name
+            }));
+          }
+        } catch (error) {
+          console.warn('Impossible de charger les données réelles, utilisation des données d\'exemple');
+        }
+      }
+
+      // Créer les données template (même format que generatePreviewData)
+      const { convertOfferToTemplateData } = await import('@/services/htmlTemplateService');
+      
+      // Créer des données d'offre brutes pour la conversion
+      const sampleOfferData = {
         id: 'demo-template',
-        client_name: 'Jean Dupont (Démo)',
+        offer_id: 'ITC-2025-OFF-0001',
+        client_name: 'Jean Dupont',
         client_company: 'ACME SA',
         client_email: 'jean.dupont@acme.com',
+        client_address: '123 Rue de la Paix',
+        client_city: 'Bruxelles',
+        client_postal_code: '1000',
         amount: 10000,
         monthly_payment: 300,
+        financed_amount: 10000,
         created_at: new Date().toISOString(),
         equipment_description: JSON.stringify([
           {
-            title: 'Dell Latitude 5520',
+            title: 'Dell Latitude 5520 - Intel i5, 16GB RAM, 512GB SSD',
             category: 'Ordinateur portable',
             purchasePrice: 1200,
             quantity: 2,
             margin: 15,
-            monthlyPayment: 150
+            monthlyPayment: 150,
+            monthly_payment: 150
           },
           {
-            title: 'Dell UltraSharp 24"',
+            title: 'Dell UltraSharp 24" Full HD',
             category: 'Écran',
             purchasePrice: 300,
             quantity: 2,
             margin: 15,
-            monthlyPayment: 75
+            monthlyPayment: 75,
+            monthly_payment: 75
           }
         ])
       };
 
-      const filename = await generateSamplePdf(sampleData);
-      if (filename) {
-        toast.success(`PDF de démonstration généré: ${filename}`);
+      // Convertir en données template et ajouter les stats/logos
+      const templateData = convertOfferToTemplateData(sampleOfferData);
+      templateData.company_stats_clients = companyStatsData.clients_count.toString();
+      templateData.company_stats_devices = companyStatsData.devices_count.toString();
+      templateData.company_stats_co2 = `${companyStatsData.co2_saved} tonnes`;
+      templateData.company_started_year = companyStatsData.started_year.toString();
+      templateData.client_logos_count = clientLogos.length.toString();
+      
+      // Générer le HTML des logos
+      let clientLogosHtml = '';
+      if (clientLogos.length > 0) {
+        const logosHtml = clientLogos.map(logo => `
+          <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <img src="${logo.url}" alt="${logo.name}" style="max-width: 100%; height: auto; max-height: 60px;"/>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${logo.name.replace(/\.[^/.]+$/, '')}</p>
+          </div>
+        `).join('\n');
+        clientLogosHtml = `<div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">${logosHtml}</div>`;
+      } else {
+        clientLogosHtml = `<div class="client-logos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 20px; margin: 20px 0;">
+          <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+1" alt="Logo Client 1" style="max-width: 100%; height: auto; max-height: 60px;"/>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 1</p>
+          </div>
+          <div style="text-align: center; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <img src="https://via.placeholder.com/120x60/f0f0f0/666?text=Logo+2" alt="Logo Client 2" style="max-width: 100%; height: auto; max-height: 60px;"/>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Client 2</p>
+          </div>
+        </div>`;
+      }
+      templateData.client_logos = clientLogosHtml;
+
+      // Compiler le template avec les données (exactement comme la prévisualisation)
+      const compiledHtml = templateService.compileTemplate(htmlContent, templateData);
+
+      // Générer le PDF à partir du HTML compilé
+      const html2pdf = (await import('html2pdf.js')).default;
+      const DOMPurify = (await import('dompurify')).default;
+
+      const pdfOptions = {
+        margin: [8, 8, 8, 8],
+        filename: `template-demo-${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { 
+          scale: 1.2,
+          useCORS: true,
+          logging: false,
+          letterRendering: true,
+          allowTaint: true,
+          imageTimeout: 15000,
+          width: 794,
+          height: 1123,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794,
+          windowHeight: 1123,
+          foreignObjectRendering: true,
+          removeContainer: true
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' as 'portrait',
+          compress: true,
+          precision: 16
+        },
+        pagebreak: { 
+          mode: 'avoid-all',
+          before: '.page',
+          after: '.page:not(:last-child)',
+          avoid: 'img, .value-card, .step-item'
+        }
+      };
+
+      // Créer un conteneur temporaire
+      const container = document.createElement('div');
+      container.style.cssText = `
+        width: 210mm;
+        margin: 0;
+        padding: 0;
+        font-family: 'Montserrat', 'Segoe UI', sans-serif;
+        background: white;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.6;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+      `;
+      
+      const sanitizedHtml = DOMPurify.sanitize(compiledHtml, {
+        ALLOWED_TAGS: ['div', 'p', 'span', 'img', 'strong', 'em', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'tr', 'td', 'th', 'tbody', 'thead'],
+        ALLOWED_ATTR: ['src', 'alt', 'class', 'style', 'width', 'height', 'colspan', 'rowspan']
+      });
+      container.innerHTML = sanitizedHtml;
+
+      document.body.appendChild(container);
+
+      try {
+        // Attendre que les images soient chargées
+        const images = container.querySelectorAll('img');
+        await Promise.all(Array.from(images).map(img => {
+          return new Promise<void>((resolve) => {
+            if (img.complete) {
+              resolve();
+            } else {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }
+          });
+        }));
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Générer le PDF
+        await html2pdf()
+          .from(container)
+          .set(pdfOptions)
+          .save();
+
+        toast.success(`PDF de démonstration généré: ${pdfOptions.filename}`);
+      } finally {
+        if (container.parentNode) {
+          document.body.removeChild(container);
+        }
       }
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
