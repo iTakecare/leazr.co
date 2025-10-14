@@ -86,30 +86,28 @@ const setupHandlebarsHelpers = () => {
   });
 };
 
-// Grouper les équipements par catégorie et générer le HTML
-const groupEquipmentByCategory = (equipment: any[]): string => {
+// Helper function to generate equipment table rows
+const generateEquipmentRows = (equipment: any[]): string => {
   if (!equipment || equipment.length === 0) {
-    return '<p style="text-align: center; color: #666;">Aucun équipement spécifié</p>';
+    return `<tr>
+      <td style="padding: 2mm; border: 0.2mm solid #e5e7eb;">Aucun équipement</td>
+      <td style="padding: 2mm; text-align: center; border: 0.2mm solid #e5e7eb;">0</td>
+      <td style="padding: 2mm; text-align: right; border: 0.2mm solid #e5e7eb;">0,00 €</td>
+    </tr>`;
   }
   
-  const grouped = equipment.reduce((acc, item) => {
-    const category = item.category || 'AUTRES';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(item);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  return Object.entries(grouped).map(([category, items]: [string, any[]]) => `
-    <div class="equipment-category">
-      <h3>${category.toUpperCase()}</h3>
-      ${items.map(item => `
-        <div class="equipment-item">
-          <p>${item.title || item.description}</p>
-          <p class="quantity">Quantité : ${item.quantity}</p>
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
+  return equipment.map((item, index) => {
+    const backgroundColor = index % 2 === 0 ? '#fff' : '#f9fafb';
+    const title = item.title || item.description || 'Équipement';
+    const quantity = item.quantity || 1;
+    const monthlyPayment = formatCurrency(item.monthly_payment || item.monthlyPayment || 0);
+    
+    return `<tr style="background-color: ${backgroundColor};">
+      <td style="padding: 2mm; border: 0.2mm solid #e5e7eb; white-space: normal; word-break: break-word;">${title}</td>
+      <td style="padding: 2mm; text-align: center; border: 0.2mm solid #e5e7eb;">${quantity}</td>
+      <td style="padding: 2mm; text-align: right; border: 0.2mm solid #e5e7eb;">${monthlyPayment}</td>
+    </tr>`;
+  }).join('');
 };
 
 // Formater la date au format "2 OCTOBRE 2025"
@@ -167,21 +165,23 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
   const clientCity = offerData.clients?.city || offerData.client_city || '';
 
   return {
+    offer_id: offerData.offer_id || offerData.id || 'N/A',
     client_name: offerData.client_name || 'Client',
     company_name: offerData.client_company || offerData.clients?.company || 'Entreprise',
+    client_company: offerData.client_company || offerData.clients?.company || 'Entreprise',
+    client_email: offerData.client_email || offerData.clients?.email || '',
     client_address: offerData.clients?.address || offerData.client_address || 'Adresse non renseignée',
     client_postal_code: clientPostalCode,
     client_city: clientCity,
     offer_date: offerDate,
-    offer_date_canva: formatOfferDate(offerData.created_at || Date.now()), // Format "2 OCTOBRE 2025"
     monthly_price: formatCurrency(offerData.monthly_payment || 0),
-    monthly_payment: `${(offerData.monthly_payment || 0).toFixed(2)}€ HTVA`,
+    monthly_payment: formatCurrency(offerData.monthly_payment || 0),
     insurance: `${annualInsurance} €`,
     insurance_amount: `${annualInsurance}€`,
     setup_fee: '75€ HTVA', // Frais de dossier unique
     contract_duration: '36',
     products: products,
-    equipment_by_category: groupEquipmentByCategory(products),
+    equipment_rows: generateEquipmentRows(equipment),
     insurance_example: `Pour un contrat de ${formatCurrency(totalAmount)}, assurance = ${formatCurrency(annualInsurance)}/an`,
     // Images base64 - à injecter par la suite
     base64_image_cover: '',
