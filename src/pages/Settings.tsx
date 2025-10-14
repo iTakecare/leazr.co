@@ -19,7 +19,7 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
-import HtmlTemplateManager from '@/components/settings/HtmlTemplateManager';
+
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import BulkClientImport from '@/components/settings/BulkClientImport';
 
@@ -89,7 +89,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -109,10 +109,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="commissions" className="flex items-center gap-2">
             <BadgePercent className="h-4 w-4" />
             Commissions
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Templates
           </TabsTrigger>
           <TabsTrigger value="workflows" className="flex items-center gap-2">
             <GitBranch className="h-4 w-4" />
@@ -155,11 +151,6 @@ const Settings: React.FC = () => {
 
         <TabsContent value="commissions" className="mt-6">
           <CommissionManager />
-        </TabsContent>
-
-
-        <TabsContent value="templates" className="mt-6">
-          <HtmlTemplateManager />
         </TabsContent>
 
         <TabsContent value="workflows" className="mt-6">

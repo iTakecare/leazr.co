@@ -2,9 +2,6 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
-import { PDFTemplateService } from "../pdfTemplateService";
-import HtmlTemplateService from "../htmlTemplateService";
-import { saveAs } from "file-saver";
 
 
 /**
@@ -265,67 +262,8 @@ export const generateAndDownloadOfferPdf = async (
     });
 
 
-    // Vérifier d'abord s'il existe un template HTML pour cette entreprise
-    let pdfOptions = {};
-    
-    if (offerData.company_id) {
-      try {
-        console.log("🔍 Vérification des templates HTML pour l'entreprise:", offerData.company_id);
-        
-        // D'abord chercher un template HTML dans html_templates
-        const htmlTemplateService = HtmlTemplateService.getInstance();
-        const htmlTemplates = await htmlTemplateService.loadCompanyTemplates(offerData.company_id);
-        
-        console.log("🔍 Templates HTML trouvés:", htmlTemplates.length);
-        
-        if (htmlTemplates.length > 0) {
-          // Utiliser le premier template HTML par défaut ou celui marqué comme default
-          const defaultTemplate = htmlTemplates.find(t => t.is_default) || htmlTemplates[0];
-          
-          console.log("✅ Template HTML trouvé - utilisation du template de la base de données");
-          console.log("🔍 Template HTML details:", {
-            id: defaultTemplate.id,
-            name: defaultTemplate.name,
-            is_default: defaultTemplate.is_default
-          });
-          
-          pdfOptions = {
-            useHtmlTemplate: true,
-            customTemplate: defaultTemplate.html_content,
-            templateData: {
-              template_id: defaultTemplate.id,
-              name: defaultTemplate.name
-            }
-          };
-          
-          console.log("🎯 Options PDF configurées pour template HTML de la DB:", pdfOptions);
-        } else {
-          // Fallback vers les anciens templates PDF
-          console.log("🔍 Aucun template HTML trouvé, vérification des templates PDF...");
-          const template = await PDFTemplateService.getTemplateForOffer(
-            offerData.company_id,
-            'standard',
-            'offer'
-          );
-          
-          if (template) {
-            console.log("✅ Template PDF trouvé - utilisation du template PDF");
-            pdfOptions = {
-              useHtmlTemplate: true,
-              customTemplate: null, // null force l'utilisation du template iTakecare par défaut
-              templateData: template
-            };
-          } else {
-            console.log("❌ Aucun template trouvé, utilisation du template React standard");
-          }
-        }
-      } catch (error) {
-        console.warn("⚠️ Erreur lors de la vérification des templates, utilisation du fallback:", error);
-      }
-    }
-    
-    // Générer le PDF avec les options appropriées
-    const filename = await generateOfferPdf(offerData, pdfOptions);
+    // Générer le PDF directement sans options de template
+    const filename = await generateOfferPdf(offerData);
     
     if (!filename) {
       toast.error("Erreur lors de la génération du PDF");

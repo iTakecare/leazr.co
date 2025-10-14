@@ -3,39 +3,13 @@ import html2pdf from 'html2pdf.js';
 import OfferPDFTemplate from '@/components/pdf/OfferPDFTemplate';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
-import { generateItakecareOfferPdf } from './htmlPdfGenerator';
 
 /**
- * Générer un PDF à partir des données de l'offre avec support des templates HTML
+ * Générer un PDF à partir des données de l'offre - génération locale uniquement
  */
-export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate?: boolean; customTemplate?: string; templateData?: any }) => {
+export const generateOfferPdf = async (offerData) => {
   try {
     console.log("Début de la génération du PDF pour l'offre:", offerData.id);
-    
-    // Vérifier si on doit utiliser le template HTML
-    if (pdfOptions?.useHtmlTemplate) {
-      console.log("🎯 Utilisation du template HTML simplifié pour la génération PDF");
-      console.log("📄 Custom template fourni:", !!pdfOptions.customTemplate);
-      
-      // Si on a un template personnalisé (de la DB), l'utiliser directement avec la nouvelle méthode
-      if (pdfOptions.customTemplate) {
-        console.log("✅ Utilisation du template de la base de données avec méthode simplifiée");
-        
-        // Utiliser directement generateSimplePdf pour éviter Handlebars
-        const { generateSimplePdf } = await import('./htmlPdfGenerator');
-        return await generateSimplePdf(
-          pdfOptions.customTemplate,
-          offerData,
-          { filename: `offre-${offerData.id.substring(0, 8)}.pdf` }
-        );
-      } else {
-        console.log("⚠️ Aucun template HTML fourni, utilisation du fallback React");
-        // Fallback vers le template React si pas de template HTML
-      }
-    }
-    
-    // Mode classique avec template React
-    console.log("Utilisation du template React classique");
     
     // Générer le HTML avec React
     const htmlContent = ReactDOMServer.renderToString(
