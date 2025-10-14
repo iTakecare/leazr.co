@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { getOfferById, updateOfferStatus } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
 import { sendOfferReadyEmail } from "@/services/emailService";
+import { generateProfessionalOfferPdf } from "@/services/professionalPdfService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { AlertCircle, ArrowLeft } from "lucide-react";
@@ -42,6 +43,7 @@ const AdminOfferDetail = () => {
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
+  const [isGeneratingProfessionalPdf, setIsGeneratingProfessionalPdf] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -177,6 +179,29 @@ const AdminOfferDetail = () => {
     // Ouvrir l'aperçu de l'offre dans un nouvel onglet avec la bonne route
     const previewUrl = `/client/offer/${id}`;
     window.open(previewUrl, '_blank');
+  };
+
+  const handleGenerateProfessionalPdf = async () => {
+    if (!offer?.id) {
+      toast.error("Impossible de générer le PDF");
+      return;
+    }
+
+    try {
+      setIsGeneratingProfessionalPdf(true);
+      console.log('🎨 Starting professional PDF generation for offer:', offer.id);
+      
+      await generateProfessionalOfferPdf(offer.id, {
+        filename: `Offre_Professionnelle_${offer.client_name}_${offer.id.slice(0, 8)}.pdf`
+      });
+      
+      toast.success("PDF professionnel généré avec succès !");
+    } catch (error) {
+      console.error('Error generating professional PDF:', error);
+      toast.error("Erreur lors de la génération du PDF professionnel");
+    } finally {
+      setIsGeneratingProfessionalPdf(false);
+    }
   };
 
 
@@ -369,9 +394,9 @@ const AdminOfferDetail = () => {
                   onRequestInfo={() => setIsRequestInfoModalOpen(true)}
                   onEdit={handleEditOffer}
                   onPreview={handlePreview}
-                  onDownloadPdf={() => {}}
+                  onDownloadPdf={handleGenerateProfessionalPdf}
                   sendingEmail={sendingEmail}
-                  isGeneratingPdf={false}
+                  isGeneratingPdf={isGeneratingProfessionalPdf}
                 />
                 
                 {/* Configuration de l'offre */}
