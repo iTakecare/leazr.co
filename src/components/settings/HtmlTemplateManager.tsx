@@ -364,60 +364,64 @@ const HtmlTemplateManager: React.FC = () => {
 
       // Compiler le template avec les données (exactement comme la prévisualisation)
       const compiledHtml = templateService.compileTemplate(htmlContent, templateData);
+      
+      console.log('📄 Template compilé avec succès, taille finale:', compiledHtml.length);
+      console.log('📄 Aperçu HTML (premiers 500 chars):', compiledHtml.substring(0, 500));
+      console.log('📄 Aperçu HTML (derniers 500 chars):', compiledHtml.substring(compiledHtml.length - 500));
 
       // Générer le PDF à partir du HTML compilé
       const html2pdf = (await import('html2pdf.js')).default;
       const DOMPurify = (await import('dompurify')).default;
 
       const pdfOptions = {
-        margin: [8, 8, 8, 8],
+        margin: [10, 10, 10, 10],
         filename: `template-demo-${Date.now()}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
+        image: { 
+          type: 'jpeg', 
+          quality: 0.98 
+        },
         html2canvas: { 
-          scale: 1.2,
+          scale: 2,
           useCORS: true,
-          logging: false,
-          letterRendering: true,
-          allowTaint: true,
-          imageTimeout: 15000,
-          width: 794,
-          height: 1123,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 794,
-          windowHeight: 1123,
-          foreignObjectRendering: true,
-          removeContainer: true
+          logging: true, // Activer pour déboguer
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          imageTimeout: 30000, // Augmenter le timeout à 30s
+          removeContainer: false, // Ne pas supprimer pour déboguer
+          foreignObjectRendering: false // Désactiver pour éviter les problèmes
         },
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
           orientation: 'portrait' as 'portrait',
-          compress: true,
-          precision: 16
+          compress: true
         },
         pagebreak: { 
-          mode: 'avoid-all',
-          before: '.page',
-          after: '.page:not(:last-child)',
-          avoid: 'img, .value-card, .step-item'
+          mode: ['avoid-all', 'css', 'legacy'],
+          before: '.page-break-before',
+          after: '.page-break-after',
+          avoid: ['tr', 'td', 'th', 'img', '.avoid-break']
         }
       };
 
       // Créer un conteneur temporaire
       const container = document.createElement('div');
+      // Rendre le container visible temporairement pour le déboggage
       container.style.cssText = `
         width: 210mm;
+        min-height: 297mm;
         margin: 0;
-        padding: 0;
-        font-family: 'Montserrat', 'Segoe UI', sans-serif;
+        padding: 20mm;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 9999;
         background: white;
+        overflow: visible;
+        font-family: 'Montserrat', 'Segoe UI', sans-serif;
         color: #333;
         font-size: 14px;
         line-height: 1.6;
-        box-sizing: border-box;
-        position: relative;
-        overflow: hidden;
       `;
       
       const sanitizedHtml = DOMPurify.sanitize(compiledHtml, {
@@ -427,29 +431,58 @@ const HtmlTemplateManager: React.FC = () => {
       container.innerHTML = sanitizedHtml;
 
       document.body.appendChild(container);
+      
+      console.log('🚀 Démarrage génération PDF...');
+      console.log('📦 Container dimensions:', container.offsetWidth, 'x', container.offsetHeight);
+      console.log('📦 Container innerHTML length:', container.innerHTML.length);
+      console.log('📦 Container visible:', container.offsetParent !== null);
 
       try {
-        // Attendre que les images soient chargées
-        const images = container.querySelectorAll('img');
-        await Promise.all(Array.from(images).map(img => {
-          return new Promise<void>((resolve) => {
-            if (img.complete) {
-              resolve();
-            } else {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-            }
+        // Attendre que toutes les images soient chargées
+        const images = container.getElementsByTagName('img');
+        console.log('🖼️ Nombre d\'images à charger:', images.length);
+        
+        const imagePromises = Array.from(images).map((img, index) => {
+          if (img.complete) {
+            console.log(`✅ Image ${index} déjà chargée:`, img.src.substring(0, 50));
+            return Promise.resolve();
+          }
+          return new Promise((resolve, reject) => {
+            img.onload = () => {
+              console.log(`✅ Image ${index} chargée:`, img.src.substring(0, 50));
+              resolve(null);
+            };
+            img.onerror = (err) => {
+              console.error(`❌ Erreur image ${index}:`, img.src.substring(0, 50), err);
+              resolve(null); // Continuer même si une image échoue
+            };
+            setTimeout(() => {
+              console.warn(`⏱️ Timeout image ${index}`);
+              resolve(null);
+            }, 10000);
           });
-        }));
+        });
+        
+        await Promise.all(imagePromises);
 
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Générer le PDF
+        console.log('🎨 Début de la conversion HTML vers PDF...');
+        
         await html2pdf()
           .from(container)
           .set(pdfOptions)
-          .save();
+          .toPdf()
+          .get('pdf')
+          .then((pdf: any) => {
+            console.log('✅ PDF généré - nombre de pages:', pdf.internal.getNumberOfPages());
+            console.log('✅ PDF format:', pdf.internal.pageSize.getWidth(), 'x', pdf.internal.pageSize.getHeight());
+          })
+          .save()
+          .catch((err: any) => {
+            console.error('❌ Erreur lors de la génération du PDF:', err);
+            throw err;
+          });
 
+        console.log('🧹 Nettoyage du container...');
         toast.success(`PDF de démonstration généré: ${pdfOptions.filename}`);
       } finally {
         if (container.parentNode) {
