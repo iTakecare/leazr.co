@@ -1,0 +1,284 @@
+import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+
+interface OfferData {
+  id: string;
+  client_name: string;
+  client_company?: string;
+  client_email?: string;
+  client_phone?: string;
+  amount: number;
+  monthly_payment?: number;
+  created_at: string;
+}
+
+interface Equipment {
+  id: string;
+  title: string;
+  quantity: number;
+  purchase_price: number;
+  selling_price?: number;
+  monthly_payment?: number;
+}
+
+interface ClassicBusinessTemplateProps {
+  offer: OfferData;
+  equipment: Equipment[];
+  companyName: string;
+  companyLogo?: string;
+  customizations?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    showLogo?: boolean;
+    showFooter?: boolean;
+  };
+}
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontSize: 10,
+    fontFamily: 'Helvetica',
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+    paddingBottom: 20,
+    borderBottom: '2 solid #3b82f6',
+  },
+  logo: {
+    width: 120,
+    height: 40,
+    objectFit: 'contain',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 10,
+    paddingBottom: 5,
+    borderBottom: '1 solid #e2e8f0',
+  },
+  clientInfo: {
+    backgroundColor: '#f8fafc',
+    padding: 15,
+    borderRadius: 4,
+    marginBottom: 20,
+  },
+  clientRow: {
+    flexDirection: 'row',
+    marginBottom: 5,
+  },
+  label: {
+    width: 100,
+    fontWeight: 'bold',
+    color: '#64748b',
+  },
+  value: {
+    flex: 1,
+    color: '#1e293b',
+  },
+  table: {
+    marginTop: 10,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#3b82f6',
+    color: '#ffffff',
+    padding: 10,
+    fontWeight: 'bold',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottom: '1 solid #e2e8f0',
+    padding: 10,
+  },
+  tableRowAlt: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderBottom: '1 solid #e2e8f0',
+    padding: 10,
+  },
+  col1: { width: '40%' },
+  col2: { width: '15%', textAlign: 'center' },
+  col3: { width: '22.5%', textAlign: 'right' },
+  col4: { width: '22.5%', textAlign: 'right' },
+  summary: {
+    marginTop: 20,
+    padding: 20,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 4,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  summaryValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: '2 solid #3b82f6',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3b82f6',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    color: '#64748b',
+    fontSize: 8,
+    paddingTop: 10,
+    borderTop: '1 solid #e2e8f0',
+  },
+  date: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 10,
+  },
+});
+
+export const ClassicBusinessTemplate = ({ 
+  offer, 
+  equipment, 
+  companyName, 
+  companyLogo,
+  customizations = {} 
+}: ClassicBusinessTemplateProps) => {
+  const totalAmount = equipment.reduce((sum, eq) => sum + (eq.selling_price || eq.purchase_price) * eq.quantity, 0);
+  const totalMonthly = equipment.reduce((sum, eq) => sum + (eq.monthly_payment || 0) * eq.quantity, 0);
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          {customizations.showLogo !== false && companyLogo ? (
+            <Image src={companyLogo} style={styles.logo} />
+          ) : (
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: customizations.primaryColor || '#3b82f6' }}>
+              {companyName}
+            </Text>
+          )}
+          <Text style={styles.title}>Offre Commerciale</Text>
+        </View>
+
+        {/* Date */}
+        <Text style={styles.date}>
+          Date: {new Date(offer.created_at).toLocaleDateString('fr-FR')}
+        </Text>
+        <Text style={styles.date}>
+          Référence: {offer.id.slice(0, 8)}
+        </Text>
+
+        {/* Client Information */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Informations Client</Text>
+          <View style={styles.clientInfo}>
+            <View style={styles.clientRow}>
+              <Text style={styles.label}>Nom:</Text>
+              <Text style={styles.value}>{offer.client_name}</Text>
+            </View>
+            {offer.client_company && (
+              <View style={styles.clientRow}>
+                <Text style={styles.label}>Entreprise:</Text>
+                <Text style={styles.value}>{offer.client_company}</Text>
+              </View>
+            )}
+            {offer.client_email && (
+              <View style={styles.clientRow}>
+                <Text style={styles.label}>Email:</Text>
+                <Text style={styles.value}>{offer.client_email}</Text>
+              </View>
+            )}
+            {offer.client_phone && (
+              <View style={styles.clientRow}>
+                <Text style={styles.label}>Téléphone:</Text>
+                <Text style={styles.value}>{offer.client_phone}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Equipment Table */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Équipements</Text>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={styles.col1}>Désignation</Text>
+              <Text style={styles.col2}>Qté</Text>
+              <Text style={styles.col3}>Prix unitaire</Text>
+              <Text style={styles.col4}>Total</Text>
+            </View>
+            {equipment.map((eq, index) => (
+              <View key={eq.id} style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <Text style={styles.col1}>{eq.title}</Text>
+                <Text style={styles.col2}>{eq.quantity}</Text>
+                <Text style={styles.col3}>{((eq.selling_price || eq.purchase_price) || 0).toFixed(2)}€</Text>
+                <Text style={styles.col4}>
+                  {((eq.selling_price || eq.purchase_price) * eq.quantity).toFixed(2)}€
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Summary */}
+        <View style={styles.summary}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Montant total financé:</Text>
+            <Text style={styles.summaryValue}>{totalAmount.toFixed(2)}€</Text>
+          </View>
+          {totalMonthly > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Mensualité (36 mois):</Text>
+              <Text style={styles.summaryValue}>{totalMonthly.toFixed(2)}€</Text>
+            </View>
+          )}
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalValue}>{totalAmount.toFixed(2)}€</Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        {customizations.showFooter !== false && (
+          <View style={styles.footer}>
+            <Text>Cette offre est valable 30 jours à compter de sa date d'émission.</Text>
+            <Text>{companyName} - Document généré automatiquement</Text>
+          </View>
+        )}
+      </Page>
+    </Document>
+  );
+};

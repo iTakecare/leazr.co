@@ -9,6 +9,7 @@ import ClientInfoStep from './generator/ClientInfoStep';
 import BusinessProfileStep from './generator/BusinessProfileStep';
 import EquipmentSelectionStep from './generator/EquipmentSelectionStep';
 import FinancingConfigurationStep from './generator/FinancingConfigurationStep';
+import OfferDesignStep from './steps/OfferDesignStep';
 import OfferPreviewStep from './generator/OfferPreviewStep';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,6 +23,7 @@ const STEPS = [
   { id: 'profile', title: 'Profil d\'activité', icon: '🏢' },
   { id: 'equipment', title: 'Sélection équipements', icon: '💻' },
   { id: 'financing', title: 'Configuration financière', icon: '💰' },
+  { id: 'design', title: 'Design de l\'offre', icon: '🎨' },
   { id: 'preview', title: 'Aperçu & Génération', icon: '📋' }
 ];
 
@@ -110,6 +112,13 @@ export const CustomOfferGenerator: React.FC<CustomOfferGeneratorProps> = ({
       case 'financing':
         return (
           <FinancingConfigurationStep 
+            formData={formData} 
+            updateFormData={updateFormData} 
+          />
+        );
+      case 'design':
+        return (
+          <OfferDesignStep 
             formData={formData} 
             updateFormData={updateFormData} 
           />

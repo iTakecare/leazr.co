@@ -58,6 +58,17 @@ export interface OfferFormData {
     deliveryOptions: string;
     remarks: string;
   };
+  
+  // PDF Design
+  design: {
+    templateId: string;
+    customizations: {
+      primaryColor?: string;
+      secondaryColor?: string;
+      showLogo?: boolean;
+      showFooter?: boolean;
+    };
+  };
 }
 
 const initialFormData: OfferFormData = {
@@ -97,6 +108,13 @@ const initialFormData: OfferFormData = {
     includeInsurance: false,
     deliveryOptions: '',
     remarks: '',
+  },
+  design: {
+    templateId: 'classic-business',
+    customizations: {
+      showLogo: true,
+      showFooter: true,
+    },
   },
 };
 
@@ -148,6 +166,9 @@ export const useCustomOfferGenerator = () => {
           formData.financing.coefficient > 0 &&
           formData.financing.monthlyPayment > 0
         );
+      
+      case 'design':
+        return !!formData.design.templateId;
       
       case 'preview':
         return true;
