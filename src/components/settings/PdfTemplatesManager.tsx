@@ -62,7 +62,7 @@ const PdfTemplatesManager = () => {
       console.log('🔍 PdfTemplatesManager - Loading templates for company:', companyId);
       
       const { data, error } = await supabase
-        .from('pdf_templates')
+        .from('professional_pdf_templates')
         .select('*')
         .eq('company_id', companyId)
         .order('page_number', { ascending: true });
@@ -117,7 +117,7 @@ const PdfTemplatesManager = () => {
       }));
 
       const { data, error } = await supabase
-        .from('pdf_templates')
+        .from('professional_pdf_templates')
         .insert(defaultTemplates)
         .select();
 
@@ -136,7 +136,7 @@ const PdfTemplatesManager = () => {
 
     try {
       const { error } = await supabase
-        .from('pdf_templates')
+        .from('professional_pdf_templates')
         .update({
           html_content: editingTemplate.html_content,
           css_styles: editingTemplate.css_styles,

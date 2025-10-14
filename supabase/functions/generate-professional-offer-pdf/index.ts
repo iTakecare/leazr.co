@@ -51,11 +51,11 @@ serve(async (req) => {
 
     // Récupérer les templates de l'entreprise
     const { data: templates, error: templatesError } = await supabase
-      .from('pdf_templates')
+      .from('professional_pdf_templates')
       .select('*')
       .eq('company_id', offer.company_id)
       .eq('is_active', true)
-      .order('display_order', { ascending: true });
+      .order('page_number', { ascending: true });
 
     if (templatesError || !templates || templates.length === 0) {
       console.error('[PROFESSIONAL PDF] No templates found:', templatesError);
