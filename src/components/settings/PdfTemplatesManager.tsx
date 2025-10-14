@@ -32,6 +32,7 @@ const PdfTemplatesManager = () => {
   const [selectedPage, setSelectedPage] = useState('1');
   const [editingTemplate, setEditingTemplate] = useState<PDFTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState('');
+  const [isLoadingRef, setIsLoadingRef] = useState(false);
 
   console.log('🎨 PdfTemplatesManager - Render', {
     hasUser: !!user,
@@ -51,8 +52,8 @@ const PdfTemplatesManager = () => {
   ];
 
   const loadTemplates = async () => {
-    if (!companyId) {
-      console.log('❌ PdfTemplatesManager - No company ID available');
+    if (!companyId || companyId.length !== 36) {
+      console.log('❌ PdfTemplatesManager - Invalid company ID:', companyId);
       setLoading(false);
       return;
     }
@@ -60,6 +61,7 @@ const PdfTemplatesManager = () => {
     try {
       setLoading(true);
       console.log('🔍 PdfTemplatesManager - Loading templates for company:', companyId);
+      console.log('🔍 Company ID length:', companyId.length, 'format valid:', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId));
       
       const { data, error } = await supabase
         .from('professional_pdf_templates')
@@ -72,9 +74,10 @@ const PdfTemplatesManager = () => {
         throw error;
       }
 
-      console.log('✅ PdfTemplatesManager - Templates loaded:', data?.length || 0);
+      console.log('✅ PdfTemplatesManager - Templates loaded:', data?.length || 0, data);
 
       if (data && data.length > 0) {
+        console.log('📋 PdfTemplatesManager - Using existing templates');
         setTemplates(data);
       } else {
         console.log('📝 PdfTemplatesManager - No templates found, creating defaults');
@@ -89,10 +92,11 @@ const PdfTemplatesManager = () => {
   };
 
   useEffect(() => {
-    if (companyId) {
+    if (companyId && !isLoadingRef) {
       console.log('🔄 PdfTemplatesManager - useEffect triggered, loading templates');
-      loadTemplates();
-    } else {
+      setIsLoadingRef(true);
+      loadTemplates().finally(() => setIsLoadingRef(false));
+    } else if (!companyId) {
       console.log('⏸️ PdfTemplatesManager - No companyId yet, waiting...');
       setLoading(false);
     }
@@ -100,6 +104,8 @@ const PdfTemplatesManager = () => {
 
   const createDefaultTemplates = async () => {
     try {
+      console.log('📝 Creating default templates for company:', companyId);
+      
       const defaultTemplates = pageNames.map((name, index) => ({
         company_id: companyId,
         name: `Template iTakecare - ${name}`,
@@ -121,12 +127,21 @@ const PdfTemplatesManager = () => {
         .insert(defaultTemplates)
         .select();
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a duplicate key error (templates already exist)
+        if (error.code === '23505') {
+          console.log('📋 Templates already exist, loading them instead');
+          await loadTemplates();
+          return;
+        }
+        throw error;
+      }
       
+      console.log('✅ Default templates created successfully:', data?.length);
       setTemplates(data || []);
       toast.success('Templates par défaut créés avec succès');
     } catch (error: any) {
-      console.error('Error creating default templates:', error);
+      console.error('❌ Error creating default templates:', error);
       toast.error('Erreur lors de la création des templates');
     }
   };
