@@ -22,8 +22,7 @@ import {
   Package,
   TrendingUp,
   HelpCircle,
-  Mail,
-  FolderOpen
+  Mail
 } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 import SidebarUserSection from "./SidebarUserSection";
@@ -104,14 +103,6 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         href: `${basePrefix}/admin/chat`, 
         color: "violet",
         moduleSlug: "chat" 
-      },
-      { 
-        icon: FolderOpen, 
-        label: "Documents", 
-        href: `${basePrefix}/admin/documents`, 
-        color: "cyan",
-        moduleSlug: "settings",
-        alwaysVisible: true 
       },
       { 
         icon: Settings, 
