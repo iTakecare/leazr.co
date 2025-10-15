@@ -1,20 +1,15 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, ArrowUp, ArrowDown, Image as ImageIcon, FileText, Layout } from 'lucide-react';
 import { CustomPage, ContentBlock } from '@/hooks/useTemplateDesigner';
 import { BlockEditor } from './BlockEditor';
-import { ChevronUp, ChevronDown, Edit, Trash2, Plus } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { ImageUploader } from './ImageUploader';
+import { PdfUploader } from './PdfUploader';
+import { DynamicOverlayEditor } from './DynamicOverlayEditor';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface PageEditorProps {
   page: CustomPage;
@@ -23,7 +18,12 @@ interface PageEditorProps {
 }
 
 export const PageEditor: React.FC<PageEditorProps> = ({ page: initialPage, onSave, onCancel }) => {
-  const [page, setPage] = useState<CustomPage>(initialPage);
+  const [page, setPage] = useState<CustomPage>({
+    ...initialPage,
+    sourceType: initialPage.sourceType || 'blocks',
+    blocks: initialPage.blocks || [],
+    dynamicOverlays: initialPage.dynamicOverlays || []
+  });
   const [editingBlock, setEditingBlock] = useState<ContentBlock | null>(null);
 
   const handleAddBlock = (type: ContentBlock['type']) => {
@@ -107,128 +107,199 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page: initialPage, onSav
       <Dialog open={true} onOpenChange={(open) => !open && onCancel()}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Éditer : {page.title}</DialogTitle>
+            <DialogTitle>Modifier la page</DialogTitle>
+            <DialogDescription>
+              Personnalisez le contenu et la mise en page de votre page personnalisée
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-6">
-            {/* Configuration */}
-            <div className="space-y-4">
-              <div>
-                <Label>Titre de la page</Label>
-                <Input
-                  value={page.title}
-                  onChange={(e) => setPage({ ...page, title: e.target.value })}
-                />
-              </div>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">Titre de la page</Label>
+              <Input
+                id="title"
+                value={page.title}
+                onChange={(e) => setPage({ ...page, title: e.target.value })}
+                placeholder="Ex: Page de garde"
+              />
+            </div>
 
-              <div>
-                <Label>Disposition</Label>
-                <Select
-                  value={page.layout}
-                  onValueChange={(value: CustomPage['layout']) => setPage({ ...page, layout: value })}
+            {/* Mode selector */}
+            <div className="space-y-3">
+              <Label>Mode de création</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setPage({ ...page, sourceType: 'blocks' })}
+                  className={`p-4 border-2 rounded-lg transition-all ${
+                    page.sourceType === 'blocks'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full-width">Pleine largeur</SelectItem>
-                    <SelectItem value="two-columns">2 colonnes</SelectItem>
-                    <SelectItem value="three-columns">3 colonnes</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Layout className="w-6 h-6 mx-auto mb-2" />
+                  <p className="text-sm font-medium">Blocs</p>
+                  <p className="text-xs text-muted-foreground">Flexible, léger</p>
+                </button>
+                
+                <button
+                  onClick={() => setPage({ ...page, sourceType: 'image' })}
+                  className={`p-4 border-2 rounded-lg transition-all ${
+                    page.sourceType === 'image'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <ImageIcon className="w-6 h-6 mx-auto mb-2" />
+                  <p className="text-sm font-medium">Image</p>
+                  <p className="text-xs text-muted-foreground">Design complet</p>
+                </button>
+                
+                <button
+                  onClick={() => setPage({ ...page, sourceType: 'pdf' })}
+                  className={`p-4 border-2 rounded-lg transition-all ${
+                    page.sourceType === 'pdf'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <FileText className="w-6 h-6 mx-auto mb-2" />
+                  <p className="text-sm font-medium">PDF</p>
+                  <p className="text-xs text-muted-foreground">Import existant</p>
+                </button>
               </div>
+            </div>
 
-              <div>
-                <Label>Couleur de fond</Label>
-                <Input
-                  type="color"
-                  value={page.backgroundColor || '#ffffff'}
-                  onChange={(e) => setPage({ ...page, backgroundColor: e.target.value })}
-                />
-              </div>
+            {/* Conditional content based on sourceType */}
+            {page.sourceType === 'blocks' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="layout">Disposition</Label>
+                  <select
+                    id="layout"
+                    value={page.layout}
+                    onChange={(e) => setPage({ ...page, layout: e.target.value as any })}
+                    className="w-full border rounded-md p-2"
+                  >
+                    <option value="full-width">Pleine largeur</option>
+                    <option value="two-columns">Deux colonnes</option>
+                    <option value="three-columns">Trois colonnes</option>
+                  </select>
+                </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Blocs de contenu</Label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
+                <div className="space-y-2">
+                  <Label htmlFor="backgroundColor">Couleur de fond</Label>
+                  <Input
+                    id="backgroundColor"
+                    type="color"
+                    value={page.backgroundColor || '#ffffff'}
+                    onChange={(e) => setPage({ ...page, backgroundColor: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Blocs de contenu</Label>
+                    <div className="flex gap-2">
+                      <Button onClick={() => handleAddBlock('text')} size="sm" variant="outline">
                         <Plus className="w-4 h-4 mr-2" />
-                        Ajouter
+                        Texte
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleAddBlock('text')}>Texte</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('image')}>Image</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('logo')}>Logo</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('stats')}>Statistiques</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('testimonial')}>Témoignage</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('list')}>Liste</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('table')}>Tableau</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddBlock('spacer')}>Espacement</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                      <Button onClick={() => handleAddBlock('image')} size="sm" variant="outline">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Image
+                      </Button>
+                      <Button onClick={() => handleAddBlock('logo')} size="sm" variant="outline">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Logo
+                      </Button>
+                    </div>
+                  </div>
 
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {page.blocks.map((block, index) => (
-                    <Card key={block.id} className="p-2">
-                      <div className="flex items-center gap-2">
-                        <span className="flex-1 text-sm font-medium capitalize">{block.type}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleMoveBlock(block.id, 'up')}
-                          disabled={index === 0}
-                        >
-                          <ChevronUp className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleMoveBlock(block.id, 'down')}
-                          disabled={index === page.blocks.length - 1}
-                        >
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingBlock(block)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteBlock(block.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+                  <div className="space-y-2 border rounded-lg p-4 max-h-96 overflow-y-auto">
+                    {page.blocks.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucun bloc ajouté. Cliquez sur les boutons ci-dessus pour ajouter du contenu.
+                      </p>
+                    ) : (
+                      page.blocks
+                        .sort((a, b) => a.order - b.order)
+                        .map((block, index) => (
+                          <div
+                            key={block.id}
+                            className="flex items-center justify-between p-3 bg-accent/50 rounded-md"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">#{index + 1}</span>
+                              <span className="text-sm">{block.type}</span>
+                              <span className="text-xs text-muted-foreground">({block.width})</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                onClick={() => handleMoveBlock(block.id, 'up')}
+                                size="sm"
+                                variant="ghost"
+                                disabled={index === 0}
+                              >
+                                <ArrowUp className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => handleMoveBlock(block.id, 'down')}
+                                size="sm"
+                                variant="ghost"
+                                disabled={index === page.blocks.length - 1}
+                              >
+                                <ArrowDown className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => setEditingBlock(block)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                Éditer
+                              </Button>
+                              <Button
+                                onClick={() => handleDeleteBlock(block.id)}
+                                size="sm"
+                                variant="ghost"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
-            {/* Prévisualisation */}
-            <div className="border rounded-lg p-4 bg-muted/30">
-              <h4 className="text-sm font-medium mb-2">Prévisualisation</h4>
-              <div 
-                className="bg-white rounded border p-4 min-h-[400px]"
-                style={{ backgroundColor: page.backgroundColor }}
-              >
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    {page.blocks.length} bloc(s)
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Layout: {page.layout}
-                  </p>
-                </div>
-              </div>
-            </div>
+            {page.sourceType === 'image' && (
+              <>
+                <ImageUploader
+                  value={page.backgroundImage}
+                  onChange={(value) => setPage({ ...page, backgroundImage: value })}
+                />
+                
+                <DynamicOverlayEditor
+                  overlays={page.dynamicOverlays || []}
+                  onChange={(overlays) => setPage({ ...page, dynamicOverlays: overlays })}
+                />
+              </>
+            )}
+
+            {page.sourceType === 'pdf' && (
+              <>
+                <PdfUploader
+                  value={page.pdfSource}
+                  onChange={(value) => setPage({ ...page, pdfSource: value })}
+                />
+                
+                <DynamicOverlayEditor
+                  overlays={page.dynamicOverlays || []}
+                  onChange={(overlays) => setPage({ ...page, dynamicOverlays: overlays })}
+                />
+              </>
+            )}
           </div>
 
           <DialogFooter>

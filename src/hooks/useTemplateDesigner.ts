@@ -19,15 +19,49 @@ export interface ContentBlock {
   };
 }
 
+export interface DynamicOverlay {
+  id: string;
+  type: 'text' | 'variable';
+  position: { x: number; y: number; width: number; height: number }; // En pourcentage
+  content: string; // Ex: "{client_name}" ou "Texte fixe"
+  style: {
+    fontSize: number;
+    color: string;
+    fontWeight: 'normal' | 'bold';
+    align: 'left' | 'center' | 'right';
+  };
+}
+
 export interface CustomPage {
   id: string;
   enabled: boolean;
   order: number;
   title: string;
+  
+  // Type de source du design
+  sourceType: 'blocks' | 'image' | 'pdf';
+  
+  // Pour sourceType = 'image'
+  backgroundImage?: {
+    url: string;
+    opacity?: number; // 0-100
+    fit?: 'cover' | 'contain' | 'fill';
+  };
+  
+  // Pour sourceType = 'pdf'
+  pdfSource?: {
+    originalPdfUrl: string;
+    pageNumber: number;
+    convertedImageUrl?: string;
+  };
+  
+  // Pour sourceType = 'blocks' (existant)
   layout: 'full-width' | 'two-columns' | 'three-columns';
   backgroundColor?: string;
-  backgroundImage?: string;
   blocks: ContentBlock[];
+  
+  // Zones de contenu dynamique (overlay sur image/PDF)
+  dynamicOverlays?: DynamicOverlay[];
 }
 
 export interface TemplateDesign {

@@ -4,6 +4,7 @@ export const PAGE_TEMPLATES: Record<string, Omit<CustomPage, 'id' | 'order'>> = 
   coverPage: {
     title: "Page de garde",
     enabled: true,
+    sourceType: 'blocks',
     layout: 'full-width',
     backgroundColor: '#3b82f6',
     blocks: [
@@ -64,6 +65,7 @@ export const PAGE_TEMPLATES: Record<string, Omit<CustomPage, 'id' | 'order'>> = 
   visionPage: {
     title: "Notre vision",
     enabled: true,
+    sourceType: 'blocks',
     layout: 'two-columns',
     blocks: [
       {
@@ -125,6 +127,7 @@ export const PAGE_TEMPLATES: Record<string, Omit<CustomPage, 'id' | 'order'>> = 
   statsPage: {
     title: "Nos chiffres clés",
     enabled: true,
+    sourceType: 'blocks',
     layout: 'full-width',
     blocks: [
       {
@@ -168,6 +171,7 @@ export const PAGE_TEMPLATES: Record<string, Omit<CustomPage, 'id' | 'order'>> = 
   testimonialsPage: {
     title: "Témoignages clients",
     enabled: true,
+    sourceType: 'blocks',
     layout: 'full-width',
     blocks: [
       {
@@ -210,6 +214,7 @@ export const PAGE_TEMPLATES: Record<string, Omit<CustomPage, 'id' | 'order'>> = 
   termsPage: {
     title: "Modalités et Conditions",
     enabled: true,
+    sourceType: 'blocks',
     layout: 'full-width',
     blocks: [
       {
@@ -259,6 +264,7 @@ export const PAGE_TEMPLATES: Record<string, Omit<CustomPage, 'id' | 'order'>> = 
   blankPage: {
     title: "Page personnalisée",
     enabled: true,
+    sourceType: 'blocks',
     layout: 'full-width',
     blocks: []
   }
