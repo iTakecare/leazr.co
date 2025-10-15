@@ -601,10 +601,7 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                letterRendering: true,
-                width: 794,
-                height: 1123,
-                windowWidth: 794
+                letterRendering: true
               },
               jsPDF: { 
                 unit: 'mm', 

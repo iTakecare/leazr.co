@@ -132,19 +132,32 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
   // Parser les équipements avec typage explicite
   let equipment: any[] = [];
   try {
-    if (offerData.equipment_description) {
+    if (offerData.equipment_description && offerData.equipment_description.trim() !== '') {
       const parsed = typeof offerData.equipment_description === 'string' 
         ? JSON.parse(offerData.equipment_description)
         : offerData.equipment_description;
       
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         equipment = parsed;
-      } else if (Array.isArray(offerData.equipment_data)) {
-        equipment = offerData.equipment_data;
       }
+    }
+    
+    // Fallback: si equipment est toujours vide, utiliser equipment_data_enhanced
+    if (equipment.length === 0 && Array.isArray(offerData.equipment_data_enhanced)) {
+      console.log('📦 Utilisation du fallback equipment_data_enhanced');
+      equipment = offerData.equipment_data_enhanced;
+    } else if (equipment.length === 0 && Array.isArray(offerData.equipment_data)) {
+      console.log('📦 Utilisation du fallback equipment_data');
+      equipment = offerData.equipment_data;
     }
   } catch (e) {
     console.error('Erreur lors du parsing des équipements:', e);
+    // En cas d'erreur, tenter le fallback
+    if (Array.isArray(offerData.equipment_data_enhanced)) {
+      equipment = offerData.equipment_data_enhanced;
+    } else if (Array.isArray(offerData.equipment_data)) {
+      equipment = offerData.equipment_data;
+    }
   }
 
   // Convertir les équipements au format template avec descriptions enrichies
