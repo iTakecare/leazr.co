@@ -149,21 +149,19 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const handleGenerateOffer = async (id: string) => {
     try {
       setIsGeneratingPdf(true);
-      toast.info("Génération de l'offre en cours...");
+      toast.info("Préparation de l'aperçu de l'offre...");
       
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      const filename = await generateOfferFromHtmlTemplate(id);
+      const result = await generateOfferFromHtmlTemplate(id);
       
-      if (filename) {
-        toast.success(`Offre générée avec succès: ${filename}`);
-      } else {
-        throw new Error("Erreur lors de la génération de l'offre");
+      if (!result) {
+        throw new Error("Erreur lors de la génération de l'aperçu");
       }
     } catch (error) {
-      console.error("Error generating offer:", error);
-      toast.error("Erreur lors de la génération de l'offre");
+      console.error("Error generating offer preview:", error);
+      toast.error("Erreur lors de la génération de l'aperçu de l'offre");
     } finally {
       setIsGeneratingPdf(false);
     }

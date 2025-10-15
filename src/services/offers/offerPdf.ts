@@ -342,7 +342,7 @@ export const generateAndDownloadOfferPdf = async (
 };
 
 /**
- * Génère une offre au format PDF en utilisant le template HTML par défaut de l'entreprise
+ * Génère et affiche un aperçu HTML de l'offre en utilisant le template HTML par défaut de l'entreprise
  */
 export const generateOfferFromHtmlTemplate = async (offerId: string) => {
   if (!offerId) {
@@ -352,8 +352,8 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
   }
   
   try {
-    console.log(`🎨 Génération d'offre HTML pour: ${offerId}`);
-    toast.info("Génération de l'offre en cours...");
+    console.log(`🎨 Génération d'aperçu HTML pour: ${offerId}`);
+    toast.info("Préparation de l'aperçu de l'offre...");
     
     // 1. Récupérer les données de l'offre
     const offerData = await getOfferDataForPdf(offerId);
@@ -423,20 +423,128 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
       return null;
     }
     
-    // 8. Générer le PDF
-    const { generateSimplePdf } = await import('@/utils/htmlPdfGenerator');
-    const filename = `offre-${offerData.id.substring(0, 8)}.pdf`;
+    // 8. Afficher le HTML dans une nouvelle fenêtre
+    const previewWindow = window.open('', '_blank');
     
-    try {
-      await generateSimplePdf(compiledHtml, offerData, { filename });
-      console.log("✅ PDF généré avec succès:", filename);
-      toast.success(`Offre générée avec succès: ${filename}`);
-      return filename;
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+    if (!previewWindow) {
+      toast.error("Impossible d'ouvrir la fenêtre d'aperçu. Vérifiez que les popups ne sont pas bloquées.");
       return null;
     }
+    
+    // Créer un document HTML complet avec les styles nécessaires
+    const fullHtmlDocument = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Aperçu Offre - ${offerData.client_name || 'Client'}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background: #f8fafc;
+            padding: 20px;
+          }
+          .preview-header {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .preview-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #0f172a;
+          }
+          .preview-actions {
+            display: flex;
+            gap: 10px;
+          }
+          .preview-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .btn-primary {
+            background: #3b82f6;
+            color: white;
+          }
+          .btn-primary:hover {
+            background: #2563eb;
+          }
+          .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+          }
+          .btn-secondary:hover {
+            background: #cbd5e1;
+          }
+          .preview-content {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-width: 210mm;
+            margin: 0 auto;
+            min-height: 297mm;
+          }
+          @media print {
+            body {
+              background: white;
+              padding: 0;
+            }
+            .preview-header {
+              display: none;
+            }
+            .preview-content {
+              box-shadow: none;
+              padding: 0;
+              max-width: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="preview-header">
+          <h1>📄 Aperçu de l'offre</h1>
+          <div class="preview-actions">
+            <button class="btn-secondary" onclick="window.print()">
+              🖨️ Imprimer
+            </button>
+            <button class="btn-primary" onclick="window.close()">
+              ✕ Fermer
+            </button>
+          </div>
+        </div>
+        <div class="preview-content">
+          ${compiledHtml}
+        </div>
+      </body>
+      </html>
+    `;
+    
+    previewWindow.document.write(fullHtmlDocument);
+    previewWindow.document.close();
+    
+    console.log("✅ Aperçu ouvert dans une nouvelle fenêtre");
+    toast.success("Aperçu de l'offre ouvert dans une nouvelle fenêtre");
+    
+    return true;
   } catch (error) {
     console.error("Erreur générale lors de la génération de l'offre:", error);
     toast.error(`Erreur lors de la génération de l'offre: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
