@@ -15,9 +15,21 @@ export interface TemplateDesign {
       showTotal: boolean;
       showInsurance: boolean;
       insuranceLabel: string;
+      insuranceStyle?: {
+        fontSize: number;
+        color: string;
+        fontWeight: 'normal' | 'bold';
+        align: 'left' | 'center' | 'right';
+      };
       showProcessingFee: boolean;
       processingFeeLabel: string;
       processingFeeAmount: number;
+      processingFeeStyle?: {
+        fontSize: number;
+        color: string;
+        fontWeight: 'normal' | 'bold';
+        align: 'left' | 'center' | 'right';
+      };
     };
     footer: { 
       enabled: boolean; 
@@ -55,9 +67,21 @@ const defaultDesign: TemplateDesign = {
       showTotal: true,
       showInsurance: true,
       insuranceLabel: 'EST. ASSURANCE ANNUELLE* :',
+      insuranceStyle: {
+        fontSize: 9,
+        color: '#1e293b',
+        fontWeight: 'bold',
+        align: 'left',
+      },
       showProcessingFee: true,
       processingFeeLabel: 'FRAIS DE DOSSIER UNIQUE* :',
       processingFeeAmount: 75,
+      processingFeeStyle: {
+        fontSize: 9,
+        color: '#1e293b',
+        fontWeight: 'bold',
+        align: 'left',
+      },
     },
     footer: { 
       enabled: true, 

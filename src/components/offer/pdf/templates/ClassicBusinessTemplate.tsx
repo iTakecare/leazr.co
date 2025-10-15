@@ -32,9 +32,21 @@ interface TemplateDesign {
       showTotal: boolean;
       showInsurance?: boolean;
       insuranceLabel?: string;
+      insuranceStyle?: {
+        fontSize: number;
+        color: string;
+        fontWeight: 'normal' | 'bold';
+        align: 'left' | 'center' | 'right';
+      };
       showProcessingFee?: boolean;
       processingFeeLabel?: string;
       processingFeeAmount?: number;
+      processingFeeStyle?: {
+        fontSize: number;
+        color: string;
+        fontWeight: 'normal' | 'bold';
+        align: 'left' | 'center' | 'right';
+      };
     };
     footer?: { enabled: boolean; lines?: string[]; text?: string };
   };
@@ -222,9 +234,22 @@ export const ClassicBusinessTemplate = ({
   
   const showInsurance = design.sections?.summary?.showInsurance !== false;
   const insuranceLabel = design.sections?.summary?.insuranceLabel || 'EST. ASSURANCE ANNUELLE* :';
+  const insuranceStyle = {
+    fontSize: design.sections?.summary?.insuranceStyle?.fontSize || 9,
+    color: design.sections?.summary?.insuranceStyle?.color || '#1e293b',
+    fontWeight: design.sections?.summary?.insuranceStyle?.fontWeight || 'bold',
+    align: design.sections?.summary?.insuranceStyle?.align || 'left',
+  };
+  
   const showProcessingFee = design.sections?.summary?.showProcessingFee !== false;
   const processingFeeLabel = design.sections?.summary?.processingFeeLabel || 'FRAIS DE DOSSIER UNIQUE* :';
   const processingFeeAmount = design.sections?.summary?.processingFeeAmount || 75;
+  const processingFeeStyle = {
+    fontSize: design.sections?.summary?.processingFeeStyle?.fontSize || 9,
+    color: design.sections?.summary?.processingFeeStyle?.color || '#1e293b',
+    fontWeight: design.sections?.summary?.processingFeeStyle?.fontWeight || 'bold',
+    align: design.sections?.summary?.processingFeeStyle?.align || 'left',
+  };
 
   return (
     <Document>
@@ -309,16 +334,32 @@ export const ClassicBusinessTemplate = ({
           </View>
           
           {showInsurance && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>{insuranceLabel}</Text>
-              <Text style={{ fontSize: 10 }}> </Text>
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: insuranceStyle.align === 'center' ? 'center' : insuranceStyle.align === 'right' ? 'flex-end' : 'flex-start',
+              marginTop: 10 
+            }}>
+              <Text style={{ 
+                fontSize: insuranceStyle.fontSize, 
+                fontWeight: insuranceStyle.fontWeight,
+                color: insuranceStyle.color 
+              }}>
+                {insuranceLabel}
+              </Text>
             </View>
           )}
           
           {showProcessingFee && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 }}>
-              <Text style={{ fontSize: 10 }}> </Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: processingFeeStyle.align === 'center' ? 'center' : processingFeeStyle.align === 'right' ? 'flex-end' : 'flex-start',
+              marginTop: 5 
+            }}>
+              <Text style={{ 
+                fontSize: processingFeeStyle.fontSize, 
+                fontWeight: processingFeeStyle.fontWeight,
+                color: processingFeeStyle.color 
+              }}>
                 {processingFeeLabel} {processingFeeAmount}€ HTVA
               </Text>
             </View>

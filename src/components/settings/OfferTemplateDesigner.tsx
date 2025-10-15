@@ -248,14 +248,94 @@ const OfferTemplateDesigner: React.FC = () => {
                             <Label>Afficher assurance</Label>
                           </div>
                           {design.sections.summary.showInsurance && (
-                            <Input
-                              placeholder="EST. ASSURANCE ANNUELLE* :"
-                              value={design.sections.summary.insuranceLabel}
-                              onChange={(e) =>
-                                updateSection('summary', { insuranceLabel: e.target.value })
-                              }
-                              className="ml-6"
-                            />
+                            <div className="ml-6 space-y-2">
+                              <Input
+                                placeholder="EST. ASSURANCE ANNUELLE* :"
+                                value={design.sections.summary.insuranceLabel}
+                                onChange={(e) =>
+                                  updateSection('summary', { insuranceLabel: e.target.value })
+                                }
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Taille (pt)</Label>
+                                  <Input
+                                    type="number"
+                                    value={design.sections.summary.insuranceStyle?.fontSize || 9}
+                                    onChange={(e) =>
+                                      updateSection('summary', { 
+                                        insuranceStyle: { 
+                                          ...design.sections.summary.insuranceStyle, 
+                                          fontSize: parseInt(e.target.value) || 9 
+                                        } 
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Poids</Label>
+                                  <Select
+                                    value={design.sections.summary.insuranceStyle?.fontWeight || 'bold'}
+                                    onValueChange={(value: 'normal' | 'bold') =>
+                                      updateSection('summary', { 
+                                        insuranceStyle: { 
+                                          ...design.sections.summary.insuranceStyle, 
+                                          fontWeight: value 
+                                        } 
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="normal">Normal</SelectItem>
+                                      <SelectItem value="bold">Gras</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Couleur</Label>
+                                  <Input
+                                    type="color"
+                                    value={design.sections.summary.insuranceStyle?.color || '#1e293b'}
+                                    onChange={(e) =>
+                                      updateSection('summary', { 
+                                        insuranceStyle: { 
+                                          ...design.sections.summary.insuranceStyle, 
+                                          color: e.target.value 
+                                        } 
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Alignement</Label>
+                                  <Select
+                                    value={design.sections.summary.insuranceStyle?.align || 'left'}
+                                    onValueChange={(value: 'left' | 'center' | 'right') =>
+                                      updateSection('summary', { 
+                                        insuranceStyle: { 
+                                          ...design.sections.summary.insuranceStyle, 
+                                          align: value 
+                                        } 
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="left">Gauche</SelectItem>
+                                      <SelectItem value="center">Centre</SelectItem>
+                                      <SelectItem value="right">Droite</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                         
@@ -290,6 +370,85 @@ const OfferTemplateDesigner: React.FC = () => {
                                     updateSection('summary', { processingFeeAmount: parseFloat(e.target.value) || 0 })
                                   }
                                 />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Taille (pt)</Label>
+                                  <Input
+                                    type="number"
+                                    value={design.sections.summary.processingFeeStyle?.fontSize || 9}
+                                    onChange={(e) =>
+                                      updateSection('summary', { 
+                                        processingFeeStyle: { 
+                                          ...design.sections.summary.processingFeeStyle, 
+                                          fontSize: parseInt(e.target.value) || 9 
+                                        } 
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Poids</Label>
+                                  <Select
+                                    value={design.sections.summary.processingFeeStyle?.fontWeight || 'bold'}
+                                    onValueChange={(value: 'normal' | 'bold') =>
+                                      updateSection('summary', { 
+                                        processingFeeStyle: { 
+                                          ...design.sections.summary.processingFeeStyle, 
+                                          fontWeight: value 
+                                        } 
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="normal">Normal</SelectItem>
+                                      <SelectItem value="bold">Gras</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Couleur</Label>
+                                  <Input
+                                    type="color"
+                                    value={design.sections.summary.processingFeeStyle?.color || '#1e293b'}
+                                    onChange={(e) =>
+                                      updateSection('summary', { 
+                                        processingFeeStyle: { 
+                                          ...design.sections.summary.processingFeeStyle, 
+                                          color: e.target.value 
+                                        } 
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Alignement</Label>
+                                  <Select
+                                    value={design.sections.summary.processingFeeStyle?.align || 'left'}
+                                    onValueChange={(value: 'left' | 'center' | 'right') =>
+                                      updateSection('summary', { 
+                                        processingFeeStyle: { 
+                                          ...design.sections.summary.processingFeeStyle, 
+                                          align: value 
+                                        } 
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="left">Gauche</SelectItem>
+                                      <SelectItem value="center">Centre</SelectItem>
+                                      <SelectItem value="right">Droite</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -590,16 +749,28 @@ const OfferTemplateDesigner: React.FC = () => {
                     </div>
                   )}
                   {design.sections.summary.showInsurance && (
-                    <div className="flex justify-between font-bold text-sm mt-3">
-                      <span>{design.sections.summary.insuranceLabel}</span>
-                      <span> </span>
+                    <div 
+                      className="mt-3"
+                      style={{ 
+                        textAlign: design.sections.summary.insuranceStyle?.align || 'left',
+                        fontSize: `${design.sections.summary.insuranceStyle?.fontSize || 9}px`,
+                        color: design.sections.summary.insuranceStyle?.color || '#1e293b',
+                        fontWeight: design.sections.summary.insuranceStyle?.fontWeight || 'bold'
+                      }}
+                    >
+                      {design.sections.summary.insuranceLabel}
                     </div>
                   )}
                   {design.sections.summary.showProcessingFee && (
-                    <div className="flex justify-end font-bold text-sm">
-                      <span>
-                        {design.sections.summary.processingFeeLabel} {design.sections.summary.processingFeeAmount}€ HTVA
-                      </span>
+                    <div 
+                      style={{ 
+                        textAlign: design.sections.summary.processingFeeStyle?.align || 'left',
+                        fontSize: `${design.sections.summary.processingFeeStyle?.fontSize || 9}px`,
+                        color: design.sections.summary.processingFeeStyle?.color || '#1e293b',
+                        fontWeight: design.sections.summary.processingFeeStyle?.fontWeight || 'bold'
+                      }}
+                    >
+                      {design.sections.summary.processingFeeLabel} {design.sections.summary.processingFeeAmount}€ HTVA
                     </div>
                   )}
                 </div>
