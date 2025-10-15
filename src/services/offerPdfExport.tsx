@@ -203,3 +203,77 @@ export async function previewOfferPdf(
     throw new Error(error.message || 'Erreur lors de la prévisualisation');
   }
 }
+
+/**
+ * Preview full template design with example data (includes all custom pages)
+ * Useful for previewing the template in settings without needing a real offer
+ */
+export async function previewFullTemplate(): Promise<string> {
+  try {
+    console.log('[TEMPLATE PREVIEW] Generating full template preview');
+
+    // Get current user's company
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Utilisateur non connecté');
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.company_id) throw new Error('Entreprise non trouvée');
+
+    const { data: company } = await supabase
+      .from('companies')
+      .select('name, logo_url, template_design')
+      .eq('id', profile.company_id)
+      .single();
+
+    if (!company) throw new Error('Données entreprise introuvables');
+
+    // Create example offer data
+    const exampleOfferData = {
+      id: 'example-preview',
+      client_name: 'John Doe',
+      client_company: 'Entreprise ABC',
+      client_email: 'john@example.com',
+      client_phone: '+32 123 456 789',
+      amount: 3600,
+      monthly_payment: 100,
+      created_at: new Date().toISOString(),
+    };
+
+    const exampleEquipment = [
+      {
+        id: 'eq-1',
+        title: 'MacBook Pro',
+        quantity: 2,
+        purchase_price: 1500,
+        selling_price: 1800,
+        monthly_payment: 50,
+      },
+    ];
+
+    const templateInfo = getTemplateById('classic-business');
+    const TemplateComponent = templateInfo.component;
+
+    const blob = await pdf(
+      <TemplateComponent
+        offer={exampleOfferData}
+        equipment={exampleEquipment}
+        companyName={company.name}
+        companyLogo={company.logo_url}
+        design={company.template_design}
+      />
+    ).toBlob();
+
+    const url = URL.createObjectURL(blob);
+    console.log('[TEMPLATE PREVIEW] Full preview URL generated');
+    
+    return url;
+  } catch (error: any) {
+    console.error('[TEMPLATE PREVIEW] Error:', error);
+    throw new Error(error.message || 'Erreur lors de la prévisualisation du template');
+  }
+}

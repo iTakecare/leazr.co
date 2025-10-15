@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,12 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTemplateDesigner, TemplateDesign } from '@/hooks/useTemplateDesigner';
-import { Palette, Layout, Type, FileCheck, FileText } from 'lucide-react';
+import { Palette, Layout, Type, FileCheck, FileText, Eye, Loader2 } from 'lucide-react';
 import { PageManager } from './pages/PageManager';
+import { previewFullTemplate } from '@/services/offerPdfExport';
+import { toast } from 'sonner';
 
 const OfferTemplateDesigner: React.FC = () => {
   const { design, setDesign, saveDesign, loading } = useTemplateDesigner();
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
 
   const updateSection = (section: keyof TemplateDesign['sections'], updates: any) => {
     setDesign({
@@ -51,6 +57,29 @@ const OfferTemplateDesigner: React.FC = () => {
 
   const handleSave = () => {
     saveDesign(design);
+  };
+
+  const handleShowFullPreview = async () => {
+    setGeneratingPreview(true);
+    setShowPreview(true);
+    try {
+      const url = await previewFullTemplate();
+      setPreviewUrl(url);
+    } catch (error: any) {
+      console.error('[FULL PREVIEW] Error:', error);
+      toast.error(error.message || 'Erreur lors de la génération de l\'aperçu');
+      setShowPreview(false);
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setShowPreview(false);
   };
 
   return (
@@ -635,6 +664,37 @@ const OfferTemplateDesigner: React.FC = () => {
 
             {/* Pages Tab */}
             <TabsContent value="pages" className="space-y-4">
+              <Card className="p-4 bg-primary/5 border-primary/20">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1 flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Aperçu complet du PDF
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Visualisez toutes les pages personnalisées (avant et après l'offre) dans un aperçu PDF complet
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleShowFullPreview}
+                    disabled={generatingPreview}
+                    size="sm"
+                  >
+                    {generatingPreview ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Génération...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Voir l'aperçu
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+              
               <Card className="p-4">
                 <div className="space-y-6">
                   <PageManager 
@@ -830,6 +890,39 @@ const OfferTemplateDesigner: React.FC = () => {
           {loading ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
         </Button>
       </div>
+
+      {/* Full PDF Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={handleClosePreview}>
+        <DialogContent className="max-w-5xl h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Aperçu complet du PDF</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {generatingPreview ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    Génération de l'aperçu PDF avec toutes les pages...
+                  </p>
+                </div>
+              </div>
+            ) : previewUrl ? (
+              <iframe
+                src={previewUrl}
+                className="w-full h-full border-0 rounded"
+                title="Aperçu PDF complet"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-sm text-muted-foreground">
+                  Aucun aperçu disponible
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
