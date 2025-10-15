@@ -50,6 +50,93 @@ const cleanHtmlForPdf = (html: string): string => {
       .replace(/&amp;/g, '&');
   }
   
+  // Decode all HTML entities (including &#x26; → &)
+  console.log('🔧 Décodage des entités HTML...');
+  cleanedHtml = cleanedHtml
+    .replace(/&amp;/g, '&')
+    .replace(/&#x26;/gi, '&')
+    .replace(/&#38;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#160;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&#60;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#62;/g, '>');
+  
+  // Remove sections with only unfilled placeholders (no real content)
+  console.log('🗑️ Suppression des sections avec placeholders vides...');
+  // Match divs containing only {{...}} placeholders and whitespace
+  cleanedHtml = cleanedHtml.replace(
+    /<div[^>]*>\s*(\{\{[^}]+\}\}\s*)+<\/div>/gi, 
+    ''
+  );
+  
+  // Remove table rows with only empty placeholders
+  cleanedHtml = cleanedHtml.replace(
+    /<tr[^>]*>\s*<td[^>]*>\s*(\{\{[^}]+\}\}|\s|&nbsp;)*\s*<\/td>\s*<\/tr>/gi,
+    ''
+  );
+  
+  // Parse HTML to DOM for advanced cleaning
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(cleanedHtml, 'text/html');
+  
+  // Remove empty .page divs (pages with no meaningful content)
+  console.log('📄 Suppression des pages vides...');
+  const pages = doc.querySelectorAll('.page');
+  let removedPages = 0;
+  
+  pages.forEach((page) => {
+    const textContent = page.textContent?.trim() || '';
+    const hasImages = page.querySelectorAll('img').length > 0;
+    const hasPlaceholders = /\{\{[^}]+\}\}/.test(textContent);
+    
+    // Remove if:
+    // - No text content and no images
+    // - Only whitespace
+    // - Only contains unfilled placeholders
+    const isEmptyPage = !textContent || 
+                        textContent.length < 10 || 
+                        (hasPlaceholders && textContent.replace(/\{\{[^}]+\}\}/g, '').trim().length < 10);
+    
+    if (isEmptyPage && !hasImages) {
+      console.log(`🗑️ Suppression d'une page vide (contenu: "${textContent.substring(0, 50)}...")`);
+      page.remove();
+      removedPages++;
+    }
+  });
+  
+  console.log(`✅ ${removedPages} page(s) vide(s) supprimée(s)`);
+  
+  // Remove duplicate consecutive sections with same class
+  console.log('🔄 Suppression des sections dupliquées...');
+  const allSections = doc.querySelectorAll('[class]');
+  let previousSection: Element | null = null;
+  let removedDuplicates = 0;
+  
+  allSections.forEach((section) => {
+    if (previousSection && 
+        previousSection.className === section.className &&
+        previousSection.textContent?.trim() === section.textContent?.trim() &&
+        previousSection.textContent &&
+        previousSection.textContent.length > 20) {
+      console.log(`🗑️ Section dupliquée supprimée: .${section.className.split(' ')[0]}`);
+      section.remove();
+      removedDuplicates++;
+    } else {
+      previousSection = section;
+    }
+  });
+  
+  console.log(`✅ ${removedDuplicates} section(s) dupliquée(s) supprimée(s)`);
+  
+  // Serialize back to HTML
+  cleanedHtml = doc.body.innerHTML;
+  
   const finalLength = cleanedHtml.length;
   console.log(`✅ HTML cleaned: ${originalLength} -> ${finalLength} characters (${originalLength - finalLength} removed)`);
   
@@ -193,25 +280,48 @@ export const generateSimplePdf = async (
         [data-pdf-exclude="true"], .client-header { 
           display: none !important; 
         }
+        
+        /* Pages: Contrôle strict des page-breaks pour éviter pages vides */
         .page { 
           width: 210mm !important; 
-          min-height: 297mm !important; 
-          padding: 10mm !important; 
-          page-break-after: always; 
+          height: 297mm !important;
+          max-height: 297mm !important;
+          padding: 8mm !important; 
           margin: 0 !important;
           box-shadow: none !important;
+          page-break-after: always;
+          page-break-inside: avoid;
+          overflow: hidden;
         }
+        
         .page:last-child { 
-          page-break-after: auto; 
+          page-break-after: auto !important; 
         }
+        
+        /* Pages spéciales sans page-break-after */
+        .cover-page,
+        .final-page {
+          page-break-after: always !important;
+        }
+        
         .page-break { 
           display: block; 
           height: 0; 
           page-break-before: always; 
         }
-        table, .equipment-section, .summary-section { 
+        
+        /* Éviter les coupures dans les éléments clés */
+        table, .equipment-section, .summary-section, 
+        .solution-box, .step-card, .testimonial-card,
+        .value-item, .modalities-content { 
           break-inside: avoid !important; 
           page-break-inside: avoid !important; 
+        }
+        
+        /* Masquer les sections vides ou avec uniquement placeholders */
+        .clients-section:empty,
+        [class*="section"]:empty {
+          display: none !important;
         }
       </style>
     `;
