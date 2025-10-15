@@ -1353,6 +1353,8 @@ export type Database = {
           co2_saved: number | null
           created_at: string
           custom_domain: string | null
+          default_pdf_customizations: Json | null
+          default_pdf_template_id: string | null
           devices_count: number | null
           favicon_url: string | null
           id: string
@@ -1368,6 +1370,7 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
+          template_design: Json | null
           trial_ends_at: string | null
           trial_starts_at: string | null
           updated_at: string
@@ -1379,6 +1382,8 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_pdf_customizations?: Json | null
+          default_pdf_template_id?: string | null
           devices_count?: number | null
           favicon_url?: string | null
           id?: string
@@ -1394,6 +1399,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
+          template_design?: Json | null
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           updated_at?: string
@@ -1405,6 +1411,8 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_pdf_customizations?: Json | null
+          default_pdf_template_id?: string | null
           devices_count?: number | null
           favicon_url?: string | null
           id?: string
@@ -1420,6 +1428,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
+          template_design?: Json | null
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           updated_at?: string
