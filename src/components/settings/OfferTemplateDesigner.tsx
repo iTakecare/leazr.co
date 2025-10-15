@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useTemplateDesigner, TemplateDesign } from '@/hooks/useTemplateDesigner';
 import { Palette, Layout, Type, FileCheck, FileText, Eye, Loader2 } from 'lucide-react';
 import { PageManager } from './pages/PageManager';
-import { previewFullTemplate } from '@/services/offerPdfExport';
+import { previewFullTemplate, previewMinimalPdf } from '@/services/offerPdfExport';
 import { toast } from 'sonner';
 
 const OfferTemplateDesigner: React.FC = () => {
@@ -68,6 +68,21 @@ const OfferTemplateDesigner: React.FC = () => {
     } catch (error: any) {
       console.error('[FULL PREVIEW] Error:', error);
       toast.error(error.message || 'Erreur lors de la génération de l\'aperçu');
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
+  const handleShowMinimalPreview = async () => {
+    setGeneratingPreview(true);
+    try {
+      const url = await previewMinimalPdf();
+      setPreviewUrl(url);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      toast.success('PDF minimal généré');
+    } catch (error: any) {
+      console.error('[MINIMAL PREVIEW] Error:', error);
+      toast.error(error.message || 'Erreur lors du test PDF minimal');
     } finally {
       setGeneratingPreview(false);
     }

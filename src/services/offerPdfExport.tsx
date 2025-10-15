@@ -1,4 +1,4 @@
-import { pdf } from '@react-pdf/renderer';
+import { pdf, Document, Page, Text } from '@react-pdf/renderer';
 import { supabase } from '@/integrations/supabase/client';
 import { getTemplateById } from '@/components/offer/pdf/templates';
 
@@ -216,7 +216,21 @@ export async function previewOfferPdf(
       />
     ).toBlob();
 
-    const url = URL.createObjectURL(blob);
+    // Diagnostics et type MIME
+    console.log('[PDF PREVIEW] Blob size:', blob.size, 'type:', blob.type);
+    let head = '';
+    try {
+      head = await blob.slice(0, 5).text();
+    } catch (e) {
+      head = 'slice-error';
+    }
+    console.log('[PDF PREVIEW] Blob head (should start with %PDF-):', head);
+    if (!blob || blob.size === 0) {
+      throw new Error('Le PDF généré est vide (0 octet).');
+    }
+
+    const typedBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+    const url = URL.createObjectURL(typedBlob);
     console.log('[PDF PREVIEW] Preview URL generated');
     
     return url;
@@ -340,4 +354,22 @@ export async function previewFullTemplate(): Promise<string> {
     console.error('[TEMPLATE PREVIEW] Error stack:', error.stack);
     throw new Error(error.message || 'Erreur lors de la prévisualisation du template');
   }
+}
+
+export async function previewMinimalPdf(): Promise<string> {
+  const blob = await pdf(
+    <Document>
+      <Page size="A4">
+        <Text>PDF Test OK</Text>
+      </Page>
+    </Document>
+  ).toBlob();
+
+  console.log('[PDF MINIMAL] size:', blob.size, 'type:', blob.type);
+  let head = '';
+  try { head = await blob.slice(0,5).text(); } catch {}
+  console.log('[PDF MINIMAL] head:', head);
+
+  const typedBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+  return URL.createObjectURL(typedBlob);
 }
