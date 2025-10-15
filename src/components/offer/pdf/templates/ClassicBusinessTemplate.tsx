@@ -1,4 +1,7 @@
+import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
+import { TemplateDesign } from '@/hooks/useTemplateDesigner';
+import { PageRenderer } from '../pages/PageRenderer';
 
 interface OfferData {
   id: string;
@@ -20,7 +23,13 @@ interface Equipment {
   monthly_payment?: number;
 }
 
-interface TemplateDesign {
+interface ClassicBusinessTemplateProps {
+  offer: OfferData;
+  equipment: Equipment[];
+  companyName: string;
+  companyLogo?: string;
+  design?: TemplateDesign;
+}
   sections?: {
     logo?: { enabled: boolean; position: 'left' | 'center' | 'right'; size: number };
     header?: { enabled: boolean; title: string; subtitle?: string };
@@ -251,8 +260,24 @@ export const ClassicBusinessTemplate = ({
     align: design.sections?.summary?.processingFeeStyle?.align || 'left',
   };
 
+  const pagesBefore = design?.pages?.before?.filter(p => p.enabled) || [];
+  const pagesAfter = design?.pages?.after?.filter(p => p.enabled) || [];
+
   return (
     <Document>
+      {/* Pages avant l'offre */}
+      {pagesBefore.map(page => (
+        <PageRenderer 
+          key={page.id}
+          page={page}
+          design={design!}
+          companyLogo={companyLogo}
+          companyName={companyName}
+          offerData={{ client_name: offer.client_name, total_amount: totalAmount }}
+        />
+      ))}
+
+      {/* Page principale de l'offre */}
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
@@ -378,6 +403,18 @@ export const ClassicBusinessTemplate = ({
           </View>
         )}
       </Page>
+
+      {/* Pages après l'offre */}
+      {pagesAfter.map(page => (
+        <PageRenderer 
+          key={page.id}
+          page={page}
+          design={design!}
+          companyLogo={companyLogo}
+          companyName={companyName}
+          offerData={{ client_name: offer.client_name, total_amount: totalAmount }}
+        />
+      ))}
     </Document>
   );
 };

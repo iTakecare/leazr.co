@@ -9,7 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTemplateDesigner, TemplateDesign } from '@/hooks/useTemplateDesigner';
-import { Palette, Layout, Type, FileCheck } from 'lucide-react';
+import { Palette, Layout, Type, FileCheck, FileText } from 'lucide-react';
+import { PageManager } from './pages/PageManager';
 
 const OfferTemplateDesigner: React.FC = () => {
   const { design, setDesign, saveDesign, loading } = useTemplateDesigner();
@@ -65,7 +66,7 @@ const OfferTemplateDesigner: React.FC = () => {
         {/* Configuration Panel */}
         <div className="space-y-4">
           <Tabs defaultValue="sections" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="sections">
                 <FileCheck className="w-4 h-4 mr-2" />
                 Sections
@@ -81,6 +82,10 @@ const OfferTemplateDesigner: React.FC = () => {
               <TabsTrigger value="layout">
                 <Layout className="w-4 h-4 mr-2" />
                 Mise en page
+              </TabsTrigger>
+              <TabsTrigger value="pages">
+                <FileText className="w-4 h-4 mr-2" />
+                Pages
               </TabsTrigger>
             </TabsList>
 
@@ -627,6 +632,34 @@ const OfferTemplateDesigner: React.FC = () => {
                 </div>
               </Card>
             </TabsContent>
+
+            {/* Pages Tab */}
+            <TabsContent value="pages" className="space-y-4">
+              <Card className="p-4">
+                <div className="space-y-6">
+                  <PageManager 
+                    pages={design.pages?.before || []}
+                    position="before"
+                    onUpdate={(pages) => setDesign({ ...design, pages: { ...design.pages, before: pages, after: design.pages?.after || [] } })}
+                  />
+                  
+                  <Separator />
+                  
+                  <div className="text-center py-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm font-medium">📄 Offre Commerciale (page centrale)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Cette page est toujours présente</p>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <PageManager 
+                    pages={design.pages?.after || []}
+                    position="after"
+                    onUpdate={(pages) => setDesign({ ...design, pages: { ...design.pages, before: design.pages?.before || [], after: pages } })}
+                  />
+                </div>
+              </Card>
+            </TabsContent>
           </Tabs>
 
           <Button onClick={handleSave} disabled={loading} className="w-full">
@@ -790,6 +823,12 @@ const OfferTemplateDesigner: React.FC = () => {
             </div>
           </div>
         </Card>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button onClick={handleSave} disabled={loading}>
+          {loading ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
+        </Button>
       </div>
     </div>
   );

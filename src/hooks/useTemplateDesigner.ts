@@ -3,6 +3,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
+export interface ContentBlock {
+  id: string;
+  type: 'text' | 'image' | 'logo' | 'stats' | 'testimonial' | 'list' | 'table' | 'spacer';
+  order: number;
+  width: '100%' | '50%' | '33%';
+  content: any;
+  style?: {
+    fontSize?: number;
+    color?: string;
+    fontWeight?: 'normal' | 'bold';
+    align?: 'left' | 'center' | 'right';
+    padding?: number;
+    margin?: number;
+  };
+}
+
+export interface CustomPage {
+  id: string;
+  enabled: boolean;
+  order: number;
+  title: string;
+  layout: 'full-width' | 'two-columns' | 'three-columns';
+  backgroundColor?: string;
+  backgroundImage?: string;
+  blocks: ContentBlock[];
+}
+
 export interface TemplateDesign {
   sections: {
     logo: { enabled: boolean; position: 'left' | 'center' | 'right'; size: number };
@@ -52,6 +79,10 @@ export interface TemplateDesign {
     pageMargin: number;
     sectionSpacing: number;
     borderRadius: number;
+  };
+  pages?: {
+    before: CustomPage[];
+    after: CustomPage[];
   };
 }
 
@@ -107,6 +138,10 @@ const defaultDesign: TemplateDesign = {
     pageMargin: 40,
     sectionSpacing: 20,
     borderRadius: 4,
+  },
+  pages: {
+    before: [],
+    after: [],
   },
 };
 
