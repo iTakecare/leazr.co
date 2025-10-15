@@ -926,21 +926,41 @@ const OfferTemplateDesigner: React.FC = () => {
                         <span className="text-sm text-muted-foreground">
                           Aperçu PDF complet avec toutes les pages
                         </span>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={handleShowFullPreview}
-                          disabled={generatingPreview}
-                        >
-                          Rafraîchir
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={handleShowFullPreview}
+                            disabled={generatingPreview}
+                          >
+                            Rafraîchir
+                          </Button>
+                          {previewUrl && (
+                            <Button asChild size="sm" variant="ghost">
+                              <a href={previewUrl} target="_blank" rel="noreferrer">
+                                Ouvrir dans un onglet
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <iframe
-                        src={previewUrl}
-                        className="flex-1 w-full border-0"
+                      <object
+                        data={previewUrl}
+                        type="application/pdf"
+                        className="flex-1 w-full"
                         style={{ minHeight: '750px' }}
-                        title="Aperçu PDF complet"
-                      />
+                      >
+                        <div className="p-6 text-center space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Impossible d'afficher le PDF dans l'aperçu intégré.
+                          </p>
+                          <p className="text-sm">
+                            <a className="underline" href={previewUrl} target="_blank" rel="noreferrer">
+                              Ouvrir le PDF dans un nouvel onglet
+                            </a>
+                          </p>
+                        </div>
+                      </object>
                     </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center p-8">
