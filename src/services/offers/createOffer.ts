@@ -6,12 +6,9 @@ import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 import { logOfferCreation } from "./offerHistory";
 
 export const createOffer = async (offerData: OfferData) => {
-  const { withSession } = await import('@/utils/sessionManager');
-  
-  return await withSession(async () => {
-    try {
-      console.log("🚀 CRÉATION OFFRE - Début du processus");
-      console.log("📋 DONNÉES REÇUES:", offerData);
+  try {
+    console.log("🚀 CRÉATION OFFRE - Début du processus");
+    console.log("📋 DONNÉES REÇUES:", offerData);
     
     // Vérifier que les données obligatoires sont présentes
     if (!offerData.client_name) {
@@ -276,5 +273,4 @@ export const createOffer = async (offerData: OfferData) => {
     console.error("❌ Stack trace:", error.stack);
     return { data: null, error };
   }
-  });
 };

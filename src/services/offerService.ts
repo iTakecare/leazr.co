@@ -3,7 +3,11 @@
 // It provides backward compatibility while allowing for better code organization
 
 // Import specific named exports from services
-// PDF generation has been removed
+import { 
+  generateAndDownloadOfferPdf as pdfGenerateAndDownload, 
+  getOfferDataForPdf as pdfGetOfferData, 
+  generateSamplePdf 
+} from './offers/offerPdf';
 
 import { 
   isOfferSigned, 
@@ -45,6 +49,9 @@ export * from './offers';
 
 // Explicitly re-export named exports with aliases to avoid conflicts
 export {
+  pdfGenerateAndDownload as generateAndDownloadOfferPdf,
+  pdfGetOfferData as getOfferDataForPdf,
+  generateSamplePdf,
   isOfferSigned,
   saveOfferSignature,
   generateSignatureLink,

@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { 
   Check, 
   FileText, 
-  Info
+  Info, 
+  Printer 
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatLegalTimestamp } from "@/utils/formatters";
@@ -29,7 +30,9 @@ interface SignatureSectionProps {
   signedAt?: string;
   signerIp?: string;
   onSign: (signatureData: string) => void;
-  monthlyPayment?: number;
+  isPrintingPdf: boolean;
+  onPrintPdf: () => void;
+  monthlyPayment?: number; // Ajout du montant mensuel
 }
 
 const SignatureSection: React.FC<SignatureSectionProps> = ({
@@ -41,7 +44,9 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
   signedAt,
   signerIp,
   onSign,
-  monthlyPayment = 0
+  isPrintingPdf,
+  onPrintPdf,
+  monthlyPayment = 0 // Valeur par défaut
 }) => {
   const [confirmation, setConfirmation] = useState("");
   
@@ -179,11 +184,29 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({
       </CardContent>
       
       {signed && (
-        <CardFooter className="border-t bg-gray-50 px-3 md:px-6 py-3">
+        <CardFooter className="border-t bg-gray-50 flex flex-col sm:flex-row justify-between px-3 md:px-6 py-3 gap-2">
           <div className="text-xs sm:text-sm text-gray-500">
             <FileText className="inline h-4 w-4 mr-1" />
             Une confirmation a été envoyée par email
           </div>
+          <Button 
+            variant="outline" 
+            onClick={onPrintPdf} 
+            disabled={isPrintingPdf}
+            className="w-full sm:w-auto"
+          >
+            {isPrintingPdf ? (
+              <span className="flex items-center">
+                <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></span>
+                Génération...
+              </span>
+            ) : (
+              <span className="flex items-center">
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer
+              </span>
+            )}
+          </Button>
         </CardFooter>
       )}
     </Card>

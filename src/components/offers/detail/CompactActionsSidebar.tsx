@@ -11,8 +11,7 @@ import {
   Download,
   Clock,
   CheckCircle,
-  XCircle,
-  Send
+  XCircle
 } from "lucide-react";
 
 interface CompactActionsSidebarProps {
@@ -22,10 +21,8 @@ interface CompactActionsSidebarProps {
   onEdit: () => void;
   onPreview: () => void;
   onDownloadPdf: () => void;
-  onSendPdfEmail?: () => void;
   sendingEmail: boolean;
   isGeneratingPdf: boolean;
-  isSendingPdfEmail?: boolean;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -35,10 +32,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onEdit,
   onPreview,
   onDownloadPdf,
-  onSendPdfEmail,
   sendingEmail,
-  isGeneratingPdf,
-  isSendingPdfEmail = false
+  isGeneratingPdf
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -191,19 +186,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             <Download className="w-4 h-4 mr-2" />
             <span>{isGeneratingPdf ? "Génération..." : "PDF"}</span>
           </Button>
-          
-          {onSendPdfEmail && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full justify-start text-sm h-8"
-              onClick={onSendPdfEmail}
-              disabled={isSendingPdfEmail}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              <span>{isSendingPdfEmail ? "Envoi..." : "Envoyer PDF"}</span>
-            </Button>
-          )}
           
           <Button 
             variant="outline" 

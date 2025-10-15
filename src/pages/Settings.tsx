@@ -6,10 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload, FolderOpen, FileImage } from 'lucide-react';
+import { CreditCard, RefreshCw, User, Settings as SettingsIcon, Mail, FileText, Building2, BadgePercent, Users, Zap, MessageCircle, Shield, MapPin, GitBranch, Upload } from 'lucide-react';
 import GeneralSettings from '@/components/settings/GeneralSettings';
 import EmailSettings from '@/components/settings/EmailSettings';
-import OfferTemplateDesigner from '@/components/settings/OfferTemplateDesigner';
 
 
 import LeaserManager from '@/components/settings/LeaserManager';
@@ -20,10 +19,9 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
-
+import HtmlTemplateManager from '@/components/settings/HtmlTemplateManager';
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import BulkClientImport from '@/components/settings/BulkClientImport';
-import DocumentsManager from '@/components/settings/DocumentsManager';
 
 const Settings: React.FC = () => {
   const { user, subscription, checkSubscription, logout } = useAuth();
@@ -91,7 +89,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-12">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -112,6 +110,10 @@ const Settings: React.FC = () => {
             <BadgePercent className="h-4 w-4" />
             Commissions
           </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Templates
+          </TabsTrigger>
           <TabsTrigger value="workflows" className="flex items-center gap-2">
             <GitBranch className="h-4 w-4" />
             Workflows
@@ -123,14 +125,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="import" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
             Import
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <FolderOpen className="h-4 w-4" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
-            <FileImage className="h-4 w-4" />
-            Design d'offre
           </TabsTrigger>
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
@@ -163,6 +157,11 @@ const Settings: React.FC = () => {
           <CommissionManager />
         </TabsContent>
 
+
+        <TabsContent value="templates" className="mt-6">
+          <HtmlTemplateManager />
+        </TabsContent>
+
         <TabsContent value="workflows" className="mt-6">
           <WorkflowManagement />
         </TabsContent>
@@ -192,14 +191,6 @@ const Settings: React.FC = () => {
 
         <TabsContent value="import" className="mt-6">
           <BulkClientImport />
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-6">
-          <DocumentsManager />
-        </TabsContent>
-
-        <TabsContent value="pdf-templates" className="mt-6">
-          <OfferTemplateDesigner />
         </TabsContent>
 
         <TabsContent value="chat" className="mt-6">

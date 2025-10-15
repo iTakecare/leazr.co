@@ -29,6 +29,7 @@ import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNote
 import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
 import CompactEquipmentSection from "@/components/offers/detail/CompactEquipmentSection";
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
+import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
 import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
 
 const AmbassadorOfferDetail = () => {
@@ -54,6 +55,8 @@ const AmbassadorOfferDetail = () => {
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
+  
+  const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
   
   // Charger les workflow logs et notes séparément
   useEffect(() => {
@@ -125,7 +128,6 @@ const AmbassadorOfferDetail = () => {
     }
   };
   
-
   const shareSignatureLink = async () => {
     if (offer.workflow_status !== 'sent' && offer.workflow_status !== 'draft') {
       toast.info("Cette offre a déjà été " + (offer.workflow_status === 'approved' ? "signée" : "traitée"));
@@ -333,9 +335,9 @@ const AmbassadorOfferDetail = () => {
                 status={offer.workflow_status || offer.status}
                 offerId={offer.id}
                 onSendSignatureLink={shareSignatureLink}
-                onDownloadPdf={() => {}}
+                onDownloadPdf={handlePrintPdf}
                 sendingEmail={sendingEmail}
-                isPdfGenerating={false}
+                isPdfGenerating={isPrintingPdf}
               />
 
               <OfferEditConfiguration
@@ -356,7 +358,6 @@ const AmbassadorOfferDetail = () => {
             </div>
           </div>
         </div>
-
       </Container>
     </PageTransition>
   );

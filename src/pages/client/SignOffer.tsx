@@ -37,8 +37,10 @@ const SignOffer = () => {
     isSigning,
     signed,
     signature,
+    isPrintingPdf,
     debugInfo,
     handleSignature,
+    handlePrintPdf,
     clientIp
   } = useClientOffer(id);
   
@@ -108,7 +110,9 @@ const SignOffer = () => {
             
             <OfferHeader 
               offerId={id || ''} 
-              signed={signed}
+              signed={signed} 
+              isPrintingPdf={isPrintingPdf} 
+              onPrintPdf={handlePrintPdf} 
             />
             
             {signed && (
@@ -136,6 +140,8 @@ const SignOffer = () => {
               signedAt={offer.signed_at}
               signerIp={offer.signer_ip || clientIp}
               onSign={handleSignature}
+              isPrintingPdf={isPrintingPdf}
+              onPrintPdf={handlePrintPdf}
               monthlyPayment={offer.monthly_payment}
             />
           </div>

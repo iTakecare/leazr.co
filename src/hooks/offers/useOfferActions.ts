@@ -4,7 +4,8 @@ import {
   deleteOffer, 
   updateOfferStatus, 
   sendInfoRequest, 
-  processInfoResponse
+  processInfoResponse,
+  generateAndDownloadOfferPdf 
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
@@ -12,6 +13,7 @@ import { sendOfferReadyEmail } from "@/services/emailService";
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isRequestingInfo, setIsRequestingInfo] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const handleDeleteOffer = async (id: string) => {
@@ -144,6 +146,28 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
   
+  const handleDownloadPdf = async (id: string) => {
+    try {
+      setIsGeneratingPdf(true);
+      toast.info("Génération du PDF en cours...");
+      
+      const offer = offers.find(o => o.id === id);
+      if (!offer) throw new Error("Offre non trouvée");
+      
+      const filename = await generateAndDownloadOfferPdf(id);
+      
+      if (filename) {
+        toast.success(`PDF généré avec succès: ${filename}`);
+      } else {
+        throw new Error("Erreur lors de la génération du PDF");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
   
   const handleRequestInfo = async (offerId: string, requestedDocs: string[], customMessage: string) => {
     try {
@@ -298,10 +322,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   return {
     isUpdatingStatus,
     isRequestingInfo,
+    isGeneratingPdf,
     isSendingEmail,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,
+    handleDownloadPdf,
     handleRequestInfo,
     handleProcessInfoResponse,
     handleInternalScoring,
