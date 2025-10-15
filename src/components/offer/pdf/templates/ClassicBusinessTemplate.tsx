@@ -20,17 +20,40 @@ interface Equipment {
   monthly_payment?: number;
 }
 
+interface TemplateDesign {
+  sections?: {
+    logo?: { enabled: boolean; position: 'left' | 'center' | 'right'; size: number };
+    header?: { enabled: boolean; title: string; subtitle?: string };
+    clientInfo?: { enabled: boolean; fields: string[] };
+    equipmentTable?: { enabled: boolean; columns: string[] };
+    summary?: { enabled: boolean; showMonthly: boolean; showTotal: boolean };
+    footer?: { enabled: boolean; text: string };
+  };
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    text?: string;
+    background?: string;
+  };
+  fonts?: {
+    title?: { size: number; weight: 'normal' | 'bold' };
+    heading?: { size: number; weight: 'normal' | 'bold' };
+    body?: { size: number; weight: 'normal' | 'bold' };
+  };
+  layout?: {
+    pageMargin?: number;
+    sectionSpacing?: number;
+    borderRadius?: number;
+  };
+}
+
 interface ClassicBusinessTemplateProps {
   offer: OfferData;
   equipment: Equipment[];
   companyName: string;
   companyLogo?: string;
-  customizations?: {
-    primaryColor?: string;
-    secondaryColor?: string;
-    showLogo?: boolean;
-    showFooter?: boolean;
-  };
+  design?: TemplateDesign;
 }
 
 const styles = StyleSheet.create({
@@ -173,20 +196,26 @@ export const ClassicBusinessTemplate = ({
   equipment, 
   companyName, 
   companyLogo,
-  customizations = {} 
+  design = {} 
 }: ClassicBusinessTemplateProps) => {
   const totalAmount = equipment.reduce((sum, eq) => sum + (eq.selling_price || eq.purchase_price) * eq.quantity, 0);
   const totalMonthly = equipment.reduce((sum, eq) => sum + (eq.monthly_payment || 0) * eq.quantity, 0);
+
+  // Extract design values with defaults
+  const showLogo = design.sections?.logo?.enabled !== false;
+  const showFooter = design.sections?.footer?.enabled !== false;
+  const primaryColor = design.colors?.primary || '#3b82f6';
+  const footerText = design.sections?.footer?.text || 'Cette offre est valable 30 jours à compter de sa date d\'émission.';
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          {customizations.showLogo !== false && companyLogo ? (
+          {showLogo && companyLogo ? (
             <Image src={companyLogo} style={styles.logo} />
           ) : (
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: customizations.primaryColor || '#3b82f6' }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: primaryColor }}>
               {companyName}
             </Text>
           )}
@@ -272,9 +301,9 @@ export const ClassicBusinessTemplate = ({
         </View>
 
         {/* Footer */}
-        {customizations.showFooter !== false && (
+        {showFooter && (
           <View style={styles.footer}>
-            <Text>Cette offre est valable 30 jours à compter de sa date d'émission.</Text>
+            <Text>{footerText}</Text>
             <Text>{companyName} - Document généré automatiquement</Text>
           </View>
         )}

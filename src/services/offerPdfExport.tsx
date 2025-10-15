@@ -48,10 +48,10 @@ export async function exportOfferAsPdf(
       throw new Error('Erreur lors de la récupération des équipements');
     }
 
-    // 2. Récupérer les infos de l'entreprise
+    // 2. Récupérer les infos de l'entreprise et son template_design
     const { data: company, error: companyError } = await supabase
       .from('companies')
-      .select('name, logo_url')
+      .select('name, logo_url, template_design')
       .eq('id', offer.company_id)
       .single();
 
@@ -80,11 +80,11 @@ export async function exportOfferAsPdf(
       monthly_payment: eq.monthly_payment,
     }));
 
-    // 4. Sélectionner le template
-    const templateInfo = getTemplateById(options.templateId || 'classic-business');
+    // 4. Utiliser le template design de l'entreprise
+    const templateInfo = getTemplateById('classic-business');
     const TemplateComponent = templateInfo.component;
 
-    console.log('[PDF EXPORT] Using template:', templateInfo.name);
+    console.log('[PDF EXPORT] Using company template design');
 
     // 5. Générer le PDF avec React-PDF
     const blob = await pdf(
@@ -93,7 +93,7 @@ export async function exportOfferAsPdf(
         equipment={equipmentData}
         companyName={company.name}
         companyLogo={company.logo_url}
-        customizations={options.customizations}
+        design={company.template_design}
       />
     ).toBlob();
 
@@ -153,7 +153,7 @@ export async function previewOfferPdf(
 
     const { data: company } = await supabase
       .from('companies')
-      .select('name, logo_url')
+      .select('name, logo_url, template_design')
       .eq('id', offer.company_id)
       .single();
 
@@ -181,7 +181,7 @@ export async function previewOfferPdf(
       monthly_payment: eq.monthly_payment,
     }));
 
-    const templateInfo = getTemplateById(options.templateId || 'classic-business');
+    const templateInfo = getTemplateById('classic-business');
     const TemplateComponent = templateInfo.component;
 
     const blob = await pdf(
@@ -190,7 +190,7 @@ export async function previewOfferPdf(
         equipment={equipmentData}
         companyName={company.name}
         companyLogo={company.logo_url}
-        customizations={options.customizations}
+        design={company.template_design}
       />
     ).toBlob();
 

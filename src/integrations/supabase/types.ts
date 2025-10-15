@@ -1370,6 +1370,7 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
+          template_design: Json | null
           trial_ends_at: string | null
           trial_starts_at: string | null
           updated_at: string
@@ -1398,6 +1399,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
+          template_design?: Json | null
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           updated_at?: string
@@ -1426,6 +1428,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
+          template_design?: Json | null
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           updated_at?: string
@@ -3846,8 +3849,6 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
-          pdf_customizations: Json | null
-          pdf_template_id: string | null
           previous_status: string | null
           remarks: string | null
           signature_data: string | null
@@ -3886,8 +3887,6 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
-          pdf_customizations?: Json | null
-          pdf_template_id?: string | null
           previous_status?: string | null
           remarks?: string | null
           signature_data?: string | null
@@ -3926,8 +3925,6 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
-          pdf_customizations?: Json | null
-          pdf_template_id?: string | null
           previous_status?: string | null
           remarks?: string | null
           signature_data?: string | null
@@ -6019,8 +6016,6 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
-          pdf_customizations: Json | null
-          pdf_template_id: string | null
           previous_status: string | null
           remarks: string | null
           signature_data: string | null
