@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from '@react-pdf/renderer';
 import { ContentBlock, TemplateDesign } from '@/hooks/useTemplateDesigner';
 import { TextBlockRenderer } from './TextBlockRenderer';
 import { ImageBlockRenderer } from './ImageBlockRenderer';
@@ -26,24 +27,33 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
 }) => {
   const props = { block, design, companyLogo, companyName, offerData };
 
-  switch (block.type) {
-    case 'text':
-      return <TextBlockRenderer {...props} />;
-    case 'image':
-      return <ImageBlockRenderer {...props} />;
-    case 'logo':
-      return <LogoBlockRenderer {...props} />;
-    case 'stats':
-      return <StatsBlockRenderer {...props} />;
-    case 'testimonial':
-      return <TestimonialBlockRenderer {...props} />;
-    case 'list':
-      return <ListBlockRenderer {...props} />;
-    case 'table':
-      return <TableBlockRenderer {...props} />;
-    case 'spacer':
-      return <SpacerBlockRenderer {...props} />;
-    default:
-      return null;
+  try {
+    switch (block.type) {
+      case 'text':
+        return <TextBlockRenderer {...props} />;
+      case 'image':
+        return <ImageBlockRenderer {...props} />;
+      case 'logo':
+        return <LogoBlockRenderer {...props} />;
+      case 'stats':
+        return <StatsBlockRenderer {...props} />;
+      case 'testimonial':
+        return <TestimonialBlockRenderer {...props} />;
+      case 'list':
+        return <ListBlockRenderer {...props} />;
+      case 'table':
+        return <TableBlockRenderer {...props} />;
+      case 'spacer':
+        return <SpacerBlockRenderer {...props} />;
+      default:
+        return null;
+    }
+  } catch (error) {
+    console.error('[BlockRenderer] Error rendering block', block?.type, error);
+    return (
+      <Text style={{ fontSize: 10, color: 'red' }}>
+        Erreur de rendu du bloc: {String(block?.type || 'inconnu')}
+      </Text>
+    );
   }
 };

@@ -86,6 +86,17 @@ export async function exportOfferAsPdf(
 
     console.log('[PDF EXPORT] Using company template design');
 
+    // S'assurer que template_design est un objet
+    let design: any = company.template_design as any;
+    if (typeof design === 'string') {
+      try {
+        design = JSON.parse(design);
+        console.log('[PDF EXPORT] Parsed template_design from JSON string');
+      } catch (e) {
+        console.warn('[PDF EXPORT] Could not parse template_design string');
+      }
+    }
+
     // 5. Générer le PDF avec React-PDF
     const blob = await pdf(
       <TemplateComponent
@@ -93,7 +104,7 @@ export async function exportOfferAsPdf(
         equipment={equipmentData}
         companyName={company.name}
         companyLogo={company.logo_url}
-        design={company.template_design}
+        design={design}
       />
     ).toBlob();
 
@@ -184,13 +195,24 @@ export async function previewOfferPdf(
     const templateInfo = getTemplateById('classic-business');
     const TemplateComponent = templateInfo.component;
 
+    // S'assurer que template_design est un objet
+    let design: any = company.template_design as any;
+    if (typeof design === 'string') {
+      try {
+        design = JSON.parse(design);
+        console.log('[PDF PREVIEW] Parsed template_design from JSON string');
+      } catch (e) {
+        console.warn('[PDF PREVIEW] Could not parse template_design string');
+      }
+    }
+
     const blob = await pdf(
       <TemplateComponent
         offer={offerData}
         equipment={equipmentData}
         companyName={company.name}
         companyLogo={company.logo_url}
-        design={company.template_design}
+        design={design}
       />
     ).toBlob();
 
@@ -295,12 +317,21 @@ export async function previewFullTemplate(): Promise<string> {
       />
     ).toBlob();
 
-    console.log('[TEMPLATE PREVIEW] Blob size:', blob.size);
+    console.log('[TEMPLATE PREVIEW] Blob size:', blob.size, 'type:', blob.type);
+    // Vérifier l'en-tête PDF
+    let head = '';
+    try {
+      head = await blob.slice(0, 5).text();
+    } catch (e) {
+      head = 'slice-error';
+    }
+    console.log('[TEMPLATE PREVIEW] Blob head (should start with %PDF-):', head);
     if (!blob || blob.size === 0) {
       throw new Error('Le PDF généré est vide (0 octet). Vérifiez le template et les images.');
     }
 
-    const url = URL.createObjectURL(blob);
+    const typedBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+    const url = URL.createObjectURL(typedBlob);
     console.log('[TEMPLATE PREVIEW] Full preview URL generated successfully');
     
     return url;

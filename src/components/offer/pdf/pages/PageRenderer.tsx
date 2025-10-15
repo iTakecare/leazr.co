@@ -124,7 +124,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         size="A4" 
         style={[
           styles.page,
-          { backgroundColor: page.backgroundColor || design.colors.background }
+          { backgroundColor: page.backgroundColor || design?.colors?.background || '#ffffff' }
         ]}
       >
         <View style={getLayoutStyle()}>
