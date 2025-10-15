@@ -295,6 +295,11 @@ export async function previewFullTemplate(): Promise<string> {
       />
     ).toBlob();
 
+    console.log('[TEMPLATE PREVIEW] Blob size:', blob.size);
+    if (!blob || blob.size === 0) {
+      throw new Error('Le PDF généré est vide (0 octet). Vérifiez le template et les images.');
+    }
+
     const url = URL.createObjectURL(blob);
     console.log('[TEMPLATE PREVIEW] Full preview URL generated successfully');
     

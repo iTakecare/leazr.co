@@ -194,14 +194,14 @@ export const ClassicBusinessTemplate = ({
     align: design?.sections?.summary?.insuranceStyle?.align || 'left',
   };
   
-  const showProcessingFee = design.sections?.summary?.showProcessingFee !== false;
-  const processingFeeLabel = design.sections?.summary?.processingFeeLabel || 'FRAIS DE DOSSIER UNIQUE* :';
-  const processingFeeAmount = design.sections?.summary?.processingFeeAmount || 75;
+  const showProcessingFee = design?.sections?.summary?.showProcessingFee !== false;
+  const processingFeeLabel = design?.sections?.summary?.processingFeeLabel || 'FRAIS DE DOSSIER UNIQUE* :';
+  const processingFeeAmount = design?.sections?.summary?.processingFeeAmount ?? 75;
   const processingFeeStyle = {
-    fontSize: design.sections?.summary?.processingFeeStyle?.fontSize || 9,
-    color: design.sections?.summary?.processingFeeStyle?.color || '#1e293b',
-    fontWeight: design.sections?.summary?.processingFeeStyle?.fontWeight || 'bold',
-    align: design.sections?.summary?.processingFeeStyle?.align || 'left',
+    fontSize: design?.sections?.summary?.processingFeeStyle?.fontSize || 9,
+    color: design?.sections?.summary?.processingFeeStyle?.color || '#1e293b',
+    fontWeight: design?.sections?.summary?.processingFeeStyle?.fontWeight || 'bold',
+    align: design?.sections?.summary?.processingFeeStyle?.align || 'left',
   };
 
   const pagesBefore = design?.pages?.before?.filter(p => p.enabled) || [];
