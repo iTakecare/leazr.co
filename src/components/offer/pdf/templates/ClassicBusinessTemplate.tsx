@@ -214,7 +214,11 @@ export const ClassicBusinessTemplate = ({
   const showLogo = design.sections?.logo?.enabled !== false;
   const showFooter = design.sections?.footer?.enabled !== false;
   const primaryColor = design.colors?.primary || '#3b82f6';
-  const footerLines = design.sections?.footer?.lines || [design.sections?.footer?.text] || ['Cette offre est valable 30 jours à compter de sa date d\'émission.'];
+  
+  // Support both old (text) and new (lines) footer format
+  const footerLines = design.sections?.footer?.lines || 
+                     (design.sections?.footer?.text ? [design.sections?.footer?.text] : []) || 
+                     ['Cette offre est valable 30 jours à compter de sa date d\'émission.'];
   
   const showInsurance = design.sections?.summary?.showInsurance !== false;
   const insuranceLabel = design.sections?.summary?.insuranceLabel || 'EST. ASSURANCE ANNUELLE* :';

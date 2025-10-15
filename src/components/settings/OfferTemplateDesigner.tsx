@@ -314,13 +314,13 @@ const OfferTemplateDesigner: React.FC = () => {
                     {design.sections.footer.enabled && (
                       <div className="ml-6 space-y-2">
                         <Label className="text-xs text-muted-foreground">Lignes du pied de page</Label>
-                        {design.sections.footer.lines.map((line, index) => (
+                        {(design.sections.footer.lines || []).map((line, index) => (
                           <div key={index} className="flex gap-2">
                             <Input
                               placeholder={`Ligne ${index + 1}`}
                               value={line}
                               onChange={(e) => {
-                                const newLines = [...design.sections.footer.lines];
+                                const newLines = [...(design.sections.footer.lines || [])];
                                 newLines[index] = e.target.value;
                                 updateSection('footer', { lines: newLines });
                               }}
@@ -329,7 +329,7 @@ const OfferTemplateDesigner: React.FC = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => {
-                                const newLines = design.sections.footer.lines.filter((_, i) => i !== index);
+                                const newLines = (design.sections.footer.lines || []).filter((_, i) => i !== index);
                                 updateSection('footer', { lines: newLines });
                               }}
                             >
@@ -341,7 +341,7 @@ const OfferTemplateDesigner: React.FC = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            updateSection('footer', { lines: [...design.sections.footer.lines, ''] });
+                            updateSection('footer', { lines: [...(design.sections.footer.lines || []), ''] });
                           }}
                         >
                           Ajouter une ligne
@@ -611,7 +611,7 @@ const OfferTemplateDesigner: React.FC = () => {
                   className="text-center pt-4 border-t space-y-1"
                   style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.secondary }}
                 >
-                  {design.sections.footer.lines.filter(line => line && line.trim()).map((line, index) => (
+                  {(design.sections.footer.lines || []).filter(line => line && line.trim()).map((line, index) => (
                     <div key={index}>{line}</div>
                   ))}
                 </div>

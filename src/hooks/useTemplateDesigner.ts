@@ -116,7 +116,43 @@ export const useTemplateDesigner = () => {
           .single();
 
         if (company?.template_design) {
-          setDesign(company.template_design as TemplateDesign);
+          let loadedDesign = company.template_design as any;
+          
+          // Migration: convert old footer.text format to new footer.lines format
+          if (loadedDesign.sections?.footer?.text && !loadedDesign.sections.footer.lines) {
+            loadedDesign = {
+              ...loadedDesign,
+              sections: {
+                ...loadedDesign.sections,
+                footer: {
+                  ...loadedDesign.sections.footer,
+                  lines: [loadedDesign.sections.footer.text],
+                }
+              }
+            };
+            delete loadedDesign.sections.footer.text;
+          }
+          
+          // Ensure all new fields have default values
+          const migratedDesign: TemplateDesign = {
+            ...defaultDesign,
+            ...loadedDesign,
+            sections: {
+              ...defaultDesign.sections,
+              ...loadedDesign.sections,
+              summary: {
+                ...defaultDesign.sections.summary,
+                ...loadedDesign.sections?.summary,
+              },
+              footer: {
+                ...defaultDesign.sections.footer,
+                ...loadedDesign.sections?.footer,
+                lines: loadedDesign.sections?.footer?.lines || defaultDesign.sections.footer.lines,
+              }
+            }
+          };
+          
+          setDesign(migratedDesign);
         }
       } catch (error) {
         console.error('Error loading company data:', error);
