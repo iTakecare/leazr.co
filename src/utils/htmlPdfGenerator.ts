@@ -287,9 +287,9 @@ const prepareOfferDataForTemplate = (offerData: any) => {
     type: offerData.type || 'admin_offer',
     remarks: offerData.remarks || '',
     
-    // Insurance calculations
-    insurance_amount: ((offerData.financed_amount || offerData.amount || 0) * 0.02).toFixed(2),
-    total_insurance_amount: ((offerData.financed_amount || offerData.amount || 0) * 0.02 * 36).toFixed(2),
+    // Insurance calculations : 3.5% du total des mensualités sur 36 mois
+    insurance_amount: (((offerData.monthly_payment || 0) * 36) * 0.035).toFixed(2),
+    total_insurance_amount: (((offerData.monthly_payment || 0) * 36) * 0.035).toFixed(2),
     
     // Company defaults for iTakecare
     company_name: 'iTakecare',

@@ -155,9 +155,19 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
     title: item.title || item.description || 'Équipement'
   }));
 
-  // Calculer l'assurance : 3.2% du montant total pour 1 an
-  const totalAmount = offerData.financed_amount || offerData.amount || 0;
-  const annualInsurance = Math.round(totalAmount * 0.032);
+  // Calculer l'assurance : 3.5% du total des mensualités sur 36 mois
+  // Formule : (mensualité × 36 mois) × 3.5%
+  // Exemple : (188,36 € × 36) × 0,035 = 237,33 € → arrondi à 238 €
+  const monthlyPayment = offerData.monthly_payment || 0;
+  const totalMonthlyPayments = monthlyPayment * 36;
+  const annualInsurance = Math.round(totalMonthlyPayments * 0.035);
+  
+  console.log('💰 Calcul assurance:', {
+    monthlyPayment,
+    totalMonthlyPayments,
+    insuranceRate: '3.5%',
+    calculatedInsurance: annualInsurance
+  });
 
   // Formater la date
   const offerDate = new Date(offerData.created_at || Date.now()).toLocaleDateString('fr-FR');
@@ -182,7 +192,7 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
     contract_duration: '36',
     products: products,
     equipment_by_category: groupEquipmentByCategory(products),
-    insurance_example: `Pour un contrat de ${formatCurrency(totalAmount)}, assurance = ${formatCurrency(annualInsurance)}/an`,
+    insurance_example: `Pour un contrat de ${formatCurrency(totalMonthlyPayments)}, assurance = ${formatCurrency(annualInsurance)}/an`,
     // Images base64 - à injecter par la suite
     base64_image_cover: '',
     base64_image_vision: '',
