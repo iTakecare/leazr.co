@@ -30,61 +30,6 @@ interface ClassicBusinessTemplateProps {
   companyLogo?: string;
   design?: TemplateDesign;
 }
-  sections?: {
-    logo?: { enabled: boolean; position: 'left' | 'center' | 'right'; size: number };
-    header?: { enabled: boolean; title: string; subtitle?: string };
-    clientInfo?: { enabled: boolean; fields: string[] };
-    equipmentTable?: { enabled: boolean; columns: string[] };
-    summary?: { 
-      enabled: boolean; 
-      showMonthly: boolean; 
-      showTotal: boolean;
-      showInsurance?: boolean;
-      insuranceLabel?: string;
-      insuranceStyle?: {
-        fontSize: number;
-        color: string;
-        fontWeight: 'normal' | 'bold';
-        align: 'left' | 'center' | 'right';
-      };
-      showProcessingFee?: boolean;
-      processingFeeLabel?: string;
-      processingFeeAmount?: number;
-      processingFeeStyle?: {
-        fontSize: number;
-        color: string;
-        fontWeight: 'normal' | 'bold';
-        align: 'left' | 'center' | 'right';
-      };
-    };
-    footer?: { enabled: boolean; lines?: string[]; text?: string };
-  };
-  colors?: {
-    primary?: string;
-    secondary?: string;
-    accent?: string;
-    text?: string;
-    background?: string;
-  };
-  fonts?: {
-    title?: { size: number; weight: 'normal' | 'bold' };
-    heading?: { size: number; weight: 'normal' | 'bold' };
-    body?: { size: number; weight: 'normal' | 'bold' };
-  };
-  layout?: {
-    pageMargin?: number;
-    sectionSpacing?: number;
-    borderRadius?: number;
-  };
-}
-
-interface ClassicBusinessTemplateProps {
-  offer: OfferData;
-  equipment: Equipment[];
-  companyName: string;
-  companyLogo?: string;
-  design?: TemplateDesign;
-}
 
 const styles = StyleSheet.create({
   page: {
@@ -226,28 +171,27 @@ export const ClassicBusinessTemplate = ({
   equipment, 
   companyName, 
   companyLogo,
-  design = {} 
+  design 
 }: ClassicBusinessTemplateProps) => {
   const totalAmount = equipment.reduce((sum, eq) => sum + (eq.selling_price || eq.purchase_price) * eq.quantity, 0);
   const totalMonthly = equipment.reduce((sum, eq) => sum + (eq.monthly_payment || 0) * eq.quantity, 0);
 
   // Extract design values with defaults
-  const showLogo = design.sections?.logo?.enabled !== false;
-  const showFooter = design.sections?.footer?.enabled !== false;
-  const primaryColor = design.colors?.primary || '#3b82f6';
+  const showLogo = design?.sections?.logo?.enabled !== false;
+  const showFooter = design?.sections?.footer?.enabled !== false;
+  const primaryColor = design?.colors?.primary || '#3b82f6';
   
-  // Support both old (text) and new (lines) footer format
-  const footerLines = design.sections?.footer?.lines || 
-                     (design.sections?.footer?.text ? [design.sections?.footer?.text] : []) || 
+  // Get footer lines
+  const footerLines = design?.sections?.footer?.lines || 
                      ['Cette offre est valable 30 jours à compter de sa date d\'émission.'];
   
-  const showInsurance = design.sections?.summary?.showInsurance !== false;
-  const insuranceLabel = design.sections?.summary?.insuranceLabel || 'EST. ASSURANCE ANNUELLE* :';
+  const showInsurance = design?.sections?.summary?.showInsurance !== false;
+  const insuranceLabel = design?.sections?.summary?.insuranceLabel || 'EST. ASSURANCE ANNUELLE* :';
   const insuranceStyle = {
-    fontSize: design.sections?.summary?.insuranceStyle?.fontSize || 9,
-    color: design.sections?.summary?.insuranceStyle?.color || '#1e293b',
-    fontWeight: design.sections?.summary?.insuranceStyle?.fontWeight || 'bold',
-    align: design.sections?.summary?.insuranceStyle?.align || 'left',
+    fontSize: design?.sections?.summary?.insuranceStyle?.fontSize || 9,
+    color: design?.sections?.summary?.insuranceStyle?.color || '#1e293b',
+    fontWeight: design?.sections?.summary?.insuranceStyle?.fontWeight || 'bold',
+    align: design?.sections?.summary?.insuranceStyle?.align || 'left',
   };
   
   const showProcessingFee = design.sections?.summary?.showProcessingFee !== false;
