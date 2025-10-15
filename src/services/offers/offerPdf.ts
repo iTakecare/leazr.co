@@ -589,38 +589,54 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
             const clientName = '${(offerData.client_name || 'Client').replace(/'/g, "\\'")}';
             const filename = \`offre-\${clientName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf\`;
             
-            // Masquer temporairement le header pendant la génération
+            // Ajouter classe au body AVANT de masquer le header
+            document.body.classList.add('generating-pdf');
+            content.classList.add('pdf-ready');
+            
+            // Masquer temporairement le header
             const header = document.querySelector('.preview-header');
+            const originalHeaderDisplay = header ? header.style.display : '';
             if (header) header.style.display = 'none';
             
             const opt = {
-              margin: [10, 10, 10, 10],
+              margin: [5, 5, 5, 5],
               filename: filename,
               image: { type: 'jpeg', quality: 0.98 },
               html2canvas: { 
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                letterRendering: true
+                letterRendering: true,
+                imageTimeout: 15000,
+                allowTaint: true
               },
               jsPDF: { 
                 unit: 'mm', 
                 format: 'a4', 
                 orientation: 'portrait',
-                compress: true
+                compress: true,
+                precision: 16
               },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+              pagebreak: { mode: 'avoid-all' }
             };
             
             try {
               await html2pdf().set(opt).from(content).save();
-              // Réafficher le header
-              if (header) header.style.display = 'flex';
+              
+              // Restaurer l'état
+              document.body.classList.remove('generating-pdf');
+              content.classList.remove('pdf-ready');
+              if (header) header.style.display = originalHeaderDisplay;
+              
               alert('✅ PDF téléchargé avec succès !');
             } catch (error) {
               console.error('Erreur lors de la génération du PDF:', error);
-              // Réafficher le header même en cas d'erreur
-              if (header) header.style.display = 'flex';
+              
+              // Restaurer l'état même en cas d'erreur
+              document.body.classList.remove('generating-pdf');
+              content.classList.remove('pdf-ready');
+              if (header) header.style.display = originalHeaderDisplay;
+              
               alert('❌ Erreur lors de la génération du PDF. Veuillez utiliser "Imprimer > Enregistrer en PDF" comme alternative.');
             }
           }
