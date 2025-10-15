@@ -9,8 +9,20 @@ export interface TemplateDesign {
     header: { enabled: boolean; title: string; subtitle?: string };
     clientInfo: { enabled: boolean; fields: string[] };
     equipmentTable: { enabled: boolean; columns: string[] };
-    summary: { enabled: boolean; showMonthly: boolean; showTotal: boolean };
-    footer: { enabled: boolean; text: string };
+    summary: { 
+      enabled: boolean; 
+      showMonthly: boolean; 
+      showTotal: boolean;
+      showInsurance: boolean;
+      insuranceLabel: string;
+      showProcessingFee: boolean;
+      processingFeeLabel: string;
+      processingFeeAmount: number;
+    };
+    footer: { 
+      enabled: boolean; 
+      lines: string[];
+    };
   };
   colors: {
     primary: string;
@@ -37,8 +49,23 @@ const defaultDesign: TemplateDesign = {
     header: { enabled: true, title: 'Offre Commerciale', subtitle: '' },
     clientInfo: { enabled: true, fields: ['name', 'company', 'email', 'phone', 'address'] },
     equipmentTable: { enabled: true, columns: ['title', 'quantity', 'price', 'total'] },
-    summary: { enabled: true, showMonthly: true, showTotal: true },
-    footer: { enabled: true, text: 'Offre valable 30 jours' },
+    summary: { 
+      enabled: true, 
+      showMonthly: true, 
+      showTotal: true,
+      showInsurance: true,
+      insuranceLabel: 'EST. ASSURANCE ANNUELLE* :',
+      showProcessingFee: true,
+      processingFeeLabel: 'FRAIS DE DOSSIER UNIQUE* :',
+      processingFeeAmount: 75,
+    },
+    footer: { 
+      enabled: true, 
+      lines: [
+        'Contrat de 36 mois',
+        'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse'
+      ]
+    },
   },
   colors: {
     primary: '#3b82f6',

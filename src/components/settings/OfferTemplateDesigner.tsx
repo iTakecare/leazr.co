@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTemplateDesigner, TemplateDesign } from '@/hooks/useTemplateDesigner';
 import { Palette, Layout, Type, FileCheck } from 'lucide-react';
@@ -214,7 +215,7 @@ const OfferTemplateDesigner: React.FC = () => {
                       <Label className="font-semibold">Résumé financier</Label>
                     </div>
                     {design.sections.summary.enabled && (
-                      <div className="ml-6 space-y-2">
+                      <div className="ml-6 space-y-3">
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             checked={design.sections.summary.showMonthly}
@@ -232,6 +233,66 @@ const OfferTemplateDesigner: React.FC = () => {
                             }
                           />
                           <Label>Montant total</Label>
+                        </div>
+                        
+                        <Separator className="my-2" />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={design.sections.summary.showInsurance}
+                              onCheckedChange={(checked) =>
+                                updateSection('summary', { showInsurance: checked })
+                              }
+                            />
+                            <Label>Afficher assurance</Label>
+                          </div>
+                          {design.sections.summary.showInsurance && (
+                            <Input
+                              placeholder="EST. ASSURANCE ANNUELLE* :"
+                              value={design.sections.summary.insuranceLabel}
+                              onChange={(e) =>
+                                updateSection('summary', { insuranceLabel: e.target.value })
+                              }
+                              className="ml-6"
+                            />
+                          )}
+                        </div>
+                        
+                        <Separator className="my-2" />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={design.sections.summary.showProcessingFee}
+                              onCheckedChange={(checked) =>
+                                updateSection('summary', { showProcessingFee: checked })
+                              }
+                            />
+                            <Label>Afficher frais de dossier</Label>
+                          </div>
+                          {design.sections.summary.showProcessingFee && (
+                            <div className="ml-6 space-y-2">
+                              <Input
+                                placeholder="FRAIS DE DOSSIER UNIQUE* :"
+                                value={design.sections.summary.processingFeeLabel}
+                                onChange={(e) =>
+                                  updateSection('summary', { processingFeeLabel: e.target.value })
+                                }
+                              />
+                              <div>
+                                <Label className="text-xs">Montant (€)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="75"
+                                  value={design.sections.summary.processingFeeAmount}
+                                  onChange={(e) =>
+                                    updateSection('summary', { processingFeeAmount: parseFloat(e.target.value) || 0 })
+                                  }
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -251,14 +312,40 @@ const OfferTemplateDesigner: React.FC = () => {
                       <Label className="font-semibold">Pied de page</Label>
                     </div>
                     {design.sections.footer.enabled && (
-                      <div className="ml-6">
-                        <Label>Texte</Label>
-                        <Input
-                          value={design.sections.footer.text}
-                          onChange={(e) =>
-                            updateSection('footer', { text: e.target.value })
-                          }
-                        />
+                      <div className="ml-6 space-y-2">
+                        <Label className="text-xs text-muted-foreground">Lignes du pied de page</Label>
+                        {design.sections.footer.lines.map((line, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              placeholder={`Ligne ${index + 1}`}
+                              value={line}
+                              onChange={(e) => {
+                                const newLines = [...design.sections.footer.lines];
+                                newLines[index] = e.target.value;
+                                updateSection('footer', { lines: newLines });
+                              }}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const newLines = design.sections.footer.lines.filter((_, i) => i !== index);
+                                updateSection('footer', { lines: newLines });
+                              }}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            updateSection('footer', { lines: [...design.sections.footer.lines, ''] });
+                          }}
+                        >
+                          Ajouter une ligne
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -491,9 +578,9 @@ const OfferTemplateDesigner: React.FC = () => {
                   style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.text }}
                 >
                   {design.sections.summary.showMonthly && (
-                    <div className="flex justify-between">
-                      <span>Montant mensuel:</span>
-                      <span className="font-semibold">100€/mois</span>
+                    <div className="flex justify-between font-bold text-base">
+                      <span>Mensualité totale :</span>
+                      <span>100€/mois</span>
                     </div>
                   )}
                   {design.sections.summary.showTotal && (
@@ -502,16 +589,31 @@ const OfferTemplateDesigner: React.FC = () => {
                       <span className="font-semibold">3,600€</span>
                     </div>
                   )}
+                  {design.sections.summary.showInsurance && (
+                    <div className="flex justify-between font-bold text-sm mt-3">
+                      <span>{design.sections.summary.insuranceLabel}</span>
+                      <span> </span>
+                    </div>
+                  )}
+                  {design.sections.summary.showProcessingFee && (
+                    <div className="flex justify-end font-bold text-sm">
+                      <span>
+                        {design.sections.summary.processingFeeLabel} {design.sections.summary.processingFeeAmount}€ HTVA
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Footer */}
               {design.sections.footer.enabled && (
                 <div
-                  className="text-center pt-4 border-t"
+                  className="text-center pt-4 border-t space-y-1"
                   style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.secondary }}
                 >
-                  {design.sections.footer.text}
+                  {design.sections.footer.lines.filter(line => line && line.trim()).map((line, index) => (
+                    <div key={index}>{line}</div>
+                  ))}
                 </div>
               )}
             </div>

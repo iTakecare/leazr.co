@@ -26,8 +26,17 @@ interface TemplateDesign {
     header?: { enabled: boolean; title: string; subtitle?: string };
     clientInfo?: { enabled: boolean; fields: string[] };
     equipmentTable?: { enabled: boolean; columns: string[] };
-    summary?: { enabled: boolean; showMonthly: boolean; showTotal: boolean };
-    footer?: { enabled: boolean; text: string };
+    summary?: { 
+      enabled: boolean; 
+      showMonthly: boolean; 
+      showTotal: boolean;
+      showInsurance?: boolean;
+      insuranceLabel?: string;
+      showProcessingFee?: boolean;
+      processingFeeLabel?: string;
+      processingFeeAmount?: number;
+    };
+    footer?: { enabled: boolean; lines?: string[]; text?: string };
   };
   colors?: {
     primary?: string;
@@ -205,7 +214,13 @@ export const ClassicBusinessTemplate = ({
   const showLogo = design.sections?.logo?.enabled !== false;
   const showFooter = design.sections?.footer?.enabled !== false;
   const primaryColor = design.colors?.primary || '#3b82f6';
-  const footerText = design.sections?.footer?.text || 'Cette offre est valable 30 jours à compter de sa date d\'émission.';
+  const footerLines = design.sections?.footer?.lines || [design.sections?.footer?.text] || ['Cette offre est valable 30 jours à compter de sa date d\'émission.'];
+  
+  const showInsurance = design.sections?.summary?.showInsurance !== false;
+  const insuranceLabel = design.sections?.summary?.insuranceLabel || 'EST. ASSURANCE ANNUELLE* :';
+  const showProcessingFee = design.sections?.summary?.showProcessingFee !== false;
+  const processingFeeLabel = design.sections?.summary?.processingFeeLabel || 'FRAIS DE DOSSIER UNIQUE* :';
+  const processingFeeAmount = design.sections?.summary?.processingFeeAmount || 75;
 
   return (
     <Document>
@@ -284,27 +299,37 @@ export const ClassicBusinessTemplate = ({
 
         {/* Summary */}
         <View style={styles.summary}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Montant total financé:</Text>
-            <Text style={styles.summaryValue}>{totalAmount.toFixed(2)}€</Text>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Mensualité totale :</Text>
+            <Text style={styles.totalValue}>{totalMonthly > 0 ? totalMonthly.toFixed(2) : totalAmount.toFixed(2)}€</Text>
           </View>
-          {totalMonthly > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Mensualité (36 mois):</Text>
-              <Text style={styles.summaryValue}>{totalMonthly.toFixed(2)}€</Text>
+          
+          {showInsurance && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>{insuranceLabel}</Text>
+              <Text style={{ fontSize: 10 }}> </Text>
             </View>
           )}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total:</Text>
-            <Text style={styles.totalValue}>{totalAmount.toFixed(2)}€</Text>
-          </View>
+          
+          {showProcessingFee && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 }}>
+              <Text style={{ fontSize: 10 }}> </Text>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>
+                {processingFeeLabel} {processingFeeAmount}€ HTVA
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Footer */}
         {showFooter && (
           <View style={styles.footer}>
-            <Text>{footerText}</Text>
-            <Text>{companyName} - Document généré automatiquement</Text>
+            {footerLines.filter(line => line && line.trim()).map((line, index) => (
+              <Text key={index} style={{ marginBottom: index < footerLines.length - 1 ? 3 : 0 }}>
+                {line}
+              </Text>
+            ))}
+            <Text style={{ marginTop: 8 }}>{companyName} - Document généré automatiquement</Text>
           </View>
         )}
       </Page>
