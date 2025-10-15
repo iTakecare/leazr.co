@@ -3,7 +3,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 import { generateOfferPdf } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
 import { PDFTemplateService } from "../pdfTemplateService";
-import HtmlTemplateService from "../htmlTemplateService";
+import HtmlTemplateService, { convertOfferToTemplateData } from "../htmlTemplateService";
 import { saveAs } from "file-saver";
 
 
@@ -337,6 +337,109 @@ export const generateAndDownloadOfferPdf = async (
   } catch (error) {
     console.error("Erreur lors de la génération du PDF:", error);
     toast.error(`Erreur lors de la génération du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    return null;
+  }
+};
+
+/**
+ * Génère une offre au format PDF en utilisant le template HTML par défaut de l'entreprise
+ */
+export const generateOfferFromHtmlTemplate = async (offerId: string) => {
+  if (!offerId) {
+    console.error("ID d'offre manquant pour la génération HTML");
+    toast.error("Impossible de générer l'offre: identifiant manquant");
+    return null;
+  }
+  
+  try {
+    console.log(`🎨 Génération d'offre HTML pour: ${offerId}`);
+    toast.info("Génération de l'offre en cours...");
+    
+    // 1. Récupérer les données de l'offre
+    const offerData = await getOfferDataForPdf(offerId);
+    
+    if (!offerData) {
+      console.error(`Aucune donnée récupérée pour l'offre: ${offerId}`);
+      toast.error("Impossible de récupérer les données de l'offre");
+      return null;
+    }
+    
+    // 2. Vérifier le company_id
+    if (!offerData.company_id) {
+      console.error("Company ID manquant dans les données de l'offre");
+      toast.error("Données d'entreprise manquantes");
+      return null;
+    }
+    
+    console.log("📋 Données offre récupérées:", {
+      id: offerData.id,
+      company_id: offerData.company_id,
+      client_name: offerData.client_name
+    });
+    
+    // 3. Charger les templates HTML de l'entreprise
+    const htmlTemplateService = HtmlTemplateService.getInstance();
+    let htmlTemplates;
+    
+    try {
+      htmlTemplates = await htmlTemplateService.loadCompanyTemplates(offerData.company_id);
+      console.log(`📚 Templates HTML trouvés: ${htmlTemplates.length}`);
+    } catch (error) {
+      console.error("Erreur lors du chargement des templates:", error);
+      toast.error("Impossible de charger les templates de l'entreprise");
+      return null;
+    }
+    
+    // 4. Vérifier qu'il existe au moins un template
+    if (!htmlTemplates || htmlTemplates.length === 0) {
+      console.error("Aucun template HTML configuré pour cette entreprise");
+      toast.error("Aucun template HTML configuré pour cette entreprise");
+      return null;
+    }
+    
+    // 5. Sélectionner le template par défaut
+    const defaultTemplate = htmlTemplates.find(t => t.is_default) || htmlTemplates[0];
+    console.log("✅ Template sélectionné:", {
+      id: defaultTemplate.id,
+      name: defaultTemplate.name,
+      is_default: defaultTemplate.is_default
+    });
+    
+    // 6. Convertir les données de l'offre au format template
+    const templateData = convertOfferToTemplateData(offerData);
+    console.log("📊 Données converties pour le template");
+    
+    // 7. Compiler le template avec Handlebars
+    let compiledHtml;
+    try {
+      compiledHtml = htmlTemplateService.compileTemplate(
+        defaultTemplate.html_content,
+        templateData
+      );
+      console.log("✅ Template compilé avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la compilation du template:", error);
+      toast.error("Erreur lors de la compilation du template");
+      return null;
+    }
+    
+    // 8. Générer le PDF
+    const { generateSimplePdf } = await import('@/utils/htmlPdfGenerator');
+    const filename = `offre-${offerData.id.substring(0, 8)}.pdf`;
+    
+    try {
+      await generateSimplePdf(compiledHtml, offerData, { filename });
+      console.log("✅ PDF généré avec succès:", filename);
+      toast.success(`Offre générée avec succès: ${filename}`);
+      return filename;
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+      return null;
+    }
+  } catch (error) {
+    console.error("Erreur générale lors de la génération de l'offre:", error);
+    toast.error(`Erreur lors de la génération de l'offre: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     return null;
   }
 };

@@ -73,6 +73,9 @@ export {
   deleteOfferEquipment
 };
 
+// Export the new HTML template generation function
+export { generateOfferFromHtmlTemplate } from './offers/offerPdf';
+
 // Export functions from offerDetail directly
 export * from './offers/offerDetail';
 

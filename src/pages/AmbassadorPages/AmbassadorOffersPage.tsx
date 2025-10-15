@@ -188,9 +188,9 @@ const AmbassadorOffersPage = () => {
     }
   };
   
-  // Fonction factice pour le téléchargement du PDF (à implémenter)
-  const handleDownloadPdf = (id) => {
-    toast.info("Téléchargement du PDF en cours de développement");
+  // Fonction factice pour la génération d'offre (à implémenter)
+  const handleGenerateOffer = (id) => {
+    toast.info("Génération de l'offre en cours de développement");
   };
   
   // Fonction factice pour renvoyer l'offre (à implémenter)
@@ -284,7 +284,7 @@ const AmbassadorOffersPage = () => {
               onStatusChange={handleUpdateWorkflowStatus}
               onDeleteOffer={handleDeleteOffer}
               onResendOffer={handleResendOffer}
-              onDownloadPdf={handleDownloadPdf}
+              onGenerateOffer={handleGenerateOffer}
               isUpdatingStatus={false}
             />
           )}

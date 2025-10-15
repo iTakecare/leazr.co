@@ -33,7 +33,7 @@ import {
   Trash2, 
   Send, 
   Eye, 
-  FileDown, 
+  FileText, 
   ExternalLink
 } from "lucide-react";
 import OfferStatusBadge from "./OfferStatusBadge";
@@ -49,7 +49,7 @@ interface OffersTableProps {
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   onDeleteOffer: (offerId: string) => Promise<void>;
   onResendOffer?: (offerId: string) => void;
-  onDownloadPdf?: (offerId: string) => void;
+  onGenerateOffer?: (offerId: string) => void;
   isUpdatingStatus: boolean;
 }
 
@@ -58,7 +58,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onStatusChange,
   onDeleteOffer,
   onResendOffer,
-  onDownloadPdf,
+  onGenerateOffer,
   isUpdatingStatus,
 }) => {
   const navigate = useNavigate();
@@ -224,10 +224,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           </DropdownMenuItem>
                         )}
                         
-                        {onDownloadPdf && !isAmbassador() && (
-                          <DropdownMenuItem onClick={() => onDownloadPdf(offer.id)}>
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Télécharger PDF
+                        {onGenerateOffer && !isAmbassador() && (
+                          <DropdownMenuItem onClick={() => onGenerateOffer(offer.id)}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Générer offre
                           </DropdownMenuItem>
                         )}
                         

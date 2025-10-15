@@ -5,7 +5,7 @@ import {
   updateOfferStatus, 
   sendInfoRequest, 
   processInfoResponse,
-  generateAndDownloadOfferPdf 
+  generateOfferFromHtmlTemplate
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
@@ -146,24 +146,24 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
   
-  const handleDownloadPdf = async (id: string) => {
+  const handleGenerateOffer = async (id: string) => {
     try {
       setIsGeneratingPdf(true);
-      toast.info("Génération du PDF en cours...");
+      toast.info("Génération de l'offre en cours...");
       
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      const filename = await generateAndDownloadOfferPdf(id);
+      const filename = await generateOfferFromHtmlTemplate(id);
       
       if (filename) {
-        toast.success(`PDF généré avec succès: ${filename}`);
+        toast.success(`Offre générée avec succès: ${filename}`);
       } else {
-        throw new Error("Erreur lors de la génération du PDF");
+        throw new Error("Erreur lors de la génération de l'offre");
       }
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+      console.error("Error generating offer:", error);
+      toast.error("Erreur lors de la génération de l'offre");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -327,7 +327,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     handleResendOffer,
-    handleDownloadPdf,
+    handleGenerateOffer,
     handleRequestInfo,
     handleProcessInfoResponse,
     handleInternalScoring,
