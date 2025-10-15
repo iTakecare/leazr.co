@@ -147,13 +147,29 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
     console.error('Erreur lors du parsing des équipements:', e);
   }
 
-  // Convertir les équipements au format template
-  const products = equipment.map((item: any) => ({
-    category: item.category || 'Informatique',
-    description: item.title || item.description || 'Équipement',
-    quantity: item.quantity || 1,
-    title: item.title || item.description || 'Équipement'
-  }));
+  // Convertir les équipements au format template avec descriptions enrichies
+  const products = equipment.map((item: any) => {
+    // Construire une description enrichie avec les attributes
+    let description = item.title || item.description || 'Équipement';
+    
+    // Ajouter les attributes à la description si présents
+    if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
+      const attrs = item.attributes
+        .map((attr: any) => attr.value)
+        .filter(Boolean)
+        .join(' - ');
+      if (attrs) {
+        description = `${description} - ${attrs}`;
+      }
+    }
+    
+    return {
+      category: item.category || 'Informatique',
+      description: description,
+      quantity: item.quantity || 1,
+      title: item.title || item.description || 'Équipement'
+    };
+  });
 
   // Calculer l'assurance : 3.5% du total des mensualités sur 36 mois
   // Formule : (mensualité × 36 mois) × 3.5%
@@ -175,13 +191,21 @@ export const convertOfferToTemplateData = (offerData: any): HtmlTemplateData => 
   // Préparer les données client
   const clientPostalCode = offerData.clients?.postal_code || offerData.client_postal_code || '';
   const clientCity = offerData.clients?.city || offerData.client_city || '';
+  
+  // Construire l'adresse complète du client avec code postal et ville
+  const clientAddress = offerData.clients?.address || offerData.client_address || 'Adresse non renseignée';
+  const clientFullAddress = [
+    clientAddress,
+    [clientPostalCode, clientCity].filter(Boolean).join(' ')
+  ].filter(Boolean).join('\n');
 
   return {
     client_name: offerData.client_name || 'Client',
     company_name: offerData.client_company || offerData.clients?.company || 'Entreprise',
-    client_address: offerData.clients?.address || offerData.client_address || 'Adresse non renseignée',
+    client_address: clientAddress,
     client_postal_code: clientPostalCode,
     client_city: clientCity,
+    client_full_address: clientFullAddress,
     offer_date: offerDate,
     offer_date_canva: formatOfferDate(offerData.created_at || Date.now()), // Format "2 OCTOBRE 2025"
     monthly_price: formatCurrency(offerData.monthly_payment || 0),

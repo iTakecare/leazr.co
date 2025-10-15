@@ -439,6 +439,7 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Aperçu Offre - ${offerData.client_name || 'Client'}</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         <style>
           * {
             margin: 0;
@@ -494,6 +495,50 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
           .btn-secondary:hover {
             background: #cbd5e1;
           }
+          .btn-success {
+            background: #10b981;
+            color: white;
+          }
+          .btn-success:hover {
+            background: #059669;
+          }
+          
+          /* Styles pour l'impression */
+          @media print {
+            body {
+              background: white;
+              padding: 0;
+            }
+            
+            .preview-header {
+              display: none !important;
+            }
+            
+            .preview-content {
+              padding: 0;
+              box-shadow: none;
+              max-width: 100%;
+            }
+            
+            /* Forcer les sauts de page aux bons endroits */
+            .page-break {
+              page-break-after: always;
+              break-after: page;
+            }
+            
+            /* Éviter les sauts de page dans les sections importantes */
+            table, .equipment-section, .summary-section {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
+            /* Optimiser les marges pour A4 */
+            @page {
+              size: A4;
+              margin: 15mm 15mm 15mm 15mm;
+            }
+          }
+          
           .preview-content {
             background: white;
             padding: 40px;
@@ -523,6 +568,9 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
         <div class="preview-header">
           <h1>📄 Aperçu de l'offre</h1>
           <div class="preview-actions">
+            <button class="btn-success" onclick="downloadAsPdf()">
+              💾 Télécharger PDF
+            </button>
             <button class="btn-secondary" onclick="window.print()">
               🖨️ Imprimer
             </button>
@@ -534,6 +582,52 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
         <div class="preview-content">
           ${compiledHtml}
         </div>
+        
+        <script>
+          async function downloadAsPdf() {
+            const content = document.querySelector('.preview-content');
+            const clientName = '${(offerData.client_name || 'Client').replace(/'/g, "\\'")}';
+            const filename = \`offre-\${clientName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf\`;
+            
+            // Masquer temporairement le header pendant la génération
+            const header = document.querySelector('.preview-header');
+            if (header) header.style.display = 'none';
+            
+            const opt = {
+              margin: [10, 10, 10, 10],
+              filename: filename,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                letterRendering: true,
+                width: 794,
+                height: 1123,
+                windowWidth: 794
+              },
+              jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait',
+                compress: true
+              },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+            
+            try {
+              await html2pdf().set(opt).from(content).save();
+              // Réafficher le header
+              if (header) header.style.display = 'flex';
+              alert('✅ PDF téléchargé avec succès !');
+            } catch (error) {
+              console.error('Erreur lors de la génération du PDF:', error);
+              // Réafficher le header même en cas d'erreur
+              if (header) header.style.display = 'flex';
+              alert('❌ Erreur lors de la génération du PDF. Veuillez utiliser "Imprimer > Enregistrer en PDF" comme alternative.');
+            }
+          }
+        </script>
       </body>
       </html>
     `;
