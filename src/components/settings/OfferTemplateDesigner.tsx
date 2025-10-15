@@ -17,9 +17,9 @@ import { toast } from 'sonner';
 
 const OfferTemplateDesigner: React.FC = () => {
   const { design, setDesign, saveDesign, loading } = useTemplateDesigner();
-  const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [activePreviewTab, setActivePreviewTab] = useState<'html' | 'pdf'>('html');
 
   const updateSection = (section: keyof TemplateDesign['sections'], updates: any) => {
     setDesign({
@@ -61,26 +61,33 @@ const OfferTemplateDesigner: React.FC = () => {
 
   const handleShowFullPreview = async () => {
     setGeneratingPreview(true);
-    setShowPreview(true);
     try {
       const url = await previewFullTemplate();
       setPreviewUrl(url);
+      toast.success('Aperçu PDF généré avec succès');
     } catch (error: any) {
       console.error('[FULL PREVIEW] Error:', error);
       toast.error(error.message || 'Erreur lors de la génération de l\'aperçu');
-      setShowPreview(false);
     } finally {
       setGeneratingPreview(false);
     }
   };
 
-  const handleClosePreview = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
+  // Générer l'aperçu PDF quand on bascule sur l'onglet PDF
+  React.useEffect(() => {
+    if (activePreviewTab === 'pdf' && !previewUrl && !generatingPreview) {
+      handleShowFullPreview();
     }
-    setShowPreview(false);
-  };
+  }, [activePreviewTab]);
+
+  // Nettoyer l'URL quand le composant est démonté
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   return (
     <div className="space-y-6">
@@ -731,156 +738,229 @@ const OfferTemplateDesigner: React.FC = () => {
         <Card className="p-6">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Aperçu</h3>
-            <div
-              className="border rounded-lg p-6 space-y-4 min-h-[600px]"
-              style={{ backgroundColor: design.colors.background }}
-            >
-              {/* Logo */}
-              {design.sections.logo.enabled && (
-                <div
-                  className="flex"
-                  style={{
-                    justifyContent:
-                      design.sections.logo.position === 'center'
-                        ? 'center'
-                        : design.sections.logo.position === 'right'
-                        ? 'flex-end'
-                        : 'flex-start',
-                  }}
-                >
-                  <div
-                    className="bg-muted flex items-center justify-center rounded"
-                    style={{ width: design.sections.logo.size, height: design.sections.logo.size / 2 }}
-                  >
-                    <span className="text-xs text-muted-foreground">Logo</span>
-                  </div>
-                </div>
-              )}
+            
+            <Tabs value={activePreviewTab} onValueChange={(v) => setActivePreviewTab(v as 'html' | 'pdf')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="html">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Aperçu rapide (HTML)
+                </TabsTrigger>
+                <TabsTrigger value="pdf">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Aperçu PDF complet
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Header */}
-              {design.sections.header.enabled && (
-                <div>
-                  <h1
-                    style={{
-                      color: design.colors.primary,
-                      fontSize: `${design.fonts.title.size}px`,
-                      fontWeight: design.fonts.title.weight,
-                    }}
-                  >
-                    {design.sections.header.title}
-                  </h1>
-                  {design.sections.header.subtitle && (
-                    <p
+              {/* Aperçu HTML rapide */}
+              <TabsContent value="html">
+                <div
+                  className="border rounded-lg p-6 space-y-4 min-h-[600px]"
+                  style={{ backgroundColor: design.colors.background }}
+                >
+                  {/* Logo */}
+                  {design.sections.logo.enabled && (
+                    <div
+                      className="flex"
                       style={{
-                        color: design.colors.secondary,
-                        fontSize: `${design.fonts.heading.size}px`,
+                        justifyContent:
+                          design.sections.logo.position === 'center'
+                            ? 'center'
+                            : design.sections.logo.position === 'right'
+                            ? 'flex-end'
+                            : 'flex-start',
                       }}
                     >
-                      {design.sections.header.subtitle}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Client Info */}
-              {design.sections.clientInfo.enabled && (
-                <div
-                  className="space-y-1"
-                  style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.text }}
-                >
-                  <p className="font-semibold">Client:</p>
-                  {design.sections.clientInfo.fields.includes('name') && <p>John Doe</p>}
-                  {design.sections.clientInfo.fields.includes('company') && <p>Entreprise ABC</p>}
-                  {design.sections.clientInfo.fields.includes('email') && <p>john@example.com</p>}
-                  {design.sections.clientInfo.fields.includes('phone') && <p>+32 123 456 789</p>}
-                  {design.sections.clientInfo.fields.includes('address') && (
-                    <p>123 Rue Example, Bruxelles</p>
-                  )}
-                </div>
-              )}
-
-              {/* Equipment Table */}
-              {design.sections.equipmentTable.enabled && (
-                <div className="border rounded" style={{ borderRadius: `${design.layout.borderRadius}px` }}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ backgroundColor: design.colors.primary, color: '#fff' }}>
-                        <th className="p-2 text-left">Article</th>
-                        <th className="p-2 text-center">Qté</th>
-                        <th className="p-2 text-right">Prix</th>
-                        <th className="p-2 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="p-2">MacBook Pro</td>
-                        <td className="p-2 text-center">2</td>
-                        <td className="p-2 text-right">50€/mois</td>
-                        <td className="p-2 text-right">100€/mois</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Summary */}
-              {design.sections.summary.enabled && (
-                <div
-                  className="border-t pt-4 space-y-2"
-                  style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.text }}
-                >
-                  {design.sections.summary.showMonthly && (
-                    <div className="flex justify-between font-bold text-base">
-                      <span>Mensualité totale :</span>
-                      <span>100€/mois</span>
+                      <div
+                        className="bg-muted flex items-center justify-center rounded"
+                        style={{ width: design.sections.logo.size, height: design.sections.logo.size / 2 }}
+                      >
+                        <span className="text-xs text-muted-foreground">Logo</span>
+                      </div>
                     </div>
                   )}
-                  {design.sections.summary.showTotal && (
-                    <div className="flex justify-between">
-                      <span>Total sur 36 mois:</span>
-                      <span className="font-semibold">3,600€</span>
+
+                  {/* Header */}
+                  {design.sections.header.enabled && (
+                    <div>
+                      <h1
+                        style={{
+                          color: design.colors.primary,
+                          fontSize: `${design.fonts.title.size}px`,
+                          fontWeight: design.fonts.title.weight,
+                        }}
+                      >
+                        {design.sections.header.title}
+                      </h1>
+                      {design.sections.header.subtitle && (
+                        <p
+                          style={{
+                            color: design.colors.secondary,
+                            fontSize: `${design.fonts.heading.size}px`,
+                          }}
+                        >
+                          {design.sections.header.subtitle}
+                        </p>
+                      )}
                     </div>
                   )}
-                  {design.sections.summary.showInsurance && (
-                    <div 
-                      className="mt-3"
-                      style={{ 
-                        textAlign: design.sections.summary.insuranceStyle?.align || 'left',
-                        fontSize: `${design.sections.summary.insuranceStyle?.fontSize || 9}px`,
-                        color: design.sections.summary.insuranceStyle?.color || '#1e293b',
-                        fontWeight: design.sections.summary.insuranceStyle?.fontWeight || 'bold'
-                      }}
+
+                  {/* Client Info */}
+                  {design.sections.clientInfo.enabled && (
+                    <div
+                      className="space-y-1"
+                      style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.text }}
                     >
-                      {design.sections.summary.insuranceLabel}
+                      <p className="font-semibold">Client:</p>
+                      {design.sections.clientInfo.fields.includes('name') && <p>John Doe</p>}
+                      {design.sections.clientInfo.fields.includes('company') && <p>Entreprise ABC</p>}
+                      {design.sections.clientInfo.fields.includes('email') && <p>john@example.com</p>}
+                      {design.sections.clientInfo.fields.includes('phone') && <p>+32 123 456 789</p>}
+                      {design.sections.clientInfo.fields.includes('address') && (
+                        <p>123 Rue Example, Bruxelles</p>
+                      )}
                     </div>
                   )}
-                  {design.sections.summary.showProcessingFee && (
-                    <div 
-                      style={{ 
-                        textAlign: design.sections.summary.processingFeeStyle?.align || 'left',
-                        fontSize: `${design.sections.summary.processingFeeStyle?.fontSize || 9}px`,
-                        color: design.sections.summary.processingFeeStyle?.color || '#1e293b',
-                        fontWeight: design.sections.summary.processingFeeStyle?.fontWeight || 'bold'
-                      }}
-                    >
-                      {design.sections.summary.processingFeeLabel} {design.sections.summary.processingFeeAmount}€ HTVA
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {/* Footer */}
-              {design.sections.footer.enabled && (
-                <div
-                  className="text-center pt-4 border-t space-y-1"
-                  style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.secondary }}
-                >
-                  {(design.sections.footer.lines || []).filter(line => line && line.trim()).map((line, index) => (
-                    <div key={index}>{line}</div>
-                  ))}
+                  {/* Equipment Table */}
+                  {design.sections.equipmentTable.enabled && (
+                    <div className="border rounded" style={{ borderRadius: `${design.layout.borderRadius}px` }}>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ backgroundColor: design.colors.primary, color: '#fff' }}>
+                            <th className="p-2 text-left">Article</th>
+                            <th className="p-2 text-center">Qté</th>
+                            <th className="p-2 text-right">Prix</th>
+                            <th className="p-2 text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="p-2">MacBook Pro</td>
+                            <td className="p-2 text-center">2</td>
+                            <td className="p-2 text-right">50€/mois</td>
+                            <td className="p-2 text-right">100€/mois</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {design.sections.summary.enabled && (
+                    <div
+                      className="border-t pt-4 space-y-2"
+                      style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.text }}
+                    >
+                      {design.sections.summary.showMonthly && (
+                        <div className="flex justify-between font-bold text-base">
+                          <span>Mensualité totale :</span>
+                          <span>100€/mois</span>
+                        </div>
+                      )}
+                      {design.sections.summary.showTotal && (
+                        <div className="flex justify-between">
+                          <span>Total sur 36 mois:</span>
+                          <span className="font-semibold">3,600€</span>
+                        </div>
+                      )}
+                      {design.sections.summary.showInsurance && (
+                        <div 
+                          className="mt-3"
+                          style={{ 
+                            textAlign: design.sections.summary.insuranceStyle?.align || 'left',
+                            fontSize: `${design.sections.summary.insuranceStyle?.fontSize || 9}px`,
+                            color: design.sections.summary.insuranceStyle?.color || '#1e293b',
+                            fontWeight: design.sections.summary.insuranceStyle?.fontWeight || 'bold'
+                          }}
+                        >
+                          {design.sections.summary.insuranceLabel}
+                        </div>
+                      )}
+                      {design.sections.summary.showProcessingFee && (
+                        <div 
+                          style={{ 
+                            textAlign: design.sections.summary.processingFeeStyle?.align || 'left',
+                            fontSize: `${design.sections.summary.processingFeeStyle?.fontSize || 9}px`,
+                            color: design.sections.summary.processingFeeStyle?.color || '#1e293b',
+                            fontWeight: design.sections.summary.processingFeeStyle?.fontWeight || 'bold'
+                          }}
+                        >
+                          {design.sections.summary.processingFeeLabel} {design.sections.summary.processingFeeAmount}€ HTVA
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  {design.sections.footer.enabled && (
+                    <div
+                      className="text-center pt-4 border-t space-y-1"
+                      style={{ fontSize: `${design.fonts.body.size}px`, color: design.colors.secondary }}
+                    >
+                      {(design.sections.footer.lines || []).filter(line => line && line.trim()).map((line, index) => (
+                        <div key={index}>{line}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </TabsContent>
+
+              {/* Aperçu PDF complet */}
+              <TabsContent value="pdf">
+                <div className="border rounded-lg min-h-[800px] flex flex-col">
+                  {generatingPreview ? (
+                    <div className="flex-1 flex items-center justify-center p-8">
+                      <div className="text-center space-y-4">
+                        <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
+                        <div>
+                          <p className="font-medium">Génération de l'aperçu PDF...</p>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Toutes les pages (avant, offre, après) sont en cours de génération
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : previewUrl ? (
+                    <div className="flex-1 flex flex-col">
+                      <div className="p-2 bg-muted border-b flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Aperçu PDF complet avec toutes les pages
+                        </span>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={handleShowFullPreview}
+                          disabled={generatingPreview}
+                        >
+                          Rafraîchir
+                        </Button>
+                      </div>
+                      <iframe
+                        src={previewUrl}
+                        className="flex-1 w-full border-0"
+                        style={{ minHeight: '750px' }}
+                        title="Aperçu PDF complet"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center p-8">
+                      <div className="text-center space-y-4">
+                        <FileText className="w-16 h-16 mx-auto text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">Aperçu PDF non généré</p>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Cliquez sur le bouton pour générer l'aperçu
+                          </p>
+                        </div>
+                        <Button onClick={handleShowFullPreview}>
+                          Générer l'aperçu PDF
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </Card>
       </div>
@@ -890,39 +970,6 @@ const OfferTemplateDesigner: React.FC = () => {
           {loading ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
         </Button>
       </div>
-
-      {/* Full PDF Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={handleClosePreview}>
-        <DialogContent className="max-w-5xl h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Aperçu complet du PDF</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            {generatingPreview ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    Génération de l'aperçu PDF avec toutes les pages...
-                  </p>
-                </div>
-              </div>
-            ) : previewUrl ? (
-              <iframe
-                src={previewUrl}
-                className="w-full h-full border-0 rounded"
-                title="Aperçu PDF complet"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-muted-foreground">
-                  Aucun aperçu disponible
-                </p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

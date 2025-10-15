@@ -210,11 +210,15 @@ export async function previewOfferPdf(
  */
 export async function previewFullTemplate(): Promise<string> {
   try {
-    console.log('[TEMPLATE PREVIEW] Generating full template preview');
+    console.log('[TEMPLATE PREVIEW] Starting full template preview generation');
 
     // Get current user's company
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Utilisateur non connecté');
+    if (!user) {
+      console.error('[TEMPLATE PREVIEW] No user found');
+      throw new Error('Utilisateur non connecté');
+    }
+    console.log('[TEMPLATE PREVIEW] User ID:', user.id);
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -222,7 +226,11 @@ export async function previewFullTemplate(): Promise<string> {
       .eq('id', user.id)
       .single();
 
-    if (!profile?.company_id) throw new Error('Entreprise non trouvée');
+    if (!profile?.company_id) {
+      console.error('[TEMPLATE PREVIEW] No company_id in profile');
+      throw new Error('Entreprise non trouvée');
+    }
+    console.log('[TEMPLATE PREVIEW] Company ID:', profile.company_id);
 
     const { data: company } = await supabase
       .from('companies')
@@ -230,7 +238,24 @@ export async function previewFullTemplate(): Promise<string> {
       .eq('id', profile.company_id)
       .single();
 
-    if (!company) throw new Error('Données entreprise introuvables');
+    if (!company) {
+      console.error('[TEMPLATE PREVIEW] No company data found');
+      throw new Error('Données entreprise introuvables');
+    }
+    console.log('[TEMPLATE PREVIEW] Company loaded:', company.name);
+
+    // Parse template_design if it's a JSON string
+    let design = company.template_design;
+    if (typeof design === 'string') {
+      try {
+        design = JSON.parse(design);
+        console.log('[TEMPLATE PREVIEW] Parsed template_design from JSON string');
+      } catch (e) {
+        console.warn('[TEMPLATE PREVIEW] Could not parse template_design:', e);
+      }
+    }
+
+    console.log('[TEMPLATE PREVIEW] Design loaded, pages count:', design?.pages?.length || 0);
 
     // Create example offer data
     const exampleOfferData = {
@@ -255,25 +280,28 @@ export async function previewFullTemplate(): Promise<string> {
       },
     ];
 
+    console.log('[TEMPLATE PREVIEW] Loading template component');
     const templateInfo = getTemplateById('classic-business');
     const TemplateComponent = templateInfo.component;
 
+    console.log('[TEMPLATE PREVIEW] Generating PDF blob');
     const blob = await pdf(
       <TemplateComponent
         offer={exampleOfferData}
         equipment={exampleEquipment}
         companyName={company.name}
         companyLogo={company.logo_url}
-        design={company.template_design}
+        design={design}
       />
     ).toBlob();
 
     const url = URL.createObjectURL(blob);
-    console.log('[TEMPLATE PREVIEW] Full preview URL generated');
+    console.log('[TEMPLATE PREVIEW] Full preview URL generated successfully');
     
     return url;
   } catch (error: any) {
-    console.error('[TEMPLATE PREVIEW] Error:', error);
+    console.error('[TEMPLATE PREVIEW] Fatal error:', error);
+    console.error('[TEMPLATE PREVIEW] Error stack:', error.stack);
     throw new Error(error.message || 'Erreur lors de la prévisualisation du template');
   }
 }
