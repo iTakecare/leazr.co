@@ -453,6 +453,10 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
             background: #f8fafc;
             padding: 20px;
           }
+          body.generating-pdf {
+            background: #fff !important;
+            padding: 0 !important;
+          }
           .preview-header {
             background: white;
             padding: 20px;
@@ -548,6 +552,48 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
             margin: 0 auto;
             min-height: 297mm;
           }
+          .preview-content.pdf-ready {
+            max-width: 210mm !important;
+            width: 210mm !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+          }
+          .preview-header, .screen-only, .no-pdf, .hidden-print, .hide-on-pdf, 
+          [data-pdf-exclude="true"], .client-header {
+            display: block;
+          }
+          body.generating-pdf .preview-header,
+          body.generating-pdf .screen-only,
+          body.generating-pdf .no-pdf,
+          body.generating-pdf .hidden-print,
+          body.generating-pdf .hide-on-pdf,
+          body.generating-pdf [data-pdf-exclude="true"],
+          body.generating-pdf .client-header {
+            display: none !important;
+          }
+          body.generating-pdf .page {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            padding: 10mm !important;
+            page-break-after: always;
+            margin: 0 !important;
+            box-shadow: none !important;
+          }
+          body.generating-pdf .page:last-child {
+            page-break-after: auto;
+          }
+          body.generating-pdf .page-break {
+            display: block;
+            height: 0;
+            page-break-before: always;
+          }
+          body.generating-pdf table,
+          body.generating-pdf .equipment-section,
+          body.generating-pdf .summary-section {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
           @media print {
             body {
               background: white;
@@ -617,7 +663,10 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
                 compress: true,
                 precision: 16
               },
-              pagebreak: { mode: 'avoid-all' }
+              pagebreak: { 
+                mode: ['css', 'legacy'],
+                avoid: 'img, table, .card, .section, h1, h2'
+              }
             };
             
             try {

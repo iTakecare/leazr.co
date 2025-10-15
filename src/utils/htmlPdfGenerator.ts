@@ -28,6 +28,13 @@ const cleanHtmlForPdf = (html: string): string => {
     .replace(/<section[^>]*class="[^"]*template-guide[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
     .replace(/<div[^>]*template-guide[^>]*>[\s\S]*?<\/div>/gi, '');
   
+  // Remove screen-only elements (preview headers, buttons, etc.)
+  cleanedHtml = cleanedHtml
+    .replace(/<[^>]*class="[^"]*(preview-header|screen-only|no-pdf|pdf-exclude|hide-on-pdf|hidden-print|client-header)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi, '')
+    .replace(/<header[^>]*class="[^"]*preview[^"]*"[^>]*>[\s\S]*?<\/header>/gi, '')
+    .replace(/<section[^>]*class="[^"]*preview[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
+    .replace(/<[^>]*(data-pdf-exclude\s*=\s*["'](true|1)["'])[^>]*>[\s\S]*?<\/[^>]+>/gi, '');
+  
   // Remove HTML comments
   cleanedHtml = cleanedHtml.replace(/<!--[\s\S]*?-->/g, '');
   
@@ -111,33 +118,25 @@ export const generateSimplePdf = async (
         quality: options.quality || 0.95 
       },
       html2canvas: { 
-        scale: options.scale || 1.2, // Optimisé pour la qualité/performance
+        scale: 2,
         useCORS: true,
-        logging: false, // Désactivé pour une meilleure performance
+        logging: false,
         letterRendering: true,
         allowTaint: true,
         imageTimeout: 15000,
-        width: 794, // Largeur A4 en pixels
-        height: 1123, // Hauteur A4 en pixels 
         scrollX: 0,
-        scrollY: 0,
-        windowWidth: 794,
-        windowHeight: 1123,
-        foreignObjectRendering: true, // Améliore le rendu des CSS complexes
-        removeContainer: true
+        scrollY: 0
       },
       jsPDF: { 
         unit: 'mm', 
-        format: options.format || 'a4', 
-        orientation: options.orientation || 'portrait',
+        format: 'a4', 
+        orientation: 'portrait' as 'portrait',
         compress: true,
         precision: 16
       },
       pagebreak: { 
-        mode: 'avoid-all', // Évite les coupures de page inattendues
-        before: '.page',
-        after: '.page:not(:last-child)',
-        avoid: 'img, .value-card, .step-item'
+        mode: ['css', 'legacy'],
+        avoid: 'img, table, .card, .section, h1, h2'
       }
     };
     
@@ -145,6 +144,7 @@ export const generateSimplePdf = async (
     
     // Créer un conteneur temporaire avec styles spécifiques pour PDF
     const container = document.createElement('div');
+    container.className = 'pdf-root';
     container.style.cssText = `
       width: 210mm;
       margin: 0;
@@ -155,7 +155,9 @@ export const generateSimplePdf = async (
       font-size: 14px;
       line-height: 1.6;
       box-sizing: border-box;
-      position: relative;
+      position: fixed;
+      left: 0;
+      top: 0;
       overflow: hidden;
     `;
     
@@ -164,7 +166,57 @@ export const generateSimplePdf = async (
       ALLOWED_TAGS: ['div', 'p', 'span', 'img', 'strong', 'em', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'tr', 'td', 'th', 'tbody', 'thead'],
       ALLOWED_ATTR: ['src', 'alt', 'class', 'style', 'width', 'height', 'colspan', 'rowspan']
     });
-    container.innerHTML = sanitizedHtml;
+    
+    // Inject PDF normalization CSS
+    const pdfNormalizationCss = `
+      <style>
+        .pdf-root, .pdf-ready {
+          width: 210mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+        }
+        .pdf-root *, .pdf-ready * { 
+          box-sizing: border-box !important; 
+        }
+        .pdf-root .container, 
+        .pdf-ready .container, 
+        .pdf-root [class*="container"] {
+          max-width: 210mm !important; 
+          width: 210mm !important; 
+          padding: 0 !important; 
+          margin: 0 !important; 
+          box-shadow: none !important; 
+          background: transparent !important;
+        }
+        .no-pdf, .screen-only, .preview-header, .hidden-print, .hide-on-pdf, 
+        [data-pdf-exclude="true"], .client-header { 
+          display: none !important; 
+        }
+        .page { 
+          width: 210mm !important; 
+          min-height: 297mm !important; 
+          padding: 10mm !important; 
+          page-break-after: always; 
+          margin: 0 !important;
+          box-shadow: none !important;
+        }
+        .page:last-child { 
+          page-break-after: auto; 
+        }
+        .page-break { 
+          display: block; 
+          height: 0; 
+          page-break-before: always; 
+        }
+        table, .equipment-section, .summary-section { 
+          break-inside: avoid !important; 
+          page-break-inside: avoid !important; 
+        }
+      </style>
+    `;
+    
+    container.innerHTML = pdfNormalizationCss + sanitizedHtml;
     console.log("Container créé avec le HTML nettoyé");
     
     // Précharger toutes les images et polices
