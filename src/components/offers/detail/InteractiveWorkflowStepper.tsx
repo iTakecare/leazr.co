@@ -124,7 +124,15 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       return; // Pas de changement nécessaire
     }
 
-    // Confirmation spéciale pour la finalisation (conversion en contrat)
+    // INTERCEPTION IMMÉDIATE pour les statuts de finalisation - AVANT toute confirmation
+    // Cela évite que le window.confirm bloque l'ouverture de la modale
+    if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
+      console.log('🔔 STEPPER - Interception immédiate pour modal d\'email:', targetStatus);
+      onStatusChange?.(targetStatus);
+      return; // Le parent gère la suite via la modale
+    }
+
+    // Confirmation pour les autres statuts
     const finalStatuses = ['validated', 'offer_validation', 'financed'];
     const isFinalStatus = finalStatuses.includes(targetStatus);
     
@@ -140,14 +148,6 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
     try {
       setUpdating(true);
-
-      // Interception systématique pour les statuts de finalisation afin de laisser le parent ouvrir la modale d'email
-      if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
-        console.log("🔔 STEPPER - Interception pour modal d'email sur", targetStatus);
-        onStatusChange?.(targetStatus);
-        setUpdating(false);
-        return; // Le parent gère la suite via la modale
-      }
 
       // Cas normal : continuer avec la mise à jour directe
       // Utiliser le service updateOfferStatus qui contient la logique de conversion automatique

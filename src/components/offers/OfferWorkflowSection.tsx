@@ -11,7 +11,7 @@ import StatusChangeDialog from "./workflow/StatusChangeDialog";
 import EmailConfirmationModal from "./EmailConfirmationModal";
 import { OFFER_STATUSES } from "./OfferStatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 
 interface OfferWorkflowSectionProps {
   offerId: string;
@@ -86,6 +86,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     // CAS SPÉCIAL : Validation - ouvrir la modale d'email quelle que soit l'étape courante
     if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
       console.log("🔔 Ouverture de la modale d'email avant validation");
+      toast.info("Préparation de l'email de validation…");
       setDialogOpen(false);
       setEmailModalReason("Validation de l'offre après approbation du leaser");
       setSelectedStatus(targetStatus);
@@ -188,7 +189,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
       toast.success("Offre validée sans envoi d'email");
       await fetchData();
       if (onStatusChange) {
-        onStatusChange('validated');
+        onStatusChange('offer_validation');
       }
       } else {
         toast.error("Erreur lors de la mise à jour du statut");
@@ -255,24 +256,42 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
             />
               
               {isAdmin && (
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {isAdmin ? "Cliquez sur une étape pour changer le statut de l'offre" : ""}
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={fetchData}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Mise à jour...
-                      </>
-                    ) : (
-                      "Actualiser"
-                    )}
-                  </Button>
+                <div className="mt-4 space-y-3">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {isAdmin ? "Cliquez sur une étape pour changer le statut de l'offre" : ""}
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={fetchData}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Mise à jour...
+                          </>
+                        ) : (
+                          "Actualiser"
+                        )}
+                      </Button>
+                      
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          setSelectedStatus('offer_validation');
+                          setEmailModalReason("Validation manuelle de l'offre");
+                          setShowEmailModal(true);
+                        }}
+                        disabled={isUpdating}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Valider l'offre (ouvrir l'email)
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </TabsContent>
