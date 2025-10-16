@@ -5,6 +5,7 @@ export async function loadTemplate(
   templateSlug: string, 
   companyId: string
 ) {
+  // First try to load from database
   const { data: template, error } = await supabase
     .from('pdf_template_versions')
     .select('*')
@@ -21,6 +22,17 @@ export async function loadTemplate(
 
   if (!template) {
     throw new Error(`Template ${templateSlug} not found for company ${companyId}`);
+  }
+
+  // If html_content is a placeholder, load from file
+  if (template.html_content.includes('<!-- Template chargé depuis le fichier externe -->')) {
+    try {
+      const htmlContent = await Deno.readTextFile(`./templates/${templateSlug}.html`);
+      template.html_content = htmlContent;
+    } catch (fileError) {
+      console.error('Error loading template file:', fileError);
+      throw new Error(`Template file ${templateSlug}.html not found`);
+    }
   }
 
   return template;
