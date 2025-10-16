@@ -65,7 +65,10 @@ export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate
         precision: 16,
         hotfixes: ["px_scaling"]
       },
-      pagebreak: { mode: 'avoid-all' }
+      pagebreak: { 
+        mode: ['css', 'legacy'],
+        avoid: 'img, table, .card, .section, h1, h2'
+      }
     };
     
     // Créer un conteneur avec style optimisé pour A4

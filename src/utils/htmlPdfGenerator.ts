@@ -15,188 +15,162 @@ export interface HtmlPdfOptions {
 }
 
 /**
+ * Décode tous les nœuds texte du DOM pour éliminer les entités HTML
+ */
+const decodeAllTextNodes = (root: HTMLElement): void => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const textarea = document.createElement('textarea');
+  const nodesToUpdate: Array<{ node: Text; value: string }> = [];
+  
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const textNode = node as Text;
+    if (textNode.nodeValue) {
+      textarea.innerHTML = textNode.nodeValue;
+      let decoded = textarea.value;
+      
+      decoded = decoded
+        .replace(/&#x26;/g, '&')
+        .replace(/&#38;/g, '&')
+        .replace(/&amp;/g, '&');
+      
+      if (decoded !== textNode.nodeValue) {
+        nodesToUpdate.push({ node: textNode, value: decoded });
+      }
+    }
+  }
+  
+  nodesToUpdate.forEach(({ node, value }) => {
+    node.nodeValue = value;
+  });
+};
+
+/**
+ * Normalise les références de page (ex: "en page X" → supprimé)
+ */
+const normalizePageReferenceNotes = (root: HTMLElement): void => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const nodesToUpdate: Array<{ node: Text; value: string }> = [];
+  
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const textNode = node as Text;
+    if (textNode.nodeValue) {
+      const normalized = textNode.nodeValue
+        .replace(/en page\s+\d+/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      if (normalized !== textNode.nodeValue) {
+        nodesToUpdate.push({ node: textNode, value: normalized });
+      }
+    }
+  }
+  
+  nodesToUpdate.forEach(({ node, value }) => {
+    node.nodeValue = value;
+  });
+};
+
+/**
+ * Masque la section "ILS NOUS FONT CONFIANCE" si elle ne contient que des placeholders
+ */
+const hideClientsSectionIfPlaceholder = (root: HTMLElement): void => {
+  const headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  
+  for (const heading of headings) {
+    const text = heading.textContent?.trim() || '';
+    if (/ILS NOUS FONT CONFIANCE/i.test(text)) {
+      const section = heading.closest('section, .page, div[class*="client"]') || heading.parentElement;
+      
+      if (section) {
+        const sectionText = section.textContent || '';
+        const hasPlaceholderText = /Client\s+[123]/i.test(sectionText);
+        const realImages = section.querySelectorAll('img[src]:not([src*="placeholder"])');
+        const hasRealLogos = realImages.length > 0;
+        
+        if (hasPlaceholderText && !hasRealLogos) {
+          console.log("🗑️ Suppression de la section 'ILS NOUS FONT CONFIANCE' (placeholder uniquement)");
+          section.remove();
+        }
+      }
+      break;
+    }
+  }
+};
+
+/**
+ * Déduplique les titres de la couverture
+ */
+const deduplicateCoverTitles = (root: HTMLElement): void => {
+  const coverPage = root.querySelector('.cover-page, .page:first-child');
+  if (!coverPage) return;
+  
+  const seenTitles = new Set<string>();
+  const elementsToRemove: Element[] = [];
+  
+  const textElements = coverPage.querySelectorAll('h1, h2, h3, p, span, div');
+  
+  for (const element of textElements) {
+    const normalizedText = element.textContent?.trim().toLowerCase() || '';
+    
+    const isPropositionCommerciale = /proposition\s+commerciale/i.test(normalizedText);
+    const isPourServices = /pour\s+services\s+de\s+leasing/i.test(normalizedText);
+    
+    if (isPropositionCommerciale || isPourServices) {
+      if (seenTitles.has(normalizedText)) {
+        console.log("🗑️ Suppression du titre dupliqué:", normalizedText);
+        elementsToRemove.push(element);
+      } else {
+        seenTitles.add(normalizedText);
+      }
+    }
+  }
+  
+  elementsToRemove.forEach(el => el.remove());
+};
+
+/**
  * Nettoie le HTML en supprimant les sections qui ne doivent pas apparaître dans le PDF
  */
 const cleanHtmlForPdf = (html: string): string => {
-  console.log('🧹 Nettoyage du HTML pour PDF...');
-  console.log('🔍 HTML avant nettoyage (longueur):', html.length);
-  const originalLength = html.length;
+  console.log("🧹 Nettoyage du HTML pour PDF");
   
-  // Remove template-guide sections more carefully - multiple variations
   let cleanedHtml = html
-    .replace(/<div[^>]*class="[^"]*template-guide[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '')
-    .replace(/<section[^>]*class="[^"]*template-guide[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
-    .replace(/<div[^>]*template-guide[^>]*>[\s\S]*?<\/div>/gi, '');
+    .replace(/&amp;/g, '&')
+    .replace(/&#x26;/g, '&')
+    .replace(/&#38;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+
+  cleanedHtml = DOMPurify.sanitize(cleanedHtml, {
+    ALLOWED_TAGS: ['div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'img', 'br', 'strong', 'em', 'u', 'a', 'section', 'article', 'header', 'footer', 'nav', 'aside'],
+    ALLOWED_ATTR: ['class', 'style', 'src', 'alt', 'width', 'height', 'href', 'target', 'colspan', 'rowspan', 'data-*'],
+    ALLOW_DATA_ATTR: true,
+    ADD_ATTR: ['target'],
+  });
   
-  // Remove screen-only elements (preview headers, buttons, etc.)
-  cleanedHtml = cleanedHtml
-    .replace(/<[^>]*class="[^"]*(preview-header|screen-only|no-pdf|pdf-exclude|hide-on-pdf|hidden-print|client-header)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi, '')
-    .replace(/<header[^>]*class="[^"]*preview[^"]*"[^>]*>[\s\S]*?<\/header>/gi, '')
-    .replace(/<section[^>]*class="[^"]*preview[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
-    .replace(/<[^>]*(data-pdf-exclude\s*=\s*["'](true|1)["'])[^>]*>[\s\S]*?<\/[^>]+>/gi, '');
-  
-  // Remove HTML comments
-  cleanedHtml = cleanedHtml.replace(/<!--[\s\S]*?-->/g, '');
-  
-  // Check if HTML is escaped and decode if necessary
-  const hasRawHtml = cleanedHtml.includes('&lt;') || cleanedHtml.includes('&gt;');
-  if (hasRawHtml) {
-    console.warn('⚠️ ATTENTION: Le HTML contient du code échappé, décodage...');
-    cleanedHtml = cleanedHtml
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;/g, '&');
-  }
-  
-  // Decode all HTML entities (including &#x26; → &) - FORCE multiple passes
-  console.log('🔧 Décodage des entités HTML...');
-  for (let i = 0; i < 3; i++) {
-    cleanedHtml = cleanedHtml
-      .replace(/&amp;/g, '&')
-      .replace(/&#x26;/gi, '&')
-      .replace(/&#38;/g, '&')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&#160;/g, ' ')
-      .replace(/&quot;/g, '"')
-      .replace(/&#34;/g, '"')
-      .replace(/&apos;/g, "'")
-      .replace(/&#39;/g, "'")
-      .replace(/&lt;/g, '<')
-      .replace(/&#60;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&#62;/g, '>');
-  }
-  
-  // Replace pagination references: "voir modalités de leasing en page X" → "voir modalités de leasing"
-  console.log('📖 Suppression des références de pagination...');
-  cleanedHtml = cleanedHtml.replace(/voir modalités de leasing en page \d+/gi, 'voir modalités de leasing');
-  
-  // Remove sections with only unfilled placeholders (no real content)
-  console.log('🗑️ Suppression des sections avec placeholders vides...');
-  cleanedHtml = cleanedHtml.replace(
-    /<div[^>]*>\s*(\{\{[^}]+\}\}\s*)+<\/div>/gi, 
-    ''
-  );
-  
-  // Remove table rows with only empty placeholders
-  cleanedHtml = cleanedHtml.replace(
-    /<tr[^>]*>\s*<td[^>]*>\s*(\{\{[^}]+\}\}|\s|&nbsp;)*\s*<\/td>\s*<\/tr>/gi,
-    ''
-  );
-  
-  // Parse HTML to DOM for advanced cleaning
   const parser = new DOMParser();
   const doc = parser.parseFromString(cleanedHtml, 'text/html');
   
-  // Deduplicate cover titles: keep only first "Proposition Commerciale" and "pour Services de Leasing IT"
-  console.log('🎯 Dédoublonnage des titres de couverture...');
-  const coverPage = doc.querySelector('.cover-page, .page:first-child');
-  if (coverPage) {
-    const h1Elements = coverPage.querySelectorAll('h1');
-    const h2Elements = coverPage.querySelectorAll('h2');
-    
-    let seenProposition = false;
-    h1Elements.forEach((h1) => {
-      if (h1.textContent?.includes('Proposition Commerciale')) {
-        if (seenProposition) {
-          console.log('🗑️ Suppression du doublon "Proposition Commerciale"');
-          h1.remove();
-        } else {
-          seenProposition = true;
-        }
-      }
-    });
-    
-    let seenServices = false;
-    h2Elements.forEach((h2) => {
-      if (h2.textContent?.includes('pour Services de Leasing IT')) {
-        if (seenServices) {
-          console.log('🗑️ Suppression du doublon "pour Services de Leasing IT"');
-          h2.remove();
-        } else {
-          seenServices = true;
-        }
-      }
-    });
-  }
-  
-  // Hide "ILS NOUS FONT CONFIANCE" section if empty or contains only placeholder text
-  console.log('👥 Vérification de la section clients...');
-  const clientsSections = doc.querySelectorAll('.clients-section, [class*="clients"]');
-  clientsSections.forEach((section) => {
-    const text = section.textContent || '';
-    const hasRealLogos = section.querySelectorAll('img').length > 0 && 
-                         !text.includes('/api/placeholder');
-    const hasPlaceholderText = /Client [123]/.test(text) || text.includes('placeholder');
-    
-    if (!hasRealLogos || hasPlaceholderText) {
-      console.log('🗑️ Suppression de la section clients (vide ou placeholder)');
-      section.remove();
-    }
-  });
-  
-  // Remove empty .page divs (pages with no meaningful content) - FIRST PASS
-  console.log('📄 Suppression des pages vides (Pass 1)...');
-  const pages = doc.querySelectorAll('.page');
-  let removedPages = 0;
-  
-  pages.forEach((page) => {
+  const pageElements = doc.querySelectorAll('.page');
+  pageElements.forEach((page) => {
     const textContent = page.textContent?.trim() || '';
     const hasImages = page.querySelectorAll('img').length > 0;
-    const hasPlaceholders = /\{\{[^}]+\}\}/.test(textContent);
+    const hasTables = page.querySelectorAll('table').length > 0;
     
-    // Remove if:
-    // - No text content and no images
-    // - Only whitespace
-    // - Only contains unfilled placeholders
-    const isEmptyPage = !textContent || 
-                        textContent.length < 10 || 
-                        (hasPlaceholders && textContent.replace(/\{\{[^}]+\}\}/g, '').trim().length < 10);
-    
-    if (isEmptyPage && !hasImages) {
-      console.log(`🗑️ Suppression d'une page vide (contenu: "${textContent.substring(0, 50)}...")`);
+    if (!textContent && !hasImages && !hasTables) {
+      console.log("🗑️ Suppression d'une page vide détectée (Pass 1)");
       page.remove();
-      removedPages++;
     }
   });
   
-  console.log(`✅ ${removedPages} page(s) vide(s) supprimée(s)`);
-  
-  // Remove duplicate consecutive sections with same class
-  console.log('🔄 Suppression des sections dupliquées...');
-  const allSections = doc.querySelectorAll('[class]');
-  let previousSection: Element | null = null;
-  let removedDuplicates = 0;
-  
-  allSections.forEach((section) => {
-    if (previousSection && 
-        previousSection.className === section.className &&
-        previousSection.textContent?.trim() === section.textContent?.trim() &&
-        previousSection.textContent &&
-        previousSection.textContent.length > 20) {
-      console.log(`🗑️ Section dupliquée supprimée: .${section.className.split(' ')[0]}`);
-      section.remove();
-      removedDuplicates++;
-    } else {
-      previousSection = section;
-    }
-  });
-  
-  console.log(`✅ ${removedDuplicates} section(s) dupliquée(s) supprimée(s)`);
-  
-  // Serialize back to HTML
   cleanedHtml = doc.body.innerHTML;
   
-  const finalLength = cleanedHtml.length;
-  console.log(`✅ HTML cleaned: ${originalLength} -> ${finalLength} characters (${originalLength - finalLength} removed)`);
-  
-  // Warning if too much content was removed
-  if (finalLength < originalLength * 0.3) {
-    console.warn('⚠️ WARNING: More than 70% of HTML was removed during cleaning!');
-  }
-  
+  console.log("✅ HTML nettoyé et sanitisé");
   return cleanedHtml;
 };
 
@@ -275,7 +249,6 @@ export const generateSimplePdf = async (
       },
       pagebreak: { 
         mode: ['css', 'legacy'],
-        after: '.page',
         avoid: 'img, table, .card, .section, h1, h2, .solution-box, .step-card, .testimonial-card, .value-item'
       }
     };
@@ -342,11 +315,6 @@ export const generateSimplePdf = async (
           margin: 0 !important;
           box-shadow: none !important;
           overflow: visible;
-          page-break-inside: avoid;
-        }
-        
-        .page:last-child { 
-          page-break-after: auto !important; 
         }
         
         /* Pages spéciales avec page-break-after */
@@ -420,15 +388,26 @@ export const generateSimplePdf = async (
       // Petite pause pour s'assurer que le rendu est stable
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // PASS 2: Remove empty pages from DOM after render
-      console.log('📄 Suppression des pages vides (Pass 2 - DOM)...');
-      const domPages = container.querySelectorAll('.page');
-      domPages.forEach((page) => {
+      // Pass 2: Nettoyages DOM après insertion
+      console.log("🧹 Pass 2: Nettoyages DOM avancés");
+      decodeAllTextNodes(container);
+      normalizePageReferenceNotes(container);
+      hideClientsSectionIfPlaceholder(container);
+      deduplicateCoverTitles(container);
+      
+      // Suppression finale des pages vides après tous les nettoyages
+      const finalPageElements = container.querySelectorAll('.page');
+      finalPageElements.forEach((page) => {
         const textContent = page.textContent?.trim() || '';
-        const hasImages = page.querySelectorAll('img').length > 0;
+        const hasImages = page.querySelectorAll('img[src]:not([src=""])').length > 0;
+        const hasTables = page.querySelectorAll('table').length > 0;
+        const hasHeadings = page.querySelectorAll('h1, h2, h3').length > 0;
+        const hasLists = page.querySelectorAll('ul, ol').length > 0;
         
-        if ((!textContent || textContent.length < 10) && !hasImages) {
-          console.log('🗑️ Suppression page vide (DOM)');
+        const hasSignificantContent = textContent.length > 20 || hasImages || hasTables || hasHeadings || hasLists;
+        
+        if (!hasSignificantContent) {
+          console.log("🗑️ Suppression d'une page vide détectée (Pass 2)");
           page.remove();
         }
       });
@@ -535,11 +514,12 @@ const prepareOfferDataForTemplate = (offerData: any) => {
     // Leaser info
     leaser_name: offerData.leaser?.name || 'Leaser par défaut',
     
-    // Empty defaults - no demo data
+    // Images - VIDES pour éviter les placeholders
     client_logos: '',
     base64_image_cover: '',
     base64_image_vision: '',
-    base64_image_logo: ''
+    base64_image_logo: '',
+    company_logo: ''
   };
   
   console.log("✅ Template data prepared with", Object.keys(templateData).length, "fields");

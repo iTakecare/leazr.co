@@ -579,10 +579,6 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
             margin: 0 !important;
             box-shadow: none !important;
             overflow: visible;
-            page-break-inside: avoid;
-          }
-          body.generating-pdf .page:last-child {
-            page-break-after: auto;
           }
           body.generating-pdf .cover-page {
             page-break-after: always !important;
@@ -634,10 +630,107 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
         </div>
         
         <script>
+          // Fonctions de nettoyage DOM
+          function decodeAllTextNodes(root) {
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            const textarea = document.createElement('textarea');
+            const nodesToUpdate = [];
+            
+            let node;
+            while ((node = walker.nextNode())) {
+              if (node.nodeValue) {
+                textarea.innerHTML = node.nodeValue;
+                let decoded = textarea.value
+                  .replace(/&#x26;/g, '&')
+                  .replace(/&#38;/g, '&')
+                  .replace(/&amp;/g, '&');
+                
+                if (decoded !== node.nodeValue) {
+                  nodesToUpdate.push({ node: node, value: decoded });
+                }
+              }
+            }
+            
+            nodesToUpdate.forEach(({ node, value }) => {
+              node.nodeValue = value;
+            });
+          }
+          
+          function normalizePageReferenceNotes(root) {
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            const nodesToUpdate = [];
+            
+            let node;
+            while ((node = walker.nextNode())) {
+              if (node.nodeValue) {
+                const normalized = node.nodeValue
+                  .replace(/en page\\s+\\d+/gi, '')
+                  .replace(/\\s+/g, ' ')
+                  .trim();
+                
+                if (normalized !== node.nodeValue) {
+                  nodesToUpdate.push({ node: node, value: normalized });
+                }
+              }
+            }
+            
+            nodesToUpdate.forEach(({ node, value }) => {
+              node.nodeValue = value;
+            });
+          }
+          
+          function hideClientsSectionIfPlaceholder(root) {
+            const headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            
+            for (const heading of headings) {
+              const text = heading.textContent?.trim() || '';
+              if (/ILS NOUS FONT CONFIANCE/i.test(text)) {
+                const section = heading.closest('section, .page, div[class*="client"]') || heading.parentElement;
+                
+                if (section) {
+                  const sectionText = section.textContent || '';
+                  const hasPlaceholderText = /Client\\s+[123]/i.test(sectionText);
+                  const realImages = section.querySelectorAll('img[src]:not([src*="placeholder"])');
+                  const hasRealLogos = realImages.length > 0;
+                  
+                  if (hasPlaceholderText && !hasRealLogos) {
+                    console.log('Suppression section clients placeholder');
+                    section.remove();
+                  }
+                }
+                break;
+              }
+            }
+          }
+          
+          function removeEmptyPages(root) {
+            const pages = root.querySelectorAll('.page');
+            pages.forEach(page => {
+              const textContent = page.textContent?.trim() || '';
+              const hasImages = page.querySelectorAll('img[src]:not([src=""])').length > 0;
+              const hasTables = page.querySelectorAll('table').length > 0;
+              const hasHeadings = page.querySelectorAll('h1, h2, h3').length > 0;
+              const hasLists = page.querySelectorAll('ul, ol').length > 0;
+              
+              const hasSignificantContent = textContent.length > 20 || hasImages || hasTables || hasHeadings || hasLists;
+              
+              if (!hasSignificantContent) {
+                console.log('Suppression page vide');
+                page.remove();
+              }
+            });
+          }
+        
           async function downloadAsPdf() {
             const content = document.querySelector('.preview-content');
             const clientName = '${(offerData.client_name || 'Client').replace(/'/g, "\\'")}';
             const filename = \`offre-\${clientName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf\`;
+            
+            // Nettoyages DOM avant génération
+            decodeAllTextNodes(content);
+            normalizePageReferenceNotes(content);
+            hideClientsSectionIfPlaceholder(content);
+            removeEmptyPages(content);
             
             // Ajouter classe au body AVANT de masquer le header
             document.body.classList.add('generating-pdf');
@@ -669,7 +762,6 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
               },
               pagebreak: { 
                 mode: ['css', 'legacy'],
-                after: '.page',
                 avoid: 'img, table, .card, .section, h1, h2, .solution-box, .step-card, .testimonial-card, .value-item'
               }
             };
