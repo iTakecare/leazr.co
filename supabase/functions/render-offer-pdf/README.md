@@ -51,17 +51,24 @@ Voir `templates/itakecare-v1.html` pour la liste complète des variables.
 - Carlito (Google Fonts)
 
 ## Phase actuelle
-Phase 4 complétée - Intégration frontend
-- ✅ Service PDF créé (`src/services/pdfService.ts`)
-- ✅ Fonctions: `generateOfferPdf`, `downloadOfferPdf`, `previewOfferPdf`
-- ✅ Hook `handleGenerateOffer` mis à jour pour télécharger le PDF
-- ✅ Gestion des erreurs et notifications toast
+Phase 5 complétée - Test et validation du système
+- ✅ Composant de test `PdfTemplateTest` créé
+- ✅ Page de test dédiée `/admin/pdf-test`
+- ✅ Interface pour sélectionner et tester les offres
+- ✅ Boutons de prévisualisation et téléchargement
+- ✅ Informations sur le template actif
 
-## Phases
+## Phases complètes
 - ✅ Phase 1: Infrastructure Edge Function
 - ✅ Phase 2: Template HTML iTakecare v1
 - ✅ Phase 3: Génération PDF réelle avec Puppeteer
 - ✅ Phase 4: Intégration frontend (appel + téléchargement)
+- ✅ Phase 5: Test et validation
+
+## Accès à l'interface de test
+Accessible via : `/:companySlug/admin/pdf-test`
+
+Exemple : `/itakecare/admin/pdf-test`
 
 ## Utilisation complète
 
