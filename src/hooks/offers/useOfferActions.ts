@@ -4,8 +4,7 @@ import {
   deleteOffer, 
   updateOfferStatus, 
   sendInfoRequest, 
-  processInfoResponse,
-  generateOfferFromHtmlTemplate
+  processInfoResponse
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
@@ -149,16 +148,16 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const handleGenerateOffer = async (id: string) => {
     try {
       setIsGeneratingPdf(true);
-      toast.info("Préparation de l'aperçu de l'offre...");
+      toast.info("Génération de l'offre...");
       
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      const result = await generateOfferFromHtmlTemplate(id);
+      // Ouvrir l'aperçu de l'offre dans un nouvel onglet
+      const previewUrl = `/client/offer/${id}`;
+      window.open(previewUrl, '_blank');
       
-      if (!result) {
-        throw new Error("Erreur lors de la génération de l'aperçu");
-      }
+      toast.success("Aperçu de l'offre ouvert");
     } catch (error) {
       console.error("Error generating offer preview:", error);
       toast.error("Erreur lors de la génération de l'aperçu de l'offre");

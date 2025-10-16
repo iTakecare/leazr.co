@@ -1,7 +1,6 @@
 
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateOfferPdf } from "@/utils/pdfGenerator";
 
 const supabase = getSupabaseClient();
 

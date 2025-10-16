@@ -12,7 +12,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { usePdfGeneration } from "@/hooks/offers/usePdfGeneration";
+
 import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
@@ -44,7 +44,7 @@ const AdminOfferDetail = () => {
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
 
-  const { isPrintingPdf, handlePrintPdf } = usePdfGeneration(id);
+  
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -371,9 +371,7 @@ const AdminOfferDetail = () => {
                   onRequestInfo={() => setIsRequestInfoModalOpen(true)}
                   onEdit={handleEditOffer}
                   onPreview={handlePreview}
-                  onDownloadPdf={handlePrintPdf}
                   sendingEmail={sendingEmail}
-                  isGeneratingPdf={isPrintingPdf}
                 />
                 
                 {/* Configuration de l'offre */}

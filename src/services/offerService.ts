@@ -2,13 +2,6 @@
 // This file re-exports all offer service functionality
 // It provides backward compatibility while allowing for better code organization
 
-// Import specific named exports from services
-import { 
-  generateAndDownloadOfferPdf as pdfGenerateAndDownload, 
-  getOfferDataForPdf as pdfGetOfferData, 
-  generateSamplePdf 
-} from './offers/offerPdf';
-
 import { 
   isOfferSigned, 
   saveOfferSignature, 
@@ -49,9 +42,6 @@ export * from './offers';
 
 // Explicitly re-export named exports with aliases to avoid conflicts
 export {
-  pdfGenerateAndDownload as generateAndDownloadOfferPdf,
-  pdfGetOfferData as getOfferDataForPdf,
-  generateSamplePdf,
   isOfferSigned,
   saveOfferSignature,
   generateSignatureLink,
@@ -72,9 +62,6 @@ export {
   forceMigrateEquipmentData,
   deleteOfferEquipment
 };
-
-// Export the new HTML template generation function
-export { generateOfferFromHtmlTemplate } from './offers/offerPdf';
 
 // Export functions from offerDetail directly
 export * from './offers/offerDetail';

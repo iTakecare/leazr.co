@@ -8,10 +8,8 @@ interface ActionButtonsProps {
   status: string;
   offerId: string;
   onSendSignatureLink: () => void;
-  onDownloadPdf?: () => void;
   onFinalizeFinancing?: () => void;
   sendingEmail: boolean;
-  isPdfGenerating?: boolean;
   isUpdatingStatus?: boolean;
 }
 
@@ -19,10 +17,8 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
   status,
   offerId,
   onSendSignatureLink,
-  onDownloadPdf,
   onFinalizeFinancing,
   sendingEmail,
-  isPdfGenerating = false,
   isUpdatingStatus = false
 }) => {
   const canSendSignature = status === 'draft' || status === 'sent';
@@ -57,27 +53,6 @@ const AmbassadorActionButtons: React.FC<ActionButtonsProps> = ({
                 {isSigned ? "Signée par le client" : "Processus terminé"}
               </div>
             </div>
-            
-            {isSigned && onDownloadPdf && (
-              <Button 
-                onClick={onDownloadPdf}
-                disabled={isPdfGenerating}
-                className="w-full"
-                variant="outline"
-              >
-                {isPdfGenerating ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></div>
-                    Génération du PDF...
-                  </>
-                ) : (
-                  <>
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Télécharger le PDF signé
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         ) : (
           <div className="space-y-3">

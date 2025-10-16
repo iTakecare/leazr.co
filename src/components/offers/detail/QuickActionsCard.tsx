@@ -18,8 +18,6 @@ interface QuickActionsCardProps {
   shareUrl: string;
   signatureUrl: string;
   onSendToClient: () => void;
-  onDownloadPdf: () => void;
-  isPrintingPdf: boolean;
   isSending: boolean;
 }
 
@@ -29,8 +27,6 @@ const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
   shareUrl,
   signatureUrl,
   onSendToClient,
-  onDownloadPdf,
-  isPrintingPdf,
   isSending
 }) => {
   const [copiedShare, setCopiedShare] = useState(false);
@@ -158,26 +154,6 @@ const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
             </Button>
           </div>
         </div>
-
-        {/* Téléchargement PDF */}
-        <Button
-          variant="outline"
-          onClick={onDownloadPdf}
-          disabled={isPrintingPdf}
-          className="w-full"
-        >
-          {isPrintingPdf ? (
-            <>
-              <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-primary rounded-full"></div>
-              Génération...
-            </>
-          ) : (
-            <>
-              <FileDown className="mr-2 h-4 w-4" />
-              Télécharger PDF
-            </>
-          )}
-        </Button>
       </CardContent>
     </Card>
   );

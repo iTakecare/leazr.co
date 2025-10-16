@@ -230,8 +230,8 @@ export const OfferPreviewStep: React.FC<OfferPreviewStepProps> = ({
                 Votre offre personnalisée sera créée avec tous les détails ci-dessus. 
                 Elle sera automatiquement sauvegardée et vous pourrez la modifier par la suite si nécessaire.
               </p>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p>✓ PDF automatiquement généré avec vos templates</p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>✓ Votre offre personnalisée sera créée</p>
                 <p>✓ Calculs financiers intégrés</p>
                 <p>✓ Historique et suivi des modifications</p>
                 <p>✓ Envoi possible par email au client</p>

@@ -23,7 +23,6 @@ import {
   BarChart3
 } from "lucide-react";
 import { OFFER_STATUSES } from "@/components/offers/OfferStatusBadge";
-import { generateAndDownloadOfferPdf } from "@/services/offerService";
 import { useOfferDetail } from "@/hooks/offers/useOfferDetail";
 import OfferStatusBadge from "@/components/offers/OfferStatusBadge";
 import OfferWorkflowSection from "@/components/offers/OfferWorkflowSection";
@@ -41,7 +40,6 @@ const OfferDetail = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [currentAnalysisType, setCurrentAnalysisType] = useState<'internal' | 'leaser' | null>(null);
@@ -72,28 +70,6 @@ const OfferDetail = () => {
 
   const handleGoBack = () => {
     navigate("/offers");
-  };
-
-  const handleDownloadPdf = async () => {
-    if (!id) return;
-    
-    try {
-      setIsGeneratingPdf(true);
-      toast.info("Génération du PDF en cours...");
-      
-      const filename = await generateAndDownloadOfferPdf(id);
-      
-      if (filename) {
-        toast.success(`PDF généré avec succès: ${filename}`);
-      } else {
-        throw new Error("Erreur lors de la génération du PDF");
-      }
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
-    } finally {
-      setIsGeneratingPdf(false);
-    }
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -287,20 +263,6 @@ const OfferDetail = () => {
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownloadPdf}
-              disabled={isGeneratingPdf}
-              className="bg-white/80 hover:bg-white"
-            >
-              {isGeneratingPdf ? (
-                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
-              ) : (
-                <FileDown className="h-4 w-4 mr-2" />
-              )}
-              Télécharger PDF
             </Button>
           </div>
         </div>

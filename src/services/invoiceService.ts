@@ -479,7 +479,6 @@ export const syncBillitInvoiceStatuses = async (companyId: string, invoiceId?: s
   }
 };
 
-// Télécharger le PDF d'une facture depuis Billit
 export const downloadBillitInvoicePdf = async (invoiceId: string) => {
   try {
     // Récupérer la facture avec son URL PDF
@@ -530,16 +529,6 @@ export const downloadBillitInvoicePdf = async (invoiceId: string) => {
     return true;
   } catch (error) {
     console.error('❌ Erreur lors du téléchargement:', error);
-    throw error;
-  }
-};
-
-// Générer et télécharger le PDF d'une facture
-export const generateAndDownloadInvoicePdf = async (invoiceId: string) => {
-  try {
-    await downloadBillitInvoicePdf(invoiceId);
-  } catch (error) {
-    console.error('Erreur lors de la génération du PDF:', error);
     throw error;
   }
 };

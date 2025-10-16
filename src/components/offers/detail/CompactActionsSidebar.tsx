@@ -20,9 +20,7 @@ interface CompactActionsSidebarProps {
   onRequestInfo: () => void;
   onEdit: () => void;
   onPreview: () => void;
-  onDownloadPdf: () => void;
   sendingEmail: boolean;
-  isGeneratingPdf: boolean;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -31,9 +29,7 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onRequestInfo,
   onEdit,
   onPreview,
-  onDownloadPdf,
-  sendingEmail,
-  isGeneratingPdf
+  sendingEmail
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -175,17 +171,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
               <span>Demander docs</span>
             </Button>
           )}
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="w-full justify-start text-sm h-8"
-            onClick={onDownloadPdf}
-            disabled={isGeneratingPdf}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            <span>{isGeneratingPdf ? "Génération..." : "PDF"}</span>
-          </Button>
           
           <Button 
             variant="outline" 

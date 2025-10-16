@@ -23,9 +23,9 @@ const PublicOfferView = () => {
     isSigning,
     signed,
     signature,
-    isPrintingPdf,
+    debugInfo,
     handleSignature,
-    handlePrintPdf
+    clientIp
   } = useClientOffer(id);
 
   if (loading) {
@@ -137,28 +137,9 @@ const PublicOfferView = () => {
                   setSignerName={setSignerName}
                   isSigning={isSigning}
                   onSign={handleSignature}
-                  isPrintingPdf={isPrintingPdf}
-                  onPrintPdf={handlePrintPdf}
                   monthlyPayment={offer.monthly_payment || 0}
                 />
               )}
-
-              <div className="flex justify-end mt-6 space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={handlePrintPdf}
-                  disabled={isPrintingPdf || isSigning}
-                >
-                  {isPrintingPdf ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Génération du PDF...
-                    </>
-                  ) : (
-                    "Télécharger en PDF"
-                  )}
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
