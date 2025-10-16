@@ -141,6 +141,20 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     try {
       setUpdating(true);
 
+      // Cas spécial : transition vers validated depuis leaser_approved
+      // On laisse le parent décider s'il faut ouvrir la modale d'email
+      if (targetStatus === 'validated' && currentStatus === 'leaser_approved') {
+        console.log("🔔 Détection transition spéciale vers validated depuis leaser_approved");
+        
+        if (onStatusChange) {
+          // Appeler le parent qui peut décider d'ouvrir la modale
+          onStatusChange(targetStatus);
+          setUpdating(false);
+          return; // Le parent gère la suite via la modale
+        }
+      }
+
+      // Cas normal : continuer avec la mise à jour directe
       // Utiliser le service updateOfferStatus qui contient la logique de conversion automatique
       const success = await updateOfferStatus(
         offerId,

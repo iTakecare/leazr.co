@@ -79,19 +79,29 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     setDialogOpen(true);
   };
 
+  // Gestion des clics depuis le stepper
+  const handleStepperStatusChange = (targetStatus: string) => {
+    console.log("OfferWorkflowSection - Stepper status change:", targetStatus, "from:", currentStatus);
+    
+    // CAS SPÉCIAL : Validation après approbation du leaser
+    if (targetStatus === 'validated' && currentStatus === 'leaser_approved') {
+      console.log("🔔 Ouverture de la modale d'email avant validation");
+      setEmailModalReason("Validation de l'offre après approbation du leaser");
+      setSelectedStatus(targetStatus);
+      setShowEmailModal(true);
+      return;
+    }
+    
+    // CAS NORMAL : laisser le stepper gérer lui-même (il a déjà appelé updateOfferStatus)
+    if (onStatusChange) {
+      onStatusChange(targetStatus);
+    }
+  };
+
   const handleStatusChange = async (reason: string) => {
     if (!selectedStatus) return;
     
-    // CAS SPÉCIAL : Validation après approbation du leaser
-    if (selectedStatus === 'offer_validation' && currentStatus === 'leaser_approved') {
-      console.log("🔔 Ouverture de la modale d'email avant validation");
-      setEmailModalReason(reason);
-      setShowEmailModal(true);
-      setDialogOpen(false);
-      return; // Ne pas continuer avec le changement de statut
-    }
-    
-    // CAS NORMAL : Changement de statut sans email
+    // CAS NORMAL : Changement de statut
     console.log("OfferWorkflowSection - Confirming status change:", selectedStatus, "with reason:", reason);
     setIsUpdating(true);
     try {
@@ -124,13 +134,13 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true) => {
     setIsUpdating(true);
     try {
-      // 1. Mettre à jour le statut
-      const success = await updateOfferStatus(
-        offerId, 
-        'offer_validation', 
-        currentStatus, 
-        emailModalReason
-      );
+    // 1. Mettre à jour le statut
+    const success = await updateOfferStatus(
+      offerId, 
+      'validated', 
+      currentStatus, 
+      emailModalReason
+    );
       
       if (!success) {
         toast.error("Erreur lors de la mise à jour du statut");
@@ -149,7 +159,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
       // 3. Rafraîchir les données
       await fetchData();
       if (onStatusChange) {
-        onStatusChange('offer_validation');
+        onStatusChange('validated');
       }
       
       setShowEmailModal(false);
@@ -165,20 +175,20 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const handleValidateWithoutEmail = async () => {
     setIsUpdating(true);
     try {
-      // Uniquement mettre à jour le statut, SANS envoyer l'email
-      const success = await updateOfferStatus(
-        offerId, 
-        'offer_validation', 
-        currentStatus, 
-        emailModalReason
-      );
+    // Uniquement mettre à jour le statut, SANS envoyer l'email
+    const success = await updateOfferStatus(
+      offerId, 
+      'validated', 
+      currentStatus, 
+      emailModalReason
+    );
       
       if (success) {
-        toast.success("Offre validée sans envoi d'email");
-        await fetchData();
-        if (onStatusChange) {
-          onStatusChange('offer_validation');
-        }
+      toast.success("Offre validée sans envoi d'email");
+      await fetchData();
+      if (onStatusChange) {
+        onStatusChange('validated');
+      }
       } else {
         toast.error("Erreur lors de la mise à jour du statut");
       }
@@ -235,13 +245,13 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
             </TabsList>
             
             <TabsContent value="workflow" className="py-4">
-              <InteractiveWorkflowStepper
-                currentStatus={currentStatus}
-                offerId={offerId}
-                onStatusChange={onStatusChange}
-                onAnalysisClick={onAnalysisClick}
-                offer={offer}
-              />
+            <InteractiveWorkflowStepper
+              currentStatus={currentStatus}
+              offerId={offerId}
+              onStatusChange={handleStepperStatusChange}
+              onAnalysisClick={onAnalysisClick}
+              offer={offer}
+            />
               
               {isAdmin && (
                 <div className="mt-4 text-center">
