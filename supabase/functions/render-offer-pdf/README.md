@@ -51,14 +51,30 @@ Voir `templates/itakecare-v1.html` pour la liste complète des variables.
 - Carlito (Google Fonts)
 
 ## Phase actuelle
-Phase 3 complétée - Génération PDF avec Puppeteer implémentée
-- ✅ Puppeteer configuré pour Deno Deploy
-- ✅ Conversion HTML vers PDF A4
-- ✅ Support des marges configurables
-- ✅ Gestion des ressources (fonts, images)
+Phase 4 complétée - Intégration frontend
+- ✅ Service PDF créé (`src/services/pdfService.ts`)
+- ✅ Fonctions: `generateOfferPdf`, `downloadOfferPdf`, `previewOfferPdf`
+- ✅ Hook `handleGenerateOffer` mis à jour pour télécharger le PDF
+- ✅ Gestion des erreurs et notifications toast
 
 ## Phases
 - ✅ Phase 1: Infrastructure Edge Function
 - ✅ Phase 2: Template HTML iTakecare v1
 - ✅ Phase 3: Génération PDF réelle avec Puppeteer
-- 🔄 Phase 4: Intégration frontend (appel + téléchargement)
+- ✅ Phase 4: Intégration frontend (appel + téléchargement)
+
+## Utilisation complète
+
+### Depuis le frontend
+```typescript
+import { downloadOfferPdf, previewOfferPdf } from "@/services/pdfService";
+
+// Télécharger le PDF
+await downloadOfferPdf(offerId, 'Mon-Offre.pdf', 'itakecare-v1');
+
+// Prévisualiser le PDF
+await previewOfferPdf(offerId, 'itakecare-v1');
+```
+
+### Disponible dans les hooks
+Le hook `useOffers` expose `handleGenerateOffer` qui télécharge automatiquement le PDF.
