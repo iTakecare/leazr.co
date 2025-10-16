@@ -1,0 +1,33 @@
+{
+  "id": "itakecare-v1",
+  "name": "iTakecare - Modèle officiel",
+  "version": "1.0.0",
+  "description": "Template officiel iTakecare avec 7 sections",
+  "author": "iTakecare",
+  "pages": [
+    { "id": "cover", "title": "Page d'entête", "order": 1 },
+    { "id": "vision", "title": "Vision", "order": 2 },
+    { "id": "solution", "title": "Solution", "order": 3 },
+    { "id": "values", "title": "Valeurs", "order": 4 },
+    { "id": "function", "title": "Fonctionnement", "order": 5 },
+    { "id": "terms", "title": "Modalités", "order": 6 },
+    { "id": "end", "title": "Page de fin", "order": 7 }
+  ],
+  "variables": {
+    "client": ["name", "vat", "address", "contactName", "email", "phone"],
+    "offer": ["id", "date", "termMonths", "totalMonthly", "fees", "insurance"],
+    "company": ["name", "address", "email", "phone", "vat"],
+    "metrics": ["clientsCount", "devicesCount", "co2SavedTons"],
+    "items": ["array"]
+  },
+  "assets": {
+    "logo": "/pdf-templates/itakecare-v1/assets/logo.png",
+    "coverImage": "/pdf-templates/itakecare-v1/assets/cover-image.png",
+    "visionBackground": "/pdf-templates/itakecare-v1/assets/vision-background.png",
+    "valueEvolution": "/pdf-templates/itakecare-v1/assets/value-evolution.png",
+    "valueConfiance": "/pdf-templates/itakecare-v1/assets/value-confiance.png",
+    "valueEntraide": "/pdf-templates/itakecare-v1/assets/value-entraide.png",
+    "endHero": "/pdf-templates/itakecare-v1/assets/end-hero.png"
+  },
+  "preview": "/pdf-templates/itakecare-v1/preview.png"
+}

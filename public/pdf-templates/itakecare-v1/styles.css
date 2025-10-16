@@ -1,0 +1,94 @@
+/* iTakecare Template Styles (A4, 12mm margins) */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body { font-family: 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #000; background: #fff; }
+
+:root { --blue-dark: #33638e; --blue-medium: #406f99; --turquoise: #4ab6c4; --pink: #da2959; }
+
+.page { width: 210mm; height: 297mm; padding: 12mm; position: relative; background: #fff; page-break-after: always; }
+
+/* Header (pages 2+) */
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; position: relative; }
+.page-header-title { font-size: 16pt; letter-spacing: 1px; }
+.page-header-logo { width: 50px; height: auto; }
+.page-header-line { position: absolute; top: 50px; left: 12mm; right: 150px; height: 2px; background: linear-gradient(to right, var(--blue-medium), var(--turquoise)); }
+
+/* Title ribbons */
+.section-title-rounded { background: var(--blue-medium); color: #fff; padding: 12px 40px; border-radius: 0 50px 50px 0; margin: 30px 0 20px -12mm; display: inline-block; font-size: 18pt; font-weight: 700; }
+
+/* Cover */
+.cover-hero { position: absolute; top: 0; right: 0; width: 60%; height: 60%; overflow: hidden; border-radius: 0 0 0 300px; }
+.cover-image { width: 100%; height: 100%; object-fit: cover; }
+.cover-content { position: relative; top: 60%; padding: 40px 0; }
+.cover-title { font-size: 36pt; font-weight: 400; line-height: 1.2; margin-bottom: 20px; }
+.cover-divider { width: 400px; height: 4px; background: var(--blue-medium); margin: 30px 0; }
+.cover-subtitle { font-size: 14pt; margin-bottom: 60px; }
+.cover-footer { display: flex; align-items: center; justify-content: space-between; }
+.cover-author { font-size: 12pt; font-weight: 700; }
+.cover-logo { width: 180px; }
+
+/* Vision */
+.vision-intro p { text-align: justify; margin-bottom: 12px; font-size: 10pt; }
+.vision-hero { background: var(--turquoise); background-image: url('./assets/vision-background.png'); background-size: cover; background-position: center; padding: 60px 40px; margin: 30px -12mm; position: relative; }
+.vision-statement { color: #fff; font-size: 22pt; font-weight: 700; font-style: italic; text-align: center; line-height: 1.4; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+/* Solution */
+.solution-intro { margin-top: 20px; }
+.equipment-table { border: 1px solid #ddd; margin: 30px 0; min-height: 300px; }
+.equipment-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+.solution-summary { text-align: center; margin: 40px 0; }
+.solution-summary h4 { font-size: 20pt; margin-bottom: 20px; }
+.summary-row { display: flex; justify-content: space-around; margin: 20px 0; font-size: 11pt; }
+.contract-terms { margin-top: 30px; font-size: 10pt; }
+
+/* Values */
+.values-grid { display: flex; flex-direction: column; gap: 30px; margin: 40px 0; }
+.value-item { display: flex; align-items: flex-start; gap: 20px; }
+.value-circle { width: 120px; height: 120px; border-radius: 50%; border: 8px solid var(--turquoise); overflow: hidden; flex-shrink: 0; }
+.value-circle img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); }
+.value-content h4 { color: var(--blue-medium); font-size: 14pt; margin-bottom: 10px; }
+.metrics-footer { background: var(--blue-medium); color: #fff; padding: 20px; display: flex; justify-content: space-around; margin: 40px -12mm 20px; }
+.metric { text-align: center; }
+.metric-value { font-size: 24pt; font-weight: 700; }
+.metric-label { font-size: 9pt; max-width: 150px; }
+.trust-section { text-align: center; margin: 30px 0; }
+.trust-section h4 { font-size: 14pt; margin-bottom: 20px; }
+.logos-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; padding: 20px; }
+.logos-grid img { max-width: 80px; height: auto; filter: grayscale(100%); opacity: 0.7; }
+
+/* Function */
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 40px 0; }
+.step-item { position: relative; }
+.step-number { width: 60px; height: 60px; border-radius: 50%; background: var(--turquoise); color: #fff; font-size: 24pt; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+.step-card { background: var(--blue-medium); color: #fff; padding: 60px 20px 20px; border-radius: 20px; min-height: 200px; text-align: center; font-size: 9pt; margin-top: -30px; }
+.testimonials-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; margin: 60px 0; }
+.testimonial-item { position: relative; padding-left: 80px; }
+.testimonial-icon { position: absolute; left: 0; top: 0; width: 70px; height: 70px; border-radius: 50%; background: var(--turquoise); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24pt; }
+.testimonial-bubble { background: var(--blue-medium); color: #fff; padding: 30px; border-radius: 50%; width: 100%; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 9.5pt; font-style: italic; }
+.testimonial-author { font-weight: 700; margin-top: 20px; font-style: normal; }
+
+/* Terms */
+.terms-intro { font-size: 10pt; margin-bottom: 20px; }
+.terms-list { font-size: 9.5pt; line-height: 1.6; }
+.terms-list ul { margin-left: 20px; }
+.terms-list li { margin-bottom: 12px; }
+.terms-list strong { font-weight: 700; }
+
+/* End page */
+.end-page { padding: 0; }
+.end-hero { width: 100%; height: 30%; overflow: hidden; }
+.end-hero img { width: 100%; height: 100%; object-fit: cover; }
+.end-content { padding: 40px 60px; text-align: center; }
+.end-logo { width: 200px; margin-bottom: 40px; }
+.end-title { font-size: 32pt; font-weight: 400; margin-bottom: 30px; }
+.end-list p { font-size: 16pt; margin: 8px 0; }
+.end-divider { width: 400px; height: 3px; background: var(--blue-medium); margin: 50px auto; }
+.end-contact h4 { font-size: 12pt; font-weight: 700; margin-bottom: 20px; }
+.end-contact p { font-size: 10pt; margin: 10px 0; }
+
+/* Footer common */
+.page-footer { position: absolute; bottom: 12mm; left: 12mm; right: 12mm; display: flex; justify-content: space-between; align-items: center; }
+.footer-logo { width: 120px; }
+.footer-note { font-size: 8pt; font-style: italic; color: #666; }
+
+@media print { .page { page-break-after: always; page-break-inside: avoid; } }

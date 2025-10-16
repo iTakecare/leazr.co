@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proposition Commerciale iTakecare</title>
+  <link rel="canonical" href="/pdf-templates/itakecare-v1/template.html" />
+  <meta name="description" content="Template iTakecare d'offre commerciale en 7 pages, prêt pour PDF." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- PAGE 1: COVER -->
+  <section id="cover" class="page">
+    <div class="cover-hero">
+      <img src="./assets/cover-image.png" alt="Image de couverture iTakecare" class="cover-image" />
+    </div>
+    <div class="cover-content">
+      <h1 class="cover-title">Proposition Commerciale<br/>pour Services de Leasing IT</h1>
+      <div class="cover-divider"></div>
+      <p class="cover-subtitle">Offre spécialement conçue pour<br/><strong>{{client.name}}</strong></p>
+      <div class="cover-footer">
+        <p class="cover-author">PAR ITAKECARE • GIANNI SERGI</p>
+        <img src="./assets/logo.png" alt="Logo iTakecare" class="cover-logo" />
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 2: VISION -->
+  <section id="vision" class="page">
+    <div class="page-header">
+      <h2 class="page-header-title">PROPOSITION COMMERCIALE</h2>
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="page-header-logo" />
+      <div class="page-header-line"></div>
+    </div>
+
+    <div class="vision-intro">
+      <p>Nous sommes ravis de présenter notre offre de location innovante et durable, alignée sur vos besoins et votre budget.</p>
+      <p>Notre approche vous garantit simplicité, transparence et efficacité, du choix de l'équipement jusqu'à la maintenance.</p>
+    </div>
+
+    <div class="section-title-rounded">
+      <h3>Notre vision</h3>
+    </div>
+
+    <div class="vision-hero">
+      <p class="vision-statement">
+        <em>Nous souhaitons être un acteur majeur dans l'accès aux technologies pour tous les professionnels du secteur Européen. Nous travaillons chaque jour à un monde plus juste et plus ouvert.</em>
+      </p>
+    </div>
+
+    <div class="page-footer">
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="footer-logo" />
+    </div>
+  </section>
+
+  <!-- PAGE 3: SOLUTION -->
+  <section id="solution" class="page">
+    <div class="page-header">
+      <h2 class="page-header-title">PROPOSITION COMMERCIALE</h2>
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="page-header-logo" />
+      <div class="page-header-line"></div>
+    </div>
+
+    <div class="section-title-rounded">
+      <h3>Notre solution</h3>
+    </div>
+
+    <p class="solution-intro">Après analyse, voici l'offre que nous pouvons vous proposer :</p>
+
+    <div class="equipment-table">
+      {{#each items}}
+      <div class="equipment-row">
+        <span class="eq-name">{{this.name}}</span>
+        <span class="eq-quantity">x{{this.quantity}}</span>
+        <span class="eq-price">{{this.monthlyPrice}}€/mois</span>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="solution-summary">
+      <h4>Mensualité totale : <strong>{{offer.totalMonthly}}€/mois</strong></h4>
+      <div class="summary-row">
+        <span><em>EST. ASSURANCE ANNUELLE*: {{offer.insurance.annualEstimated}}€</em></span>
+        <span><strong>- FRAIS DE DOSSIER UNIQUE*: {{offer.fees}}€ HTVA</strong></span>
+      </div>
+      <p class="contract-terms">
+        <strong>Contrat de {{offer.termMonths}} mois</strong><br/>
+        Livraison incluse - Maintenance incluse - Garantie en échange direct incluse
+      </p>
+    </div>
+
+    <div class="page-footer">
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="footer-logo" />
+      <p class="footer-note">*voir modalités de leasing en page 6</p>
+    </div>
+  </section>
+
+  <!-- PAGE 4: VALUES -->
+  <section id="values" class="page">
+    <div class="page-header">
+      <h2 class="page-header-title">PROPOSITION COMMERCIALE</h2>
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="page-header-logo" />
+      <div class="page-header-line"></div>
+    </div>
+
+    <div class="section-title-rounded">
+      <h3>Nos valeurs</h3>
+    </div>
+
+    <div class="values-grid">
+      <div class="value-item">
+        <div class="value-circle">
+          <img src="./assets/value-evolution.png" alt="Valeur Evolution" />
+        </div>
+        <div class="value-content">
+          <h4>Evolution.</h4>
+          <p>Tournés vers l'avenir, nous travaillons à <strong>devancer</strong> les besoins de nos clients.</p>
+        </div>
+      </div>
+      <div class="value-item">
+        <div class="value-circle">
+          <img src="./assets/value-confiance.png" alt="Valeur Confiance" />
+        </div>
+        <div class="value-content">
+          <h4>Confiance.</h4>
+          <p>Une relation basée sur la <strong>transparence</strong> et la <strong>fiabilité</strong>.</p>
+        </div>
+      </div>
+      <div class="value-item">
+        <div class="value-circle">
+          <img src="./assets/value-entraide.png" alt="Valeur Entraide" />
+        </div>
+        <div class="value-content">
+          <h4>Entraide.</h4>
+          <p>Nous avançons <strong>ensemble</strong>, main dans la main avec nos partenaires.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-footer">
+      <div class="metric">
+        <p class="metric-value">{{metrics.clientsCount}}</p>
+        <p class="metric-label">de clients satisfaits</p>
+      </div>
+      <div class="metric">
+        <p class="metric-value">{{metrics.devicesCount}}</p>
+        <p class="metric-label">appareils dont nous prenons soin</p>
+      </div>
+      <div class="metric">
+        <p class="metric-value">{{metrics.co2SavedTons}}</p>
+        <p class="metric-label">tonnes de CO2e économisées</p>
+      </div>
+    </div>
+
+    <div class="trust-section">
+      <h4>ILS NOUS FONT CONFIANCE</h4>
+      <div class="logos-grid">
+        <!-- Logos partenaires -->
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <p class="footer-note">Et beaucoup d'autres...</p>
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="footer-logo" />
+    </div>
+  </section>
+
+  <!-- PAGE 5: FUNCTION -->
+  <section id="function" class="page">
+    <div class="section-title-rounded">
+      <h3>Fonctionnement</h3>
+    </div>
+    <div class="steps-grid">
+      <div class="step-item"><div class="step-number">1</div><div class="step-card">Analyse des besoins</div></div>
+      <div class="step-item"><div class="step-number">2</div><div class="step-card">Proposition personnalisée</div></div>
+      <div class="step-item"><div class="step-number">3</div><div class="step-card">Mise en place</div></div>
+      <div class="step-item"><div class="step-number">4</div><div class="step-card">Maintenance & suivi</div></div>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-item">
+        <div class="testimonial-icon">“”</div>
+        <div class="testimonial-bubble">Un service fiable, transparent et efficace !<div class="testimonial-author">— Client A</div></div>
+      </div>
+      <div class="testimonial-item">
+        <div class="testimonial-icon">“”</div>
+        <div class="testimonial-bubble">Une expérience fluide du début à la fin.<div class="testimonial-author">— Client B</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 6: TERMS -->
+  <section id="terms" class="page">
+    <div class="section-title-rounded">
+      <h3>Modalités</h3>
+    </div>
+    <div class="terms-intro">Conditions générales du contrat de location :</div>
+    <div class="terms-list">
+      <ul>
+        <li><strong>Durée du contrat :</strong> {{offer.termMonths}} mois.</li>
+        <li><strong>Assurance :</strong> estimation annuelle de {{offer.insurance.annualEstimated}}€ (minimum {{offer.insurance.minAnnual}}€).</li>
+        <li><strong>Frais de dossier :</strong> {{offer.fees}}€ HTVA, payables une seule fois.</li>
+        <li><strong>Mensualités :</strong> {{offer.totalMonthly}}€/mois.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PAGE 7: END -->
+  <section id="end" class="page end-page">
+    <div class="end-hero">
+      <img src="./assets/end-hero.png" alt="Nous prenons soin" />
+    </div>
+    <div class="end-content">
+      <img src="./assets/logo.png" alt="Logo iTakecare" class="end-logo" />
+      <h2 class="end-title">Nous prenons soin</h2>
+      <div class="end-list">
+        <p>de la planète,</p>
+        <p>de votre business,</p>
+        <p>de vos collaborateurs,</p>
+        <p>de votre parc informatique.</p>
+      </div>
+      <div class="end-divider"></div>
+      <div class="end-contact">
+        <h4>{{company.name}}</h4>
+        <p>{{company.address}}</p>
+        <p>Tel : {{company.phone}} • Mail : {{company.email}} • TVA: {{company.vat}}</p>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
