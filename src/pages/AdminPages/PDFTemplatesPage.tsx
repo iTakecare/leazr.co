@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Settings } from "lucide-react";
+import PDFTemplateEditor from "@/components/admin/PDFTemplateEditor";
 
 const PDFTemplatesPage: React.FC = () => {
   const { companySlug } = useParams();
   const { company } = useCompanySlugAccess(companySlug);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
 
-  const { data: templates, isLoading } = useQuery({
+  const { data: templates, isLoading, refetch } = useQuery({
     queryKey: ["pdf-templates", company?.id],
     queryFn: async () => {
       if (!company?.id) return [];
@@ -97,6 +100,13 @@ const PDFTemplatesPage: React.FC = () => {
                       <p className="text-sm text-muted-foreground">Version: <strong>{template.version || "1.0.0"}</strong></p>
                     </div>
                     <div className="flex gap-3">
+                      <Button 
+                        onClick={() => setEditingTemplate(template)}
+                        variant="outline"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Personnaliser
+                      </Button>
                       {!template.is_default && (
                         <Button 
                           onClick={() => handleSetDefault(template.id)} 
@@ -134,6 +144,15 @@ const PDFTemplatesPage: React.FC = () => {
             Aucun template disponible.
           </CardContent>
         </Card>
+      )}
+
+      {editingTemplate && (
+        <PDFTemplateEditor
+          template={editingTemplate}
+          open={!!editingTemplate}
+          onOpenChange={(open) => !open && setEditingTemplate(null)}
+          onSave={refetch}
+        />
       )}
     </div>
   );

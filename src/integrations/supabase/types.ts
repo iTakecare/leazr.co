@@ -4227,7 +4227,9 @@ export type Database = {
           companySiret: string
           created_at: string
           created_by: string | null
+          customization_data: Json | null
           description: string | null
+          duplicated_from_id: string | null
           field_mappings: Json
           fields: Json
           footerText: string
@@ -4235,6 +4237,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          last_customized_at: string | null
           logoURL: string | null
           manifest_data: Json | null
           name: string
@@ -4259,7 +4262,9 @@ export type Database = {
           companySiret: string
           created_at?: string
           created_by?: string | null
+          customization_data?: Json | null
           description?: string | null
+          duplicated_from_id?: string | null
           field_mappings?: Json
           fields: Json
           footerText: string
@@ -4267,6 +4272,7 @@ export type Database = {
           id: string
           is_active?: boolean
           is_default?: boolean
+          last_customized_at?: string | null
           logoURL?: string | null
           manifest_data?: Json | null
           name: string
@@ -4291,7 +4297,9 @@ export type Database = {
           companySiret?: string
           created_at?: string
           created_by?: string | null
+          customization_data?: Json | null
           description?: string | null
+          duplicated_from_id?: string | null
           field_mappings?: Json
           fields?: Json
           footerText?: string
@@ -4299,6 +4307,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          last_customized_at?: string | null
           logoURL?: string | null
           manifest_data?: Json | null
           name?: string
@@ -4321,6 +4330,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdf_templates_duplicated_from_id_fkey"
+            columns: ["duplicated_from_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -6153,7 +6169,9 @@ export type Database = {
           companySiret: string
           created_at: string
           created_by: string | null
+          customization_data: Json | null
           description: string | null
+          duplicated_from_id: string | null
           field_mappings: Json
           fields: Json
           footerText: string
@@ -6161,6 +6179,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          last_customized_at: string | null
           logoURL: string | null
           manifest_data: Json | null
           name: string
