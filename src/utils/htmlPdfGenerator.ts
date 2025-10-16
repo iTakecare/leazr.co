@@ -50,26 +50,31 @@ const cleanHtmlForPdf = (html: string): string => {
       .replace(/&amp;/g, '&');
   }
   
-  // Decode all HTML entities (including &#x26; → &)
+  // Decode all HTML entities (including &#x26; → &) - FORCE multiple passes
   console.log('🔧 Décodage des entités HTML...');
-  cleanedHtml = cleanedHtml
-    .replace(/&amp;/g, '&')
-    .replace(/&#x26;/gi, '&')
-    .replace(/&#38;/g, '&')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#160;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&#34;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&#60;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#62;/g, '>');
+  for (let i = 0; i < 3; i++) {
+    cleanedHtml = cleanedHtml
+      .replace(/&amp;/g, '&')
+      .replace(/&#x26;/gi, '&')
+      .replace(/&#38;/g, '&')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#160;/g, ' ')
+      .replace(/&quot;/g, '"')
+      .replace(/&#34;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&#60;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#62;/g, '>');
+  }
+  
+  // Replace pagination references: "voir modalités de leasing en page X" → "voir modalités de leasing"
+  console.log('📖 Suppression des références de pagination...');
+  cleanedHtml = cleanedHtml.replace(/voir modalités de leasing en page \d+/gi, 'voir modalités de leasing');
   
   // Remove sections with only unfilled placeholders (no real content)
   console.log('🗑️ Suppression des sections avec placeholders vides...');
-  // Match divs containing only {{...}} placeholders and whitespace
   cleanedHtml = cleanedHtml.replace(
     /<div[^>]*>\s*(\{\{[^}]+\}\}\s*)+<\/div>/gi, 
     ''
@@ -85,8 +90,55 @@ const cleanHtmlForPdf = (html: string): string => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(cleanedHtml, 'text/html');
   
-  // Remove empty .page divs (pages with no meaningful content)
-  console.log('📄 Suppression des pages vides...');
+  // Deduplicate cover titles: keep only first "Proposition Commerciale" and "pour Services de Leasing IT"
+  console.log('🎯 Dédoublonnage des titres de couverture...');
+  const coverPage = doc.querySelector('.cover-page, .page:first-child');
+  if (coverPage) {
+    const h1Elements = coverPage.querySelectorAll('h1');
+    const h2Elements = coverPage.querySelectorAll('h2');
+    
+    let seenProposition = false;
+    h1Elements.forEach((h1) => {
+      if (h1.textContent?.includes('Proposition Commerciale')) {
+        if (seenProposition) {
+          console.log('🗑️ Suppression du doublon "Proposition Commerciale"');
+          h1.remove();
+        } else {
+          seenProposition = true;
+        }
+      }
+    });
+    
+    let seenServices = false;
+    h2Elements.forEach((h2) => {
+      if (h2.textContent?.includes('pour Services de Leasing IT')) {
+        if (seenServices) {
+          console.log('🗑️ Suppression du doublon "pour Services de Leasing IT"');
+          h2.remove();
+        } else {
+          seenServices = true;
+        }
+      }
+    });
+  }
+  
+  // Hide "ILS NOUS FONT CONFIANCE" section if empty or contains only placeholder text
+  console.log('👥 Vérification de la section clients...');
+  const clientsSections = doc.querySelectorAll('.clients-section, [class*="clients"]');
+  clientsSections.forEach((section) => {
+    const text = section.textContent || '';
+    const hasRealLogos = section.querySelectorAll('img').length > 0 && 
+                         !text.includes('/api/placeholder');
+    const hasPlaceholderText = /Client [123]/.test(text) || text.includes('placeholder');
+    
+    if (!hasRealLogos || hasPlaceholderText) {
+      console.log('🗑️ Suppression de la section clients (vide ou placeholder)');
+      section.remove();
+    }
+  });
+  
+  // Remove empty .page divs (pages with no meaningful content) - FIRST PASS
+  console.log('📄 Suppression des pages vides (Pass 1)...');
   const pages = doc.querySelectorAll('.page');
   let removedPages = 0;
   
@@ -223,7 +275,8 @@ export const generateSimplePdf = async (
       },
       pagebreak: { 
         mode: ['css', 'legacy'],
-        avoid: 'img, table, .card, .section, h1, h2'
+        after: '.page',
+        avoid: 'img, table, .card, .section, h1, h2, .solution-box, .step-card, .testimonial-card, .value-item'
       }
     };
     
@@ -284,24 +337,25 @@ export const generateSimplePdf = async (
         /* Pages: Contrôle strict des page-breaks pour éviter pages vides */
         .page { 
           width: 210mm !important; 
-          height: 297mm !important;
-          max-height: 297mm !important;
-          padding: 8mm !important; 
+          min-height: 297mm !important;
+          padding: 10mm !important; 
           margin: 0 !important;
           box-shadow: none !important;
-          page-break-after: always;
+          overflow: visible;
           page-break-inside: avoid;
-          overflow: hidden;
         }
         
         .page:last-child { 
           page-break-after: auto !important; 
         }
         
-        /* Pages spéciales sans page-break-after */
-        .cover-page,
-        .final-page {
+        /* Pages spéciales avec page-break-after */
+        .cover-page {
           page-break-after: always !important;
+        }
+        
+        .final-page {
+          page-break-after: auto !important;
         }
         
         .page-break { 
@@ -365,6 +419,19 @@ export const generateSimplePdf = async (
       
       // Petite pause pour s'assurer que le rendu est stable
       await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // PASS 2: Remove empty pages from DOM after render
+      console.log('📄 Suppression des pages vides (Pass 2 - DOM)...');
+      const domPages = container.querySelectorAll('.page');
+      domPages.forEach((page) => {
+        const textContent = page.textContent?.trim() || '';
+        const hasImages = page.querySelectorAll('img').length > 0;
+        
+        if ((!textContent || textContent.length < 10) && !hasImages) {
+          console.log('🗑️ Suppression page vide (DOM)');
+          page.remove();
+        }
+      });
       
       // Générer le PDF
       console.log("Génération du PDF en cours...");
@@ -468,11 +535,11 @@ const prepareOfferDataForTemplate = (offerData: any) => {
     // Leaser info
     leaser_name: offerData.leaser?.name || 'Leaser par défaut',
     
-    // Default images and logos
-    client_logos: '<div class="client-logos"><img src="/api/placeholder/150/60" alt="Logo client" style="max-height: 60px; margin: 0 10px;" /></div>',
-    base64_image_cover: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwNzNlNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+Q292ZXI8L3RleHQ+PC9zdmc+",
-    base64_image_vision: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwYzg1MSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+VmlzaW9uPC90ZXh0Pjwvc3ZnPg==",
-    base64_image_logo: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudGFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+TG9nbzwvdGV4dD48L3N2Zz4="
+    // Empty defaults - no demo data
+    client_logos: '',
+    base64_image_cover: '',
+    base64_image_vision: '',
+    base64_image_logo: ''
   };
   
   console.log("✅ Template data prepared with", Object.keys(templateData).length, "fields");

@@ -51,9 +51,6 @@ export const generateOfferPdf = async (offerData, pdfOptions?: { useHtmlTemplate
         scale: 2, // Meilleure résolution
         useCORS: true,
         logging: false,
-        width: 794, // Largeur A4 en pixels (210mm à 96dpi)
-        height: 1123, // Hauteur A4 en pixels (297mm à 96dpi)
-        windowWidth: 794,
         letterRendering: true,
         scrollX: 0,
         scrollY: 0,

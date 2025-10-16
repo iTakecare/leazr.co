@@ -576,12 +576,16 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
             width: 210mm !important;
             min-height: 297mm !important;
             padding: 10mm !important;
-            page-break-after: always;
             margin: 0 !important;
             box-shadow: none !important;
+            overflow: visible;
+            page-break-inside: avoid;
           }
           body.generating-pdf .page:last-child {
             page-break-after: auto;
+          }
+          body.generating-pdf .cover-page {
+            page-break-after: always !important;
           }
           body.generating-pdf .page-break {
             display: block;
@@ -665,7 +669,8 @@ export const generateOfferFromHtmlTemplate = async (offerId: string) => {
               },
               pagebreak: { 
                 mode: ['css', 'legacy'],
-                avoid: 'img, table, .card, .section, h1, h2'
+                after: '.page',
+                avoid: 'img, table, .card, .section, h1, h2, .solution-box, .step-card, .testimonial-card, .value-item'
               }
             };
             
