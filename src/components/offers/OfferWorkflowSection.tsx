@@ -84,7 +84,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     console.log("OfferWorkflowSection - Stepper status change:", targetStatus, "from:", currentStatus);
     
     // CAS SPÉCIAL : Validation après approbation du leaser
-    if (targetStatus === 'validated' && currentStatus === 'leaser_approved') {
+    if ((targetStatus === 'validated' || targetStatus === 'offer_validation') && currentStatus === 'leaser_approved') {
       console.log("🔔 Ouverture de la modale d'email avant validation");
       setEmailModalReason("Validation de l'offre après approbation du leaser");
       setSelectedStatus(targetStatus);
@@ -137,7 +137,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     // 1. Mettre à jour le statut
     const success = await updateOfferStatus(
       offerId, 
-      'validated', 
+      'offer_validation', 
       currentStatus, 
       emailModalReason
     );
@@ -159,7 +159,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
       // 3. Rafraîchir les données
       await fetchData();
       if (onStatusChange) {
-        onStatusChange('validated');
+        onStatusChange('offer_validation');
       }
       
       setShowEmailModal(false);
@@ -178,7 +178,7 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     // Uniquement mettre à jour le statut, SANS envoyer l'email
     const success = await updateOfferStatus(
       offerId, 
-      'validated', 
+      'offer_validation', 
       currentStatus, 
       emailModalReason
     );
