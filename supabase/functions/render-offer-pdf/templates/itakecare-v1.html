@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offre iTakecare</title>
+  
+  <!-- Google Fonts : Carlito -->
+  <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
+    
+    * {
+      font-family: 'Carlito', sans-serif;
+    }
+    
+    .page {
+      page-break-after: always;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm;
+      background: white;
+      position: relative;
+    }
+    
+    .page:last-child {
+      page-break-after: auto;
+    }
+    
+    .no-break {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    
+    /* Couleurs iTakecare */
+    .bg-primary { background-color: #33638e; }
+    .bg-secondary { background-color: #4ab6c4; }
+    .bg-accent { background-color: #da2959; }
+    .text-primary { color: #33638e; }
+    .text-secondary { color: #4ab6c4; }
+    .text-accent { color: #da2959; }
+    .border-secondary { border-color: #4ab6c4; }
+  </style>
+</head>
+<body class="bg-white">
+
+  <!-- PAGE 1 : Couverture -->
+  <div class="page flex flex-col justify-between">
+    <!-- Header avec logo -->
+    <div class="flex justify-between items-start mb-12">
+      {{#if company.logoUrl}}
+      <img src="{{company.logoUrl}}" alt="{{company.name}}" class="h-16" />
+      {{else}}
+      <div class="h-16 flex items-center">
+        <span class="text-2xl font-bold text-primary">{{company.name}}</span>
+      </div>
+      {{/if}}
+      <div class="text-right text-sm text-gray-600">
+        {{#if company.address}}
+        <p>{{company.address}}</p>
+        {{/if}}
+        <p>{{company.email}}</p>
+        <p>{{company.phone}}</p>
+      </div>
+    </div>
+    
+    <!-- Titre principal -->
+    <div class="flex-1 flex flex-col justify-center items-center text-center">
+      <h1 class="text-5xl font-bold text-primary mb-4">
+        Offre de Leasing
+      </h1>
+      <div class="w-32 h-1 bg-accent mb-8"></div>
+      <p class="text-2xl text-gray-700 mb-12">
+        Spécialement conçue pour
+      </p>
+      <p class="text-3xl font-bold text-secondary">
+        {{client.name}}
+      </p>
+    </div>
+    
+    <!-- Footer -->
+    <div class="text-center text-sm text-gray-500">
+      <p>Offre n° {{offer.id}}</p>
+      <p>Date : {{date offer.date 'long'}}</p>
+    </div>
+  </div>
+
+  <!-- PAGE 2 : Vision + Présentation -->
+  <div class="page">
+    <h2 class="text-3xl font-bold text-primary mb-6 pb-2 border-b-2 border-secondary">
+      Notre Vision
+    </h2>
+    
+    <div class="prose max-w-none mb-8">
+      <p class="text-lg leading-relaxed text-gray-700">
+        Chez iTakecare, nous croyons en un avenir où la technologie est accessible 
+        à tous, sans compromettre l'environnement. Notre mission est de rendre 
+        l'équipement informatique professionnel accessible via le leasing tout en 
+        réduisant l'empreinte carbone de nos clients.
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-6 my-12">
+      <div class="text-center no-break">
+        <div class="text-4xl font-bold text-secondary mb-2">
+          {{number metrics.clientsCount}}+
+        </div>
+        <p class="text-sm text-gray-600">Clients satisfaits</p>
+      </div>
+      <div class="text-center no-break">
+        <div class="text-4xl font-bold text-secondary mb-2">
+          {{number metrics.devicesCount}}+
+        </div>
+        <p class="text-sm text-gray-600">Appareils gérés</p>
+      </div>
+      <div class="text-center no-break">
+        <div class="text-4xl font-bold text-accent mb-2">
+          {{metrics.co2SavedTons}} T
+        </div>
+        <p class="text-sm text-gray-600">CO₂ économisé</p>
+      </div>
+    </div>
+    
+    <h3 class="text-2xl font-bold text-primary mt-12 mb-4">
+      Qui sommes-nous ?
+    </h3>
+    <p class="text-gray-700 leading-relaxed">
+      iTakecare est un acteur majeur du leasing informatique en Belgique et au Luxembourg. 
+      Nous accompagnons les entreprises dans leur transformation digitale en proposant 
+      des solutions de financement flexibles et durables.
+    </p>
+  </div>
+
+  <!-- PAGE 3 : Notre Solution (Équipements + Totaux) -->
+  <div class="page">
+    <h2 class="text-3xl font-bold text-primary mb-6 pb-2 border-b-2 border-secondary">
+      Notre Solution pour {{client.name}}
+    </h2>
+    
+    <!-- Tableau des équipements -->
+    <table class="w-full mb-8 no-break">
+      <thead class="bg-primary text-white">
+        <tr>
+          <th class="px-4 py-3 text-left">Équipement</th>
+          <th class="px-4 py-3 text-center">Quantité</th>
+          <th class="px-4 py-3 text-right">Mensualité unitaire</th>
+          <th class="px-4 py-3 text-right">Total mensuel</th>
+        </tr>
+      </thead>
+      <tbody class="text-sm">
+        {{#each items}}
+        <tr class="border-b border-gray-200">
+          <td class="px-4 py-3">
+            <div class="font-semibold">{{label}}</div>
+            {{#if brand}}
+            <div class="text-gray-600 text-xs">{{brand}} {{model}}</div>
+            {{/if}}
+          </td>
+          <td class="px-4 py-3 text-center">{{qty}}</td>
+          <td class="px-4 py-3 text-right">{{currency unitMonthly 'EUR'}}</td>
+          <td class="px-4 py-3 text-right font-semibold">{{currency totalMonthly 'EUR'}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+      <tfoot class="bg-gray-100 font-bold">
+        <tr>
+          <td colspan="3" class="px-4 py-3 text-right">Total mensuel :</td>
+          <td class="px-4 py-3 text-right text-xl text-secondary">
+            {{currency offer.totalMonthly 'EUR'}}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    
+    <!-- Informations contractuelles -->
+    <div class="grid grid-cols-2 gap-6 mt-8 no-break">
+      <div class="bg-gray-50 p-4 rounded">
+        <h4 class="font-bold text-primary mb-2">Durée du contrat</h4>
+        <p class="text-2xl font-bold text-secondary">{{offer.termMonths}} mois</p>
+      </div>
+      <div class="bg-gray-50 p-4 rounded">
+        <h4 class="font-bold text-primary mb-2">Date de début</h4>
+        <p class="text-lg">{{date offer.startDate 'long'}}</p>
+      </div>
+    </div>
+    
+    <!-- Mentions légales -->
+    <div class="mt-12 text-xs text-gray-500 leading-relaxed">
+      <p><strong>Conditions :</strong> Cette offre est valable 30 jours à compter de la date d'émission. 
+      Les mensualités indiquées sont hors TVA. L'approbation finale est soumise à l'analyse de crédit 
+      du bailleur. Assurance optionnelle disponible sur demande.</p>
+    </div>
+  </div>
+
+  <!-- PAGE 4 : Nos Valeurs -->
+  <div class="page">
+    <h2 class="text-3xl font-bold text-primary mb-6 pb-2 border-b-2 border-secondary">
+      Nos Valeurs
+    </h2>
+    
+    <div class="grid grid-cols-2 gap-8">
+      <div class="no-break">
+        <div class="flex items-start mb-4">
+          <div class="w-12 h-12 bg-secondary rounded-full flex items-center justify-center text-white font-bold text-xl mr-4 flex-shrink-0">
+            1
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-primary mb-2">Durabilité</h3>
+            <p class="text-gray-700">
+              Nous privilégions le matériel reconditionné et les circuits courts 
+              pour réduire notre impact environnemental.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-break">
+        <div class="flex items-start mb-4">
+          <div class="w-12 h-12 bg-secondary rounded-full flex items-center justify-center text-white font-bold text-xl mr-4 flex-shrink-0">
+            2
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-primary mb-2">Flexibilité</h3>
+            <p class="text-gray-700">
+              Des solutions de leasing adaptées à chaque besoin, avec des options 
+              de rachat et de renouvellement.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-break">
+        <div class="flex items-start mb-4">
+          <div class="w-12 h-12 bg-accent rounded-full flex items-center justify-center text-white font-bold text-xl mr-4 flex-shrink-0">
+            3
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-primary mb-2">Accompagnement</h3>
+            <p class="text-gray-700">
+              Une équipe dédiée vous accompagne de A à Z, de la configuration 
+              à la livraison.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-break">
+        <div class="flex items-start mb-4">
+          <div class="w-12 h-12 bg-accent rounded-full flex items-center justify-center text-white font-bold text-xl mr-4 flex-shrink-0">
+            4
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-primary mb-2">Transparence</h3>
+            <p class="text-gray-700">
+              Pas de frais cachés : tout est indiqué clairement dans votre contrat 
+              de leasing.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 5 : Comment ça fonctionne + Témoignages -->
+  <div class="page">
+    <h2 class="text-3xl font-bold text-primary mb-6 pb-2 border-b-2 border-secondary">
+      Comment ça fonctionne ?
+    </h2>
+    
+    <div class="space-y-6 mb-12">
+      <div class="flex items-start no-break">
+        <div class="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">
+          1
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-1">Sélection de l'équipement</h3>
+          <p class="text-gray-700">Choisissez le matériel qui correspond à vos besoins.</p>
+        </div>
+      </div>
+      
+      <div class="flex items-start no-break">
+        <div class="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">
+          2
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-1">Validation de l'offre</h3>
+          <p class="text-gray-700">Nous préparons une offre personnalisée que vous validez.</p>
+        </div>
+      </div>
+      
+      <div class="flex items-start no-break">
+        <div class="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">
+          3
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-1">Analyse du dossier</h3>
+          <p class="text-gray-700">Le bailleur étudie votre dossier (48-72h en général).</p>
+        </div>
+      </div>
+      
+      <div class="flex items-start no-break">
+        <div class="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">
+          4
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-1">Livraison et installation</h3>
+          <p class="text-gray-700">Votre matériel est livré et installé chez vous.</p>
+        </div>
+      </div>
+    </div>
+    
+    <h3 class="text-2xl font-bold text-primary mb-4">Témoignages</h3>
+    <div class="bg-gray-50 p-6 rounded no-break">
+      <p class="italic text-gray-700 mb-2">
+        "iTakecare nous a permis de renouveler tout notre parc informatique sans 
+        impacter notre trésorerie. Le service est impeccable !"
+      </p>
+      <p class="text-sm text-gray-600">— Marie D., Directrice Administrative</p>
+    </div>
+  </div>
+
+  <!-- PAGE 6 : Modalités du leasing -->
+  <div class="page">
+    <h2 class="text-3xl font-bold text-primary mb-6 pb-2 border-b-2 border-secondary">
+      Modalités du leasing
+    </h2>
+    
+    <div class="space-y-6">
+      <div class="no-break">
+        <h3 class="font-bold text-lg text-primary mb-2">Type de contrat</h3>
+        <p class="text-gray-700">
+          Leasing opérationnel avec option de rachat en fin de contrat.
+        </p>
+      </div>
+      
+      <div class="no-break">
+        <h3 class="font-bold text-lg text-primary mb-2">Paiement</h3>
+        <p class="text-gray-700">
+          Mensualités fixes prélevées automatiquement le 5 de chaque mois.
+          Premier prélèvement le mois suivant la livraison.
+        </p>
+      </div>
+      
+      <div class="no-break">
+        <h3 class="font-bold text-lg text-primary mb-2">Assurance</h3>
+        <p class="text-gray-700">
+          {{#if offer.insurance.enabled}}
+          Assurance tous risques incluse : {{currency offer.insurance.annualEstimated 'EUR'}} / an
+          {{else}}
+          Assurance optionnelle disponible sur demande.
+          {{/if}}
+        </p>
+      </div>
+      
+      <div class="no-break">
+        <h3 class="font-bold text-lg text-primary mb-2">Maintenance</h3>
+        <p class="text-gray-700">
+          Support technique inclus pendant toute la durée du contrat.
+        </p>
+      </div>
+      
+      <div class="no-break">
+        <h3 class="font-bold text-lg text-primary mb-2">Fin de contrat</h3>
+        <p class="text-gray-700">
+          À l'issue du contrat, vous pouvez racheter le matériel, le renouveler 
+          ou le restituer.
+        </p>
+      </div>
+    </div>
+    
+    <div class="mt-12 bg-secondary/10 p-6 rounded no-break">
+      <h4 class="font-bold text-primary mb-2">Documents requis</h4>
+      <ul class="list-disc list-inside text-gray-700 space-y-1">
+        <li>Extrait BCE de moins de 3 mois</li>
+        <li>Dernier bilan comptable (si société > 1 an)</li>
+        <li>Carte d'identité du gérant</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PAGE 7 : Page de fin (Coordonnées + Signature) -->
+  <div class="page flex flex-col justify-between">
+    <div>
+      <h2 class="text-3xl font-bold text-primary mb-6 pb-2 border-b-2 border-secondary">
+        Contact
+      </h2>
+      
+      <div class="grid grid-cols-2 gap-8 mb-12">
+        <div>
+          <h3 class="font-bold text-lg text-primary mb-4">{{company.name}}</h3>
+          {{#if company.address}}
+          <p class="text-gray-700 mb-2">{{company.address}}</p>
+          {{/if}}
+          <p class="text-gray-700 mb-2">Email : {{company.email}}</p>
+          <p class="text-gray-700 mb-2">Tél : {{company.phone}}</p>
+          {{#if company.vat}}
+          <p class="text-gray-700">TVA : {{company.vat}}</p>
+          {{/if}}
+        </div>
+        
+        <div>
+          <h3 class="font-bold text-lg text-primary mb-4">Votre contact</h3>
+          <p class="text-gray-700 mb-2">{{client.contactName}}</p>
+          {{#if client.email}}
+          <p class="text-gray-700 mb-2">{{client.email}}</p>
+          {{/if}}
+          {{#if client.phone}}
+          <p class="text-gray-700">{{client.phone}}</p>
+          {{/if}}
+        </div>
+      </div>
+      
+      <div class="border-t-2 border-gray-300 pt-6">
+        <p class="text-sm text-gray-600 mb-4">
+          En signant cette offre, vous confirmez avoir pris connaissance des 
+          conditions générales et acceptez les modalités de leasing présentées.
+        </p>
+        
+        <div class="grid grid-cols-2 gap-8">
+          <div>
+            <p class="text-sm font-bold mb-2">Date et signature du client :</p>
+            <div class="border-b-2 border-gray-300 h-20"></div>
+          </div>
+          <div>
+            <p class="text-sm font-bold mb-2">Cachet de l'entreprise :</p>
+            <div class="border-b-2 border-gray-300 h-20"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer final -->
+    <div class="text-center text-xs text-gray-500 mt-12">
+      <p>Cette offre a été générée le {{date offer.date 'long'}}</p>
+      <p>Référence : {{offer.id}}</p>
+    </div>
+  </div>
+
+</body>
+</html>
