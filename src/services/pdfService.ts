@@ -1,5 +1,43 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+// Fallback client-side PDF generation
+// @ts-ignore
+import html2pdf from "html2pdf.js";
+
+// Fallback: transforme du HTML (renvoyé par l’edge) en PDF côté client
+const htmlToPdfBlob = async (html: string): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-100000px';
+      container.style.top = '0';
+      container.style.width = '794px'; // A4 width @96dpi
+      container.style.background = '#fff';
+      container.innerHTML = html;
+      document.body.appendChild(container);
+
+      const opt: any = {
+        margin: 0,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+      // @ts-ignore - lib non typée
+      html2pdf().set(opt).from(container).toPdf().get('pdf').then((pdf: any) => {
+        const blob: Blob = pdf.output('blob');
+        document.body.removeChild(container);
+        resolve(blob);
+      }).catch((e: any) => {
+        document.body.removeChild(container);
+        reject(e);
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
 
 /**
  * Génère un PDF d'offre via l'edge function render-offer-pdf
@@ -15,7 +53,7 @@ export const generateOfferPdf = async (
     console.log('[PDF-SERVICE] Generating PDF for offer:', offerId);
     console.log('[PDF-SERVICE] Using template:', templateSlug);
 
-    // Appeler l'edge function avec le bon format
+    // Appeler l'edge function (PDF natif)
     const { data, error } = await supabase.functions.invoke('render-offer-pdf', {
       body: { 
         offerId, 
@@ -23,19 +61,32 @@ export const generateOfferPdf = async (
       }
     });
 
+    // Si l'edge renvoie une erreur (ex: Puppeteer bloqué), fallback en HTML côté client
     if (error) {
-      console.error('[PDF-SERVICE] Error from edge function:', error);
-      throw error;
+      console.warn('[PDF-SERVICE] Edge PDF failed, falling back to HTML render mode:', error);
+      const { data: htmlData, error: htmlError } = await supabase.functions.invoke('render-offer-pdf', {
+        body: { offerId, templateSlug, renderMode: 'html' }
+      });
+      if (htmlError || !htmlData) {
+        console.error('[PDF-SERVICE] HTML fallback failed:', htmlError);
+        throw (htmlError || new Error('No data from HTML fallback'));
+      }
+      const htmlString = typeof htmlData === 'string'
+        ? htmlData
+        : new TextDecoder().decode(htmlData as ArrayBuffer);
+      return await htmlToPdfBlob(htmlString);
     }
 
     if (!data) {
       throw new Error('No data received from PDF generation function');
     }
 
+    // Détection: si on a reçu du HTML directement (selon config), convertir côté client
+    if (typeof data === 'string' && data.trim().startsWith('<!DOCTYPE')) {
+      return await htmlToPdfBlob(data);
+    }
+
     // La réponse est déjà un Blob si c'est un PDF
-    console.log('[PDF-SERVICE] PDF generated successfully, data type:', typeof data);
-    
-    // Si c'est déjà un Blob, le retourner directement
     if (data instanceof Blob) {
       return data;
     }
