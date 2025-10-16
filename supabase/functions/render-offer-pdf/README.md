@@ -51,12 +51,12 @@ Voir `templates/itakecare-v1.html` pour la liste complète des variables.
 - Carlito (Google Fonts)
 
 ## Phase actuelle
-Phase 5 complétée - Test et validation du système
-- ✅ Composant de test `PdfTemplateTest` créé
-- ✅ Page de test dédiée `/admin/pdf-test`
-- ✅ Interface pour sélectionner et tester les offres
-- ✅ Boutons de prévisualisation et téléchargement
-- ✅ Informations sur le template actif
+Phase 6 complétée - Interface de gestion dans les paramètres
+- ✅ Onglet "Templates PDF" ajouté dans les paramètres
+- ✅ Interface avec 2 sous-onglets : Test et Templates
+- ✅ Composant `PdfTemplateSettings` créé
+- ✅ Informations détaillées sur le template iTakecare v1
+- ✅ Interface de test intégrée
 
 ## Phases complètes
 - ✅ Phase 1: Infrastructure Edge Function
@@ -64,11 +64,13 @@ Phase 5 complétée - Test et validation du système
 - ✅ Phase 3: Génération PDF réelle avec Puppeteer
 - ✅ Phase 4: Intégration frontend (appel + téléchargement)
 - ✅ Phase 5: Test et validation
+- ✅ Phase 6: Interface de gestion dans les paramètres
 
-## Accès à l'interface de test
-Accessible via : `/:companySlug/admin/pdf-test`
+## Accès aux interfaces
+- Interface de test : `/:companySlug/admin/pdf-test`
+- Gestion complète : `/:companySlug/admin/settings` > Onglet "Templates PDF"
 
-Exemple : `/itakecare/admin/pdf-test`
+Exemple : `/itakecare/admin/settings`
 
 ## Utilisation complète
 
