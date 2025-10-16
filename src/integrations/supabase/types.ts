@@ -1353,6 +1353,7 @@ export type Database = {
           co2_saved: number | null
           created_at: string
           custom_domain: string | null
+          default_html_template_slug: string | null
           default_pdf_customizations: Json | null
           default_pdf_template_id: string | null
           devices_count: number | null
@@ -1382,6 +1383,7 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_html_template_slug?: string | null
           default_pdf_customizations?: Json | null
           default_pdf_template_id?: string | null
           devices_count?: number | null
@@ -1411,6 +1413,7 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_html_template_slug?: string | null
           default_pdf_customizations?: Json | null
           default_pdf_template_id?: string | null
           devices_count?: number | null
@@ -4141,6 +4144,80 @@ export type Database = {
           },
         ]
       }
+      pdf_template_versions: {
+        Row: {
+          assets: Json | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          css_content: string | null
+          description: string | null
+          html_content: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          manifest: Json
+          name: string
+          page_format: string | null
+          page_margins: Json | null
+          supported_offer_types: string[] | null
+          template_category: string | null
+          template_slug: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          assets?: Json | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          css_content?: string | null
+          description?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          manifest?: Json
+          name: string
+          page_format?: string | null
+          page_margins?: Json | null
+          supported_offer_types?: string[] | null
+          template_category?: string | null
+          template_slug: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          assets?: Json | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          css_content?: string | null
+          description?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          manifest?: Json
+          name?: string
+          page_format?: string | null
+          page_margins?: Json | null
+          supported_offer_types?: string[] | null
+          template_category?: string | null
+          template_slug?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_template_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdf_templates: {
         Row: {
           company_id: string | null
@@ -6586,6 +6663,7 @@ export type Database = {
         | "partner"
         | "client"
         | "user"
+      pdf_page_format: "A4" | "Letter" | "Legal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6721,6 +6799,7 @@ export const Constants = {
         "client",
         "user",
       ],
+      pdf_page_format: ["A4", "Letter", "Legal"],
     },
   },
 } as const
