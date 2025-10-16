@@ -111,19 +111,9 @@ export const updateOfferStatus = async (
       console.log("Log created successfully:", logData);
     }
 
-    // Send leasing acceptance email when offer is validated after leaser approval
-    if (newStatus === 'offer_validation' && safePreviousStatus === 'leaser_approved') {
-      console.log("📧 Envoi de l'email de félicitations pour acceptation du leasing");
-      try {
-        await supabase.functions.invoke('send-leasing-acceptance-email', {
-          body: { offerId }
-        });
-        console.log("✅ Email de félicitations envoyé avec succès");
-      } catch (emailError) {
-        console.error("⚠️ Erreur lors de l'envoi de l'email de félicitations:", emailError);
-        // Continue même si l'email échoue
-      }
-    }
+    // NOTE: Email sending is now handled manually through EmailConfirmationModal
+    // when transitioning from leaser_approved to offer_validation
+    console.log("ℹ️ Transition de statut détectée:", safePreviousStatus, "->", newStatus);
 
     // Si le statut est un statut final (validated, offer_validation, financed), créer automatiquement un contrat
     if (isFinalStatus(newStatus)) {

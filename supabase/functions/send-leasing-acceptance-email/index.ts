@@ -12,6 +12,8 @@ const corsHeaders = {
 
 interface EmailRequest {
   offerId: string;
+  customContent?: string;
+  includePdfAttachment?: boolean;
 }
 
 serve(async (req) => {
@@ -20,7 +22,10 @@ serve(async (req) => {
   }
 
   try {
-    const { offerId }: EmailRequest = await req.json();
+    const { offerId, customContent, includePdfAttachment = true }: EmailRequest = await req.json();
+    
+    console.log('[LEASING-ACCEPTANCE] Custom content provided:', !!customContent);
+    console.log('[LEASING-ACCEPTANCE] Include PDF attachment:', includePdfAttachment);
     
     if (!RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY not configured');
@@ -197,8 +202,8 @@ serve(async (req) => {
       console.warn('[LEASING-ACCEPTANCE] 📋 Ensure the file exists in one of these paths in bucket:', bucket);
     }
 
-    // HTML email template
-    const htmlContent = `
+    // HTML email template - Use custom content if provided, otherwise use default template
+    const htmlContent = customContent || `
 <!DOCTYPE html>
 <html>
 <head>
@@ -361,15 +366,21 @@ www.itakecare.be | hello@itakecare.be
       text: textContent,
     };
 
-    // Add attachment if available
+    // Add attachment only if requested and available
     console.log('[LEASING-ACCEPTANCE] PDF attachment available:', !!pdfAttachment);
-    if (pdfAttachment) {
+    console.log('[LEASING-ACCEPTANCE] Include PDF attachment requested:', includePdfAttachment);
+    
+    if (includePdfAttachment && pdfAttachment) {
       emailPayload.attachments = [pdfAttachment];
       console.log('[LEASING-ACCEPTANCE] PDF attachment added to email payload');
       console.log('[LEASING-ACCEPTANCE] Attachment filename:', pdfAttachment.filename);
       console.log('[LEASING-ACCEPTANCE] Attachment content length:', pdfAttachment.content?.length || 0);
     } else {
-      console.warn('[LEASING-ACCEPTANCE] No PDF attachment - email will be sent without it');
+      if (!includePdfAttachment) {
+        console.log('[LEASING-ACCEPTANCE] PDF attachment excluded by request');
+      } else {
+        console.warn('[LEASING-ACCEPTANCE] No PDF attachment - email will be sent without it');
+      }
     }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {

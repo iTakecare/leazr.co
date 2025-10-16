@@ -355,3 +355,83 @@ function detectMimeType(extension: string): string {
       return 'image/jpeg';  // Fallback
   }
 }
+
+/**
+ * Récupère les métadonnées du PDF de modalités de leasing
+ */
+export interface PdfMetadata {
+  name: string;
+  size: number;
+  signedUrl: string;
+  exists: boolean;
+}
+
+export async function getLeasingPdfMetadata(companyId: string): Promise<PdfMetadata | null> {
+  try {
+    const bucket = 'platform-assets';
+    const defaultFilename = 'modalites_leasing_itakecare.pdf';
+    const candidatePaths = [
+      `company-${companyId}/documents/${defaultFilename}`,
+      `documents/${defaultFilename}`,
+    ];
+
+    for (const pdfPath of candidatePaths) {
+      try {
+        // List files to check existence and get metadata
+        const pathParts = pdfPath.split('/');
+        const fileName = pathParts.pop();
+        const folder = pathParts.join('/');
+
+        const { data: files, error: listError } = await supabase.storage
+          .from(bucket)
+          .list(folder, {
+            search: fileName
+          });
+
+        if (!listError && files && files.length > 0) {
+          const file = files[0];
+          
+          // Generate signed URL (1 hour expiration)
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from(bucket)
+            .createSignedUrl(pdfPath, 3600);
+
+          if (!signedUrlError && signedUrlData) {
+            console.log(`✅ PDF trouvé: ${pdfPath}`);
+            return {
+              name: defaultFilename,
+              size: file.metadata?.size || 0,
+              signedUrl: signedUrlData.signedUrl,
+              exists: true
+            };
+          }
+        }
+      } catch (e) {
+        console.warn(`Tentative échouée pour ${pdfPath}:`, e);
+        continue;
+      }
+    }
+
+    console.warn(`⚠️ PDF non trouvé pour l'entreprise ${companyId}`);
+    return {
+      name: defaultFilename,
+      size: 0,
+      signedUrl: '',
+      exists: false
+    };
+  } catch (error) {
+    console.error('Erreur lors de la récupération des métadonnées PDF:', error);
+    return null;
+  }
+}
+
+/**
+ * Formate la taille du fichier en lecture humaine
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}

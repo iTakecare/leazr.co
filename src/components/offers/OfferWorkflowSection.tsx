@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getWorkflowHistory, getCompletedStatuses, updateOfferStatus } from "@/services/offers/offerStatus";
+import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 import InteractiveWorkflowStepper from "./detail/InteractiveWorkflowStepper";
 import OfferWorkflowHistory from "./workflow/OfferWorkflowHistory";
 import StatusChangeDialog from "./workflow/StatusChangeDialog";
+import EmailConfirmationModal from "./EmailConfirmationModal";
 import { OFFER_STATUSES } from "./OfferStatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
@@ -36,6 +38,8 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailModalReason, setEmailModalReason] = useState<string>('');
 
   const fetchData = async () => {
     console.log("OfferWorkflowSection - Fetching data for offer:", offerId);
@@ -78,6 +82,16 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const handleStatusChange = async (reason: string) => {
     if (!selectedStatus) return;
     
+    // CAS SPÉCIAL : Validation après approbation du leaser
+    if (selectedStatus === 'offer_validation' && currentStatus === 'leaser_approved') {
+      console.log("🔔 Ouverture de la modale d'email avant validation");
+      setEmailModalReason(reason);
+      setShowEmailModal(true);
+      setDialogOpen(false);
+      return; // Ne pas continuer avec le changement de statut
+    }
+    
+    // CAS NORMAL : Changement de statut sans email
     console.log("OfferWorkflowSection - Confirming status change:", selectedStatus, "with reason:", reason);
     setIsUpdating(true);
     try {
@@ -103,6 +117,78 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
     } finally {
       setIsUpdating(false);
       setDialogOpen(false);
+      setSelectedStatus(null);
+    }
+  };
+
+  const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true) => {
+    setIsUpdating(true);
+    try {
+      // 1. Mettre à jour le statut
+      const success = await updateOfferStatus(
+        offerId, 
+        'offer_validation', 
+        currentStatus, 
+        emailModalReason
+      );
+      
+      if (!success) {
+        toast.error("Erreur lors de la mise à jour du statut");
+        return;
+      }
+      
+      // 2. Envoyer l'email
+      try {
+        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf);
+        toast.success("Email envoyé et offre validée avec succès !");
+      } catch (emailError) {
+        console.error("Erreur email:", emailError);
+        toast.warning("Offre validée mais l'email n'a pas pu être envoyé");
+      }
+      
+      // 3. Rafraîchir les données
+      await fetchData();
+      if (onStatusChange) {
+        onStatusChange('offer_validation');
+      }
+      
+      setShowEmailModal(false);
+    } catch (error) {
+      console.error("Error in handleSendEmailAndValidate:", error);
+      toast.error("Erreur lors de la validation");
+    } finally {
+      setIsUpdating(false);
+      setSelectedStatus(null);
+    }
+  };
+
+  const handleValidateWithoutEmail = async () => {
+    setIsUpdating(true);
+    try {
+      // Uniquement mettre à jour le statut, SANS envoyer l'email
+      const success = await updateOfferStatus(
+        offerId, 
+        'offer_validation', 
+        currentStatus, 
+        emailModalReason
+      );
+      
+      if (success) {
+        toast.success("Offre validée sans envoi d'email");
+        await fetchData();
+        if (onStatusChange) {
+          onStatusChange('offer_validation');
+        }
+      } else {
+        toast.error("Erreur lors de la mise à jour du statut");
+      }
+      
+      setShowEmailModal(false);
+    } catch (error) {
+      console.error("Error in handleValidateWithoutEmail:", error);
+      toast.error("Erreur lors de la validation");
+    } finally {
+      setIsUpdating(false);
       setSelectedStatus(null);
     }
   };
@@ -210,6 +296,15 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
         newStatus={selectedStatus || ''}
         isUpdating={isUpdating}
         getStatusLabel={getStatusLabel}
+      />
+      
+      <EmailConfirmationModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        offerId={offerId}
+        offerData={offer}
+        onSendEmailAndValidate={handleSendEmailAndValidate}
+        onValidateWithoutEmail={handleValidateWithoutEmail}
       />
     </>
   );
