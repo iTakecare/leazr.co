@@ -61,7 +61,6 @@ import Offers from "@/pages/Offers";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
-import PdfTestPage from "@/pages/PdfTestPage";
 import CatalogManagement from "@/pages/CatalogManagement";
 import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
@@ -226,7 +225,6 @@ const AppRoutes = () => (
       <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
       <Route path="contracts" element={<Layout><Contracts /></Layout>} />
       <Route path="settings" element={<Layout><Settings /></Layout>} />
-      <Route path="pdf-test" element={<Layout><PdfTestPage /></Layout>} />
       <Route path="documents" element={<Layout><CompanyDocuments /></Layout>} />
       <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
       <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />

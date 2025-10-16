@@ -1,8 +1,5 @@
 project_id = "cifbetjefyfocafanlhv"
 
-[functions.render-offer-pdf]
-verify_jwt = true
-
 [functions.company-search]
 verify_jwt = false
 

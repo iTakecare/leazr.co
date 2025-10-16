@@ -19,7 +19,6 @@ import PermissionProfilesManager from '@/components/settings/PermissionProfilesM
 import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
-import { PdfTemplateSettings } from '@/components/settings/PdfTemplateSettings';
 
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import BulkClientImport from '@/components/settings/BulkClientImport';
@@ -90,7 +89,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -102,10 +101,6 @@ const Settings: React.FC = () => {
           <TabsTrigger value="emails" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
             Emails
-          </TabsTrigger>
-          <TabsTrigger value="pdf" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Templates PDF
           </TabsTrigger>
           <TabsTrigger value="leasers" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -149,9 +144,6 @@ const Settings: React.FC = () => {
           <EmailSettings />
         </TabsContent>
 
-        <TabsContent value="pdf" className="mt-6">
-          <PdfTemplateSettings />
-        </TabsContent>
 
         <TabsContent value="leasers" className="mt-6">
           <LeaserManager />

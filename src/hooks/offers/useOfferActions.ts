@@ -8,7 +8,6 @@ import {
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
-import { downloadOfferPdf } from "@/services/pdfService";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -149,26 +148,19 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const handleGenerateOffer = async (id: string) => {
     try {
       setIsGeneratingPdf(true);
-      toast.info("Génération du PDF en cours...");
+      toast.info("Génération de l'offre...");
       
       const offer = offers.find(o => o.id === id);
       if (!offer) throw new Error("Offre non trouvée");
       
-      // Générer et télécharger le PDF avec le template iTakecare
-      const success = await downloadOfferPdf(
-        id, 
-        `Offre-${offer.client_name || id}.pdf`,
-        'itakecare-v1'
-      );
+      // Ouvrir l'aperçu de l'offre dans un nouvel onglet
+      const previewUrl = `/client/offer/${id}`;
+      window.open(previewUrl, '_blank');
       
-      if (success) {
-        toast.success("PDF de l'offre téléchargé avec succès");
-      } else {
-        toast.error("Erreur lors de la génération du PDF");
-      }
+      toast.success("Aperçu de l'offre ouvert");
     } catch (error) {
-      console.error("Error generating offer PDF:", error);
-      toast.error("Erreur lors de la génération du PDF de l'offre");
+      console.error("Error generating offer preview:", error);
+      toast.error("Erreur lors de la génération de l'aperçu de l'offre");
     } finally {
       setIsGeneratingPdf(false);
     }
