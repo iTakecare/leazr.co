@@ -1,77 +1,74 @@
-// Note: Playwright nécessite une configuration spéciale dans Deno Deploy
-// Pour l'instant, cette fonction retourne un PDF minimal
-// L'implémentation complète avec Playwright sera ajoutée dans la Phase suivante
+import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 
 export async function generatePdfWithPlaywright(
   html: string, 
   margins: any
 ): Promise<Uint8Array> {
-  // TODO: Implémenter avec Playwright/Chromium
-  // Pour l'instant, retourne un PDF minimal pour tester l'infrastructure
-  
+  console.log('[PDF-GENERATOR] Starting PDF generation...');
   console.log('[PDF-GENERATOR] HTML length:', html.length);
   console.log('[PDF-GENERATOR] Margins:', JSON.stringify(margins));
   
-  // Création d'un PDF minimal (header seulement)
-  // Dans la prochaine phase, on utilisera Playwright
-  const pdfHeader = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 595 842]
-/Contents 4 0 R
-/Resources <<
-/Font <<
-/F1 <<
-/Type /Font
-/Subtype /Type1
-/BaseFont /Helvetica
->>
->>
->>
->>
-endobj
-4 0 obj
-<<
-/Length 44
->>
-stream
-BT
-/F1 12 Tf
-50 800 Td
-(PDF en cours de generation...) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000314 00000 n
-trailer
-<<
-/Size 5
-/Root 1 0 R
->>
-startxref
-407
-%%EOF`;
-
-  return new TextEncoder().encode(pdfHeader);
+  let browser;
+  
+  try {
+    // Launch browser with Puppeteer (works in Deno Deploy)
+    console.log('[PDF-GENERATOR] Launching browser...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
+    });
+    
+    console.log('[PDF-GENERATOR] Browser launched, creating page...');
+    const page = await browser.newPage();
+    
+    // Set viewport to A4 dimensions
+    await page.setViewport({
+      width: 794,  // A4 width in pixels at 96 DPI
+      height: 1123 // A4 height in pixels at 96 DPI
+    });
+    
+    console.log('[PDF-GENERATOR] Setting HTML content...');
+    await page.setContent(html, {
+      waitUntil: ['networkidle0', 'load'],
+      timeout: 30000
+    });
+    
+    console.log('[PDF-GENERATOR] Generating PDF...');
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: false,
+      margin: {
+        top: margins?.top || '12mm',
+        bottom: margins?.bottom || '12mm',
+        left: margins?.left || '12mm',
+        right: margins?.right || '12mm'
+      }
+    });
+    
+    console.log('[PDF-GENERATOR] PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+    
+    await browser.close();
+    return pdfBuffer;
+    
+  } catch (error) {
+    console.error('[PDF-GENERATOR] Error generating PDF:', error);
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('[PDF-GENERATOR] Error closing browser:', closeError);
+      }
+    }
+    throw new Error(`PDF generation failed: ${error.message}`);
+  }
 }

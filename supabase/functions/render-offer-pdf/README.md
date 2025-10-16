@@ -51,5 +51,14 @@ Voir `templates/itakecare-v1.html` pour la liste complète des variables.
 - Carlito (Google Fonts)
 
 ## Phase actuelle
-Phase 2 complétée - Template HTML iTakecare v1 créé
-Prochaine étape: Implémenter Playwright pour génération PDF réelle
+Phase 3 complétée - Génération PDF avec Puppeteer implémentée
+- ✅ Puppeteer configuré pour Deno Deploy
+- ✅ Conversion HTML vers PDF A4
+- ✅ Support des marges configurables
+- ✅ Gestion des ressources (fonts, images)
+
+## Phases
+- ✅ Phase 1: Infrastructure Edge Function
+- ✅ Phase 2: Template HTML iTakecare v1
+- ✅ Phase 3: Génération PDF réelle avec Puppeteer
+- 🔄 Phase 4: Intégration frontend (appel + téléchargement)
