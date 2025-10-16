@@ -27,7 +27,8 @@ export async function loadTemplate(
   // If html_content is a placeholder, load from file
   if (template.html_content.includes('<!-- Template chargé depuis le fichier externe -->')) {
     try {
-      const htmlContent = await Deno.readTextFile(`./templates/${templateSlug}.html`);
+      const fileUrl = new URL(`./templates/${templateSlug}.html`, import.meta.url);
+      const htmlContent = await Deno.readTextFile(fileUrl);
       template.html_content = htmlContent;
     } catch (fileError) {
       console.error('Error loading template file:', fileError);
