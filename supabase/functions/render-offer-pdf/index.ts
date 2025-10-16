@@ -17,12 +17,38 @@ serve(async (req) => {
 
   try {
     console.log('[RENDER-PDF] Function started');
+    console.log('[RENDER-PDF] Request method:', req.method);
+    console.log('[RENDER-PDF] Request headers:', Object.fromEntries(req.headers.entries()));
     
-    // 1. Parse params
-    const { offerId, templateSlug } = await req.json();
-    const finalTemplateSlug = templateSlug || 'itakecare-v1';
+    // 1. Parse params avec gestion d'erreur
+    let offerId, templateSlug;
+    try {
+      const body = await req.json();
+      console.log('[RENDER-PDF] Body received:', body);
+      offerId = body.offerId;
+      templateSlug = body.templateSlug || 'itakecare-v1';
+    } catch (parseError) {
+      console.error('[RENDER-PDF] Error parsing JSON:', parseError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON body',
+        details: 'Request body must be valid JSON with offerId field'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
-    console.log('[RENDER-PDF] Params:', { offerId, templateSlug: finalTemplateSlug });
+    if (!offerId) {
+      return new Response(JSON.stringify({ 
+        error: 'Missing offerId',
+        details: 'offerId is required in request body'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    console.log('[RENDER-PDF] Params:', { offerId, templateSlug });
     
     // 2. Auth + Supabase client
     const authHeader = req.headers.get('Authorization');
@@ -43,7 +69,7 @@ serve(async (req) => {
     
     // 4. Load template HTML
     console.log('[RENDER-PDF] Loading template...');
-    const template = await loadTemplate(supabase, finalTemplateSlug, offerData.companyId);
+    const template = await loadTemplate(supabase, templateSlug, offerData.companyId);
     console.log('[RENDER-PDF] Template loaded:', template.name);
     
     // 5. Compile template with Handlebars

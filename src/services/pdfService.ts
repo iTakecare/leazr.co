@@ -15,12 +15,12 @@ export const generateOfferPdf = async (
     console.log('[PDF-SERVICE] Generating PDF for offer:', offerId);
     console.log('[PDF-SERVICE] Using template:', templateSlug);
 
-    // Appeler l'edge function
+    // Appeler l'edge function avec le bon format
     const { data, error } = await supabase.functions.invoke('render-offer-pdf', {
-      body: { 
+      body: JSON.stringify({ 
         offerId, 
         templateSlug 
-      },
+      }),
       headers: {
         'Content-Type': 'application/json'
       }
@@ -35,9 +35,22 @@ export const generateOfferPdf = async (
       throw new Error('No data received from PDF generation function');
     }
 
-    // Convertir la réponse en Blob
-    console.log('[PDF-SERVICE] PDF generated successfully');
-    return new Blob([data], { type: 'application/pdf' });
+    // La réponse est déjà un Blob si c'est un PDF
+    console.log('[PDF-SERVICE] PDF generated successfully, data type:', typeof data);
+    
+    // Si c'est déjà un Blob, le retourner directement
+    if (data instanceof Blob) {
+      return data;
+    }
+    
+    // Si data est un ArrayBuffer, le convertir en Blob
+    if (data instanceof ArrayBuffer) {
+      return new Blob([data], { type: 'application/pdf' });
+    }
+    
+    // Convertir en Uint8Array puis en Blob
+    const uint8Array = new Uint8Array(data as ArrayBuffer);
+    return new Blob([uint8Array], { type: 'application/pdf' });
 
   } catch (error: any) {
     console.error('[PDF-SERVICE] Exception:', error);
