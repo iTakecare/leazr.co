@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Palette, FileText, Layout, Code } from "lucide-react";
+import { Palette, FileText, Layout, Code, Loader2 } from "lucide-react";
 import PDFTemplatePreview from "./PDFTemplatePreview";
 import PDFTemplateSectionManager from "./PDFTemplateSectionManager";
+import { loadTemplateFiles } from "@/services/pdfTemplateLoaderService";
 
 interface PDFTemplateEditorProps {
   template: any;
@@ -43,7 +44,45 @@ export default function PDFTemplateEditor({
   );
   const [htmlContent, setHtmlContent] = useState(template?.html_content || "");
   const [cssContent, setCssContent] = useState(template?.css_content || "");
+  const [manifest, setManifest] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load template files on mount
+  useEffect(() => {
+    const loadTemplate = async () => {
+      if (!template || !open) return;
+      
+      setIsLoading(true);
+      try {
+        const templateSlug = template.template_metadata?.slug || template.id || 'itakecare-v1';
+        const files = await loadTemplateFiles(templateSlug);
+        
+        // Use database content if available, otherwise use file content
+        setHtmlContent(template.html_content || files.html);
+        setCssContent(template.css_content || files.css);
+        setManifest(files.manifest);
+        
+        // Initialize sections from manifest if not already customized
+        if (!template.customization_data?.sections && files.manifest.pages) {
+          setCustomizationData(prev => ({
+            ...prev,
+            sections: files.manifest.pages.map(page => ({
+              ...page,
+              enabled: true,
+            })),
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading template files:', error);
+        toast.error("Erreur lors du chargement des fichiers du template");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTemplate();
+  }, [template, open]);
 
   const handleColorChange = (colorType: string, value: string) => {
     setCustomizationData({
@@ -131,6 +170,19 @@ export default function PDFTemplateEditor({
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="flex flex-col items-center justify-center p-8 gap-4">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-center">Chargement du template...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -365,6 +417,7 @@ export default function PDFTemplateEditor({
               customizationData={customizationData}
               htmlContent={htmlContent}
               cssContent={cssContent}
+              manifest={manifest}
             />
           </div>
         </div>
