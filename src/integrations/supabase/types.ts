@@ -1353,6 +1353,7 @@ export type Database = {
           co2_saved: number | null
           created_at: string
           custom_domain: string | null
+          default_html_template_slug: string | null
           default_pdf_customizations: Json | null
           default_pdf_template_id: string | null
           devices_count: number | null
@@ -1382,6 +1383,7 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_html_template_slug?: string | null
           default_pdf_customizations?: Json | null
           default_pdf_template_id?: string | null
           devices_count?: number | null
@@ -1411,6 +1413,7 @@ export type Database = {
           co2_saved?: number | null
           created_at?: string
           custom_domain?: string | null
+          default_html_template_slug?: string | null
           default_pdf_customizations?: Json | null
           default_pdf_template_id?: string | null
           devices_count?: number | null
@@ -4141,6 +4144,80 @@ export type Database = {
           },
         ]
       }
+      pdf_template_versions: {
+        Row: {
+          assets: Json | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          css_content: string | null
+          description: string | null
+          html_content: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          manifest: Json
+          name: string
+          page_format: string | null
+          page_margins: Json | null
+          supported_offer_types: string[] | null
+          template_category: string | null
+          template_slug: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          assets?: Json | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          css_content?: string | null
+          description?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          manifest?: Json
+          name: string
+          page_format?: string | null
+          page_margins?: Json | null
+          supported_offer_types?: string[] | null
+          template_category?: string | null
+          template_slug: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          assets?: Json | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          css_content?: string | null
+          description?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          manifest?: Json
+          name?: string
+          page_format?: string | null
+          page_margins?: Json | null
+          supported_offer_types?: string[] | null
+          template_category?: string | null
+          template_slug?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_template_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdf_templates: {
         Row: {
           company_id: string | null
@@ -4149,6 +4226,8 @@ export type Database = {
           companyName: string
           companySiret: string
           created_at: string
+          created_by: string | null
+          description: string | null
           field_mappings: Json
           fields: Json
           footerText: string
@@ -4157,15 +4236,20 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           logoURL: string | null
+          manifest_data: Json | null
           name: string
+          preview_url: string | null
           primaryColor: string
           secondaryColor: string
           supported_offer_types: string[] | null
           template_category: string | null
           template_file_url: string | null
+          template_html: string | null
+          template_styles: string | null
           template_type: string
           templateImages: Json | null
           updated_at: string
+          version: string | null
         }
         Insert: {
           company_id?: string | null
@@ -4174,6 +4258,8 @@ export type Database = {
           companyName: string
           companySiret: string
           created_at?: string
+          created_by?: string | null
+          description?: string | null
           field_mappings?: Json
           fields: Json
           footerText: string
@@ -4182,15 +4268,20 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           logoURL?: string | null
+          manifest_data?: Json | null
           name: string
+          preview_url?: string | null
           primaryColor: string
           secondaryColor: string
           supported_offer_types?: string[] | null
           template_category?: string | null
           template_file_url?: string | null
+          template_html?: string | null
+          template_styles?: string | null
           template_type?: string
           templateImages?: Json | null
           updated_at?: string
+          version?: string | null
         }
         Update: {
           company_id?: string | null
@@ -4199,6 +4290,8 @@ export type Database = {
           companyName?: string
           companySiret?: string
           created_at?: string
+          created_by?: string | null
+          description?: string | null
           field_mappings?: Json
           fields?: Json
           footerText?: string
@@ -4207,15 +4300,20 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           logoURL?: string | null
+          manifest_data?: Json | null
           name?: string
+          preview_url?: string | null
           primaryColor?: string
           secondaryColor?: string
           supported_offer_types?: string[] | null
           template_category?: string | null
           template_file_url?: string | null
+          template_html?: string | null
+          template_styles?: string | null
           template_type?: string
           templateImages?: Json | null
           updated_at?: string
+          version?: string | null
         }
         Relationships: [
           {
@@ -6054,6 +6152,8 @@ export type Database = {
           companyName: string
           companySiret: string
           created_at: string
+          created_by: string | null
+          description: string | null
           field_mappings: Json
           fields: Json
           footerText: string
@@ -6062,15 +6162,20 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           logoURL: string | null
+          manifest_data: Json | null
           name: string
+          preview_url: string | null
           primaryColor: string
           secondaryColor: string
           supported_offer_types: string[] | null
           template_category: string | null
           template_file_url: string | null
+          template_html: string | null
+          template_styles: string | null
           template_type: string
           templateImages: Json | null
           updated_at: string
+          version: string | null
         }[]
       }
       get_postal_code_stats: {
@@ -6586,6 +6691,7 @@ export type Database = {
         | "partner"
         | "client"
         | "user"
+      pdf_page_format: "A4" | "Letter" | "Legal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6721,6 +6827,7 @@ export const Constants = {
         "client",
         "user",
       ],
+      pdf_page_format: ["A4", "Letter", "Legal"],
     },
   },
 } as const
