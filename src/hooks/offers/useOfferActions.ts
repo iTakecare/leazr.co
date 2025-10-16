@@ -146,21 +146,13 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   };
   
   const handleGenerateOffer = async (id: string) => {
+    setIsGeneratingPdf(true);
     try {
-      setIsGeneratingPdf(true);
-      toast.info("Génération de l'offre...");
-      
-      const offer = offers.find(o => o.id === id);
-      if (!offer) throw new Error("Offre non trouvée");
-      
-      // Ouvrir l'aperçu de l'offre dans un nouvel onglet
-      const previewUrl = `/client/offer/${id}`;
-      window.open(previewUrl, '_blank');
-      
-      toast.success("Aperçu de l'offre ouvert");
+      const { previewOfferPdf } = await import('@/services/pdfService');
+      await previewOfferPdf(id);
     } catch (error) {
-      console.error("Error generating offer preview:", error);
-      toast.error("Erreur lors de la génération de l'aperçu de l'offre");
+      console.error("Error generating offer:", error);
+      toast.error("Erreur lors de la génération de l'offre");
     } finally {
       setIsGeneratingPdf(false);
     }
