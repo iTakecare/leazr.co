@@ -17,12 +17,9 @@ export const generateOfferPdf = async (
 
     // Appeler l'edge function avec le bon format
     const { data, error } = await supabase.functions.invoke('render-offer-pdf', {
-      body: JSON.stringify({ 
+      body: { 
         offerId, 
         templateSlug 
-      }),
-      headers: {
-        'Content-Type': 'application/json'
       }
     });
 
