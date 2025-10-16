@@ -83,9 +83,10 @@ const OfferWorkflowSection: React.FC<OfferWorkflowSectionProps> = ({
   const handleStepperStatusChange = (targetStatus: string) => {
     console.log("OfferWorkflowSection - Stepper status change:", targetStatus, "from:", currentStatus);
     
-    // CAS SPÉCIAL : Validation après approbation du leaser
-    if ((targetStatus === 'validated' || targetStatus === 'offer_validation') && currentStatus === 'leaser_approved') {
+    // CAS SPÉCIAL : Validation - ouvrir la modale d'email quelle que soit l'étape courante
+    if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
       console.log("🔔 Ouverture de la modale d'email avant validation");
+      setDialogOpen(false);
       setEmailModalReason("Validation de l'offre après approbation du leaser");
       setSelectedStatus(targetStatus);
       setShowEmailModal(true);
