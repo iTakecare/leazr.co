@@ -1,4 +1,5 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { ITAKECARE_V1_HTML } from './itakecare-v1-inline.ts';
 
 export async function loadTemplate(
   supabase: SupabaseClient, 
@@ -32,8 +33,24 @@ export async function loadTemplate(
       template.html_content = htmlContent;
     } catch (fileError) {
       console.error('Error loading template file:', fileError);
-      throw new Error(`Template file ${templateSlug}.html not found`);
+      // Fallback: utiliser la version inline packagée avec la fonction
+      if (templateSlug === 'itakecare-v1') {
+        template.html_content = ITAKECARE_V1_HTML;
+      } else {
+        throw new Error(`Template file ${templateSlug}.html not found`);
+      }
     }
+  }
+
+  // Garantie: si le contenu est vide/placeholder pour ce template, utiliser la version inline
+  if (
+    templateSlug === 'itakecare-v1' && (
+      !template.html_content ||
+      template.html_content.trim().length < 200 ||
+      template.html_content.includes('<!-- Template chargé depuis le fichier externe -->')
+    )
+  ) {
+    template.html_content = ITAKECARE_V1_HTML;
   }
 
   return template;
