@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Circle, Clock, ArrowRight, HelpCircle } from "lucide-react";
@@ -8,6 +8,9 @@ import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import type { OfferType } from "@/types/workflow";
+import EmailConfirmationModal from "../EmailConfirmationModal";
+import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
+import { getOfferById } from "@/services/offerService";
 
 interface InteractiveWorkflowStepperProps {
   currentStatus: string;
@@ -30,6 +33,10 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 }) => {
   const { user } = useAuth();
   const [updating, setUpdating] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [isEmailProcessing, setIsEmailProcessing] = useState(false);
+  const [emailModalReason, setEmailModalReason] = useState("Validation de l'offre");
+  const [offerDataForModal, setOfferDataForModal] = useState<any>(offer || null);
 
   // Helper function to get icon component from name
   function getIconComponent(iconName: string) {
@@ -75,6 +82,20 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
   const activeSteps = workflowLoading || steps.length === 0 ? defaultSteps : steps;
 
+  // Charger les données de l'offre pour la modale si nécessaire
+  useEffect(() => {
+    if (showEmailModal && (!offerDataForModal || !offerDataForModal?.company_id)) {
+      (async () => {
+        try {
+          const data = await getOfferById(offerId);
+          if (data) setOfferDataForModal(data);
+        } catch (e) {
+          console.error("Erreur lors du chargement de l'offre pour la modale:", e);
+        }
+      })();
+    }
+  }, [showEmailModal, offerId]);
+
   const getCurrentStepIndex = () => {
     // Mapper les statuts d'approbation vers les étapes correspondantes
     const statusMapping: { [key: string]: string } = {
@@ -85,6 +106,7 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       'internal_rejected': 'internal_review',
       'leaser_rejected': 'leaser_review',
       'client_approved': 'client_approved',
+      'offer_validation': 'validated',
       'validated': 'validated',
       'financed': 'validated',
       'draft': 'draft',
@@ -127,9 +149,11 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     // INTERCEPTION IMMÉDIATE pour les statuts de finalisation - AVANT toute confirmation
     // Cela évite que le window.confirm bloque l'ouverture de la modale
     if (targetStatus === 'validated' || targetStatus === 'offer_validation') {
-      console.log('🔔 STEPPER - Interception immédiate pour modal d\'email:', targetStatus);
-      onStatusChange?.(targetStatus);
-      return; // Le parent gère la suite via la modale
+      console.log("🔔 STEPPER - Interception immédiate: ouverture de la modale d'email", targetStatus);
+      setEmailModalReason("Validation de l'offre");
+      setShowEmailModal(true);
+      // Le useEffect se chargera de précharger offerData si nécessaire
+      return;
     }
 
     // Confirmation pour les autres statuts
@@ -210,6 +234,54 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       case 'B': return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'C': return 'bg-red-100 text-red-800 border-red-200';
       default: return '';
+    }
+  };
+
+  const handleSendEmailAndValidate = async (customContent?: string, includePdf?: boolean) => {
+    setIsEmailProcessing(true);
+    try {
+      const success = await updateOfferStatus(
+        offerId,
+        'offer_validation',
+        currentStatus,
+        emailModalReason
+      );
+      if (!success) {
+        toast.error("Échec de la validation de l'offre");
+        return;
+      }
+      try {
+        await sendLeasingAcceptanceEmail(offerId, customContent, includePdf ?? true);
+        toast.success("Email envoyé et offre validée. Le contrat va être créé.");
+      } catch (emailErr) {
+        console.error("Erreur d'envoi email:", emailErr);
+        toast.warning("Offre validée. L'email n'a pas pu être envoyé.");
+      }
+      setShowEmailModal(false);
+      onStatusChange?.('offer_validation');
+    } finally {
+      setIsEmailProcessing(false);
+    }
+  };
+
+  const handleValidateWithoutEmail = async () => {
+    setIsEmailProcessing(true);
+    try {
+      const success = await updateOfferStatus(
+        offerId,
+        'offer_validation',
+        currentStatus,
+        emailModalReason
+      );
+      if (success) {
+        toast.success("Offre validée sans email. Le contrat va être créé.");
+        setShowEmailModal(false);
+        onStatusChange?.('offer_validation');
+      } else {
+        toast.error("Échec de la validation de l'offre");
+      }
+    } finally {
+      setIsEmailProcessing(false);
     }
   };
 
@@ -296,20 +368,16 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
                     </Badge>
                   </div>
                 )}
-              </div>
-            </div>
-          );
-        })}
       </div>
-      
-      <div className="mt-4 text-center text-sm text-gray-500">
-        Cliquez sur une étape pour modifier le statut
-        {currentIndex === activeSteps.length - 2 && (
-          <div className="mt-2 text-orange-600 font-medium">
-            ⚠️ L'étape "Contrat prêt" convertira automatiquement l'offre en contrat
-          </div>
-        )}
-      </div>
+
+      <EmailConfirmationModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        offerId={offerId}
+        offerData={offerDataForModal || offer}
+        onSendEmailAndValidate={handleSendEmailAndValidate}
+        onValidateWithoutEmail={handleValidateWithoutEmail}
+      />
     </div>
   );
 };
