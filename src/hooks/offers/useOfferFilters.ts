@@ -4,7 +4,7 @@ import { Offer } from "./useFetchOffers";
 
 export const useOfferFilters = (offers: Offer[]) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("in_progress");
   const [activeType, setActiveType] = useState("all");
   const [filteredOffers, setFilteredOffers] = useState<Offer[]>([]);
   
@@ -22,10 +22,25 @@ export const useOfferFilters = (offers: Offer[]) => {
     
     let result = [...offers];
     
-    // Filtre par statut (onglet actif)
+    // Masquer automatiquement les offres rejetées et acceptées (sauf si "all")
     if (activeTab !== "all") {
-      console.log(`Filtering by workflow status: ${activeTab}`);
-      result = result.filter(offer => offer.workflow_status === activeTab);
+      result = result.filter(offer => 
+        offer.workflow_status !== "internal_rejected" && 
+        offer.workflow_status !== "accepted" &&
+        offer.workflow_status !== "internal_approved"
+      );
+    }
+    
+    // Filtre par statut (onglet actif)
+    if (activeTab === "draft") {
+      console.log(`Filtering by workflow status: draft`);
+      result = result.filter(offer => offer.workflow_status === "draft");
+    } else if (activeTab === "in_progress") {
+      console.log(`Filtering by workflow status: in_progress (info_requested, internal_docs_requested)`);
+      result = result.filter(offer => 
+        offer.workflow_status === "info_requested" || 
+        offer.workflow_status === "internal_docs_requested"
+      );
     }
     
     // Filtre par type d'offre (admin_offer, client_request, etc.)

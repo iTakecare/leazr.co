@@ -13,16 +13,15 @@ const OffersFilter = ({ activeTab, onTabChange, activeType, onTypeChange }: Offe
   return (
     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
       <div className="flex flex-col sm:flex-row gap-4">
-        <Tabs defaultValue={activeTab} onValueChange={onTabChange} className="w-full sm:w-auto">
+        <Tabs value={activeTab} onValueChange={onTabChange} className="w-full sm:w-auto">
           <TabsList>
             <TabsTrigger value="all">Toutes</TabsTrigger>
-            <TabsTrigger value="pending">En attente</TabsTrigger>
-            <TabsTrigger value="accepted">Acceptées</TabsTrigger>
-            <TabsTrigger value="rejected">Refusées</TabsTrigger>
+            <TabsTrigger value="draft">Brouillons</TabsTrigger>
+            <TabsTrigger value="in_progress">En cours</TabsTrigger>
           </TabsList>
         </Tabs>
         
-        <Tabs defaultValue={activeType} onValueChange={onTypeChange} className="w-full sm:w-auto">
+        <Tabs value={activeType} onValueChange={onTypeChange} className="w-full sm:w-auto">
           <TabsList>
             <TabsTrigger value="all">Tous types</TabsTrigger>
             <TabsTrigger value="admin_offer">Mes offres</TabsTrigger>
