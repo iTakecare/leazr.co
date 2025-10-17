@@ -56,13 +56,14 @@ export const OfferReferenceEditor = ({
   return (
     <>
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={() => setIsOpen(true)}
-        className="h-8 w-8 p-0"
+        className="h-8 gap-1.5 hover:bg-accent"
         title="Modifier la référence"
       >
-        <Pencil className="h-4 w-4" />
+        <Pencil className="h-3.5 w-3.5" />
+        <span className="text-xs">Éditer</span>
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
