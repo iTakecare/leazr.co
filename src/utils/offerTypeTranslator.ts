@@ -9,6 +9,8 @@ export const translateOfferType = (type: string | undefined | null): string => {
   switch (type.toLowerCase()) {
     case 'client_request':
       return "Demande client";
+    case 'web_request':
+      return "Demande web";
     case 'ambassador_offer':
       return "Offre ambassadeur";
     case 'partner_offer':

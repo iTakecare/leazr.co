@@ -64,6 +64,7 @@ export interface WorkflowStepConfig {
 
 export type OfferType = 
   | 'client_request' 
+  | 'web_request'
   | 'ambassador_offer' 
   | 'partner_offer';
 

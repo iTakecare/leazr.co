@@ -28,6 +28,7 @@ const OffersFilter = ({ activeTab, onTabChange, activeType, onTypeChange }: Offe
             <TabsTrigger value="all">Tous types</TabsTrigger>
             <TabsTrigger value="admin_offer">Mes offres</TabsTrigger>
             <TabsTrigger value="client_request">Demandes clients</TabsTrigger>
+            <TabsTrigger value="web_request">Demandes web</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

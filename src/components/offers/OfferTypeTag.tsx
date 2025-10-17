@@ -30,6 +30,10 @@ const OfferTypeTag = ({ type, size = "md" }: OfferTypeTagProps) => {
       color = "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
       icon = <Phone className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
+    case "web_request":
+      color = "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-50";
+      icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      break;
     case "internal_offer":
       color = "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-50";
       icon = <Building className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
