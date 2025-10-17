@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Combobox } from '@/components/ui/combobox';
 import { Edit3, Save, X } from 'lucide-react';
 import { translateOfferType } from '@/utils/offerTypeTranslator';
 import { useOfferUpdate } from '@/hooks/offers/useOfferUpdate';
@@ -32,6 +33,11 @@ const TYPE_OPTIONS = [
   { value: 'ambassador_offer', label: 'Offre ambassadeur' },
   { value: 'partner_offer', label: 'Offre partenaire' }
 ];
+
+const SECTOR_OPTIONS = BUSINESS_SECTORS.map(sector => ({
+  value: sector.value,
+  label: sector.label
+}));
 
 const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   offerId,
@@ -170,18 +176,15 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
             Secteur d'activité
           </label>
           {isEditing ? (
-            <Select value={selectedSector} onValueChange={setSelectedSector}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un secteur" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {BUSINESS_SECTORS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={SECTOR_OPTIONS}
+              value={selectedSector}
+              onValueChange={setSelectedSector}
+              placeholder="Sélectionner un secteur"
+              searchPlaceholder="Rechercher un secteur..."
+              emptyMessage="Aucun secteur trouvé."
+              className="w-full"
+            />
           ) : (
             <div>
               {currentSector ? (
