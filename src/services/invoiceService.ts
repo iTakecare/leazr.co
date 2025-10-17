@@ -395,13 +395,39 @@ export const updateInvoiceStatus = async (invoiceId: string, status: string, pai
 
 // Supprimer une facture
 export const deleteInvoice = async (invoiceId: string) => {
-  const { error } = await supabase
-    .from('invoices')
-    .delete()
-    .eq('id', invoiceId);
+  try {
+    console.log('🗑️ Suppression de la facture:', invoiceId);
+    
+    // Étape 1 : Détacher le contrat de la facture (mettre invoice_id à NULL)
+    const { error: detachError } = await supabase
+      .from('contracts')
+      .update({ 
+        invoice_id: null,
+        invoice_generated: false 
+      })
+      .eq('invoice_id', invoiceId);
 
-  if (error) {
-    console.error('Erreur lors de la suppression de la facture:', error);
+    if (detachError) {
+      console.error('❌ Erreur lors du détachement du contrat:', detachError);
+      throw new Error(`Impossible de détacher le contrat : ${detachError.message}`);
+    }
+
+    console.log('✅ Contrat détaché avec succès');
+
+    // Étape 2 : Supprimer la facture
+    const { error: deleteError } = await supabase
+      .from('invoices')
+      .delete()
+      .eq('id', invoiceId);
+
+    if (deleteError) {
+      console.error('❌ Erreur lors de la suppression de la facture:', deleteError);
+      throw new Error(`Erreur lors de la suppression : ${deleteError.message}`);
+    }
+
+    console.log('✅ Facture supprimée avec succès');
+  } catch (error) {
+    console.error('❌ Erreur dans deleteInvoice:', error);
     throw error;
   }
 };
