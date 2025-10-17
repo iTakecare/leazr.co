@@ -49,7 +49,7 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
-import { formatEquipmentWithQuantities, formatEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
+import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 
 interface OffersTableProps {
   offers: any[];
@@ -185,12 +185,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="truncate cursor-help">
-                            {formatEquipmentForCell(offer.equipment_description)}
+                            {formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment)}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-md z-50 bg-popover p-3">
                           <div className="space-y-1">
-                            {formatEquipmentWithQuantities(offer.equipment_description).map((line, index) => (
+                            {formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment).map((line, index) => (
                               <div key={index} className="text-sm font-mono">
                                 {line}
                               </div>
