@@ -15,7 +15,7 @@ interface WorkflowStepperProps {
 const WorkflowStepper: React.FC<WorkflowStepperProps> = ({ 
   currentStatus, 
   onStatusChange,
-  offerType = 'standard'
+  offerType = 'client_request'
 }) => {
   const { user } = useAuth();
   const { steps: workflowSteps, loading } = useWorkflowForOfferType(

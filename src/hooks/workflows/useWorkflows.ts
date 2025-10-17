@@ -262,13 +262,7 @@ const getDefaultStepsForOfferType = (offerType: OfferType): WorkflowStepConfig[]
         { ...baseSteps.validated, step_order: 4, step_label: 'Contrat prêt', template_id: '', template_name: 'Default', is_required: true, is_visible: true }
       ];
     
-    case 'internal_offer':
-      return [
-        { ...baseSteps.draft, template_id: '', template_name: 'Default', is_required: true, is_visible: true },
-        { ...baseSteps.internal_review, step_order: 2, template_id: '', template_name: 'Default', is_required: true, is_visible: true },
-        { ...baseSteps.validated, step_order: 3, template_id: '', template_name: 'Default', is_required: true, is_visible: true }
-      ];
-    
+    case 'partner_offer':
     case 'ambassador_offer':
     default:
       return [

@@ -25,13 +25,9 @@ const SOURCE_OPTIONS = [
 ];
 
 const TYPE_OPTIONS = [
-  { value: 'ambassador_offer', label: 'Offre ambassadeur' },
-  { value: 'offer', label: 'Offre directe' },
   { value: 'client_request', label: 'Demande client' },
-  { value: 'internal_offer', label: 'Offre interne' },
-  { value: 'partner_offer', label: 'Offre partenaire' },
-  { value: 'admin_offer', label: 'Offre admin' },
-  { value: 'web_request', label: 'Demande web' }
+  { value: 'ambassador_offer', label: 'Offre ambassadeur' },
+  { value: 'partner_offer', label: 'Offre partenaire' }
 ];
 
 const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
