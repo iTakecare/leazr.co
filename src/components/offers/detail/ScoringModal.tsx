@@ -79,34 +79,67 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   useEffect(() => {
     const fetchWorkflowStep = async () => {
       try {
-        // Déterminer le step_key à partir de l'analysisType
         const targetStepKey = analysisType === 'internal' ? 'internal_review' : 'leaser_review';
-        
-        console.log("🔍 SCORING MODAL - Fetching workflow step for:", { targetStepKey, analysisType });
-        
-        const { data, error } = await supabase
+        console.log('🔍 SCORING MODAL - Fetching workflow step for active template:', { targetStepKey, analysisType, offerId });
+
+        // 1) Récupérer l'offre pour obtenir company_id et offer_type
+        const offer = await getOfferById(offerId);
+        if (!offer) {
+          console.error('❌ SCORING MODAL - Offre introuvable pour', offerId);
+          toast.error("Offre introuvable");
+          return;
+        }
+
+        // 2) Récupérer le template actif via la RPC
+        const { data: stepsFromRpc, error: rpcError } = await supabase.rpc('get_workflow_for_offer_type', {
+          p_company_id: offer.company_id,
+          p_offer_type: offer.offer_type
+        });
+        if (rpcError) {
+          console.error('❌ SCORING MODAL - RPC get_workflow_for_offer_type error:', rpcError);
+        }
+        const activeTemplateId = Array.isArray(stepsFromRpc) && stepsFromRpc.length > 0 ? stepsFromRpc[0].template_id : null;
+        if (!activeTemplateId) {
+          console.error('❌ SCORING MODAL - Aucun template actif trouvé');
+          toast.error("Workflow introuvable pour ce type d'offre");
+          return;
+        }
+
+        // 3) Charger l'étape précise dans ce template pour éviter les doublons
+        const { data: stepRows, error: stepErr } = await supabase
           .from('workflow_steps')
           .select('*')
+          .eq('workflow_template_id', activeTemplateId)
           .eq('step_key', targetStepKey)
           .eq('scoring_type', analysisType)
-          .single();
-        
-        if (data) {
-          console.log("✅ SCORING MODAL - Workflow step loaded:", data);
-          setCurrentWorkflowStep(data);
+          .order('step_order', { ascending: true })
+          .limit(1);
+
+        if (stepErr) {
+          console.error('❌ SCORING MODAL - Erreur chargement étape:', stepErr);
+          toast.error("Impossible de charger l'étape de scoring");
+          return;
+        }
+
+        const step = stepRows && stepRows[0];
+        if (step) {
+          console.log('✅ SCORING MODAL - Workflow step loaded (scoped to template):', step);
+          setCurrentWorkflowStep(step as unknown as WorkflowStepConfig);
         } else {
-          console.error("❌ SCORING MODAL - No workflow step found for:", { targetStepKey, analysisType });
+          console.error('❌ SCORING MODAL - Étape de scoring introuvable dans le template actif');
+          toast.error("Étape de scoring introuvable dans le workflow actif");
         }
       } catch (error) {
         console.error('❌ SCORING MODAL - Erreur lors de la récupération de la configuration du workflow:', error);
+        toast.error("Erreur lors du chargement de la configuration de scoring");
       }
     };
-    
+
     if (isOpen) {
-      console.log("🔍 SCORING MODAL - Opening with:", { currentStatus, analysisType });
+      console.log('🔍 SCORING MODAL - Opening with:', { currentStatus, analysisType });
       fetchWorkflowStep();
     }
-  }, [analysisType, isOpen]); // Utiliser analysisType au lieu de currentStatus
+  }, [analysisType, isOpen, offerId, currentStatus]);
   
   // Déterminer si le scoring est possible selon la configuration du workflow
   const canScore = currentWorkflowStep?.enables_scoring === true 
