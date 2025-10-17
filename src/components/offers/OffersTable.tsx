@@ -124,7 +124,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
+                <TableHead>Date création</TableHead>
+                <TableHead>Date demande</TableHead>
+                <TableHead>Date offre</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead className="w-[120px]">Type</TableHead>
                 <TableHead className="max-w-[120px]">Équipement</TableHead>
@@ -139,6 +141,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
             <TableBody>
               {offers.map((offer) => (
                 <TableRow key={offer.id}>
+                  <TableCell>{formatDate(offer.created_at)}</TableCell>
+                  <TableCell>
+                    {offer.request_date ? formatDate(offer.request_date) : '-'}
+                  </TableCell>
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
                   <TableCell className="font-medium">{offer.client_name}</TableCell>
                   <TableCell className="w-[120px]">
