@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +27,7 @@ import OfferDocuments from "@/components/offers/OfferDocuments";
 import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
 import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
+import { OfferDateEditor } from "@/components/offers/detail/OfferDateEditor";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,7 @@ const AdminOfferDetail = () => {
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringAnalysisType, setScoringAnalysisType] = useState<'internal' | 'leaser'>('internal');
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
+  const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
 
   
 
@@ -314,7 +316,21 @@ const AdminOfferDetail = () => {
                     </h1>
                     {offer.type && <OfferTypeTag type={offer.type} size="md" />}
                   </div>
-                  <p className="text-gray-600">{offer.client_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-600">{offer.client_name}</p>
+                    <span className="text-gray-400">•</span>
+                    <p className="text-sm text-gray-500">
+                      Créée le {new Date(offer.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsDateEditorOpen(true)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -416,6 +432,15 @@ const AdminOfferDetail = () => {
           analysisType={scoringAnalysisType}
           onScoreAssigned={scoringAnalysisType === 'internal' ? handleInternalScoring : handleLeaserScoring}
           isLoading={scoringLoading}
+        />
+
+        {/* Éditeur de date */}
+        <OfferDateEditor
+          offerId={offer.id}
+          currentDate={offer.created_at}
+          isOpen={isDateEditorOpen}
+          onClose={() => setIsDateEditorOpen(false)}
+          onDateUpdated={fetchOfferDetails}
         />
       </Container>
     </PageTransition>

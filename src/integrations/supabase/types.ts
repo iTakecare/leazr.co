@@ -6410,9 +6410,11 @@ export type Database = {
         Args: { p_company_id: string; p_contract_type?: string }
         Returns: {
           color_class: string
+          enables_scoring: boolean
           icon_name: string
           is_required: boolean
           is_visible: boolean
+          scoring_type: string
           step_description: string
           step_key: string
           step_label: string
@@ -6425,9 +6427,11 @@ export type Database = {
         Args: { p_company_id: string; p_offer_type: string }
         Returns: {
           color_class: string
+          enables_scoring: boolean
           icon_name: string
           is_required: boolean
           is_visible: boolean
+          scoring_type: string
           step_description: string
           step_key: string
           step_label: string
