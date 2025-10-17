@@ -30,6 +30,7 @@ import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
 import { OfferDateEditor } from "@/components/offers/detail/OfferDateEditor";
 import EmailConfirmationModal from "@/components/offers/EmailConfirmationModal";
 import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
+import { OfferReferenceEditor } from "@/components/offer/OfferReferenceEditor";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -381,9 +382,16 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                 </Button>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-2xl font-bold">
-                      Offre #{offer.id?.slice(0, 8)}
-                    </h1>
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-2xl font-bold">
+                        {offer.dossier_number || `Offre #${offer.id?.slice(0, 8)}`}
+                      </h1>
+                      <OfferReferenceEditor
+                        offerId={offer.id}
+                        currentReference={offer.dossier_number}
+                        onUpdate={fetchOfferDetails}
+                      />
+                    </div>
                     {offer.type && <OfferTypeTag type={offer.type} size="md" />}
                   </div>
                   <p className="text-gray-600 font-medium">{offer.client_name}</p>
