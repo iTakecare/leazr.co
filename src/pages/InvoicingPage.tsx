@@ -21,7 +21,7 @@ const InvoicingPage = () => {
   const filteredInvoices = invoices.filter(invoice =>
     invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.leaser_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.billing_data?.client_data?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusBadge = (status: string) => {
@@ -120,7 +120,7 @@ const InvoicingPage = () => {
                             {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
                           </TableCell>
                           <TableCell>
-                            {invoice.billing_data?.client_data?.name || "N/A"}
+                            {invoice.billing_data?.contract_data?.client_name || "N/A"}
                           </TableCell>
                           <TableCell>{invoice.leaser_name}</TableCell>
                           <TableCell>{formatCurrency(invoice.amount)}</TableCell>
