@@ -28,6 +28,8 @@ import RequestInfoModal from "@/components/offers/RequestInfoModal";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
 import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
 import { OfferDateEditor } from "@/components/offers/detail/OfferDateEditor";
+import EmailConfirmationModal from "@/components/offers/EmailConfirmationModal";
+import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,9 +48,11 @@ const AdminOfferDetail = () => {
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
   const [dateEditorType, setDateEditorType] = useState<'created' | 'request'>('request');
-  const [scoringTargetStatus, setScoringTargetStatus] = useState<string | null>(null);
+const [scoringTargetStatus, setScoringTargetStatus] = useState<string | null>(null);
 
-  
+// Modale d'email de validation après score A (leaser)
+const [showEmailModal, setShowEmailModal] = useState(false);
+const [emailModalReason, setEmailModalReason] = useState("Validation de l'offre après approbation du leaser");
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -226,38 +230,99 @@ const AdminOfferDetail = () => {
     }
   };
 
-  const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
-    setScoringLoading(true);
-    try {
-      let newStatus = '';
-      switch (score) {
-        case 'A': newStatus = 'leaser_approved'; break;
-        case 'B': newStatus = 'leaser_docs_requested'; break;
-        case 'C': newStatus = 'leaser_rejected'; break;
-      }
-      
-      const success = await updateOfferStatus(
-        offer.id,
-        newStatus,
-        offer.workflow_status,
-        reason || `Score attribué: ${score}`
-      );
-      
-      if (success) {
-        setOffer({ ...offer, workflow_status: newStatus });
-        toast.success(`Score ${score} attribué avec succès`);
-      } else {
-        toast.error("Erreur lors de l'attribution du score");
-      }
-    } catch (error) {
-      console.error("Erreur lors du scoring leaser:", error);
-      toast.error("Erreur lors de l'attribution du score");
-    } finally {
-      setScoringLoading(false);
+const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+  setScoringLoading(true);
+  try {
+    let newStatus = '';
+    switch (score) {
+      case 'A': newStatus = 'leaser_approved'; break;
+      case 'B': newStatus = 'leaser_docs_requested'; break;
+      case 'C': newStatus = 'leaser_rejected'; break;
     }
-  };
+    
+    const success = await updateOfferStatus(
+      offer.id,
+      newStatus,
+      offer.workflow_status,
+      reason || `Score attribué: ${score}`
+    );
+    
+    if (success) {
+      setOffer({ ...offer, workflow_status: newStatus });
+      if (score === 'A') {
+        toast.success("Score A attribué. Préparation de l'email de validation…");
+        setEmailModalReason("Validation de l'offre après approbation du leaser");
+        setShowEmailModal(true);
+      } else {
+        toast.success(`Score ${score} attribué avec succès`);
+      }
+    } else {
+      toast.error("Erreur lors de l'attribution du score");
+    }
+  } catch (error) {
+    console.error("Erreur lors du scoring leaser:", error);
+    toast.error("Erreur lors de l'attribution du score");
+  } finally {
+    setScoringLoading(false);
+  }
+};
 
-  const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
+// Validation finale via modale email (Contrat prêt)
+const handleSendEmailAndValidate = async (customContent?: string, includePdf: boolean = true) => {
+  setScoringLoading(true);
+  try {
+    const success = await updateOfferStatus(
+      offer.id,
+      'offer_validation',
+      offer.workflow_status,
+      emailModalReason
+    );
+    if (!success) {
+      toast.error("Erreur lors de la mise à jour du statut");
+      return;
+    }
+    try {
+      await sendLeasingAcceptanceEmail(offer.id, customContent, includePdf);
+      toast.success("Email envoyé et offre validée avec succès");
+    } catch (emailErr) {
+      console.error("Erreur d'envoi email:", emailErr);
+      toast.warning("Offre validée mais l'email n'a pas pu être envoyé");
+    }
+    await fetchOfferDetails();
+    setShowEmailModal(false);
+  } catch (err) {
+    console.error("Erreur lors de la validation:", err);
+    toast.error("Erreur lors de la validation");
+  } finally {
+    setScoringLoading(false);
+  }
+};
+
+const handleValidateWithoutEmail = async () => {
+  setScoringLoading(true);
+  try {
+    const success = await updateOfferStatus(
+      offer.id,
+      'offer_validation',
+      offer.workflow_status,
+      emailModalReason
+    );
+    if (success) {
+      toast.success("Offre validée sans envoi d'email");
+      await fetchOfferDetails();
+      setShowEmailModal(false);
+    } else {
+      toast.error("Erreur lors de la mise à jour du statut");
+    }
+  } catch (err) {
+    console.error("Erreur lors de la validation sans email:", err);
+    toast.error("Erreur lors de la validation");
+  } finally {
+    setScoringLoading(false);
+  }
+};
+
+const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
     if (status.includes('approved')) return 'A';
     if (status.includes('docs_requested')) return 'B';
     if (status.includes('rejected')) return 'C';
