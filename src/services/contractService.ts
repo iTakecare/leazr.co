@@ -41,6 +41,7 @@ export interface Contract {
   invoice_date?: string;
   payment_date?: string;
   contract_start_date?: string;
+  delivery_date?: string;
 }
 
 export interface ContractEquipment {

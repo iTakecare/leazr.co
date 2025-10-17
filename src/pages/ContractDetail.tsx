@@ -8,6 +8,7 @@ import ContractHistoryPanel from "@/components/contracts/ContractHistoryPanel";
 import ContractEquipmentSection from "@/components/contracts/ContractEquipmentSection";
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractEquipmentSerialManager from "@/components/contracts/ContractEquipmentSerialManager";
+import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,6 +112,15 @@ const ContractDetail = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Workflow Panel */}
               <ContractWorkflowPanel contract={contract} onRefresh={refetch} />
+
+              {/* Gestion des dates */}
+              <ContractDatesManager 
+                contractId={contract.id}
+                deliveryDate={contract.delivery_date}
+                contractStartDate={contract.contract_start_date}
+                leaserName={contract.leaser_name}
+                onUpdate={refetch}
+              />
 
               {/* Section Numéros de série */}
               <ContractEquipmentSerialManager 

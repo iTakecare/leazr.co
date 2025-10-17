@@ -2093,6 +2093,7 @@ export type Database = {
           contract_start_date: string | null
           created_at: string
           delivery_carrier: string | null
+          delivery_date: string | null
           delivery_status: string | null
           dossier_date: string | null
           equipment_description: string | null
@@ -2119,6 +2120,7 @@ export type Database = {
           contract_start_date?: string | null
           created_at?: string
           delivery_carrier?: string | null
+          delivery_date?: string | null
           delivery_status?: string | null
           dossier_date?: string | null
           equipment_description?: string | null
@@ -2145,6 +2147,7 @@ export type Database = {
           contract_start_date?: string | null
           created_at?: string
           delivery_carrier?: string | null
+          delivery_date?: string | null
           delivery_status?: string | null
           dossier_date?: string | null
           equipment_description?: string | null
@@ -3173,9 +3176,11 @@ export type Database = {
         Row: {
           address: string | null
           available_durations: number[] | null
+          billing_frequency: string | null
           city: string | null
           company_id: string
           company_name: string | null
+          contract_start_rule: string | null
           country: string | null
           created_at: string | null
           email: string | null
@@ -3191,9 +3196,11 @@ export type Database = {
         Insert: {
           address?: string | null
           available_durations?: number[] | null
+          billing_frequency?: string | null
           city?: string | null
           company_id: string
           company_name?: string | null
+          contract_start_rule?: string | null
           country?: string | null
           created_at?: string | null
           email?: string | null
@@ -3209,9 +3216,11 @@ export type Database = {
         Update: {
           address?: string | null
           available_durations?: number[] | null
+          billing_frequency?: string | null
           city?: string | null
           company_id?: string
           company_name?: string | null
+          contract_start_rule?: string | null
           country?: string | null
           created_at?: string | null
           email?: string | null
@@ -5541,6 +5550,10 @@ export type Database = {
       }
       calculate_contract_start_date: {
         Args: { invoice_date: string }
+        Returns: string
+      }
+      calculate_contract_start_date_with_rule: {
+        Args: { p_contract_start_rule: string; p_delivery_date: string }
         Returns: string
       }
       calculate_total_revenue: {

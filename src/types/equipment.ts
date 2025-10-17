@@ -44,6 +44,14 @@ export interface Leaser {
   vat_number?: string;
   phone?: string;
   email?: string;
+  billing_frequency?: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
+  contract_start_rule?: 
+    | 'next_month_first' 
+    | 'next_quarter_first' 
+    | 'next_semester_first' 
+    | 'next_year_first' 
+    | 'delivery_date' 
+    | 'delivery_date_plus_15';
 }
 
 export interface LeasingRange {
