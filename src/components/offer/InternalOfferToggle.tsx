@@ -28,7 +28,7 @@ const InternalOfferToggle: React.FC<InternalOfferToggleProps> = ({
               </Label>
               <span className="text-xs text-muted-foreground">
                 {isInternalOffer 
-                  ? "Offre interne (aucune commission)" 
+                  ? "Demande client (aucune commission)" 
                   : `Offre ambassadeur${userName ? ` - ${userName}` : ""}`
                 }
               </span>
@@ -36,7 +36,7 @@ const InternalOfferToggle: React.FC<InternalOfferToggleProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">
-              {isInternalOffer ? "Interne" : "Ambassadeur"}
+              {isInternalOffer ? "Demande client" : "Ambassadeur"}
             </span>
             <Switch
               id="internal-offer-toggle"

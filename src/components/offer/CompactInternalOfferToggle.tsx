@@ -18,7 +18,7 @@ const CompactInternalOfferToggle: React.FC<CompactInternalOfferToggleProps> = ({
       <Building className="h-4 w-4 text-primary flex-shrink-0" />
       <div className="flex flex-col flex-1 min-w-0">
         <Label htmlFor="compact-internal-toggle" className="text-xs font-medium leading-tight">
-          {isInternalOffer ? "Interne" : "Ambassadeur"}
+          {isInternalOffer ? "Demande client" : "Ambassadeur"}
         </Label>
       </div>
       <Switch

@@ -49,10 +49,15 @@ export const createOffer = async (offerData: OfferData) => {
       offerType = 'ambassador_offer';
       console.log("👨‍💼 OFFRE AMBASSADEUR détectée - Type mis à jour:", offerType);
     }
-    // Si le type est explicitement défini comme interne
+    // Si le type est explicitement défini comme client_request, le préserver
+    else if (offerData.type === 'client_request') {
+      offerType = 'client_request';
+      console.log("📋 DEMANDE CLIENT détectée:", offerType);
+    }
+    // Si le type est explicitement défini comme interne (rétrocompatibilité)
     else if (offerData.type === 'internal_offer') {
       offerType = 'internal_offer';
-      console.log("🏠 OFFRE INTERNE détectée:", offerType);
+      console.log("🏠 OFFRE INTERNE (legacy) détectée:", offerType);
     }
     // Sinon, c'est une offre administrative par défaut
     else {

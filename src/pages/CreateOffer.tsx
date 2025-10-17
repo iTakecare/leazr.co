@@ -195,8 +195,13 @@ const CreateOffer = () => {
             setRemarks(offer.additional_info || '');
 
             // Déterminer le type d'offre et charger l'ambassadeur si nécessaire
-            if (offer.type === 'internal_offer') {
-              console.log("🏠 STEP 3: Internal offer detected");
+            if (offer.type === 'client_request' && !offer.ambassador_id) {
+              console.log("🏠 STEP 3: Internal/Client request offer detected");
+              setIsInternalOffer(true);
+              setSelectedAmbassador(null);
+            } else if (offer.type === 'internal_offer') {
+              // Rétrocompatibilité avec anciennes offres internes
+              console.log("🏠 STEP 3: Legacy internal offer detected");
               setIsInternalOffer(true);
               setSelectedAmbassador(null);
             } else if (offer.ambassador_id) {
@@ -469,9 +474,9 @@ const CreateOffer = () => {
       let offerType: string;
       let ambassadorId: string | undefined;
       if (isInternalOffer) {
-        offerType = 'internal_offer';
+        offerType = 'client_request';
         ambassadorId = undefined;
-        console.log("🏠 OFFRE INTERNE détectée");
+        console.log("🏠 DEMANDE CLIENT (interne) détectée");
       } else if (selectedAmbassador) {
         offerType = 'ambassador_offer'; // Sera vérifié/corrigé dans createOffer
         ambassadorId = selectedAmbassador.id;
