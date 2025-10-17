@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Calendar, User, Building2, Euro, FileText, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ContractReferenceEditor } from "./ContractReferenceEditor";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract, getContractEquipment } from "@/services/contractService";
 import ContractStatusBadge from "./ContractStatusBadge";
@@ -111,9 +112,16 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Contrat {`CON-${contract.id.slice(0, 8)}`}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {contract.contract_number || `CON-${contract.id.slice(0, 8)}`}
+                </h1>
+                <ContractReferenceEditor 
+                  contractId={contract.id}
+                  currentReference={contract.contract_number}
+                  onUpdate={onRefresh}
+                />
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">

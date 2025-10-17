@@ -35,6 +35,7 @@ import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
 import { OfferDateEditor } from "@/components/offers/detail/OfferDateEditor";
+import { OfferReferenceEditor } from "@/components/offer/OfferReferenceEditor";
 import { Edit } from "lucide-react";
 
 const OfferDetail = () => {
@@ -244,9 +245,16 @@ const OfferDetail = () => {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              Offre #{offer.id.substring(0, 8)}
-            </h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {offer.dossier_number || `Offre #${offer.id.substring(0, 8)}`}
+              </h1>
+              <OfferReferenceEditor 
+                offerId={offer.id}
+                currentReference={offer.dossier_number}
+                onUpdate={fetchOffer}
+              />
+            </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Calendar className="h-4 w-4" />
               <span>Créée le {formatDate(offer.created_at)}</span>
