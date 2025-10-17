@@ -117,6 +117,7 @@ import ContractDetail from "@/pages/ContractDetail";
 import Layout from "@/components/layout/Layout";
 import CartPage from "@/pages/CartPage";
 import ClientRoutes from "@/components/layout/ClientRoutes";
+import RedirectLegacyToSlug from "@/components/routing/RedirectLegacyToSlug";
 
 // Create QueryClient instance outside component to prevent recreation
 const queryClient = new QueryClient({
@@ -190,9 +191,13 @@ const AppRoutes = () => (
     <Route path="/admin/leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
     
     {/* CONTRACT ROUTES - Must be before system routes to avoid slug interception */}
-    {/* ⚠️ LEGACY ROUTES - Conservées pour compatibilité ascendante mais déconseillées */}
-    {/* <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} /> */}
-    {/* <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} /> */}
+    {/* ⚠️ LEGACY ROUTES - Redirection vers routes avec slug */}
+    <Route path="/contracts/:id" element={<RedirectLegacyToSlug />} />
+    <Route path="/contracts" element={<RedirectLegacyToSlug />} />
+    {/* Legacy admin invoicing routes -> redirect to slug */}
+    <Route path="/admin/invoicing" element={<RedirectLegacyToSlug />} />
+    <Route path="/admin/invoicing/:id" element={<RedirectLegacyToSlug />} />
+    <Route path="/admin/invoicing/:id/edit" element={<RedirectLegacyToSlug />} />
     
     {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
     <Route path="/:companySlug/ambassador/*" element={<AmbassadorPrivateRoute />}>
