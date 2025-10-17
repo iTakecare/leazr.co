@@ -190,8 +190,9 @@ const AppRoutes = () => (
     <Route path="/admin/leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
     
     {/* CONTRACT ROUTES - Must be before system routes to avoid slug interception */}
-    <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} />
-    <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} />
+    {/* ⚠️ LEGACY ROUTES - Conservées pour compatibilité ascendante mais déconseillées */}
+    {/* <Route path="/contracts/:id" element={<PrivateRoute><Layout><ContractDetail /></Layout></PrivateRoute>} /> */}
+    {/* <Route path="/contracts" element={<PrivateRoute><Layout><Contracts /></Layout></PrivateRoute>} /> */}
     
     {/* ⚠️ MULTI-TENANT AMBASSADOR ROUTES ⚠️ */}
     <Route path="/:companySlug/ambassador/*" element={<AmbassadorPrivateRoute />}>
@@ -226,6 +227,7 @@ const AppRoutes = () => (
       <Route path="offers/:id" element={<Layout><AdminOfferDetail /></Layout>} />
       <Route path="edit-offer/:id" element={<Layout><CreateOffer /></Layout>} />
       <Route path="contracts" element={<Layout><Contracts /></Layout>} />
+      <Route path="contracts/:id" element={<Layout><ContractDetail /></Layout>} />
       <Route path="settings" element={<Layout><Settings /></Layout>} />
       <Route path="documents" element={<Layout><CompanyDocuments /></Layout>} />
       <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
