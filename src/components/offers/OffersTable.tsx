@@ -42,7 +42,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
-import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount } from "@/utils/marginCalculations";
+import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 
 interface OffersTableProps {
   offers: any[];
@@ -111,69 +111,69 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // Check if we have any ambassador offers to show commission column
   const hasAmbassadorOffers = offers.some(offer => offer.type === 'ambassador_offer');
 
-  // Function to calculate and display the correct margin - Using consistent logic with FinancialSection
-  const getDisplayMargin = (offer: any) => {
-    const margin = calculateOfferMargin(offer);
-    return formatMarginDisplay(margin);
+  // Function to calculate and display the margin in euros
+  const getDisplayMarginInEuros = (offer: any) => {
+    const marginAmount = calculateOfferMarginAmount(offer);
+    return formatCurrency(marginAmount);
   };
 
   return (
     <>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto max-w-full">
-          <Table className="min-w-[2000px]">{/* Force minimum width for scrolling */}
+          <Table className="min-w-[2000px] text-xs">{/* Force minimum width for scrolling */}
             <TableHeader>
-              <TableRow>
+              <TableRow className="h-10">
                 <TableHead className="font-mono text-xs">N° Demande</TableHead>
-                <TableHead>Date demande</TableHead>
-                <TableHead>Date de l'offre</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Secteur</TableHead>
-                <TableHead className="w-[120px]">Type</TableHead>
-                <TableHead className="max-w-[120px]">Équipement</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Bailleur</TableHead>
-                <TableHead className="text-right">Montant d'achat</TableHead>
-                {showMarginColumn && <TableHead className="text-right">Marge €</TableHead>}
-                {showMarginColumn && <TableHead className="text-right">Marge %</TableHead>}
-                {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right">Commission</TableHead>}
-                {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
-                <TableHead className="text-right">Mensualité</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                <TableHead className="text-xs">Date demande</TableHead>
+                <TableHead className="text-xs">Date de l'offre</TableHead>
+                <TableHead className="text-xs">Client</TableHead>
+                <TableHead className="text-xs">Secteur</TableHead>
+                <TableHead className="w-[120px] text-xs">Type</TableHead>
+                <TableHead className="max-w-[120px] text-xs">Équipement</TableHead>
+                <TableHead className="text-xs">Source</TableHead>
+                <TableHead className="text-xs">Bailleur</TableHead>
+                <TableHead className="text-right text-xs">Montant d'achat</TableHead>
+                {showMarginColumn && <TableHead className="text-right text-xs">Marge €</TableHead>}
+                {showMarginColumn && <TableHead className="text-right text-xs">Marge %</TableHead>}
+                {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-xs">Commission</TableHead>}
+                {!isAmbassador() && <TableHead className="text-right text-xs">Montant financé</TableHead>}
+                <TableHead className="text-right text-xs">Mensualité</TableHead>
+                <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-right w-[60px] sticky right-0 bg-background text-xs">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {offers.map((offer) => (
-                <TableRow key={offer.id}>
+                <TableRow key={offer.id} className="h-12">
                   {/* Numéro de demande */}
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-mono text-xs">
                     {offer.dossier_number || '-'}
                   </TableCell>
                   
                   {/* Date demande */}
-                  <TableCell>
+                  <TableCell className="text-xs">
                     {offer.request_date ? formatDate(offer.request_date) : '-'}
                   </TableCell>
                   
                   {/* Date de l'offre */}
-                  <TableCell>{formatDate(offer.created_at)}</TableCell>
+                  <TableCell className="text-xs">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Client */}
-                  <TableCell className="font-medium">{offer.client_name}</TableCell>
+                  <TableCell className="font-medium text-xs">{offer.client_name}</TableCell>
                   
                   {/* Secteur */}
-                  <TableCell>
+                  <TableCell className="text-xs">
                     {offer.business_sector || '-'}
                   </TableCell>
                   
                   {/* Type */}
-                  <TableCell className="w-[120px]">
+                  <TableCell className="w-[120px] text-xs">
                     <OfferTypeTag type={offer.type} size="sm" />
                   </TableCell>
                   
                   {/* Équipement */}
-                  <TableCell className="max-w-[120px] truncate">
+                  <TableCell className="max-w-[120px] truncate text-xs">
                     {offer.equipment_description &&
                       typeof offer.equipment_description === "string" &&
                       (offer.equipment_description.startsWith("[") ||
@@ -197,34 +197,34 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Source */}
-                  <TableCell>
+                  <TableCell className="text-xs">
                     {offer.source || '-'}
                   </TableCell>
                   
                   {/* Bailleur */}
-                  <TableCell>
+                  <TableCell className="text-xs">
                     {offer.leaser_name || '-'}
                   </TableCell>
                   
                   {/* Montant d'achat */}
-                  <TableCell className="text-right">
+                  <TableCell className="text-right text-xs">
                     <div className="font-medium">
                       {formatCurrency(offer.total_purchase_price || 0)}
                     </div>
                   </TableCell>
                   
-                  {/* Show margin column only for admins - Use the corrected margin calculation */}
+                  {/* Marge € - Display margin in euros */}
                   {showMarginColumn && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right text-xs">
                       <div className="font-medium text-green-600">
-                        {getDisplayMargin(offer)}
+                        {getDisplayMarginInEuros(offer)}
                       </div>
                     </TableCell>
                   )}
                   
-                  {/* Marge % */}
+                  {/* Marge % - Display margin as percentage */}
                   {showMarginColumn && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right text-xs">
                       <div className="font-medium text-green-600">
                         {offer.margin_percentage ? `${offer.margin_percentage.toFixed(1)}%` : '-'}
                       </div>
@@ -232,7 +232,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   )}
                   {/* Show commission column only for ambassador offers and admins */}
                   {hasAmbassadorOffers && showMarginColumn && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right text-xs">
                       {offer.type === 'ambassador_offer' && offer.commission ? (
                         <div className="font-medium text-blue-600">
                           {formatCurrency(offer.commission)}
@@ -243,22 +243,22 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </TableCell>
                   )}
                   {!isAmbassador() && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right text-xs">
                       {formatCurrency(getEffectiveFinancedAmount(offer))}
                     </TableCell>
                   )}
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-right font-medium text-xs">
                     {formatCurrency(offer.monthly_payment)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs">
                     <OfferStatusBadge status={offer.workflow_status} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right sticky right-0 bg-background">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="h-8 w-8 p-0"
+                          className="h-7 w-7 p-0"
                           aria-label="Plus d'options"
                         >
                           <MoreHorizontal className="h-4 w-4" />
