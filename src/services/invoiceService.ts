@@ -120,9 +120,14 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
     }
 
     // Vérifier que tous les équipements ont des numéros de série
-    const missingSerialNumbers = equipment.filter(item => !item.serial_number);
+    const missingSerialNumbers = equipment.filter(item => !item.serial_number || item.serial_number.trim() === '');
     if (missingSerialNumbers.length > 0) {
-      throw new Error(`Numéros de série manquants pour certains équipements: ${missingSerialNumbers.map(e => e.title).join(', ')}`);
+      const missingTitles = missingSerialNumbers.map(e => e.title).join(', ');
+      throw new Error(
+        `Impossible de générer la facture : ${missingSerialNumbers.length} équipement(s) sans numéro de série.\n\n` +
+        `Équipements concernés : ${missingTitles}\n\n` +
+        `Veuillez ajouter les numéros de série dans la section "Numéros de série des équipements" avant de générer la facture.`
+      );
     }
 
     // Calculer le prix total de vente (avec marge en pourcentage)

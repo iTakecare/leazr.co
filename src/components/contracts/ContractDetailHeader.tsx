@@ -4,12 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Calendar, User, Building2, Euro, FileText, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Contract } from "@/services/contractService";
+import { Contract, getContractEquipment } from "@/services/contractService";
 import ContractStatusBadge from "./ContractStatusBadge";
 import { areAllSerialNumbersComplete, generateLocalInvoice, getBillitIntegration } from "@/services/invoiceService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useInvoices } from "@/hooks/useInvoices";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
@@ -24,6 +25,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   const [billitEnabled, setBillitEnabled] = useState(false);
   const [canGenerateInvoice, setCanGenerateInvoice] = useState(false);
   const [existingInvoice, setExistingInvoice] = useState<any>(null);
+  const [hasMissingSerials, setHasMissingSerials] = useState(false);
 
   useEffect(() => {
     const checkBillitIntegration = async () => {
@@ -43,9 +45,20 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
       const invoice = await getInvoiceByContractId(contract.id);
       setExistingInvoice(invoice);
       
+      // Vérifier les numéros de série
+      const equipment = await getContractEquipment(contract.id);
+      const allSerialsComplete = areAllSerialNumbersComplete(equipment);
+      setHasMissingSerials(!allSerialsComplete);
+      
+      // On peut générer une facture si :
+      // - L'intégration Billit est activée
+      // - Le contrat est actif
+      // - Il n'y a pas déjà de facture
+      // - Tous les numéros de série sont renseignés
       const canGenerate = billitEnabled && 
                          contract.status === 'active' && 
-                         !invoice;
+                         !invoice &&
+                         allSerialsComplete;
       
       setCanGenerateInvoice(canGenerate);
     };
@@ -120,15 +133,28 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
                 <Receipt className="h-4 w-4" />
                 Voir la facture
               </Button>
-            ) : canGenerateInvoice && (
-              <Button 
-                onClick={handleGenerateInvoice}
-                disabled={isGeneratingInvoice}
-                className="flex items-center gap-2"
-              >
-                <Receipt className="h-4 w-4" />
-                {isGeneratingInvoice ? "Génération..." : "Générer la facture"}
-              </Button>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button 
+                        onClick={handleGenerateInvoice}
+                        disabled={isGeneratingInvoice || !canGenerateInvoice}
+                        className="flex items-center gap-2"
+                      >
+                        <Receipt className="h-4 w-4" />
+                        {isGeneratingInvoice ? "Génération..." : "Générer la facture"}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {hasMissingSerials && (
+                    <TooltipContent>
+                      <p>Veuillez d'abord renseigner tous les numéros de série des équipements</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
             <ContractStatusBadge status={contract.status} />
           </div>
