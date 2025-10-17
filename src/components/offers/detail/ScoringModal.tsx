@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   CheckCircle, 
   HelpCircle, 
@@ -44,6 +45,14 @@ const DOCUMENT_OPTIONS = [
   { id: "bank_statement", label: "Relevé bancaire des 3 derniers mois" },
 ];
 
+const REJECTION_REASONS = [
+  "Sans suite - Plus de nouvelles",
+  "Sans suite - Ne souhaite plus de leasing",
+  "REFUS - client suspect / Fraude",
+  "REFUS - entreprise trop jeune / montant demandé",
+  "REFUS - Client particulier",
+];
+
 const ScoringModal: React.FC<ScoringModalProps> = ({
   isOpen,
   onClose,
@@ -55,6 +64,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
 }) => {
   const [selectedScore, setSelectedScore] = useState<'A' | 'B' | 'C' | null>(null);
   const [reason, setReason] = useState("");
+  const [selectedRejectionReason, setSelectedRejectionReason] = useState<string>("");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [otherDoc, setOtherDoc] = useState("");
   const [customMessage, setCustomMessage] = useState("");
@@ -148,6 +158,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       setOtherDoc("");
       setCustomMessage("");
     }
+    // Reset rejection fields when changing from C
+    if (score !== 'C') {
+      setSelectedRejectionReason("");
+      setReason("");
+    }
   };
 
   const handleSubmit = async () => {
@@ -156,8 +171,8 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       return;
     }
 
-    if (selectedScore === 'C' && !reason.trim()) {
-      toast.error("Veuillez préciser la raison du refus");
+    if (selectedScore === 'C' && !selectedRejectionReason) {
+      toast.error("Veuillez sélectionner une raison de refus");
       return;
     }
 
@@ -211,7 +226,13 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       }
     } else {
       // Pour les scores A et C, comportement normal
-      await onScoreAssigned(selectedScore, reason.trim() || undefined);
+      if (selectedScore === 'C') {
+        // Combiner la raison sélectionnée avec le complément
+        const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
+        await onScoreAssigned(selectedScore, finalReason);
+      } else {
+        await onScoreAssigned(selectedScore, reason.trim() || undefined);
+      }
       onClose();
     }
   };
@@ -302,23 +323,48 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                 })}
               </div>
 
-              {/* Zone de commentaire pour scores B et C */}
-              {selectedScore && (selectedScore === 'B' || selectedScore === 'C') && (
+              {/* Zone de commentaire pour score B */}
+              {selectedScore === 'B' && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    {selectedScore === 'B' ? 'Commentaire (optionnel)' : 'Raison du refus'}
-                    {selectedScore === 'C' && <span className="text-red-500 ml-1">*</span>}
+                    Commentaire (optionnel)
                   </label>
                   <Textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder={
-                      selectedScore === 'B' 
-                        ? "Ajoutez un commentaire sur les documents requis..."
-                        : "Expliquez les raisons du refus du dossier..."
-                    }
+                    placeholder="Ajoutez un commentaire sur les documents requis..."
                     rows={3}
                   />
+                </div>
+              )}
+
+              {/* Zone de refus pour score C */}
+              {selectedScore === 'C' && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Raison du refus <span className="text-red-500 ml-1">*</span>
+                    </label>
+                    <Select value={selectedRejectionReason} onValueChange={setSelectedRejectionReason}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionnez une raison de refus..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-background shadow-md border">
+                        {REJECTION_REASONS.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Complément d'information (optionnel)</label>
+                    <Textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Ajoutez des détails supplémentaires si nécessaire..."
+                      rows={3}
+                    />
+                  </div>
                 </div>
               )}
 
