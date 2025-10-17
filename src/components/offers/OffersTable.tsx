@@ -49,6 +49,7 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { toast } from "sonner";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
+import { formatEquipmentWithQuantities, formatEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 
 interface OffersTableProps {
   offers: any[];
@@ -184,51 +185,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="truncate cursor-help">
-                            {offer.equipment_description &&
-                              typeof offer.equipment_description === "string" &&
-                              (offer.equipment_description.startsWith("[") ||
-                                offer.equipment_description.startsWith("{"))
-                              ? (() => {
-                                  try {
-                                    const equipmentData = JSON.parse(
-                                      offer.equipment_description
-                                    );
-                                    if (Array.isArray(equipmentData)) {
-                                      return equipmentData
-                                        .map((item) => item.title)
-                                        .join(", ");
-                                    }
-                                    return equipmentData.title || "Équipement sans titre";
-                                  } catch (e) {
-                                    return "Format d'équipement non valide";
-                                  }
-                                })()
-                              : offer.equipment_description || "Non spécifié"}
+                            {formatEquipmentForCell(offer.equipment_description)}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-md z-50 bg-popover">
-                          <p className="text-sm whitespace-pre-wrap">
-                            {offer.equipment_description &&
-                              typeof offer.equipment_description === "string" &&
-                              (offer.equipment_description.startsWith("[") ||
-                                offer.equipment_description.startsWith("{"))
-                              ? (() => {
-                                  try {
-                                    const equipmentData = JSON.parse(
-                                      offer.equipment_description
-                                    );
-                                    if (Array.isArray(equipmentData)) {
-                                      return equipmentData
-                                        .map((item) => item.title)
-                                        .join(", ");
-                                    }
-                                    return equipmentData.title || "Équipement sans titre";
-                                  } catch (e) {
-                                    return "Format d'équipement non valide";
-                                  }
-                                })()
-                              : offer.equipment_description || "Non spécifié"}
-                          </p>
+                        <TooltipContent className="max-w-md z-50 bg-popover p-3">
+                          <div className="space-y-1">
+                            {formatEquipmentWithQuantities(offer.equipment_description).map((line, index) => (
+                              <div key={index} className="text-sm font-mono">
+                                {line}
+                              </div>
+                            ))}
+                          </div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
