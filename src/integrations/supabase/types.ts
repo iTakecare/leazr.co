@@ -5389,11 +5389,17 @@ export type Database = {
           color_class: string | null
           conditions: Json | null
           created_at: string
+          enables_scoring: boolean | null
           icon_name: string | null
           id: string
           is_required: boolean
           is_visible: boolean
+          next_step_on_approval: string | null
+          next_step_on_docs_requested: string | null
+          next_step_on_rejection: string | null
           notifications: Json | null
+          scoring_options: Json | null
+          scoring_type: string | null
           step_description: string | null
           step_key: string
           step_label: string
@@ -5405,11 +5411,17 @@ export type Database = {
           color_class?: string | null
           conditions?: Json | null
           created_at?: string
+          enables_scoring?: boolean | null
           icon_name?: string | null
           id?: string
           is_required?: boolean
           is_visible?: boolean
+          next_step_on_approval?: string | null
+          next_step_on_docs_requested?: string | null
+          next_step_on_rejection?: string | null
           notifications?: Json | null
+          scoring_options?: Json | null
+          scoring_type?: string | null
           step_description?: string | null
           step_key: string
           step_label: string
@@ -5421,11 +5433,17 @@ export type Database = {
           color_class?: string | null
           conditions?: Json | null
           created_at?: string
+          enables_scoring?: boolean | null
           icon_name?: string | null
           id?: string
           is_required?: boolean
           is_visible?: boolean
+          next_step_on_approval?: string | null
+          next_step_on_docs_requested?: string | null
+          next_step_on_rejection?: string | null
           notifications?: Json | null
+          scoring_options?: Json | null
+          scoring_type?: string | null
           step_description?: string | null
           step_key?: string
           step_label?: string

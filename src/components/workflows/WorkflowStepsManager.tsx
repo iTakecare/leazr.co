@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Plus, Edit, Trash2, GripVertical } from 'lucide-react';
 import { workflowService } from '@/services/workflows/workflowService';
 import { useToast } from '@/hooks/use-toast';
+import { WorkflowStepScoringConfig } from './WorkflowStepScoringConfig';
 import type { WorkflowTemplate, WorkflowStep, CreateWorkflowStep } from '@/types/workflow';
 
 interface WorkflowStepsManagerProps {
@@ -19,6 +20,16 @@ interface WorkflowStepsManagerProps {
 
 interface StepFormData extends CreateWorkflowStep {
   id?: string;
+  enables_scoring?: boolean;
+  scoring_type?: 'internal' | 'leaser' | 'client';
+  scoring_options?: {
+    allow_approval: boolean;
+    allow_rejection: boolean;
+    allow_document_request: boolean;
+  };
+  next_step_on_approval?: string;
+  next_step_on_rejection?: string;
+  next_step_on_docs_requested?: string;
 }
 
 export const WorkflowStepsManager: React.FC<WorkflowStepsManagerProps> = ({
@@ -155,6 +166,7 @@ export const WorkflowStepsManager: React.FC<WorkflowStepsManagerProps> = ({
         <StepForm
           step={editingStep}
           maxOrder={Math.max(...steps.map(s => s.step_order), 0)}
+          allSteps={steps}
           onSave={handleSaveStep}
           onCancel={() => {
             setEditingStep(null);
@@ -193,7 +205,13 @@ export const WorkflowStepsManager: React.FC<WorkflowStepsManagerProps> = ({
                       is_required: step.is_required,
                       is_visible: step.is_visible,
                       icon_name: step.icon_name || '',
-                      color_class: step.color_class || ''
+                      color_class: step.color_class || '',
+                      enables_scoring: step.enables_scoring || false,
+                      scoring_type: step.scoring_type,
+                      scoring_options: step.scoring_options,
+                      next_step_on_approval: step.next_step_on_approval,
+                      next_step_on_rejection: step.next_step_on_rejection,
+                      next_step_on_docs_requested: step.next_step_on_docs_requested
                     })}
                   >
                     <Edit className="w-4 h-4" />
@@ -248,6 +266,7 @@ export const WorkflowStepsManager: React.FC<WorkflowStepsManagerProps> = ({
 interface StepFormProps {
   step?: StepFormData | null;
   maxOrder: number;
+  allSteps: WorkflowStep[];
   onSave: (step: StepFormData) => void;
   onCancel: () => void;
   iconOptions: Array<{ value: string; label: string }>;
@@ -257,6 +276,7 @@ interface StepFormProps {
 const StepForm: React.FC<StepFormProps> = ({
   step,
   maxOrder,
+  allSteps,
   onSave,
   onCancel,
   iconOptions,
@@ -271,8 +291,23 @@ const StepForm: React.FC<StepFormProps> = ({
     is_visible: step?.is_visible ?? true,
     icon_name: step?.icon_name || 'Circle',
     color_class: step?.color_class || 'bg-gray-100',
-    id: step?.id
+    id: step?.id,
+    enables_scoring: step?.enables_scoring || false,
+    scoring_type: step?.scoring_type,
+    scoring_options: step?.scoring_options || {
+      allow_approval: true,
+      allow_rejection: true,
+      allow_document_request: true
+    },
+    next_step_on_approval: step?.next_step_on_approval,
+    next_step_on_rejection: step?.next_step_on_rejection,
+    next_step_on_docs_requested: step?.next_step_on_docs_requested
   });
+
+  const availableSteps = allSteps.map(s => ({
+    key: s.step_key,
+    label: s.step_label
+  }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,6 +429,21 @@ const StepForm: React.FC<StepFormProps> = ({
               <Label htmlFor="is_visible">Étape visible</Label>
             </div>
           </div>
+
+          <WorkflowStepScoringConfig
+            stepKey={formData.step_key}
+            enablesScoring={formData.enables_scoring || false}
+            scoringType={formData.scoring_type}
+            scoringOptions={formData.scoring_options}
+            nextStepOnApproval={formData.next_step_on_approval}
+            nextStepOnRejection={formData.next_step_on_rejection}
+            nextStepOnDocsRequested={formData.next_step_on_docs_requested}
+            availableSteps={availableSteps}
+            onEnablesScoringChange={(enabled) => setFormData({ ...formData, enables_scoring: enabled })}
+            onScoringTypeChange={(type) => setFormData({ ...formData, scoring_type: type })}
+            onScoringOptionsChange={(options) => setFormData({ ...formData, scoring_options: options })}
+            onNextStepChange={(field, value) => setFormData({ ...formData, [field]: value })}
+          />
 
           <div className="flex gap-3 pt-4">
             <Button type="submit">

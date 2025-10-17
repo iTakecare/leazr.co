@@ -27,6 +27,16 @@ export interface WorkflowStep {
   notifications?: Record<string, any>;
   created_at: string;
   updated_at: string;
+  enables_scoring?: boolean;
+  scoring_type?: 'internal' | 'leaser' | 'client';
+  scoring_options?: {
+    allow_approval: boolean;
+    allow_rejection: boolean;
+    allow_document_request: boolean;
+  };
+  next_step_on_approval?: string;
+  next_step_on_rejection?: string;
+  next_step_on_docs_requested?: string;
 }
 
 export interface WorkflowStepConfig {
@@ -40,6 +50,16 @@ export interface WorkflowStepConfig {
   color_class?: string;
   is_required: boolean;
   is_visible: boolean;
+  enables_scoring?: boolean;
+  scoring_type?: 'internal' | 'leaser' | 'client';
+  scoring_options?: {
+    allow_approval: boolean;
+    allow_rejection: boolean;
+    allow_document_request: boolean;
+  };
+  next_step_on_approval?: string;
+  next_step_on_rejection?: string;
+  next_step_on_docs_requested?: string;
 }
 
 export type OfferType = 

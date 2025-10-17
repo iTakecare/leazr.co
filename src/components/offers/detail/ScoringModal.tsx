@@ -22,6 +22,7 @@ import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { getOfferDocuments } from "@/services/offers/offerDocuments";
 import { supabase } from "@/integrations/supabase/client";
+import type { WorkflowStepConfig } from "@/types/workflow";
 
 interface ScoringModalProps {
   isOpen: boolean;
@@ -70,13 +71,36 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [customMessage, setCustomMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [autoApprovalAvailable, setAutoApprovalAvailable] = useState(false);
+  const [currentWorkflowStep, setCurrentWorkflowStep] = useState<WorkflowStepConfig | null>(null);
 
   const isInternalAnalysis = analysisType === 'internal';
   
-  // Déterminer si le scoring est possible selon le type d'analyse et le statut
-  const canScore = isInternalAnalysis 
-    ? ['draft', 'internal_review', 'internal_docs_requested'].includes(currentStatus)
-    : ['internal_approved', 'leaser_review', 'leaser_docs_requested', 'client_approved'].includes(currentStatus);
+  // Récupérer la configuration du workflow pour l'étape actuelle
+  useEffect(() => {
+    const fetchWorkflowStep = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('workflow_steps')
+          .select('*')
+          .eq('step_key', currentStatus)
+          .single();
+        
+        if (data) {
+          setCurrentWorkflowStep(data);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération de la configuration du workflow:', error);
+      }
+    };
+    
+    if (isOpen && currentStatus) {
+      fetchWorkflowStep();
+    }
+  }, [currentStatus, isOpen]);
+  
+  // Déterminer si le scoring est possible selon la configuration du workflow
+  const canScore = currentWorkflowStep?.enables_scoring === true 
+    && currentWorkflowStep?.scoring_type === analysisType;
 
   // Vérifier si une approbation automatique est disponible
   useEffect(() => {

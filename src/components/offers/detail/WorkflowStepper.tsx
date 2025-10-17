@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Circle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Circle, Clock, Search } from "lucide-react";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
 import { useAuth } from "@/context/AuthContext";
 import type { OfferType } from "@/types/workflow";
@@ -10,12 +11,14 @@ interface WorkflowStepperProps {
   currentStatus: string;
   onStatusChange?: (status: string) => void;
   offerType?: OfferType;
+  onAnalysisClick?: (analysisType: 'internal' | 'leaser' | 'client') => void;
 }
 
 const WorkflowStepper: React.FC<WorkflowStepperProps> = ({ 
   currentStatus, 
   onStatusChange,
-  offerType = 'client_request'
+  offerType = 'client_request',
+  onAnalysisClick
 }) => {
   const { user } = useAuth();
   const { steps: workflowSteps, loading } = useWorkflowForOfferType(
@@ -74,13 +77,26 @@ const WorkflowStepper: React.FC<WorkflowStepperProps> = ({
                   />
                 )}
               </div>
-              <div className="mt-2 text-center">
+              <div className="mt-2 text-center space-y-1">
                 <Badge 
                   variant={isActive ? 'default' : isCompleted ? 'secondary' : 'outline'}
                   className="text-xs"
                 >
                   {step.step_label}
                 </Badge>
+                {step.enables_scoring && isActive && onAnalysisClick && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => onAnalysisClick(step.scoring_type as 'internal' | 'leaser' | 'client')}
+                    className="mt-1 text-xs h-7"
+                  >
+                    <Search className="h-3 w-3 mr-1" />
+                    {step.scoring_type === 'internal' ? 'Analyse Interne' : 
+                     step.scoring_type === 'leaser' ? 'Analyse Leaser' : 
+                     'Approbation'}
+                  </Button>
+                )}
               </div>
             </div>
           );
