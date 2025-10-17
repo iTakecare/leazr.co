@@ -32,7 +32,8 @@ const REJECTION_REASONS = [
   "Sans suite - Plus de nouvelles",
   "Sans suite - Ne souhaite plus de leasing",
   "REFUS - client suspect / Fraude",
-  "REFUS - entreprise trop jeune / montant demandé"
+  "REFUS - entreprise trop jeune / montant demandé",
+  "REFUS - Client particulier"
 ];
 
 const OfferScoringInterface: React.FC<OfferScoringInterfaceProps> = ({
