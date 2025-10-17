@@ -67,6 +67,7 @@ import InvoicingPage from "@/pages/InvoicingPage";
 import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
 import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import CompanyDocuments from "@/pages/CompanyDocuments";
+import ClientDuplicates from "@/pages/admin/ClientDuplicates";
 
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
@@ -218,6 +219,7 @@ const AppRoutes = () => (
       <Route path="leazr-saas-support" element={<Layout><LeazrSaaSSupport /></Layout>} />
       <Route path="chat" element={<Layout><AdminChatPage /></Layout>} />
       <Route path="clients" element={<Layout><Clients /></Layout>} />
+      <Route path="clients/duplicates" element={<Layout><ClientDuplicates /></Layout>} />
       <Route path="clients/:id" element={<Layout><ClientDetail /></Layout>} />
       <Route path="clients/edit/:id" element={<Layout><ClientEditPage /></Layout>} />
       <Route path="offers" element={<Layout><Offers /></Layout>} />

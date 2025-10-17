@@ -7,7 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Users, AlertCircle, CheckCircle, Download, FileText, Sparkles } from 'lucide-react';
-import { processBulkClientData, bulkCreateClients, BulkImportResult } from '@/services/clientService';
+// import { processBulkClientData, bulkCreateClients, BulkImportResult } from '@/services/clientService';
+import { BulkImportResult } from '@/services/clientService';
 
 const BulkClientImport: React.FC = () => {
   const { toast } = useToast();
@@ -208,13 +209,15 @@ Isabelle Barbosa - Ecrin Santé`;
       return;
     }
 
-    const lines = rawData.split('\n').filter(line => line.trim());
-    const processed = processBulkClientData(lines);
-    setPreviewData(processed);
+    // Fonction temporairement désactivée
+    // const lines = rawData.split('\n').filter(line => line.trim());
+    // const processed = processBulkClientData(lines);
+    // setPreviewData(processed);
     
     toast({
-      title: "Aperçu généré",
-      description: `${processed.length} clients uniques détectés sur ${lines.length} entrées`
+      title: "Fonction non disponible",
+      description: "L'import en masse est temporairement désactivé",
+      variant: "destructive"
     });
   };
 
@@ -228,45 +231,11 @@ Isabelle Barbosa - Ecrin Santé`;
       return;
     }
 
-    setIsImporting(true);
-    setProgress(0);
-    setImportResult(null);
-
-    try {
-      const result = await bulkCreateClients(
-        previewData,
-        10, // Batch size
-        (processed, total) => {
-          setProgress((processed / total) * 100);
-        }
-      );
-      
-      setImportResult(result);
-      
-      if (result.success > 0) {
-        toast({
-          title: "Import réussi",
-          description: `${result.success} clients créés avec succès`
-        });
-      }
-      
-      if (result.failed > 0) {
-        toast({
-          title: "Import partiellement réussi",
-          description: `${result.failed} clients n'ont pas pu être créés`,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'import:', error);
-      toast({
-        title: "Erreur d'import",
-        description: "Une erreur est survenue lors de l'import",
-        variant: "destructive"
-      });
-    } finally {
-      setIsImporting(false);
-    }
+    toast({
+      title: "Fonction non disponible",
+      description: "L'import en masse est temporairement désactivé",
+      variant: "destructive"
+    });
   };
 
   const loadSampleData = () => {

@@ -455,8 +455,8 @@ export interface BulkImportResult {
 const normalizeForComparison = (name: string): string => {
   return name
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Remplace caractères spéciaux par espaces
-    .replace(/\s+/g, ' ') // Remplace espaces multiples par un seul
+    .replace(/[^\\w\\s]/g, ' ') // Remplace caractères spéciaux par espaces
+    .replace(/\\s+/g, ' ') // Remplace espaces multiples par un seul
     .trim();
 };
 
@@ -482,260 +482,72 @@ const areVariants = (name1: string, name2: string): boolean => {
   const base2 = normalizeForComparison(extractBaseName(name2));
   if (base1 === base2) return true;
   
-  // Cas spécial: AR Saint Ghislain - tous sont le même client
-  if (norm1.includes('ar saint ghislain') && norm2.includes('ar saint ghislain')) {
-    return true;
-  }
-  
-  // Variantes connues spécifiques iTakecare
-  const variants = [
-    ['winfinance', 'win finance'], // Winfinance = Win Finance
-    ['skillset', 'skillset srl'], // Skillset = Skillset SRL
-    ['apik', 'apik'], // Toutes les variantes Apik
-    ['alarmes de clerck', 'alarmes de clerck'], // Toutes les variantes Alarmes De Clerck
-    ['infra route srl', 'infra route srl'], // Toutes les variantes Infra Route
-    ['coach naci', 'coach naci'], // Toutes les variantes Coach Naci
-    ['engine of passion', 'engine of passion'], // Engine of Passion
-    ['eurofood bank', 'about it'], // Eurofood Bank | About IT
-    ['legrow studio', 'legrow studio'], // LeGrow Studio
-    ['xprove scs', 'xprove scs'], // Xprove SCS
-    ['v infra', 'v infra'], // v infra
-  ];
-  
-  for (const [v1, v2] of variants) {
-    if ((norm1.includes(v1) && norm2.includes(v2)) || 
-        (norm1.includes(v2) && norm2.includes(v1))) {
-      return true;
-    }
-  }
-  
   return false;
 };
 
 /**
- * Traite les données brutes d'import pour créer des clients uniques avec nettoyage avancé
+ * Détecte les clients en doublon basés sur l'email et le nom
  */
-export const processBulkClientData = (rawData: string[]): BulkClientData[] => {
-  const clientMap = new Map<string, BulkClientData & { rawEntries: string[] }>();
-  const cleaningReport = {
-    raw_entries: rawData.length,
-    duplicates_merged: [] as string[],
-    series_merged: [] as string[],
-    skipped_entries: [] as string[]
-  };
-  
-  console.log('🧹 Début du nettoyage de', rawData.length, 'entrées');
-  
-  rawData.forEach((entry, index) => {
-    const trimmed = entry.trim();
-    if (!trimmed) {
-      cleaningReport.skipped_entries.push('(entrée vide)');
-      return;
-    }
+export const detectDuplicateClients = async (): Promise<Array<{ clients: Client[], reason: string }>> => {
+  try {
+    console.log("🔍 Détection des doublons...");
     
-    let contactName: string;
-    let clientName: string;
-    
-    // Parse selon les formats iTakecare
-    if (trimmed.includes(' - ')) {
-      // Format: "Prénom Nom - Entreprise"
-      const parts = trimmed.split(' - ', 2);
-      contactName = parts[0].trim();
-      clientName = parts[1].trim();
-      
-      // Cas spécial: AR Saint Ghislain - toujours utiliser "AR Saint Ghislain" comme nom client
-      if (clientName.toLowerCase().includes('ar saint ghislain')) {
-        clientName = 'AR Saint Ghislain';
-      }
-    } else {
-      // Format sans séparateur: "Entreprise" ou "Prénom Nom"
-      contactName = trimmed;
-      clientName = trimmed;
-    }
-    
-    // Nettoyage des noms de base (suppression des #X et autres suffixes)
-    const baseClientName = extractBaseName(clientName);
-    const baseContactName = extractBaseName(contactName);
-    
-    console.log(`Traitement [${index}]: "${trimmed}" → Client: "${baseClientName}", Contact: "${baseContactName}"`);
-    
-    // Recherche de variantes/doublons existants
-    let existingEntry: typeof clientMap extends Map<string, infer T> ? T : never | null = null;
-    let existingKey: string | null = null;
-    
-    for (const [key, existing] of clientMap.entries()) {
-      if (areVariants(baseClientName, existing.name)) {
-        existingEntry = existing;
-        existingKey = key;
-        break;
-      }
-    }
-    
-    if (existingEntry && existingKey) {
-      // Fusion avec client existant
-      console.log(`🔗 Fusion détectée: "${baseClientName}" → "${existingEntry.name}"`);
-      
-      // Améliorer le nom du client si nécessaire
-      let shouldUpdateName = false;
-      let newName = existingEntry.name;
-      
-      // Préférer les noms sans numéros (#X)
-      if (!baseClientName.includes('#') && existingEntry.name.includes('#')) {
-        newName = baseClientName;
-        shouldUpdateName = true;
-      }
-      // Préférer les noms plus longs et informatifs
-      else if (baseClientName.length > existingEntry.name.length && !baseClientName.includes('#')) {
-        newName = baseClientName;
-        shouldUpdateName = true;
-      }
-      // Cas spéciaux iTakecare
-      else if (baseClientName === 'AR Saint Ghislain' && !existingEntry.name.includes('AR Saint Ghislain')) {
-        newName = 'AR Saint Ghislain';
-        shouldUpdateName = true;
-      }
-      
-      if (shouldUpdateName) {
-        existingEntry.name = newName;
-        console.log(`📝 Nom mis à jour: "${newName}"`);
-      }
-      
-      // Ajouter à la liste des entrées brutes fusionnées
-      existingEntry.rawEntries.push(trimmed);
-      
-      // Log de la fusion
-      if (trimmed.includes('#')) {
-        cleaningReport.series_merged.push(`${trimmed} → ${existingEntry.name}`);
-      } else {
-        cleaningReport.duplicates_merged.push(`${trimmed} → ${existingEntry.name}`);
-      }
-    } else {
-      // Nouveau client unique
-      const normalizedKey = normalizeForComparison(baseClientName) + '_' + index; // Ajouter index pour éviter collisions
-      console.log(`✨ Nouveau client: "${baseClientName}"`);
-      
-      clientMap.set(normalizedKey, {
-        name: baseClientName,
-        contact_name: baseContactName,
-        email: '', // Vide comme demandé
-        status: 'active',
-        company_id: 'c1ce66bb-3ad2-474d-b477-583baa7ff1c0', // iTakecare
-        rawEntries: [trimmed]
-      });
-    }
-  });
-  
-  // Convertir en résultat final
-  const result = Array.from(clientMap.values()).map(({ rawEntries, ...client }) => client);
-  
-  // Rapport de nettoyage final
-  const report = {
-    raw_entries: rawData.length,
-    cleaned_entries: result.length,
-    duplicates_merged: cleaningReport.duplicates_merged,
-    series_merged: cleaningReport.series_merged,
-    skipped_entries: cleaningReport.skipped_entries
-  };
-  
-  console.log('📊 Rapport de nettoyage final:', report);
-  console.log('🎯 Réduction:', rawData.length, '→', result.length, 'clients (', 
-    Math.round((1 - result.length / rawData.length) * 100), '% de réduction)');
-  
-  // Store the cleaning report for later use
-  (result as any).__cleaning_report = report;
-  
-  return result;
-};
+    const clients = await getAllClients();
+    const duplicates: Array<{ clients: Client[], reason: string }> = [];
+    const processed = new Set<string>();
 
-/**
- * Importe les clients par lots avec gestion des erreurs
- */
-export const bulkCreateClients = async (
-  clientsData: BulkClientData[],
-  batchSize: number = 10,
-  onProgress?: (processed: number, total: number) => void
-): Promise<BulkImportResult> => {
-  const result: BulkImportResult = {
-    total: clientsData.length,
-    success: 0,
-    failed: 0,
-    errors: [],
-    created_clients: [],
-    cleaning_report: (clientsData as any).__cleaning_report
-  };
-  
-  console.log(`🔄 Début de l'import en masse de ${clientsData.length} clients`);
-  
-  // Traiter par lots
-  for (let i = 0; i < clientsData.length; i += batchSize) {
-    const batch = clientsData.slice(i, i + batchSize);
-    
-    // Traiter chaque client du lot individuellement pour capturer les erreurs
-    for (const clientData of batch) {
-      try {
-        console.log(`➕ Création du client: ${clientData.name}`);
-        
-        // Créer le client
-        const client = await createClient(clientData);
-        if (client) {
-          result.created_clients.push(client);
-          result.success++;
-          
-          // Créer le collaborateur principal automatiquement s'il n'existe pas déjà
-          try {
-            // Vérifier d'abord s'il y a déjà un collaborateur principal
-            const { data: existingPrimary } = await supabase
-              .from('collaborators')
-              .select('id')
-              .eq('client_id', client.id)
-              .eq('is_primary', true)
-              .maybeSingle();
+    // Grouper par email
+    const byEmail = new Map<string, Client[]>();
+    clients.forEach(client => {
+      if (client.email && client.email.trim()) {
+        const email = client.email.toLowerCase().trim();
+        if (!byEmail.has(email)) {
+          byEmail.set(email, []);
+        }
+        byEmail.get(email)!.push(client);
+      }
+    });
 
-            if (!existingPrimary) {
-              await createCollaborator(client.id, {
-                name: clientData.contact_name,
-                role: 'Contact principal',
-                email: clientData.email || '',
-                phone: '',
-                department: ''
-              }, true); // isPrimary = true
-              console.log(`✅ Collaborateur principal créé pour ${client.name}`);
-            } else {
-              console.log(`ℹ️ Collaborateur principal déjà existant pour ${client.name}`);
-            }
-          } catch (collabError) {
-            console.warn(`⚠️ Erreur lors de la création du collaborateur pour ${client.name}:`, collabError);
-          }
-          
-        } else {
-          result.failed++;
-          result.errors.push({
-            client: clientData.name,
-            error: 'Échec de la création du client'
+    // Trouver les doublons par email
+    byEmail.forEach((clientGroup, email) => {
+      if (clientGroup.length > 1) {
+        const ids = clientGroup.map(c => c.id).sort().join('|');
+        if (!processed.has(ids)) {
+          processed.add(ids);
+          duplicates.push({
+            clients: clientGroup,
+            reason: `Email identique: ${email}`
           });
         }
-      } catch (error) {
-        result.failed++;
-        result.errors.push({
-          client: clientData.name,
-          error: error instanceof Error ? error.message : 'Erreur inconnue'
-        });
-        console.error(`❌ Erreur lors de la création de ${clientData.name}:`, error);
+      }
+    });
+
+    // Grouper par nom similaire
+    for (let i = 0; i < clients.length; i++) {
+      for (let j = i + 1; j < clients.length; j++) {
+        const client1 = clients[i];
+        const client2 = clients[j];
+        
+        const ids = [client1.id, client2.id].sort().join('|');
+        if (processed.has(ids)) continue;
+
+        const name1 = normalizeForComparison(client1.name);
+        const name2 = normalizeForComparison(client2.name);
+
+        if (name1 === name2 || areVariants(client1.name, client2.name)) {
+          processed.add(ids);
+          duplicates.push({
+            clients: [client1, client2],
+            reason: `Nom similaire: "${client1.name}" ≈ "${client2.name}"`
+          });
+        }
       }
     }
-    
-    // Notifier du progrès
-    const processed = Math.min(i + batchSize, clientsData.length);
-    if (onProgress) {
-      onProgress(processed, clientsData.length);
-    }
-    
-    // Petite pause entre les lots pour ne pas surcharger la DB
-    if (processed < clientsData.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+
+    console.log(`✅ ${duplicates.length} groupes de doublons détectés`);
+    return duplicates;
+  } catch (error) {
+    console.error("❌ Erreur lors de la détection des doublons:", error);
+    return [];
   }
-  
-  console.log(`✅ Import terminé: ${result.success} succès, ${result.failed} échecs`);
-  return result;
 };

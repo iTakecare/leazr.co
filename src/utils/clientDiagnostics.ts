@@ -143,6 +143,9 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
   try {
     console.log(`Fusion des clients : source ${sourceClientId} -> cible ${targetClientId}`);
     
+    let offersTransferred = 0;
+    let contractsTransferred = 0;
+    
     // 1. Vérifier que les deux clients existent
     const { data: sourceClient, error: sourceError } = await supabase
       .from('clients')
@@ -159,7 +162,12 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
     if (sourceError || targetError || !sourceClient || !targetClient) {
       console.error("Erreur lors de la récupération des clients:", sourceError || targetError);
       toast.error("Impossible de trouver les clients à fusionner");
-      return false;
+      return {
+        success: false,
+        message: "Impossible de trouver les clients à fusionner",
+        offersTransferred: 0,
+        contractsTransferred: 0
+      };
     }
     
     // 2. Transférer les contrats
@@ -184,6 +192,8 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
           
         if (updateError) {
           console.error(`Erreur lors du transfert du contrat ${contract.id}:`, updateError);
+        } else {
+          contractsTransferred++;
         }
       }
     }
@@ -211,6 +221,8 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
           
         if (updateError) {
           console.error(`Erreur lors du transfert de l'offre ${offer.id}:`, updateError);
+        } else {
+          offersTransferred++;
         }
       }
     }
@@ -243,7 +255,7 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
     const { error: updateError } = await supabase
       .from('clients')
       .update({ 
-        status: 'inactive',
+        status: 'duplicate',
         user_id: null, // Retirer l'association utilisateur
         has_user_account: false, // Marquer comme n'ayant plus de compte
         notes: `${sourceClient.notes ? sourceClient.notes + "\n\n" : ""}Client fusionné avec ${targetClient.name} (${targetClientId}) le ${new Date().toISOString()}`
@@ -253,15 +265,30 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
     if (updateError) {
       console.error("Erreur lors de la désactivation du client source:", updateError);
       toast.error("Erreur lors de la fusion des clients");
-      return false;
+      return {
+        success: false,
+        message: "Erreur lors de la fusion des clients",
+        offersTransferred,
+        contractsTransferred
+      };
     }
     
     toast.success(`Clients fusionnés avec succès ! Toutes les données ont été transférées vers ${targetClient.name}`);
-    return true;
+    return {
+      success: true,
+      message: "Clients fusionnés avec succès",
+      offersTransferred,
+      contractsTransferred
+    };
   } catch (error) {
     console.error("Erreur dans mergeClients:", error);
     toast.error("Erreur lors de la fusion des clients");
-    return false;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Erreur inconnue",
+      offersTransferred: 0,
+      contractsTransferred: 0
+    };
   }
 };
 
