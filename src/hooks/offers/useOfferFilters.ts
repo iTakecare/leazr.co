@@ -4,9 +4,15 @@ import { Offer } from "./useFetchOffers";
 
 export const useOfferFilters = (offers: Offer[]) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("in_progress");
+  const [activeTab, setActiveTab] = useState("active");
   const [activeType, setActiveType] = useState("all");
   const [filteredOffers, setFilteredOffers] = useState<Offer[]>([]);
+  
+  // Définir les ensembles de statuts
+  const DRAFT = ["draft"];
+  const IN_PROGRESS = ["info_requested", "internal_docs_requested"];
+  const ACCEPTED = ["accepted", "internal_approved", "leaser_approved", "financed", "contract_sent", "signed", "approved"];
+  const REJECTED = ["internal_rejected", "leaser_rejected", "rejected"];
   
   useEffect(() => {
     if (!offers || offers.length === 0) {
@@ -22,25 +28,23 @@ export const useOfferFilters = (offers: Offer[]) => {
     
     let result = [...offers];
     
-    // Masquer automatiquement les offres rejetées et acceptées (sauf si "all")
-    if (activeTab !== "all") {
-      result = result.filter(offer => 
-        offer.workflow_status !== "internal_rejected" && 
-        offer.workflow_status !== "accepted" &&
-        offer.workflow_status !== "internal_approved"
-      );
-    }
-    
     // Filtre par statut (onglet actif)
-    if (activeTab === "draft") {
+    if (activeTab === "active") {
+      console.log(`Filtering by active status: draft + in_progress`);
+      const activeStatuses = [...DRAFT, ...IN_PROGRESS];
+      result = result.filter(offer => activeStatuses.includes(offer.workflow_status));
+    } else if (activeTab === "draft") {
       console.log(`Filtering by workflow status: draft`);
-      result = result.filter(offer => offer.workflow_status === "draft");
+      result = result.filter(offer => DRAFT.includes(offer.workflow_status));
     } else if (activeTab === "in_progress") {
-      console.log(`Filtering by workflow status: in_progress (info_requested, internal_docs_requested)`);
-      result = result.filter(offer => 
-        offer.workflow_status === "info_requested" || 
-        offer.workflow_status === "internal_docs_requested"
-      );
+      console.log(`Filtering by workflow status: in_progress`);
+      result = result.filter(offer => IN_PROGRESS.includes(offer.workflow_status));
+    } else if (activeTab === "accepted") {
+      console.log(`Filtering by accepted statuses`);
+      result = result.filter(offer => ACCEPTED.includes(offer.workflow_status));
+    } else if (activeTab === "rejected") {
+      console.log(`Filtering by rejected statuses`);
+      result = result.filter(offer => REJECTED.includes(offer.workflow_status));
     }
     
     // Filtre par type d'offre (admin_offer, client_request, etc.)

@@ -25,9 +25,15 @@ const AmbassadorOffersPage = () => {
   const [offers, setOffers] = useState([]);
   const [filteredOffers, setFilteredOffers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('active');
   const [activeType, setActiveType] = useState('all');
   const [error, setError] = useState(null);
+  
+  // Définir les ensembles de statuts
+  const DRAFT = ["draft"];
+  const IN_PROGRESS = ["info_requested", "internal_docs_requested"];
+  const ACCEPTED = ["accepted", "internal_approved", "leaser_approved", "financed", "contract_sent", "signed", "approved"];
+  const REJECTED = ["internal_rejected", "leaser_rejected", "rejected"];
   
   // Chargement des offres
   useEffect(() => {
@@ -97,8 +103,17 @@ const AmbassadorOffersPage = () => {
     }
     
     // Filtre par statut
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(offer => offer.workflow_status === activeTab);
+    if (activeTab === 'active') {
+      const activeStatuses = [...DRAFT, ...IN_PROGRESS];
+      filtered = filtered.filter(offer => activeStatuses.includes(offer.workflow_status));
+    } else if (activeTab === 'draft') {
+      filtered = filtered.filter(offer => DRAFT.includes(offer.workflow_status));
+    } else if (activeTab === 'in_progress') {
+      filtered = filtered.filter(offer => IN_PROGRESS.includes(offer.workflow_status));
+    } else if (activeTab === 'accepted') {
+      filtered = filtered.filter(offer => ACCEPTED.includes(offer.workflow_status));
+    } else if (activeTab === 'rejected') {
+      filtered = filtered.filter(offer => REJECTED.includes(offer.workflow_status));
     }
     
     setFilteredOffers(filtered);
