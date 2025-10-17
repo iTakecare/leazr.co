@@ -44,7 +44,9 @@ const Sidebar = memo(({ className }: SidebarProps) => {
 
   // Get company slug for navigation links
   const getCompanySlugFromPath = () => {
-    const pathMatch = location.pathname.match(/^\/([^\/]+)\/admin/);
+    // Extrait le slug même s'il y a des segments après /admin
+    // Ex: /itakecare/admin/contracts/123 → "itakecare"
+    const pathMatch = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/);
     return pathMatch?.[1] || null;
   };
 
