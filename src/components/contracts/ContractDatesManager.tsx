@@ -36,6 +36,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   const [billingFrequency, setBillingFrequency] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Récupérer les paramètres du leaser
   useEffect(() => {
     const fetchLeaserSettings = async () => {
       const { data, error } = await supabase
@@ -53,12 +54,14 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
     fetchLeaserSettings();
   }, [leaserName]);
 
+  // Mettre à jour calculatedStartDate quand contractStartDate change
   useEffect(() => {
     if (contractStartDate) {
       setCalculatedStartDate(new Date(contractStartDate));
     }
   }, [contractStartDate]);
 
+  // Fonction pour formater la règle en texte lisible
   const getRuleDescription = (rule: string): string => {
     const rules: Record<string, string> = {
       'next_month_first': '1er du mois suivant',
@@ -71,21 +74,12 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
     return rules[rule] || rule;
   };
 
-  const getBillingFrequencyLabel = (freq: string): string => {
-    const labels: Record<string, string> = {
-      'monthly': 'mensuelle',
-      'quarterly': 'trimestrielle',
-      'semi-annual': 'semestrielle',
-      'annual': 'annuelle'
-    };
-    return labels[freq] || freq;
-  };
-
   const handleDeliveryDateChange = async (date: Date | undefined) => {
     if (!date) return;
 
     setIsUpdating(true);
     try {
+      // Mettre à jour la delivery_date
       const { error } = await supabase
         .from('contracts')
         .update({ 
@@ -99,6 +93,8 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
       setSelectedDeliveryDate(date);
       toast.success('Date de livraison mise à jour');
       
+      // Le trigger auto_calculate_contract_start_date va calculer automatiquement
+      // Recharger les données
       setTimeout(() => {
         onUpdate?.();
       }, 500);
@@ -123,6 +119,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Date de livraison */}
         <div className="space-y-2">
           <Label>Date de livraison effective</Label>
           <Popover>
@@ -155,6 +152,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
           </Popover>
         </div>
 
+        {/* Date de début calculée */}
         <div className="space-y-2">
           <Label>Date de début de contrat (calculée automatiquement)</Label>
           <div className="rounded-md border bg-muted/50 p-3">
@@ -170,24 +168,23 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
           </div>
         </div>
 
-        {leaserRule && (
-          <div className="rounded-md bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 space-y-1">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-900 dark:text-blue-100">
-                  Règle {leaserName}
-                </p>
-                <p className="text-blue-700 dark:text-blue-300">
-                  Facturation <strong>{getBillingFrequencyLabel(billingFrequency)}</strong>
-                </p>
-                <p className="text-blue-700 dark:text-blue-300">
-                  Début de contrat : <strong>{getRuleDescription(leaserRule)}</strong>
-                </p>
-              </div>
+        {/* Informations sur la règle du leaser */}
+        <div className="rounded-md bg-blue-50 border border-blue-200 p-3 space-y-1">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-blue-900">
+                Règle {leaserName}
+              </p>
+              <p className="text-blue-700">
+                Facturation <strong>{billingFrequency === 'monthly' ? 'mensuelle' : 'trimestrielle'}</strong>
+              </p>
+              <p className="text-blue-700">
+                Début de contrat : <strong>{getRuleDescription(leaserRule)}</strong>
+              </p>
             </div>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

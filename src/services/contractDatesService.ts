@@ -8,6 +8,7 @@ export const calculateContractStartDate = async (
   leaserName: string
 ): Promise<Date | null> => {
   try {
+    // Récupérer la règle du leaser
     const { data: leaser, error } = await supabase
       .from('leasers')
       .select('contract_start_rule')
@@ -43,6 +44,7 @@ export const calculateContractStartDate = async (
   }
 };
 
+// Fonctions utilitaires de calcul
 const calculateNextMonthFirst = (date: Date): Date => {
   const nextMonth = new Date(date);
   nextMonth.setMonth(nextMonth.getMonth() + 1);

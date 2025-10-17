@@ -33,25 +33,6 @@ const LeaserBillingSettings: React.FC<LeaserBillingSettingsProps> = ({
     { value: 'delivery_date_plus_15', label: 'Date de livraison + 15 jours' }
   ];
 
-  const getExampleText = () => {
-    switch (contractStartRule) {
-      case 'next_quarter_first':
-        return "Exemple : Livraison le 15 mars → Début de contrat le 1er avril (trimestre suivant)";
-      case 'next_month_first':
-        return "Exemple : Livraison le 15 mars → Début de contrat le 1er avril (mois suivant)";
-      case 'next_semester_first':
-        return "Exemple : Livraison le 15 mars → Début de contrat le 1er juillet (semestre suivant)";
-      case 'next_year_first':
-        return "Exemple : Livraison le 15 mars 2024 → Début de contrat le 1er janvier 2025";
-      case 'delivery_date':
-        return "Exemple : Livraison le 15 mars → Début de contrat le 15 mars";
-      case 'delivery_date_plus_15':
-        return "Exemple : Livraison le 15 mars → Début de contrat le 30 mars";
-      default:
-        return "Sélectionnez une règle pour voir un exemple";
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -99,10 +80,15 @@ const LeaserBillingSettings: React.FC<LeaserBillingSettingsProps> = ({
           </Select>
         </div>
 
+        {/* Aide visuelle */}
         <div className="rounded-md bg-muted p-3 text-sm">
           <p className="font-medium mb-1">Exemple :</p>
           <p className="text-muted-foreground">
-            {getExampleText()}
+            {contractStartRule === 'next_quarter_first' 
+              ? "Livraison le 15 mars → Début de contrat le 1er avril (trimestre suivant)"
+              : contractStartRule === 'next_month_first'
+              ? "Livraison le 15 mars → Début de contrat le 1er avril (mois suivant)"
+              : "Sélectionnez une règle pour voir un exemple"}
           </p>
         </div>
       </CardContent>
