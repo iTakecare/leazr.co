@@ -3,6 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   CheckCircle, 
   HelpCircle, 
@@ -21,6 +28,13 @@ interface OfferScoringInterfaceProps {
   isLoading?: boolean;
 }
 
+const REJECTION_REASONS = [
+  "Sans suite - Plus de nouvelles",
+  "Sans suite - Ne souhaite plus de leasing",
+  "REFUS - client suspect / Fraude",
+  "REFUS - entreprise trop jeune / montant demandé"
+];
+
 const OfferScoringInterface: React.FC<OfferScoringInterfaceProps> = ({
   offerId,
   currentStatus,
@@ -29,6 +43,7 @@ const OfferScoringInterface: React.FC<OfferScoringInterfaceProps> = ({
   isLoading = false
 }) => {
   const [selectedScore, setSelectedScore] = useState<'A' | 'B' | 'C' | null>(null);
+  const [selectedRejectionReason, setSelectedRejectionReason] = useState<string>("");
   const [reason, setReason] = useState("");
 
   const isInternalAnalysis = analysisType === 'internal';
@@ -63,6 +78,8 @@ const OfferScoringInterface: React.FC<OfferScoringInterfaceProps> = ({
 
   const handleScoreSelection = (score: 'A' | 'B' | 'C') => {
     setSelectedScore(score);
+    setSelectedRejectionReason("");
+    setReason("");
   };
 
   const handleSubmit = () => {
@@ -76,12 +93,16 @@ const OfferScoringInterface: React.FC<OfferScoringInterfaceProps> = ({
       return;
     }
 
-    if (selectedScore === 'C' && !reason.trim()) {
-      toast.error("Veuillez préciser la raison du refus");
+    if (selectedScore === 'C' && !selectedRejectionReason) {
+      toast.error("Veuillez sélectionner une raison de refus");
       return;
     }
 
-    onScoreAssigned(selectedScore, reason.trim() || undefined);
+    const finalReason = selectedScore === 'C' 
+      ? `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`
+      : reason.trim() || undefined;
+
+    onScoreAssigned(selectedScore, finalReason);
   };
 
   if (!canScore) {
@@ -147,23 +168,58 @@ const OfferScoringInterface: React.FC<OfferScoringInterfaceProps> = ({
           })}
         </div>
 
-        {/* Zone de commentaire pour scores B et C */}
-        {selectedScore && (selectedScore === 'B' || selectedScore === 'C') && (
+        {/* Zone de commentaire pour score B */}
+        {selectedScore === 'B' && (
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              {selectedScore === 'B' ? 'Documents requis' : 'Raison du refus'}
+              Documents requis
               <span className="text-red-500 ml-1">*</span>
             </label>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={
-                selectedScore === 'B' 
-                  ? "Précisez les documents manquants ou supplémentaires requis..."
-                  : "Expliquez les raisons du refus du dossier..."
-              }
+              placeholder="Précisez les documents manquants ou supplémentaires requis..."
               rows={3}
             />
+          </div>
+        )}
+
+        {/* Zone de sélection et commentaire pour score C */}
+        {selectedScore === 'C' && (
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Raison du refus
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <Select 
+                value={selectedRejectionReason} 
+                onValueChange={setSelectedRejectionReason}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionnez une raison de refus..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {REJECTION_REASONS.map((rejectionReason) => (
+                    <SelectItem key={rejectionReason} value={rejectionReason}>
+                      {rejectionReason}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Complément d'information (optionnel)
+              </label>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Ajoutez des détails supplémentaires si nécessaire..."
+                rows={3}
+              />
+            </div>
           </div>
         )}
 
