@@ -79,24 +79,34 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   useEffect(() => {
     const fetchWorkflowStep = async () => {
       try {
+        // Déterminer le step_key à partir de l'analysisType
+        const targetStepKey = analysisType === 'internal' ? 'internal_review' : 'leaser_review';
+        
+        console.log("🔍 SCORING MODAL - Fetching workflow step for:", { targetStepKey, analysisType });
+        
         const { data, error } = await supabase
           .from('workflow_steps')
           .select('*')
-          .eq('step_key', currentStatus)
+          .eq('step_key', targetStepKey)
+          .eq('scoring_type', analysisType)
           .single();
         
         if (data) {
+          console.log("✅ SCORING MODAL - Workflow step loaded:", data);
           setCurrentWorkflowStep(data);
+        } else {
+          console.error("❌ SCORING MODAL - No workflow step found for:", { targetStepKey, analysisType });
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération de la configuration du workflow:', error);
+        console.error('❌ SCORING MODAL - Erreur lors de la récupération de la configuration du workflow:', error);
       }
     };
     
-    if (isOpen && currentStatus) {
+    if (isOpen) {
+      console.log("🔍 SCORING MODAL - Opening with:", { currentStatus, analysisType });
       fetchWorkflowStep();
     }
-  }, [currentStatus, isOpen]);
+  }, [analysisType, isOpen]); // Utiliser analysisType au lieu de currentStatus
   
   // Déterminer si le scoring est possible selon la configuration du workflow
   const canScore = currentWorkflowStep?.enables_scoring === true 
