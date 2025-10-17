@@ -513,6 +513,16 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           }}
           dateType={dateEditorType}
         />
+
+        {/* Modal de confirmation d'email */}
+        <EmailConfirmationModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          offerId={offer.id}
+          offerData={offer}
+          onSendEmailAndValidate={handleSendEmailAndValidate}
+          onValidateWithoutEmail={handleValidateWithoutEmail}
+        />
       </Container>
     </PageTransition>
   );
