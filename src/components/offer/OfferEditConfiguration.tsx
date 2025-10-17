@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
 import { Edit3, Save, X } from 'lucide-react';
 import { translateOfferType } from '@/utils/offerTypeTranslator';
-import { useOfferUpdate } from '@/hooks/offers/useOfferUpdate';
+import { useUpdateOfferMutation } from '@/hooks/offers/useOffersQuery';
 import { toast } from 'sonner';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '@/constants/businessSectors';
 
@@ -51,7 +51,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   const [selectedType, setSelectedType] = useState(currentType || '');
   const [selectedSector, setSelectedSector] = useState(currentSector || '');
   
-  const { updateOffer, isUpdating } = useOfferUpdate();
+  const { mutateAsync: updateOffer, isPending: isUpdating } = useUpdateOfferMutation();
 
   const handleSave = async () => {
     try {
@@ -74,7 +74,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
         return;
       }
 
-      await updateOffer(offerId, updates);
+      await updateOffer({ id: offerId, updates });
       
       toast.success('Configuration mise à jour avec succès');
       setIsEditing(false);
