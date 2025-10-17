@@ -7,11 +7,13 @@ import { Edit3, Save, X } from 'lucide-react';
 import { translateOfferType } from '@/utils/offerTypeTranslator';
 import { useOfferUpdate } from '@/hooks/offers/useOfferUpdate';
 import { toast } from 'sonner';
+import { BUSINESS_SECTORS, getBusinessSectorLabel } from '@/constants/businessSectors';
 
 interface OfferEditConfigurationProps {
   offerId: string;
   currentSource?: string;
   currentType?: string;
+  currentSector?: string;
   onUpdate?: () => void;
 }
 
@@ -35,11 +37,13 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   offerId,
   currentSource,
   currentType,
+  currentSector,
   onUpdate
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSource, setSelectedSource] = useState(currentSource || '');
   const [selectedType, setSelectedType] = useState(currentType || '');
+  const [selectedSector, setSelectedSector] = useState(currentSector || '');
   
   const { updateOffer, isUpdating } = useOfferUpdate();
 
@@ -53,6 +57,10 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
       
       if (selectedType !== currentType) {
         updates.type = selectedType;
+      }
+      
+      if (selectedSector !== currentSector) {
+        updates.business_sector = selectedSector;
       }
 
       if (Object.keys(updates).length === 0) {
@@ -74,6 +82,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   const handleCancel = () => {
     setSelectedSource(currentSource || '');
     setSelectedType(currentType || '');
+    setSelectedSector(currentSector || '');
     setIsEditing(false);
   };
 
@@ -87,7 +96,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
         <CardTitle className="flex items-center justify-between text-base">
           <span className="flex items-center gap-2">
             <Edit3 className="h-4 w-4 text-primary" />
-            Configuration de l'offre
+            Détails de l'offre
           </span>
           {!isEditing && (
             <Button
@@ -151,6 +160,35 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
           ) : (
             <div>
               <Badge variant="outline">{translateOfferType(currentType)}</Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Secteur d'activité */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">
+            Secteur d'activité
+          </label>
+          {isEditing ? (
+            <Select value={selectedSector} onValueChange={setSelectedSector}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un secteur" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {BUSINESS_SECTORS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div>
+              {currentSector ? (
+                <Badge variant="secondary">{getBusinessSectorLabel(currentSector)}</Badge>
+              ) : (
+                <span className="text-sm text-muted-foreground">Non défini</span>
+              )}
             </div>
           )}
         </div>

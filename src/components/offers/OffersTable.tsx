@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getBusinessSectorLabel } from "@/constants/businessSectors";
 import {
   Table,
   TableBody,
@@ -171,7 +172,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Secteur */}
                   <TableCell className="text-xs">
-                    {offer.business_sector || '-'}
+                    {offer.business_sector 
+                      ? getBusinessSectorLabel(offer.business_sector)
+                      : offer.clients?.business_sector 
+                        ? getBusinessSectorLabel(offer.clients.business_sector)
+                        : '-'
+                    }
                   </TableCell>
                   
                   {/* Type */}
