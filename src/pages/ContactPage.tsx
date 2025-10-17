@@ -34,22 +34,16 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-background">
       <LandingHeader />
       
-      {/* Hero Section */}
       <section className="py-20 px-6">
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-            📞 Nous sommes là pour vous accompagner
-          </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Contactez-nous
-            </span>
+            <span className="text-primary">Contactez-nous</span>
           </h1>
-          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🤝 Notre équipe d'experts est à votre disposition pour vous accompagner dans votre projet de leasing
+          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            Notre équipe est à votre disposition pour répondre à vos questions.
           </p>
         </div>
       </section>
@@ -153,7 +147,7 @@ const ContactPage = () => {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-blue-600" />
-                    📍 Leazr.co (par iTakecare SRL)
+                    Adresse
                   </h3>
                   <p className="text-slate-600 mb-2">Avenue Général Michel 1E</p>
                   <p className="text-slate-600 mb-2">6000 Charleroi, Belgique</p>
@@ -164,7 +158,7 @@ const ContactPage = () => {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Phone className="h-5 w-5 text-green-600" />
-                    📞 Téléphone
+                    Téléphone
                   </h3>
                   <p className="text-slate-600 mb-2">+32 71 49 16 85</p>
                   <p className="text-sm text-slate-500">Du lundi au vendredi, 9h-18h</p>
@@ -175,7 +169,7 @@ const ContactPage = () => {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Mail className="h-5 w-5 text-purple-600" />
-                    ✉️ Email
+                    Email
                   </h3>
                   <p className="text-slate-600 mb-2">hello@leazr.co</p>
                   <p className="text-sm text-slate-500">Réponse sous 24h</p>

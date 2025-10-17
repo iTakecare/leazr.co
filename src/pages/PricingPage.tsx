@@ -77,22 +77,16 @@ const PricingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-background">
       <LandingHeader />
       
-      {/* Hero Section */}
       <section className="py-20 px-6">
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-            💰 Tarifs transparents et adaptés
-          </Badge>
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Choisissez votre plan
-            </span>
+            <span className="text-primary">Tarifs</span> simples et transparents
           </h1>
-          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            🎯 Des formules pensées pour accompagner votre croissance dans l'activité de leasing
+          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            Choisissez la formule adaptée à vos besoins.
           </p>
         </div>
       </section>
@@ -161,24 +155,23 @@ const PricingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Modules Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              🎛️ Modules disponibles
+      <section className="py-16 px-6 bg-muted/50">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Modules disponibles
             </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              Découvrez tous les modules spécialisés pour optimiser votre activité de leasing
+            <p className="text-lg text-muted-foreground">
+              Découvrez les fonctionnalités incluses dans nos plans
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {modules.map((module, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+              <Card key={index}>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">{module.name}</h3>
-                  <p className="text-sm text-slate-600">{module.description}</p>
+                  <p className="text-sm text-muted-foreground">{module.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -186,64 +179,61 @@ const PricingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-slate-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              ❓ Questions fréquentes
+      <section className="py-16 px-6">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Questions fréquentes
             </h2>
           </div>
           
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold mb-2">🔄 Puis-je changer de plan ?</h3>
-                <p className="text-slate-600 text-sm">Oui, vous pouvez passer à un plan supérieur ou inférieur à tout moment depuis votre espace client.</p>
+                <h3 className="font-semibold mb-2">Puis-je changer de plan ?</h3>
+                <p className="text-muted-foreground text-sm">Oui, vous pouvez changer de plan à tout moment depuis votre espace client.</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">💳 Quels modes de paiement acceptez-vous ?</h3>
-                <p className="text-slate-600 text-sm">Nous acceptons toutes les cartes bancaires, virements SEPA et prélèvements automatiques.</p>
+                <h3 className="font-semibold mb-2">Quels modes de paiement ?</h3>
+                <p className="text-muted-foreground text-sm">Cartes bancaires, virements SEPA et prélèvements automatiques.</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">🔒 Mes données sont-elles sécurisées ?</h3>
-                <p className="text-slate-600 text-sm">Absolument, nous utilisons un chiffrement de niveau bancaire et respectons le RGPD.</p>
+                <h3 className="font-semibold mb-2">Sécurité des données ?</h3>
+                <p className="text-muted-foreground text-sm">Chiffrement de niveau bancaire et conformité RGPD.</p>
               </div>
             </div>
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold mb-2">🎓 Proposez-vous de la formation ?</h3>
-                <p className="text-slate-600 text-sm">Oui, formation incluse pour les plans Pro et Business, webinaires gratuits pour tous.</p>
+                <h3 className="font-semibold mb-2">Formation incluse ?</h3>
+                <p className="text-muted-foreground text-sm">Formation incluse pour les plans Pro et Business.</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">🆘 Comment fonctionne le support ?</h3>
-                <p className="text-slate-600 text-sm">Support email pour Starter, prioritaire pour Pro, dédié 24/7 pour Business.</p>
+                <h3 className="font-semibold mb-2">Support disponible ?</h3>
+                <p className="text-muted-foreground text-sm">Support email pour tous, prioritaire pour Pro et dédié pour Business.</p>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">🔗 Intégrations disponibles ?</h3>
-                <p className="text-slate-600 text-sm">Sage, Cegid, banques partenaires, outils comptables et bien d'autres.</p>
+                <h3 className="font-semibold mb-2">Intégrations ?</h3>
+                <p className="text-muted-foreground text-sm">Intégrations avec les principaux outils comptables et bancaires.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 text-white">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            🚀 Prêt à démarrer ?
+      <section className="py-20 px-6 bg-muted/50">
+        <div className="container mx-auto text-center max-w-3xl">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            Prêt à commencer ?
           </h2>
-          <p className="text-xl mb-10 max-w-3xl mx-auto text-slate-300">
-            💼 Rejoignez dès maintenant les professionnels qui optimisent leur activité de leasing avec Leazr
+          <p className="text-xl text-muted-foreground mb-8">
+            Essayez Leazr gratuitement et découvrez la différence.
           </p>
           <Button 
             size="lg" 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-10 py-4 text-xl"
             onClick={() => navigate('/signup')}
           >
-            🎉 Essai gratuit 14 jours
-            <ArrowRight className="ml-2 h-6 w-6" />
+            Essai gratuit
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </section>
