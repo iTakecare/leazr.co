@@ -120,16 +120,22 @@ const OffersTable: React.FC<OffersTableProps> = ({
   return (
     <>
       <div className="rounded-md border overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="overflow-x-auto max-w-full">
+          <Table className="min-w-[2000px]">{/* Force minimum width for scrolling */}
             <TableHeader>
               <TableRow>
+                <TableHead className="font-mono text-xs">N° Demande</TableHead>
                 <TableHead>Date demande</TableHead>
                 <TableHead>Date de l'offre</TableHead>
                 <TableHead>Client</TableHead>
+                <TableHead>Secteur</TableHead>
                 <TableHead className="w-[120px]">Type</TableHead>
                 <TableHead className="max-w-[120px]">Équipement</TableHead>
-                {showMarginColumn && <TableHead className="text-right">Marge</TableHead>}
+                <TableHead>Source</TableHead>
+                <TableHead>Bailleur</TableHead>
+                <TableHead className="text-right">Montant d'achat</TableHead>
+                {showMarginColumn && <TableHead className="text-right">Marge €</TableHead>}
+                {showMarginColumn && <TableHead className="text-right">Marge %</TableHead>}
                 {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right">Commission</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right">Montant financé</TableHead>}
                 <TableHead className="text-right">Mensualité</TableHead>
@@ -140,14 +146,33 @@ const OffersTable: React.FC<OffersTableProps> = ({
             <TableBody>
               {offers.map((offer) => (
                 <TableRow key={offer.id}>
+                  {/* Numéro de demande */}
+                  <TableCell className="font-mono text-sm">
+                    {offer.dossier_number || '-'}
+                  </TableCell>
+                  
+                  {/* Date demande */}
                   <TableCell>
                     {offer.request_date ? formatDate(offer.request_date) : '-'}
                   </TableCell>
+                  
+                  {/* Date de l'offre */}
                   <TableCell>{formatDate(offer.created_at)}</TableCell>
+                  
+                  {/* Client */}
                   <TableCell className="font-medium">{offer.client_name}</TableCell>
+                  
+                  {/* Secteur */}
+                  <TableCell>
+                    {offer.business_sector || '-'}
+                  </TableCell>
+                  
+                  {/* Type */}
                   <TableCell className="w-[120px]">
                     <OfferTypeTag type={offer.type} size="sm" />
                   </TableCell>
+                  
+                  {/* Équipement */}
                   <TableCell className="max-w-[120px] truncate">
                     {offer.equipment_description &&
                       typeof offer.equipment_description === "string" &&
@@ -170,11 +195,38 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         })()
                       : offer.equipment_description || "Non spécifié"}
                   </TableCell>
+                  
+                  {/* Source */}
+                  <TableCell>
+                    {offer.source || '-'}
+                  </TableCell>
+                  
+                  {/* Bailleur */}
+                  <TableCell>
+                    {offer.leaser_name || '-'}
+                  </TableCell>
+                  
+                  {/* Montant d'achat */}
+                  <TableCell className="text-right">
+                    <div className="font-medium">
+                      {formatCurrency(offer.total_purchase_price || 0)}
+                    </div>
+                  </TableCell>
+                  
                   {/* Show margin column only for admins - Use the corrected margin calculation */}
                   {showMarginColumn && (
                     <TableCell className="text-right">
                       <div className="font-medium text-green-600">
                         {getDisplayMargin(offer)}
+                      </div>
+                    </TableCell>
+                  )}
+                  
+                  {/* Marge % */}
+                  {showMarginColumn && (
+                    <TableCell className="text-right">
+                      <div className="font-medium text-green-600">
+                        {offer.margin_percentage ? `${offer.margin_percentage.toFixed(1)}%` : '-'}
                       </div>
                     </TableCell>
                   )}

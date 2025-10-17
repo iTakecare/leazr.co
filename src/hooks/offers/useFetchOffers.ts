@@ -13,6 +13,10 @@ export interface Offer extends OfferData {
   monthly_payment: number;
   created_at: string;
   ambassador_id?: string;
+  leaser_name?: string;
+  business_sector?: string;
+  total_purchase_price?: number;
+  margin_percentage?: number;
 }
 
 export const useFetchOffers = () => {
@@ -38,7 +42,19 @@ export const useFetchOffers = () => {
         console.log(`Received ${data.length} offers from service`, data);
         
         // Process each offer to ensure financed_amount is calculated if not present
+        // and enrich with leaser_name, business_sector, total_purchase_price, and margin_percentage
         const processedOffers = data.map(offer => {
+          // Calculate total purchase price from equipment
+          const totalPurchasePrice = offer.offer_equipment?.reduce(
+            (sum: number, eq: any) => sum + ((eq.purchase_price || 0) * (eq.quantity || 1)), 
+            0
+          ) || 0;
+          
+          // Calculate average margin percentage from equipment
+          const equipmentWithMargin = offer.offer_equipment?.filter((eq: any) => eq.margin != null) || [];
+          const avgMarginPercentage = equipmentWithMargin.length > 0
+            ? equipmentWithMargin.reduce((sum: number, eq: any) => sum + (eq.margin || 0), 0) / equipmentWithMargin.length
+            : offer.margin || 0;
           // If financed_amount is missing or zero but we have monthly_payment
           if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
             // Get coefficient - either from the offer or use a default of 3.27
@@ -54,10 +70,20 @@ export const useFetchOffers = () => {
             
             return {
               ...offer,
-              financed_amount: calculatedAmount
+              financed_amount: calculatedAmount,
+              leaser_name: offer.leasers?.name || null,
+              business_sector: offer.clients?.business_sector || null,
+              total_purchase_price: totalPurchasePrice,
+              margin_percentage: avgMarginPercentage
             };
           }
-          return offer;
+          return {
+            ...offer,
+            leaser_name: offer.leasers?.name || null,
+            business_sector: offer.clients?.business_sector || null,
+            total_purchase_price: totalPurchasePrice,
+            margin_percentage: avgMarginPercentage
+          };
         });
         
         // Ensure each offer has a created_at field even if it's missing

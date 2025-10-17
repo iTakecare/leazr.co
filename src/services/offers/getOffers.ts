@@ -32,10 +32,15 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       console.log("🏢 Erreur test company_id:", err);
     }
     
-    // Construction de la requête de base
+    // Construction de la requête de base avec toutes les jointures nécessaires
     let query = supabase
       .from('offers')
-      .select('*, clients(name, email, company)');
+      .select(`
+        *, 
+        clients(name, email, company, business_sector),
+        leasers(name),
+        offer_equipment(purchase_price, quantity, margin)
+      `);
     
     // Appliquer le filtre uniquement si includeConverted est false
     if (!includeConverted) {

@@ -1031,6 +1031,7 @@ export type Database = {
           billing_city: string | null
           billing_country: string | null
           billing_postal_code: string | null
+          business_sector: string | null
           city: string | null
           company: string | null
           company_id: string
@@ -1067,6 +1068,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string | null
           billing_postal_code?: string | null
+          business_sector?: string | null
           city?: string | null
           company?: string | null
           company_id: string
@@ -1103,6 +1105,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string | null
           billing_postal_code?: string | null
+          business_sector?: string | null
           city?: string | null
           company?: string | null
           company_id?: string
