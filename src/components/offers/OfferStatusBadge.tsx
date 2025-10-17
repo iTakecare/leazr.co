@@ -9,27 +9,171 @@ import {
   Sparkle, 
   Building, 
   Star, 
-  HelpCircle 
+  HelpCircle,
+  Search,
+  Building2,
+  BarChart3,
+  FileCheck,
+  Banknote,
+  User,
+  FileText,
+  Circle,
+  Send,
+  XCircle
 } from "lucide-react";
 
 export const OFFER_STATUSES = {
-  DRAFT: { id: "draft", label: "Brouillon", icon: Pencil },
-  SENT: { id: "sent", label: "Offre envoyée", icon: SendHorizontal },
-  INTERNAL_REVIEW: { id: "internal_review", label: "Analyse interne", icon: Sparkle },
-  INTERNAL_APPROVED: { id: "internal_approved", label: "Validée interne (A)", icon: CheckCircle },
-  INTERNAL_DOCS_REQUESTED: { id: "internal_docs_requested", label: "Docs demandés interne (B)", icon: HelpCircle },
-  INTERNAL_REJECTED: { id: "internal_rejected", label: "Rejetée interne (C)", icon: X },
-  LEASER_REVIEW: { id: "leaser_review", label: "Analyse Leaser", icon: Building },
-  LEASER_APPROVED: { id: "leaser_approved", label: "Validée Leaser (A)", icon: CheckCircle },
-  LEASER_DOCS_REQUESTED: { id: "leaser_docs_requested", label: "Docs demandés Leaser (B)", icon: HelpCircle },
-  LEASER_REJECTED: { id: "leaser_rejected", label: "Rejetée Leaser (C)", icon: X },
-  VALIDATED: { id: "validated", label: "Offre validée", icon: Star },
-  APPROVED: { id: "approved", label: "Approuvée client", icon: CheckCircle },
+  // Étapes initiales
+  DRAFT: { 
+    id: "draft", 
+    label: "Brouillon", 
+    icon: Circle,
+    color: "bg-slate-100 text-slate-700 border-slate-200"
+  },
+  
+  // Envoi
+  SENT: { 
+    id: "sent", 
+    label: "Offre envoyée", 
+    icon: Send,
+    color: "bg-sky-100 text-sky-700 border-sky-200"
+  },
+  OFFER_SEND: { 
+    id: "offer_send", 
+    label: "Offre envoyée", 
+    icon: Send,
+    color: "bg-sky-100 text-sky-700 border-sky-200"
+  },
+  
+  // Analyse interne
+  INTERNAL_REVIEW: { 
+    id: "internal_review", 
+    label: "Analyse interne", 
+    icon: Search,
+    color: "bg-purple-100 text-purple-700 border-purple-200"
+  },
+  INTERNAL_APPROVED: { 
+    id: "internal_approved", 
+    label: "Validée interne", 
+    icon: CheckCircle,
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+  },
+  INTERNAL_DOCS_REQUESTED: { 
+    id: "internal_docs_requested", 
+    label: "Documents demandés (interne)", 
+    icon: FileText,
+    color: "bg-amber-100 text-amber-700 border-amber-200"
+  },
+  INTERNAL_REJECTED: { 
+    id: "internal_rejected", 
+    label: "Rejetée interne", 
+    icon: XCircle,
+    color: "bg-rose-100 text-rose-700 border-rose-200"
+  },
+  
+  // Analyse leaser
+  LEASER_REVIEW: { 
+    id: "leaser_review", 
+    label: "Analyse leaser", 
+    icon: Building2,
+    color: "bg-indigo-100 text-indigo-700 border-indigo-200"
+  },
+  LEASER_INTRODUCED: { 
+    id: "leaser_introduced", 
+    label: "Introduit leaser", 
+    icon: Building2,
+    color: "bg-indigo-100 text-indigo-700 border-indigo-200"
+  },
+  SCORING_REVIEW: { 
+    id: "Scoring_review", 
+    label: "Résultat leaser", 
+    icon: BarChart3,
+    color: "bg-indigo-100 text-indigo-700 border-indigo-200"
+  },
+  LEASER_APPROVED: { 
+    id: "leaser_approved", 
+    label: "Validée leaser", 
+    icon: CheckCircle,
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+  },
+  LEASER_DOCS_REQUESTED: { 
+    id: "leaser_docs_requested", 
+    label: "Documents demandés (leaser)", 
+    icon: FileText,
+    color: "bg-amber-100 text-amber-700 border-amber-200"
+  },
+  LEASER_REJECTED: { 
+    id: "leaser_rejected", 
+    label: "Rejetée leaser", 
+    icon: XCircle,
+    color: "bg-rose-100 text-rose-700 border-rose-200"
+  },
+  
+  // Client
+  CLIENT_REVIEW: { 
+    id: "client_review", 
+    label: "En revue client", 
+    icon: User,
+    color: "bg-sky-100 text-sky-700 border-sky-200"
+  },
+  OFFER_ACCEPTED: { 
+    id: "offer_accepted", 
+    label: "Offre acceptée", 
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-700 border-green-200"
+  },
+  CLIENT_REJECTED: { 
+    id: "client_rejected", 
+    label: "Rejetée par client", 
+    icon: XCircle,
+    color: "bg-rose-100 text-rose-700 border-rose-200"
+  },
+  
+  // Finalisation
+  VALIDATED: { 
+    id: "validated", 
+    label: "Contrat prêt", 
+    icon: FileCheck,
+    color: "bg-teal-100 text-teal-700 border-teal-200"
+  },
+  FINANCED: { 
+    id: "financed", 
+    label: "Financée", 
+    icon: Banknote,
+    color: "bg-cyan-100 text-cyan-700 border-cyan-200"
+  },
+  
   // Anciens statuts pour compatibilité
-  REJECTED: { id: "rejected", label: "Rejetée", icon: X },
-  INFO_REQUESTED: { id: "info_requested", label: "Infos demandées", icon: HelpCircle },
-  VALID_ITC: { id: "valid_itc", label: "Validée ITC", icon: Sparkle },
-  FINANCED: { id: "financed", label: "Financée", icon: Star },
+  APPROVED: { 
+    id: "approved", 
+    label: "Approuvée", 
+    icon: CheckCircle,
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+  },
+  ACCEPTED: { 
+    id: "accepted", 
+    label: "Acceptée", 
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-700 border-green-200"
+  },
+  REJECTED: { 
+    id: "rejected", 
+    label: "Rejetée", 
+    icon: XCircle,
+    color: "bg-rose-100 text-rose-700 border-rose-200"
+  },
+  INFO_REQUESTED: { 
+    id: "info_requested", 
+    label: "Informations demandées", 
+    icon: HelpCircle,
+    color: "bg-amber-100 text-amber-700 border-amber-200"
+  },
+  VALID_ITC: { 
+    id: "valid_itc", 
+    label: "Validée ITC", 
+    icon: Sparkle,
+    color: "bg-purple-100 text-purple-700 border-purple-200"
+  },
 };
 
 export interface OfferStatusBadgeProps {
@@ -51,46 +195,15 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
   // Fonction pour déterminer le style du badge en fonction du statut
   const getBadgeStyle = () => {
     if (isConverted) {
-      return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
+      return "bg-green-100 text-green-700 border-green-200 hover:bg-green-100";
     }
     
-    switch (normalizedStatus) {
-      case OFFER_STATUSES.DRAFT.id:
-        return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
-      case OFFER_STATUSES.SENT.id:
-        return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
-      case OFFER_STATUSES.INTERNAL_REVIEW.id:
-        return "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50";
-      case OFFER_STATUSES.INTERNAL_APPROVED.id:
-        return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
-      case OFFER_STATUSES.INTERNAL_DOCS_REQUESTED.id:
-        return "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50";
-      case OFFER_STATUSES.INTERNAL_REJECTED.id:
-        return "bg-red-50 text-red-700 border-red-200 hover:bg-red-50";
-      case OFFER_STATUSES.LEASER_REVIEW.id:
-        return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
-      case OFFER_STATUSES.LEASER_APPROVED.id:
-        return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
-      case OFFER_STATUSES.LEASER_DOCS_REQUESTED.id:
-        return "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50";
-      case OFFER_STATUSES.LEASER_REJECTED.id:
-        return "bg-red-50 text-red-700 border-red-200 hover:bg-red-50";
-      case OFFER_STATUSES.VALIDATED.id:
-        return "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50";
-      case OFFER_STATUSES.APPROVED.id:
-        return "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
-      // Anciens statuts pour compatibilité
-      case OFFER_STATUSES.REJECTED.id:
-        return "bg-red-50 text-red-700 border-red-200 hover:bg-red-50";
-      case OFFER_STATUSES.INFO_REQUESTED.id:
-        return "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50";
-      case OFFER_STATUSES.VALID_ITC.id:
-        return "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50";
-      case OFFER_STATUSES.FINANCED.id:
-        return "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100";
+    const statusObj = Object.values(OFFER_STATUSES).find(s => s.id === normalizedStatus);
+    if (statusObj?.color) {
+      return `${statusObj.color} hover:${statusObj.color.split(' ')[0]}`;
     }
+    
+    return "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-100";
   };
 
   // Fonction pour déterminer si l'offre est publiquement accessible
