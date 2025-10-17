@@ -11,7 +11,7 @@ export const useOfferFilters = (offers: Offer[]) => {
   // Définir les ensembles de statuts
   const DRAFT = ["draft"];
   const IN_PROGRESS = ["info_requested", "internal_docs_requested", "internal_review", "leaser_review", "client_review"];
-  const ACCEPTED = ["offer_accepted", "leaser_approved", "financed", "contract_sent", "signed", "approved"];
+  const ACCEPTED = ["accepted", "offer_accepted", "leaser_approved", "financed", "contract_sent", "signed", "approved"];
   const REJECTED = ["internal_rejected", "leaser_rejected", "client_rejected", "rejected"];
   
   useEffect(() => {
