@@ -6680,6 +6680,10 @@ export type Database = {
           success: boolean
         }[]
       }
+      update_offer_date_secure: {
+        Args: { p_new_date: string; p_offer_id: string }
+        Returns: boolean
+      }
       update_offer_equipment_secure: {
         Args: {
           p_coefficient?: number

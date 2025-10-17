@@ -64,16 +64,18 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     description: step.step_description,
     order: step.step_order,
     isRequired: step.is_required,
-    isVisible: step.is_visible
+    isVisible: step.is_visible,
+    enables_scoring: step.enables_scoring,
+    scoring_type: step.scoring_type
   })).filter(step => step.isVisible).sort((a, b) => a.order - b.order);
 
   const defaultSteps = [
-    { key: 'draft', label: 'Brouillon', icon: Circle, order: 1, isRequired: true, isVisible: true },
-    { key: 'internal_review', label: 'Analyse interne', icon: HelpCircle, order: 2, isRequired: true, isVisible: true },
-    { key: 'sent', label: 'Offre envoyée', icon: Clock, order: 3, isRequired: true, isVisible: true },
-    { key: 'client_approved', label: 'Offre validée', icon: CheckCircle, order: 4, isRequired: true, isVisible: true },
-    { key: 'leaser_review', label: 'Analyse Leaser', icon: HelpCircle, order: 5, isRequired: true, isVisible: true },
-    { key: 'validated', label: 'Contrat prêt', icon: CheckCircle, order: 6, isRequired: true, isVisible: true }
+    { key: 'draft', label: 'Brouillon', icon: Circle, order: 1, isRequired: true, isVisible: true, enables_scoring: false, scoring_type: null },
+    { key: 'internal_review', label: 'Analyse interne', icon: HelpCircle, order: 2, isRequired: true, isVisible: true, enables_scoring: true, scoring_type: 'internal' as const },
+    { key: 'sent', label: 'Offre envoyée', icon: Clock, order: 3, isRequired: true, isVisible: true, enables_scoring: false, scoring_type: null },
+    { key: 'client_approved', label: 'Offre validée', icon: CheckCircle, order: 4, isRequired: true, isVisible: true, enables_scoring: false, scoring_type: null },
+    { key: 'leaser_review', label: 'Analyse Leaser', icon: HelpCircle, order: 5, isRequired: true, isVisible: true, enables_scoring: true, scoring_type: 'leaser' as const },
+    { key: 'validated', label: 'Contrat prêt', icon: CheckCircle, order: 6, isRequired: true, isVisible: true, enables_scoring: false, scoring_type: null }
   ];
 
   const activeSteps = workflowLoading || steps.length === 0 ? defaultSteps : steps;
@@ -113,19 +115,22 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
   const handleStepClick = async (targetStatus: string, targetIndex: number) => {
     const currentIndex = getCurrentStepIndex();
+    const targetStep = activeSteps[targetIndex];
     
     console.log("🔍 STEPPER DEBUG - Step clicked:", {
       targetStatus,
       targetIndex,
       currentIndex,
       currentStatus,
-      hasAnalysisClick: !!onAnalysisClick
+      hasAnalysisClick: !!onAnalysisClick,
+      enables_scoring: targetStep?.enables_scoring,
+      scoring_type: targetStep?.scoring_type
     });
     
-    if ((targetStatus === 'internal_review' || targetStatus === 'leaser_review') && onAnalysisClick) {
-      const analysisType = targetStatus === 'internal_review' ? 'internal' : 'leaser';
-      console.log("🎯 STEPPER DEBUG - Calling onAnalysisClick with:", analysisType);
-      onAnalysisClick(analysisType);
+    // Vérifier si l'étape a le scoring activé
+    if (targetStep?.enables_scoring && onAnalysisClick && targetStep.scoring_type) {
+      console.log("🎯 STEPPER DEBUG - Calling onAnalysisClick with:", targetStep.scoring_type);
+      onAnalysisClick(targetStep.scoring_type as 'internal' | 'leaser');
       return;
     }
     

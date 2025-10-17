@@ -34,6 +34,8 @@ import { Badge } from "@/components/ui/badge";
 import EquipmentDetailTable from "@/components/offers/EquipmentDetailTable";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import ScoringModal from "@/components/offers/detail/ScoringModal";
+import { OfferDateEditor } from "@/components/offers/detail/OfferDateEditor";
+import { Edit } from "lucide-react";
 
 const OfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +45,7 @@ const OfferDetail = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [currentAnalysisType, setCurrentAnalysisType] = useState<'internal' | 'leaser' | null>(null);
+  const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
   
   // Logs de débogage
   console.log("OfferDetail - ID from params:", id);
@@ -247,6 +250,14 @@ const OfferDetail = () => {
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Calendar className="h-4 w-4" />
               <span>Créée le {formatDate(offer.created_at)}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsDateEditorOpen(true)}
+                className="h-6 px-2 text-xs"
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
               <OfferStatusBadge 
                 status={offer.workflow_status || "draft"} 
                 isConverted={offer.converted_to_contract}
@@ -525,11 +536,16 @@ const OfferDetail = () => {
         offerId={id || ""}
         currentStatus={offer?.workflow_status || "draft"}
         analysisType={currentAnalysisType || 'internal'}
-        onScoreAssigned={async (score, reason) => {
-          setScoringModalOpen(false);
-          fetchOffer();
-        }}
+        onScoreAssigned={fetchOffer}
         isLoading={false}
+      />
+      
+      <OfferDateEditor
+        offerId={id || ""}
+        currentDate={offer?.created_at || new Date().toISOString()}
+        isOpen={isDateEditorOpen}
+        onClose={() => setIsDateEditorOpen(false)}
+        onDateUpdated={fetchOffer}
       />
     </PageTransition>
   );
