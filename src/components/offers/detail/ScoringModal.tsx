@@ -100,8 +100,19 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
         }
         const activeTemplateId = Array.isArray(stepsFromRpc) && stepsFromRpc.length > 0 ? stepsFromRpc[0].template_id : null;
         if (!activeTemplateId) {
-          console.error('❌ SCORING MODAL - Aucun template actif trouvé');
-          toast.error("Workflow introuvable pour ce type d'offre");
+          console.warn('⚠️ SCORING MODAL - Aucun template actif. Utilisation d\'un fallback temporaire.');
+          // Fallback minimal permettant d'ouvrir la modale pour ne pas bloquer l'utilisateur
+          setCurrentWorkflowStep({
+            template_id: 'fallback',
+            template_name: 'fallback',
+            step_key: targetStepKey,
+            step_label: analysisType === 'internal' ? 'Analyse interne' : 'Analyse Leaser',
+            step_order: 0,
+            is_required: true,
+            is_visible: true,
+            enables_scoring: true,
+            scoring_type: analysisType,
+          } as unknown as WorkflowStepConfig);
           return;
         }
 
@@ -117,7 +128,18 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
 
         if (stepErr) {
           console.error('❌ SCORING MODAL - Erreur chargement étape:', stepErr);
-          toast.error("Impossible de charger l'étape de scoring");
+          // Fallback minimal
+          setCurrentWorkflowStep({
+            template_id: activeTemplateId,
+            template_name: 'active',
+            step_key: targetStepKey,
+            step_label: analysisType === 'internal' ? 'Analyse interne' : 'Analyse Leaser',
+            step_order: 0,
+            is_required: true,
+            is_visible: true,
+            enables_scoring: true,
+            scoring_type: analysisType,
+          } as unknown as WorkflowStepConfig);
           return;
         }
 
@@ -126,8 +148,18 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           console.log('✅ SCORING MODAL - Workflow step loaded (scoped to template):', step);
           setCurrentWorkflowStep(step as unknown as WorkflowStepConfig);
         } else {
-          console.error('❌ SCORING MODAL - Étape de scoring introuvable dans le template actif');
-          toast.error("Étape de scoring introuvable dans le workflow actif");
+          console.warn('⚠️ SCORING MODAL - Étape introuvable dans le template actif. Fallback.');
+          setCurrentWorkflowStep({
+            template_id: activeTemplateId,
+            template_name: 'active',
+            step_key: targetStepKey,
+            step_label: analysisType === 'internal' ? 'Analyse interne' : 'Analyse Leaser',
+            step_order: 0,
+            is_required: true,
+            is_visible: true,
+            enables_scoring: true,
+            scoring_type: analysisType,
+          } as unknown as WorkflowStepConfig);
         }
       } catch (error) {
         console.error('❌ SCORING MODAL - Erreur lors de la récupération de la configuration du workflow:', error);
