@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Contract, contractStatuses } from "@/services/contractService";
@@ -80,6 +80,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   isDeleting,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showTrackingDialog, setShowTrackingDialog] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
   const [trackingInfo, setTrackingInfo] = useState({
@@ -159,7 +160,12 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
   };
 
   const handleViewDetails = (contractId: string) => {
-    navigate(`/contracts/${contractId}`);
+    const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+    if (companySlug) {
+      navigate(`/${companySlug}/admin/contracts/${contractId}`);
+    } else {
+      navigate(`/contracts/${contractId}`);
+    }
   };
 
   const handleAddTracking = (contractId: string) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import EditableBillingDataTable from "@/components/invoices/EditableBillingDataT
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { navigateToAdmin } = useRoleNavigation();
   const { companyId } = useMultiTenant();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -254,7 +255,12 @@ const InvoiceDetailPage = () => {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Contrat</label>
                   <Link 
-                    to={`/contracts/${invoice.contract_id}`}
+                    to={(() => {
+                      const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+                      return companySlug 
+                        ? `/${companySlug}/admin/contracts/${invoice.contract_id}`
+                        : `/contracts/${invoice.contract_id}`;
+                    })()}
                     className="text-primary hover:underline"
                   >
                     Voir le contrat

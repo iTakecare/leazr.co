@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 const InvoiceEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { companyId } = useMultiTenant();
   const { navigateToAdmin } = useRoleNavigation();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -306,7 +307,12 @@ const InvoiceEditPage = () => {
             </CardHeader>
             <CardContent>
               <Link 
-                to={`/contracts/${invoice.contract_id}`}
+                to={(() => {
+                  const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+                  return companySlug 
+                    ? `/${companySlug}/admin/contracts/${invoice.contract_id}`
+                    : `/contracts/${invoice.contract_id}`;
+                })()}
                 className="text-primary hover:underline"
               >
                 Voir le contrat →
