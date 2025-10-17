@@ -132,7 +132,7 @@ export const CustomOfferGenerator: React.FC<CustomOfferGeneratorProps> = ({
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Zap className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Générateur d'Offres Personnalisé</h1>
+          <h1 className="text-2xl font-bold">Générateur de Demandes Personnalisé</h1>
         </div>
         <p className="text-muted-foreground">
           Créez votre offre sur mesure en quelques étapes simples

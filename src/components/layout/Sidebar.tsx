@@ -81,7 +81,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       },
       { 
         icon: ClipboardList, 
-        label: "Offres", 
+        label: "Demandes", 
         href: `${basePrefix}/admin/offers`, 
         color: "indigo",
         moduleSlug: "offers" 
