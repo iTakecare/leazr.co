@@ -11,7 +11,7 @@ export const useOfferFilters = (offers: Offer[]) => {
   // Définir les ensembles de statuts
   const DRAFT = ["draft"];
   const IN_PROGRESS = ["info_requested", "internal_docs_requested", "internal_review", "leaser_review", "client_review"];
-  const ACCEPTED = ["accepted", "internal_approved", "leaser_approved", "offer_accepted", "financed", "contract_sent", "signed", "approved"];
+  const ACCEPTED = ["leaser_approved", "financed", "contract_sent", "signed", "approved"];
   const REJECTED = ["internal_rejected", "leaser_rejected", "client_rejected", "rejected"];
   
   useEffect(() => {
@@ -30,9 +30,8 @@ export const useOfferFilters = (offers: Offer[]) => {
     
     // Filtre par statut (onglet actif)
     if (activeTab === "active") {
-      console.log(`Filtering by active status: draft + in_progress`);
-      const activeStatuses = [...DRAFT, ...IN_PROGRESS];
-      result = result.filter(offer => activeStatuses.includes(offer.workflow_status));
+      console.log(`Filtering by active status: not accepted and not rejected`);
+      result = result.filter(offer => !ACCEPTED.includes(offer.workflow_status) && !REJECTED.includes(offer.workflow_status));
     } else if (activeTab === "draft") {
       console.log(`Filtering by workflow status: draft`);
       result = result.filter(offer => DRAFT.includes(offer.workflow_status));
