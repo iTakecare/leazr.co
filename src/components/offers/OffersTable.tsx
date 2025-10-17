@@ -36,6 +36,12 @@ import {
   FileText, 
   ExternalLink
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import OfferStatusBadge from "./OfferStatusBadge";
 import OfferTypeTag from "./OfferTypeTag";
 import { useAuth } from "@/context/AuthContext";
@@ -173,27 +179,59 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Équipement */}
-                  <TableCell className="max-w-[120px] truncate text-xs">
-                    {offer.equipment_description &&
-                      typeof offer.equipment_description === "string" &&
-                      (offer.equipment_description.startsWith("[") ||
-                        offer.equipment_description.startsWith("{"))
-                      ? (() => {
-                          try {
-                            const equipmentData = JSON.parse(
-                              offer.equipment_description
-                            );
-                            if (Array.isArray(equipmentData)) {
-                              return equipmentData
-                                .map((item) => item.title)
-                                .join(", ");
-                            }
-                            return equipmentData.title || "Équipement sans titre";
-                          } catch (e) {
-                            return "Format d'équipement non valide";
-                          }
-                        })()
-                      : offer.equipment_description || "Non spécifié"}
+                  <TableCell className="max-w-[120px] text-xs">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="truncate cursor-help">
+                            {offer.equipment_description &&
+                              typeof offer.equipment_description === "string" &&
+                              (offer.equipment_description.startsWith("[") ||
+                                offer.equipment_description.startsWith("{"))
+                              ? (() => {
+                                  try {
+                                    const equipmentData = JSON.parse(
+                                      offer.equipment_description
+                                    );
+                                    if (Array.isArray(equipmentData)) {
+                                      return equipmentData
+                                        .map((item) => item.title)
+                                        .join(", ");
+                                    }
+                                    return equipmentData.title || "Équipement sans titre";
+                                  } catch (e) {
+                                    return "Format d'équipement non valide";
+                                  }
+                                })()
+                              : offer.equipment_description || "Non spécifié"}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-md z-50 bg-popover">
+                          <p className="text-sm whitespace-pre-wrap">
+                            {offer.equipment_description &&
+                              typeof offer.equipment_description === "string" &&
+                              (offer.equipment_description.startsWith("[") ||
+                                offer.equipment_description.startsWith("{"))
+                              ? (() => {
+                                  try {
+                                    const equipmentData = JSON.parse(
+                                      offer.equipment_description
+                                    );
+                                    if (Array.isArray(equipmentData)) {
+                                      return equipmentData
+                                        .map((item) => item.title)
+                                        .join(", ");
+                                    }
+                                    return equipmentData.title || "Équipement sans titre";
+                                  } catch (e) {
+                                    return "Format d'équipement non valide";
+                                  }
+                                })()
+                              : offer.equipment_description || "Non spécifié"}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   
                   {/* Source */}
