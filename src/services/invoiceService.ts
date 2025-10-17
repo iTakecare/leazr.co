@@ -84,7 +84,8 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
         client_id,
         client_name,
         monthly_payment,
-        leaser_name
+        leaser_name,
+        offer_id
       `)
       .eq('id', contractId)
       .single();
@@ -109,18 +110,25 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       throw new Error('Données du leaser incomplètes (adresse, ville, code postal manquants)');
     }
 
-    // Récupérer les équipements du contrat avec numéros de série
-    const { data: equipment, error: equipmentError } = await supabase
+    // Récupérer l'offer_id pour accéder aux données originales
+    const offerId = contract.offer_id;
+    console.log('📋 Offer ID du contrat:', offerId);
+
+    // Récupérer les équipements du contrat pour les numéros de série
+    const { data: contractEquipment, error: contractEquipmentError } = await supabase
       .from('contract_equipment')
       .select('*')
       .eq('contract_id', contractId);
 
-    if (equipmentError) {
-      throw new Error('Erreur lors de la récupération des équipements');
+    if (contractEquipmentError) {
+      throw new Error('Erreur lors de la récupération des équipements du contrat');
     }
 
     // Vérifier que tous les équipements ont des numéros de série
-    const missingSerialNumbers = equipment.filter(item => !item.serial_number || item.serial_number.trim() === '');
+    const missingSerialNumbers = (contractEquipment || []).filter(
+      item => !item.serial_number || item.serial_number.trim() === ''
+    );
+    
     if (missingSerialNumbers.length > 0) {
       const missingTitles = missingSerialNumbers.map(e => e.title).join(', ');
       throw new Error(
@@ -130,18 +138,54 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       );
     }
 
-    // Calculer le prix total de vente (avec marge en pourcentage)
-    const totalSellingPrice = equipment.reduce((total, item) => {
-      const sellingPrice = item.purchase_price * (1 + item.margin / 100);
+    // Si le contrat provient d'une offre, utiliser les équipements de l'offre
+    // Sinon, fallback sur les équipements du contrat
+    let equipment = [];
+    let totalSellingPrice = 0;
+
+    if (offerId) {
+      console.log('🔍 Récupération des équipements depuis l\'offre originale');
+      
+      const { data: offerEquipment, error: offerEquipmentError } = await supabase
+        .from('offer_equipment')
+        .select('*')
+        .eq('offer_id', offerId);
+
+      if (offerEquipmentError) {
+        console.warn('⚠️ Erreur lors de la récupération des équipements de l\'offre, fallback sur contrat:', offerEquipmentError);
+        equipment = contractEquipment || [];
+      } else {
+        equipment = offerEquipment || [];
+        console.log('✅ Équipements de l\'offre récupérés:', equipment.length, 'items');
+      }
+    } else {
+      console.log('🔍 Pas d\'offer_id, récupération des équipements du contrat');
+      equipment = contractEquipment || [];
+    }
+
+    // Calculer le prix total de vente
+    // Priorité : selling_price > calcul avec marge
+    totalSellingPrice = equipment.reduce((total, item) => {
+      const sellingPrice = item.selling_price || (item.purchase_price * (1 + item.margin / 100));
       return total + (sellingPrice * item.quantity);
     }, 0);
 
-    // Préparer les données d'équipement enrichies avec prix de vente
-    // La marge est stockée en pourcentage, il faut la convertir en montant
-    const enrichedEquipment = equipment.map(item => ({
-      ...item,
-      selling_price_excl_vat: parseFloat((item.purchase_price * (1 + item.margin / 100)).toFixed(2))
-    }));
+    console.log('💰 Prix de vente total calculé:', totalSellingPrice);
+
+    // Mapper les numéros de série du contrat sur les équipements
+    const enrichedEquipment = equipment.map(offerItem => {
+      const contractItem = (contractEquipment || []).find(
+        ce => ce.title === offerItem.title && ce.purchase_price === offerItem.purchase_price
+      );
+      
+      const sellingPrice = offerItem.selling_price || (offerItem.purchase_price * (1 + offerItem.margin / 100));
+      
+      return {
+        ...offerItem,
+        serial_number: contractItem?.serial_number || offerItem.serial_number,
+        selling_price_excl_vat: parseFloat(sellingPrice.toFixed(2))
+      };
+    });
 
     // Créer la facture en brouillon avec toutes les données nécessaires
     const { data: invoice, error: invoiceError } = await supabase
