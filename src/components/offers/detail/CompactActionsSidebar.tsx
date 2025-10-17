@@ -21,6 +21,8 @@ interface CompactActionsSidebarProps {
   onEdit: () => void;
   onPreview: () => void;
   sendingEmail: boolean;
+  onEditRequestDate?: () => void;
+  onEditCreatedDate?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -29,7 +31,9 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onRequestInfo,
   onEdit,
   onPreview,
-  sendingEmail
+  sendingEmail,
+  onEditRequestDate,
+  onEditCreatedDate
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,10 +120,43 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
               <span>ID:</span>
               <span className="font-mono">#{offer.id?.slice(0, 8)}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Créée:</span>
-              <span>{new Date(offer.created_at).toLocaleDateString('fr-FR')}</span>
-            </div>
+            
+            {onEditRequestDate && (
+              <div className="flex justify-between items-center">
+                <span>Demande:</span>
+                <div className="flex items-center gap-1">
+                  <span>{new Date(offer.request_date || offer.created_at).toLocaleDateString('fr-FR')}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 p-0" 
+                    onClick={onEditRequestDate}
+                    title="Modifier la date de demande"
+                  >
+                    <Edit className="h-3.5 w-3.5 text-primary" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {onEditCreatedDate && (
+              <div className="flex justify-between items-center">
+                <span>Créée:</span>
+                <div className="flex items-center gap-1">
+                  <span>{new Date(offer.created_at).toLocaleDateString('fr-FR')}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 p-0" 
+                    onClick={onEditCreatedDate}
+                    title="Modifier la date de création"
+                  >
+                    <Edit className="h-3 w-3 text-gray-500" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             {offer.updated_at !== offer.created_at && (
               <div className="flex justify-between">
                 <span>Modifiée:</span>

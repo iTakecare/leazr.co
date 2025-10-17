@@ -46,6 +46,7 @@ const AdminOfferDetail = () => {
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
   const [dateEditorType, setDateEditorType] = useState<'created' | 'request'>('request');
+  const [scoringTargetStatus, setScoringTargetStatus] = useState<string | null>(null);
 
   
 
@@ -188,9 +189,9 @@ const AdminOfferDetail = () => {
 
   const handleAnalysisClick = (analysisType: 'internal' | 'leaser') => {
     console.log("🔍 ADMIN OFFER DETAIL - handleAnalysisClick called with:", analysisType);
-    console.log("🔍 Current offer:", offer);
-    console.log("🔍 Current workflow_status:", offer?.workflow_status);
+    const stepKey = analysisType === 'internal' ? 'internal_review' : 'leaser_review';
     setScoringAnalysisType(analysisType);
+    setScoringTargetStatus(stepKey);
     setScoringModalOpen(true);
   };
 
@@ -320,47 +321,7 @@ const AdminOfferDetail = () => {
                     </h1>
                     {offer.type && <OfferTypeTag type={offer.type} size="md" />}
                   </div>
-                  <div className="space-y-1.5">
-                    <p className="text-gray-600 font-medium">{offer.client_name}</p>
-                    
-                    {/* Date de demande - la plus importante */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-700">
-                        📅 Demande du {new Date(offer.request_date || offer.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDateEditorType('request');
-                          setIsDateEditorOpen(true);
-                        }}
-                        className="h-7 w-7 p-0 hover:bg-primary/10 transition-colors"
-                        title="Modifier la date de demande"
-                      >
-                        <Edit className="h-3.5 w-3.5 text-primary" />
-                      </Button>
-                    </div>
-                    
-                    {/* Date de création technique */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">
-                        🔧 Créée le {new Date(offer.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDateEditorType('created');
-                          setIsDateEditorOpen(true);
-                        }}
-                        className="h-6 w-6 p-0 hover:bg-gray-100 transition-colors"
-                        title="Modifier la date de création (correction)"
-                      >
-                        <Edit className="h-3 w-3 text-gray-400" />
-                      </Button>
-                    </div>
-                  </div>
+                  <p className="text-gray-600 font-medium">{offer.client_name}</p>
                 </div>
               </div>
             </div>
@@ -418,6 +379,14 @@ const AdminOfferDetail = () => {
                   onEdit={handleEditOffer}
                   onPreview={handlePreview}
                   sendingEmail={sendingEmail}
+                  onEditRequestDate={() => {
+                    setDateEditorType('request');
+                    setIsDateEditorOpen(true);
+                  }}
+                  onEditCreatedDate={() => {
+                    setDateEditorType('created');
+                    setIsDateEditorOpen(true);
+                  }}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -456,9 +425,12 @@ const AdminOfferDetail = () => {
         {/* Modal de scoring */}
         <ScoringModal
           isOpen={scoringModalOpen}
-          onClose={() => setScoringModalOpen(false)}
+          onClose={() => {
+            setScoringModalOpen(false);
+            setScoringTargetStatus(null);
+          }}
           offerId={offer.id}
-          currentStatus={offer.workflow_status}
+          currentStatus={scoringTargetStatus || offer.workflow_status}
           analysisType={scoringAnalysisType}
           onScoreAssigned={scoringAnalysisType === 'internal' ? handleInternalScoring : handleLeaserScoring}
           isLoading={scoringLoading}
