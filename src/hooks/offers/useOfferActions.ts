@@ -8,6 +8,7 @@ import {
 } from "@/services/offerService";
 import { Offer } from "./useFetchOffers";
 import { sendOfferReadyEmail } from "@/services/emailService";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React.SetStateAction<Offer[]>>) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -277,9 +278,52 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       
       switch (score) {
         case 'A':
-          newStatus = 'validated';
+          // Étape 1: Passer à leaser_approved
+          newStatus = 'leaser_approved';
           statusReason = `Analyse Leaser - Score A (Approuvé)${reason ? `: ${reason}` : ''}`;
-          break;
+          
+          // Mettre à jour vers leaser_approved
+          const stepOneSuccess = await updateOfferStatus(offerId, newStatus, offer.workflow_status, statusReason);
+          
+          if (stepOneSuccess) {
+            // Étape 2: Transition automatique vers validated (Contrat prêt)
+            const { error: validatedError } = await supabase
+              .from('offers')
+              .update({ 
+                workflow_status: 'validated',
+                status: 'accepted' // Mettre le status général à accepted
+              })
+              .eq('id', offerId);
+            
+            if (!validatedError) {
+              // Logger la transition vers validated
+              await supabase
+                .from('offer_workflow_logs')
+                .insert({
+                  offer_id: offerId,
+                  user_id: (await supabase.auth.getUser()).data.user?.id,
+                  previous_status: 'leaser_approved',
+                  new_status: 'validated',
+                  reason: 'Transition automatique après approbation leaser - Contrat prêt'
+                });
+              
+              setOffers(prevOffers => prevOffers.map(o => 
+                o.id === offerId ? { 
+                  ...o, 
+                  workflow_status: 'validated',
+                  status: 'accepted'
+                } : o
+              ));
+              toast.success(`Score ${score} attribué - Contrat prêt à être envoyé`);
+            } else {
+              console.error("Erreur lors de la transition vers validated:", validatedError);
+              toast.error("Erreur lors de la transition vers Contrat prêt");
+            }
+          } else {
+            toast.error("Erreur lors de l'attribution du score");
+          }
+          return;
+          
         case 'B':
           newStatus = 'leaser_docs_requested';
           statusReason = `Analyse Leaser - Score B (Documents requis): ${reason}`;
