@@ -106,3 +106,22 @@ export const updateOfferDate = async (offerId: string, newDate: string): Promise
     return false;
   }
 };
+
+export const updateOfferRequestDate = async (offerId: string, newDate: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('update_offer_request_date_secure', {
+      p_offer_id: offerId,
+      p_new_date: newDate
+    });
+    
+    if (error) {
+      console.error("Error updating offer request date:", error);
+      return false;
+    }
+    
+    return data === true;
+  } catch (error) {
+    console.error("Error in updateOfferRequestDate:", error);
+    return false;
+  }
+};

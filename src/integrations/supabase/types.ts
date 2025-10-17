@@ -3854,6 +3854,7 @@ export type Database = {
           monthly_payment: number
           previous_status: string | null
           remarks: string | null
+          request_date: string | null
           signature_data: string | null
           signed_at: string | null
           signer_ip: string | null
@@ -3892,6 +3893,7 @@ export type Database = {
           monthly_payment?: number
           previous_status?: string | null
           remarks?: string | null
+          request_date?: string | null
           signature_data?: string | null
           signed_at?: string | null
           signer_ip?: string | null
@@ -3930,6 +3932,7 @@ export type Database = {
           monthly_payment?: number
           previous_status?: string | null
           remarks?: string | null
+          request_date?: string | null
           signature_data?: string | null
           signed_at?: string | null
           signer_ip?: string | null
@@ -6150,6 +6153,7 @@ export type Database = {
           monthly_payment: number
           previous_status: string | null
           remarks: string | null
+          request_date: string | null
           signature_data: string | null
           signed_at: string | null
           signer_ip: string | null
@@ -6709,6 +6713,10 @@ export type Database = {
       update_offer_margins: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      update_offer_request_date_secure: {
+        Args: { p_new_date: string; p_offer_id: string }
+        Returns: boolean
       }
       update_product_attributes: {
         Args: { p_product_id: string; p_variation_attributes: Json }
