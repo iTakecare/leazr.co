@@ -76,7 +76,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "dd MMM yyyy", { locale: fr });
+      return format(new Date(dateString), "dd/MM/yy", { locale: fr });
     } catch (error) {
       return "Date incorrecte";
     }
@@ -127,17 +127,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead className="font-mono text-xs">N° Demande</TableHead>
                 <TableHead className="text-xs">Date demande</TableHead>
                 <TableHead className="text-xs">Date de l'offre</TableHead>
-                <TableHead className="text-xs">Client</TableHead>
+                <TableHead className="w-[150px] text-xs">Client</TableHead>
                 <TableHead className="text-xs">Secteur</TableHead>
                 <TableHead className="w-[120px] text-xs">Type</TableHead>
                 <TableHead className="max-w-[120px] text-xs">Équipement</TableHead>
                 <TableHead className="text-xs">Source</TableHead>
                 <TableHead className="text-xs">Bailleur</TableHead>
                 <TableHead className="text-right text-xs">Montant d'achat</TableHead>
+                <TableHead className="text-right text-xs">Montant financé</TableHead>
                 {showMarginColumn && <TableHead className="text-right text-xs">Marge €</TableHead>}
                 {showMarginColumn && <TableHead className="text-right text-xs">Marge %</TableHead>}
                 {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-xs">Commission</TableHead>}
-                {!isAmbassador() && <TableHead className="text-right text-xs">Montant financé</TableHead>}
                 <TableHead className="text-right text-xs">Mensualité</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
                 <TableHead className="text-right w-[60px] sticky right-0 bg-background text-xs">Actions</TableHead>
@@ -160,7 +160,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-xs">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Client */}
-                  <TableCell className="font-medium text-xs">{offer.client_name}</TableCell>
+                  <TableCell className="font-medium text-xs w-[150px] truncate">{offer.client_name}</TableCell>
                   
                   {/* Secteur */}
                   <TableCell className="text-xs">
@@ -213,6 +213,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </div>
                   </TableCell>
                   
+                  {/* Montant financé */}
+                  <TableCell className="text-right text-xs">
+                    <div className="font-medium text-blue-600">
+                      {formatCurrency(getEffectiveFinancedAmount(offer))}
+                    </div>
+                  </TableCell>
+                  
                   {/* Marge € - Display margin in euros */}
                   {showMarginColumn && (
                     <TableCell className="text-right text-xs">
@@ -240,11 +247,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
-                    </TableCell>
-                  )}
-                  {!isAmbassador() && (
-                    <TableCell className="text-right text-xs">
-                      {formatCurrency(getEffectiveFinancedAmount(offer))}
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium text-xs">
