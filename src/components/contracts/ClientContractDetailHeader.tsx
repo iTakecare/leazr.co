@@ -13,7 +13,7 @@ interface ClientContractDetailHeaderProps {
 }
 
 const ClientContractDetailHeader: React.FC<ClientContractDetailHeaderProps> = ({ contract }) => {
-  const { navigateToClient } = useRoleNavigation();
+  const { navigateToClient, navigateToAdmin } = useRoleNavigation();
   const equipmentSummary = getEquipmentSummary(contract.equipment_description);
 
   return (
@@ -40,12 +40,18 @@ const ClientContractDetailHeader: React.FC<ClientContractDetailHeaderProps> = ({
                     Démarré le {formatDate(contract.created_at)}
                   </span>
                 </div>
-                {contract.offer_id && (
+                {contract.offer_id && contract.offer_dossier_number && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span className="text-muted-foreground">•</span>
                     <FileText className="h-4 w-4" />
                     <span>
-                      Demande <span className="font-mono font-semibold">#{contract.offer_id.substring(0, 8).toUpperCase()}</span>
+                      Demande{" "}
+                      <button
+                        onClick={() => navigateToClient(`offers/${contract.offer_id}`)}
+                        className="font-mono font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        #{contract.offer_dossier_number}
+                      </button>
                     </span>
                   </div>
                 )}
