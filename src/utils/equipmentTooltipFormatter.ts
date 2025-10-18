@@ -12,16 +12,19 @@ export const formatAllEquipmentWithQuantities = (
 ): string[] => {
   const allEquipment: string[] = [];
   
-  // 1. D'abord, traiter les équipements de la table offer_equipment (priorité)
+  // 1. Si offer_equipment existe et contient des données, l'utiliser EXCLUSIVEMENT
   if (offerEquipment && Array.isArray(offerEquipment) && offerEquipment.length > 0) {
     offerEquipment.forEach((item) => {
       const quantity = item.quantity || 1;
       const title = item.title || "Équipement sans titre";
       allEquipment.push(`${quantity} x ${title}`);
     });
+    
+    // IMPORTANT : Retourner directement ici pour éviter les doublons
+    return allEquipment;
   }
   
-  // 2. Ensuite, ajouter les équipements de equipment_description (si présents)
+  // 2. SINON (fallback pour les anciennes offres), utiliser equipment_description
   if (equipmentDescription) {
     try {
       let equipmentData;
@@ -30,17 +33,12 @@ export const formatAllEquipmentWithQuantities = (
         if (equipmentDescription.startsWith('[') || equipmentDescription.startsWith('{')) {
           equipmentData = JSON.parse(equipmentDescription);
         } else {
-          // Si c'est juste du texte simple, l'ajouter
-          if (allEquipment.length === 0) {
-            allEquipment.push(equipmentDescription);
-          }
-          return allEquipment.length > 0 ? allEquipment : ["Aucun équipement"];
+          return [equipmentDescription];
         }
       } else {
         equipmentData = equipmentDescription;
       }
 
-      // Traiter les données parsées
       if (Array.isArray(equipmentData)) {
         equipmentData.forEach((item) => {
           const quantity = item.quantity || 1;
@@ -56,7 +54,6 @@ export const formatAllEquipmentWithQuantities = (
     }
   }
   
-  // 3. Si aucun équipement trouvé
   return allEquipment.length > 0 ? allEquipment : ["Aucun équipement"];
 };
 
@@ -115,14 +112,17 @@ export const formatAllEquipmentForCell = (
 ): string => {
   const titles: string[] = [];
   
-  // 1. Équipements de la table offer_equipment
+  // 1. Si offer_equipment existe, l'utiliser EXCLUSIVEMENT
   if (offerEquipment && Array.isArray(offerEquipment) && offerEquipment.length > 0) {
     offerEquipment.forEach((item) => {
       titles.push(item.title || "Sans titre");
     });
+    
+    // IMPORTANT : Retourner directement ici
+    return titles.join(", ");
   }
   
-  // 2. Équipements de equipment_description
+  // 2. SINON (fallback), utiliser equipment_description
   if (equipmentDescription) {
     try {
       let equipmentData;
@@ -131,10 +131,7 @@ export const formatAllEquipmentForCell = (
         if (equipmentDescription.startsWith('[') || equipmentDescription.startsWith('{')) {
           equipmentData = JSON.parse(equipmentDescription);
         } else {
-          if (titles.length === 0) {
-            return equipmentDescription;
-          }
-          return titles.join(", ");
+          return equipmentDescription;
         }
       } else {
         equipmentData = equipmentDescription;
