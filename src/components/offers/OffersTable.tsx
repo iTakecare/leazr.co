@@ -135,7 +135,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead className="font-mono text-[10px] w-[110px]">N° Demande</TableHead>
                 <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date dem.</TableHead>
                 <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date offre</TableHead>
-                <TableHead className="w-[120px] text-[10px]">Client</TableHead>
+                <TableHead className="w-[90px] text-[10px]">Client</TableHead>
                 <TableHead className="text-[10px] w-[80px] hidden xl:table-cell">Secteur</TableHead>
                 <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
                 <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
@@ -168,7 +168,22 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Client */}
-                  <TableCell className="font-medium text-[11px] w-[120px] truncate py-2">{offer.client_name}</TableCell>
+                  <TableCell className="text-[11px] w-[90px] py-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="truncate cursor-help font-medium">
+                            {offer.client_name}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-md z-50 bg-popover">
+                          <div className="text-sm font-medium">
+                            {offer.client_name}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
                   
                   {/* Secteur */}
                   <TableCell className="text-[11px] py-2 hidden xl:table-cell">
