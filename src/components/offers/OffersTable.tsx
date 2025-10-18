@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
@@ -119,14 +119,24 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // Check if we have any ambassador offers to show commission column
   const hasAmbassadorOffers = offers.some(offer => offer.type === 'ambassador_offer');
 
-  // Function to calculate and display the margin in euros
-  const getDisplayMarginInEuros = (offer: any) => {
-    const marginAmount = calculateOfferMarginAmount(offer, offer.offer_equipment);
-    return formatCurrency(marginAmount);
-  };
+  // Memoize computed data for all offers to avoid recalculating on every render
+  const computedOffers = useMemo(() => {
+    return offers.map(offer => ({
+      ...offer,
+      effectiveFinancedAmount: getEffectiveFinancedAmount(offer, offer.offer_equipment),
+      marginInEuros: calculateOfferMarginAmount(offer, offer.offer_equipment),
+      equipmentForCell: formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment),
+      equipmentWithQuantities: formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment),
+      businessSectorLabel: offer.business_sector 
+        ? getBusinessSectorLabel(offer.business_sector)
+        : offer.clients?.business_sector 
+          ? getBusinessSectorLabel(offer.clients.business_sector)
+          : '-'
+    }));
+  }, [offers]);
 
   return (
-    <>
+    <TooltipProvider>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto max-w-full">
           <Table className="min-w-[1400px] text-[11px]">
@@ -152,7 +162,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {offers.map((offer) => (
+              {computedOffers.map((offer) => (
                 <TableRow key={offer.id} className="h-10">
                   {/* Numéro de demande */}
                   <TableCell className="font-mono text-[11px] py-2">
@@ -169,30 +179,23 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Client */}
                   <TableCell className="text-[11px] w-[90px] py-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="truncate cursor-help font-medium">
-                            {offer.client_name}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-md z-50 bg-popover">
-                          <div className="text-sm font-medium">
-                            {offer.client_name}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="truncate cursor-help font-medium">
+                          {offer.client_name}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md z-50 bg-popover">
+                        <div className="text-sm font-medium">
+                          {offer.client_name}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   
                   {/* Secteur */}
                   <TableCell className="text-[11px] py-2 hidden xl:table-cell">
-                    {offer.business_sector 
-                      ? getBusinessSectorLabel(offer.business_sector)
-                      : offer.clients?.business_sector 
-                        ? getBusinessSectorLabel(offer.clients.business_sector)
-                        : '-'
-                    }
+                    {offer.businessSectorLabel}
                   </TableCell>
                   
                   {/* Type */}
@@ -202,24 +205,22 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Équipement */}
                   <TableCell className="max-w-[100px] text-[11px] py-2 hidden lg:table-cell">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="truncate cursor-help">
-                            {formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment)}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-md z-50 bg-popover p-3">
-                          <div className="space-y-1">
-                            {formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment).map((line, index) => (
-                              <div key={index} className="text-sm font-mono">
-                                {line}
-                              </div>
-                            ))}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="truncate cursor-help">
+                          {offer.equipmentForCell}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md z-50 bg-popover p-3">
+                        <div className="space-y-1">
+                          {offer.equipmentWithQuantities.map((line: string, index: number) => (
+                            <div key={index} className="text-sm font-mono">
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   
                   {/* Source */}
@@ -242,7 +243,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                    {/* Montant financé */}
                   <TableCell className="text-right text-[11px] py-2">
                     <div className="font-medium text-blue-600">
-                      {formatCurrency(getEffectiveFinancedAmount(offer, offer.offer_equipment))}
+                      {formatCurrency(offer.effectiveFinancedAmount)}
                     </div>
                   </TableCell>
                   
@@ -250,7 +251,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   {showMarginColumn && (
                     <TableCell className="text-right text-[11px] py-2 hidden lg:table-cell">
                       <div className="font-medium text-green-600">
-                        {getDisplayMarginInEuros(offer)}
+                        {formatCurrency(offer.marginInEuros)}
                       </div>
                     </TableCell>
                   )}
@@ -382,7 +383,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 };
 
