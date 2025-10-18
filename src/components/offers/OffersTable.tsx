@@ -52,6 +52,32 @@ import { toast } from "sonner";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 
+// Fonction pour extraire le nom et l'entreprise depuis client_name
+const parseClientName = (clientName: string, clientsData?: any) => {
+  // Si on a le nom de l'entreprise via clients.company, l'utiliser
+  if (clientsData?.company) {
+    return {
+      displayName: clientName.split(' - ')[0].trim(),
+      companyName: clientsData.company
+    };
+  }
+  
+  // Sinon parser depuis client_name
+  if (clientName.includes(' - ')) {
+    const parts = clientName.split(' - ');
+    return {
+      displayName: parts[0].trim(),
+      companyName: parts.slice(1).join(' - ').trim()
+    };
+  }
+  
+  // Pas d'entreprise trouvée
+  return {
+    displayName: clientName,
+    companyName: null
+  };
+};
+
 interface OffersTableProps {
   offers: any[];
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
@@ -107,18 +133,24 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   // Memoize computed data for all offers to avoid recalculating on every render
   const computedOffers = useMemo(() => {
-    return offers.map(offer => ({
-      ...offer,
-      effectiveFinancedAmount: getEffectiveFinancedAmount(offer, offer.offer_equipment),
-      marginInEuros: calculateOfferMarginAmount(offer, offer.offer_equipment),
-      equipmentForCell: formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment),
-      equipmentWithQuantities: formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment),
-      businessSectorLabel: offer.business_sector 
-        ? getBusinessSectorLabel(offer.business_sector)
-        : offer.clients?.business_sector 
-          ? getBusinessSectorLabel(offer.clients.business_sector)
-          : '-'
-    }));
+    return offers.map(offer => {
+      const { displayName, companyName } = parseClientName(offer.client_name, offer.clients);
+      
+      return {
+        ...offer,
+        effectiveFinancedAmount: getEffectiveFinancedAmount(offer, offer.offer_equipment),
+        marginInEuros: calculateOfferMarginAmount(offer, offer.offer_equipment),
+        equipmentForCell: formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment),
+        equipmentWithQuantities: formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment),
+        businessSectorLabel: offer.business_sector 
+          ? getBusinessSectorLabel(offer.business_sector)
+          : offer.clients?.business_sector 
+            ? getBusinessSectorLabel(offer.clients.business_sector)
+            : '-',
+        clientDisplayName: displayName,
+        clientCompanyName: companyName
+      };
+    });
   }, [offers]);
 
   // Only admins can see the margin column
@@ -148,7 +180,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead className="font-mono text-[10px] w-[110px]">N° Demande</TableHead>
                 <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date dem.</TableHead>
                 <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date offre</TableHead>
-                <TableHead className="w-[70px] text-[10px]">Client</TableHead>
+                <TableHead className="w-[60px] text-[10px]">Client</TableHead>
                 <TableHead className="text-[10px] w-[80px] hidden xl:table-cell">Secteur</TableHead>
                 <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
                 <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
@@ -181,16 +213,23 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Client */}
-                  <TableCell className="text-[11px] w-[70px] py-2">
+                  <TableCell className="text-[11px] w-[60px] py-2">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="truncate cursor-help font-medium">
-                          {offer.client_name}
+                          {offer.clientDisplayName}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-md z-50 bg-popover">
-                        <div className="text-sm font-medium">
-                          {offer.client_name}
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {offer.clientDisplayName}
+                          </div>
+                          {offer.clientCompanyName && (
+                            <div className="text-xs text-muted-foreground">
+                              {offer.clientCompanyName}
+                            </div>
+                          )}
                         </div>
                       </TooltipContent>
                     </Tooltip>
