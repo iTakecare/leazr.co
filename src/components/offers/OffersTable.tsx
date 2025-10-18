@@ -74,14 +74,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
   const { navigateToAdmin, navigateToAmbassador } = useRoleNavigation();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
 
-  if (!offers.length) {
-    return (
-      <div className="text-center p-8 bg-gray-50 rounded-md">
-        <p className="text-gray-500">Aucune offre trouvée.</p>
-      </div>
-    );
-  }
-
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd/MM/yy", { locale: fr });
@@ -113,12 +105,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
     navigate(`/client/offer/${offerId}/sign`);
   };
 
-  // Only admins can see the margin column
-  const showMarginColumn = isAdmin();
-  
-  // Check if we have any ambassador offers to show commission column
-  const hasAmbassadorOffers = offers.some(offer => offer.type === 'ambassador_offer');
-
   // Memoize computed data for all offers to avoid recalculating on every render
   const computedOffers = useMemo(() => {
     return offers.map(offer => ({
@@ -134,6 +120,23 @@ const OffersTable: React.FC<OffersTableProps> = ({
           : '-'
     }));
   }, [offers]);
+
+  // Only admins can see the margin column
+  const showMarginColumn = useMemo(() => isAdmin(), [isAdmin]);
+  
+  // Check if we have any ambassador offers to show commission column
+  const hasAmbassadorOffers = useMemo(() => 
+    computedOffers.some(offer => offer.type === 'ambassador_offer'),
+    [computedOffers]
+  );
+
+  if (!computedOffers.length) {
+    return (
+      <div className="text-center p-8 bg-gray-50 rounded-md">
+        <p className="text-gray-500">Aucune offre trouvée.</p>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>
