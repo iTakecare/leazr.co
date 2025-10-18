@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useOffersQuery } from "./useOffersQuery";
 import { calculateFinancedAmount } from "@/utils/calculator";
 import { OfferData } from "@/services/offers/types";
+import { calculateOfferMargin } from "@/utils/marginCalculations";
 
 // Define and export the Offer interface
 export interface Offer extends OfferData {
@@ -31,11 +32,14 @@ export const useFetchOffers = () => {
       0
     ) || 0;
     
-    // Calculate average margin percentage from equipment
-    const equipmentWithMargin = offer.offer_equipment?.filter((eq: any) => eq.margin != null) || [];
-    const avgMarginPercentage = equipmentWithMargin.length > 0
-      ? equipmentWithMargin.reduce((sum: number, eq: any) => sum + (eq.margin || 0), 0) / equipmentWithMargin.length
-      : offer.margin || 0;
+    // Calculate total monthly payment from equipment
+    const totalMonthlyPayment = (offer.offer_equipment || []).reduce(
+      (sum: number, eq: any) => sum + (Number(eq.monthly_payment) || 0), 
+      0
+    );
+    
+    // Calculate margin percentage using centralized utility
+    const computedMarginPct = calculateOfferMargin(offer as any, offer.offer_equipment) || 0;
       
     // If financed_amount is missing or zero but we have monthly_payment
     if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
@@ -51,9 +55,9 @@ export const useFetchOffers = () => {
         leaser_name: offer.leasers?.name || null,
         business_sector: offer.clients?.business_sector || null,
         total_purchase_price: totalPurchasePrice,
-        margin_percentage: avgMarginPercentage,
+        margin_percentage: computedMarginPct,
         created_at: offer.created_at || new Date().toISOString(),
-        monthly_payment: Number(offer.monthly_payment)
+        monthly_payment: totalMonthlyPayment > 0 ? totalMonthlyPayment : Number(offer.monthly_payment) || 0
       } as Offer;
     }
     
@@ -62,9 +66,9 @@ export const useFetchOffers = () => {
       leaser_name: offer.leasers?.name || null,
       business_sector: offer.clients?.business_sector || null,
       total_purchase_price: totalPurchasePrice,
-      margin_percentage: avgMarginPercentage,
+      margin_percentage: computedMarginPct,
       created_at: offer.created_at || new Date().toISOString(),
-      monthly_payment: Number(offer.monthly_payment)
+      monthly_payment: totalMonthlyPayment > 0 ? totalMonthlyPayment : Number(offer.monthly_payment) || 0
     } as Offer;
   });
   

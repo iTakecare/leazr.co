@@ -121,7 +121,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
 
   // Function to calculate and display the margin in euros
   const getDisplayMarginInEuros = (offer: any) => {
-    const marginAmount = calculateOfferMarginAmount(offer);
+    const marginAmount = calculateOfferMarginAmount(offer, offer.offer_equipment);
     return formatCurrency(marginAmount);
   };
 
@@ -224,10 +224,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </div>
                   </TableCell>
                   
-                  {/* Montant financé */}
+                   {/* Montant financé */}
                   <TableCell className="text-right text-xs">
                     <div className="font-medium text-blue-600">
-                      {formatCurrency(getEffectiveFinancedAmount(offer))}
+                      {formatCurrency(getEffectiveFinancedAmount(offer, offer.offer_equipment))}
                     </div>
                   </TableCell>
                   
