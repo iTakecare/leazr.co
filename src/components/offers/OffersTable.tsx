@@ -129,49 +129,49 @@ const OffersTable: React.FC<OffersTableProps> = ({
     <>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto max-w-full">
-          <Table className="min-w-[2000px] text-xs">{/* Force minimum width for scrolling */}
+          <Table className="min-w-[1400px] text-[11px]">
             <TableHeader>
-              <TableRow className="h-10">
-                <TableHead className="font-mono text-xs">N° Demande</TableHead>
-                <TableHead className="text-xs">Date demande</TableHead>
-                <TableHead className="text-xs">Date de l'offre</TableHead>
-                <TableHead className="w-[150px] text-xs">Client</TableHead>
-                <TableHead className="text-xs">Secteur</TableHead>
-                <TableHead className="w-[120px] text-xs">Type</TableHead>
-                <TableHead className="max-w-[120px] text-xs">Équipement</TableHead>
-                <TableHead className="text-xs">Source</TableHead>
-                <TableHead className="text-xs">Bailleur</TableHead>
-                <TableHead className="text-right text-xs">Montant d'achat</TableHead>
-                <TableHead className="text-right text-xs">Montant financé</TableHead>
-                {showMarginColumn && <TableHead className="text-right text-xs">Marge €</TableHead>}
-                {showMarginColumn && <TableHead className="text-right text-xs">Marge %</TableHead>}
-                {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-xs">Commission</TableHead>}
-                <TableHead className="text-right text-xs">Mensualité</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-right w-[60px] sticky right-0 bg-background text-xs">Actions</TableHead>
+              <TableRow className="h-9">
+                <TableHead className="font-mono text-[10px] w-[110px]">N° Demande</TableHead>
+                <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date dem.</TableHead>
+                <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date offre</TableHead>
+                <TableHead className="w-[120px] text-[10px]">Client</TableHead>
+                <TableHead className="text-[10px] w-[80px] hidden xl:table-cell">Secteur</TableHead>
+                <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
+                <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
+                <TableHead className="text-[10px] w-[70px] hidden xl:table-cell">Source</TableHead>
+                <TableHead className="text-[10px] w-[90px] hidden lg:table-cell">Bailleur</TableHead>
+                <TableHead className="text-right text-[10px] w-[90px] hidden xl:table-cell">Mt. achat</TableHead>
+                <TableHead className="text-right text-[10px] w-[95px]">Mt. financé</TableHead>
+                {showMarginColumn && <TableHead className="text-right text-[10px] w-[80px] hidden lg:table-cell">Marge €</TableHead>}
+                {showMarginColumn && <TableHead className="text-right text-[10px] w-[70px] hidden xl:table-cell">Marge %</TableHead>}
+                {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-[10px] w-[85px] hidden xl:table-cell">Comm.</TableHead>}
+                <TableHead className="text-right text-[10px] w-[85px]">Mensualité</TableHead>
+                <TableHead className="text-[10px] w-[90px]">Statut</TableHead>
+                <TableHead className="text-right w-[55px] sticky right-0 bg-background text-[10px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {offers.map((offer) => (
-                <TableRow key={offer.id} className="h-12">
+                <TableRow key={offer.id} className="h-10">
                   {/* Numéro de demande */}
-                  <TableCell className="font-mono text-xs">
+                  <TableCell className="font-mono text-[11px] py-2">
                     {offer.dossier_number || '-'}
                   </TableCell>
                   
                   {/* Date demande */}
-                  <TableCell className="text-xs">
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">
                     {offer.request_date ? formatDate(offer.request_date) : '-'}
                   </TableCell>
                   
                   {/* Date de l'offre */}
-                  <TableCell className="text-xs">{formatDate(offer.created_at)}</TableCell>
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
                   {/* Client */}
-                  <TableCell className="font-medium text-xs w-[150px] truncate">{offer.client_name}</TableCell>
+                  <TableCell className="font-medium text-[11px] w-[120px] truncate py-2">{offer.client_name}</TableCell>
                   
                   {/* Secteur */}
-                  <TableCell className="text-xs">
+                  <TableCell className="text-[11px] py-2 hidden xl:table-cell">
                     {offer.business_sector 
                       ? getBusinessSectorLabel(offer.business_sector)
                       : offer.clients?.business_sector 
@@ -181,12 +181,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Type */}
-                  <TableCell className="w-[120px] text-xs">
+                  <TableCell className="w-[100px] text-[11px] py-2 hidden xl:table-cell">
                     <OfferTypeTag type={offer.type} size="sm" />
                   </TableCell>
                   
                   {/* Équipement */}
-                  <TableCell className="max-w-[120px] text-xs">
+                  <TableCell className="max-w-[100px] text-[11px] py-2 hidden lg:table-cell">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -208,24 +208,24 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Source */}
-                  <TableCell className="text-xs">
+                  <TableCell className="text-[11px] py-2 hidden xl:table-cell">
                     {offer.source || '-'}
                   </TableCell>
                   
                   {/* Bailleur */}
-                  <TableCell className="text-xs">
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">
                     {offer.leaser_name || '-'}
                   </TableCell>
                   
                   {/* Montant d'achat */}
-                  <TableCell className="text-right text-xs">
+                  <TableCell className="text-right text-[11px] py-2 hidden xl:table-cell">
                     <div className="font-medium">
                       {formatCurrency(offer.total_purchase_price || 0)}
                     </div>
                   </TableCell>
                   
                    {/* Montant financé */}
-                  <TableCell className="text-right text-xs">
+                  <TableCell className="text-right text-[11px] py-2">
                     <div className="font-medium text-blue-600">
                       {formatCurrency(getEffectiveFinancedAmount(offer, offer.offer_equipment))}
                     </div>
@@ -233,7 +233,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Marge € - Display margin in euros */}
                   {showMarginColumn && (
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-[11px] py-2 hidden lg:table-cell">
                       <div className="font-medium text-green-600">
                         {getDisplayMarginInEuros(offer)}
                       </div>
@@ -242,7 +242,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Marge % - Display margin as percentage */}
                   {showMarginColumn && (
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-[11px] py-2 hidden xl:table-cell">
                       <div className="font-medium text-green-600">
                         {offer.margin_percentage ? `${offer.margin_percentage.toFixed(1)}%` : '-'}
                       </div>
@@ -250,7 +250,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   )}
                   {/* Show commission column only for ambassador offers and admins */}
                   {hasAmbassadorOffers && showMarginColumn && (
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-[11px] py-2 hidden xl:table-cell">
                       {offer.type === 'ambassador_offer' && offer.commission ? (
                         <div className="font-medium text-blue-600">
                           {formatCurrency(offer.commission)}
@@ -260,13 +260,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       )}
                     </TableCell>
                   )}
-                  <TableCell className="text-right font-medium text-xs">
+                  <TableCell className="text-right font-medium text-[11px] py-2">
                     {formatCurrency(offer.monthly_payment)}
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="text-[11px] py-2">
                     <OfferStatusBadge status={offer.workflow_status} />
                   </TableCell>
-                  <TableCell className="text-right sticky right-0 bg-background">
+                  <TableCell className="text-right sticky right-0 bg-background py-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
