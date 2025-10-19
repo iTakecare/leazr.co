@@ -336,6 +336,42 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     }
   };
 
+  const handleSubmitWithoutEmail = async () => {
+    if (!selectedScore || selectedScore !== 'B') {
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      
+      // Construire une raison pour le workflow log
+      let fullReason = "Score B attribué sans envoi d'email";
+      
+      if (selectedDocs.length > 0 || otherDoc.trim()) {
+        const docsToRequest = [
+          ...selectedDocs,
+          ...(otherDoc.trim() ? [`custom:${otherDoc.trim()}`] : [])
+        ];
+        fullReason = `Documents notés (sans email): ${docsToRequest.join(', ')}`;
+      }
+      
+      if (reason.trim()) {
+        fullReason += ` - ${reason.trim()}`;
+      }
+      
+      // Appeler le handler parent avec le score B et la raison
+      await onScoreAssigned(selectedScore, fullReason);
+      
+      toast.success("Score B attribué sans envoi d'email");
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors de l'attribution du score:", error);
+      toast.error("Erreur lors de l'attribution du score");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   if (!canScore) {
     return null;
   }
@@ -559,30 +595,70 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
             Annuler
           </Button>
           {selectedScore && (
-            <Button 
-              onClick={handleSubmit}
-              disabled={isLoading || isSending}
-              size="lg"
-            >
-              {isLoading || isSending ? (
+            <>
+              {/* Pour le score B, afficher DEUX boutons */}
+              {selectedScore === 'B' ? (
                 <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
-                  {selectedScore === 'B' ? 'Envoi en cours...' : 'Traitement...'}
+                  {/* Bouton principal : Envoyer email */}
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={isLoading || isSending}
+                    size="lg"
+                  >
+                    {isLoading || isSending ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Valider score B et envoyer demande
+                      </>
+                    )}
+                  </Button>
+                  
+                  {/* NOUVEAU : Bouton alternatif : Sans email */}
+                  <Button 
+                    onClick={handleSubmitWithoutEmail}
+                    disabled={isLoading || isSending}
+                    variant="secondary"
+                    size="lg"
+                  >
+                    {isLoading || isSending ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Traitement...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Valider score B SANS envoyer de demande
+                      </>
+                    )}
+                  </Button>
                 </>
               ) : (
-                <>
-                  {selectedScore === 'B' ? (
-                    <Mail className="mr-2 h-4 w-4" />
+                /* Pour les scores A et C, comportement normal */
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isLoading || isSending}
+                  size="lg"
+                >
+                  {isLoading || isSending ? (
+                    <>
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                      Traitement...
+                    </>
                   ) : (
-                    <FileText className="mr-2 h-4 w-4" />
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Valider le score {selectedScore}
+                    </>
                   )}
-                  {selectedScore === 'B' 
-                    ? 'Valider score B et envoyer demande' 
-                    : `Valider le score ${selectedScore}`
-                  }
-                </>
+                </Button>
               )}
-            </Button>
+            </>
           )}
         </div>
       </DialogContent>
