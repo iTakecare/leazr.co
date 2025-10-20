@@ -18,10 +18,19 @@ serve(async (req) => {
       throw new Error("offerId est requis");
     }
 
-    // Initialize Supabase client
+    // Get authorization header to propagate JWT
+    const authHeader = req.headers.get('Authorization') ?? '';
+    console.log('Auth header present:', Boolean(authHeader));
+
+    // Initialize Supabase client with JWT
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { 
+        global: { 
+          headers: { Authorization: authHeader } 
+        } 
+      }
     );
 
     // Get offer details
@@ -41,7 +50,7 @@ serve(async (req) => {
 
     if (offerError || !offer) {
       console.error("Erreur lors de la récupération de l'offre:", offerError);
-      throw new Error("Offre introuvable");
+      throw new Error("Offre introuvable ou accès non autorisé");
     }
 
     if (!offer.client_email) {
