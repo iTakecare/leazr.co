@@ -324,15 +324,18 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
         setIsSending(false);
       }
     } else {
-      // Pour les scores A et C, comportement normal
+      // Pour les scores A et C, comportement différent
       if (selectedScore === 'C') {
-        // Combiner la raison sélectionnée avec le complément
+        // Pour le score C, ne pas fermer la modale ici
+        // Le parent (AdminOfferDetail) va fermer cette modale et ouvrir RejectionEmailModal
         const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
         await onScoreAssigned(selectedScore, finalReason);
+        // Ne pas appeler onClose() ici pour le score C
       } else {
+        // Pour le score A, comportement normal
         await onScoreAssigned(selectedScore, reason.trim() || undefined);
+        onClose();
       }
-      onClose();
     }
   };
 
