@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   CheckCircle, 
@@ -17,8 +18,11 @@ import {
   AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { getOfferById } from "@/services/offerService";
 import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
+import { sendLeasingRejectionEmail } from "@/services/offers/offerEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { getOfferDocuments } from "@/services/offers/offerDocuments";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +58,11 @@ const REJECTION_REASONS = [
   "REFUS - Client particulier",
 ];
 
+const DEFAULT_REJECTION_HTML = `<p>Bonjour,</p>
+<p>Nous sommes désolés de vous apprendre que notre partenaire financier nous a indiqué qu'il ne pouvait pas donner suite à votre demande de leasing.</p>
+<p>Nous ne pourrons donc pas vous proposer de matériel cette fois-ci.<br/>Je vous souhaite tout le meilleur pour la suite de vos activités.</p>
+<p>À bientôt,<br/>L'équipe iTakecare</p>`;
+
 const ScoringModal: React.FC<ScoringModalProps> = ({
   isOpen,
   onClose,
@@ -72,6 +81,10 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [autoApprovalAvailable, setAutoApprovalAvailable] = useState(false);
   const [currentWorkflowStep, setCurrentWorkflowStep] = useState<WorkflowStepConfig | null>(null);
+  
+  // États pour l'email de refus (score C)
+  const [emailTitle, setEmailTitle] = useState("😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée");
+  const [emailContent, setEmailContent] = useState<string>(DEFAULT_REJECTION_HTML);
 
   const isInternalAnalysis = analysisType === 'internal';
   
@@ -262,6 +275,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       setSelectedRejectionReason("");
       setReason("");
     }
+    // Réinitialiser l'email de refus quand on sélectionne C
+    if (score === 'C') {
+      setEmailTitle("😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée");
+      setEmailContent(DEFAULT_REJECTION_HTML);
+    }
   };
 
   const handleSubmit = async () => {
@@ -375,13 +393,72 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     }
   };
 
+  // Nouvelle fonction : Envoyer email de refus et valider score C
+  const handleSendRejectionAndValidate = async () => {
+    if (!selectedRejectionReason) {
+      toast.error("Veuillez sélectionner une raison de refus");
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      
+      // Envoyer l'email de refus via l'edge function
+      const emailSent = await sendLeasingRejectionEmail(offerId, emailTitle, emailContent);
+      
+      if (!emailSent) {
+        throw new Error("Échec de l'envoi de l'email");
+      }
+      
+      // Mettre à jour le statut de l'offre
+      const newStatus = isInternalAnalysis ? 'internal_rejected' : 'leaser_rejected';
+      const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
+      
+      await updateOfferStatus(offerId, newStatus, currentStatus, finalReason);
+      
+      toast.success("Email de refus envoyé et score C attribué");
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de l'email de refus:", error);
+      toast.error("Erreur lors de l'envoi de l'email de refus");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Nouvelle fonction : Valider score C sans envoyer d'email
+  const handleValidateCWithoutEmail = async () => {
+    if (!selectedRejectionReason) {
+      toast.error("Veuillez sélectionner une raison de refus");
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      
+      // Mettre à jour le statut de l'offre sans envoyer d'email
+      const newStatus = isInternalAnalysis ? 'internal_rejected' : 'leaser_rejected';
+      const finalReason = `${selectedRejectionReason}${reason.trim() ? `\n\nComplément: ${reason.trim()}` : ''}`;
+      
+      await updateOfferStatus(offerId, newStatus, currentStatus, finalReason);
+      
+      toast.success("Score C attribué sans envoi d'email");
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors de l'attribution du score:", error);
+      toast.error("Erreur lors de l'attribution du score");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   if (!canScore) {
     return null;
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`${selectedScore === 'B' ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+      <DialogContent className={`${(selectedScore === 'B' || selectedScore === 'C') ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isInternalAnalysis ? (
@@ -393,7 +470,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className={`space-y-6 ${selectedScore === 'B' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
+        <div className={`space-y-6 ${(selectedScore === 'B' || selectedScore === 'C') ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
           {/* Section Scoring */}
           <Card className="border-2 border-purple-200 bg-purple-50/30">
             <CardHeader className="pb-4">
@@ -590,6 +667,60 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
               </CardContent>
             </Card>
           )}
+
+          {/* Section Email de refus (visible uniquement pour score C) */}
+          {selectedScore === 'C' && (
+            <Card className="border-2 border-red-200 bg-red-50/30">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-red-600" />
+                  Email de refus
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Personnalisez l'email de refus qui sera envoyé au client.
+                </p>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="email-title" className="text-sm font-medium">
+                    Titre de l'email
+                  </label>
+                  <Input
+                    id="email-title"
+                    value={emailTitle}
+                    onChange={(e) => setEmailTitle(e.target.value)}
+                    placeholder="Titre de l'email..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="email-content" className="text-sm font-medium">
+                    Corps de l'email
+                  </label>
+                  <ReactQuill
+                    value={emailContent}
+                    onChange={setEmailContent}
+                    theme="snow"
+                    modules={{
+                      toolbar: [
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link'],
+                        ['clean']
+                      ]
+                    }}
+                    className="bg-white rounded-md"
+                  />
+                </div>
+
+                <div className="flex items-center text-red-600 text-xs bg-red-100 p-2 rounded">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  L'email sera envoyé via Resend avec votre clé configurée (ITAKECARE_RESEND_API)
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Boutons d'action */}
@@ -621,7 +752,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                     )}
                   </Button>
                   
-                  {/* NOUVEAU : Bouton alternatif : Sans email */}
+                  {/* Bouton alternatif : Sans email */}
                   <Button 
                     onClick={handleSubmitWithoutEmail}
                     disabled={isLoading || isSending}
@@ -641,8 +772,50 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                     )}
                   </Button>
                 </>
+              ) : selectedScore === 'C' ? (
+                /* Pour le score C, afficher DEUX boutons spécifiques */
+                <>
+                  {/* Bouton principal : Envoyer email de refus */}
+                  <Button 
+                    onClick={handleSendRejectionAndValidate}
+                    disabled={isLoading || isSending}
+                    size="lg"
+                  >
+                    {isLoading || isSending ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Valider score C et envoyer email
+                      </>
+                    )}
+                  </Button>
+                  
+                  {/* Bouton alternatif : Sans email */}
+                  <Button 
+                    onClick={handleValidateCWithoutEmail}
+                    disabled={isLoading || isSending}
+                    variant="secondary"
+                    size="lg"
+                  >
+                    {isLoading || isSending ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        Traitement...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Valider score C SANS envoyer d'email
+                      </>
+                    )}
+                  </Button>
+                </>
               ) : (
-                /* Pour les scores A et C, comportement normal */
+                /* Pour le score A, comportement normal */
                 <Button 
                   onClick={handleSubmit}
                   disabled={isLoading || isSending}
