@@ -31,7 +31,6 @@ serve(async (req) => {
         id,
         client_name,
         client_email,
-        client_company,
         companies (
           name,
           logo_url
