@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.send-leasing-rejection-email]
 verify_jwt = false
+
+[functions.activate-prospect]
+verify_jwt = false

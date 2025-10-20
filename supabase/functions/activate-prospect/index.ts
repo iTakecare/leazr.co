@@ -18,6 +18,12 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log('[activate-prospect] v1');
+    console.log('[activate-prospect] Env check', {
+      hasUrl: Boolean(Deno.env.get('SUPABASE_URL')),
+      hasServiceRole: Boolean(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
+    });
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
