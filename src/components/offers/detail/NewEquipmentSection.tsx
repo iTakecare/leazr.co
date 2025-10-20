@@ -18,6 +18,7 @@ import {
 import AddCustomEquipmentDialog from "./AddCustomEquipmentDialog";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import { calculateOfferMargin } from "@/utils/marginCalculations";
+import { useQueryClient } from '@tanstack/react-query';
 import { updateOfferEquipment, deleteOfferEquipment } from "@/services/offers/offerEquipment";
 import { GlobalMarginEditor } from "./GlobalMarginEditor";
 import { toast } from "sonner";
@@ -54,6 +55,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const [editedTotalMonthly, setEditedTotalMonthly] = useState(0);
   const [leaser, setLeaser] = useState<Leaser | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Load leaser data
   useEffect(() => {
@@ -147,6 +149,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       setEditingId(null);
       setEditedValues({});
       refresh();
+      queryClient.invalidateQueries({ queryKey: ['offers'] });
       onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
@@ -167,6 +170,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       await deleteOfferEquipment(equipmentId);
       toast.success(`Équipement "${equipmentTitle}" supprimé avec succès`);
       refresh();
+      queryClient.invalidateQueries({ queryKey: ['offers'] });
       onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
@@ -294,6 +298,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       await Promise.all(updatePromises);
       
       await refresh();
+      queryClient.invalidateQueries({ queryKey: ['offers'] });
       setIsEditingTotalMonthly(false);
       onOfferUpdate?.();
     } catch (error) {
@@ -369,6 +374,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
             offerId={offer.id} 
             onEquipmentAdded={() => {
               refresh();
+              queryClient.invalidateQueries({ queryKey: ['offers'] });
               onOfferUpdate?.();
             }}
           />

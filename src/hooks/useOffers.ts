@@ -1,17 +1,19 @@
-
+import { useState } from "react";
 import { useFetchOffers } from "./offers/useFetchOffers";
 import { useOfferFilters } from "./offers/useOfferFilters";
 import { useOfferActions } from "./offers/useOfferActions";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useOffers = () => {
+  const queryClient = useQueryClient();
+  
   const { 
     offers, 
     loading, 
     loadingError, 
     includeConverted, 
     setIncludeConverted, 
-    fetchOffers, 
-    setOffers 
+    fetchOffers
   } = useFetchOffers();
 
   const {
@@ -23,6 +25,12 @@ export const useOffers = () => {
     setActiveType,
     filteredOffers
   } = useOfferFilters(offers);
+
+  // Créer un setter factice pour maintenir la compatibilité
+  const setOffers = () => {
+    // Invalider le cache React Query au lieu de modifier le state directement
+    queryClient.invalidateQueries({ queryKey: ['offers'] });
+  };
 
   const {
     isUpdatingStatus,

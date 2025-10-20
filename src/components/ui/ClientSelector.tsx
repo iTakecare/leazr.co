@@ -155,7 +155,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
               <p className="text-blue-800 text-sm">
                 <User className="h-4 w-4 inline mr-2" />
-                Tous les clients sont déjà rattachés à des ambassadeurs. Aucun client libre disponible pour les offres internes.
+                Tous les clients sont déjà rattachés à des ambassadeurs. Aucun client libre disponible pour les demandes internes.
               </p>
             </div>
           )}
@@ -214,7 +214,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
                       <div className="py-6 text-center text-muted-foreground">
                         {selectedAmbassadorId ? 
                           "Cet ambassadeur n'a pas encore de clients rattachés." :
-                          "Aucun client libre disponible pour les offres internes."
+                          "Aucun client libre disponible pour les demandes internes."
                         }
                       </div>
                     )

@@ -3843,6 +3843,7 @@ export type Database = {
         Row: {
           ambassador_id: string | null
           amount: number
+          business_sector: string | null
           client_email: string | null
           client_id: string | null
           client_name: string
@@ -3882,6 +3883,7 @@ export type Database = {
         Insert: {
           ambassador_id?: string | null
           amount?: number
+          business_sector?: string | null
           client_email?: string | null
           client_id?: string | null
           client_name: string
@@ -3921,6 +3923,7 @@ export type Database = {
         Update: {
           ambassador_id?: string | null
           amount?: number
+          business_sector?: string | null
           client_email?: string | null
           client_id?: string | null
           client_name?: string
@@ -6146,6 +6149,7 @@ export type Database = {
         Returns: {
           ambassador_id: string | null
           amount: number
+          business_sector: string | null
           client_email: string | null
           client_id: string | null
           client_name: string

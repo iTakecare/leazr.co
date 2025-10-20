@@ -39,7 +39,8 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         *, 
         clients(name, email, company, business_sector),
         leasers(name),
-        offer_equipment(purchase_price, quantity, margin)
+        offer_equipment(id, title, purchase_price, quantity, margin, monthly_payment, selling_price, coefficient),
+        business_sector
       `);
     
     // Appliquer le filtre uniquement si includeConverted est false

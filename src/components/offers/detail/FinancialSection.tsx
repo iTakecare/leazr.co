@@ -5,7 +5,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
 import { calculateOfferMargin, getEffectiveFinancedAmount } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
-import { useOfferUpdate } from "@/hooks/offers/useOfferUpdate";
+import { useUpdateOfferMutation } from "@/hooks/offers/useOffersQuery";
 import { getLeaserById } from "@/services/leaserService";
 import { Leaser } from "@/types/equipment";
 import RecalculateFinancialsButton from "./RecalculateFinancialsButton";
@@ -22,7 +22,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
 }) => {
   // Use the equipment hook to get structured data
   const { equipment: offerEquipment, loading: equipmentLoading, refresh } = useOfferEquipment(offer.id);
-  const { updateOffer } = useOfferUpdate();
+  const { mutateAsync: updateOffer } = useUpdateOfferMutation();
   const [leaser, setLeaser] = useState<Leaser | null>(null);
 
   // Refresh equipment in this section when parent signals a change
@@ -161,11 +161,14 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         if (needsUpdate) {
           console.log("🔄 AUTO-UPDATE: Values need updating, calling updateOffer");
           try {
-            await updateOffer(offer.id, {
-              amount: newTotalAmount,
-              monthly_payment: newMonthlyPayment,
-              financed_amount: newFinancedAmount,
-              margin: newMargin
+            await updateOffer({
+              id: offer.id,
+              updates: {
+                amount: newTotalAmount,
+                monthly_payment: newMonthlyPayment,
+                financed_amount: newFinancedAmount,
+                margin: newMargin
+              }
             });
             console.log("✅ AUTO-UPDATE: Offer financials updated successfully");
             // Déclencher le refresh de l'offre parent

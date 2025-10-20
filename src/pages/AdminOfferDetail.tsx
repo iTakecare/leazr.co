@@ -467,6 +467,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   offerId={offer.id}
                   currentSource={offer.source}
                   currentType={offer.type}
+                  currentSector={offer.business_sector}
                   onUpdate={() => {
                     // Recharger les données de l'offre
                     const fetchOfferDetails = async () => {

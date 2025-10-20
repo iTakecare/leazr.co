@@ -62,7 +62,7 @@ interface ModuleHistory {
 const availableModules: Module[] = [
   { slug: 'dashboard', name: 'Tableau de bord', description: 'Vue d\'ensemble des KPI', icon: BarChart3, requiredPlan: 'starter', status: 'stable', category: 'core' },
   { slug: 'clients', name: 'Gestion Clients', description: 'CRM et gestion des clients', icon: Users, requiredPlan: 'starter', status: 'stable', category: 'core' },
-  { slug: 'offers', name: 'Devis & Offres', description: 'Création et gestion des devis', icon: FileText, requiredPlan: 'pro', status: 'stable', category: 'business' },
+  { slug: 'offers', name: 'Devis & Demandes', description: 'Création et gestion des devis', icon: FileText, requiredPlan: 'pro', status: 'stable', category: 'business' },
   { slug: 'leasing', name: 'Contrats Leasing', description: 'Gestion des contrats de leasing', icon: Building2, requiredPlan: 'pro', status: 'stable', category: 'business' },
   { slug: 'invoicing', name: 'Facturation', description: 'Gestion des factures', icon: CreditCard, requiredPlan: 'pro', status: 'stable', category: 'business' },
   { slug: 'catalog', name: 'Catalogue', description: 'Catalogue de produits', icon: Package, requiredPlan: 'starter', status: 'stable', category: 'core' },

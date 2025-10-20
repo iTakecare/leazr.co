@@ -49,8 +49,8 @@ const AdminOffersNotifications = () => {
       
       setPendingOffers(data);
     } catch (err) {
-      console.error("Erreur lors du chargement des offres en attente:", err);
-      setError("Impossible de charger les offres en attente");
+      console.error("Erreur lors du chargement des demandes en attente:", err);
+      setError("Impossible de charger les demandes en attente");
     } finally {
       setLoading(false);
     }
@@ -115,7 +115,7 @@ const AdminOffersNotifications = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Offres en attente
+            Demandes en attente
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -133,7 +133,7 @@ const AdminOffersNotifications = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Offres en attente
+            Demandes en attente
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -155,7 +155,7 @@ const AdminOffersNotifications = () => {
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Offres en attente
+            Demandes en attente
           </CardTitle>
           {pendingOffers.length > 0 && (
             <Badge variant="outline" className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20">
@@ -165,17 +165,17 @@ const AdminOffersNotifications = () => {
         </div>
         <CardDescription>
           {pendingOffers.length > 0 
-            ? "Offres administrateur en attente d'action" 
-            : "Aucune offre en attente de traitement"}
+            ? "Demandes administrateur en attente d'action" 
+            : "Aucune demande en attente de traitement"}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {pendingOffers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center bg-muted/10 rounded-md">
             <FileText className="h-12 w-12 text-muted-foreground/30 mb-4" />
-            <p className="font-medium">Aucune offre en attente</p>
+            <p className="font-medium">Aucune demande en attente</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Toutes les offres ont été traitées
+              Toutes les demandes ont été traitées
             </p>
           </div>
         ) : (
@@ -243,7 +243,7 @@ const AdminOffersNotifications = () => {
       <CardFooter className="pt-2">
         <Button variant="outline" size="sm" className="w-full" asChild>
           <Link to="/offers?status=pending&type=admin_offer">
-            Voir toutes les offres
+            Voir toutes les demandes
           </Link>
         </Button>
       </CardFooter>
