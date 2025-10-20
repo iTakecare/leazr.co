@@ -37,8 +37,8 @@ const OffersView = ({
   const { isAdmin } = useAuth();
   
   const title = owner.type === "partner" 
-    ? `Demandes du partenaire ${owner.name}` 
-    : `Demandes commercialisées par ${owner.name}`;
+    ? `Offres du partenaire ${owner.name}` 
+    : `Offres commercialisées par ${owner.name}`;
     
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -65,7 +65,7 @@ const OffersView = ({
         <SheetHeader className="pb-6">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
-            Liste des demandes
+            Liste des offres
           </SheetDescription>
         </SheetHeader>
 

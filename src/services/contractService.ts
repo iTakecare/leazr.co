@@ -14,7 +14,6 @@ export const contractStatuses = {
 export interface Contract {
   id: string;
   offer_id: string;
-  offer_dossier_number?: string;
   client_name: string;
   client_id?: string;
   client_email?: string;
@@ -105,11 +104,7 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
 
     const { data, error } = await supabase
       .from('contracts')
-      .select(`
-        *, 
-        clients(name, email, company),
-        offers!inner(dossier_number)
-      `)
+      .select('*, clients(name, email, company)')
       .eq('id', contractId)
       .single();
 
@@ -123,14 +118,8 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       return null;
     }
 
-    // Reformater les données pour extraire le dossier_number
-    const contractData = {
-      ...data,
-      offer_dossier_number: data.offers?.dossier_number
-    };
-
-    console.log("✅ Contrat récupéré avec succès:", contractData);
-    return contractData;
+    console.log("✅ Contrat récupéré avec succès:", data);
+    return data;
   } catch (error) {
     console.error("❌ Exception lors de la récupération du contrat:", error);
     return null;
@@ -447,11 +436,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
   try {
     let query = supabase
       .from('contracts')
-      .select(`
-        *, 
-        clients(name, email, company),
-        offers!inner(dossier_number)
-      `)
+      .select('*, clients(name, email, company)')
       .order('created_at', { ascending: false });
       
     if (!includeCompleted) {
@@ -462,13 +447,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
 
     if (error) throw error;
 
-    // Reformater les données
-    const contracts = data?.map(contract => ({
-      ...contract,
-      offer_dossier_number: contract.offers?.dossier_number
-    })) || [];
-
-    return contracts;
+    return data || [];
   } catch (error) {
     console.error("Erreur lors de la récupération des contrats:", error);
     toast.error("Erreur lors du chargement des contrats");

@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Calendar, User, Package, Euro, FileText } from "lucide-react";
+import { ChevronLeft, Calendar, User, Package, Euro } from "lucide-react";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Contract } from "@/services/contractService";
@@ -13,7 +13,7 @@ interface ClientContractDetailHeaderProps {
 }
 
 const ClientContractDetailHeader: React.FC<ClientContractDetailHeaderProps> = ({ contract }) => {
-  const { navigateToClient, navigateToAdmin } = useRoleNavigation();
+  const { navigateToClient } = useRoleNavigation();
   const equipmentSummary = getEquipmentSummary(contract.equipment_description);
 
   return (
@@ -33,28 +33,11 @@ const ClientContractDetailHeader: React.FC<ClientContractDetailHeaderProps> = ({
               <h1 className="text-3xl font-bold tracking-tight">
                 Mon Contrat de Financement
               </h1>
-              <div className="flex items-center gap-4 mt-1">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">
-                    Démarré le {formatDate(contract.created_at)}
-                  </span>
-                </div>
-                {contract.offer_id && contract.offer_dossier_number && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="text-muted-foreground">•</span>
-                    <FileText className="h-4 w-4" />
-                    <span>
-                      Demande{" "}
-                      <button
-                        onClick={() => navigateToClient(`offers/${contract.offer_id}`)}
-                        className="font-mono font-semibold text-primary hover:underline cursor-pointer"
-                      >
-                        #{contract.offer_dossier_number}
-                      </button>
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 mt-1">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  Démarré le {formatDate(contract.created_at)}
+                </span>
               </div>
             </div>
           </div>

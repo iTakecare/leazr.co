@@ -148,7 +148,7 @@ const CompanyCRM = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Demandes</p>
+                <p className="text-sm font-medium text-muted-foreground">Offres</p>
                 <p className="text-2xl font-bold">{stats.totalOffers}</p>
               </div>
               <FileText className="h-8 w-8 text-yellow-600" />
@@ -203,7 +203,7 @@ const CompanyCRM = () => {
           </TabsTrigger>
           <TabsTrigger value="offers" className="gap-2">
             <FileText className="h-4 w-4" />
-            Demandes
+            Offres
           </TabsTrigger>
           <TabsTrigger value="contracts" className="gap-2">
             <HandHeart className="h-4 w-4" />
@@ -274,9 +274,9 @@ const CompanyCRM = () => {
         <TabsContent value="offers" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Demandes de l'entreprise</CardTitle>
+              <CardTitle>Offres de l'entreprise</CardTitle>
               <CardDescription>
-                Suivez l'évolution de vos demandes commerciales
+                Suivez l'évolution de vos offres commerciales
               </CardDescription>
             </CardHeader>
             <CardContent>

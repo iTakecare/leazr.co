@@ -12,7 +12,6 @@ import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useInvoices } from "@/hooks/useInvoices";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
@@ -21,7 +20,6 @@ interface ContractDetailHeaderProps {
 
 const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, onRefresh }) => {
   const navigate = useNavigate();
-  const { navigateToAdmin } = useRoleNavigation();
   const { companyId } = useMultiTenant();
   const { getInvoiceByContractId } = useInvoices();
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
@@ -124,28 +122,11 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
                   onUpdate={onRefresh}
                 />
               </div>
-              <div className="flex items-center gap-4 mt-1">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">
-                    Créé le {formatDate(contract.created_at)}
-                  </span>
-                </div>
-                {contract.offer_id && contract.offer_dossier_number && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="text-muted-foreground">•</span>
-                    <FileText className="h-4 w-4" />
-                    <span>
-                      Demande{" "}
-                      <button
-                        onClick={() => navigateToAdmin(`offers/${contract.offer_id}`)}
-                        className="font-mono font-semibold text-primary hover:underline cursor-pointer"
-                      >
-                        #{contract.offer_dossier_number}
-                      </button>
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 mt-1">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  Créé le {formatDate(contract.created_at)}
+                </span>
               </div>
             </div>
           </div>

@@ -37,7 +37,6 @@ export interface OfferData {
   source?: string; // Canal d'acquisition (recommandation, Google, client existant, etc.)
   leaser_id?: string; // ID du bailleur sélectionné
   duration?: number; // Durée du financement en mois
-  business_sector?: string; // Secteur d'activité de l'offre
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;

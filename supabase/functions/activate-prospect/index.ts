@@ -1,5 +1,5 @@
-// @ts-nocheck
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1?target=deno&dts';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,12 +18,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('[activate-prospect] v2');
-    console.log('[activate-prospect] Env check', {
-      hasUrl: Boolean(Deno.env.get('SUPABASE_URL')),
-      hasServiceRole: Boolean(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
-    });
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -182,4 +176,4 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-Deno.serve(handler);
+serve(handler);

@@ -226,7 +226,7 @@ const DuplicateClientsList = () => {
                 </div>
               )}
               <p className="text-warning">
-                Toutes les demandes, contrats et collaborateurs du client source seront transférés 
+                Toutes les offres, contrats et collaborateurs du client source seront transférés 
                 vers le client cible. Cette action est irréversible.
               </p>
             </AlertDialogDescription>

@@ -115,7 +115,7 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
       setUploadProgress(100);
       
       if (result.success > 0) {
-        toast.success(`${result.success} demandes importées avec succès`);
+        toast.success(`${result.success} offres importées avec succès`);
         onImportComplete?.();
       }
       
@@ -282,7 +282,7 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
               {isProcessing && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Import des demandes...</span>
+                    <span>Import des offres...</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} className="w-full" />
@@ -303,7 +303,7 @@ export const ExcelImportDialog: React.FC<ExcelImportDialogProps> = ({
                 <AlertDescription>
                   <div className="font-medium mb-2">Résultats de l'import:</div>
                   <ul className="text-sm space-y-1">
-                    <li>✅ {importResult.success} demandes créées avec succès</li>
+                    <li>✅ {importResult.success} offres créées avec succès</li>
                     {importResult.errors.length > 0 && (
                       <li>❌ {importResult.errors.length} erreurs</li>
                     )}

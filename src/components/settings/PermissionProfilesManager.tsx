@@ -230,7 +230,7 @@ const PermissionProfilesManager = () => {
   const getModuleLabel = (module: string) => {
     const labels: { [key: string]: string } = {
       'catalog': 'Catalogue',
-      'offers': 'Demandes',
+      'offers': 'Offres',
       'clients': 'Clients',
       'contracts': 'Contrats',
       'ambassadors': 'Ambassadeurs',

@@ -42,20 +42,20 @@ const ClientOffersSidebar: React.FC<ClientOffersSidebarProps> = ({
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         <div className="mb-6">
-          <h2 className="text-xl font-medium text-slate-900 mb-1">Vos demandes</h2>
+          <h2 className="text-xl font-medium text-slate-900 mb-1">Vos offres</h2>
           <p className="text-sm text-slate-500">
-            Consultez et signez vos demandes
+            Consultez et signez vos offres
           </p>
         </div>
         
         <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="p-4 text-center text-sm text-slate-500">
-              Chargement de vos demandes...
+              Chargement de vos offres...
             </div>
           ) : error ? (
             <div className="p-4 text-center text-sm text-red-500">
-              Impossible de charger vos demandes
+              Impossible de charger vos offres
             </div>
           ) : offers && offers.length > 0 ? (
             <ul className="space-y-2">

@@ -79,7 +79,7 @@ const Offers = () => {
             </ExcelImportDialog>
             <Button onClick={() => navigateToAdmin("create-offer")}>
               <Plus className="mr-2 h-4 w-4" />
-              Nouvelle demande
+              Nouvelle offre
             </Button>
           </div>
         </div>
@@ -104,7 +104,7 @@ const Offers = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-between p-2">
                   <Label htmlFor="show-converted" className="flex items-center cursor-pointer">
-                    <span>Inclure les demandes converties</span>
+                    <span>Inclure les offres converties</span>
                   </Label>
                   <Switch 
                     id="show-converted"

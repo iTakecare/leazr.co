@@ -49,7 +49,7 @@ const AmbassadorSidebar = memo(() => {
       color: "orange",
     },
     {
-      label: "Demandes",
+      label: "Offres",
       icon: FileText,
       href: `/${companySlug}/ambassador/offers`,
       color: "indigo",

@@ -83,7 +83,7 @@ const WorkflowManagement: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold">Gestion des Workflows</h2>
           <p className="text-muted-foreground">
-            Configurez les étapes de vos processus de demandes et de contrats par type de demande
+            Configurez les étapes de vos processus d'offres et de contrats par type de demande
           </p>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
