@@ -29,7 +29,8 @@ import ScoringModal from "@/components/offers/detail/ScoringModal";
 import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
 import { OfferDateEditor } from "@/components/offers/detail/OfferDateEditor";
 import EmailConfirmationModal from "@/components/offers/EmailConfirmationModal";
-import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
+import RejectionEmailModal from "@/components/offers/RejectionEmailModal";
+import { sendLeasingAcceptanceEmail, sendLeasingRejectionEmail } from "@/services/offers/offerEmail";
 import { OfferReferenceEditor } from "@/components/offer/OfferReferenceEditor";
 
 const AdminOfferDetail = () => {
@@ -54,6 +55,10 @@ const [scoringTargetStatus, setScoringTargetStatus] = useState<string | null>(nu
 // Modale d'email de validation après score A (leaser)
 const [showEmailModal, setShowEmailModal] = useState(false);
 const [emailModalReason, setEmailModalReason] = useState("Validation de l'offre après approbation du leaser");
+
+// Modale d'email de refus après score C
+const [showRejectionModal, setShowRejectionModal] = useState(false);
+const [rejectionReason, setRejectionReason] = useState("");
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -201,13 +206,20 @@ const [emailModalReason, setEmailModalReason] = useState("Validation de l'offre 
   };
 
   const handleInternalScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+    // Pour le score C, ouvrir la modale d'email de refus
+    if (score === 'C') {
+      setRejectionReason(reason || "");
+      setScoringModalOpen(false);
+      setShowRejectionModal(true);
+      return;
+    }
+
     setScoringLoading(true);
     try {
       let newStatus = '';
       switch (score) {
         case 'A': newStatus = 'internal_approved'; break;
         case 'B': newStatus = 'internal_docs_requested'; break;
-        case 'C': newStatus = 'internal_rejected'; break;
       }
       
       const success = await updateOfferStatus(
@@ -232,13 +244,20 @@ const [emailModalReason, setEmailModalReason] = useState("Validation de l'offre 
   };
 
 const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
+  // Pour le score C, ouvrir la modale d'email de refus
+  if (score === 'C') {
+    setRejectionReason(reason || "");
+    setScoringModalOpen(false);
+    setShowRejectionModal(true);
+    return;
+  }
+
   setScoringLoading(true);
   try {
     let newStatus = '';
     switch (score) {
       case 'A': newStatus = 'leaser_approved'; break;
       case 'B': newStatus = 'leaser_docs_requested'; break;
-      case 'C': newStatus = 'leaser_rejected'; break;
     }
     
     const success = await updateOfferStatus(
@@ -508,6 +527,61 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           analysisType={scoringAnalysisType}
           onScoreAssigned={scoringAnalysisType === 'internal' ? handleInternalScoring : handleLeaserScoring}
           isLoading={scoringLoading}
+        />
+
+        {/* Modale d'email de refus */}
+        <RejectionEmailModal
+          isOpen={showRejectionModal}
+          onClose={() => setShowRejectionModal(false)}
+          offerId={offer.id}
+          offerData={offer}
+          onSendEmailAndValidate={async (customTitle?: string, customContent?: string) => {
+            try {
+              // Envoyer l'email de refus
+              await sendLeasingRejectionEmail(offer.id, customTitle, customContent);
+              
+              // Mettre à jour le statut selon l'analyse
+              const newStatus = scoringAnalysisType === 'internal' ? 'internal_rejected' : 'leaser_rejected';
+              const success = await updateOfferStatus(
+                offer.id,
+                newStatus,
+                offer.workflow_status,
+                rejectionReason
+              );
+              
+              if (success) {
+                setOffer({ ...offer, workflow_status: newStatus });
+                toast.success("Email de refus envoyé et score C attribué");
+                setShowRejectionModal(false);
+                await fetchOfferDetails();
+              }
+            } catch (error) {
+              console.error("Erreur lors de l'envoi du refus:", error);
+              throw error;
+            }
+          }}
+          onValidateWithoutEmail={async () => {
+            try {
+              // Mettre à jour le statut sans envoyer d'email
+              const newStatus = scoringAnalysisType === 'internal' ? 'internal_rejected' : 'leaser_rejected';
+              const success = await updateOfferStatus(
+                offer.id,
+                newStatus,
+                offer.workflow_status,
+                rejectionReason
+              );
+              
+              if (success) {
+                setOffer({ ...offer, workflow_status: newStatus });
+                toast.success("Score C attribué sans envoi d'email");
+                setShowRejectionModal(false);
+                await fetchOfferDetails();
+              }
+            } catch (error) {
+              console.error("Erreur lors de la validation:", error);
+              throw error;
+            }
+          }}
         />
 
         {/* Éditeur de date */}

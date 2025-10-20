@@ -35,6 +35,40 @@ export const sendLeasingAcceptanceEmail = async (
 };
 
 /**
+ * Envoie l'email de refus du leasing
+ */
+export const sendLeasingRejectionEmail = async (
+  offerId: string,
+  customTitle?: string,
+  customContent?: string
+): Promise<boolean> => {
+  try {
+    console.log("📧 Envoi de l'email de refus pour le leasing");
+    console.log("📧 Titre personnalisé:", customTitle ? "Oui" : "Non");
+    console.log("📧 Contenu personnalisé:", customContent ? "Oui" : "Non");
+
+    const { error } = await supabase.functions.invoke('send-leasing-rejection-email', {
+      body: { 
+        offerId, 
+        customTitle, 
+        customContent 
+      }
+    });
+
+    if (error) {
+      console.error("⚠️ Erreur lors de l'envoi de l'email de refus:", error);
+      throw error;
+    }
+
+    console.log("✅ Email de refus envoyé avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Erreur lors de l'envoi de l'email de refus:", error);
+    throw error;
+  }
+};
+
+/**
  * Génère le template HTML par défaut de l'email
  */
 export const getDefaultEmailTemplate = (
