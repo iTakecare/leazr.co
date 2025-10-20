@@ -468,7 +468,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`${selectedScore === 'B' ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+      <DialogContent className={`${selectedScore === 'B' || selectedScore === 'C' ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isInternalAnalysis ? (
@@ -480,7 +480,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className={`space-y-6 ${selectedScore === 'B' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
+        <div className={`space-y-6 ${selectedScore === 'B' || selectedScore === 'C' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
           {/* Section Scoring */}
           <Card className="border-2 border-purple-200 bg-purple-50/30">
             <CardHeader className="pb-4">
@@ -582,43 +582,6 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                     </Select>
                   </div>
 
-                  {/* Configuration de l'email de refus */}
-                  <Card className="border-2 border-red-200 bg-red-50/30">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Mail className="h-5 w-5 text-red-600" />
-                        Email de notification au client
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Personnalisez l'email qui sera envoyé au client pour l'informer du refus.
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Sujet de l'email */}
-                      <div className="space-y-2">
-                        <Label htmlFor="rejection-subject">Sujet de l'email</Label>
-                        <Input
-                          id="rejection-subject"
-                          value={rejectionEmailSubject}
-                          onChange={(e) => setRejectionEmailSubject(e.target.value)}
-                          placeholder="Sujet de l'email"
-                        />
-                      </div>
-                      
-                      {/* Corps de l'email avec RichTextEditor */}
-                      <div className="space-y-2">
-                        <Label htmlFor="rejection-body">Corps de l'email</Label>
-                        <RichTextEditor
-                          value={rejectionEmailBody}
-                          onChange={setRejectionEmailBody}
-                          height={300}
-                          isEmailEditor={true}
-                          placeholder="Rédigez le message à envoyer au client..."
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Complément d'information (optionnel)</label>
                     <Textarea
@@ -647,6 +610,45 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
               )}
             </CardContent>
           </Card>
+
+          {/* Section Email de refus (visible uniquement pour score C) */}
+          {selectedScore === 'C' && (
+            <Card className="border-2 border-red-200 bg-red-50/30">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-red-600" />
+                  Email de notification au client
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Personnalisez l'email qui sera envoyé au client pour l'informer du refus.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Sujet de l'email */}
+                <div className="space-y-2">
+                  <Label htmlFor="rejection-subject">Sujet de l'email</Label>
+                  <Input
+                    id="rejection-subject"
+                    value={rejectionEmailSubject}
+                    onChange={(e) => setRejectionEmailSubject(e.target.value)}
+                    placeholder="Sujet de l'email"
+                  />
+                </div>
+                
+                {/* Corps de l'email avec RichTextEditor */}
+                <div className="space-y-2">
+                  <Label htmlFor="rejection-body">Corps de l'email</Label>
+                  <RichTextEditor
+                    value={rejectionEmailBody}
+                    onChange={setRejectionEmailBody}
+                    height={300}
+                    isEmailEditor={true}
+                    placeholder="Rédigez le message à envoyer au client..."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Section Documents (visible uniquement pour score B) */}
           {selectedScore === 'B' && (
