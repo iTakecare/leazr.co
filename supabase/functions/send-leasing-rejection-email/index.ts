@@ -12,7 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    console.log('send-leasing-rejection-email v2');
+    console.log('send-leasing-rejection-email v3');
+    console.log('Env check - ITAKECARE_RESEND_API:', Boolean(Deno.env.get('ITAKECARE_RESEND_API')), 'RESEND_API_KEY:', Boolean(Deno.env.get('RESEND_API_KEY')));
     const { offerId, customSubject, customContent } = await req.json();
 
     if (!offerId) {
