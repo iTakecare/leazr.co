@@ -129,9 +129,9 @@ serve(async (req) => {
     `;
 
     // Send email via Resend
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const resendApiKey = Deno.env.get('ITAKECARE_RESEND_API');
     if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY n'est pas configuré");
+      throw new Error("ITAKECARE_RESEND_API n'est pas configuré");
     }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
