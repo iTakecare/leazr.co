@@ -129,9 +129,10 @@ serve(async (req) => {
     `;
 
     // Send email via Resend
-    const resendApiKey = Deno.env.get('ITAKECARE_RESEND_API');
+    const resendApiKey = Deno.env.get('ITAKECARE_RESEND_API') || Deno.env.get('RESEND_API_KEY');
+    console.log('Using Resend API key env:', resendApiKey ? (Deno.env.get('ITAKECARE_RESEND_API') ? 'ITAKECARE_RESEND_API' : 'RESEND_API_KEY') : 'none');
     if (!resendApiKey) {
-      throw new Error("ITAKECARE_RESEND_API n'est pas configuré");
+      throw new Error("Clé API Resend manquante: configurez ITAKECARE_RESEND_API (ou RESEND_API_KEY)");
     }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
