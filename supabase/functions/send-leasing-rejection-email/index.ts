@@ -12,6 +12,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log('send-leasing-rejection-email v2');
     const { offerId, customSubject, customContent } = await req.json();
 
     if (!offerId) {
