@@ -32,6 +32,9 @@ import EmailConfirmationModal from "@/components/offers/EmailConfirmationModal";
 import RejectionEmailModal from "@/components/offers/RejectionEmailModal";
 import { sendLeasingAcceptanceEmail, sendLeasingRejectionEmail } from "@/services/offers/offerEmail";
 import { OfferReferenceEditor } from "@/components/offer/OfferReferenceEditor";
+import { getOfferNotes } from "@/services/offers/offerNotes";
+import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
+import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +62,10 @@ const [emailModalReason, setEmailModalReason] = useState("Validation de l'offre 
 // Modale d'email de refus après score C
 const [showRejectionModal, setShowRejectionModal] = useState(false);
 const [rejectionReason, setRejectionReason] = useState("");
+
+// États pour les notes
+const [offerNotes, setOfferNotes] = useState<any[]>([]);
+const [notesLoading, setNotesLoading] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -103,9 +110,30 @@ const [rejectionReason, setRejectionReason] = useState("");
     }
   }, [id]);
 
+  const fetchOfferNotes = async (offerId: string) => {
+    try {
+      setNotesLoading(true);
+      const notes = await getOfferNotes(offerId);
+      setOfferNotes(notes);
+    } catch (error) {
+      console.error("Erreur lors du chargement des notes:", error);
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  const handleNoteAdded = () => {
+    if (id) {
+      fetchOfferNotes(id);
+    }
+  };
+
   useEffect(() => {
     fetchOfferDetails();
-  }, [fetchOfferDetails]);
+    if (id) {
+      fetchOfferNotes(id);
+    }
+  }, [fetchOfferDetails, id]);
 
   const handleSendEmail = async () => {
     if (!offer || !offer.id) {
@@ -436,11 +464,12 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               {/* Contenu principal - permettre le débordement */}
               <div className="lg:col-span-3 min-h-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">Vue d'ensemble</TabsTrigger>
                     <TabsTrigger value="financial" className="text-xs sm:text-sm">Financier</TabsTrigger>
                     <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
                     <TabsTrigger value="history" className="text-xs sm:text-sm">Historique</TabsTrigger>
+                    <TabsTrigger value="notes" className="text-xs sm:text-sm">Notes</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
@@ -458,6 +487,19 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   
                   <TabsContent value="history" className="space-y-4 mt-4 overflow-visible">
                     <ImprovedOfferHistory offerId={offer.id} />
+                  </TabsContent>
+                  
+                  <TabsContent value="notes" className="space-y-4 mt-4 overflow-visible">
+                    <div className="space-y-4">
+                      <AmbassadorAddNoteCard 
+                        offerId={offer.id} 
+                        onNoteAdded={handleNoteAdded} 
+                      />
+                      <AmbassadorOfferNotes 
+                        notes={offerNotes} 
+                        loading={notesLoading} 
+                      />
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
