@@ -63,36 +63,59 @@ const EmailConfirmationModal: React.FC<EmailConfirmationModalProps> = ({
                            offerData.client_name?.split(' ')[0] || 
                            'Client';
 
-    // Parse equipment if it's a JSON string
-    let equipmentArray = [];
+    // Parse equipment SAFELY - strict validation
+    let equipmentArray: any[] = [];
+    
+    console.log('📧 Raw equipment type:', typeof offerData.equipment);
+    console.log('📧 Raw equipment value:', offerData.equipment);
+    
     if (typeof offerData.equipment === 'string') {
       try {
-        equipmentArray = JSON.parse(offerData.equipment);
-        console.log('📧 Parsed equipment from JSON string:', equipmentArray.length, 'items');
+        const parsed = JSON.parse(offerData.equipment);
+        if (Array.isArray(parsed)) {
+          equipmentArray = parsed;
+          console.log('📧 ✅ Parsed equipment from JSON string:', equipmentArray.length, 'items');
+        } else {
+          console.error('📧 ❌ Parsed value is not an array:', parsed);
+        }
       } catch (e) {
-        console.error('📧 Failed to parse equipment:', e);
-        equipmentArray = [];
+        console.error('📧 ❌ Failed to parse equipment JSON:', e);
       }
     } else if (Array.isArray(offerData.equipment)) {
       equipmentArray = offerData.equipment;
-      console.log('📧 Equipment already array:', equipmentArray.length, 'items');
+      console.log('📧 ✅ Equipment already an array:', equipmentArray.length, 'items');
     }
 
-    // Build equipment list HTML - ONLY extract title and quantity
+    // Build equipment list HTML - STRICT: only title and quantity
     let equipmentListHtml = '';
-    if (equipmentArray && equipmentArray.length > 0) {
-      equipmentListHtml = equipmentArray.map((item: any) => {
-        // Extract ONLY title and quantity, ignore ALL other properties
-        const title = item.title || item.name || 'Équipement';
-        const quantity = item.quantity || 1;
-        console.log('📧 Processing equipment:', { title, quantity });
-        return `<li style="margin-bottom: 8px;">${quantity}x ${title}</li>`;
-      }).join('');
+    
+    if (equipmentArray.length > 0) {
+      equipmentListHtml = equipmentArray
+        .map((item: any) => {
+          // Extract ONLY title and quantity
+          const title = String(item.title || item.name || 'Équipement');
+          const quantity = Number(item.quantity) || 1;
+          
+          console.log('📧 Processing equipment item:', { title, quantity });
+          
+          return `<li style="margin-bottom: 8px;">${quantity}x ${title}</li>`;
+        })
+        .join('');
+        
+      console.log('📧 ✅ Generated equipment HTML length:', equipmentListHtml.length);
     } else {
+      console.warn('📧 ⚠️ No equipment items, using fallback');
       equipmentListHtml = `<li>${offerData.equipment_description || 'Matériel informatique'}</li>`;
     }
 
-    console.log('📧 Final equipment HTML:', equipmentListHtml);
+    // CRITICAL: Verify no JSON artifacts remain
+    if (equipmentListHtml.includes('{') || equipmentListHtml.includes('purchasePrice') || equipmentListHtml.includes('margin')) {
+      console.error('📧 ❌ CRITICAL ERROR: JSON artifacts detected in HTML!');
+      console.error('📧 Faulty HTML:', equipmentListHtml);
+      equipmentListHtml = `<li>${offerData.equipment_description || 'Matériel informatique'}</li>`;
+    }
+
+    console.log('📧 Final equipment HTML (validated):', equipmentListHtml);
 
     const template = getDefaultEmailTemplate(clientFirstName, equipmentListHtml);
     setEmailPreview(template);
