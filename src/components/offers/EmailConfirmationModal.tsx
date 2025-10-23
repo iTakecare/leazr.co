@@ -63,15 +63,36 @@ const EmailConfirmationModal: React.FC<EmailConfirmationModalProps> = ({
                            offerData.client_name?.split(' ')[0] || 
                            'Client';
 
-    // Build equipment list HTML
+    // Parse equipment if it's a JSON string
+    let equipmentArray = [];
+    if (typeof offerData.equipment === 'string') {
+      try {
+        equipmentArray = JSON.parse(offerData.equipment);
+        console.log('📧 Parsed equipment from JSON string:', equipmentArray.length, 'items');
+      } catch (e) {
+        console.error('📧 Failed to parse equipment:', e);
+        equipmentArray = [];
+      }
+    } else if (Array.isArray(offerData.equipment)) {
+      equipmentArray = offerData.equipment;
+      console.log('📧 Equipment already array:', equipmentArray.length, 'items');
+    }
+
+    // Build equipment list HTML - ONLY extract title and quantity
     let equipmentListHtml = '';
-    if (offerData.equipment && offerData.equipment.length > 0) {
-      equipmentListHtml = offerData.equipment.map((item: any) => 
-        `<li style="margin-bottom: 8px;">${item.quantity}x ${item.title}</li>`
-      ).join('');
+    if (equipmentArray && equipmentArray.length > 0) {
+      equipmentListHtml = equipmentArray.map((item: any) => {
+        // Extract ONLY title and quantity, ignore ALL other properties
+        const title = item.title || item.name || 'Équipement';
+        const quantity = item.quantity || 1;
+        console.log('📧 Processing equipment:', { title, quantity });
+        return `<li style="margin-bottom: 8px;">${quantity}x ${title}</li>`;
+      }).join('');
     } else {
       equipmentListHtml = `<li>${offerData.equipment_description || 'Matériel informatique'}</li>`;
     }
+
+    console.log('📧 Final equipment HTML:', equipmentListHtml);
 
     const template = getDefaultEmailTemplate(clientFirstName, equipmentListHtml);
     setEmailPreview(template);
