@@ -52,8 +52,13 @@ export const useOfferFilters = (offers: Offer[]) => {
     
     // Filtre par statut (onglet actif)
     if (activeTab === "active") {
-      console.log(`Filtering by active status: not accepted and not rejected`);
-      result = result.filter(offer => !ACCEPTED.includes(offer.workflow_status) && !REJECTED.includes(offer.workflow_status));
+      console.log(`Filtering by active status: not draft, not in progress, not accepted and not rejected`);
+      result = result.filter(offer => 
+        !DRAFT.includes(offer.workflow_status) &&
+        !IN_PROGRESS.includes(offer.workflow_status) &&
+        !ACCEPTED.includes(offer.workflow_status) && 
+        !REJECTED.includes(offer.workflow_status)
+      );
     } else if (activeTab === "draft") {
       console.log(`Filtering by workflow status: draft`);
       result = result.filter(offer => DRAFT.includes(offer.workflow_status));
