@@ -25,24 +25,35 @@ export const useOfferFilters = (offers: Offer[]) => {
     // Filtre par statut (onglet actif)
     if (activeTab === "draft") {
       console.log(`Filtering by workflow status: draft`);
-      result = result.filter(offer => offer.workflow_status === 'draft');
-    } else if (activeTab === "in_progress") {
-      // Onglet "En cours" : tout sauf brouillons, acceptées (validated + score A) et refusées (score C)
-      console.log(`Filtering by in_progress: not draft, not validated+A, not rejected (score C)`);
       result = result.filter(offer => {
+        const status = (offer.workflow_status || '').toString().trim().toLowerCase();
+        return status === 'draft';
+      });
+    } else if (activeTab === "in_progress") {
+      // Onglet "En cours" : tout sauf brouillons, acceptées finales et refusées (score C)
+      console.log(`Filtering by in_progress: not draft, not accepted final, not rejected (score C)`);
+      result = result.filter(offer => {
+        const status = (offer.workflow_status || '').toString().trim().toLowerCase();
         const leaserScore = (offer.leaser_score || '').toString().trim().toUpperCase();
         const internalScore = (offer.internal_score || '').toString().trim().toUpperCase();
-        const isAccepted = offer.workflow_status === 'validated' && leaserScore === 'A';
-        const isRejected = internalScore === 'C' || leaserScore === 'C';
         
-        return offer.workflow_status !== 'draft' && !isAccepted && !isRejected;
+        const isRejected = internalScore === 'C' || leaserScore === 'C';
+        const acceptedStatuses = ['validated', 'accepted', 'offer_validation', 'financed', 'contract_sent', 'signed'];
+        const isAcceptedFinal = (acceptedStatuses.includes(status) && leaserScore === 'A') || 
+                                (offer.converted_to_contract === true && leaserScore === 'A');
+        
+        return status !== 'draft' && !isRejected && !isAcceptedFinal;
       });
     } else if (activeTab === "accepted") {
-      // Onglet "Acceptées" : statut validated (Contrat prêt) ET leaser_score = A
-      console.log(`Filtering by accepted: workflow_status = validated AND leaser_score = A`);
+      // Onglet "Acceptées" : statut accepté/validé/finalisé avec leaser_score = A OU converti en contrat avec score A
+      console.log(`Filtering by accepted: accepted statuses with leaser_score = A OR converted with score A`);
       result = result.filter(offer => {
+        const status = (offer.workflow_status || '').toString().trim().toLowerCase();
         const leaserScore = (offer.leaser_score || '').toString().trim().toUpperCase();
-        return offer.workflow_status === 'validated' && leaserScore === 'A';
+        const acceptedStatuses = ['validated', 'accepted', 'offer_validation', 'financed', 'contract_sent', 'signed'];
+        const isAcceptedFinal = (acceptedStatuses.includes(status) && leaserScore === 'A') || 
+                                (offer.converted_to_contract === true && leaserScore === 'A');
+        return isAcceptedFinal;
       });
     } else if (activeTab === "rejected") {
       // Onglet "Refusées" : score C (interne ou leaser)
