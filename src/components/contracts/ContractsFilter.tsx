@@ -16,12 +16,10 @@ const ContractsFilter: React.FC<ContractsFilterProps> = ({
     <Tabs value={activeStatus} onValueChange={onStatusChange}>
       <TabsList className="bg-muted/60">
         <TabsTrigger value="all">Tous</TabsTrigger>
-        <TabsTrigger value={contractStatuses.CONTRACT_SENT}>Envoyés</TabsTrigger>
+        <TabsTrigger value="in_progress">En cours</TabsTrigger>
         <TabsTrigger value={contractStatuses.CONTRACT_SIGNED}>Signés</TabsTrigger>
-        <TabsTrigger value={contractStatuses.EQUIPMENT_ORDERED}>Commandés</TabsTrigger>
-        <TabsTrigger value={contractStatuses.DELIVERED}>Livrés</TabsTrigger>
         <TabsTrigger value={contractStatuses.ACTIVE}>Actifs</TabsTrigger>
-        <TabsTrigger value={contractStatuses.COMPLETED}>Terminés</TabsTrigger>
+        <TabsTrigger value="expiring_soon">Expiration prochaine</TabsTrigger>
       </TabsList>
     </Tabs>
   );

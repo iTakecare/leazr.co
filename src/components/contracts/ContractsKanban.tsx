@@ -41,56 +41,44 @@ interface ContractsKanbanProps {
   isUpdatingStatus: boolean;
 }
 
-// Définition des colonnes
+// Définition des colonnes Kanban - alignées sur les nouveaux onglets
 const KANBAN_COLUMNS = [
   {
-    id: contractStatuses.CONTRACT_SENT,
-    title: "Contrats Envoyés",
-    icon: Send,
+    id: "in_progress",
+    title: "En cours",
+    statuses: [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED],
+    icon: Clock,
     color: "bg-blue-50",
     borderColor: "border-blue-200",
     textColor: "text-blue-700",
   },
   {
     id: contractStatuses.CONTRACT_SIGNED,
-    title: "Contrats Signés",
+    title: "Signés",
+    statuses: [contractStatuses.CONTRACT_SIGNED],
     icon: FileText,
     color: "bg-purple-50",
     borderColor: "border-purple-200",
     textColor: "text-purple-700",
   },
   {
-    id: contractStatuses.EQUIPMENT_ORDERED,
-    title: "Matériel Commandé",
-    icon: Package,
-    color: "bg-orange-50",
-    borderColor: "border-orange-200",
-    textColor: "text-orange-700",
-  },
-  {
-    id: contractStatuses.DELIVERED,
-    title: "Matériel Livré",
-    icon: Truck,
-    color: "bg-amber-50",
-    borderColor: "border-amber-200",
-    textColor: "text-amber-700",
-  },
-  {
     id: contractStatuses.ACTIVE,
-    title: "Contrats Actifs",
+    title: "Actifs",
+    statuses: [contractStatuses.ACTIVE],
     icon: CheckCheck,
     color: "bg-green-50",
     borderColor: "border-green-200",
     textColor: "text-green-700",
   },
   {
-    id: contractStatuses.COMPLETED,
-    title: "Contrats Terminés",
+    id: "expiring_soon",
+    title: "Expiration prochaine",
+    statuses: [], // Filtré par date
     icon: Clock,
-    color: "bg-gray-50",
-    borderColor: "border-gray-200",
-    textColor: "text-gray-700",
-  },
+    color: "bg-orange-50",
+    borderColor: "border-orange-200",
+    textColor: "text-orange-700",
+  }
 ];
 
 const ContractsKanban: React.FC<ContractsKanbanProps> = ({
@@ -101,6 +89,24 @@ const ContractsKanban: React.FC<ContractsKanbanProps> = ({
 }) => {
   // Récupérer les contrats pour une colonne donnée
   const getContractsForColumn = (columnId: string) => {
+    if (columnId === "in_progress") {
+      return contracts.filter(c => 
+        [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(c.status as any)
+      );
+    }
+    
+    if (columnId === "expiring_soon") {
+      const threeMonthsFromNow = new Date();
+      threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+      
+      return contracts.filter(c => 
+        c.status === contractStatuses.ACTIVE &&
+        c.contract_end_date &&
+        new Date(c.contract_end_date) <= threeMonthsFromNow &&
+        new Date(c.contract_end_date) >= new Date()
+      );
+    }
+    
     return contracts.filter(contract => contract.status === columnId);
   };
 
@@ -257,14 +263,20 @@ const ContractsKanban: React.FC<ContractsKanbanProps> = ({
                                   </div>
                                 </div>
                                 
-                                {contract.tracking_number && (
+                                {contract.contract_start_date && (
                                   <div className="flex justify-between items-center">
-                                    <div className="text-xs text-muted-foreground flex items-center">
-                                      <Truck className="h-3 w-3 mr-1" />
-                                      Suivi
-                                    </div>
+                                    <div className="text-xs text-muted-foreground">Date début</div>
                                     <div className="text-xs font-medium">
-                                      {contract.tracking_number}
+                                      {formatDate(contract.contract_start_date)}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {contract.contract_end_date && (
+                                  <div className="flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground">Date fin</div>
+                                    <div className="text-xs font-medium">
+                                      {formatDate(contract.contract_end_date)}
                                     </div>
                                   </div>
                                 )}

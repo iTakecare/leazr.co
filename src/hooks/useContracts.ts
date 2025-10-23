@@ -6,7 +6,8 @@ import {
   updateContractStatus, 
   deleteContract, 
   addTrackingNumber, 
-  Contract 
+  Contract,
+  contractStatuses
 } from "@/services/contractService";
 
 export const useContracts = () => {
@@ -46,8 +47,25 @@ export const useContracts = () => {
   const filterContracts = () => {
     let filtered = [...contracts];
     
-    // Filtre par statut
-    if (activeStatusFilter !== "all") {
+    // Filtre par statut/onglet
+    if (activeStatusFilter === "in_progress") {
+      // En cours : contract_sent, equipment_ordered, delivered
+      filtered = filtered.filter(contract => 
+        [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(contract.status as any)
+      );
+    } else if (activeStatusFilter === "expiring_soon") {
+      // Expiration prochaine : actifs dont la date de fin est dans les 3 prochains mois
+      const threeMonthsFromNow = new Date();
+      threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+      
+      filtered = filtered.filter(contract => 
+        contract.status === contractStatuses.ACTIVE &&
+        contract.contract_end_date &&
+        new Date(contract.contract_end_date) <= threeMonthsFromNow &&
+        new Date(contract.contract_end_date) >= new Date()
+      );
+    } else if (activeStatusFilter !== "all") {
+      // Filtres simples par statut (signed, active)
       filtered = filtered.filter(contract => contract.status === activeStatusFilter);
     }
     

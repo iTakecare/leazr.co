@@ -2092,6 +2092,7 @@ export type Database = {
           client_id: string | null
           client_name: string
           company_id: string
+          contract_end_date: string | null
           contract_number: string | null
           contract_start_date: string | null
           created_at: string
@@ -2119,6 +2120,7 @@ export type Database = {
           client_id?: string | null
           client_name: string
           company_id: string
+          contract_end_date?: string | null
           contract_number?: string | null
           contract_start_date?: string | null
           created_at?: string
@@ -2146,6 +2148,7 @@ export type Database = {
           client_id?: string | null
           client_name?: string
           company_id?: string
+          contract_end_date?: string | null
           contract_number?: string | null
           contract_start_date?: string | null
           created_at?: string
@@ -5526,17 +5529,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      activate_prospect: {
-        Args:
-          | { p_activation_token: string }
-          | { p_activation_token: string; p_password: string }
-        Returns: {
-          company_id: string
-          message: string
-          success: boolean
-          user_id: string
-        }[]
-      }
+      activate_prospect:
+        | {
+            Args: { p_activation_token: string }
+            Returns: {
+              company_id: string
+              message: string
+              success: boolean
+              user_id: string
+            }[]
+          }
+        | {
+            Args: { p_activation_token: string; p_password: string }
+            Returns: {
+              company_id: string
+              message: string
+              success: boolean
+              user_id: string
+            }[]
+          }
       add_brand: {
         Args: { brand_name: string; brand_translation: string }
         Returns: {
@@ -5548,6 +5559,12 @@ export type Database = {
           translation: string
           updated_at: string
           website_url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "brands"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       apply_permission_profile: {
@@ -5570,48 +5587,24 @@ export type Database = {
           total_revenue: number
         }[]
       }
-      can_manage_users: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      check_bucket_exists: {
-        Args: { bucket_name: string }
-        Returns: boolean
-      }
+      can_manage_users: { Args: never; Returns: boolean }
+      check_bucket_exists: { Args: { bucket_name: string }; Returns: boolean }
       check_function_exists: {
         Args: { function_name: string }
         Returns: boolean
       }
-      check_table_exists: {
-        Args: { table_name: string }
-        Returns: boolean
-      }
+      check_table_exists: { Args: { table_name: string }; Returns: boolean }
       check_user_exists_by_email: {
         Args: { user_email: string }
         Returns: boolean
       }
-      check_user_exists_by_id: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      cleanup_company_data_isolation: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      cleanup_expired_auth_tokens: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_expired_prospects: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      complete_data_isolation_cleanup: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      check_user_exists_by_id: { Args: { user_id: string }; Returns: boolean }
+      cleanup_company_data_isolation: { Args: never; Returns: boolean }
+      cleanup_expired_auth_tokens: { Args: never; Returns: number }
+      cleanup_expired_prospects: { Args: never; Returns: number }
+      complete_data_isolation_cleanup: { Args: never; Returns: boolean }
       complete_isolation_diagnostic: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           isolation_status: string
           itakecare_data_count: number
@@ -5639,10 +5632,7 @@ export type Database = {
           updated_at: string
         }[]
       }
-      create_categories_table: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      create_categories_table: { Args: never; Returns: undefined }
       create_client_as_ambassador: {
         Args: { ambassador_id: string; client_data: Json }
         Returns: string
@@ -5693,27 +5683,27 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: boolean
       }
-      create_maintenance_alerts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      create_primary_collaborator_for_client: {
-        Args:
-          | {
-              p_client_email: string
-              p_client_id: string
-              p_client_name: string
-              p_contact_name: string
-            }
-          | {
+      create_maintenance_alerts: { Args: never; Returns: undefined }
+      create_primary_collaborator_for_client:
+        | {
+            Args: {
               p_client_email?: string
               p_client_id: string
               p_client_name: string
               p_client_phone?: string
               p_contact_name?: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_email: string
+              p_client_id: string
+              p_client_name: string
+              p_contact_name: string
+            }
+            Returns: undefined
+          }
       create_prospect: {
         Args: {
           p_company_name: string
@@ -5742,16 +5732,13 @@ export type Database = {
         }
         Returns: undefined
       }
-      delete_brand: {
-        Args: { brand_name: string }
-        Returns: boolean
-      }
+      delete_brand: { Args: { brand_name: string }; Returns: boolean }
       detect_company_from_domain: {
         Args: { request_origin: string }
         Returns: string
       }
       diagnose_ambassador_isolation: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           details: string
           result: string
@@ -5759,7 +5746,7 @@ export type Database = {
         }[]
       }
       diagnose_api_key_context: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           checked_at: string
           company_id: string
@@ -5770,7 +5757,7 @@ export type Database = {
         }[]
       }
       diagnose_data_isolation: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           isolation_status: string
           other_company_data_count: number
@@ -5778,40 +5765,22 @@ export type Database = {
           user_company_data_count: number
         }[]
       }
-      ensure_client_logos_bucket: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      ensure_site_settings_bucket: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      execute_sql: {
-        Args: { sql: string }
-        Returns: undefined
-      }
-      find_duplicate_client_emails: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
+      ensure_client_logos_bucket: { Args: never; Returns: boolean }
+      ensure_site_settings_bucket: { Args: never; Returns: boolean }
+      execute_sql: { Args: { sql: string }; Returns: undefined }
+      find_duplicate_client_emails: { Args: never; Returns: string[] }
       fix_offer_data_inconsistencies: {
         Args: { p_leaser_id: string; p_offer_id: string }
         Returns: boolean
       }
-      generate_company_slug: {
-        Args: { company_name: string }
-        Returns: string
-      }
+      generate_company_slug: { Args: { company_name: string }; Returns: string }
       generate_company_subdomain: {
         Args: { company_name: string }
         Returns: string
       }
-      generate_offer_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_offer_id: { Args: never; Returns: string }
       get_all_clients_secure: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string
           city: string
@@ -5834,7 +5803,7 @@ export type Database = {
         }[]
       }
       get_all_users_extended: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email: string
@@ -5867,7 +5836,7 @@ export type Database = {
         }[]
       }
       get_blog_categories: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           category: string
           count: number
@@ -5894,6 +5863,12 @@ export type Database = {
           title: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "blog_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_blog_posts: {
         Args: { category_filter?: string }
@@ -5916,9 +5891,15 @@ export type Database = {
           title: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "blog_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_brands: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_id: string
           created_at: string
@@ -5929,6 +5910,12 @@ export type Database = {
           updated_at: string
           website_url: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "brands"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_cities_by_postal_code: {
         Args: { p_country_code?: string; p_postal_code: string }
@@ -5941,13 +5928,13 @@ export type Database = {
         }[]
       }
       get_companies_with_active_upload_tokens: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_id: string
         }[]
       }
       get_company_ambassadors_secure: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string
           city: string
@@ -5989,7 +5976,7 @@ export type Database = {
         }[]
       }
       get_company_dashboard_metrics: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           active_contracts: number
           pending_offers: number
@@ -6001,7 +5988,7 @@ export type Database = {
         }[]
       }
       get_company_recent_activity: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           activity_description: string
           activity_type: string
@@ -6013,22 +6000,34 @@ export type Database = {
         Args: { upload_token: string }
         Returns: string
       }
-      get_company_users: {
-        Args:
-          | Record<PropertyKey, never>
-          | { p_company_id: string; role_filter?: string }
-        Returns: {
-          company_id: string
-          created_at: string
-          email: string
-          first_name: string
-          id: string
-          last_name: string
-          role: string
-        }[]
-      }
+      get_company_users:
+        | {
+            Args: never
+            Returns: {
+              company_id: string
+              created_at: string
+              email: string
+              first_name: string
+              id: string
+              last_name: string
+              role: string
+            }[]
+          }
+        | {
+            Args: { p_company_id: string; role_filter?: string }
+            Returns: {
+              created_at: string
+              email: string
+              first_name: string
+              has_user_account: boolean
+              last_name: string
+              last_sign_in_at: string
+              role: string
+              user_id: string
+            }[]
+          }
       get_contract_statistics_by_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           count: number
           status: string
@@ -6051,32 +6050,22 @@ export type Database = {
           user_name: string
         }[]
       }
-      get_current_user_company_id_secure: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_email: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_company_id_secure: { Args: never; Returns: string }
+      get_current_user_email: { Args: never; Returns: string }
       get_current_user_profile: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_id: string
           role: string
           user_id: string
         }[]
       }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_default_country_for_company: {
-        Args: Record<PropertyKey, never> | { p_company_id: string }
-        Returns: string
-      }
+      get_current_user_role: { Args: never; Returns: string }
+      get_default_country_for_company:
+        | { Args: { p_company_id: string }; Returns: string }
+        | { Args: never; Returns: string }
       get_featured_blog_posts: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           author_avatar: string | null
           author_name: string | null
@@ -6096,9 +6085,15 @@ export type Database = {
           title: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "blog_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_free_clients_secure: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string
           city: string
@@ -6129,9 +6124,15 @@ export type Database = {
           name: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "menus_cms"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_monthly_financial_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           contracts_count: number
           margin: number
@@ -6186,9 +6187,15 @@ export type Database = {
           user_id: string | null
           workflow_status: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "offers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_pages_cms: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           content: string
           created_at: string
@@ -6200,9 +6207,15 @@ export type Database = {
           title: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "pages_cms"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_pdf_templates: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_id: string | null
           companyAddress: string
@@ -6238,9 +6251,15 @@ export type Database = {
           updated_at: string
           version: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "pdf_templates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_postal_code_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           country_code: string
           country_name: string
@@ -6249,7 +6268,7 @@ export type Database = {
         }[]
       }
       get_prospects_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           active_prospects: number
           conversion_rate: number
@@ -6348,6 +6367,12 @@ export type Database = {
           title: string
           updated_at: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "blog_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_template_for_offer: {
         Args: {
@@ -6364,7 +6389,7 @@ export type Database = {
         }[]
       }
       get_user_client_associations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           association_type: string
           client_id: string
@@ -6372,18 +6397,9 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_user_company_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_user_company_id_secure: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_user_id_by_email: {
-        Args: { user_email: string }
-        Returns: string
-      }
+      get_user_company_id: { Args: never; Returns: string }
+      get_user_company_id_secure: { Args: never; Returns: string }
+      get_user_id_by_email: { Args: { user_email: string }; Returns: string }
       get_user_permissions: {
         Args: { p_user_id: string }
         Returns: {
@@ -6400,7 +6416,7 @@ export type Database = {
         Returns: Json
       }
       get_user_trial_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_name: string
           days_remaining: number
@@ -6465,7 +6481,7 @@ export type Database = {
         }[]
       }
       group_products_by_sku: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           parent_id: string
           parent_name: string
@@ -6481,20 +6497,20 @@ export type Database = {
         }
         Returns: boolean
       }
-      immediate_global_cleanup: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      immediate_global_cleanup: { Args: never; Returns: string }
       initialize_new_company: {
         Args: { p_company_id: string; p_company_name: string }
         Returns: boolean
       }
-      insert_offer_equipment_attributes_secure: {
-        Args:
-          | { p_attributes: Json; p_equipment_id: string }
-          | { p_equipment_id: string; p_key: string; p_value: string }
-        Returns: string
-      }
+      insert_offer_equipment_attributes_secure:
+        | {
+            Args: { p_equipment_id: string; p_key: string; p_value: string }
+            Returns: string
+          }
+        | {
+            Args: { p_attributes: Json; p_equipment_id: string }
+            Returns: undefined
+          }
       insert_offer_equipment_secure: {
         Args: {
           p_coefficient?: number
@@ -6519,64 +6535,34 @@ export type Database = {
         }
         Returns: string
       }
-      insert_offer_equipment_specifications_secure: {
-        Args:
-          | { p_equipment_id: string; p_key: string; p_value: string }
-          | { p_equipment_id: string; p_specifications: Json }
-        Returns: string
-      }
+      insert_offer_equipment_specifications_secure:
+        | {
+            Args: { p_equipment_id: string; p_key: string; p_value: string }
+            Returns: string
+          }
+        | {
+            Args: { p_equipment_id: string; p_specifications: Json }
+            Returns: undefined
+          }
       insert_postal_codes_bulk: {
         Args: { p_country_code: string; p_postal_codes: Json }
         Returns: undefined
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_optimized: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_or_ambassador: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_or_ambassador_v2: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_v2: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_ambassador: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_client: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_company_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_optimized: { Args: never; Returns: boolean }
+      is_admin_or_ambassador: { Args: never; Returns: boolean }
+      is_admin_or_ambassador_v2: { Args: never; Returns: boolean }
+      is_admin_v2: { Args: never; Returns: boolean }
+      is_ambassador: { Args: never; Returns: boolean }
+      is_client: { Args: never; Returns: boolean }
+      is_company_admin: { Args: never; Returns: boolean }
       is_company_chat_available: {
         Args: { p_company_id: string }
         Returns: boolean
       }
-      is_partner: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_saas_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_same_company: {
-        Args: { target_company_id: string }
-        Returns: boolean
-      }
+      is_partner: { Args: never; Returns: boolean }
+      is_saas_admin: { Args: never; Returns: boolean }
+      is_same_company: { Args: { target_company_id: string }; Returns: boolean }
       link_client_to_ambassador_secure: {
         Args: { p_client_id: string; p_user_id: string }
         Returns: boolean
@@ -6595,10 +6581,7 @@ export type Database = {
         Args: { client_ids: string[]; main_client_id: string }
         Returns: boolean
       }
-      organize_product_variants: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      organize_product_variants: { Args: never; Returns: undefined }
       recalculate_offer_to_target_monthly: {
         Args: { p_offer_id: string; p_target_monthly_payment: number }
         Returns: {
@@ -6610,10 +6593,7 @@ export type Database = {
           old_selling_price: number
         }[]
       }
-      refresh_admin_pending_requests: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      refresh_admin_pending_requests: { Args: never; Returns: undefined }
       render_email_template: {
         Args: { template_content: string; variables: Json }
         Returns: string
@@ -6664,6 +6644,12 @@ export type Database = {
           translation: string
           updated_at: string
           website_url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "brands"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       update_client_securely: {
@@ -6730,10 +6716,7 @@ export type Database = {
         Args: { p_leaser_id: string; p_offer_id: string }
         Returns: boolean
       }
-      update_offer_margins: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      update_offer_margins: { Args: never; Returns: undefined }
       update_offer_request_date_secure: {
         Args: { p_new_date: string; p_offer_id: string }
         Returns: boolean

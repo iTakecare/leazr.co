@@ -218,8 +218,9 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
               <TableHead>Matériel</TableHead>
               <TableHead>Bailleur</TableHead>
               <TableHead className="text-right">Mensualité</TableHead>
+              <TableHead>Date début</TableHead>
+              <TableHead>Date fin</TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead>Suivi</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -252,20 +253,21 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                   {formatCurrency(contract.monthly_payment)}
                 </TableCell>
                 <TableCell>
-                  {getStatusBadge(contract.status)}
+                  {contract.contract_start_date ? (
+                    formatDate(contract.contract_start_date)
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Non définie</span>
+                  )}
                 </TableCell>
                 <TableCell>
-                  {contract.tracking_number ? (
-                    <div className="text-xs">
-                      <div className="font-medium">{contract.tracking_number}</div>
-                      <div className="text-muted-foreground">
-                        {contract.delivery_carrier && `${contract.delivery_carrier} - `}
-                        {contract.estimated_delivery && `Livraison: ${contract.estimated_delivery}`}
-                      </div>
-                    </div>
+                  {contract.contract_end_date ? (
+                    formatDate(contract.contract_end_date)
                   ) : (
-                    <span className="text-xs text-muted-foreground">Non suivi</span>
+                    <span className="text-muted-foreground text-sm">Non définie</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(contract.status)}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

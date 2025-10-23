@@ -42,6 +42,7 @@ export interface Contract {
   invoice_date?: string;
   payment_date?: string;
   contract_start_date?: string;
+  contract_end_date?: string;
   delivery_date?: string;
 }
 
