@@ -4,37 +4,9 @@ import { Offer } from "./useFetchOffers";
 
 export const useOfferFilters = (offers: Offer[]) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("active");
+  const [activeTab, setActiveTab] = useState("in_progress");
   const [activeType, setActiveType] = useState("all");
   const [filteredOffers, setFilteredOffers] = useState<Offer[]>([]);
-  
-  // Définir les ensembles de statuts
-  const DRAFT = ["draft"];
-  const IN_PROGRESS = [
-    "info_requested", 
-    "internal_docs_requested", 
-    "internal_review", 
-    "leaser_review", 
-    "client_review",
-    // Statuts d'approbation qui ne sont pas encore "contrat prêt"
-    "sent",
-    "offer_send",
-    "internal_approved",
-    "leaser_approved",
-    "leaser_introduced",
-    "Scoring_review",
-    "leaser_docs_requested",
-    "offer_accepted",
-    "financed",
-    "accepted",
-    "contract_sent",
-    "signed",
-    "approved"
-  ];
-  // ACCEPTED : uniquement "validated" (contrat prêt)
-  const ACCEPTED = ["validated"];
-  // REJECTED : statuts de rejet (la vérification du score C sera faite séparément)
-  const REJECTED = ["internal_rejected", "leaser_rejected", "client_rejected", "rejected"];
   
   useEffect(() => {
     if (!offers || offers.length === 0) {
@@ -51,28 +23,27 @@ export const useOfferFilters = (offers: Offer[]) => {
     let result = [...offers];
     
     // Filtre par statut (onglet actif)
-    if (activeTab === "active") {
-      console.log(`Filtering by active status: not draft, not in progress, not accepted and not rejected`);
-      result = result.filter(offer => 
-        !DRAFT.includes(offer.workflow_status) &&
-        !IN_PROGRESS.includes(offer.workflow_status) &&
-        !ACCEPTED.includes(offer.workflow_status) && 
-        !REJECTED.includes(offer.workflow_status)
-      );
-    } else if (activeTab === "draft") {
+    if (activeTab === "draft") {
       console.log(`Filtering by workflow status: draft`);
-      result = result.filter(offer => DRAFT.includes(offer.workflow_status));
+      result = result.filter(offer => offer.workflow_status === 'draft');
     } else if (activeTab === "in_progress") {
-      console.log(`Filtering by workflow status: in_progress`);
-      result = result.filter(offer => IN_PROGRESS.includes(offer.workflow_status));
-    } else if (activeTab === "accepted") {
-      console.log(`Filtering by accepted statuses`);
-      result = result.filter(offer => ACCEPTED.includes(offer.workflow_status));
-    } else if (activeTab === "rejected") {
-      console.log(`Filtering by rejected statuses with score C`);
+      // Onglet "En cours" : tout sauf brouillons, acceptées (score A leaser) et refusées (score C)
+      console.log(`Filtering by in_progress: not draft, not accepted (leaser score A), not rejected (score C)`);
       result = result.filter(offer => 
-        REJECTED.includes(offer.workflow_status) && 
-        (offer.internal_score === 'C' || offer.leaser_score === 'C')
+        offer.workflow_status !== 'draft' &&
+        offer.leaser_score !== 'A' &&
+        offer.internal_score !== 'C' && 
+        offer.leaser_score !== 'C'
+      );
+    } else if (activeTab === "accepted") {
+      // Onglet "Acceptées" : score A du leaser (contrat prêt)
+      console.log(`Filtering by accepted: leaser_score = A`);
+      result = result.filter(offer => offer.leaser_score === 'A');
+    } else if (activeTab === "rejected") {
+      // Onglet "Refusées" : score C (interne ou leaser)
+      console.log(`Filtering by rejected: score C`);
+      result = result.filter(offer => 
+        offer.internal_score === 'C' || offer.leaser_score === 'C'
       );
     }
     
