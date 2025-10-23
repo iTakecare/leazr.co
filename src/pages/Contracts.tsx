@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContractsFilter from "@/components/contracts/ContractsFilter";
 import ContractsSearch from "@/components/contracts/ContractsSearch";
 import ContractsTable from "@/components/contracts/ContractsTable";
+import ContractsEmptyState from "@/components/contracts/ContractsEmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,33 +113,6 @@ const Contracts = () => {
     );
   }
 
-  if (filteredContracts.length === 0) {
-    return (
-      <PageTransition>
-        <Container>
-          <motion.div
-            className="py-8"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={itemVariants}>
-              <div className="text-center py-16">
-                <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-semibold mb-2">Aucun contrat trouvé</h2>
-                <p className="text-muted-foreground mb-6">
-                  Vous n'avez pas encore de contrats actifs.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Les contrats seront créés automatiquement lorsque vos offres seront approuvées par le bailleur.
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        </Container>
-      </PageTransition>
-    );
-  }
 
   return (
     <PageTransition>
@@ -215,7 +189,9 @@ const Contracts = () => {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            {viewMode === 'kanban' ? (
+            {filteredContracts.length === 0 ? (
+              <ContractsEmptyState activeFilter={activeStatusFilter} />
+            ) : viewMode === 'kanban' ? (
               <>
                 <div className="flex justify-between items-center mb-2">
                   <Button 
