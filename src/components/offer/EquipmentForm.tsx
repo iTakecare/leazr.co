@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package } from "lucide-react";
 import { Equipment, Leaser } from "@/types/equipment";
 import MarginCalculator from "./MarginCalculator";
 import EquipmentFormFields from "./EquipmentFormFields";
@@ -19,7 +18,6 @@ interface EquipmentFormProps {
   editingId: string | null;
   cancelEditing: () => void;
   onOpenCatalog: () => void;
-  onOpenPackSelector?: () => void;
   coefficient: number;
   monthlyPayment: number;
   targetMonthlyPayment: number;
@@ -43,7 +41,6 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   editingId,
   cancelEditing,
   onOpenCatalog,
-  onOpenPackSelector,
   coefficient,
   monthlyPayment,
   targetMonthlyPayment,
@@ -161,21 +158,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   return (
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-medium">Calculateur de mensualité</CardTitle>
-          {onOpenPackSelector && (
-            <Button
-              type="button"
-              onClick={onOpenPackSelector}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Package className="h-4 w-4" />
-              Ajouter un pack
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-lg font-medium">Calculateur de mensualité</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-6">

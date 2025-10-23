@@ -2,6 +2,7 @@
 import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Package } from "lucide-react";
 import SearchBar from "./SearchBar";
 import ProductTypeTabs from "./ProductTypeTabs";
 import ProductList from "./ProductList";
@@ -15,6 +16,7 @@ interface ProductSelectorProps {
   onClose: () => void;
   onSelectProduct: (product: Product) => void;
   onViewVariants?: (product: Product, e: React.MouseEvent) => void;
+  onOpenPackSelector?: () => void;
   title?: string;
   description?: string;
 }
@@ -24,6 +26,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   onClose,
   onSelectProduct,
   onViewVariants,
+  onOpenPackSelector,
   title = "Sélectionner un produit",
   description = "Parcourez notre catalogue pour ajouter un produit à votre offre"
 }) => {
@@ -66,6 +69,19 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           <div className="p-4 border-b">
             <div className="flex gap-2 items-center">
               <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+              {onOpenPackSelector && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    onClose();
+                    onOpenPackSelector();
+                  }}
+                  className="shrink-0"
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Packs
+                </Button>
+              )}
               <SheetClose asChild>
                 <Button variant="outline" onClick={onClose}>Fermer</Button>
               </SheetClose>

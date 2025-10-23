@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Leaser } from "@/types/equipment";
-import ProductSelector from "@/components/ui/ProductSelector";
+import ProductSelector from "@/components/ui/product-selector/ProductSelector";
 import ClientSelector, { ClientSelectorClient } from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import { createOffer, getOfferById, updateOffer } from "@/services/offerService";
@@ -426,37 +426,27 @@ const CreateOffer = () => {
       return;
     }
 
-    // Pour chaque produit dans le pack, l'ajouter à l'equipment list
-    let addedCount = 0;
-    pack.items.forEach((packItem) => {
-      if (packItem.product) {
-        // Créer un équipement à partir de l'item du pack
-        const equipmentFromPack = {
-          id: crypto.randomUUID(),
-          title: packItem.product.name,
-          quantity: packItem.quantity * quantity, // Multiplier par la quantité du pack
-          purchasePrice: packItem.unit_purchase_price,
-          monthlyPayment: packItem.unit_monthly_price,
-          margin: packItem.margin_percentage,
-          attributes: {},
-          specifications: {
-            description: packItem.product.description || "",
-            category: packItem.product.category?.name || packItem.product.category_name || ""
-          }
-        };
-        
-        // Utiliser setEquipment puis addToList
-        setEquipment(equipmentFromPack);
-        addToList();
-        addedCount++;
-      }
-    });
+    // Créer tous les équipements du pack en une seule fois
+    const newEquipments = pack.items
+      .filter(packItem => packItem.product) // Filtrer les items valides
+      .map(packItem => ({
+        id: crypto.randomUUID(),
+        title: packItem.product!.name,
+        quantity: packItem.quantity * quantity,
+        purchasePrice: packItem.unit_purchase_price,
+        monthlyPayment: packItem.unit_monthly_price,
+        margin: packItem.margin_percentage,
+        attributes: {},
+        specifications: {
+          description: packItem.product!.description || "",
+          category: packItem.product!.category?.name || packItem.product!.category_name || ""
+        }
+      }));
 
-    if (addedCount > 0) {
-      toast.success(`${addedCount} produit(s) ajouté(s) depuis le pack "${pack.name}"`);
-    }
-
-    // Fermer le modal
+    // Ajouter tous les équipements en une seule fois
+    setEquipmentList(prev => [...prev, ...newEquipments]);
+    
+    toast.success(`${newEquipments.length} produit(s) ajouté(s) depuis le pack "${pack.name}"`);
     setIsPackSelectorOpen(false);
   };
 
@@ -683,7 +673,6 @@ const CreateOffer = () => {
                           editingId={editingId} 
                           cancelEditing={cancelEditing} 
                           onOpenCatalog={() => setIsCatalogOpen(true)}
-                          onOpenPackSelector={() => setIsPackSelectorOpen(true)}
                           coefficient={coefficient} 
                           monthlyPayment={monthlyPayment} 
                           targetMonthlyPayment={targetMonthlyPayment} 
@@ -718,7 +707,14 @@ const CreateOffer = () => {
         </div>
 
         {/* Modals */}
-        <ProductSelector isOpen={isCatalogOpen} onClose={() => setIsCatalogOpen(false)} onSelectProduct={handleProductSelect} title="Ajouter un équipement" description="Sélectionnez un produit du catalogue à ajouter à votre offre" />
+        <ProductSelector 
+          isOpen={isCatalogOpen} 
+          onClose={() => setIsCatalogOpen(false)} 
+          onSelectProduct={handleProductSelect} 
+          onOpenPackSelector={() => setIsPackSelectorOpen(true)}
+          title="Ajouter un équipement" 
+          description="Sélectionnez un produit du catalogue à ajouter à votre offre" 
+        />
 
         <PackSelectorModal
           isOpen={isPackSelectorOpen}
