@@ -16,7 +16,6 @@ const OffersFilter = ({ activeTab, onTabChange, activeType, onTypeChange }: Offe
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full sm:w-auto">
           <TabsList>
             <TabsTrigger value="in_progress">En cours</TabsTrigger>
-            <TabsTrigger value="draft">Brouillons</TabsTrigger>
             <TabsTrigger value="accepted">Acceptées</TabsTrigger>
             <TabsTrigger value="rejected">Refusées</TabsTrigger>
           </TabsList>

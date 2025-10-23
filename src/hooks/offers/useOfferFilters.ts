@@ -23,15 +23,9 @@ export const useOfferFilters = (offers: Offer[]) => {
     let result = [...offers];
     
     // Filtre par statut (onglet actif)
-    if (activeTab === "draft") {
-      console.log(`Filtering by workflow status: draft`);
-      result = result.filter(offer => {
-        const status = (offer.workflow_status || '').toString().trim().toLowerCase();
-        return status === 'draft';
-      });
-    } else if (activeTab === "in_progress") {
-      // Onglet "En cours" : tout sauf brouillons, acceptées finales et refusées (score C)
-      console.log(`Filtering by in_progress: not draft, not accepted final, not rejected (score C)`);
+    if (activeTab === "in_progress") {
+      // Onglet "En cours" : tout sauf acceptées finales et refusées (score C) - INCLUT LES BROUILLONS
+      console.log(`Filtering by in_progress: not accepted final, not rejected (score C) - includes drafts`);
       result = result.filter(offer => {
         const status = (offer.workflow_status || '').toString().trim().toLowerCase();
         const leaserScore = (offer.leaser_score || '').toString().trim().toUpperCase();
@@ -42,7 +36,7 @@ export const useOfferFilters = (offers: Offer[]) => {
         const isAcceptedFinal = (acceptedStatuses.includes(status) && leaserScore === 'A') || 
                                 (offer.converted_to_contract === true && leaserScore === 'A');
         
-        return status !== 'draft' && !isRejected && !isAcceptedFinal;
+        return !isRejected && !isAcceptedFinal;
       });
     } else if (activeTab === "accepted") {
       // Onglet "Acceptées" : statut accepté/validé/finalisé avec leaser_score = A OU converti en contrat avec score A
