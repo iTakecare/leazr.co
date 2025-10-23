@@ -16,6 +16,8 @@ export interface Offer extends OfferData {
   business_sector?: string;
   total_purchase_price?: number;
   margin_percentage?: number;
+  internal_score?: string | null;
+  leaser_score?: string | null;
 }
 
 export const useFetchOffers = () => {

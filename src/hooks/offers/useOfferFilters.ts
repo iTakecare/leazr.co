@@ -10,8 +10,30 @@ export const useOfferFilters = (offers: Offer[]) => {
   
   // Définir les ensembles de statuts
   const DRAFT = ["draft"];
-  const IN_PROGRESS = ["info_requested", "internal_docs_requested", "internal_review", "leaser_review", "client_review"];
-  const ACCEPTED = ["accepted", "offer_accepted", "leaser_approved", "financed", "contract_sent", "signed", "approved"];
+  const IN_PROGRESS = [
+    "info_requested", 
+    "internal_docs_requested", 
+    "internal_review", 
+    "leaser_review", 
+    "client_review",
+    // Statuts d'approbation qui ne sont pas encore "contrat prêt"
+    "sent",
+    "offer_send",
+    "internal_approved",
+    "leaser_approved",
+    "leaser_introduced",
+    "Scoring_review",
+    "leaser_docs_requested",
+    "offer_accepted",
+    "financed",
+    "accepted",
+    "contract_sent",
+    "signed",
+    "approved"
+  ];
+  // ACCEPTED : uniquement "validated" (contrat prêt)
+  const ACCEPTED = ["validated"];
+  // REJECTED : statuts de rejet (la vérification du score C sera faite séparément)
   const REJECTED = ["internal_rejected", "leaser_rejected", "client_rejected", "rejected"];
   
   useEffect(() => {
@@ -42,8 +64,11 @@ export const useOfferFilters = (offers: Offer[]) => {
       console.log(`Filtering by accepted statuses`);
       result = result.filter(offer => ACCEPTED.includes(offer.workflow_status));
     } else if (activeTab === "rejected") {
-      console.log(`Filtering by rejected statuses`);
-      result = result.filter(offer => REJECTED.includes(offer.workflow_status));
+      console.log(`Filtering by rejected statuses with score C`);
+      result = result.filter(offer => 
+        REJECTED.includes(offer.workflow_status) && 
+        (offer.internal_score === 'C' || offer.leaser_score === 'C')
+      );
     }
     
     // Filtre par type d'offre (admin_offer, client_request, etc.)
