@@ -12,7 +12,9 @@ import { createOffer, getOfferById, updateOffer } from "@/services/offerService"
 import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
-import { Calculator as CalcIcon, Loader2, ArrowLeft } from "lucide-react";
+import { Calculator as CalcIcon, Loader2, ArrowLeft, Package } from "lucide-react";
+import PackSelectorModal from "@/components/offers/PackSelectorModal";
+import { ProductPack } from "@/types/pack";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
@@ -64,6 +66,13 @@ const CreateOffer = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAmbassadorSelectorOpen, setIsAmbassadorSelectorOpen] = useState(false);
   const [loadedOfferData, setLoadedOfferData] = useState(null);
+  const [isPackSelectorOpen, setIsPackSelectorOpen] = useState(false);
+  const [selectedPacks, setSelectedPacks] = useState<Array<{
+    pack_id: string;
+    pack: ProductPack;
+    quantity: number;
+    unit_monthly_price: number;
+  }>>([]);
   const {
     equipment,
     setEquipment,
@@ -407,6 +416,53 @@ const CreateOffer = () => {
     resetClientSelection();
     setIsAmbassadorSelectorOpen(false);
   };
+
+  const handlePackSelect = (pack: ProductPack, quantity: number) => {
+    console.log("📦 Pack sélectionné:", pack.name, "Quantité:", quantity);
+    
+    // Vérifier que le pack contient des produits
+    if (!pack.items || pack.items.length === 0) {
+      toast.error("Ce pack ne contient aucun produit");
+      return;
+    }
+
+    // Pour chaque produit dans le pack, l'ajouter à l'equipment list
+    let addedCount = 0;
+    pack.items.forEach((packItem) => {
+      if (packItem.product) {
+        // Créer un équipement à partir de l'item du pack
+        const equipmentFromPack = {
+          id: crypto.randomUUID(),
+          title: packItem.product.name,
+          quantity: packItem.quantity * quantity, // Multiplier par la quantité du pack
+          purchasePrice: packItem.unit_purchase_price,
+          monthlyPayment: packItem.unit_monthly_price,
+          margin: packItem.margin_percentage,
+          attributes: {},
+          specifications: {
+            description: packItem.product.description || "",
+            category: packItem.product.category?.name || packItem.product.category_name || ""
+          }
+        };
+        
+        // Utiliser setEquipment puis addToList
+        setEquipment(equipmentFromPack);
+        addToList();
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      toast.success(`${addedCount} produit(s) ajouté(s) depuis le pack "${pack.name}"`);
+    }
+
+    // Fermer le modal
+    setIsPackSelectorOpen(false);
+  };
+
+  const handlePackRemove = (packId: string) => {
+    setSelectedPacks(prev => prev.filter(p => p.pack_id !== packId));
+  };
   const handleSaveOffer = async () => {
     if (!user) {
       toast.error("Vous devez être connecté pour créer une offre");
@@ -626,7 +682,8 @@ const CreateOffer = () => {
                           addToList={addToList} 
                           editingId={editingId} 
                           cancelEditing={cancelEditing} 
-                          onOpenCatalog={() => setIsCatalogOpen(true)} 
+                          onOpenCatalog={() => setIsCatalogOpen(true)}
+                          onOpenPackSelector={() => setIsPackSelectorOpen(true)}
                           coefficient={coefficient} 
                           monthlyPayment={monthlyPayment} 
                           targetMonthlyPayment={targetMonthlyPayment} 
@@ -662,6 +719,14 @@ const CreateOffer = () => {
 
         {/* Modals */}
         <ProductSelector isOpen={isCatalogOpen} onClose={() => setIsCatalogOpen(false)} onSelectProduct={handleProductSelect} title="Ajouter un équipement" description="Sélectionnez un produit du catalogue à ajouter à votre offre" />
+
+        <PackSelectorModal
+          isOpen={isPackSelectorOpen}
+          onClose={() => setIsPackSelectorOpen(false)}
+          selectedPacks={selectedPacks}
+          onPackSelect={handlePackSelect}
+          onPackRemove={handlePackRemove}
+        />
 
         <ClientSelector isOpen={isClientSelectorOpen} onClose={() => setIsClientSelectorOpen(false)} onSelectClient={handleClientSelect} selectedClientId={clientId} onClientSelect={() => {}} selectedAmbassadorId={!isInternalOffer ? selectedAmbassador?.id : undefined} />
         
