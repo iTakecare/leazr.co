@@ -20,44 +20,27 @@ export const useOfferFilters = (offers: Offer[]) => {
       activeType
     });
     
-    let result = [...offers];
+    // Définir les statuts acceptés et refusés
+    const acceptedStatuses = new Set([
+      'validated', 'accepted', 'offer_validation', 'financed', 'contract_sent', 'signed', 'approved', 'offer_accepted'
+    ]);
+    const rejectedStatuses = new Set([
+      'internal_rejected', 'leaser_rejected', 'rejected', 'client_rejected'
+    ]);
     
-    // Filtre par statut (onglet actif)
-    if (activeTab === "in_progress") {
-      // Onglet "En cours" : tout sauf acceptées finales et refusées (score C) - INCLUT LES BROUILLONS
-      console.log(`Filtering by in_progress: not accepted final, not rejected (score C) - includes drafts`);
-      result = result.filter(offer => {
-        const status = (offer.workflow_status || '').toString().trim().toLowerCase();
-        const leaserScore = (offer.leaser_score || '').toString().trim().toUpperCase();
-        const internalScore = (offer.internal_score || '').toString().trim().toUpperCase();
-        
-        const isRejected = internalScore === 'C' || leaserScore === 'C';
-        const acceptedStatuses = ['validated', 'accepted', 'offer_validation', 'financed', 'contract_sent', 'signed'];
-        const isAcceptedFinal = (acceptedStatuses.includes(status) && leaserScore === 'A') || 
-                                (offer.converted_to_contract === true && leaserScore === 'A');
-        
-        return !isRejected && !isAcceptedFinal;
-      });
-    } else if (activeTab === "accepted") {
-      // Onglet "Acceptées" : statut accepté/validé/finalisé avec leaser_score = A OU converti en contrat avec score A
-      console.log(`Filtering by accepted: accepted statuses with leaser_score = A OR converted with score A`);
-      result = result.filter(offer => {
-        const status = (offer.workflow_status || '').toString().trim().toLowerCase();
-        const leaserScore = (offer.leaser_score || '').toString().trim().toUpperCase();
-        const acceptedStatuses = ['validated', 'accepted', 'offer_validation', 'financed', 'contract_sent', 'signed'];
-        const isAcceptedFinal = (acceptedStatuses.includes(status) && leaserScore === 'A') || 
-                                (offer.converted_to_contract === true && leaserScore === 'A');
-        return isAcceptedFinal;
-      });
-    } else if (activeTab === "rejected") {
-      // Onglet "Refusées" : score C (interne ou leaser)
-      console.log(`Filtering by rejected: score C`);
-      result = result.filter(offer => {
-        const leaserScore = (offer.leaser_score || '').toString().trim().toUpperCase();
-        const internalScore = (offer.internal_score || '').toString().trim().toUpperCase();
-        return internalScore === 'C' || leaserScore === 'C';
-      });
-    }
+    // Filtre par statut (onglet actif) - basé uniquement sur workflow_status
+    let result = offers.filter(offer => {
+      const status = (offer.workflow_status || '').toString().trim().toLowerCase();
+      
+      if (activeTab === "accepted") {
+        return acceptedStatuses.has(status);
+      } else if (activeTab === "rejected") {
+        return rejectedStatuses.has(status);
+      } else {
+        // in_progress: inclut les brouillons et tous les statuts intermédiaires
+        return !acceptedStatuses.has(status) && !rejectedStatuses.has(status);
+      }
+    });
     
     // Filtre par type d'offre (admin_offer, client_request, etc.)
     if (activeType !== "all") {
