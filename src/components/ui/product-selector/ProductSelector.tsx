@@ -68,7 +68,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           {/* Search bar and close button */}
           <div className="p-4 border-b">
             <div className="flex gap-2 items-center">
-              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               {onOpenPackSelector && (
                 <Button 
                   variant="outline" 
@@ -82,6 +81,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   Packs
                 </Button>
               )}
+              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
               <SheetClose asChild>
                 <Button variant="outline" onClick={onClose}>Fermer</Button>
               </SheetClose>
