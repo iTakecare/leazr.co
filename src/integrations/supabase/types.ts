@@ -5114,6 +5114,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           company_address: string | null
@@ -5602,6 +5629,7 @@ export type Database = {
       cleanup_company_data_isolation: { Args: never; Returns: boolean }
       cleanup_expired_auth_tokens: { Args: never; Returns: number }
       cleanup_expired_prospects: { Args: never; Returns: number }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       complete_data_isolation_cleanup: { Args: never; Returns: boolean }
       complete_isolation_diagnostic: {
         Args: never
