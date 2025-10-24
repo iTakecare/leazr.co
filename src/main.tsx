@@ -8,6 +8,8 @@ import { clearAppCache } from "./utils/cacheCleanup";
 // Nettoyer le cache au démarrage
 clearAppCache();
 
+// Force TypeScript cache invalidation
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

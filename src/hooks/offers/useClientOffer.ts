@@ -1,6 +1,6 @@
 
 import { useLoadClientOffer } from "./useLoadClientOffer";
-import { useSignature } from "./useSignature";
+import { useSignature, UseSignatureResult } from "./useSignature";
 
 export const useClientOffer = (offerId: string | undefined) => {
   // Load offer data

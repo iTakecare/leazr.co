@@ -1,7 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { saveOfferSignature } from "@/services/offers/offerSignature";
+
+export interface UseSignatureResult {
+  signerName: string;
+  setSignerName: React.Dispatch<React.SetStateAction<string>>;
+  isSigning: boolean;
+  signature: string | null;
+  handleSignature: (signatureData: string) => Promise<void>;
+}
 
 export const useSignature = (
   offerId: string | undefined, 
@@ -98,5 +105,5 @@ export const useSignature = (
     isSigning,
     signature,
     handleSignature
-  };
+  } as UseSignatureResult;
 };
