@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { createErrorResponse } from '../_shared/errorHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,6 +43,34 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Rate limiting: 100 requests per hour
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    const rateLimit = await checkRateLimit(
+      supabase,
+      clientIp,
+      'company-search',
+      { maxRequests: 100, windowSeconds: 3600 }
+    );
+
+    if (!rateLimit.allowed) {
+      console.log(`[company-search] Rate limit exceeded for IP: ${clientIp}`);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Trop de requêtes. Veuillez réessayer plus tard.',
+        retryAfter: 3600
+      }), {
+        status: 429,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        }
+      });
+    }
 
     const { query, country, searchType, limit = 10 }: CompanySearchRequest = await req.json();
 
@@ -110,14 +140,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[company-search] Erreur:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors de la recherche d\'entreprise',
-      results: []
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return createErrorResponse(error, corsHeaders);
   }
 });
 

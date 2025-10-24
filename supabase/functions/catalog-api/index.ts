@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { createErrorResponse } from '../_shared/errorHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,6 +32,33 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
+    // Rate limiting: 100 requests per hour per IP
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    const rateLimit = await checkRateLimit(
+      supabaseAdmin,
+      clientIp,
+      'catalog-api',
+      { maxRequests: 100, windowSeconds: 3600 }
+    );
+
+    if (!rateLimit.allowed) {
+      console.log(`[catalog-api] Rate limit exceeded for IP: ${clientIp}`);
+      return new Response(JSON.stringify({
+        error: 'Trop de requêtes. Veuillez réessayer plus tard.',
+        retryAfter: 3600
+      }), {
+        status: 429,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        }
+      });
+    }
 
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(Boolean)
@@ -239,10 +268,7 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Catalog API Error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return createErrorResponse(error, corsHeaders)
   }
 })
 

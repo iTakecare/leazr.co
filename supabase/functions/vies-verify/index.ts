@@ -3,6 +3,9 @@
 // This Edge Function connects to the official European Commission VIES service
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { createErrorResponse } from '../_shared/errorHandler.ts';
 
 // CORS headers
 const corsHeaders = {
@@ -55,6 +58,37 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Rate limiting: 10 requests per minute
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    const rateLimit = await checkRateLimit(
+      supabase,
+      clientIp,
+      'company-lookup',
+      { maxRequests: 10, windowSeconds: 60 }
+    );
+
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({
+        valid: false,
+        error: 'Trop de requêtes. Veuillez réessayer dans une minute.',
+        retryAfter: 60
+      }), {
+        status: 429,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        }
+      });
+    }
+
     // Only allow POST requests
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), { 
@@ -186,12 +220,6 @@ serve(async (req: Request) => {
     }
   } catch (error) {
     console.error("VIES verification error:", error.message || error);
-    return new Response(JSON.stringify({ 
-      valid: false,
-      error: `Service error: ${error.message || "Unknown error"}`
-    }), { 
-      status: 200, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return createErrorResponse(error, corsHeaders);
   }
 });
