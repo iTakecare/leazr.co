@@ -3,7 +3,7 @@ import { useLoadClientOffer } from "./useLoadClientOffer";
 import { useSignature } from "./useSignature";
 
 export const useClientOffer = (offerId: string | undefined) => {
-  // Charger les données de l'offre
+  // Load offer data
   const {
     offer,
     loading,
