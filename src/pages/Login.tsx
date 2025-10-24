@@ -182,10 +182,35 @@ const Login = () => {
                       const fallback = document.createElement('div');
                       fallback.className = 'fallback-logo';
                       parent.appendChild(fallback);
-                      // Show default logo
-                      const logoContainer = document.createElement('div');
-                      logoContainer.innerHTML = '<div class="w-36 h-36 flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" class="w-16 h-16 text-blue-600" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
-                      fallback.appendChild(logoContainer);
+                      
+                      // ✅ SÉCURISÉ: Création d'éléments DOM sans innerHTML
+                      const logoDiv = document.createElement('div');
+                      logoDiv.className = 'w-36 h-36 flex items-center justify-center';
+                      
+                      // Create SVG element properly
+                      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                      svg.setAttribute('viewBox', '0 0 24 24');
+                      svg.setAttribute('fill', 'none');
+                      svg.setAttribute('class', 'w-16 h-16 text-blue-600');
+                      
+                      const paths = [
+                        'M12 2L2 7L12 12L22 7L12 2Z',
+                        'M2 17L12 22L22 17',
+                        'M2 12L12 17L22 12'
+                      ];
+                      
+                      paths.forEach(d => {
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('d', d);
+                        path.setAttribute('stroke', 'currentColor');
+                        path.setAttribute('stroke-width', '2');
+                        path.setAttribute('stroke-linecap', 'round');
+                        path.setAttribute('stroke-linejoin', 'round');
+                        svg.appendChild(path);
+                      });
+                      
+                      logoDiv.appendChild(svg);
+                      fallback.appendChild(logoDiv);
                     }
                   }}
                 />

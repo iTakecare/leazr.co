@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createErrorResponse } from '../_shared/errorHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,6 +80,25 @@ serve(async (req: Request) => {
 
     // Handle different token types
     if (authToken.token_type === 'signup') {
+      // ✅ CORRECTION RACE CONDITION: Marquer le token comme utilisé EN PREMIER (atomique)
+      const { data: markedToken, error: markError } = await supabase
+        .from('custom_auth_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('token', token)
+        .is('used_at', null) // Seulement si pas déjà utilisé
+        .select()
+        .single();
+
+      if (markError || !markedToken) {
+        return new Response(
+          JSON.stringify({ error: 'Token déjà utilisé ou invalide' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
       // Confirm user email
       const { error: confirmError } = await supabase.auth.admin.updateUserById(
         user.id,
@@ -87,6 +107,13 @@ serve(async (req: Request) => {
 
       if (confirmError) {
         console.error("Erreur lors de la confirmation de l'email:", confirmError);
+        
+        // Rollback: remettre le token à non-utilisé
+        await supabase
+          .from('custom_auth_tokens')
+          .update({ used_at: null })
+          .eq('token', token);
+        
         return new Response(
           JSON.stringify({ error: 'Erreur lors de l\'activation du compte' }),
           { 
@@ -95,12 +122,6 @@ serve(async (req: Request) => {
           }
         );
       }
-
-      // Mark token as used
-      await supabase
-        .from('custom_auth_tokens')
-        .update({ used_at: new Date().toISOString() })
-        .eq('token', token);
 
       // Send welcome email (account activated)
       await sendWelcomeEmail(supabase, authToken, user, req);
@@ -128,6 +149,25 @@ serve(async (req: Request) => {
         );
       }
 
+      // ✅ CORRECTION RACE CONDITION: Marquer le token comme utilisé EN PREMIER
+      const { data: markedToken, error: markError } = await supabase
+        .from('custom_auth_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('token', token)
+        .is('used_at', null)
+        .select()
+        .single();
+
+      if (markError || !markedToken) {
+        return new Response(
+          JSON.stringify({ error: 'Token déjà utilisé ou invalide' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
       // Update user password
       const { error: updateError } = await supabase.auth.admin.updateUserById(
         user.id,
@@ -136,6 +176,13 @@ serve(async (req: Request) => {
 
       if (updateError) {
         console.error("Erreur lors de la mise à jour du mot de passe:", updateError);
+        
+        // Rollback: remettre le token à non-utilisé
+        await supabase
+          .from('custom_auth_tokens')
+          .update({ used_at: null })
+          .eq('token', token);
+        
         return new Response(
           JSON.stringify({ error: 'Erreur lors de la mise à jour du mot de passe' }),
           { 
@@ -144,12 +191,6 @@ serve(async (req: Request) => {
           }
         );
       }
-
-      // Mark token as used
-      await supabase
-        .from('custom_auth_tokens')
-        .update({ used_at: new Date().toISOString() })
-        .eq('token', token);
 
       return new Response(
         JSON.stringify({
@@ -164,6 +205,25 @@ serve(async (req: Request) => {
       );
 
     } else if (authToken.token_type === 'email_verification') {
+      // ✅ CORRECTION RACE CONDITION: Marquer le token comme utilisé EN PREMIER
+      const { data: markedToken, error: markError } = await supabase
+        .from('custom_auth_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('token', token)
+        .is('used_at', null)
+        .select()
+        .single();
+
+      if (markError || !markedToken) {
+        return new Response(
+          JSON.stringify({ error: 'Token déjà utilisé ou invalide' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
       // Confirm user email
       const { error: confirmError } = await supabase.auth.admin.updateUserById(
         user.id,
@@ -172,6 +232,13 @@ serve(async (req: Request) => {
 
       if (confirmError) {
         console.error("Erreur lors de la confirmation de l'email:", confirmError);
+        
+        // Rollback
+        await supabase
+          .from('custom_auth_tokens')
+          .update({ used_at: null })
+          .eq('token', token);
+        
         return new Response(
           JSON.stringify({ error: 'Erreur lors de la vérification de l\'email' }),
           { 
@@ -180,12 +247,6 @@ serve(async (req: Request) => {
           }
         );
       }
-
-      // Mark token as used
-      await supabase
-        .from('custom_auth_tokens')
-        .update({ used_at: new Date().toISOString() })
-        .eq('token', token);
 
       return new Response(
         JSON.stringify({
@@ -209,17 +270,8 @@ serve(async (req: Request) => {
     );
 
   } catch (error) {
-    console.error("Erreur dans verify-auth-token:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Erreur interne du serveur',
-        details: error.message 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error("Erreur dans verify-auth-token:", error)
+    return createErrorResponse(error, corsHeaders)
   }
 });
 

@@ -236,12 +236,22 @@ const OfferDocumentUpload = () => {
                         const target = e.currentTarget;
                         const parent = target.parentElement;
                         if (parent) {
-                          parent.innerHTML = `
-                            <div class="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
-                              <div class="text-xl font-bold">${companyInfo.name.substring(0, 2).toUpperCase()}</div>
-                              <div class="text-xs opacity-70">Logo</div>
-                            </div>
-                          `;
+                          // ✅ SÉCURISÉ: Création d'éléments DOM sans innerHTML
+                          const fallbackDiv = document.createElement('div');
+                          fallbackDiv.className = 'h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary';
+                          
+                          const initialsDiv = document.createElement('div');
+                          initialsDiv.className = 'text-xl font-bold';
+                          initialsDiv.textContent = companyInfo.name.substring(0, 2).toUpperCase();
+                          
+                          const labelDiv = document.createElement('div');
+                          labelDiv.className = 'text-xs opacity-70';
+                          labelDiv.textContent = 'Logo';
+                          
+                          fallbackDiv.appendChild(initialsDiv);
+                          fallbackDiv.appendChild(labelDiv);
+                          parent.innerHTML = '';
+                          parent.appendChild(fallbackDiv);
                         }
                       }}
                       onLoad={() => {
@@ -327,12 +337,22 @@ const OfferDocumentUpload = () => {
                       const target = e.currentTarget;
                       const parent = target.parentElement;
                       if (parent) {
-                        parent.innerHTML = `
-                          <div class="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
-                            <div class="text-xl font-bold">${companyInfo.name.substring(0, 2).toUpperCase()}</div>
-                            <div class="text-xs opacity-70">Logo</div>
-                          </div>
-                        `;
+                        // ✅ SÉCURISÉ: Création d'éléments DOM sans innerHTML
+                        const fallbackDiv = document.createElement('div');
+                        fallbackDiv.className = 'h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary';
+                        
+                        const initialsDiv = document.createElement('div');
+                        initialsDiv.className = 'text-xl font-bold';
+                        initialsDiv.textContent = companyInfo.name.substring(0, 2).toUpperCase();
+                        
+                        const labelDiv = document.createElement('div');
+                        labelDiv.className = 'text-xs opacity-70';
+                        labelDiv.textContent = 'Logo';
+                        
+                        fallbackDiv.appendChild(initialsDiv);
+                        fallbackDiv.appendChild(labelDiv);
+                        parent.innerHTML = '';
+                        parent.appendChild(fallbackDiv);
                       }
                     }}
                     onLoad={() => {

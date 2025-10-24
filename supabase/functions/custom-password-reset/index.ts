@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { createErrorResponse } from '../_shared/errorHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +27,16 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const { email, companyId }: PasswordResetRequest = await req.json();
+
+    // ✅ RATE LIMITING
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 'unknown';
+    const rateLimit = await checkRateLimit(supabase, clientIp, 'password-reset', 
+      { maxRequests: 5, windowSeconds: 3600 });
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({ error: 'Trop de tentatives.' }), 
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     console.log(`Demande de réinitialisation de mot de passe pour ${email}`);
 
@@ -243,13 +255,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error('Erreur dans custom-password-reset:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
+    return createErrorResponse(error, corsHeaders);
   }
 };
 

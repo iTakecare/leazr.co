@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { createErrorResponse } from '../_shared/errorHandler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,6 +44,20 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // ✅ RATE LIMITING
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 'unknown';
+    
+    const rateLimit = await checkRateLimit(supabase, clientIp, 'custom-signup', 
+      { maxRequests: 5, windowSeconds: 3600 });
+
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de tentatives. Réessayez dans 1 heure.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Detect company ID from request origin if not provided
     let detectedCompanyId = companyId;
@@ -90,13 +106,17 @@ serve(async (req: Request) => {
       filters: { email }
     });
 
+    // ✅ MASQUAGE ÉNUMÉRATION: Toujours retourner succès
     if (existingUser?.users && existingUser.users.length > 0) {
+      console.log('⚠️ Compte existant:', email);
       return new Response(
-        JSON.stringify({ error: 'Un compte existe déjà avec cette adresse email' }),
-        { 
-          status: 409, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ 
+          success: true,
+          message: 'Compte créé avec succès. Vérifiez votre email.',
+          userId: 'pending',
+          activationSent: true
+        }),
+        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -253,15 +273,6 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error("Erreur dans custom-signup:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Erreur interne du serveur',
-        details: error.message 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return createErrorResponse(error, corsHeaders);
   }
 });
