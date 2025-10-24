@@ -20,8 +20,7 @@ export const useClientOffer = (offerId: string | undefined) => {
     setSignerName,
     isSigning,
     signature,
-    handleSignature,
-    clientIp
+    handleSignature
   } = useSignature(offerId, offer, setSigned, setOffer, async () => {});
 
   return {
@@ -34,7 +33,6 @@ export const useClientOffer = (offerId: string | undefined) => {
     signed,
     signature,
     debugInfo,
-    handleSignature,
-    clientIp
+    handleSignature
   };
 };

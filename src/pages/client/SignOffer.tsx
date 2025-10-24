@@ -38,8 +38,7 @@ const SignOffer = () => {
     signed,
     signature,
     debugInfo,
-    handleSignature,
-    clientIp
+    handleSignature
   } = useClientOffer(id);
   
   console.log("SignOffer - Hook results:", {
@@ -115,7 +114,7 @@ const SignOffer = () => {
               <SignedAlert 
                 signerName={offer.signer_name} 
                 signedAt={offer.signed_at}
-                signerIp={offer.signer_ip || clientIp} 
+                signerIp={offer.signer_ip} 
               />
             )}
             
@@ -134,7 +133,7 @@ const SignOffer = () => {
               setSignerName={setSignerName}
               isSigning={isSigning}
               signedAt={offer.signed_at}
-              signerIp={offer.signer_ip || clientIp}
+              signerIp={offer.signer_ip}
               onSign={handleSignature}
               monthlyPayment={offer.monthly_payment}
             />

@@ -24,8 +24,7 @@ const PublicOfferView = () => {
     signed,
     signature,
     debugInfo,
-    handleSignature,
-    clientIp
+    handleSignature
   } = useClientOffer(id);
 
   if (loading) {
