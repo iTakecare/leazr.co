@@ -21,6 +21,8 @@ interface OfferEditConfigurationProps {
 const SOURCE_OPTIONS = [
   { value: 'recommendation', label: 'Recommandation' },
   { value: 'google', label: 'Google' },
+  { value: 'meta', label: 'Meta (Facebook)' },
+  { value: 'linkedin', label: 'LinkedIn' },
   { value: 'existing_client', label: 'Client existant' },
   { value: 'website', label: 'Site web' },
   { value: 'event', label: 'Salon/Événement' },
