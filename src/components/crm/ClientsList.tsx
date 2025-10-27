@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserX2, Database } from "lucide-react";
+import { UserX2, Database, Copy } from "lucide-react";
 
 interface ClientsListProps {
   clients: Client[];
@@ -176,6 +176,13 @@ const ClientsList: React.FC<ClientsListProps> = ({
           </Label>
         </div>
         
+        <Button 
+          variant="outline" 
+          onClick={() => navigateToAdmin('clients/duplicates')}
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Gérer les doublons
+        </Button>
       </div>
       
       {debugView && (
