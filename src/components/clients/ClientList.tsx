@@ -1,15 +1,19 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRoleNavigation } from '@/hooks/useRoleNavigation';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Edit, Trash2, Building2, Mail, Phone, MapPin, MoreHorizontal, User } from "lucide-react";
+import { Eye, Edit, Trash2, Building2, Mail, Phone, MapPin, MoreHorizontal, User, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDateToFrench } from "@/utils/formatters";
 import { Client } from "@/types/client";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
+import { cn } from "@/lib/utils";
+
+type SortField = 'name' | 'company' | 'email' | 'phone' | 'status' | 'created_at';
+type SortDirection = 'asc' | 'desc' | null;
 
 interface ClientListProps {
   clients: Client[];
@@ -28,6 +32,82 @@ const ClientList: React.FC<ClientListProps> = ({
 }) => {
   const { navigateToAdmin } = useRoleNavigation();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortField(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedClients = useMemo(() => {
+    if (!sortField || !sortDirection) return clients;
+    
+    return [...clients].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      if (!aValue) aValue = '';
+      if (!bValue) bValue = '';
+      
+      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+      
+      let comparison = 0;
+      if (aValue < bValue) comparison = -1;
+      if (aValue > bValue) comparison = 1;
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [clients, sortField, sortDirection]);
+
+  const SortableHeader = ({ 
+    field, 
+    label 
+  }: { 
+    field: SortField; 
+    label: string;
+  }) => {
+    const isActive = sortField === field;
+    
+    return (
+      <TableHead 
+        className="cursor-pointer select-none hover:bg-muted/50"
+        onClick={() => handleSort(field)}
+      >
+        <div className="flex items-center gap-2">
+          <span>{label}</span>
+          <div className="flex flex-col">
+            <ArrowUp 
+              className={cn(
+                "h-3 w-3",
+                isActive && sortDirection === 'asc' 
+                  ? "text-primary" 
+                  : "text-muted-foreground/30"
+              )}
+            />
+            <ArrowDown 
+              className={cn(
+                "h-3 w-3 -mt-1",
+                isActive && sortDirection === 'desc' 
+                  ? "text-primary" 
+                  : "text-muted-foreground/30"
+              )}
+            />
+          </div>
+        </div>
+      </TableHead>
+    );
+  };
 
   const handleViewClient = (client: Client) => {
     console.log("Viewing client:", client);
@@ -163,17 +243,17 @@ const ClientList: React.FC<ClientListProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Société</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Téléphone</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Date de création</TableHead>
+            <SortableHeader field="name" label="Nom" />
+            <SortableHeader field="company" label="Société" />
+            <SortableHeader field="email" label="Email" />
+            <SortableHeader field="phone" label="Téléphone" />
+            <SortableHeader field="status" label="Statut" />
+            <SortableHeader field="created_at" label="Date de création" />
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {clients.map((client) => (
+          {sortedClients.map((client) => (
             <TableRow key={client.id} className="hover:bg-gray-50">
               <TableCell>
                 <div className="font-medium">{client.name}</div>
