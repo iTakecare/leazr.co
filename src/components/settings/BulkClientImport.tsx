@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, Users, AlertCircle, CheckCircle, Download, FileText, Sparkles } from 'lucide-react';
 // import { processBulkClientData, bulkCreateClients, BulkImportResult } from '@/services/clientService';
 import { BulkImportResult } from '@/services/clientService';
+import { MultiYearContractsImport } from '@/components/admin/MultiYearContractsImport';
 
 const BulkClientImport: React.FC = () => {
   const { toast } = useToast();
@@ -465,6 +466,9 @@ Isabelle Barbosa - Ecrin Santé`;
           </CardContent>
         </Card>
       )}
+
+      {/* Import multi-années 2022-2025 */}
+      <MultiYearContractsImport />
     </div>
   );
 };

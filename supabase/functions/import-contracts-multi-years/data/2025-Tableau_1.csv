@@ -1,0 +1,28 @@
+;2025;;;;;;;;;;;;;;;;;;;;;
+;Client;N° de demande;N° de contrat;N° de facture iTakecare;Secteur;Localisation;Pays;Source;Leaser 1;Date dossier;Date facture ;Date paiement;Facture Leaser HTVA;Achat de matériel HTVA;Marge en € HTVA;# ordinateurs;#smartphones;#tablettes;;Taux de marge en %;Mensualité client HTVA;infos complémentaires
+;Frederic D’hont - Frederic D’hont;180-25888;;ITC-2025-0002;Auto Ecole;Uccle;BE;Google;Grenke;janv. 2025;janv. 2025;janv. 2025;4 082,32 €;2 224,09 €;1 858,23 €;1;1;0;;83,55 %;133,90 €;Oui
+;Pierre Bertaux - Pierre Bertaux SCS;180-26393;;ITC-2025-0010;Graphisme;Bruxelles;BE;Client existant;Grenke;nov. 2024;févr. 2025;mars 2025;4717,00 €;2 994,58 €;1 722,42 €;1;0;0;;57,52 %;97,95 €;Non
+;Fabrice Delchambre - Never2Late;180-25480;;ITC-2025-0005;Hotelerie;Waterloo;BE;Recommandation;Grenke;nov. 2024;févr. 2025;mars 2025;4 573,17 €;3 709,07 €;864,10 €;1;1;1;;23,30 %;155,00 €;Oui
+;Nicolas Lehette -  AT Studio;180-27730;;ITC-2025-0017;Audiovisuel;Binche;BE;Recommandation;Grenke;mai 25;mai 2025;juin 2025;4 677,37 €;3 073,00 €;1 604,37 €;1;0;0;;52,21 %;299,95 €;Non
+;Thibaud Varasse - v infra;180-27770;;ITC-2025-0016;Consultance;Ixelles;BE;Recommandation;Grenke;mai 25;mai 2025;juin 2025;3 434,25 €;1 874,00 €;1 560,25 €;1;0;0;;83,26 %;112,30 €;Non
+;Thibaud de Clerck - Alarmes De Clerck;22209;;ITC-2025-0020;Alarmes;Forchies;BE;Client existant;Atlance;avr. 2025;juin 2025;juin 2025;4 086,20 €;2 831,00 €;1 255,20 €;1;2;0;;44,34 %;109,80 €;Non
+;Francois Deravet - Deravet Digital;180-27846;;ITC-2025-0023;Web;Liège;BE;Recommandation;Grenke;mars 25;juin 2025;juin 2025;1 857,75 €;1 105,00 €;752,75 €;1;0;0;;68,12 %;65,95 €;Non
+;Olivier Dumeunier - Duoplus;180-27874;;ITC-2025-0022;Graphisme;Sivry-Rance;BE;Recommandation;Grenke;mai 25;juin 2025;juin 2025;4 464,83 €;2 812,00 €;1 652,83 €;1;0;1;;58,78 %;148,60 €;Non
+;Audry Lumeau - Binome Store;180-28062;;ITC-2025-0021;Mode;Gosseiles;BE;Google;Grenke;juin 25;juin 2025;juin 2025;7 292,02 €;4 707,00 €;2 585,02 €;5;0;0;;54,92 %;231,16 €;Non
+;Loic Duchesnes - Chez loic;180-26982;;ITC-2025-0018;Horeca;Herstal;BE;Meta;Grenke;mars 2025;juin 2025;juin 2025;5 563,29 €;3 603,00 €;1 960,29 €;1;1;0;;54,41 %;175,80 €;Non
+;Esteban Arriaga Miranda - Eurofood Bank ASBL;22210;;ITC-2025-0019;ASBL;Bruxelles;BE;Client existant;Atlance;janv. 2025;juin 2025;juin 2025;10 992,81 €;4 993,00 €;5 999,81 €;5;0;0;;120,16 %;91,60 €;Non
+;Danielle Carmen Nsoke - Cn Partners SRL;180-23697;;ITC-2025-0024;Nettoyage;Rhodes-Saint-Genese;BE;Recommandation;Grenke;juil. 24;juil. 25;juil. 25;1 396,20 €;680,00 €;716,20 €;1;0;0;;105,32 %;47,75 €;Non
+;Danielle Carmen Nsoke - Genesis SRL;180-28341;;ITC-2025-0025;Nettoyage;Rhodes-Saint-Genese;BE;Recommandation;Grenke;juin 25;juil. 25;juil. 25;1 345,00 €;680,00 €;665,00 €;1;0;0;;97,79 %;47,75 €;Non
+;Thibaud Varasse - v-nfra;180-28398;;ITC-2025-0026;Consultance;Ixelles;BE;Client existant;Grenke;juin 25;juil. 25;juil. 25;14 237,69 €;11 225,00 €;3 012,69 €;1;0;0;;26,84 %;112,30 €;Non
+;Jonathan Ganhy - Takumi Creation ;180-28390;;ITC-2025-0028;Communication ;Hastière;BE;Recommandation;Grenke;juil. 25;juil. 25;Aout 2025;6 019,11 €;4 269,00 €;1 750,11 €;1;0;2;;41,00 %;140,20 €;Non
+;Patrick Burgeon - Kap-Services;180-28401;;ITC-2025-0030;Nettoyage;Charleroi;BE;Partenaire;Grenke;mars 2025;Aout 2025;Aout 2025;5 024,68 €;2 866,00 €;2 158,68 €;3;0;0;;75,32 %;251,70 €;Non
+;Lola Brousmiche - WasteEnd;180-28719;;ITC-2025-0031;Industriel;Charleroi;BE;Recommandation;Grenke;juil. 2025;Aout 2025;Aout 2025;2 038,24 €;1 261,00 €;777,24 €;1;0;0;;61,64 %;71,95 €;Non
+;Sabrina Dewever - Express immo;180-28794;;ITC-2025-0032;Immobilier;Namur;BE;Client existant;Grenke;aout 2025;Aout 2025;Aout 2025;2 236,54 €;1 661,54 €;575,00 €;0;1;0;&;34,61 %;259,95 €;Non
+;Benajmin Auvray - BRS Racing;180-28967;;ITC-2025-0034;Automobile;Walcourt;BE;Recommandation;Grenke;Aout 2025;sept. 25;sept. 25;1 501,42 €;993,00 €;508,42 €;1;0;0;;51,20 %;43,95 €;Non
+;Dorcas Siassia - Kimia Lex;180-28966;;ITC-2025-0035;Secretariat;Charleroi;BE;Google;Grenke;Aout 2025;sept. 25;sept. 25;1 423,08 €;826,00 €;597,08 €;1;0;0;;72,29 %;49,95 €;Non
+;Catherine Barbosa - Ecrin Santé;180-28984;;ITC-2025-0033;Bien-être;Le Roeulx ;BE;Recommandation;Grenke;Aout 2025;sept. 25;sept. 25;3 621,91 €;2 526,14 €;1 095,77 €;1;1;1;;43,38 %;95,58 €;Non
+;Havenith Danny - Mercurhosp;180-28958;;ITC-2025-0039;Medical;Namur;BE;Recommandation;Grenke;Aout 2025;sept. 25;sept. 25;24 436,64 €;18 797,44 €;5 639,20 €;8;0;0;;30,00 %;629,65 €;Non
+;Manu Latini - New Latistyl;180-28875;;ITC-2025-0040;Batiment;Walcourt;BE;Recommandation;Grenke;juil. 2025;sept. 25;sept. 25;4 302,80 €;2 634,00 €;1 668,80 €;1;0;1;;63,36 %;138,55 €;Non
+;Selim Belabed - Kids Explorers ASBL;180-29413;;ITC-2025-0040;ASBL;Bruxelles ;BE;Google;Grenke;sept. 2025;oct. 2025;oct. 2025;2 264,87 €;999,00 €;1 265,87 €;1;0;0;;126,71 %;79,95 €;Non
+;Gregory Ilnicki - Infra Route SRL;180-29310;;ITC-2025-0042;Genie Civil;Liège;BE;Client existant;Grenke;sept. 2025;oct. 2025;oct. 2025;1 588,95 €;1 223,10 €;365,85 €;0;0;1;;29,91 %;43,17 €;Non
+;Ludovic Fortin - Resilience Paysage;180-29527;;ITC-2025-0043;Parc & Jardins;Nivelles;BE;Google;Grenke;sept. 25;oct. 2025;oct. 2025;4 177,78 €;1 978,00 €;2 199,78 €;2;0;0;;111,21 %;135,36 €;Non
