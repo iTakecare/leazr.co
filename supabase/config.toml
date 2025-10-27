@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.import-contracts-2025]
 verify_jwt = true
+
+[functions.import-contracts-multi-years]
+verify_jwt = true
