@@ -270,15 +270,17 @@ export const mergeClients = async (sourceClientId: string, targetClientId: strin
       }
     }
 
-    // 6. Marquer le client source comme doublon
-    const { error: markDuplicateError } = await supabase
+    // 6. Supprimer définitivement le client source
+    const { error: deleteError } = await supabase
       .from('clients')
-      .update({ status: 'duplicate' })
+      .delete()
       .eq('id', sourceClientId);
 
-    if (markDuplicateError) {
-      throw new Error("Erreur lors du marquage comme doublon");
+    if (deleteError) {
+      throw new Error(`Erreur lors de la suppression du client source: ${deleteError.message}`);
     }
+
+    console.log(`🗑️ Client source "${sourceClient.name}" (${sourceClientId}) supprimé définitivement`);
 
     console.log(`✅ Fusion terminée: "${sourceClient.name}" → "${targetClient.name}"`);
     toast.success(`Client fusionné: ${sourceClient.name} → ${targetClient.name}`);
