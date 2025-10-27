@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { CSV_2022, CSV_2023, CSV_2024, CSV_2025 } from './csvData.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -250,11 +251,11 @@ serve(async (req) => {
 
     const companyId = profile.company_id;
 
-    // Load CSV files
-    const csv2022 = await Deno.readTextFile('./data/2022-Tableau_1.csv');
-    const csv2023 = await Deno.readTextFile('./data/2023-Tableau_1.csv');
-    const csv2024 = await Deno.readTextFile('./data/2024-Tableau_1.csv');
-    const csv2025 = await Deno.readTextFile('./data/2025-Tableau_1.csv');
+    // Load CSV data from embedded constants
+    const csv2022 = CSV_2022;
+    const csv2023 = CSV_2023;
+    const csv2024 = CSV_2024;
+    const csv2025 = CSV_2025;
 
     const yearsData: YearData[] = [
       { year: 2022, contracts: parseCSVByYear(csv2022, 2022) },
