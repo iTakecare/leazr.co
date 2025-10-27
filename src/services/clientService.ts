@@ -449,14 +449,39 @@ export interface BulkImportResult {
   };
 }
 
+// ==========================================
+// HELPERS DE NORMALISATION AVANCÉS
+// ==========================================
+
+/**
+ * Supprime les accents et diacritiques
+ */
+const removeDiacritics = (str: string): string => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
+/**
+ * Supprime les suffixes juridiques courants
+ */
+const stripLegalSuffixes = (str: string): string => {
+  return str.replace(/\b(srl|sprl|sarl|sas|sasu|bv|bvba|gmbh|ltd|inc|sa|spa|eurl|scrl|asbl|vzw|cv|nv|llc|plc|ag|gmbh & co kg)\b\.?/gi, ' ');
+};
+
+/**
+ * Supprime les termes génériques
+ */
+const stripGenericTerms = (str: string): string => {
+  return str.replace(/\b(infi|soins|service|services|company|co|group|groupe|enterprises|entreprise)\b/gi, ' ');
+};
+
 /**
  * Normalise un nom pour la comparaison (supprime espaces multiples, caractères spéciaux, casse)
  */
 const normalizeForComparison = (name: string): string => {
   return name
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Remplace caractères spéciaux par espaces
-    .replace(/\s+/g, ' ') // Remplace espaces multiples par un seul
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 };
 
@@ -468,82 +493,355 @@ const extractBaseName = (name: string): string => {
 };
 
 /**
+ * Canonicalise un nom (applique toutes les normalisations)
+ */
+const canonicalizeName = (str: string): string => {
+  if (!str) return '';
+  const base = extractBaseName(str);
+  const noAccents = removeDiacritics(base);
+  const noLegal = stripLegalSuffixes(noAccents);
+  const noGeneric = stripGenericTerms(noLegal);
+  return normalizeForComparison(noGeneric);
+};
+
+/**
+ * Normalise un numéro de téléphone (garde les 9 derniers chiffres)
+ */
+const normalizePhone = (phone?: string): string => {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  return digits.slice(-9);
+};
+
+/**
+ * Extrait les parties user et domain d'un email
+ */
+const emailParts = (email?: string): { user: string; domain: string } => {
+  if (!email) return { user: '', domain: '' };
+  const [user, domain] = email.toLowerCase().trim().split('@');
+  return { user: user || '', domain: domain || '' };
+};
+
+/**
  * Extrait les tokens significatifs d'un nom (mots > 2 lettres)
  */
 const extractSignificantTokens = (name: string): string[] => {
-  return normalizeForComparison(name)
+  return canonicalizeName(name)
     .split(' ')
     .filter(word => word.length > 2);
 };
 
+// ==========================================
+// CALCUL DE SIMILARITÉ ENRICHI
+// ==========================================
+
+interface SimilarityResult {
+  score: number;
+  signals: string[];
+}
+
 /**
- * Calcule le score de similarité entre deux clients (0-100)
+ * Calcule le score de similarité enrichi entre deux clients
  */
-const calculateSimilarityScore = (client1: Client, client2: Client): number => {
+const calculateSimilarityScore = (client1: Client, client2: Client): SimilarityResult => {
   let score = 0;
+  const signals: string[] = [];
   
-  // Email identique: +50 points
-  if (client1.email && client2.email && 
-      client1.email.toLowerCase().trim() === client2.email.toLowerCase().trim()) {
-    score += 50;
+  // 1. VAT NUMBER IDENTIQUE = DOUBLON CERTAIN
+  if (client1.vat_number && client2.vat_number && 
+      client1.vat_number.trim() === client2.vat_number.trim()) {
+    return { score: 100, signals: ['VAT identique'] };
   }
   
-  // Téléphone identique: +30 points
-  if (client1.phone && client2.phone && 
-      client1.phone.replace(/\s/g, '') === client2.phone.replace(/\s/g, '')) {
-    score += 30;
+  // 2. EMAIL
+  const email1 = client1.email?.toLowerCase().trim();
+  const email2 = client2.email?.toLowerCase().trim();
+  
+  if (email1 && email2) {
+    if (email1 === email2) {
+      score += 80;
+      signals.push('Email identique');
+    } else {
+      const parts1 = emailParts(email1);
+      const parts2 = emailParts(email2);
+      
+      if (parts1.user === parts2.user && parts1.domain !== parts2.domain) {
+        score += 20;
+        signals.push('Même utilisateur email');
+      }
+    }
   }
   
-  // Nom/société similaire: +20 points
-  const name1 = extractBaseName(client1.name);
-  const name2 = extractBaseName(client2.name);
-  const company1 = client1.company ? extractBaseName(client1.company) : '';
-  const company2 = client2.company ? extractBaseName(client2.company) : '';
+  // 3. TÉLÉPHONE (9 derniers chiffres)
+  const phone1 = normalizePhone(client1.phone);
+  const phone2 = normalizePhone(client2.phone);
   
-  const norm1 = normalizeForComparison(name1);
-  const norm2 = normalizeForComparison(name2);
-  const normComp1 = normalizeForComparison(company1);
-  const normComp2 = normalizeForComparison(company2);
+  if (phone1 && phone2 && phone1.length >= 9 && phone2.length >= 9) {
+    if (phone1 === phone2) {
+      score += 60;
+      signals.push('Téléphone identique');
+    }
+  }
+  
+  // 4. NOMS ET SOCIÉTÉS (canonicalisés)
+  const canon1Name = canonicalizeName(client1.name || '');
+  const canon2Name = canonicalizeName(client2.name || '');
+  const canon1Company = canonicalizeName(client1.company || '');
+  const canon2Company = canonicalizeName(client2.company || '');
   
   // Nom exact match
-  if (norm1 === norm2) score += 20;
-  // Nom contient société ou vice versa
-  else if ((norm1 && normComp2 && norm1.includes(normComp2)) || 
-           (norm2 && normComp1 && norm2.includes(normComp1))) score += 15;
-  // Société contient nom ou vice versa
-  else if ((normComp1 && norm2 && normComp1.includes(norm2)) || 
-           (normComp2 && norm1 && normComp2.includes(norm1))) score += 15;
+  if (canon1Name && canon2Name && canon1Name === canon2Name) {
+    score += 25;
+    signals.push('Nom identique');
+  }
   
-  // Tokens communs: jusqu'à +20 points
-  const tokens1 = extractSignificantTokens(name1 + ' ' + company1);
-  const tokens2 = extractSignificantTokens(name2 + ' ' + company2);
-  const commonTokens = tokens1.filter(t => tokens2.includes(t));
-  const tokenRatio = commonTokens.length / Math.max(tokens1.length, tokens2.length, 1);
-  score += Math.round(tokenRatio * 20);
+  // Société exact match
+  if (canon1Company && canon2Company && canon1Company === canon2Company) {
+    score += 25;
+    signals.push('Société identique');
+  }
   
-  return Math.min(score, 100);
+  // Cross matches: nom1 ↔ société2
+  if (canon1Name && canon2Company && canon1Name === canon2Company) {
+    score += 15;
+    signals.push('Nom = Société');
+  }
+  if (canon2Name && canon1Company && canon2Name === canon1Company) {
+    score += 15;
+    signals.push('Nom = Société');
+  }
+  
+  // 5. TOKENS COMMUNS
+  const allTokens1 = extractSignificantTokens((client1.name || '') + ' ' + (client1.company || ''));
+  const allTokens2 = extractSignificantTokens((client2.name || '') + ' ' + (client2.company || ''));
+  
+  if (allTokens1.length > 0 && allTokens2.length > 0) {
+    const commonTokens = allTokens1.filter(t => allTokens2.includes(t));
+    const tokenRatio = commonTokens.length / Math.max(allTokens1.length, allTokens2.length);
+    const tokenScore = Math.round(tokenRatio * 40);
+    if (tokenScore > 0) {
+      score += tokenScore;
+      if (tokenRatio >= 0.5) {
+        signals.push(`Tokens communs (${Math.round(tokenRatio * 100)}%)`);
+      }
+    }
+  }
+  
+  // 6. LOCALISATION
+  if (client1.postal_code && client2.postal_code && 
+      client1.postal_code.trim() === client2.postal_code.trim()) {
+    score += 15;
+    signals.push('Code postal identique');
+  }
+  
+  if (client1.city && client2.city && 
+      canonicalizeName(client1.city) === canonicalizeName(client2.city)) {
+    score += 10;
+    signals.push('Ville identique');
+  }
+  
+  return { score: Math.min(score, 100), signals };
 };
 
+// ==========================================
+// GRAPHE DE SIMILARITÉ ET GROUPEMENT
+// ==========================================
+
+interface Edge {
+  from: string;
+  to: string;
+  score: number;
+  signals: string[];
+}
+
 /**
- * Détecte si deux noms sont des variantes du même client
+ * Construit un graphe de similarité avec bucketing pour performance
  */
-const areVariants = (name1: string, name2: string): boolean => {
-  const norm1 = normalizeForComparison(name1);
-  const norm2 = normalizeForComparison(name2);
+const buildSimilarityGraph = (clients: Client[]): Edge[] => {
+  const edges: Edge[] = [];
   
-  // Comparaison exacte après normalisation
-  if (norm1 === norm2) return true;
+  // Maps globales pour détection rapide
+  const byVat = new Map<string, Client[]>();
+  const byEmail = new Map<string, Client[]>();
+  const byPhone = new Map<string, Client[]>();
   
-  // Comparaison des noms de base (sans #X)
-  const base1 = normalizeForComparison(extractBaseName(name1));
-  const base2 = normalizeForComparison(extractBaseName(name2));
-  if (base1 === base2) return true;
+  // Remplir les maps
+  clients.forEach(client => {
+    if (client.vat_number?.trim()) {
+      const vat = client.vat_number.trim();
+      if (!byVat.has(vat)) byVat.set(vat, []);
+      byVat.get(vat)!.push(client);
+    }
+    
+    if (client.email?.trim()) {
+      const email = client.email.toLowerCase().trim();
+      if (!byEmail.has(email)) byEmail.set(email, []);
+      byEmail.get(email)!.push(client);
+    }
+    
+    const phone = normalizePhone(client.phone);
+    if (phone.length >= 9) {
+      if (!byPhone.has(phone)) byPhone.set(phone, []);
+      byPhone.get(phone)!.push(client);
+    }
+  });
   
-  return false;
+  // Ajouter edges depuis les maps globales
+  const processedPairs = new Set<string>();
+  
+  const addEdgesFromGroup = (group: Client[], reason: string) => {
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const pairKey = [group[i].id, group[j].id].sort().join('|');
+        if (!processedPairs.has(pairKey)) {
+          processedPairs.add(pairKey);
+          const result = calculateSimilarityScore(group[i], group[j]);
+          if (result.score >= 60) {
+            edges.push({
+              from: group[i].id,
+              to: group[j].id,
+              score: result.score,
+              signals: result.signals
+            });
+          }
+        }
+      }
+    }
+  };
+  
+  byVat.forEach(group => addEdgesFromGroup(group, 'VAT'));
+  byEmail.forEach(group => addEdgesFromGroup(group, 'Email'));
+  byPhone.forEach(group => addEdgesFromGroup(group, 'Phone'));
+  
+  // Bucketing par tokens de nom pour détection de variantes
+  const buckets = new Map<string, Client[]>();
+  
+  clients.forEach(client => {
+    const tokens = extractSignificantTokens((client.name || '') + ' ' + (client.company || ''));
+    if (tokens.length > 0) {
+      const key = tokens.slice(0, 2).sort().join('_');
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key)!.push(client);
+    }
+  });
+  
+  // Comparer au sein de chaque bucket
+  buckets.forEach((bucket) => {
+    if (bucket.length <= 1) return;
+    
+    for (let i = 0; i < bucket.length; i++) {
+      for (let j = i + 1; j < bucket.length; j++) {
+        const pairKey = [bucket[i].id, bucket[j].id].sort().join('|');
+        if (!processedPairs.has(pairKey)) {
+          processedPairs.add(pairKey);
+          const result = calculateSimilarityScore(bucket[i], bucket[j]);
+          
+          // Seuil: 80+ certain, 60+ probable avec signaux
+          const isCertain = result.score >= 80;
+          const isProbable = result.score >= 60 && result.signals.length >= 2;
+          
+          if (isCertain || isProbable) {
+            edges.push({
+              from: bucket[i].id,
+              to: bucket[j].id,
+              score: result.score,
+              signals: result.signals
+            });
+          }
+        }
+      }
+    }
+  });
+  
+  return edges;
 };
 
 /**
- * Détecte les clients en doublon basés sur l'email, le nom et un score de similarité
+ * Extrait les composants connectés du graphe (groupes de doublons)
+ */
+const extractConnectedComponents = (edges: Edge[], clientsById: Map<string, Client>): Array<{
+  clients: Client[];
+  maxScore: number;
+  signals: string[];
+}> => {
+  const adjacency = new Map<string, Set<string>>();
+  const edgeData = new Map<string, Edge>();
+  
+  // Construire le graphe
+  edges.forEach(edge => {
+    if (!adjacency.has(edge.from)) adjacency.set(edge.from, new Set());
+    if (!adjacency.has(edge.to)) adjacency.set(edge.to, new Set());
+    adjacency.get(edge.from)!.add(edge.to);
+    adjacency.get(edge.to)!.add(edge.from);
+    
+    const edgeKey = [edge.from, edge.to].sort().join('|');
+    edgeData.set(edgeKey, edge);
+  });
+  
+  const visited = new Set<string>();
+  const components: Array<{ clients: Client[]; maxScore: number; signals: string[] }> = [];
+  
+  // DFS pour trouver les composants
+  const dfs = (nodeId: string, component: Set<string>) => {
+    visited.add(nodeId);
+    component.add(nodeId);
+    
+    const neighbors = adjacency.get(nodeId);
+    if (neighbors) {
+      neighbors.forEach(neighbor => {
+        if (!visited.has(neighbor)) {
+          dfs(neighbor, component);
+        }
+      });
+    }
+  };
+  
+  // Parcourir tous les nœuds
+  adjacency.forEach((_, nodeId) => {
+    if (!visited.has(nodeId)) {
+      const component = new Set<string>();
+      dfs(nodeId, component);
+      
+      if (component.size > 1) {
+        const clients = Array.from(component)
+          .map(id => clientsById.get(id))
+          .filter((c): c is Client => c !== undefined);
+        
+        // Calculer le score max et collecter les signaux
+        let maxScore = 0;
+        const allSignals = new Set<string>();
+        
+        component.forEach(id1 => {
+          component.forEach(id2 => {
+            if (id1 < id2) {
+              const edgeKey = [id1, id2].sort().join('|');
+              const edge = edgeData.get(edgeKey);
+              if (edge) {
+                maxScore = Math.max(maxScore, edge.score);
+                edge.signals.forEach(s => allSignals.add(s));
+              }
+            }
+          });
+        });
+        
+        components.push({
+          clients,
+          maxScore,
+          signals: Array.from(allSignals)
+        });
+      }
+    }
+  });
+  
+  return components;
+};
+
+// ==========================================
+// FONCTION PRINCIPALE DE DÉTECTION
+// ==========================================
+
+/**
+ * Détecte les clients en doublon avec algorithme avancé
  */
 export const detectDuplicateClients = async (): Promise<Array<{ 
   clients: Client[], 
@@ -551,71 +849,48 @@ export const detectDuplicateClients = async (): Promise<Array<{
   confidence: number 
 }>> => {
   try {
-    console.log("🔍 Détection avancée des doublons...");
+    console.log("🔍 Détection avancée des doublons (algorithme enrichi)...");
     
     const clients = await getAllClients();
-    const duplicates: Array<{ clients: Client[], reason: string, confidence: number }> = [];
-    const processed = new Set<string>();
-
-    // Grouper par email
-    const byEmail = new Map<string, Client[]>();
-    clients.forEach(client => {
-      if (client.email && client.email.trim()) {
-        const email = client.email.toLowerCase().trim();
-        if (!byEmail.has(email)) {
-          byEmail.set(email, []);
-        }
-        byEmail.get(email)!.push(client);
-      }
-    });
-
-    // Trouver les doublons par email
-    byEmail.forEach((clientGroup, email) => {
-      if (clientGroup.length > 1) {
-        const ids = clientGroup.map(c => c.id).sort().join('|');
-        if (!processed.has(ids)) {
-          processed.add(ids);
-          duplicates.push({
-            clients: clientGroup,
-            reason: `Email identique: ${email}`,
-            confidence: 100
-          });
-        }
-      }
-    });
-
-    // Grouper par similarité avancée
-    for (let i = 0; i < clients.length; i++) {
-      for (let j = i + 1; j < clients.length; j++) {
-        const client1 = clients[i];
-        const client2 = clients[j];
-        
-        const ids = [client1.id, client2.id].sort().join('|');
-        if (processed.has(ids)) continue;
-
-        // Calculer le score de similarité
-        const similarityScore = calculateSimilarityScore(client1, client2);
-        
-        // Seuil: 70+ = doublon certain
-        if (similarityScore >= 70) {
-          processed.add(ids);
-          
-          let reason = `Similarité: ${similarityScore}%`;
-          if (areVariants(client1.name, client2.name)) {
-            reason = `Variantes de nom détectées (${similarityScore}%)`;
-          }
-          
-          duplicates.push({
-            clients: [client1, client2],
-            reason,
-            confidence: similarityScore
-          });
-        }
-      }
+    console.log(`   📊 ${clients.length} clients à analyser`);
+    
+    if (clients.length === 0) {
+      return [];
     }
-
+    
+    // Construire le graphe de similarité
+    console.log("   🔗 Construction du graphe de similarité...");
+    const edges = buildSimilarityGraph(clients);
+    console.log(`   ✅ ${edges.length} liens de similarité détectés`);
+    
+    // Créer un map pour accès rapide
+    const clientsById = new Map<string, Client>();
+    clients.forEach(c => clientsById.set(c.id, c));
+    
+    // Extraire les composants connectés
+    console.log("   🧩 Extraction des groupes de doublons...");
+    const components = extractConnectedComponents(edges, clientsById);
+    
+    // Formater les résultats
+    const duplicates = components.map(comp => {
+      let reason = comp.signals.join(', ');
+      if (!reason) reason = `Similarité forte (${comp.maxScore}%)`;
+      
+      return {
+        clients: comp.clients,
+        reason,
+        confidence: comp.maxScore
+      };
+    });
+    
+    // Trier par confiance décroissante
+    duplicates.sort((a, b) => b.confidence - a.confidence);
+    
     console.log(`✅ ${duplicates.length} groupes de doublons détectés`);
-    return duplicates.sort((a, b) => b.confidence - a.confidence);
+    console.log(`   🎯 Certains (≥80): ${duplicates.filter(d => d.confidence >= 80).length}`);
+    console.log(`   ⚠️  Probables (60-79): ${duplicates.filter(d => d.confidence >= 60 && d.confidence < 80).length}`);
+    
+    return duplicates;
   } catch (error) {
     console.error("❌ Erreur lors de la détection des doublons:", error);
     return [];
