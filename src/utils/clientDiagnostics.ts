@@ -139,156 +139,154 @@ export const verifyClientUserAssociation = async (userId: string, userEmail: str
  * Permet de fusionner deux clients (en cas de duplication)
  * Transfert les contrats et autres données liées d'un client à un autre
  */
-export const mergeClients = async (sourceClientId: string, targetClientId: string) => {
+export const mergeClients = async (sourceClientId: string, targetClientId: string): Promise<void> => {
+  console.log(`🔄 Fusion du client ${sourceClientId} vers ${targetClientId}...`);
+  
   try {
-    console.log(`Fusion des clients : source ${sourceClientId} -> cible ${targetClientId}`);
-    
-    let offersTransferred = 0;
-    let contractsTransferred = 0;
-    
-    // 1. Vérifier que les deux clients existent
+    // 1. Récupérer les deux clients
     const { data: sourceClient, error: sourceError } = await supabase
       .from('clients')
       .select('*')
       .eq('id', sourceClientId)
       .single();
-      
+
     const { data: targetClient, error: targetError } = await supabase
       .from('clients')
       .select('*')
       .eq('id', targetClientId)
       .single();
-      
-    if (sourceError || targetError || !sourceClient || !targetClient) {
-      console.error("Erreur lors de la récupération des clients:", sourceError || targetError);
-      toast.error("Impossible de trouver les clients à fusionner");
-      return {
-        success: false,
-        message: "Impossible de trouver les clients à fusionner",
-        offersTransferred: 0,
-        contractsTransferred: 0
-      };
+
+    if (sourceError || targetError) {
+      throw new Error("Erreur lors de la récupération des clients");
     }
-    
-    // 2. Transférer les contrats
+
+    if (!sourceClient || !targetClient) {
+      throw new Error("Clients non trouvés");
+    }
+
+    console.log(`📋 Source: "${sourceClient.name}" → Cible: "${targetClient.name}"`);
+
+    // 2. Enrichir le client cible avec les données manquantes du source
+    const enrichments: Partial<any> = {};
+    let enrichmentLog = "";
+
+    if (!targetClient.email && sourceClient.email) {
+      enrichments.email = sourceClient.email;
+      enrichmentLog += `\n  ✓ Email ajouté: ${sourceClient.email}`;
+    } else if (targetClient.email !== sourceClient.email && sourceClient.email) {
+      // Email alternatif à conserver dans les notes
+      enrichmentLog += `\n  ℹ Email alternatif: ${sourceClient.email}`;
+    }
+
+    if (!targetClient.phone && sourceClient.phone) {
+      enrichments.phone = sourceClient.phone;
+      enrichmentLog += `\n  ✓ Téléphone ajouté: ${sourceClient.phone}`;
+    }
+
+    if (!targetClient.address && sourceClient.address) {
+      enrichments.address = sourceClient.address;
+      enrichmentLog += `\n  ✓ Adresse ajoutée`;
+    }
+
+    if (!targetClient.company && sourceClient.company) {
+      enrichments.company = sourceClient.company;
+      enrichmentLog += `\n  ✓ Société ajoutée: ${sourceClient.company}`;
+    }
+
+    // Enrichir les notes
+    let updatedNotes = targetClient.notes || "";
+    updatedNotes += `\n\n[${new Date().toISOString()}] Fusion avec "${sourceClient.name}" (${sourceClientId})`;
+    if (enrichmentLog) {
+      updatedNotes += enrichmentLog;
+    }
+    if (sourceClient.notes) {
+      updatedNotes += `\n\nNotes du client fusionné:\n${sourceClient.notes}`;
+    }
+    enrichments.notes = updatedNotes.trim();
+
+    // Appliquer les enrichissements
+    if (Object.keys(enrichments).length > 0) {
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update(enrichments)
+        .eq('id', targetClientId);
+
+      if (updateError) {
+        console.error("❌ Erreur lors de l'enrichissement:", updateError);
+      } else {
+        console.log("✅ Client cible enrichi");
+      }
+    }
+
+    // 3. Transférer les contrats
     const { data: contracts, error: contractsError } = await supabase
       .from('contracts')
-      .select('*')
+      .select('id')
       .eq('client_id', sourceClientId);
-      
-    if (contractsError) {
-      console.error("Erreur lors de la récupération des contrats:", contractsError);
-    } else if (contracts && contracts.length > 0) {
-      console.log(`Transfert de ${contracts.length} contrats du client ${sourceClientId} vers ${targetClientId}`);
-      
-      for (const contract of contracts) {
-        const { error: updateError } = await supabase
-          .from('contracts')
-          .update({ 
-            client_id: targetClientId,
-            client_name: targetClient.name
-          })
-          .eq('id', contract.id);
-          
-        if (updateError) {
-          console.error(`Erreur lors du transfert du contrat ${contract.id}:`, updateError);
-        } else {
-          contractsTransferred++;
-        }
+
+    if (!contractsError && contracts && contracts.length > 0) {
+      const { error: updateContractsError } = await supabase
+        .from('contracts')
+        .update({ client_id: targetClientId })
+        .eq('client_id', sourceClientId);
+
+      if (updateContractsError) {
+        console.error("❌ Erreur transfert contrats:", updateContractsError);
+      } else {
+        console.log(`✅ ${contracts.length} contrat(s) transféré(s)`);
       }
     }
-    
-    // 3. Transférer les offres
+
+    // 4. Transférer les offres
     const { data: offers, error: offersError } = await supabase
       .from('offers')
-      .select('*')
+      .select('id')
       .eq('client_id', sourceClientId);
-      
-    if (offersError) {
-      console.error("Erreur lors de la récupération des offres:", offersError);
-    } else if (offers && offers.length > 0) {
-      console.log(`Transfert de ${offers.length} offres du client ${sourceClientId} vers ${targetClientId}`);
-      
-      for (const offer of offers) {
-        const { error: updateError } = await supabase
-          .from('offers')
-          .update({ 
-            client_id: targetClientId,
-            client_name: targetClient.name,
-            client_email: targetClient.email || offer.client_email
-          })
-          .eq('id', offer.id);
-          
-        if (updateError) {
-          console.error(`Erreur lors du transfert de l'offre ${offer.id}:`, updateError);
-        } else {
-          offersTransferred++;
-        }
+
+    if (!offersError && offers && offers.length > 0) {
+      const { error: updateOffersError } = await supabase
+        .from('offers')
+        .update({ client_id: targetClientId })
+        .eq('client_id', sourceClientId);
+
+      if (updateOffersError) {
+        console.error("❌ Erreur transfert offres:", updateOffersError);
+      } else {
+        console.log(`✅ ${offers.length} offre(s) transférée(s)`);
       }
     }
-    
-    // 4. Gérer les user_id des deux clients
-    if (sourceClient.user_id && targetClient.user_id && sourceClient.user_id !== targetClient.user_id) {
-      // Les deux clients ont des user_id différents - situation complexe
-      console.warn(`Les deux clients ont des user_id différents: ${sourceClient.user_id} et ${targetClient.user_id}`);
-      toast.warning("Attention: les deux clients sont associés à des comptes utilisateurs différents");
-    } else if (sourceClient.user_id && !targetClient.user_id) {
-      // Le client source a un user_id mais pas le client cible, transférer l'association
-      console.log(`Transfert de l'association utilisateur ${sourceClient.user_id} vers le client cible ${targetClientId}`);
-      
-      const { error: updateUserIdError } = await supabase
+
+    // 5. Supprimer l'association utilisateur du doublon
+    if (sourceClient.user_id) {
+      const { error: unlinkError } = await supabase
         .from('clients')
-        .update({ 
-          user_id: sourceClient.user_id,
-          has_user_account: true,
-          user_account_created_at: sourceClient.user_account_created_at || new Date().toISOString()
-        })
-        .eq('id', targetClientId);
-        
-      if (updateUserIdError) {
-        console.error("Erreur lors du transfert de l'association utilisateur:", updateUserIdError);
+        .update({ user_id: null })
+        .eq('id', sourceClientId);
+
+      if (unlinkError) {
+        console.error("❌ Erreur dissociation user:", unlinkError);
+      } else {
+        console.log("✅ Association utilisateur supprimée du doublon");
       }
     }
-    // Si le client cible a déjà un user_id ou si aucun n'a de user_id, rien à faire
-    
-    // 5. Désactiver le client source (sans le supprimer pour conserver l'historique)
-    const { error: updateError } = await supabase
+
+    // 6. Marquer le client source comme doublon
+    const { error: markDuplicateError } = await supabase
       .from('clients')
-      .update({ 
-        status: 'duplicate',
-        user_id: null, // Retirer l'association utilisateur
-        has_user_account: false, // Marquer comme n'ayant plus de compte
-        notes: `${sourceClient.notes ? sourceClient.notes + "\n\n" : ""}Client fusionné avec ${targetClient.name} (${targetClientId}) le ${new Date().toISOString()}`
-      })
+      .update({ status: 'duplicate' })
       .eq('id', sourceClientId);
-      
-    if (updateError) {
-      console.error("Erreur lors de la désactivation du client source:", updateError);
-      toast.error("Erreur lors de la fusion des clients");
-      return {
-        success: false,
-        message: "Erreur lors de la fusion des clients",
-        offersTransferred,
-        contractsTransferred
-      };
+
+    if (markDuplicateError) {
+      throw new Error("Erreur lors du marquage comme doublon");
     }
-    
-    toast.success(`Clients fusionnés avec succès ! Toutes les données ont été transférées vers ${targetClient.name}`);
-    return {
-      success: true,
-      message: "Clients fusionnés avec succès",
-      offersTransferred,
-      contractsTransferred
-    };
+
+    console.log(`✅ Fusion terminée: "${sourceClient.name}" → "${targetClient.name}"`);
+    toast.success(`Client fusionné: ${sourceClient.name} → ${targetClient.name}`);
+
   } catch (error) {
-    console.error("Erreur dans mergeClients:", error);
+    console.error("❌ Erreur lors de la fusion:", error);
     toast.error("Erreur lors de la fusion des clients");
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Erreur inconnue",
-      offersTransferred: 0,
-      contractsTransferred: 0
-    };
+    throw error;
   }
 };
 

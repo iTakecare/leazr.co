@@ -455,8 +455,8 @@ export interface BulkImportResult {
 const normalizeForComparison = (name: string): string => {
   return name
     .toLowerCase()
-    .replace(/[^\\w\\s]/g, ' ') // Remplace caractères spéciaux par espaces
-    .replace(/\\s+/g, ' ') // Remplace espaces multiples par un seul
+    .replace(/[^\w\s]/g, ' ') // Remplace caractères spéciaux par espaces
+    .replace(/\s+/g, ' ') // Remplace espaces multiples par un seul
     .trim();
 };
 
@@ -465,6 +465,63 @@ const normalizeForComparison = (name: string): string => {
  */
 const extractBaseName = (name: string): string => {
   return name.replace(/\s*#\d+.*$/, '').trim();
+};
+
+/**
+ * Extrait les tokens significatifs d'un nom (mots > 2 lettres)
+ */
+const extractSignificantTokens = (name: string): string[] => {
+  return normalizeForComparison(name)
+    .split(' ')
+    .filter(word => word.length > 2);
+};
+
+/**
+ * Calcule le score de similarité entre deux clients (0-100)
+ */
+const calculateSimilarityScore = (client1: Client, client2: Client): number => {
+  let score = 0;
+  
+  // Email identique: +50 points
+  if (client1.email && client2.email && 
+      client1.email.toLowerCase().trim() === client2.email.toLowerCase().trim()) {
+    score += 50;
+  }
+  
+  // Téléphone identique: +30 points
+  if (client1.phone && client2.phone && 
+      client1.phone.replace(/\s/g, '') === client2.phone.replace(/\s/g, '')) {
+    score += 30;
+  }
+  
+  // Nom/société similaire: +20 points
+  const name1 = extractBaseName(client1.name);
+  const name2 = extractBaseName(client2.name);
+  const company1 = client1.company ? extractBaseName(client1.company) : '';
+  const company2 = client2.company ? extractBaseName(client2.company) : '';
+  
+  const norm1 = normalizeForComparison(name1);
+  const norm2 = normalizeForComparison(name2);
+  const normComp1 = normalizeForComparison(company1);
+  const normComp2 = normalizeForComparison(company2);
+  
+  // Nom exact match
+  if (norm1 === norm2) score += 20;
+  // Nom contient société ou vice versa
+  else if ((norm1 && normComp2 && norm1.includes(normComp2)) || 
+           (norm2 && normComp1 && norm2.includes(normComp1))) score += 15;
+  // Société contient nom ou vice versa
+  else if ((normComp1 && norm2 && normComp1.includes(norm2)) || 
+           (normComp2 && norm1 && normComp2.includes(norm1))) score += 15;
+  
+  // Tokens communs: jusqu'à +20 points
+  const tokens1 = extractSignificantTokens(name1 + ' ' + company1);
+  const tokens2 = extractSignificantTokens(name2 + ' ' + company2);
+  const commonTokens = tokens1.filter(t => tokens2.includes(t));
+  const tokenRatio = commonTokens.length / Math.max(tokens1.length, tokens2.length, 1);
+  score += Math.round(tokenRatio * 20);
+  
+  return Math.min(score, 100);
 };
 
 /**
@@ -486,14 +543,18 @@ const areVariants = (name1: string, name2: string): boolean => {
 };
 
 /**
- * Détecte les clients en doublon basés sur l'email et le nom
+ * Détecte les clients en doublon basés sur l'email, le nom et un score de similarité
  */
-export const detectDuplicateClients = async (): Promise<Array<{ clients: Client[], reason: string }>> => {
+export const detectDuplicateClients = async (): Promise<Array<{ 
+  clients: Client[], 
+  reason: string, 
+  confidence: number 
+}>> => {
   try {
-    console.log("🔍 Détection des doublons...");
+    console.log("🔍 Détection avancée des doublons...");
     
     const clients = await getAllClients();
-    const duplicates: Array<{ clients: Client[], reason: string }> = [];
+    const duplicates: Array<{ clients: Client[], reason: string, confidence: number }> = [];
     const processed = new Set<string>();
 
     // Grouper par email
@@ -516,13 +577,14 @@ export const detectDuplicateClients = async (): Promise<Array<{ clients: Client[
           processed.add(ids);
           duplicates.push({
             clients: clientGroup,
-            reason: `Email identique: ${email}`
+            reason: `Email identique: ${email}`,
+            confidence: 100
           });
         }
       }
     });
 
-    // Grouper par nom similaire
+    // Grouper par similarité avancée
     for (let i = 0; i < clients.length; i++) {
       for (let j = i + 1; j < clients.length; j++) {
         const client1 = clients[i];
@@ -531,21 +593,29 @@ export const detectDuplicateClients = async (): Promise<Array<{ clients: Client[
         const ids = [client1.id, client2.id].sort().join('|');
         if (processed.has(ids)) continue;
 
-        const name1 = normalizeForComparison(client1.name);
-        const name2 = normalizeForComparison(client2.name);
-
-        if (name1 === name2 || areVariants(client1.name, client2.name)) {
+        // Calculer le score de similarité
+        const similarityScore = calculateSimilarityScore(client1, client2);
+        
+        // Seuil: 70+ = doublon certain
+        if (similarityScore >= 70) {
           processed.add(ids);
+          
+          let reason = `Similarité: ${similarityScore}%`;
+          if (areVariants(client1.name, client2.name)) {
+            reason = `Variantes de nom détectées (${similarityScore}%)`;
+          }
+          
           duplicates.push({
             clients: [client1, client2],
-            reason: `Nom similaire: "${client1.name}" ≈ "${client2.name}"`
+            reason,
+            confidence: similarityScore
           });
         }
       }
     }
 
     console.log(`✅ ${duplicates.length} groupes de doublons détectés`);
-    return duplicates;
+    return duplicates.sort((a, b) => b.confidence - a.confidence);
   } catch (error) {
     console.error("❌ Erreur lors de la détection des doublons:", error);
     return [];

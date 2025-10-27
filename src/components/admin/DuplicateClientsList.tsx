@@ -23,6 +23,7 @@ import {
 interface DuplicateGroup {
   clients: Client[];
   reason: string;
+  confidence: number;
 }
 
 const DuplicateClientsList = () => {
@@ -63,17 +64,13 @@ const DuplicateClientsList = () => {
 
     setIsMerging(true);
     try {
-      const result = await mergeClients(selectedMerge.source, selectedMerge.target);
+      await mergeClients(selectedMerge.source, selectedMerge.target);
       
-      if (result.success) {
-        toast.success(`Clients fusionnés avec succès. ${result.offersTransferred} offre(s) et ${result.contractsTransferred} contrat(s) transféré(s)`);
-        
-        // Recharger les doublons
-        await loadDuplicates();
-        setSelectedMerge(null);
-      } else {
-        toast.error(result.message || "Erreur lors de la fusion des clients");
-      }
+      toast.success("Clients fusionnés avec succès");
+      
+      // Recharger les doublons
+      await loadDuplicates();
+      setSelectedMerge(null);
     } catch (error) {
       console.error("Erreur lors de la fusion:", error);
       toast.error("Erreur lors de la fusion des clients");
