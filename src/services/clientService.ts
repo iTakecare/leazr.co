@@ -531,6 +531,67 @@ const extractSignificantTokens = (name: string): string[] => {
     .filter(word => word.length > 2);
 };
 
+/**
+ * Découpe un nom sur les séparateurs - | : et retourne les segments gauche et droit
+ */
+const getDashSegments = (name: string): { left: string; right: string } => {
+  const match = name.match(/^(.+?)\s*[-|:]\s*(.+)$/);
+  if (match) {
+    return {
+      left: match[1].trim(),
+      right: match[2].trim()
+    };
+  }
+  return { left: name, right: '' };
+};
+
+/**
+ * Vérifie si une chaîne contient des termes génériques d'entreprise
+ */
+const isLikelyGenericCompany = (str: string): boolean => {
+  const lower = str.toLowerCase();
+  const genericTerms = ['infi', 'soins', 'service', 'services', 'company', 'co', 'group', 'groupe', 'enterprises', 'entreprise'];
+  const legalSuffixes = ['srl', 'sprl', 'sarl', 'sas', 'sasu', 'bv', 'bvba', 'gmbh', 'ltd', 'inc', 'sa', 'spa', 'eurl', 'scrl', 'asbl', 'vzw', 'cv', 'nv', 'llc', 'plc', 'ag'];
+  
+  return genericTerms.some(term => lower.includes(term)) || 
+         legalSuffixes.some(suffix => lower.includes(suffix));
+};
+
+/**
+ * Extrait un token fort unique (nom de marque distinctif)
+ */
+const singleStrongToken = (nameOrCompany: string): string => {
+  if (!nameOrCompany) return '';
+  const canonical = canonicalizeName(nameOrCompany);
+  const tokens = canonical.split(' ').filter(t => t.length > 0);
+  
+  // Si un seul token et qu'il est significatif (long ou avec chiffres)
+  if (tokens.length === 1) {
+    const token = tokens[0];
+    if (token.length >= 5 || /\d/.test(token)) {
+      return token;
+    }
+  }
+  
+  return '';
+};
+
+/**
+ * Construit une map de fréquence des tokens
+ */
+const buildTokenFrequency = (clients: Client[]): Map<string, number> => {
+  const frequency = new Map<string, number>();
+  
+  clients.forEach(client => {
+    const allTokens = extractSignificantTokens((client.name || '') + ' ' + (client.company || ''));
+    allTokens.forEach(token => {
+      frequency.set(token, (frequency.get(token) || 0) + 1);
+    });
+  });
+  
+  return frequency;
+};
+
 // ==========================================
 // CALCUL DE SIMILARITÉ ENRICHI
 // ==========================================
@@ -543,7 +604,7 @@ interface SimilarityResult {
 /**
  * Calcule le score de similarité enrichi entre deux clients
  */
-const calculateSimilarityScore = (client1: Client, client2: Client): SimilarityResult => {
+const calculateSimilarityScore = (client1: Client, client2: Client, tokenFrequency?: Map<string, number>): SimilarityResult => {
   let score = 0;
   const signals: string[] = [];
   
@@ -589,6 +650,104 @@ const calculateSimilarityScore = (client1: Client, client2: Client): SimilarityR
   const canon1Company = canonicalizeName(client1.company || '');
   const canon2Company = canonicalizeName(client2.company || '');
   
+  // 5. DASH-RIGHT MATCH (Fabrice - Never2Late vs Never2Late)
+  const dash1 = getDashSegments(client1.name || '');
+  const dash2 = getDashSegments(client2.name || '');
+  
+  if (dash1.right) {
+    const dashRightCanon = canonicalizeName(dash1.right);
+    if ((canon2Name && dashRightCanon === canon2Name) || 
+        (canon2Company && dashRightCanon === canon2Company)) {
+      score += 70;
+      signals.push('Segment après tiret = autre fiche');
+      console.info(`🎯 Dash-right match: "${dash1.right}" matches "${client2.name || client2.company}"`);
+    }
+  }
+  if (dash2.right) {
+    const dashRightCanon = canonicalizeName(dash2.right);
+    if ((canon1Name && dashRightCanon === canon1Name) || 
+        (canon1Company && dashRightCanon === canon1Company)) {
+      score += 70;
+      signals.push('Segment après tiret = autre fiche');
+      console.info(`🎯 Dash-right match: "${dash2.right}" matches "${client1.name || client1.company}"`);
+    }
+  }
+  
+  // 6. STRONG BRAND TOKEN (never2late, etc.)
+  const strong1 = singleStrongToken(client1.name || '') || singleStrongToken(client1.company || '');
+  const strong2 = singleStrongToken(client2.name || '') || singleStrongToken(client2.company || '');
+  
+  if (strong1 && strong2 && strong1 === strong2) {
+    score += 45;
+    signals.push('Token distinctif commun');
+    console.info(`🎯 Strong token match: "${strong1}"`);
+  }
+  
+  // 7. GENERIC COMPANY + FIRSTNAME (Infi Magali Soins SRL vs Magali Hadjadj)
+  const isGeneric1 = isLikelyGenericCompany(client1.company || client1.name || '');
+  const isGeneric2 = isLikelyGenericCompany(client2.company || client2.name || '');
+  
+  if (isGeneric1 || isGeneric2) {
+    const genericClient = isGeneric1 ? client1 : client2;
+    const personClient = isGeneric1 ? client2 : client1;
+    
+    const genericCanon = canonicalizeName(genericClient.company || genericClient.name || '');
+    const genericTokens = genericCanon.split(' ').filter(t => t.length > 2);
+    
+    // Si la société générique se réduit à un seul token (prénom potentiel)
+    if (genericTokens.length === 1) {
+      const potentialFirstname = genericTokens[0];
+      const personTokens = extractSignificantTokens(personClient.name || '');
+      
+      if (personTokens.includes(potentialFirstname)) {
+        // Vérifier si ville ou code postal identiques pour renforcer
+        const sameLocation = 
+          (genericClient.postal_code && personClient.postal_code && 
+           genericClient.postal_code.trim() === personClient.postal_code.trim()) ||
+          (genericClient.city && personClient.city && 
+           canonicalizeName(genericClient.city) === canonicalizeName(personClient.city));
+        
+        if (sameLocation) {
+          score += 50;
+          signals.push('Entreprise générique ↔ prénom de la personne (+ localisation)');
+        } else {
+          score += 35;
+          signals.push('Entreprise générique ↔ prénom de la personne');
+        }
+        console.info(`🎯 Generic-firstname match: "${potentialFirstname}" in "${personClient.name}"`);
+      }
+    }
+  }
+  
+  // 8. CONTACT_NAME CROSS (contact_name de l'un ↔ name de l'autre)
+  const contact1 = canonicalizeName(client1.contact_name || '');
+  const contact2 = canonicalizeName(client2.contact_name || '');
+  
+  if (contact1 && canon2Name) {
+    const tokens1 = contact1.split(' ').filter(t => t.length > 2);
+    const tokens2 = canon2Name.split(' ').filter(t => t.length > 2);
+    if (tokens1.length > 0 && tokens2.length > 0) {
+      const common = tokens1.filter(t => tokens2.includes(t));
+      const ratio = common.length / Math.max(tokens1.length, tokens2.length);
+      if (ratio > 0.5) {
+        score += 40;
+        signals.push('Contact = Nom (cross)');
+      }
+    }
+  }
+  if (contact2 && canon1Name) {
+    const tokens1 = contact2.split(' ').filter(t => t.length > 2);
+    const tokens2 = canon1Name.split(' ').filter(t => t.length > 2);
+    if (tokens1.length > 0 && tokens2.length > 0) {
+      const common = tokens1.filter(t => tokens2.includes(t));
+      const ratio = common.length / Math.max(tokens1.length, tokens2.length);
+      if (ratio > 0.5) {
+        score += 40;
+        signals.push('Contact = Nom (cross)');
+      }
+    }
+  }
+  
   // Nom exact match
   if (canon1Name && canon2Name && canon1Name === canon2Name) {
     score += 25;
@@ -611,7 +770,7 @@ const calculateSimilarityScore = (client1: Client, client2: Client): SimilarityR
     signals.push('Nom = Société');
   }
   
-  // 5. TOKENS COMMUNS
+  // 9. TOKENS COMMUNS + RARE TOKEN BOOST
   const allTokens1 = extractSignificantTokens((client1.name || '') + ' ' + (client1.company || ''));
   const allTokens2 = extractSignificantTokens((client2.name || '') + ' ' + (client2.company || ''));
   
@@ -625,9 +784,28 @@ const calculateSimilarityScore = (client1: Client, client2: Client): SimilarityR
         signals.push(`Tokens communs (${Math.round(tokenRatio * 100)}%)`);
       }
     }
+    
+    // Rare token boost
+    if (tokenFrequency && commonTokens.length > 0) {
+      const rareTokens = commonTokens.filter(token => {
+        const freq = tokenFrequency.get(token) || 0;
+        return freq <= 5;
+      });
+      
+      if (rareTokens.length > 0) {
+        const minFreq = Math.min(...rareTokens.map(t => tokenFrequency.get(t) || 0));
+        if (minFreq <= 2) {
+          score += 25;
+          signals.push('Token(s) rares communs');
+        } else if (minFreq <= 5) {
+          score += 15;
+          signals.push('Token(s) peu fréquents communs');
+        }
+      }
+    }
   }
   
-  // 6. LOCALISATION
+  // 10. LOCALISATION
   if (client1.postal_code && client2.postal_code && 
       client1.postal_code.trim() === client2.postal_code.trim()) {
     score += 15;
@@ -660,10 +838,16 @@ interface Edge {
 const buildSimilarityGraph = (clients: Client[]): Edge[] => {
   const edges: Edge[] = [];
   
+  // Construire la fréquence des tokens
+  const tokenFrequency = buildTokenFrequency(clients);
+  
   // Maps globales pour détection rapide
   const byVat = new Map<string, Client[]>();
   const byEmail = new Map<string, Client[]>();
   const byPhone = new Map<string, Client[]>();
+  const byDashRight = new Map<string, Client[]>();
+  const byStrongToken = new Map<string, Client[]>();
+  const bySingleFirstname = new Map<string, Client[]>();
   
   // Remplir les maps
   clients.forEach(client => {
@@ -684,6 +868,35 @@ const buildSimilarityGraph = (clients: Client[]): Edge[] => {
       if (!byPhone.has(phone)) byPhone.set(phone, []);
       byPhone.get(phone)!.push(client);
     }
+    
+    // Bucketing par segment droit du tiret
+    const dashSegments = getDashSegments(client.name || '');
+    if (dashSegments.right) {
+      const rightCanon = canonicalizeName(dashSegments.right);
+      if (rightCanon) {
+        if (!byDashRight.has(rightCanon)) byDashRight.set(rightCanon, []);
+        byDashRight.get(rightCanon)!.push(client);
+      }
+    }
+    
+    // Bucketing par token fort
+    const strong = singleStrongToken(client.name || '') || singleStrongToken(client.company || '');
+    if (strong) {
+      if (!byStrongToken.has(strong)) byStrongToken.set(strong, []);
+      byStrongToken.get(strong)!.push(client);
+    }
+    
+    // Bucketing par prénom unique dans société générique
+    const isGeneric = isLikelyGenericCompany(client.company || client.name || '');
+    if (isGeneric) {
+      const genericCanon = canonicalizeName(client.company || client.name || '');
+      const tokens = genericCanon.split(' ').filter(t => t.length > 2);
+      if (tokens.length === 1) {
+        const firstname = tokens[0];
+        if (!bySingleFirstname.has(firstname)) bySingleFirstname.set(firstname, []);
+        bySingleFirstname.get(firstname)!.push(client);
+      }
+    }
   });
   
   // Ajouter edges depuis les maps globales
@@ -695,7 +908,7 @@ const buildSimilarityGraph = (clients: Client[]): Edge[] => {
         const pairKey = [group[i].id, group[j].id].sort().join('|');
         if (!processedPairs.has(pairKey)) {
           processedPairs.add(pairKey);
-          const result = calculateSimilarityScore(group[i], group[j]);
+          const result = calculateSimilarityScore(group[i], group[j], tokenFrequency);
           if (result.score >= 60) {
             edges.push({
               from: group[i].id,
@@ -712,6 +925,9 @@ const buildSimilarityGraph = (clients: Client[]): Edge[] => {
   byVat.forEach(group => addEdgesFromGroup(group, 'VAT'));
   byEmail.forEach(group => addEdgesFromGroup(group, 'Email'));
   byPhone.forEach(group => addEdgesFromGroup(group, 'Phone'));
+  byDashRight.forEach(group => addEdgesFromGroup(group, 'Dash-right'));
+  byStrongToken.forEach(group => addEdgesFromGroup(group, 'Strong-token'));
+  bySingleFirstname.forEach(group => addEdgesFromGroup(group, 'Single-firstname'));
   
   // Bucketing par tokens de nom pour détection de variantes
   const buckets = new Map<string, Client[]>();
@@ -734,11 +950,19 @@ const buildSimilarityGraph = (clients: Client[]): Edge[] => {
         const pairKey = [bucket[i].id, bucket[j].id].sort().join('|');
         if (!processedPairs.has(pairKey)) {
           processedPairs.add(pairKey);
-          const result = calculateSimilarityScore(bucket[i], bucket[j]);
+          const result = calculateSimilarityScore(bucket[i], bucket[j], tokenFrequency);
           
           // Seuil: 80+ certain, 60+ probable avec signaux
-          const isCertain = result.score >= 80;
-          const isProbable = result.score >= 60 && result.signals.length >= 2;
+          // Exception: dash-right ou generic-firstname avec score ≥55
+          const isCertain = result.score >= 80 || 
+                           result.signals.includes('VAT identique') || 
+                           result.signals.includes('Email identique');
+          const isProbable = result.score >= 60 || 
+                            (result.score >= 55 && (
+                              result.signals.includes('Segment après tiret = autre fiche') ||
+                              result.signals.includes('Entreprise générique ↔ prénom de la personne') ||
+                              result.signals.includes('Entreprise générique ↔ prénom de la personne (+ localisation)')
+                            ));
           
           if (isCertain || isProbable) {
             edges.push({
@@ -849,7 +1073,7 @@ export const detectDuplicateClients = async (): Promise<Array<{
   confidence: number 
 }>> => {
   try {
-    console.log("🔍 Détection avancée des doublons (algorithme enrichi)...");
+    console.log("🔍 Détection avancée des doublons (algorithme enrichi v2)...");
     
     const clients = await getAllClients();
     console.log(`   📊 ${clients.length} clients à analyser`);
@@ -871,9 +1095,33 @@ export const detectDuplicateClients = async (): Promise<Array<{
     console.log("   🧩 Extraction des groupes de doublons...");
     const components = extractConnectedComponents(edges, clientsById);
     
-    // Formater les résultats
+    // Formater les résultats avec raisons priorisées
     const duplicates = components.map(comp => {
-      let reason = comp.signals.join(', ');
+      // Prioriser les signaux par importance
+      const priorityOrder = [
+        'VAT identique',
+        'Email identique',
+        'Téléphone identique',
+        'Segment après tiret = autre fiche',
+        'Entreprise générique ↔ prénom de la personne (+ localisation)',
+        'Entreprise générique ↔ prénom de la personne',
+        'Token distinctif commun',
+        'Contact = Nom (cross)',
+        'Token(s) rares communs',
+        'Nom identique',
+        'Société identique',
+        'Tokens communs',
+        'Code postal identique',
+        'Ville identique'
+      ];
+      
+      const sortedSignals = comp.signals.sort((a, b) => {
+        const indexA = priorityOrder.findIndex(p => a.includes(p) || p.includes(a));
+        const indexB = priorityOrder.findIndex(p => b.includes(p) || p.includes(b));
+        return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+      });
+      
+      let reason = sortedSignals.slice(0, 3).join(', ');
       if (!reason) reason = `Similarité forte (${comp.maxScore}%)`;
       
       return {
@@ -886,9 +1134,18 @@ export const detectDuplicateClients = async (): Promise<Array<{
     // Trier par confiance décroissante
     duplicates.sort((a, b) => b.confidence - a.confidence);
     
+    // Compter les nouveaux patterns détectés
+    const dashRightCount = duplicates.filter(d => d.reason.includes('Segment après tiret')).length;
+    const genericFirstnameCount = duplicates.filter(d => d.reason.includes('Entreprise générique')).length;
+    const strongTokenCount = duplicates.filter(d => d.reason.includes('Token distinctif')).length;
+    
     console.log(`✅ ${duplicates.length} groupes de doublons détectés`);
     console.log(`   🎯 Certains (≥80): ${duplicates.filter(d => d.confidence >= 80).length}`);
     console.log(`   ⚠️  Probables (60-79): ${duplicates.filter(d => d.confidence >= 60 && d.confidence < 80).length}`);
+    console.log(`   🆕 Nouveaux patterns:`);
+    console.log(`      - Dash-right: ${dashRightCount}`);
+    console.log(`      - Entreprise générique/prénom: ${genericFirstnameCount}`);
+    console.log(`      - Token distinctif: ${strongTokenCount}`);
     
     return duplicates;
   } catch (error) {
