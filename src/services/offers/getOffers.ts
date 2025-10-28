@@ -20,21 +20,23 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     console.log("🔑 Session présente:", !!session);
     console.log("🔑 Access token:", session?.access_token ? "présent" : "manquant");
     
-    // Récupérer le company_id de l'utilisateur pour un filtrage explicite
+    // Récupérer le company_id de l'utilisateur pour le filtrage explicite
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('company_id')
-      .eq('id', authData.user?.id)
+      .eq('id', authData.user!.id)
       .single();
     
     if (profileError || !profile?.company_id) {
-      console.error("❌ Impossible de récupérer le company_id:", profileError);
+      console.error("❌ Impossible de récupérer le company_id de l'utilisateur:", profileError);
+      toast.error("Erreur lors de la récupération de votre entreprise.");
       return [];
     }
     
     console.log("🏢 Filtrage par company_id:", profile.company_id);
     
-    // Construction de la requête de base avec filtre explicite par company_id
+    // Construction de la requête de base avec toutes les jointures nécessaires
+    // FILTRE EXPLICITE PAR company_id pour l'isolation des données
     let query = supabase
       .from('offers')
       .select(`
@@ -66,32 +68,22 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     // Debug détaillé
     if (!data || data.length === 0) {
-      console.log("⚠️ Aucune offre trouvée");
+      console.log("⚠️ Aucune offre trouvée pour cette entreprise");
       
-      // Debug: Vérifier le nombre total d'offres dans la base
+      // Debug: Vérifier le nombre total d'offres dans la base pour cette company
       const { count, error: countError } = await supabase
         .from('offers')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', profile.company_id);
         
       if (countError) {
         console.error("❌ Erreur lors du comptage:", countError);
       } else {
-        console.log(`📊 Nombre total d'offres en base: ${count}`);
-      }
-      
-      // Debug: Vérifier les offres par type
-      const { data: adminOffers, error: adminError } = await supabase
-        .from('offers')
-        .select('id, type, client_name, created_at')
-        .eq('type', 'admin_offer')
-        .limit(5);
-        
-      if (!adminError && adminOffers) {
-        console.log("🏢 Offres admin trouvées:", adminOffers);
+        console.log(`📊 Nombre total d'offres pour votre entreprise: ${count}`);
       }
       
     } else {
-      console.log(`✅ ${data.length} offres récupérées:`);
+      console.log(`✅ ${data.length} offres récupérées pour votre entreprise:`);
       data.forEach((offer, index) => {
         console.log(`  ${index + 1}. ID: ${offer.id} | Type: ${offer.type} | Client: ${offer.client_name} | Créée: ${offer.created_at}`);
       });
@@ -109,19 +101,25 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
   try {
     console.log("Fetching offers for client ID:", clientId);
     
-    // Récupérer le company_id de l'utilisateur pour filtrage
-    const { data: authData } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', authData.user?.id)
-      .single();
-    
-    if (!profile?.company_id) {
-      console.error("❌ Impossible de récupérer le company_id");
+    // Récupérer le company_id de l'utilisateur pour le filtrage
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("❌ Utilisateur non authentifié");
       return [];
     }
     
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError || !profile?.company_id) {
+      console.error("❌ Impossible de récupérer le company_id:", profileError);
+      return [];
+    }
+    
+    // Filtrer par client_id ET company_id
     const { data, error } = await supabase
       .from('offers')
       .select('*')
@@ -152,6 +150,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
         .from('offers')
         .select('*')
         .ilike('client_name', clientData.name)
+        .eq('company_id', profile.company_id)
         .eq('converted_to_contract', false)
         .order('created_at', { ascending: false });
         
@@ -168,6 +167,7 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
           .from('offers')
           .select('*')
           .ilike('client_email', clientData.email)
+          .eq('company_id', profile.company_id)
           .eq('converted_to_contract', false)
           .order('created_at', { ascending: false });
           
