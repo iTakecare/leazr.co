@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getClientById } from "@/services/clientService";
 import { Client } from "@/types/client";
-import { ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ChevronLeft, AlertCircle, Loader2, UserPlus, Edit2, X } from "lucide-react";
 import UnifiedClientView from "@/components/clients/UnifiedClientView";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import AmbassadorSelector from "@/components/ui/AmbassadorSelector";
+import { getClientAmbassador, updateClientAmbassador } from "@/services/ambassador/ambassadorClients";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +19,10 @@ export default function ClientDetail() {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentAmbassadorId, setCurrentAmbassadorId] = useState<string | null>(null);
+  const [currentAmbassadorName, setCurrentAmbassadorName] = useState<string | null>(null);
+  const [showAmbassadorSelector, setShowAmbassadorSelector] = useState(false);
+  const [loadingAmbassador, setLoadingAmbassador] = useState(false);
 
   // Check if we should start in edit mode
   const shouldStartInEditMode = searchParams.get('edit') === 'true';
@@ -57,6 +65,48 @@ export default function ClientDetail() {
   useEffect(() => {
     fetchClient();
   }, [id]);
+
+  useEffect(() => {
+    const loadAmbassador = async () => {
+      if (!id) return;
+      
+      setLoadingAmbassador(true);
+      try {
+        const ambassador = await getClientAmbassador(id);
+        if (ambassador) {
+          setCurrentAmbassadorId(ambassador.id);
+          setCurrentAmbassadorName(ambassador.name);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement de l\'ambassadeur:', error);
+      } finally {
+        setLoadingAmbassador(false);
+      }
+    };
+    
+    loadAmbassador();
+  }, [id]);
+
+  const handleAmbassadorChange = async (ambassadorId: string | null, ambassadorName?: string) => {
+    if (!id) return;
+    
+    setLoadingAmbassador(true);
+    try {
+      await updateClientAmbassador(id, ambassadorId);
+      setCurrentAmbassadorId(ambassadorId);
+      setCurrentAmbassadorName(ambassadorName || null);
+      toast.success(
+        ambassadorId 
+          ? 'Ambassadeur attribué avec succès' 
+          : 'Ambassadeur retiré avec succès'
+      );
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'ambassadeur:', error);
+      toast.error('Erreur lors de la mise à jour de l\'ambassadeur');
+    } finally {
+      setLoadingAmbassador(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -103,6 +153,58 @@ export default function ClientDetail() {
         </Button>
       </div>
 
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5" />
+            Ambassadeur
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingAmbassador ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement...
+            </div>
+          ) : currentAmbassadorId && currentAmbassadorName ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-sm">
+                  {currentAmbassadorName}
+                </Badge>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAmbassadorSelector(true)}
+                >
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Changer
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAmbassadorChange(null)}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Retirer
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAmbassadorSelector(true)}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Attribuer un ambassadeur
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       <UnifiedClientView 
         client={client} 
         onClientUpdate={(updatedClient) => {
@@ -114,6 +216,16 @@ export default function ClientDetail() {
           }
         }}
         initialEditMode={shouldStartInEditMode}
+      />
+
+      <AmbassadorSelector
+        isOpen={showAmbassadorSelector}
+        onClose={() => setShowAmbassadorSelector(false)}
+        onSelectAmbassador={(ambassador) => {
+          handleAmbassadorChange(ambassador.id, ambassador.name);
+          setShowAmbassadorSelector(false);
+        }}
+        selectedAmbassadorId={currentAmbassadorId || undefined}
       />
     </div>
   );
