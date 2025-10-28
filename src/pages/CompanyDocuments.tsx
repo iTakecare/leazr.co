@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { getFileUploadClient } from "@/integrations/supabase/client";
-import { ArrowLeft, Upload, FileText } from "lucide-react";
+import { Upload, FileText } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 
 export default function CompanyDocuments() {
-  const navigate = useNavigate();
   const { companyId } = useMultiTenant();
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -68,17 +66,7 @@ export default function CompanyDocuments() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Button
-        variant="ghost"
-        onClick={() => navigate(-1)}
-        className="mb-6"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Retour
-      </Button>
-
-      <Card>
+    <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -132,6 +120,5 @@ export default function CompanyDocuments() {
           </div>
         </CardContent>
       </Card>
-    </div>
   );
 }
