@@ -5948,6 +5948,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_broker_by_slug: {
+        Args: { broker_slug: string }
+        Returns: {
+          accent_color: string
+          company_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string
+          modules_enabled: string[]
+          name: string
+          primary_color: string
+          secondary_color: string
+          slug: string
+          updated_at: string
+        }[]
+      }
       get_cities_by_postal_code: {
         Args: { p_country_code?: string; p_postal_code: string }
         Returns: {
@@ -6419,6 +6436,7 @@ export type Database = {
           template_id: string
         }[]
       }
+      get_user_broker_id: { Args: never; Returns: string }
       get_user_client_associations: {
         Args: never
         Returns: {
@@ -6585,6 +6603,7 @@ export type Database = {
       is_admin_or_ambassador_v2: { Args: never; Returns: boolean }
       is_admin_v2: { Args: never; Returns: boolean }
       is_ambassador: { Args: never; Returns: boolean }
+      is_broker: { Args: never; Returns: boolean }
       is_client: { Args: never; Returns: boolean }
       is_company_admin: { Args: never; Returns: boolean }
       is_company_chat_available: {
