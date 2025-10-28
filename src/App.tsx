@@ -85,6 +85,17 @@ import LeazrSaaSSubscriptions from "@/pages/LeazrSaaSSubscriptions";
 // Route guards
 import AdminPrivateRoute from "@/components/routing/AdminPrivateRoute";
 import ClientPrivateRoute from "@/components/routing/ClientPrivateRoute";
+import BrokerPrivateRoute from "@/components/routing/BrokerPrivateRoute";
+
+// Broker components
+import BrokerLayout from "@/components/layout/BrokerLayout";
+import BrokerDashboard from "@/pages/broker/BrokerDashboard";
+import BrokerClients from "@/pages/broker/BrokerClients";
+import BrokerOffers from "@/pages/broker/BrokerOffers";
+import BrokerContracts from "@/pages/broker/BrokerContracts";
+import BrokerAnalytics from "@/pages/broker/BrokerAnalytics";
+import BrokerCreateOffer from "@/pages/broker/BrokerCreateOffer";
+import BrokerSettings from "@/pages/broker/BrokerSettings";
 
 
 // Ambassador management pages
@@ -211,6 +222,24 @@ const AppRoutes = () => (
         <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
         <Route path="offers" element={<AmbassadorOffersPage />} />
         <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+      </Route>
+    </Route>
+    
+    {/* ⚠️ MULTI-TENANT BROKER ROUTES ⚠️ */}
+    <Route path="/:brokerSlug/broker/*" element={<BrokerPrivateRoute />}>
+      <Route path="" element={<BrokerLayout />}>
+        <Route path="dashboard" element={<BrokerDashboard />} />
+        <Route path="clients" element={<BrokerClients />} />
+        <Route path="clients/:id" element={<ClientDetail />} />
+        <Route path="clients/edit/:id" element={<ClientEditPage />} />
+        <Route path="calculator" element={<BrokerCreateOffer />} />
+        <Route path="offers" element={<BrokerOffers />} />
+        <Route path="offers/:id" element={<AdminOfferDetail />} />
+        <Route path="contracts" element={<BrokerContracts />} />
+        <Route path="contracts/:id" element={<ContractDetail />} />
+        <Route path="analytics" element={<BrokerAnalytics />} />
+        <Route path="settings" element={<BrokerSettings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
     </Route>

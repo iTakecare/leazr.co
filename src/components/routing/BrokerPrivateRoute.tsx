@@ -1,13 +1,9 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useBrokerSlugAccess } from '@/hooks/useBrokerSlugAccess';
 
-interface BrokerPrivateRouteProps {
-  children: React.ReactNode;
-}
-
-const BrokerPrivateRoute: React.FC<BrokerPrivateRouteProps> = ({ children }) => {
+const BrokerPrivateRoute: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { hasAccess, loading: accessLoading } = useBrokerSlugAccess();
 
@@ -27,7 +23,7 @@ const BrokerPrivateRoute: React.FC<BrokerPrivateRouteProps> = ({ children }) => 
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return <Outlet />;
 };
 
 export default BrokerPrivateRoute;
