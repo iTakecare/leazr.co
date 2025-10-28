@@ -11,6 +11,7 @@ interface ExtendedUser extends User {
   last_name?: string;
   role?: string;
   company?: string;
+  company_type?: string;
   partner_id?: string;
   ambassador_id?: string;
   client_id?: string;
@@ -125,7 +126,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const isBroker = () => {
-    return user?.role === 'broker';
+    return (user?.role === 'admin' || user?.role === 'broker') && 
+           user?.company_type === 'broker';
   };
 
   // Fonction pour enrichir les données utilisateur avec gestion d'erreur améliorée
@@ -144,7 +146,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          companies!inner(company_type)
+        `)
         .eq('id', baseUser.id)
         .single();
 
@@ -166,6 +171,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           last_name: baseUser.user_metadata?.last_name || '',
           role: metaRole,
           company: '',
+          company_type: '',
           partner_id: '',
           ambassador_id: '',
           client_id: '',
@@ -220,6 +226,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         last_name: profile?.last_name || '',
         role: profile?.role || 'user', // Fallback sûr : 'user' sans privilèges
         company: profile?.company || '',
+        company_type: (profile?.companies as any)?.company_type || '',
         partner_id: profile?.partner_id || '',
         ambassador_id: ambassadorId,
         client_id: clientId,
@@ -246,6 +253,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         last_name: baseUser.user_metadata?.last_name || '',
         role: metaRole,
         company: '',
+        company_type: '',
         partner_id: '',
         ambassador_id: '',
         client_id: '',
