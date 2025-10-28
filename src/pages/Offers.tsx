@@ -23,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { useAuth } from "@/context/AuthContext";
 
 const Offers = () => {
   const {
@@ -49,6 +50,14 @@ const Offers = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { navigateToAdmin } = useRoleNavigation();
+  const { isBrokerUser } = useAuth();
+  
+  // Forcer la vue liste pour les broker users
+  useEffect(() => {
+    if (isBrokerUser()) {
+      setViewMode('list');
+    }
+  }, [isBrokerUser]);
   
   // Référence pour le défilement horizontal
   const scrollContainer = React.useRef<HTMLDivElement>(null);
@@ -90,6 +99,7 @@ const Offers = () => {
             onTabChange={setActiveTab}
             activeType={activeType}
             onTypeChange={setActiveType}
+            hideTypeFilter={isBrokerUser()}
           />
           
           <div className="flex items-center gap-2">
@@ -115,27 +125,29 @@ const Offers = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Sélecteur de vue */}
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <Button 
-                variant={viewMode === 'list' ? 'default' : 'ghost'} 
-                size="sm"
-                onClick={() => setViewMode('list')} 
-                className="rounded-none px-3"
-              >
-                <List className="h-4 w-4 mr-2" />
-                Liste
-              </Button>
-              <Button 
-                variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
-                size="sm"
-                onClick={() => setViewMode('kanban')} 
-                className="rounded-none px-3"
-              >
-                <Grid className="h-4 w-4 mr-2" />
-                Kanban
-              </Button>
-            </div>
+            {/* Sélecteur de vue - masqué pour les broker users */}
+            {!isBrokerUser() && (
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <Button 
+                  variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setViewMode('list')} 
+                  className="rounded-none px-3"
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  Liste
+                </Button>
+                <Button 
+                  variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setViewMode('kanban')} 
+                  className="rounded-none px-3"
+                >
+                  <Grid className="h-4 w-4 mr-2" />
+                  Kanban
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         

@@ -36,6 +36,7 @@ interface AuthContextType {
   isAmbassador: () => boolean;
   isSuperAdmin: () => boolean;
   isBroker: () => boolean;
+  isBrokerUser: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -128,6 +129,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isBroker = () => {
     return (user?.role === 'admin' || user?.role === 'broker') && 
            user?.company_type === 'broker';
+  };
+
+  const isBrokerUser = () => {
+    // Retourne true si l'utilisateur est un admin/broker OU un ambassadeur d'un broker
+    return isBroker() || (isAmbassador() && user?.company_type === 'broker');
   };
 
   // Fonction pour enrichir les données utilisateur avec gestion d'erreur améliorée
@@ -445,6 +451,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAmbassador,
     isSuperAdmin,
     isBroker,
+    isBrokerUser,
   };
 
   // Reduced logging on homepage

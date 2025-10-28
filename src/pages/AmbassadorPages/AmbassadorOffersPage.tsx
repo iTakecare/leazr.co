@@ -18,9 +18,16 @@ import { toast } from "sonner";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 const AmbassadorOffersPage = () => {
-  const { user } = useAuth();
+  const { user, isBrokerUser } = useAuth();
   const { navigateToAmbassador } = useRoleNavigation();
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
+  
+  // Forcer la vue liste pour les broker users
+  useEffect(() => {
+    if (isBrokerUser()) {
+      setViewMode('list');
+    }
+  }, [isBrokerUser]);
   const [loading, setLoading] = useState(true);
   const [offers, setOffers] = useState([]);
   const [filteredOffers, setFilteredOffers] = useState([]);
@@ -256,32 +263,35 @@ const AmbassadorOffersPage = () => {
               onTabChange={setActiveTab}
               activeType={activeType}
               onTypeChange={setActiveType}
+              hideTypeFilter={isBrokerUser()}
             />
             
             <div className="flex items-center gap-2">
               <OffersSearch value={searchTerm} onChange={setSearchTerm} />
               
-              {/* Sélecteur de vue */}
-              <div className="flex items-center border rounded-md overflow-hidden">
-                <Button 
-                  variant={viewMode === 'list' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setViewMode('list')} 
-                  className="rounded-none px-3"
-                >
-                  <List className="h-4 w-4 mr-2" />
-                  Liste
-                </Button>
-                <Button 
-                  variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setViewMode('kanban')} 
-                  className="rounded-none px-3"
-                >
-                  <Grid className="h-4 w-4 mr-2" />
-                  Kanban
-                </Button>
-              </div>
+              {/* Sélecteur de vue - masqué pour les broker users */}
+              {!isBrokerUser() && (
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <Button 
+                    variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                    size="sm"
+                    onClick={() => setViewMode('list')} 
+                    className="rounded-none px-3"
+                  >
+                    <List className="h-4 w-4 mr-2" />
+                    Liste
+                  </Button>
+                  <Button 
+                    variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                    size="sm"
+                    onClick={() => setViewMode('kanban')} 
+                    className="rounded-none px-3"
+                  >
+                    <Grid className="h-4 w-4 mr-2" />
+                    Kanban
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           
