@@ -20,19 +20,21 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     console.log("🔑 Session présente:", !!session);
     console.log("🔑 Access token:", session?.access_token ? "présent" : "manquant");
     
-    // Test de la fonction get_user_company_id_secure
-    try {
-      const { data: companyTest, error: companyError } = await supabase
-        .rpc('get_user_company_id_secure');
-      console.log("🏢 Test get_user_company_id_secure:", { 
-        result: companyTest, 
-        error: companyError?.message 
-      });
-    } catch (err) {
-      console.log("🏢 Erreur test company_id:", err);
+    // Récupérer le company_id de l'utilisateur pour un filtrage explicite
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', authData.user?.id)
+      .single();
+    
+    if (profileError || !profile?.company_id) {
+      console.error("❌ Impossible de récupérer le company_id:", profileError);
+      return [];
     }
     
-    // Construction de la requête de base avec toutes les jointures nécessaires
+    console.log("🏢 Filtrage par company_id:", profile.company_id);
+    
+    // Construction de la requête de base avec filtre explicite par company_id
     let query = supabase
       .from('offers')
       .select(`
@@ -41,7 +43,8 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         leasers(name),
         offer_equipment(id, title, purchase_price, quantity, margin, monthly_payment, selling_price, coefficient),
         business_sector
-      `);
+      `)
+      .eq('company_id', profile.company_id);
     
     // Appliquer le filtre uniquement si includeConverted est false
     if (!includeConverted) {
@@ -106,10 +109,24 @@ export const getOffersByClientId = async (clientId: string): Promise<any[]> => {
   try {
     console.log("Fetching offers for client ID:", clientId);
     
+    // Récupérer le company_id de l'utilisateur pour filtrage
+    const { data: authData } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', authData.user?.id)
+      .single();
+    
+    if (!profile?.company_id) {
+      console.error("❌ Impossible de récupérer le company_id");
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('offers')
       .select('*')
       .eq('client_id', clientId)
+      .eq('company_id', profile.company_id)
       .eq('converted_to_contract', false)
       .order('created_at', { ascending: false });
     
