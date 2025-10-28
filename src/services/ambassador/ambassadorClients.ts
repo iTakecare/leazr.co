@@ -240,3 +240,81 @@ export const linkClientToAmbassador = async (clientId: string, ambassadorId: str
     throw error;
   }
 };
+
+/**
+ * Récupère l'ambassadeur actuellement lié à un client
+ */
+export const getClientAmbassador = async (clientId: string) => {
+  try {
+    console.log("🔍 Récupération de l'ambassadeur pour le client:", clientId);
+    
+    const { data, error } = await supabase
+      .from('ambassador_clients')
+      .select(`
+        ambassador_id,
+        ambassadors (
+          id,
+          name,
+          email,
+          commission_level_id
+        )
+      `)
+      .eq('client_id', clientId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("❌ Erreur lors de la récupération de l'ambassadeur:", error);
+      throw error;
+    }
+    
+    if (!data || !data.ambassadors) {
+      console.log("⚠️ Aucun ambassadeur trouvé pour ce client");
+      return null;
+    }
+    
+    console.log("✅ Ambassadeur trouvé:", data.ambassadors);
+    return {
+      id: data.ambassadors.id,
+      name: data.ambassadors.name,
+      email: data.ambassadors.email || '',
+      commission_level_id: data.ambassadors.commission_level_id
+    };
+  } catch (error) {
+    console.error("❌ Exception dans getClientAmbassador:", error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour l'ambassadeur lié à un client
+ */
+export const updateClientAmbassador = async (
+  clientId: string, 
+  ambassadorId: string | null
+) => {
+  try {
+    console.log("🔄 Mise à jour de l'ambassadeur pour le client:", { clientId, ambassadorId });
+    
+    // Supprimer tous les liens existants
+    const { error: deleteError } = await supabase
+      .from('ambassador_clients')
+      .delete()
+      .eq('client_id', clientId);
+    
+    if (deleteError) {
+      console.error("❌ Erreur lors de la suppression du lien existant:", deleteError);
+      throw deleteError;
+    }
+    
+    // Si un nouvel ambassadeur est spécifié, créer le lien
+    if (ambassadorId) {
+      return await linkClientToAmbassador(clientId, ambassadorId);
+    }
+    
+    console.log("✅ Ambassadeur retiré avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Exception dans updateClientAmbassador:", error);
+    throw error;
+  }
+};

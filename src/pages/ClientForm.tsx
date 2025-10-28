@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { PostalCodeInput } from '@/components/form/PostalCodeInput';
-import { linkClientToAmbassador } from '@/services/ambassador/ambassadorClients';
+import { linkClientToAmbassador, getClientAmbassador, updateClientAmbassador } from '@/services/ambassador/ambassadorClients';
 import { createClient, getClientById, updateClient } from '@/services/clientService';
 import { formatPhoneWithCountry } from '@/services/postalCodeService';
 import { toast } from 'sonner';
-import { ArrowLeft, Phone } from 'lucide-react';
+import { ArrowLeft, Phone, UserPlus } from 'lucide-react';
 import { ClientLogoUploader } from '@/components/clients/ClientLogoUploader';
+import AmbassadorSelector from '@/components/ui/AmbassadorSelector';
 
 
 const ClientForm = () => {
@@ -39,6 +41,10 @@ const ClientForm = () => {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentAmbassadorId, setCurrentAmbassadorId] = useState<string | null>(null);
+  const [currentAmbassadorName, setCurrentAmbassadorName] = useState<string>('');
+  const [showAmbassadorSelector, setShowAmbassadorSelector] = useState(false);
+  const [loadingAmbassador, setLoadingAmbassador] = useState(false);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -93,12 +99,47 @@ const ClientForm = () => {
           notes: client.notes || '',
           logo_url: client.logo_url || ''
         });
+        
+        // Charger l'ambassadeur lié si en mode édition
+        setLoadingAmbassador(true);
+        try {
+          const ambassador = await getClientAmbassador(clientId);
+          if (ambassador) {
+            setCurrentAmbassadorId(ambassador.id);
+            setCurrentAmbassadorName(ambassador.name);
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement de l\'ambassadeur:', error);
+        } finally {
+          setLoadingAmbassador(false);
+        }
       }
     } catch (error) {
       console.error('Error loading client:', error);
       toast.error('Impossible de charger les données du client');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAmbassadorChange = async (ambassadorId: string | null, ambassadorName?: string) => {
+    if (!isEdit || !id) return;
+    
+    setLoadingAmbassador(true);
+    try {
+      await updateClientAmbassador(id, ambassadorId);
+      setCurrentAmbassadorId(ambassadorId);
+      setCurrentAmbassadorName(ambassadorName || '');
+      toast.success(
+        ambassadorId 
+          ? 'Ambassadeur attribué avec succès' 
+          : 'Ambassadeur retiré avec succès'
+      );
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'ambassadeur:', error);
+      toast.error('Erreur lors de la mise à jour de l\'ambassadeur');
+    } finally {
+      setLoadingAmbassador(false);
     }
   };
 
@@ -308,6 +349,49 @@ const ClientForm = () => {
                    />
                  </div>
                  
+                 {isEdit && (
+                   <div className="md:col-span-2">
+                     <Label>Ambassadeur attribué</Label>
+                     <div className="flex items-center gap-2 mt-2">
+                       {loadingAmbassador ? (
+                         <div className="text-sm text-muted-foreground">Chargement...</div>
+                       ) : currentAmbassadorId ? (
+                         <>
+                           <Badge variant="secondary" className="text-sm">
+                             {currentAmbassadorName}
+                           </Badge>
+                           <Button
+                             type="button"
+                             variant="outline"
+                             size="sm"
+                             onClick={() => setShowAmbassadorSelector(true)}
+                           >
+                             Changer
+                           </Button>
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => handleAmbassadorChange(null)}
+                           >
+                             Retirer
+                           </Button>
+                         </>
+                       ) : (
+                         <Button
+                           type="button"
+                           variant="outline"
+                           size="sm"
+                           onClick={() => setShowAmbassadorSelector(true)}
+                         >
+                           <UserPlus className="h-4 w-4 mr-2" />
+                           Attribuer un ambassadeur
+                         </Button>
+                       )}
+                     </div>
+                   </div>
+                 )}
+                 
               </div>
               
               <div className="flex justify-end gap-4">
@@ -328,6 +412,16 @@ const ClientForm = () => {
             </form>
           </CardContent>
         </Card>
+        
+        <AmbassadorSelector
+          isOpen={showAmbassadorSelector}
+          onClose={() => setShowAmbassadorSelector(false)}
+          onSelectAmbassador={(ambassador) => {
+            handleAmbassadorChange(ambassador.id, ambassador.name);
+            setShowAmbassadorSelector(false);
+          }}
+          selectedAmbassadorId={currentAmbassadorId || undefined}
+        />
       </div>
     </div>
   );
