@@ -1354,6 +1354,7 @@ export type Database = {
           account_status: string
           clients_count: number | null
           co2_saved: number | null
+          company_type: string | null
           created_at: string
           custom_domain: string | null
           default_html_template_slug: string | null
@@ -1384,6 +1385,7 @@ export type Database = {
           account_status?: string
           clients_count?: number | null
           co2_saved?: number | null
+          company_type?: string | null
           created_at?: string
           custom_domain?: string | null
           default_html_template_slug?: string | null
@@ -1414,6 +1416,7 @@ export type Database = {
           account_status?: string
           clients_count?: number | null
           co2_saved?: number | null
+          company_type?: string | null
           created_at?: string
           custom_domain?: string | null
           default_html_template_slug?: string | null
@@ -6775,6 +6778,7 @@ export type Database = {
         | "partner"
         | "client"
         | "user"
+        | "broker"
       pdf_page_format: "A4" | "Letter" | "Legal"
     }
     CompositeTypes: {
@@ -6910,6 +6914,7 @@ export const Constants = {
         "partner",
         "client",
         "user",
+        "broker",
       ],
       pdf_page_format: ["A4", "Letter", "Legal"],
     },
