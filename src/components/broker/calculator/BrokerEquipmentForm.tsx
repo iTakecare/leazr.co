@@ -22,23 +22,18 @@ const BrokerEquipmentForm: React.FC<BrokerEquipmentFormProps> = ({
   onAdd
 }) => {
   const handleChange = (field: keyof BrokerEquipmentItem, value: string | number) => {
-    const updated = { ...currentEquipment, [field]: value };
-    
-    // Auto-calculate unitPrice based on quantity and remaining budget
-    if (field === 'quantity') {
-      const qty = value as number;
-      if (qty > 0) {
-        updated.unitPrice = remainingBudget / qty;
-      }
-    }
-    
-    onEquipmentChange(updated);
+    onEquipmentChange({ ...currentEquipment, [field]: value });
   };
+
+  const totalPrice = (currentEquipment.quantity || 0) * (currentEquipment.unitPrice || 0);
+  const exceedsBudget = totalPrice > remainingBudget;
 
   const canAdd = currentEquipment.objectType && 
                  currentEquipment.quantity && 
                  currentEquipment.quantity > 0 &&
-                 remainingBudget > 0;
+                 currentEquipment.unitPrice &&
+                 currentEquipment.unitPrice > 0 &&
+                 !exceedsBudget;
 
   return (
     <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
@@ -105,25 +100,29 @@ const BrokerEquipmentForm: React.FC<BrokerEquipmentFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="unit-price">Prix unitaire</Label>
+          <Label htmlFor="unit-price">Prix unitaire *</Label>
           <Input
             id="unit-price"
-            value={currentEquipment.unitPrice ? formatCurrency(currentEquipment.unitPrice) : ''}
-            disabled
-            className="bg-muted"
+            type="number"
+            min="0"
+            step="0.01"
+            value={currentEquipment.unitPrice || ''}
+            onChange={(e) => handleChange('unitPrice', parseFloat(e.target.value) || 0)}
+            placeholder="0.00 €"
           />
+          {exceedsBudget && totalPrice > 0 && (
+            <p className="text-sm text-destructive">
+              Le total dépasse le budget restant
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label>Total</Label>
           <Input
-            value={
-              currentEquipment.quantity && currentEquipment.unitPrice
-                ? formatCurrency(currentEquipment.quantity * currentEquipment.unitPrice)
-                : ''
-            }
+            value={totalPrice > 0 ? formatCurrency(totalPrice) : ''}
             disabled
-            className="bg-muted font-semibold"
+            className={`bg-muted font-semibold ${exceedsBudget ? 'border-destructive text-destructive' : ''}`}
           />
         </div>
       </div>
