@@ -82,7 +82,7 @@ const BrokerCalculator: React.FC = () => {
         }));
       }
     }
-  }, [remainingBudget, currentEquipment.quantity, editingEquipmentId]);
+  }, [currentEquipment.quantity, editingEquipmentId]);
   
   // Calculate total margin (0 for now, can be added later)
   const totalMargin = 0;
