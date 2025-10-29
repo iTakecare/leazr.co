@@ -46,7 +46,7 @@ const BrokerSidebar: React.FC = () => {
     { 
       icon: Calculator, 
       label: "Calculateur", 
-      href: `${basePrefix}/calculator`, 
+      href: `${basePrefix}/create-offer`, 
       color: "purple" 
     },
     { 
