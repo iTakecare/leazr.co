@@ -17,7 +17,6 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     
     const { data, error } = await supabase
       .from('leasers')
-      .eq('company_id', userCompanyId)
       .select(`
         id, 
         name,
@@ -43,6 +42,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
           )
         )
       `)
+      .eq('company_id', userCompanyId)
       .order('name');
     
     if (error) {
@@ -98,8 +98,6 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
     
     const { data, error } = await supabase
       .from('leasers')
-      .eq('company_id', userCompanyId)
-      .eq('id', id)
       .select(`
         id, 
         name,
@@ -125,6 +123,8 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
           )
         )
       `)
+      .eq('company_id', userCompanyId)
+      .eq('id', id)
       .single();
     
     if (error) {
@@ -222,7 +222,31 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
     }
     
     // Récupérer le leaser complet pour le renvoyer
-    return await getLeaserById(data.id);
+    try {
+      const fullLeaser = await getLeaserById(data.id);
+      if (fullLeaser) return fullLeaser;
+      console.warn('getLeaserById returned null, using inserted row fallback');
+    } catch (e) {
+      console.warn('getLeaserById failed, using inserted row fallback', e);
+    }
+    
+    // Fallback: retourner les données insérées même si getLeaserById échoue
+    return {
+      id: data.id,
+      name: data.name,
+      company_name: data.company_name ?? undefined,
+      logo_url: data.logo_url ?? undefined,
+      address: data.address ?? undefined,
+      city: data.city ?? undefined,
+      postal_code: data.postal_code ?? undefined,
+      country: data.country ?? undefined,
+      vat_number: data.vat_number ?? undefined,
+      phone: data.phone ?? undefined,
+      email: data.email ?? undefined,
+      available_durations: data.available_durations ?? [12,18,24,36,48,60,72],
+      use_duration_coefficients: (data as any).use_duration_coefficients ?? false,
+      ranges: []
+    } as Leaser & { use_duration_coefficients?: boolean };
   } catch (error) {
     console.error('Exception during leaser creation:', error);
     toast.error("Erreur lors de la création du leaser");
