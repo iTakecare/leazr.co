@@ -14,6 +14,8 @@ interface BrokerAdditionalDetailsFormProps {
   onEquipmentChange: (equipment: Partial<BrokerEquipmentItem>) => void;
   onAddEquipment: () => void;
   onRemoveEquipment: (id: string) => void;
+  onEditEquipment: (id: string) => void;
+  editingEquipmentId?: string | null;
 }
 
 const BrokerAdditionalDetailsForm: React.FC<BrokerAdditionalDetailsFormProps> = ({
@@ -24,7 +26,9 @@ const BrokerAdditionalDetailsForm: React.FC<BrokerAdditionalDetailsFormProps> = 
   currentEquipment,
   onEquipmentChange,
   onAddEquipment,
-  onRemoveEquipment
+  onRemoveEquipment,
+  onEditEquipment,
+  editingEquipmentId
 }) => {
   return (
     <Card>
@@ -54,12 +58,14 @@ const BrokerAdditionalDetailsForm: React.FC<BrokerAdditionalDetailsFormProps> = 
           onEquipmentChange={onEquipmentChange}
           remainingBudget={remainingBudget}
           onAdd={onAddEquipment}
+          editingEquipmentId={editingEquipmentId}
         />
 
         {/* Equipment List */}
         <BrokerEquipmentList
           equipmentList={equipmentList}
           onRemove={onRemoveEquipment}
+          onEdit={onEditEquipment}
         />
       </CardContent>
     </Card>

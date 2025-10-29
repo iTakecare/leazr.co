@@ -6,20 +6,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LEASABLE_ASSET_TYPES, MANUFACTURERS } from '@/constants/leasableAssets';
 import { BrokerEquipmentItem } from '@/types/brokerEquipment';
 import { formatCurrency } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 
 interface BrokerEquipmentFormProps {
   currentEquipment: Partial<BrokerEquipmentItem>;
   onEquipmentChange: (equipment: Partial<BrokerEquipmentItem>) => void;
   remainingBudget: number;
   onAdd: () => void;
+  editingEquipmentId?: string | null;
 }
 
 const BrokerEquipmentForm: React.FC<BrokerEquipmentFormProps> = ({
   currentEquipment,
   onEquipmentChange,
   remainingBudget,
-  onAdd
+  onAdd,
+  editingEquipmentId
 }) => {
   const handleChange = (field: keyof BrokerEquipmentItem, value: string | number) => {
     onEquipmentChange({ ...currentEquipment, [field]: value });
@@ -140,8 +142,17 @@ const BrokerEquipmentForm: React.FC<BrokerEquipmentFormProps> = ({
           disabled={!canAdd}
           className="gap-2"
         >
-          <Plus className="h-4 w-4" />
-          Ajouter à la liste
+          {editingEquipmentId ? (
+            <>
+              <Check className="h-4 w-4" />
+              Mettre à jour
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4" />
+              Ajouter à la liste
+            </>
+          )}
         </Button>
       </div>
     </div>

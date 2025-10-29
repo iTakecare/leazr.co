@@ -47,8 +47,10 @@ const BrokerCalculator: React.FC = () => {
     quantity: 1,
     objectType: '',
     manufacturer: '',
-    description: ''
+    description: '',
+    unitPrice: 0
   });
+  const [editingEquipmentId, setEditingEquipmentId] = useState<string | null>(null);
   
   const [isSaving, setIsSaving] = useState(false);
 
@@ -106,8 +108,18 @@ const BrokerCalculator: React.FC = () => {
       return;
     }
     
-    const unitPrice = currentEquipment.quantity > 0 ? remainingBudget / currentEquipment.quantity : 0;
+    // Utiliser le prix unitaire saisi par l'utilisateur
+    const unitPrice = currentEquipment.unitPrice || 0;
     const totalPrice = currentEquipment.quantity * unitPrice;
+    
+    if (unitPrice <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Le prix unitaire doit être supérieur à 0",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (totalPrice > remainingBudget) {
       toast({
@@ -119,7 +131,7 @@ const BrokerCalculator: React.FC = () => {
     }
     
     const newEquipment: BrokerEquipmentItem = {
-      id: crypto.randomUUID(),
+      id: editingEquipmentId || crypto.randomUUID(),
       objectType: currentEquipment.objectType,
       manufacturer: currentEquipment.manufacturer || '',
       description: currentEquipment.description || '',
@@ -129,11 +141,23 @@ const BrokerCalculator: React.FC = () => {
     };
     
     setEquipmentList([...equipmentList, newEquipment]);
-    setCurrentEquipment({ quantity: 1, objectType: '', manufacturer: '', description: '' });
+    setCurrentEquipment({ quantity: 1, objectType: '', manufacturer: '', description: '', unitPrice: 0 });
+    setEditingEquipmentId(null);
   };
 
   const handleRemoveEquipment = (id: string) => {
     setEquipmentList(equipmentList.filter(eq => eq.id !== id));
+  };
+
+  const handleEditEquipment = (id: string) => {
+    const equipmentToEdit = equipmentList.find(eq => eq.id === id);
+    if (equipmentToEdit) {
+      // Retirer l'équipement de la liste temporairement
+      setEquipmentList(equipmentList.filter(eq => eq.id !== id));
+      // Charger ses données dans le formulaire
+      setCurrentEquipment(equipmentToEdit);
+      setEditingEquipmentId(id);
+    }
   };
 
   const prepareOfferData = async () => {
@@ -328,6 +352,8 @@ const BrokerCalculator: React.FC = () => {
             onEquipmentChange={setCurrentEquipment}
             onAddEquipment={handleAddEquipment}
             onRemoveEquipment={handleRemoveEquipment}
+            onEditEquipment={handleEditEquipment}
+            editingEquipmentId={editingEquipmentId}
           />
 
           {/* Actions */}

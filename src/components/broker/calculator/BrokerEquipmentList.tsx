@@ -3,16 +3,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { BrokerEquipmentItem } from '@/types/brokerEquipment';
 import { formatCurrency } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 
 interface BrokerEquipmentListProps {
   equipmentList: BrokerEquipmentItem[];
   onRemove: (id: string) => void;
+  onEdit: (id: string) => void;
 }
 
 const BrokerEquipmentList: React.FC<BrokerEquipmentListProps> = ({
   equipmentList,
-  onRemove
+  onRemove,
+  onEdit
 }) => {
   if (equipmentList.length === 0) {
     return (
@@ -49,14 +51,26 @@ const BrokerEquipmentList: React.FC<BrokerEquipmentListProps> = ({
                 <TableCell className="text-right">{formatCurrency(equipment.unitPrice)}</TableCell>
                 <TableCell className="text-right font-semibold">{formatCurrency(equipment.totalPrice)}</TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemove(equipment.id)}
-                    className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEdit(equipment.id)}
+                      className="h-8 w-8 p-0 hover:bg-primary/10"
+                      title="Modifier"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemove(equipment.id)}
+                      className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                      title="Supprimer"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
