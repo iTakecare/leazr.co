@@ -178,50 +178,89 @@ const BrokerCalculator: React.FC = () => {
   const prepareOfferData = async () => {
     if (!selectedResult || !selectedClientId) return null;
 
-    // Map equipment list to offer format
-    const equipment = equipmentList.map(eq => ({
-      title: `${eq.objectType}${eq.description ? ' - ' + eq.description : ''}`,
-      purchasePrice: eq.unitPrice,
-      quantity: eq.quantity,
-      margin: 0,
-      monthlyPayment: (eq.totalPrice / totalBudget) * selectedResult.monthlyPayment,
-      manufacturer: eq.manufacturer || undefined
-    }));
-
-    // Get company_id from user
-    let companyId = user?.company;
-    if (!companyId) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', userData.user.id)
-          .single();
-        companyId = profile?.company_id;
+    try {
+      // Récupérer le nom du client depuis la base de données
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('name')
+        .eq('id', selectedClientId)
+        .single();
+      
+      if (clientError) {
+        console.error('Erreur lors de la récupération du client:', clientError);
+        toast({
+          title: "Erreur",
+          description: "Impossible de récupérer les informations du client",
+          variant: "destructive"
+        });
+        return null;
       }
-    }
+      
+      const clientName = clientData?.name || '';
+      console.log('📋 Nom du client récupéré:', clientName);
 
-    if (!companyId) {
-      throw new Error('Company ID not found');
-    }
+      if (!clientName) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez sélectionner un client valide",
+          variant: "destructive"
+        });
+        return null;
+      }
 
-    return {
-      client_id: selectedClientId,
-      client_name: '', // Will be filled by createOffer
-      ambassador_id: offerType === 'ambassador' ? selectedAmbassadorId : null,
-      leaser_id: selectedLeaser?.id,
-      duration: selectedDuration,
-      amount: totalBudget,
-      monthly_payment: selectedResult.monthlyPayment,
-      financed_amount: totalBudget,
-      coefficient: selectedResult.coefficient,
-      commission: offerType === 'ambassador' ? commission.amount : 0,
-      workflow_status: 'draft' as const,
-      status: 'pending' as const,
-      equipment: equipment,
-      company_id: companyId
-    };
+      // Map equipment list to offer format
+      const equipment = equipmentList.map(eq => ({
+        title: `${eq.objectType}${eq.description ? ' - ' + eq.description : ''}`,
+        purchasePrice: eq.unitPrice,
+        quantity: eq.quantity,
+        margin: 0,
+        monthlyPayment: (eq.totalPrice / totalBudget) * selectedResult.monthlyPayment,
+        manufacturer: eq.manufacturer || undefined
+      }));
+
+      // Get company_id from user
+      let companyId = user?.company;
+      if (!companyId) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('company_id')
+            .eq('id', userData.user.id)
+            .single();
+          companyId = profile?.company_id;
+        }
+      }
+
+      if (!companyId) {
+        throw new Error('Company ID not found');
+      }
+
+      return {
+        client_id: selectedClientId,
+        client_name: clientName,
+        ambassador_id: offerType === 'ambassador' ? selectedAmbassadorId : null,
+        leaser_id: selectedLeaser?.id,
+        duration: selectedDuration,
+        amount: totalBudget,
+        monthly_payment: selectedResult.monthlyPayment,
+        financed_amount: totalBudget,
+        coefficient: selectedResult.coefficient,
+        commission: offerType === 'ambassador' ? commission.amount : 0,
+        workflow_status: 'draft' as const,
+        status: 'pending' as const,
+        equipment: equipment,
+        company_id: companyId
+      };
+    } catch (error) {
+      console.error('Erreur dans prepareOfferData:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la préparation des données",
+        variant: "destructive"
+      });
+      return null;
+    }
   };
 
   const handleSave = async () => {
