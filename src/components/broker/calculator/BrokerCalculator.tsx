@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ const BrokerCalculator: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { companySlug, brokerSlug } = useParams<{ companySlug?: string; brokerSlug?: string }>();
   
   // State for calculation
   const [calculationMode, setCalculationMode] = useState<'purchase_price' | 'rent'>('purchase_price');
@@ -181,7 +182,12 @@ const BrokerCalculator: React.FC = () => {
         description: "Offre créée avec succès"
       });
       
-      navigate('/broker/offers');
+      const targetOffersPath = brokerSlug
+        ? `/${brokerSlug}/broker/offers`
+        : companySlug
+          ? `/${companySlug}/admin/offers`
+          : '/dashboard';
+      navigate(targetOffersPath);
     } catch (error) {
       console.error('Error creating offer:', error);
       toast({

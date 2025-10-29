@@ -117,6 +117,7 @@ import AmbassadorClientCreatePage from "@/pages/AmbassadorPages/AmbassadorClient
 import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail";
 import AmbassadorProductDetailPage from "@/pages/AmbassadorPages/AmbassadorProductDetailPage";
 import CreateOffer from "@/pages/CreateOffer";
+import AdminCreateOfferSwitch from "@/components/routing/AdminCreateOfferSwitch";
 
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
@@ -269,7 +270,7 @@ const AppRoutes = () => (
       <Route path="invoicing" element={<Layout><InvoicingPage /></Layout>} />
       <Route path="invoicing/:id" element={<Layout><InvoiceDetailPage /></Layout>} />
       <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
-      <Route path="create-offer" element={<Layout><CreateOffer /></Layout>} />
+      <Route path="create-offer" element={<Layout><AdminCreateOfferSwitch /></Layout>} />
       <Route path="panier" element={<Layout><CartPage /></Layout>} />
       
       {/* Unified product form routes - handles both creation and editing */}
