@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -68,6 +68,21 @@ const BrokerCalculator: React.FC = () => {
   const totalBudget = selectedResult ? selectedResult.purchasePrice : 0;
   const usedBudget = equipmentList.reduce((sum, eq) => sum + eq.totalPrice, 0);
   const remainingBudget = totalBudget - usedBudget;
+  
+  // Pré-remplir le prix unitaire avec le budget restant
+  useEffect(() => {
+    // Uniquement si on n'est PAS en mode édition
+    if (!editingEquipmentId && currentEquipment.quantity && currentEquipment.quantity > 0) {
+      // Si le prix unitaire n'est pas encore défini ou est à 0
+      if (!currentEquipment.unitPrice || currentEquipment.unitPrice === 0) {
+        const suggestedPrice = remainingBudget / currentEquipment.quantity;
+        setCurrentEquipment(prev => ({
+          ...prev,
+          unitPrice: Math.round(suggestedPrice * 100) / 100 // Arrondir à 2 décimales
+        }));
+      }
+    }
+  }, [remainingBudget, currentEquipment.quantity, editingEquipmentId]);
   
   // Calculate total margin (0 for now, can be added later)
   const totalMargin = 0;
