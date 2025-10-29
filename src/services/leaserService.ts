@@ -211,13 +211,45 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       
       console.log("📊 createLeaser - Tranches à insérer:", rangesToInsert);
       
-      const { error: rangeError } = await supabase
+      const { data: insertedRanges, error: rangeError } = await supabase
         .from('leaser_ranges')
-        .insert(rangesToInsert);
+        .insert(rangesToInsert)
+        .select('id');
         
       if (rangeError) {
         console.error('Error adding ranges:', rangeError);
         toast.error("Le leaser a été créé mais les tranches n'ont pas pu être ajoutées");
+      } else if (insertedRanges && insertedRanges.length > 0) {
+        // Insérer les duration_coefficients
+        const durationCoeffsToInsert: any[] = [];
+        
+        leaser.ranges.forEach((range, index) => {
+          if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+            const rangeId = insertedRanges[index]?.id;
+            if (rangeId) {
+              range.duration_coefficients.forEach(dc => {
+                durationCoeffsToInsert.push({
+                  leaser_range_id: rangeId,
+                  duration_months: dc.duration_months,
+                  coefficient: dc.coefficient
+                });
+              });
+            }
+          }
+        });
+        
+        if (durationCoeffsToInsert.length > 0) {
+          console.log("📊 createLeaser - Duration coefficients à insérer:", durationCoeffsToInsert);
+          
+          const { error: durationError } = await supabase
+            .from('leaser_duration_coefficients')
+            .insert(durationCoeffsToInsert);
+            
+          if (durationError) {
+            console.error('Error adding duration coefficients:', durationError);
+            toast.error("Les tranches ont été créées mais les coefficients par durée n'ont pas pu être ajoutés");
+          }
+        }
       }
     }
     
@@ -314,14 +346,48 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         coefficient: range.coefficient
       }));
       
-      const { error: rangeError } = await supabase
+      const { data: insertedRanges, error: rangeError } = await supabase
         .from('leaser_ranges')
-        .insert(rangesToInsert);
+        .insert(rangesToInsert)
+        .select('id');
         
       if (rangeError) {
         console.error('Error adding new ranges:', rangeError);
         toast.error("Les informations du leaser ont été mises à jour, mais pas les tranches");
         return false;
+      }
+      
+      // Insérer les duration_coefficients
+      if (insertedRanges && insertedRanges.length > 0) {
+        const durationCoeffsToInsert: any[] = [];
+        
+        leaser.ranges.forEach((range, index) => {
+          if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+            const rangeId = insertedRanges[index]?.id;
+            if (rangeId) {
+              range.duration_coefficients.forEach(dc => {
+                durationCoeffsToInsert.push({
+                  leaser_range_id: rangeId,
+                  duration_months: dc.duration_months,
+                  coefficient: dc.coefficient
+                });
+              });
+            }
+          }
+        });
+        
+        if (durationCoeffsToInsert.length > 0) {
+          console.log("📊 updateLeaser - Duration coefficients à insérer:", durationCoeffsToInsert);
+          
+          const { error: durationError } = await supabase
+            .from('leaser_duration_coefficients')
+            .insert(durationCoeffsToInsert);
+            
+          if (durationError) {
+            console.error('Error adding duration coefficients:', durationError);
+            toast.error("Les tranches ont été mises à jour mais les coefficients par durée n'ont pas pu être ajoutés");
+          }
+        }
       }
     }
     
