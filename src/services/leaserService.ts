@@ -209,6 +209,8 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         coefficient: range.coefficient
       }));
       
+      console.log("📊 createLeaser - Tranches à insérer:", rangesToInsert);
+      
       const { error: rangeError } = await supabase
         .from('leaser_ranges')
         .insert(rangesToInsert);

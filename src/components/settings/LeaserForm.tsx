@@ -298,6 +298,13 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     try {
       setIsSaving(true);
       
+      console.log("📝 LeaserForm - Données à sauvegarder:", {
+        name: formData.get("name"),
+        tempRanges,
+        availableDurations,
+        useDurationBasedCoefficients
+      });
+      
       const leaserData: Omit<Leaser, "id"> & { use_duration_coefficients: boolean } = {
         name: formData.get("name") as string,
         company_name: formData.get("company_name") as string || undefined,

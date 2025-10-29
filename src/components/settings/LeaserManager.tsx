@@ -94,8 +94,11 @@ const LeaserManager = () => {
   
   const handleSaveLeaser = async (leaserData: Omit<Leaser, "id">) => {
     try {
+      console.log("🔄 LeaserManager - Début de la sauvegarde", { isEditMode, leaserData });
+      
       if (isEditMode && currentLeaser) {
         const success = await updateLeaser(currentLeaser.id, leaserData);
+        console.log("✏️ LeaserManager - Résultat update:", success);
         if (success) {
           await refreshLeasers();
           handleCloseSheet();
@@ -103,10 +106,16 @@ const LeaserManager = () => {
         }
       } else {
         const addedLeaser = await addLeaser(leaserData);
+        console.log("➕ LeaserManager - Résultat ajout:", addedLeaser);
         if (addedLeaser) {
+          console.log("🔄 LeaserManager - Refresh des leasers...");
           await refreshLeasers();
+          console.log("❌ LeaserManager - Fermeture du formulaire...");
           handleCloseSheet();
+          console.log("✅ LeaserManager - Succès !");
           toast.success("Leaser ajouté avec succès");
+        } else {
+          console.warn("⚠️ LeaserManager - addedLeaser est null/undefined");
         }
       }
     } catch (error: any) {
