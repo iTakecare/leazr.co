@@ -76,7 +76,9 @@ export const createOffer = async (offerData: OfferData) => {
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
       coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
       monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
-      commission: offerData.commission !== undefined && offerData.commission !== null ? 
+      leaser_id: offerData.leaser_id,
+      duration: offerData.duration,
+      commission: offerData.commission !== undefined && offerData.commission !== null ?
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         undefined,
       financed_amount: offerData.financed_amount,
@@ -119,6 +121,8 @@ export const createOffer = async (offerData: OfferData) => {
       margin: dbOfferData.margin,
       ambassador_id: dbOfferData.ambassador_id,
       dossier_number: dbOfferData.dossier_number,
+      leaser_id: dbOfferData.leaser_id,
+      duration: dbOfferData.duration,
       has_id_field: 'id' in dbOfferData // Vérifier si id est présent
     });
 
