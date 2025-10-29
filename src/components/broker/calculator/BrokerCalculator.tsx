@@ -218,10 +218,21 @@ const BrokerCalculator: React.FC = () => {
         manufacturer: eq.manufacturer || undefined
       }));
 
-      // Get company_id from user
+      // Get company_id and user_id from user
       let companyId = user?.company;
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      if (!userId) {
+        toast({
+          title: "Erreur",
+          description: "Utilisateur non authentifié",
+          variant: "destructive"
+        });
+        return null;
+      }
+
       if (!companyId) {
-        const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -236,7 +247,10 @@ const BrokerCalculator: React.FC = () => {
         throw new Error('Company ID not found');
       }
 
+      console.log('👤 User ID récupéré:', userId);
+
       return {
+        user_id: userId,
         client_id: selectedClientId,
         client_name: clientName,
         ambassador_id: offerType === 'ambassador' ? selectedAmbassadorId : null,
@@ -250,7 +264,8 @@ const BrokerCalculator: React.FC = () => {
         workflow_status: 'draft' as const,
         status: 'pending' as const,
         equipment: equipment,
-        company_id: companyId
+        company_id: companyId,
+        type: offerType
       };
     } catch (error) {
       console.error('Erreur dans prepareOfferData:', error);
@@ -270,6 +285,17 @@ const BrokerCalculator: React.FC = () => {
     try {
       const offerData = await prepareOfferData();
       if (!offerData) return;
+
+      console.log('📤 ENVOI À createOffer:', {
+        user_id: offerData.user_id,
+        client_id: offerData.client_id,
+        client_name: offerData.client_name,
+        leaser_id: offerData.leaser_id,
+        duration: offerData.duration,
+        amount: offerData.amount,
+        type: offerData.type,
+        equipment_count: offerData.equipment?.length
+      });
 
       const result = await createOffer(offerData);
       
