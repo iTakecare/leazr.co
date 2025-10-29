@@ -237,7 +237,7 @@ const BrokerCalculator: React.FC = () => {
       if ('error' in result) {
         toast({
           title: "Erreur",
-          description: result.error,
+          description: result.error?.message || "Une erreur est survenue lors de la création de l'offre",
           variant: "destructive"
         });
         return;
@@ -258,7 +258,7 @@ const BrokerCalculator: React.FC = () => {
       console.error('Error creating offer:', error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la création de l'offre",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la création de l'offre",
         variant: "destructive"
       });
     } finally {
