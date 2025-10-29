@@ -273,6 +273,25 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const formEl = formRef.current;
+    if (!formEl) return;
+
+    // Validation HTML5 explicite
+    if (!formEl.checkValidity()) {
+      // Déclenche l'indication native du navigateur
+      formEl.reportValidity();
+
+      // Scroll vers le premier champ invalide pour le rendre visible
+      const firstInvalid = formEl.querySelector(":invalid") as HTMLElement | null;
+      if (firstInvalid) {
+        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+        (firstInvalid as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).focus?.();
+      }
+
+      toast.error("Veuillez compléter les champs obligatoires");
+      return;
+    }
+    
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     
