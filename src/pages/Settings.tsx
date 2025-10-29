@@ -26,7 +26,8 @@ import PDFTemplatesPage from '@/pages/AdminPages/PDFTemplatesPage';
 import CompanyDocuments from '@/pages/CompanyDocuments';
 
 const Settings: React.FC = () => {
-  const { user, subscription, checkSubscription, logout } = useAuth();
+  const { user, subscription, checkSubscription, logout, isBroker } = useAuth();
+  const isUserBroker = isBroker && typeof isBroker === 'function' ? isBroker() : false;
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
@@ -91,7 +92,7 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-12">
+        <TabsList className={`grid w-full ${isUserBroker ? 'grid-cols-10' : 'grid-cols-12'}`}>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             Général
@@ -124,18 +125,22 @@ const Settings: React.FC = () => {
             <Users className="h-4 w-4" />
             Utilisateurs
           </TabsTrigger>
-          <TabsTrigger value="import" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Import
-          </TabsTrigger>
+          {!isUserBroker && (
+            <TabsTrigger value="import" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Import
+            </TabsTrigger>
+          )}
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" />
             Documents
           </TabsTrigger>
-          <TabsTrigger value="chat" className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" />
-            Chat
-          </TabsTrigger>
+          {!isUserBroker && (
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Chat
+            </TabsTrigger>
+          )}
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             Abonnement
@@ -196,17 +201,21 @@ const Settings: React.FC = () => {
           </Tabs>
         </TabsContent>
 
-        <TabsContent value="import" className="mt-6">
-          <BulkClientImport />
-        </TabsContent>
+        {!isUserBroker && (
+          <TabsContent value="import" className="mt-6">
+            <BulkClientImport />
+          </TabsContent>
+        )}
 
         <TabsContent value="documents" className="mt-6">
           <CompanyDocuments />
         </TabsContent>
 
-        <TabsContent value="chat" className="mt-6">
-          <ChatSettings />
-        </TabsContent>
+        {!isUserBroker && (
+          <TabsContent value="chat" className="mt-6">
+            <ChatSettings />
+          </TabsContent>
+        )}
 
         <TabsContent value="subscription" className="mt-6">
           <TrialAwareSubscriptionCard />
