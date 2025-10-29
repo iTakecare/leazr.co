@@ -12,8 +12,12 @@ import { checkDataIsolation } from '@/utils/crmCacheUtils';
  */
 export const getLeasers = async (): Promise<Leaser[]> => {
   try {
+    // Récupérer le company_id de l'utilisateur pour le filtrage
+    const userCompanyId = await getCurrentUserCompanyId();
+    
     const { data, error } = await supabase
       .from('leasers')
+      .eq('company_id', userCompanyId)
       .select(`
         id, 
         name,
@@ -52,19 +56,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       return [];
     }
     
-    // Vérifier l'isolation par entreprise
-    try {
-      const userCompanyId = await getCurrentUserCompanyId();
-      const dataWithCompanyId = data.map(leaser => ({ ...leaser, company_id: leaser.company_id }));
-      const isIsolationValid = checkDataIsolation(userCompanyId, dataWithCompanyId, 'leasers');
-      
-      if (!isIsolationValid) {
-        // L'isolation a échoué, la fonction checkDataIsolation gère le rafraîchissement
-        return [];
-      }
-    } catch (error) {
-      console.error('Error checking company isolation for leasers:', error);
-    }
+    // Vérification d'isolation déjà effectuée par le filtre .eq('company_id', userCompanyId)
     
     // Transformer les données de la base de données au format attendu par l'application
     const formattedLeasers: (Leaser & { use_duration_coefficients?: boolean })[] = data.map((leaser) => ({
@@ -101,8 +93,13 @@ export const getLeasers = async (): Promise<Leaser[]> => {
  */
 export const getLeaserById = async (id: string): Promise<Leaser | null> => {
   try {
+    // Récupérer le company_id de l'utilisateur pour le filtrage
+    const userCompanyId = await getCurrentUserCompanyId();
+    
     const { data, error } = await supabase
       .from('leasers')
+      .eq('company_id', userCompanyId)
+      .eq('id', id)
       .select(`
         id, 
         name,
@@ -128,7 +125,6 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
           )
         )
       `)
-      .eq('id', id)
       .single();
     
     if (error) {
