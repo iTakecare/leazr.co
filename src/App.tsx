@@ -233,7 +233,7 @@ const AppRoutes = () => (
         <Route path="clients" element={<BrokerClients />} />
         <Route path="clients/:id" element={<ClientDetail />} />
         <Route path="clients/edit/:id" element={<ClientEditPage />} />
-        <Route path="calculator" element={<BrokerCreateOffer />} />
+        <Route path="create-offer" element={<BrokerCreateOffer />} />
         <Route path="offers" element={<BrokerOffers />} />
         <Route path="offers/:id" element={<AdminOfferDetail />} />
         <Route path="contracts" element={<BrokerContracts />} />
