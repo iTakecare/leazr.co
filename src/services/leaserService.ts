@@ -165,23 +165,13 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
  */
 export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser | null> => {
   try {
-    // Get current user's company_id for new leasers
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-
-    // Get default company if no profile found
-    let companyId = profile?.company_id;
+    // Utiliser la fonction sécurisée existante pour récupérer le company_id
+    const companyId = await getCurrentUserCompanyId();
+    
+    console.log("🏢 createLeaser - Company ID récupéré:", companyId);
+    
     if (!companyId) {
-      const { data: defaultCompany } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('name', 'iTakecare (Default)')
-        .maybeSingle();
-      
-      companyId = defaultCompany?.id;
+      throw new Error("Impossible de déterminer votre entreprise. Veuillez vous reconnecter.");
     }
 
     const { data, error } = await supabase
