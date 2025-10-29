@@ -1,88 +1,66 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { BrokerEquipmentItem } from '@/types/brokerEquipment';
 import { formatCurrency } from '@/lib/utils';
+import BrokerEquipmentForm from './BrokerEquipmentForm';
+import BrokerEquipmentList from './BrokerEquipmentList';
 
 interface BrokerAdditionalDetailsFormProps {
-  quantity: number;
-  financedAmount: number;
-  objectType: string;
-  manufacturer: string;
-  sirenNumber: string;
-  onFieldChange: (field: string, value: string | number) => void;
+  totalBudget: number;
+  usedBudget: number;
+  remainingBudget: number;
+  equipmentList: BrokerEquipmentItem[];
+  currentEquipment: Partial<BrokerEquipmentItem>;
+  onEquipmentChange: (equipment: Partial<BrokerEquipmentItem>) => void;
+  onAddEquipment: () => void;
+  onRemoveEquipment: (id: string) => void;
 }
 
 const BrokerAdditionalDetailsForm: React.FC<BrokerAdditionalDetailsFormProps> = ({
-  quantity,
-  financedAmount,
-  objectType,
-  manufacturer,
-  sirenNumber,
-  onFieldChange
+  totalBudget,
+  usedBudget,
+  remainingBudget,
+  equipmentList,
+  currentEquipment,
+  onEquipmentChange,
+  onAddEquipment,
+  onRemoveEquipment
 }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Détails additionnels</CardTitle>
+        <CardTitle>Détails sur le bien</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantité</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => onFieldChange('quantity', parseInt(e.target.value) || 1)}
-            />
+      <CardContent className="space-y-6">
+        {/* Budget Summary */}
+        <div className="p-4 bg-muted rounded-lg space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Budget total</span>
+            <span className="font-bold text-lg">{formatCurrency(totalBudget)}</span>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="financed-amount">Montant financé</Label>
-            <Input
-              id="financed-amount"
-              value={formatCurrency(financedAmount)}
-              disabled
-              className="bg-muted"
-            />
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Utilisé</span>
+            <span className="text-sm">{formatCurrency(usedBudget)}</span>
+          </div>
+          <div className="flex justify-between items-center pt-2 border-t">
+            <span className="font-semibold">Restant disponible</span>
+            <span className="text-xl font-bold text-primary">{formatCurrency(remainingBudget)}</span>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="object-type">Type d'objet</Label>
-          <Input
-            id="object-type"
-            placeholder="Ex: Ordinateur portable, Imprimante..."
-            value={objectType}
-            onChange={(e) => onFieldChange('objectType', e.target.value)}
-          />
-        </div>
+        {/* Equipment Form */}
+        <BrokerEquipmentForm
+          currentEquipment={currentEquipment}
+          onEquipmentChange={onEquipmentChange}
+          remainingBudget={remainingBudget}
+          onAdd={onAddEquipment}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="manufacturer">Fabricant</Label>
-          <Input
-            id="manufacturer"
-            placeholder="Ex: Dell, HP, Lenovo..."
-            value={manufacturer}
-            onChange={(e) => onFieldChange('manufacturer', e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="siren">Numéro SIREN</Label>
-          <Input
-            id="siren"
-            placeholder="123 456 789"
-            value={sirenNumber}
-            onChange={(e) => onFieldChange('sirenNumber', e.target.value)}
-            maxLength={11}
-          />
-          <p className="text-xs text-muted-foreground">
-            Format: 9 chiffres (espaces optionnels)
-          </p>
-        </div>
+        {/* Equipment List */}
+        <BrokerEquipmentList
+          equipmentList={equipmentList}
+          onRemove={onRemoveEquipment}
+        />
       </CardContent>
     </Card>
   );

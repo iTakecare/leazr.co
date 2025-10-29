@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Leaser } from '@/types/equipment';
+import { BrokerEquipmentItem } from '@/types/brokerEquipment';
 import { useToast } from '@/hooks/use-toast';
 import { useBrokerCalculator } from '@/hooks/useBrokerCalculator';
 import { useOfferCommissionCalculator } from '@/hooks/useOfferCommissionCalculator';
@@ -40,11 +41,14 @@ const BrokerCalculator: React.FC = () => {
   const [commissionLevelId, setCommissionLevelId] = useState<string | undefined>(undefined);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   
-  // State for additional details
-  const [quantity, setQuantity] = useState<number>(1);
-  const [objectType, setObjectType] = useState<string>('');
-  const [manufacturer, setManufacturer] = useState<string>('');
-  const [sirenNumber, setSirenNumber] = useState<string>('');
+  // State for equipment management
+  const [equipmentList, setEquipmentList] = useState<BrokerEquipmentItem[]>([]);
+  const [currentEquipment, setCurrentEquipment] = useState<Partial<BrokerEquipmentItem>>({
+    quantity: 1,
+    objectType: '',
+    manufacturer: '',
+    description: ''
+  });
   
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,11 +62,16 @@ const BrokerCalculator: React.FC = () => {
   // Get selected duration result
   const selectedResult = calculatedResults[selectedDuration];
   
-  // Calculate financed amount
-  const financedAmount = selectedResult ? selectedResult.purchasePrice * quantity : 0;
+  // Budget calculations
+  const totalBudget = selectedResult ? selectedResult.purchasePrice : 0;
+  const usedBudget = equipmentList.reduce((sum, eq) => sum + eq.totalPrice, 0);
+  const remainingBudget = totalBudget - usedBudget;
   
   // Calculate total margin (0 for now, can be added later)
   const totalMargin = 0;
+  
+  // Total monthly payment from equipment list
+  const totalMonthlyPayment = selectedResult ? selectedResult.monthlyPayment : 0;
   
   // Calculate commission if ambassador offer
   const commission = useOfferCommissionCalculator({
@@ -70,9 +79,9 @@ const BrokerCalculator: React.FC = () => {
     selectedAmbassadorId: offerType === 'ambassador' ? selectedAmbassadorId : undefined,
     commissionLevelId: commissionLevelId,
     totalMargin,
-    equipmentListLength: quantity,
-    totalMonthlyPayment: selectedResult ? selectedResult.monthlyPayment * quantity : 0,
-    totalPurchaseAmount: financedAmount
+    equipmentListLength: equipmentList.length,
+    totalMonthlyPayment: totalMonthlyPayment,
+    totalPurchaseAmount: totalBudget
   });
 
   // Validation
@@ -81,45 +90,64 @@ const BrokerCalculator: React.FC = () => {
     if (!selectedClientId) return false;
     if (inputAmount <= 0) return false;
     if (!selectedResult) return false;
-    if (quantity <= 0) return false;
-    if (!objectType.trim()) return false;
+    if (equipmentList.length === 0) return false;
     if (offerType === 'ambassador' && !selectedAmbassadorId) return false;
     
-    // Validate SIREN format (9 digits)
-    const sirenDigits = sirenNumber.replace(/\s/g, '');
-    if (sirenDigits && !/^\d{9}$/.test(sirenDigits)) return false;
-    
     return true;
-  }, [selectedLeaser, selectedClientId, inputAmount, selectedResult, quantity, objectType, offerType, selectedAmbassadorId, sirenNumber]);
+  }, [selectedLeaser, selectedClientId, inputAmount, selectedResult, equipmentList, offerType, selectedAmbassadorId]);
 
-  const handleFieldChange = (field: string, value: string | number) => {
-    switch (field) {
-      case 'quantity':
-        setQuantity(value as number);
-        break;
-      case 'objectType':
-        setObjectType(value as string);
-        break;
-      case 'manufacturer':
-        setManufacturer(value as string);
-        break;
-      case 'sirenNumber':
-        setSirenNumber(value as string);
-        break;
+  const handleAddEquipment = () => {
+    if (!currentEquipment.objectType || !currentEquipment.quantity || currentEquipment.quantity <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir les champs obligatoires (Type et Quantité)",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    const unitPrice = currentEquipment.quantity > 0 ? remainingBudget / currentEquipment.quantity : 0;
+    const totalPrice = currentEquipment.quantity * unitPrice;
+    
+    if (totalPrice > remainingBudget) {
+      toast({
+        title: "Erreur",
+        description: "Le montant dépasse le budget restant",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newEquipment: BrokerEquipmentItem = {
+      id: crypto.randomUUID(),
+      objectType: currentEquipment.objectType,
+      manufacturer: currentEquipment.manufacturer || '',
+      description: currentEquipment.description || '',
+      quantity: currentEquipment.quantity,
+      unitPrice: unitPrice,
+      totalPrice: totalPrice
+    };
+    
+    setEquipmentList([...equipmentList, newEquipment]);
+    setCurrentEquipment({ quantity: 1, objectType: '', manufacturer: '', description: '' });
+  };
+
+  const handleRemoveEquipment = (id: string) => {
+    setEquipmentList(equipmentList.filter(eq => eq.id !== id));
   };
 
   const prepareOfferData = async () => {
     if (!selectedResult || !selectedClientId) return null;
 
-    const equipment = [{
-      title: objectType,
-      purchasePrice: selectedResult.purchasePrice,
-      quantity: quantity,
+    // Map equipment list to offer format
+    const equipment = equipmentList.map(eq => ({
+      title: `${eq.objectType}${eq.description ? ' - ' + eq.description : ''}`,
+      purchasePrice: eq.unitPrice,
+      quantity: eq.quantity,
       margin: 0,
-      monthlyPayment: selectedResult.monthlyPayment,
-      manufacturer: manufacturer || undefined
-    }];
+      monthlyPayment: (eq.totalPrice / totalBudget) * selectedResult.monthlyPayment,
+      manufacturer: eq.manufacturer || undefined
+    }));
 
     // Get company_id from user
     let companyId = user?.company;
@@ -145,16 +173,15 @@ const BrokerCalculator: React.FC = () => {
       ambassador_id: offerType === 'ambassador' ? selectedAmbassadorId : null,
       leaser_id: selectedLeaser?.id,
       duration: selectedDuration,
-      amount: financedAmount, // Required by OfferData
-      monthly_payment: selectedResult.monthlyPayment * quantity,
-      financed_amount: financedAmount,
+      amount: totalBudget,
+      monthly_payment: selectedResult.monthlyPayment,
+      financed_amount: totalBudget,
       coefficient: selectedResult.coefficient,
       commission: offerType === 'ambassador' ? commission.amount : 0,
       workflow_status: 'draft' as const,
       status: 'pending' as const,
       equipment: equipment,
-      company_id: companyId, // Required by OfferData
-      remarks: sirenNumber ? `SIREN: ${sirenNumber}` : undefined
+      company_id: companyId
     };
   };
 
@@ -293,12 +320,14 @@ const BrokerCalculator: React.FC = () => {
 
           {/* Additional Details */}
           <BrokerAdditionalDetailsForm
-            quantity={quantity}
-            financedAmount={financedAmount}
-            objectType={objectType}
-            manufacturer={manufacturer}
-            sirenNumber={sirenNumber}
-            onFieldChange={handleFieldChange}
+            totalBudget={totalBudget}
+            usedBudget={usedBudget}
+            remainingBudget={remainingBudget}
+            equipmentList={equipmentList}
+            currentEquipment={currentEquipment}
+            onEquipmentChange={setCurrentEquipment}
+            onAddEquipment={handleAddEquipment}
+            onRemoveEquipment={handleRemoveEquipment}
           />
 
           {/* Actions */}
