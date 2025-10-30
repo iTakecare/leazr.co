@@ -299,15 +299,16 @@ const BrokerCalculator: React.FC = () => {
 
       const result = await createOffer(offerData);
       
-      if ('error' in result) {
+      if (result.error) {
         toast({
           title: "Erreur",
-          description: result.error?.message || "Une erreur est survenue lors de la création de l'offre",
+          description: result.error.message || "Une erreur est survenue lors de la création de l'offre",
           variant: "destructive"
         });
         return;
       }
 
+      console.log("✅ Offre créée:", result.data?.id);
       toast({
         title: "Succès",
         description: "Offre créée avec succès"
