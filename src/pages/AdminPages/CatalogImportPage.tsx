@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { CatalogImportForm } from "@/components/admin/catalog/CatalogImportForm";
+import { ImageMigrationPanel } from "@/components/catalog/ImageMigrationPanel";
 
 export default function CatalogImportPage() {
   return (
@@ -8,6 +9,8 @@ export default function CatalogImportPage() {
         title="Import du catalogue"
         description="Importez automatiquement les produits depuis le catalogue iTakecare.be"
       />
+      
+      <ImageMigrationPanel />
       
       <CatalogImportForm />
     </div>

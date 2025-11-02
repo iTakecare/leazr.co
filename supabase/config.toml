@@ -89,3 +89,6 @@ verify_jwt = true
 
 [functions.import-contracts-multi-years]
 verify_jwt = true
+
+[functions.migrate-product-images]
+verify_jwt = true
