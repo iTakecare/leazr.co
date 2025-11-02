@@ -35,6 +35,41 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }))
   });
 
+  // Image URL helpers
+  const isSupabaseUrl = (url: string) => url.includes('supabase.co/storage');
+
+  const cleanImageUrl = (raw?: string | null): string => {
+    if (!raw) return "";
+    let url = raw.trim();
+
+    // Base64: return as-is
+    if (url.startsWith('data:image')) return url;
+
+    // Support http -> https
+    if (url.startsWith('http://')) {
+      url = 'https://' + url.substring(7);
+    }
+
+    // Encode spaces minimally
+    url = url.replace(/ /g, '%20');
+
+    // Clean double slashes on Supabase URLs (but not the protocol part)
+    if (isSupabaseUrl(url)) {
+      url = url.replace(/([^:])\/{2,}/g, '$1/');
+    }
+
+    return url;
+  };
+
+  const addTimestamp = (url: string): string => {
+    if (!url) return url;
+    if (url === '/placeholder.svg') return url;
+    if (url.startsWith('data:image')) return url;
+    if (isSupabaseUrl(url)) return url; // avoid breaking signed/public storage URLs
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}t=${Date.now()}`;
+  };
+
   const handleDeleteProduct = (productId: string, productName: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer "${productName}" ?`)) {
       onProductDeleted(productId);
@@ -48,6 +83,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
           const hasVariants = product.has_variants || (product.variants && product.variants.length > 0) || (product.variant_combination_prices && product.variant_combination_prices.length > 0);
           const existingVariantsCount = (product.variants ? product.variants.length : 0) + (product.variant_combination_prices ? product.variant_combination_prices.length : 0);
 
+          // Compute image URL candidates safely (supports optional image_urls array)
+          const rawImageUrl: string | undefined = product.image_url || (product as any)?.image_urls?.[0];
+          const hasImageSrc = !!rawImageUrl;
+
           return (
             <AccordionItem
               key={product.id}
@@ -59,11 +98,18 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                   <div className="flex items-center gap-3">
                     {/* Product image */}
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {product.image_url ? (
+                      {hasImageSrc ? (
                         <img
-                          src={product.image_url}
+                          src={addTimestamp(cleanImageUrl(rawImageUrl))}
                           alt={product.name}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            console.log(`❌ AccordionProductList: Erreur image pour ${product.name}: ${rawImageUrl}`);
+                            e.currentTarget.src = '/placeholder.svg';
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
