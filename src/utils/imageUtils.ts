@@ -18,7 +18,7 @@ export async function uploadImage(
  * Format: company-{company_id}/products/{product_id}/
  */
 export function generateProductImagePath(companyId: string, productId: string): string {
-  return `company-${companyId}/products/${productId}/`;
+  return `company-${companyId}/products/${productId}`;
 }
 
 // Function to get a cache-busted URL for images
