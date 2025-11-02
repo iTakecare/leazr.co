@@ -20,6 +20,29 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
   
   if (!product) return null;
   
+  // Nettoyer et valider l'URL de l'image
+  const getCleanImageUrl = (): string => {
+    let imageUrl = product.image_url || "/placeholder.svg";
+    
+    // Si c'est une image Base64, la retourner telle quelle
+    if (imageUrl.startsWith('data:image')) {
+      return imageUrl;
+    }
+    
+    // Nettoyer les double slashes dans les URLs Supabase
+    if (imageUrl.includes('supabase.co/storage')) {
+      const cleanedUrl = imageUrl.replace(/([^:])\/\//g, '$1/');
+      if (cleanedUrl !== imageUrl) {
+        console.log(`🔧 CatalogProductCard: Double slash nettoyé pour ${product.name}`);
+      }
+      return cleanedUrl;
+    }
+    
+    return imageUrl;
+  };
+  
+  const displayImageUrl = getCleanImageUrl();
+  
   // Check if the product has variants
   const hasVariants = 
     (product.variants && product.variants.length > 0) || 
@@ -105,13 +128,13 @@ const CatalogProductCard: React.FC<CatalogProductCardProps> = ({ product, onClic
             
             {!imageError && (
               <img
-                src={product.image_url || "/placeholder.svg"}
+                src={displayImageUrl}
                 alt={product.name || "Produit"}
                 className={`object-contain w-full h-full p-2 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 style={{ transition: "opacity 0.3s" }}
                 onLoad={() => setImageLoaded(true)}
                 onError={() => {
-                  console.log(`Failed to load image for ${product.name}`);
+                  console.log(`❌ CatalogProductCard: Erreur de chargement pour ${product.name}: ${displayImageUrl}`);
                   setImageError(true);
                 }}
                 loading="lazy"
