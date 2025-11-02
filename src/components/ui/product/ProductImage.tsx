@@ -13,14 +13,33 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   
   // Use effect to set the image URL when the product changes
   useEffect(() => {
+    let validUrl = "/placeholder.svg";
+    
     // Extract the URL of the image with a more robust check
     if (product?.image_url && 
         typeof product.image_url === 'string' && 
-        product.image_url.trim() !== '' && 
-        !product.image_url.includes('.emptyFolderPlaceholder') &&
-        !product.image_url.includes('undefined') &&
-        product.image_url !== '/placeholder.svg') {
-      setImageUrl(product.image_url);
+        product.image_url.trim() !== '') {
+      
+      // Gérer les images Base64
+      if (product.image_url.startsWith('data:image')) {
+        validUrl = product.image_url;
+        console.log(`📸 Image Base64 détectée pour ${product.name}`);
+      }
+      // Gérer les URLs normales
+      else if (!product.image_url.includes('.emptyFolderPlaceholder') &&
+               !product.image_url.includes('undefined') &&
+               product.image_url !== '/placeholder.svg') {
+        
+        // Nettoyer les double slashes dans les URLs Supabase
+        if (product.image_url.includes('supabase.co/storage')) {
+          validUrl = product.image_url.replace(/([^:])\/\//g, '$1/');
+          if (validUrl !== product.image_url) {
+            console.log(`🔧 Double slash nettoyé pour ${product.name}: ${product.image_url} → ${validUrl}`);
+          }
+        } else {
+          validUrl = product.image_url;
+        }
+      }
     } else if (product?.image_urls && Array.isArray(product.image_urls) && product.image_urls.length > 0) {
       const validImages = product.image_urls.filter(url => 
         url && 
@@ -32,14 +51,26 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
       );
       
       if (validImages.length > 0) {
-        setImageUrl(validImages[0]);
-      } else {
-        setImageUrl("/placeholder.svg");
+        let firstValidUrl = validImages[0];
+        
+        // Gérer les images Base64 dans le tableau
+        if (firstValidUrl.startsWith('data:image')) {
+          validUrl = firstValidUrl;
+          console.log(`📸 Image Base64 détectée (array) pour ${product.name}`);
+        }
+        // Nettoyer les double slashes pour les URLs Supabase dans le tableau
+        else if (firstValidUrl.includes('supabase.co/storage')) {
+          validUrl = firstValidUrl.replace(/([^:])\/\//g, '$1/');
+          if (validUrl !== firstValidUrl) {
+            console.log(`🔧 Double slash nettoyé (array) pour ${product.name}`);
+          }
+        } else {
+          validUrl = firstValidUrl;
+        }
       }
-    } else {
-      setImageUrl("/placeholder.svg");
     }
     
+    setImageUrl(validUrl);
     setIsLoading(true);
     setHasError(false);
   }, [product]);
@@ -65,6 +96,16 @@ const ProductImage: React.FC<ProductImageProps> = ({ product }) => {
   // Add timestamp to image URL to prevent caching issues
   const getImageWithTimestamp = () => {
     if (imageUrl === "/placeholder.svg") return imageUrl;
+    
+    // Ne pas modifier les images Base64
+    if (imageUrl.startsWith('data:image')) {
+      return imageUrl;
+    }
+    
+    // Ne pas ajouter de timestamp aux URLs Supabase Storage (pour éviter les problèmes de cache signed URLs)
+    if (imageUrl.includes('supabase.co/storage')) {
+      return imageUrl;
+    }
     
     const separator = imageUrl.includes('?') ? '&' : '?';
     return `${imageUrl}${separator}t=${Date.now()}`;
