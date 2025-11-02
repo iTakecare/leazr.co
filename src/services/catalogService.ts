@@ -422,16 +422,55 @@ export const convertProductToParent = async (productId: string, updateData: any)
 // ===== Environmental Data Management =====
 
 /**
+ * Get the active API key for the current company
+ */
+const getActiveApiKey = async (companyId: string): Promise<string | null> => {
+  const { data, error } = await supabase
+    .from('api_keys')
+    .select('api_key')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    console.error("❌ No active API key found for company:", companyId, error);
+    return null;
+  }
+
+  return data.api_key;
+};
+
+/**
  * Get environmental data for all categories using the catalog-api Edge Function
  */
 export const getEnvironmentalData = async (companySlug: string): Promise<EnvironmentalApiResponse> => {
   console.log("🌱 getEnvironmentalData - Fetching environmental data for company:", companySlug);
   
   try {
+    // Get company ID from slug
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('slug', companySlug)
+      .single();
+
+    if (companyError || !company) {
+      throw new Error(`Company not found for slug: ${companySlug}`);
+    }
+
+    // Get active API key
+    const apiKey = await getActiveApiKey(company.id);
+    if (!apiKey) {
+      throw new Error('No active API key found. Please create one in the API settings.');
+    }
+
     const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/environmental/categories`, {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'x-api-key': apiKey
       }
     });
 
@@ -455,10 +494,28 @@ export const getCategoriesWithEnvironmentalData = async (companySlug: string): P
   console.log("🌱 getCategoriesWithEnvironmentalData - Fetching categories with CO2 data for company:", companySlug);
   
   try {
+    // Get company ID from slug
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('slug', companySlug)
+      .single();
+
+    if (companyError || !company) {
+      throw new Error(`Company not found for slug: ${companySlug}`);
+    }
+
+    // Get active API key
+    const apiKey = await getActiveApiKey(company.id);
+    if (!apiKey) {
+      throw new Error('No active API key found. Please create one in the API settings.');
+    }
+
     const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/categories`, {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'x-api-key': apiKey
       }
     });
 
@@ -482,10 +539,28 @@ export const getProductCO2Data = async (companySlug: string, productId: string):
   console.log("🌱 getProductCO2Data - Fetching CO2 data for product:", productId);
   
   try {
+    // Get company ID from slug
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('slug', companySlug)
+      .single();
+
+    if (companyError || !company) {
+      throw new Error(`Company not found for slug: ${companySlug}`);
+    }
+
+    // Get active API key
+    const apiKey = await getActiveApiKey(company.id);
+    if (!apiKey) {
+      throw new Error('No active API key found. Please create one in the API settings.');
+    }
+
     const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/environmental/products/${productId}`, {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'x-api-key': apiKey
       }
     });
 
