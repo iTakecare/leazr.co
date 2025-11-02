@@ -35,39 +35,15 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
     }))
   });
 
-  // Image URL helpers
-  const isSupabaseUrl = (url: string) => url.includes('supabase.co/storage');
-
-  const cleanImageUrl = (raw?: string | null): string => {
-    if (!raw) return "";
-    let url = raw.trim();
-
+  // Simple image URL helper - use URLs exactly as stored in database
+  const getImageUrl = (raw?: string | null): string => {
+    if (!raw || raw.trim() === '') return '/placeholder.svg';
+    
     // Base64: return as-is
-    if (url.startsWith('data:image')) return url;
-
-    // Support http -> https
-    if (url.startsWith('http://')) {
-      url = 'https://' + url.substring(7);
-    }
-
-    // Encode spaces minimally
-    url = url.replace(/ /g, '%20');
-
-    // Clean double slashes on Supabase URLs (but not the protocol part)
-    if (isSupabaseUrl(url)) {
-      url = url.replace(/([^:])\/{2,}/g, '$1/');
-    }
-
-    return url;
-  };
-
-  const addTimestamp = (url: string): string => {
-    if (!url) return url;
-    if (url === '/placeholder.svg') return url;
-    if (url.startsWith('data:image')) return url;
-    if (isSupabaseUrl(url)) return url; // avoid breaking signed/public storage URLs
-    const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}t=${Date.now()}`;
+    if (raw.startsWith('data:image')) return raw;
+    
+    // All other URLs (Supabase or external): return exactly as-is
+    return raw;
   };
 
   const handleDeleteProduct = (productId: string, productName: string) => {
@@ -100,14 +76,12 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                       {hasImageSrc ? (
                         <img
-                          src={addTimestamp(cleanImageUrl(rawImageUrl))}
+                          src={getImageUrl(rawImageUrl)}
                           alt={product.name}
                           className="w-full h-full object-cover"
                           loading="lazy"
-                          decoding="async"
-                          referrerPolicy="no-referrer"
                           onError={(e) => {
-                            console.log(`❌ AccordionProductList: Erreur image pour ${product.name}: ${rawImageUrl}`);
+                            console.log(`❌ Image error for ${product.name}: ${rawImageUrl}`);
                             e.currentTarget.src = '/placeholder.svg';
                           }}
                         />
