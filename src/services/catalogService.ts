@@ -466,19 +466,27 @@ export const getEnvironmentalData = async (companySlug: string): Promise<Environ
       throw new Error('No active API key found. Please create one in the API settings.');
     }
 
-    const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/environmental/categories`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'x-api-key': apiKey
+    // Call edge function with correct syntax
+    const response = await fetch(
+      `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/${companySlug}/environmental/categories`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       }
-    });
+    );
 
-    if (error) {
+    if (!response.ok) {
+      const error = await response.json();
       console.error("🌱 getEnvironmentalData - Error:", error);
-      throw error;
+      throw new Error(error.error || 'Failed to fetch environmental data');
     }
 
+    const data = await response.json();
     console.log("🌱 getEnvironmentalData - Success:", data);
     return data;
   } catch (error) {
@@ -511,19 +519,27 @@ export const getCategoriesWithEnvironmentalData = async (companySlug: string): P
       throw new Error('No active API key found. Please create one in the API settings.');
     }
 
-    const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/categories`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'x-api-key': apiKey
+    // Call edge function with correct syntax
+    const response = await fetch(
+      `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/${companySlug}/categories`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       }
-    });
+    );
 
-    if (error) {
+    if (!response.ok) {
+      const error = await response.json();
       console.error("🌱 getCategoriesWithEnvironmentalData - Error:", error);
-      throw error;
+      throw new Error(error.error || 'Failed to fetch categories');
     }
 
+    const data = await response.json();
     console.log("🌱 getCategoriesWithEnvironmentalData - Success:", data?.categories?.length, "categories");
     return data?.categories || [];
   } catch (error) {
@@ -556,19 +572,27 @@ export const getProductCO2Data = async (companySlug: string, productId: string):
       throw new Error('No active API key found. Please create one in the API settings.');
     }
 
-    const { data, error } = await supabase.functions.invoke(`catalog-api/v1/${companySlug}/environmental/products/${productId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'x-api-key': apiKey
+    // Call edge function with correct syntax
+    const response = await fetch(
+      `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/${companySlug}/products/${productId}/co2`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       }
-    });
+    );
 
-    if (error) {
+    if (!response.ok) {
+      const error = await response.json();
       console.error("🌱 getProductCO2Data - Error:", error);
-      throw error;
+      throw new Error(error.error || 'Failed to fetch product CO2 data');
     }
 
+    const data = await response.json();
     console.log("🌱 getProductCO2Data - Success:", data);
     return data?.product;
   } catch (error) {
