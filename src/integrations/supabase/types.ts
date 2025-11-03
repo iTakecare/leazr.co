@@ -6547,6 +6547,18 @@ export type Database = {
         Returns: boolean
       }
       immediate_global_cleanup: { Args: never; Returns: string }
+      increment_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_max_requests: number
+          p_window_start: string
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+        }[]
+      }
       initialize_new_company: {
         Args: { p_company_id: string; p_company_name: string }
         Returns: boolean
