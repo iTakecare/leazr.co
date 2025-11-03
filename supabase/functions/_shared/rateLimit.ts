@@ -14,40 +14,30 @@ export async function checkRateLimit(
   const now = new Date();
   const windowStart = new Date(now.getTime() - config.windowSeconds * 1000);
 
-  // Rechercher les requêtes existantes dans la fenêtre de temps
-  const { data: existingLimit } = await supabase
-    .from('rate_limits')
-    .select('*')
-    .eq('identifier', identifier)
-    .eq('endpoint', endpoint)
-    .gte('window_start', windowStart.toISOString())
-    .order('window_start', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!existingLimit) {
-    // Première requête dans cette fenêtre
-    await supabase.from('rate_limits').insert({
-      identifier,
-      endpoint,
-      request_count: 1,
-      window_start: now.toISOString()
+  try {
+    // Utiliser la fonction atomique de la base de données pour éviter les race conditions
+    const { data, error } = await supabase.rpc('increment_rate_limit', {
+      p_identifier: identifier,
+      p_endpoint: endpoint,
+      p_window_start: windowStart.toISOString(),
+      p_max_requests: config.maxRequests
     });
-    return { allowed: true, remaining: config.maxRequests - 1 };
+
+    if (error) {
+      console.error('Erreur lors du rate limiting:', error);
+      // En cas d'erreur, on autorise la requête pour ne pas bloquer le service
+      return { allowed: true, remaining: config.maxRequests };
+    }
+
+    // La fonction retourne un tableau avec un seul élément
+    const result = data[0];
+    return {
+      allowed: result.allowed,
+      remaining: result.remaining
+    };
+  } catch (error) {
+    console.error('Exception lors du rate limiting:', error);
+    // En cas d'erreur, on autorise la requête pour ne pas bloquer le service
+    return { allowed: true, remaining: config.maxRequests };
   }
-
-  if (existingLimit.request_count >= config.maxRequests) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  // Incrémenter le compteur
-  await supabase
-    .from('rate_limits')
-    .update({ request_count: existingLimit.request_count + 1 })
-    .eq('id', existingLimit.id);
-
-  return { 
-    allowed: true, 
-    remaining: config.maxRequests - existingLimit.request_count - 1 
-  };
 }
