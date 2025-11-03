@@ -1,6 +1,8 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { updateUserEmailRequestSchema, createValidationErrorResponse } from '../_shared/validationSchemas.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,16 +23,20 @@ serve(async (req) => {
     // Initialize the Supabase client with the service role key for admin privileges
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Parse request body
-    const { user_id, new_email } = await req.json();
+    // Parse et valide les données avec Zod
+    const body = await req.json();
     
-    // Validate input
-    if (!user_id || !new_email) {
-      return new Response(
-        JSON.stringify({ error: 'User ID and new email are required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    let validatedData;
+    try {
+      validatedData = updateUserEmailRequestSchema.parse(body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return createValidationErrorResponse(error, corsHeaders);
+      }
+      throw error;
     }
+    
+    const { user_id, new_email } = validatedData;
     
     // Update the user's email with admin supabase client
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
