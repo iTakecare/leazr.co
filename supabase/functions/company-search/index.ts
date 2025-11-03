@@ -44,10 +44,11 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Rate limiting: 100 requests per hour
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+    // Rate limiting: 100 requests per hour - Use more reliable IP detection
+    const clientIp = req.headers.get('cf-connecting-ip') ||
                      req.headers.get('x-real-ip') || 
-                     'unknown';
+                     req.headers.get('x-forwarded-for')?.split(',')[0] ||
+                     'rate-limited';
     
     const rateLimit = await checkRateLimit(
       supabase,

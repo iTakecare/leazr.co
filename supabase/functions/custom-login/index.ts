@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const loginRequestSchema = z.object({
+  email: z.string().trim().email({ message: "Format d'email invalide" }).max(255),
+  password: z.string().min(1, { message: "Le mot de passe est requis" }).max(255)
+});
 
 interface LoginRequest {
   email: string;
@@ -23,7 +30,24 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { email, password }: LoginRequest = await req.json();
+    // Parse and validate request body
+    const requestBody = await req.json();
+    
+    let email: string, password: string;
+    try {
+      const validated = loginRequestSchema.parse(requestBody);
+      email = validated.email;
+      password = validated.password;
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        console.log('Validation failed:', validationError.errors);
+        return new Response(
+          JSON.stringify({ error: 'Email ou mot de passe invalide' }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+      throw validationError;
+    }
 
     console.log(`Tentative de connexion pour ${email}`);
 
@@ -31,8 +55,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
     
     if (userError || !userData.user) {
+      // Generic error to prevent user enumeration
       return new Response(
-        JSON.stringify({ error: 'Utilisateur non trouvé' }),
+        JSON.stringify({ error: 'Email ou mot de passe incorrect' }),
         { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }

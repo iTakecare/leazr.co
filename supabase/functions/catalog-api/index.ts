@@ -33,10 +33,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Rate limiting: 100 requests per hour per IP
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+    // Rate limiting: 100 requests per hour per IP - Use more reliable IP detection
+    const clientIp = req.headers.get('cf-connecting-ip') ||
                      req.headers.get('x-real-ip') || 
-                     'unknown';
+                     req.headers.get('x-forwarded-for')?.split(',')[0] ||
+                     'rate-limited';
     
     const rateLimit = await checkRateLimit(
       supabaseAdmin,

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { createErrorResponse } from '../_shared/errorHandler.ts';
 
@@ -9,6 +10,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Input validation schema
+const signupRequestSchema = z.object({
+  email: z.string().trim().email({ message: "Format d'email invalide" }).max(255),
+  password: z.string()
+    .min(8, { message: "Le mot de passe doit contenir au moins 8 caractères" })
+    .max(255)
+    .regex(/[A-Z]/, { message: "Le mot de passe doit contenir au moins une majuscule" })
+    .regex(/[a-z]/, { message: "Le mot de passe doit contenir au moins une minuscule" })
+    .regex(/[0-9]/, { message: "Le mot de passe doit contenir au moins un chiffre" })
+    .regex(/[^A-Za-z0-9]/, { message: "Le mot de passe doit contenir au moins un caractère spécial" }),
+  firstName: z.string().trim().max(100).optional(),
+  lastName: z.string().trim().max(100).optional(),
+  companyId: z.string().uuid().optional()
+});
 
 interface SignupRequest {
   email: string;
@@ -27,17 +43,27 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Parse request body
-    const { email, password, firstName, lastName, companyId }: SignupRequest = await req.json();
+    // Parse and validate request body
+    const requestBody = await req.json();
     
-    if (!email || !password) {
-      return new Response(
-        JSON.stringify({ error: 'Email et mot de passe requis' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    let email: string, password: string, firstName: string | undefined, lastName: string | undefined, companyId: string | undefined;
+    try {
+      const validated = signupRequestSchema.parse(requestBody);
+      email = validated.email;
+      password = validated.password;
+      firstName = validated.firstName;
+      lastName = validated.lastName;
+      companyId = validated.companyId;
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        console.log('Validation failed:', validationError.errors);
+        const errorMessage = validationError.errors[0]?.message || 'Données invalides';
+        return new Response(
+          JSON.stringify({ error: errorMessage }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw validationError;
     }
 
     // Create Supabase client
@@ -45,9 +71,12 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ✅ RATE LIMITING
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                     req.headers.get('x-real-ip') || 'unknown';
+    // ✅ RATE LIMITING - Use more reliable IP detection
+    // Prioritize Cloudflare's CF-Connecting-IP header for better security
+    const clientIp = req.headers.get('cf-connecting-ip') ||
+                     req.headers.get('x-real-ip') || 
+                     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                     'rate-limited'; // Fail closed instead of 'unknown'
     
     const rateLimit = await checkRateLimit(supabase, clientIp, 'custom-signup', 
       { maxRequests: 5, windowSeconds: 3600 });

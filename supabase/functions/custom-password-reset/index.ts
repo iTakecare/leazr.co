@@ -28,9 +28,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { email, companyId }: PasswordResetRequest = await req.json();
 
-    // ✅ RATE LIMITING
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                     req.headers.get('x-real-ip') || 'unknown';
+    // ✅ RATE LIMITING - Use more reliable IP detection
+    const clientIp = req.headers.get('cf-connecting-ip') ||
+                     req.headers.get('x-real-ip') || 
+                     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                     'rate-limited';
     const rateLimit = await checkRateLimit(supabase, clientIp, 'password-reset', 
       { maxRequests: 5, windowSeconds: 3600 });
     if (!rateLimit.allowed) {
