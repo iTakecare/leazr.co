@@ -136,9 +136,7 @@ Deno.serve(async (req) => {
     // Verify API key
     const apiKey = req.headers.get('x-api-key')
     console.log('🔑 API KEY CHECK:', { 
-      hasApiKey: !!apiKey, 
-      apiKeyLength: apiKey?.length,
-      apiKeyPrefix: apiKey?.substring(0, 8) + '...',
+      hasApiKey: !!apiKey,
       companyId 
     })
     
@@ -151,7 +149,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate API key and get permissions
-    console.log('🔍 VALIDATING API KEY:', { apiKey: apiKey.substring(0, 8) + '...', companyId })
+    console.log('🔍 VALIDATING API KEY for company:', companyId)
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from('api_keys')
       .select('id, company_id, permissions, is_active')
