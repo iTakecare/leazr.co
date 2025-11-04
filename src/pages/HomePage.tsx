@@ -45,7 +45,7 @@ const HomePage: React.FC = () => {
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             Votre solution de
             <br />
-            <span className="text-primary">gestion de leasing</span>
+            <span className="text-primary">gestion de contrats de leasing</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
             Simplifiez la gestion de votre activité de leasing avec une plateforme complète
