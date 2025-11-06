@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { getAppUrl, getFromEmail, getFromName } from "../_shared/url-utils.ts";
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
 const corsHeaders = {
@@ -405,7 +406,7 @@ serve(async (req) => {
         .single();
       
       const companyLogo = companyInfo?.logo_url || '';
-      const companyName = companyInfo?.name || 'iTakecare';
+      const platformCompanyName = companyInfo?.name || 'iTakecare';
 
       // Fonctions utilitaires pour formatter les emails
       const formatAmount = (amount: number): string => {
@@ -434,11 +435,11 @@ serve(async (req) => {
         console.log("Erreur lors de la récupération du modèle d'email, utilisation du modèle par défaut:", templateError);
       }
 
-      let subject = `🎉 Bienvenue sur ${companyName} - Confirmation de votre demande`;
+      let subject = `🎉 Bienvenue sur ${platformCompanyName} - Confirmation de votre demande`;
       let htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 20px;">
-            ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${companyName}</h1>`}
+            ${companyLogo ? `<img src="${companyLogo}" alt="${platformCompanyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${platformCompanyName}</h1>`}
           </div>
           <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
           <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
@@ -462,7 +463,7 @@ serve(async (req) => {
           </p>
           <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
             <p style="color: #999; font-size: 11px; margin: 0;">
-              ${companyName} - Solution de leasing professionnel<br>
+              ${platformCompanyName} - Solution de leasing professionnel<br>
               Merci de votre confiance ! 🙏
             </p>
           </div>
@@ -514,7 +515,7 @@ serve(async (req) => {
             htmlContent = `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${companyName}</h1>`}
+                  ${companyLogo ? `<img src="${companyLogo}" alt="${platformCompanyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${platformCompanyName}</h1>`}
                 </div>
                 <h2 style="color: #2d618f; border-bottom: 2px solid #2d618f; padding-bottom: 10px;">👋 Bienvenue ${clientName || companyName} !</h2>
                 <p style="font-size: 16px; line-height: 1.6;">✨ Votre demande d'équipement a été créée avec succès sur la plateforme iTakecare.</p>
@@ -564,12 +565,12 @@ serve(async (req) => {
       const resendApiKey = globalResendKey || smtpSettings.resend_api_key;
       
       if (resendApiKey) {
-        console.log("Tentative d'envoi d'email via Resend à", clientEmail, "depuis", `iTakecare <noreply@itakecare.be>`);
-        
         const resend = new Resend(resendApiKey);
-        const fromName = globalResendKey ? "iTakecare" : (smtpSettings.from_name || "iTakecare");
-        const fromEmail = globalResendKey ? "noreply@itakecare.be" : (smtpSettings.from_email || "noreply@itakecare.be");
+        const fromName = globalResendKey ? "iTakecare" : getFromName(smtpSettings);
+        const fromEmail = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
         const from = `${fromName} <${fromEmail}>`;
+        
+        console.log("Tentative d'envoi d'email via Resend à", clientEmail, "depuis", from);
         
         const emailResult = await resend.emails.send({
           from,
@@ -634,8 +635,8 @@ serve(async (req) => {
           
           if (resendApiKey) {
             const resend = new Resend(resendApiKey);
-            const fromName = globalResendKey ? "iTakecare" : (smtpSettings?.from_name || "iTakecare");
-            const fromEmail = globalResendKey ? "noreply@itakecare.be" : (smtpSettings?.from_email || "noreply@itakecare.be");
+            const fromName = globalResendKey ? "iTakecare" : getFromName(smtpSettings);
+            const fromEmail = globalResendKey ? "noreply@itakecare.be" : getFromEmail(smtpSettings);
             const from = `${fromName} <${fromEmail}>`;
             
             // Récupérer les informations de l'entreprise
@@ -646,14 +647,14 @@ serve(async (req) => {
               .single();
             
             const companyLogo = companyInfo?.logo_url || '';
-            const companyName = companyInfo?.name || 'iTakecare';
+            const platformCompanyName = companyInfo?.name || 'iTakecare';
             
             // Template d'email pour les administrateurs
             const adminSubject = `🚨 Nouvelle demande d'offre reçue - ${clientName || companyName}`;
             const adminHtmlContent = `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 5px; background-color: #ffffff;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                  ${companyLogo ? `<img src="${companyLogo}" alt="${companyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${companyName}</h1>`}
+                  ${companyLogo ? `<img src="${companyLogo}" alt="${platformCompanyName}" style="height: 50px; max-width: 200px; object-fit: contain;">` : `<h1 style="color: #2d618f; margin-bottom: 10px;">${platformCompanyName}</h1>`}
                 </div>
                 
                 <h2 style="color: #d73527; border-bottom: 2px solid #d73527; padding-bottom: 10px;">🚨 Nouvelle demande d'offre reçue</h2>
@@ -662,7 +663,7 @@ serve(async (req) => {
                   <h3 style="color: #d73527; margin-top: 0;">📋 Informations client</h3>
                   <ul style="list-style: none; padding: 0; margin: 0;">
                     <li style="margin: 8px 0;"><strong>👤 Nom :</strong> ${clientName || 'Non renseigné'}</li>
-                    <li style="margin: 8px 0;"><strong>🏢 Entreprise :</strong> ${companyName}</li>
+                    <li style="margin: 8px 0;"><strong>🏢 Entreprise :</strong> ${companyName || 'Non renseignée'}</li>
                     <li style="margin: 8px 0;"><strong>📧 Email :</strong> ${clientEmail}</li>
                     <li style="margin: 8px 0;"><strong>📞 Téléphone :</strong> ${data.contact_info.phone || 'Non renseigné'}</li>
                     <li style="margin: 8px 0;"><strong>🏠 Adresse :</strong> ${data.company_info.address || 'Non renseignée'}, ${data.company_info.city || ''} ${data.company_info.postal_code || ''}</li>
@@ -692,7 +693,7 @@ serve(async (req) => {
                 ` : ''}
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${Deno.env.get('SITE_URL') || 'https://app.itakecare.be'}/offers/${requestId}" 
+                  <a href="${getAppUrl(req)}/offers/${requestId}" 
                      style="background: linear-gradient(135deg, #2d618f 0%, #4a90e2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; box-shadow: 0 4px 15px rgba(45, 97, 143, 0.3);">
                     👀 Voir l'offre dans l'interface admin
                   </a>
