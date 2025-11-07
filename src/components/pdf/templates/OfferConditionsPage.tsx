@@ -1,5 +1,5 @@
 import { Page, View, Text } from '@react-pdf/renderer';
-import { renderHTMLAsPDF, stripHtmlTags } from '@/utils/htmlToPdfText';
+import { renderHTMLAsPDF } from '@/utils/htmlToPdfText';
 
 interface OfferConditionsPageProps {
   conditions?: string[];
@@ -26,31 +26,7 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
   contentBlocks,
   styles,
 }) => {
-  const defaultConditions = [
-    "Les prix indiqués sont hors taxes et valables pour une durée de 30 jours.",
-    "Le paiement s'effectue par mensualités selon les modalités convenues.",
-    "La livraison est prévue dans un délai de 2 à 4 semaines après validation de la commande.",
-    "Une garantie constructeur est incluse pour tous les équipements.",
-    "L'installation et la mise en service sont comprises dans le tarif.",
-    "Un support technique est disponible durant toute la durée du contrat.",
-  ];
-
-  // Parse conditions list from HTML
-  const parseConditionsList = (html: string): string[] => {
-    const items = html
-      .split(/<li>|<\/li>|<br\s*\/?>/)
-      .map(item => stripHtmlTags(item).trim())
-      .filter(item => item.length > 0);
-    return items.length > 0 ? items : defaultConditions;
-  };
-
-  const displayConditions = contentBlocks?.general_conditions
-    ? parseConditionsList(contentBlocks.general_conditions)
-    : conditions && conditions.length > 0 
-      ? conditions 
-      : defaultConditions;
-  
-  const additionalText = contentBlocks?.additional_info 
+  const additionalText = contentBlocks?.additional_info
     ? contentBlocks.additional_info
     : additionalInfo;
   
@@ -63,12 +39,10 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
       <Text style={styles.sectionTitle}>Conditions Générales</Text>
 
       <View style={{ marginTop: 15 }}>
-        {displayConditions.map((condition, index) => (
-          <View key={index} style={styles.listItem}>
-            <Text style={styles.bullet}>{index + 1}.</Text>
-            <Text style={styles.listContent}>{condition}</Text>
-          </View>
-        ))}
+        {contentBlocks?.general_conditions 
+          ? renderHTMLAsPDF(contentBlocks.general_conditions, styles)
+          : <Text style={styles.text}>Aucune condition définie.</Text>
+        }
       </View>
 
       {additionalText && (
