@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { RichTextEditor } from '@/components/admin/RichTextEditor';
 import { useToast } from '@/hooks/use-toast';
-import { useCompanySlugAccess } from '@/hooks/useCompanySlugAccess';
+import { getCurrentUserCompanyId } from '@/services/multiTenantService';
 import { 
   getPDFContentBlocks, 
   upsertMultiplePDFContentBlocks, 
@@ -19,30 +19,48 @@ import { FileText, Save, Info } from 'lucide-react';
 
 const PDFContentEditor: React.FC = () => {
   const { toast } = useToast();
-  const { company } = useCompanySlugAccess();
   
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeTab, setActiveTab] = useState('cover');
 
+  // Chargement du company_id au montage
+  useEffect(() => {
+    const loadCompanyId = async () => {
+      try {
+        const id = await getCurrentUserCompanyId();
+        setCompanyId(id);
+      } catch (error) {
+        console.error('Erreur lors de la récupération du company_id:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de récupérer les informations de l'entreprise",
+          variant: "destructive"
+        });
+      }
+    };
+    loadCompanyId();
+  }, [toast]);
+
   // Chargement des blocs de contenu
   const { data: contentBlocks, isLoading, refetch } = useQuery({
-    queryKey: ['pdf-content-blocks', company?.id],
+    queryKey: ['pdf-content-blocks', companyId],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!companyId) return [];
       
-      const blocks = await getPDFContentBlocks(company.id);
+      const blocks = await getPDFContentBlocks(companyId);
       
       // Si aucun bloc n'existe, initialiser avec les valeurs par défaut
       if (blocks.length === 0) {
-        await initializeDefaultPDFContent(company.id);
-        return await getPDFContentBlocks(company.id);
+        await initializeDefaultPDFContent(companyId);
+        return await getPDFContentBlocks(companyId);
       }
       
       return blocks;
     },
-    enabled: !!company?.id
+    enabled: !!companyId
   });
 
   // Conversion des blocs en map pour faciliter l'édition
@@ -65,7 +83,7 @@ const PDFContentEditor: React.FC = () => {
 
   // Sauvegarde de tous les blocs
   const saveBlocks = async () => {
-    if (!company?.id) return;
+    if (!companyId) return;
     
     setIsSaving(true);
     try {
@@ -73,7 +91,7 @@ const PDFContentEditor: React.FC = () => {
         const [pageName, ...blockKeyParts] = key.split('_');
         const blockKey = blockKeyParts.join('_');
         return {
-          company_id: company.id,
+          company_id: companyId,
           page_name: pageName as 'cover' | 'equipment' | 'conditions',
           block_key: blockKey,
           content
