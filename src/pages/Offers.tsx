@@ -60,16 +60,35 @@ const Offers = () => {
   
   // Wrapper functions to generate PDF and open preview
   const handleGenerateOfferWithPreview = async (id: string) => {
-    const blob = await handleGenerateOffer(id);
-    if (blob) {
-      openPDFPreview(blob, `offre_client_${new Date().toISOString().split('T')[0]}.pdf`);
+    try {
+      const blob = await handleGenerateOffer(id);
+      if (blob) {
+        openPDFPreview(blob, `offre_client_${new Date().toISOString().split('T')[0]}.pdf`);
+      } else {
+        // Fallback: try direct download
+        const { downloadOfferPDF } = await import('@/services/clientPdfService');
+        await downloadOfferPDF(id, 'client');
+      }
+    } catch (e) {
+      console.error('[Offers] Preview fallback to download (client):', e);
+      const { downloadOfferPDF } = await import('@/services/clientPdfService');
+      await downloadOfferPDF(id, 'client');
     }
   };
   
   const handleGenerateInternalPdfWithPreview = async (id: string) => {
-    const blob = await handleGenerateInternalPdf(id);
-    if (blob) {
-      openPDFPreview(blob, `offre_interne_${new Date().toISOString().split('T')[0]}.pdf`);
+    try {
+      const blob = await handleGenerateInternalPdf(id);
+      if (blob) {
+        openPDFPreview(blob, `offre_interne_${new Date().toISOString().split('T')[0]}.pdf`);
+      } else {
+        const { downloadOfferPDF } = await import('@/services/clientPdfService');
+        await downloadOfferPDF(id, 'internal');
+      }
+    } catch (e) {
+      console.error('[Offers] Preview fallback to download (internal):', e);
+      const { downloadOfferPDF } = await import('@/services/clientPdfService');
+      await downloadOfferPDF(id, 'internal');
     }
   };
   

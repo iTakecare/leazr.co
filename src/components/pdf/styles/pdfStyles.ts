@@ -27,7 +27,8 @@ export const pdfStyles = StyleSheet.create({
   header: {
     marginBottom: 30,
     paddingBottom: 15,
-    borderBottom: `2pt solid ${colors.primary}`,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
   },
   
   companyName: {
@@ -59,7 +60,8 @@ export const pdfStyles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
     paddingBottom: 5,
-    borderBottom: `1pt solid ${colors.border}`,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   
   subtitle: {
@@ -145,7 +147,8 @@ export const pdfStyles = StyleSheet.create({
   
   tableRow: {
     flexDirection: 'row',
-    borderBottom: `1pt solid ${colors.border}`,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     padding: 8,
     fontSize: 9,
   },
@@ -153,7 +156,8 @@ export const pdfStyles = StyleSheet.create({
   tableRowAlt: {
     flexDirection: 'row',
     backgroundColor: colors.lightGray,
-    borderBottom: `1pt solid ${colors.border}`,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     padding: 8,
     fontSize: 9,
   },
@@ -176,7 +180,8 @@ export const pdfStyles = StyleSheet.create({
     left: 40,
     right: 40,
     paddingTop: 10,
-    borderTop: `1pt solid ${colors.border}`,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     fontSize: 8,
     color: colors.gray,
     flexDirection: 'row',
@@ -215,7 +220,8 @@ export const pdfStyles = StyleSheet.create({
   badge: {
     backgroundColor: colors.lightGray,
     borderRadius: 3,
-    padding: '3 6',
+    paddingVertical: 3,
+    paddingHorizontal: 6,
     fontSize: 8,
     color: colors.dark,
     marginRight: 5,

@@ -1,91 +1,56 @@
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
-import { supabase } from '@/integrations/supabase/client';
 import { OfferPDFDocument, OfferPDFData } from '@/components/pdf/templates/OfferPDFDocument';
 import { OfferEquipment } from '@/types/offerEquipment';
+import { getOfferById } from '@/services/offers/offerDetail';
+import { getOfferEquipment } from '@/services/offers/offerEquipment';
 
 /**
- * Fetch offer data from Supabase for PDF generation
+ * Fetch offer data from Supabase for PDF generation (uses existing services)
  */
 async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
-  const { data: offer, error } = await supabase
-    .from('offers')
-    .select(`
-      *,
-      clients!inner(
-        company_name,
-        address,
-        email,
-        phone
-      )
-    `)
-    .eq('id', offerId)
-    .single();
+  try {
+    const offer = await getOfferById(offerId);
+    if (!offer) return null;
 
-  if (error || !offer) {
-    console.error('[CLIENT-PDF] Error fetching offer:', error);
+    // Always fetch equipment using the shared service to ensure proper RLS and structure
+    const equipmentData: OfferEquipment[] = await getOfferEquipment(offerId);
+
+    const totalMonthlyPayment = equipmentData.reduce(
+      (sum, item) => sum + (item.monthly_payment || 0) * (item.quantity || 1),
+      0
+    );
+
+    const totalMargin = equipmentData.reduce((sum, item) => {
+      const purchaseTotal = (item.purchase_price || 0) * (item.quantity || 1);
+      const sellingTotal = (item.selling_price || 0) * (item.quantity || 1);
+      return sum + (sellingTotal - purchaseTotal);
+    }, 0);
+
+    const data: OfferPDFData = {
+      id: offer.id,
+      offer_number: offer.offer_number || offer.id.slice(0, 8).toUpperCase(),
+      offer_date: offer.created_at,
+      client_name: offer.client_name || 'Client',
+      client_address: offer.client_address || undefined,
+      client_email: offer.client_email || undefined,
+      client_phone: offer.client_phone || undefined,
+      equipment: equipmentData,
+      total_monthly_payment: totalMonthlyPayment,
+      total_margin: totalMargin,
+      conditions: offer.conditions || undefined,
+      additional_info: offer.additional_info || undefined,
+      company_name: 'Votre Entreprise', // TODO: load from branding/settings
+      company_address: undefined,
+      company_email: 'contact@entreprise.fr',
+      company_phone: undefined,
+    };
+
+    return data;
+  } catch (e) {
+    console.error('[CLIENT-PDF] fetchOfferData error:', e);
     return null;
   }
-
-  // Fetch equipment
-  const { data: equipment, error: equipmentError } = await supabase
-    .from('offer_equipment')
-    .select(`
-      *,
-      offer_equipment_attributes(*),
-      offer_equipment_specifications(*)
-    `)
-    .eq('offer_id', offerId)
-    .order('created_at', { ascending: true });
-
-  if (equipmentError) {
-    console.error('[CLIENT-PDF] Error fetching equipment:', equipmentError);
-  }
-
-  const equipmentList: OfferEquipment[] = (equipment || []).map((item: any) => ({
-    id: item.id,
-    offer_id: item.offer_id,
-    title: item.title,
-    purchase_price: item.purchase_price,
-    quantity: item.quantity,
-    margin: item.margin,
-    monthly_payment: item.monthly_payment,
-    selling_price: item.selling_price,
-    coefficient: item.coefficient,
-    serial_number: item.serial_number,
-    attributes: item.offer_equipment_attributes || [],
-    specifications: item.offer_equipment_specifications || [],
-  }));
-
-  const totalMonthlyPayment = equipmentList.reduce(
-    (sum, item) => sum + (item.monthly_payment || 0) * item.quantity,
-    0
-  );
-
-  const totalMargin = equipmentList.reduce((sum, item) => {
-    const purchaseTotal = item.purchase_price * item.quantity;
-    const sellingTotal = (item.selling_price || 0) * item.quantity;
-    return sum + (sellingTotal - purchaseTotal);
-  }, 0);
-
-  return {
-    id: offer.id,
-    offer_number: offer.offer_number || offer.id.slice(0, 8).toUpperCase(),
-    offer_date: offer.created_at,
-    client_name: offer.clients?.company_name || 'Client',
-    client_address: offer.clients?.address,
-    client_email: offer.clients?.email,
-    client_phone: offer.clients?.phone,
-    equipment: equipmentList,
-    total_monthly_payment: totalMonthlyPayment,
-    total_margin: totalMargin,
-    conditions: offer.conditions || undefined,
-    additional_info: offer.additional_info,
-    company_name: 'Votre Entreprise', // TODO: Get from settings/config
-    company_address: undefined, // TODO: Get from settings/config
-    company_email: 'contact@entreprise.fr', // TODO: Get from settings/config
-    company_phone: undefined, // TODO: Get from settings/config
-  };
 }
 
 /**
