@@ -6,6 +6,7 @@ interface OfferCoverPageProps {
   offerNumber: string;
   offerDate: string;
   clientName: string;
+  clientCompany?: string;
   clientAddress?: string;
   clientEmail?: string;
   clientPhone?: string;
@@ -27,6 +28,7 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
   offerNumber,
   offerDate,
   clientName,
+  clientCompany,
   clientAddress,
   clientEmail,
   clientPhone,
@@ -79,8 +81,10 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
       {/* Client Information */}
       <View style={styles.infoBox}>
         <Text style={styles.subtitle}>Destinataire</Text>
-        <Text style={styles.textBold}>{clientName}</Text>
-        {clientAddress && <Text style={styles.text}>{clientAddress}</Text>}
+        <Text style={styles.textBold}>
+          {clientName}{clientCompany ? ` - ${clientCompany}` : ''}
+        </Text>
+        {clientAddress && <Text style={{ ...styles.text, marginTop: 8 }}>{clientAddress}</Text>}
         {clientEmail && <Text style={styles.textGray}>Email: {clientEmail}</Text>}
         {clientPhone && <Text style={styles.textGray}>Tél: {clientPhone}</Text>}
       </View>

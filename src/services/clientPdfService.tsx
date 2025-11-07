@@ -18,6 +18,7 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
         *,
         clients!inner(
           phone,
+          company,
           billing_address,
           billing_city,
           billing_postal_code,
@@ -88,6 +89,7 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       offer_number: offerData.offer_number || `OFF-${new Date().getFullYear()}-${offerData.id.slice(0, 8).toUpperCase()}`,
       offer_date: offerData.created_at,
       client_name: offerData.client_name || 'Client',
+      client_company: offerData.clients?.company || undefined,
       client_address: clientAddressParts.length > 0 ? clientAddressParts.join(', ') : undefined,
       client_email: offerData.client_email || undefined,
       client_phone: offerData.clients?.phone || undefined,

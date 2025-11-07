@@ -10,6 +10,7 @@ export interface OfferPDFData {
   offer_number: string;
   offer_date: string;
   client_name: string;
+  client_company?: string;
   client_address?: string;
   client_email?: string;
   client_phone?: string;
@@ -63,6 +64,7 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         offerNumber={offer.offer_number}
         offerDate={offer.offer_date}
         clientName={offer.client_name}
+        clientCompany={offer.client_company}
         clientAddress={offer.client_address}
         clientEmail={offer.client_email}
         clientPhone={offer.client_phone}
