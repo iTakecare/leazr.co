@@ -1,6 +1,6 @@
 import { Page, View, Text, Image } from '@react-pdf/renderer';
 import { colors } from '../styles/pdfStyles';
-import { stripHtmlTags } from '@/utils/htmlToPdfText';
+import { renderHTMLAsPDF } from '@/utils/htmlToPdfText';
 
 interface OfferCoverPageProps {
   offerNumber: string;
@@ -87,15 +87,15 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
 
       {/* Introduction */}
       <View style={{ marginTop: 40 }}>
-        <Text style={styles.text}>
-          {stripHtmlTags(greeting)}
-        </Text>
-        <Text style={{ ...styles.text, marginTop: 15 }}>
-          {stripHtmlTags(introduction)}
-        </Text>
-        <Text style={{ ...styles.text, marginTop: 15 }}>
-          {stripHtmlTags(validity)}
-        </Text>
+        <View style={styles.text}>
+          {renderHTMLAsPDF(greeting, styles)}
+        </View>
+        <View style={{ ...styles.text, marginTop: 15 }}>
+          {renderHTMLAsPDF(introduction, styles)}
+        </View>
+        <View style={{ ...styles.text, marginTop: 15 }}>
+          {renderHTMLAsPDF(validity, styles)}
+        </View>
       </View>
 
       {/* Footer */}

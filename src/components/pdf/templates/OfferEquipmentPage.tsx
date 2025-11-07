@@ -1,4 +1,5 @@
 import { Page, View, Text } from '@react-pdf/renderer';
+import { renderHTMLAsPDF } from '@/utils/htmlToPdfText';
 import { colors } from '../styles/pdfStyles';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { getCategoryEmoji } from '@/utils/equipmentCategoryEmojis';
@@ -48,7 +49,9 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.sectionTitle}>{stripHtmlTags(title)}</Text>
+      <View style={styles.sectionTitle}>
+        {renderHTMLAsPDF(title, styles)}
+      </View>
 
       {/* Equipment Table */}
       <View style={styles.table}>
@@ -197,9 +200,9 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
       {/* Footer Note */}
       {contentBlocks?.footer_note && (
         <View style={{ marginTop: 10 }}>
-          <Text style={{ ...styles.text, fontSize: 9, fontStyle: 'italic' }}>
-            {stripHtmlTags(contentBlocks.footer_note)}
-          </Text>
+          <View style={{ ...styles.text, fontSize: 9, fontStyle: 'italic' }}>
+            {renderHTMLAsPDF(contentBlocks.footer_note, styles)}
+          </View>
         </View>
       )}
 

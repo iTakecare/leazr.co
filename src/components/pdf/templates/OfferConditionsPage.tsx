@@ -1,5 +1,5 @@
 import { Page, View, Text } from '@react-pdf/renderer';
-import { stripHtmlTags } from '@/utils/htmlToPdfText';
+import { renderHTMLAsPDF, stripHtmlTags } from '@/utils/htmlToPdfText';
 
 interface OfferConditionsPageProps {
   conditions?: string[];
@@ -51,11 +51,11 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
       : defaultConditions;
   
   const additionalText = contentBlocks?.additional_info 
-    ? stripHtmlTags(contentBlocks.additional_info)
+    ? contentBlocks.additional_info
     : additionalInfo;
   
   const contactText = contentBlocks?.contact_info
-    ? stripHtmlTags(contentBlocks.contact_info)
+    ? contentBlocks.contact_info
     : 'Pour toute question concernant cette offre, n\'hésitez pas à nous contacter :';
 
   return (
@@ -74,16 +74,18 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
       {additionalText && (
         <View style={{ marginTop: 25 }}>
           <Text style={styles.subtitle}>Informations Complémentaires</Text>
-          <Text style={styles.text}>{additionalText}</Text>
+          <View style={styles.text}>
+            {renderHTMLAsPDF(additionalText, styles)}
+          </View>
         </View>
       )}
 
       {/* Contact Section */}
       <View style={{ ...styles.infoBox, marginTop: 30 }}>
         <Text style={styles.subtitle}>Contact</Text>
-        <Text style={styles.text}>
-          {contactText}
-        </Text>
+        <View style={styles.text}>
+          {renderHTMLAsPDF(contactText, styles)}
+        </View>
         {contactEmail && (
           <Text style={{ ...styles.text, marginTop: 5 }}>
             Email: {contactEmail}
