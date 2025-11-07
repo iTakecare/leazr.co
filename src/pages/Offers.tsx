@@ -24,6 +24,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useAuth } from "@/context/AuthContext";
+import { usePDFPreview } from "@/hooks/usePDFPreview";
+import { PDFViewer } from "@/components/pdf/PDFViewer";
 
 const Offers = () => {
   const {
@@ -52,6 +54,24 @@ const Offers = () => {
   const navigate = useNavigate();
   const { navigateToAdmin } = useRoleNavigation();
   const { isBrokerUser } = useAuth();
+  
+  // Hook pour la prévisualisation PDF
+  const { isOpen, pdfBlob, filename, openPDFPreview, closePDFPreview } = usePDFPreview();
+  
+  // Wrapper functions to generate PDF and open preview
+  const handleGenerateOfferWithPreview = async (id: string) => {
+    const blob = await handleGenerateOffer(id);
+    if (blob) {
+      openPDFPreview(blob, `offre_client_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+  };
+  
+  const handleGenerateInternalPdfWithPreview = async (id: string) => {
+    const blob = await handleGenerateInternalPdf(id);
+    if (blob) {
+      openPDFPreview(blob, `offre_interne_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+  };
   
   // Forcer la vue liste pour les broker users
   useEffect(() => {
@@ -195,11 +215,19 @@ const Offers = () => {
             onStatusChange={handleUpdateWorkflowStatus}
             onDeleteOffer={handleDeleteOffer}
             onResendOffer={handleResendOffer}
-            onGenerateOffer={handleGenerateOffer}
-            onGenerateInternalPdf={handleGenerateInternalPdf}
+            onGenerateOffer={handleGenerateOfferWithPreview}
+            onGenerateInternalPdf={handleGenerateInternalPdfWithPreview}
             isUpdatingStatus={isUpdatingStatus}
           />
         )}
+        
+        {/* PDF Viewer Modal */}
+        <PDFViewer
+          isOpen={isOpen}
+          onClose={closePDFPreview}
+          pdfBlob={pdfBlob}
+          filename={filename}
+        />
       </div>
     </PageTransition>
   );

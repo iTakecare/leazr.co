@@ -146,27 +146,31 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     }
   };
   
-  const handleGenerateOffer = async (id: string) => {
+  const handleGenerateOffer = async (id: string): Promise<Blob | null> => {
     setIsGeneratingPdf(true);
     try {
-      const { previewClientOfferPdf } = await import('@/services/pdfService');
-      await previewClientOfferPdf(id);
+      const { generateOfferPDF } = await import('@/services/clientPdfService');
+      const blob = await generateOfferPDF(id, 'client');
+      return blob;
     } catch (error) {
       console.error("Error generating offer:", error);
       toast.error("Erreur lors de la génération de l'offre");
+      return null;
     } finally {
       setIsGeneratingPdf(false);
     }
   };
   
-  const handleGenerateInternalPdf = async (id: string) => {
+  const handleGenerateInternalPdf = async (id: string): Promise<Blob | null> => {
     setIsGeneratingPdf(true);
     try {
-      const { previewInternalOfferPdf } = await import('@/services/pdfService');
-      await previewInternalOfferPdf(id);
+      const { generateOfferPDF } = await import('@/services/clientPdfService');
+      const blob = await generateOfferPDF(id, 'internal');
+      return blob;
     } catch (error) {
       console.error("Error generating internal PDF:", error);
       toast.error("Erreur lors de la génération du PDF interne");
+      return null;
     } finally {
       setIsGeneratingPdf(false);
     }
