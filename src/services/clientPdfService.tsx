@@ -138,6 +138,50 @@ export async function generateOfferPDF(
 }
 
 /**
+ * Generate PDF blob with custom overrides (for preview editor)
+ */
+export async function generateOfferPDFWithOverrides(
+  offerId: string,
+  pdfType: 'client' | 'internal',
+  overrides: Partial<OfferPDFData>
+): Promise<Blob> {
+  console.log(`[CLIENT-PDF] Generating ${pdfType} PDF with overrides for offer ${offerId}`);
+
+  // Fetch base offer data
+  const baseData = await fetchOfferData(offerId);
+  if (!baseData) {
+    throw new Error('Impossible de récupérer les données de l\'offre');
+  }
+
+  // Merge with overrides
+  const mergedData: OfferPDFData = {
+    ...baseData,
+    ...overrides,
+    conditions: overrides.conditions ?? baseData.conditions,
+    additional_info: overrides.additional_info ?? baseData.additional_info,
+  };
+
+  // For client PDFs, remove sensitive financial data
+  if (pdfType === 'client') {
+    mergedData.equipment = mergedData.equipment.map((item) => ({
+      ...item,
+      purchase_price: 0,
+      margin: 0,
+      selling_price: undefined,
+    }));
+    mergedData.total_margin = undefined;
+  }
+
+  // Generate PDF
+  const blob = await pdf(
+    <OfferPDFDocument offer={mergedData} pdfType={pdfType} />
+  ).toBlob();
+
+  console.log(`[CLIENT-PDF] Generated ${pdfType} PDF with overrides (${blob.size} bytes)`);
+  return blob;
+}
+
+/**
  * Download offer PDF directly
  */
 export async function downloadOfferPDF(

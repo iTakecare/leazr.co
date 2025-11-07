@@ -125,3 +125,29 @@ export const updateOfferRequestDate = async (offerId: string, newDate: string): 
     return false;
   }
 };
+
+/**
+ * Update offer metadata (conditions, additional_info, client details)
+ */
+export async function updateOfferMetadata(
+  offerId: string,
+  updates: {
+    conditions?: string[];
+    additional_info?: string;
+    client_address?: string;
+    client_email?: string;
+    client_phone?: string;
+  }
+): Promise<void> {
+  const { error } = await supabase
+    .from('offers')
+    .update(updates)
+    .eq('id', offerId);
+
+  if (error) {
+    console.error('[Offer] Error updating offer metadata:', error);
+    throw error;
+  }
+
+  console.log('[Offer] Metadata updated:', offerId, updates);
+}
