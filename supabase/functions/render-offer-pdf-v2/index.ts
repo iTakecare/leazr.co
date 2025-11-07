@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js";
+
+const ENGINE_VERSION = 'v2.4-unicode';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[RENDER-OFFER-PDF-V2] Starting PDF generation');
+    console.log(`[RENDER-OFFER-PDF-V2] ${ENGINE_VERSION} Starting PDF generation`);
     
     // Vérifier l'authentification
     const authHeader = req.headers.get('Authorization');
@@ -70,7 +73,7 @@ serve(async (req) => {
       throw new Error('Access denied: Internal PDF requires admin role');
     }
 
-    console.log(`[RENDER-OFFER-PDF-V2] Generating ${pdfType} PDF for offer:`, offerId);
+    console.log(`[RENDER-OFFER-PDF-V2] ${ENGINE_VERSION} Generating ${pdfType} PDF for offer:`, offerId);
 
     // Récupérer les données de l'offre avec équipements, attributs et spécifications
     const { data: offer, error: offerError } = await supabaseClient
@@ -103,12 +106,34 @@ serve(async (req) => {
       });
     }
 
-    console.log('[RENDER-OFFER-PDF-V2] Creating PDF document with pdf-lib');
+    console.log(`[RENDER-OFFER-PDF-V2] ${ENGINE_VERSION} Creating PDF document with Unicode font support`);
 
     // Créer le document PDF
     const pdfDoc = await PDFDocument.create();
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    // Register fontkit for Unicode font support
+    pdfDoc.registerFontkit(fontkit);
+    
+    // Fetch and embed Unicode font (Noto Sans)
+    let unicodeFont;
+    let unicodeFontBold;
+    try {
+      console.log('[RENDER-OFFER-PDF-V2] Fetching Noto Sans font from CDN...');
+      const fontResponse = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.0/files/noto-sans-latin-400-normal.ttf');
+      const fontBytes = await fontResponse.arrayBuffer();
+      unicodeFont = await pdfDoc.embedFont(fontBytes, { subset: true });
+      
+      // For bold, we'll use the same font with higher weight drawing (pdf-lib doesn't support true bold with custom fonts easily)
+      // In practice, we can fetch the 700 weight font
+      const fontBoldResponse = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.0/files/noto-sans-latin-700-normal.ttf');
+      const fontBoldBytes = await fontBoldResponse.arrayBuffer();
+      unicodeFontBold = await pdfDoc.embedFont(fontBoldBytes, { subset: true });
+      
+      console.log('[RENDER-OFFER-PDF-V2] Unicode fonts embedded successfully');
+    } catch (fontError) {
+      console.error('[RENDER-OFFER-PDF-V2] Failed to load Unicode font, PDF generation will fail:', fontError);
+      throw new Error('Font loading failed: ' + fontError.message);
+    }
 
     // Couleurs
     const primaryColor = rgb(0.231, 0.51, 0.965); // #3b82f6
@@ -242,7 +267,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 28,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: primaryColor,
     });
 
@@ -251,7 +276,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 10,
-      font: helveticaFont,
+      font: unicodeFont,
       color: grayColor,
     });
 
@@ -262,7 +287,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 12,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: darkColor,
     });
 
@@ -271,7 +296,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 14,
-      font: helveticaFont,
+      font: unicodeFont,
       color: darkColor,
     });
 
@@ -281,7 +306,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 11,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
     }
@@ -291,7 +316,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 10,
-      font: helveticaFont,
+      font: unicodeFont,
       color: grayColor,
     });
 
@@ -300,7 +325,7 @@ serve(async (req) => {
       x: 50,
       y: 50,
       size: 10,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: primaryColor,
     });
 
@@ -317,7 +342,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 16,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: darkColor,
     });
 
@@ -350,7 +375,7 @@ serve(async (req) => {
           x: 50,
           y: yPosition,
           size: 12,
-          font: helveticaBold,
+          font: unicodeFontBold,
           color: darkColor,
         });
 
@@ -360,7 +385,7 @@ serve(async (req) => {
           x: 450,
           y: yPosition,
           size: 11,
-          font: helveticaBold,
+          font: unicodeFontBold,
           color: primaryColor,
         });
 
@@ -377,7 +402,7 @@ serve(async (req) => {
             x: 70,
             y: yPosition,
             size: 9,
-            font: helveticaFont,
+            font: unicodeFont,
             color: grayColor,
           });
 
@@ -385,7 +410,7 @@ serve(async (req) => {
             x: 250,
             y: yPosition,
             size: 9,
-            font: helveticaFont,
+            font: unicodeFont,
             color: grayColor,
           });
 
@@ -399,7 +424,7 @@ serve(async (req) => {
               x: 70,
               y: yPosition,
               size: 9,
-              font: helveticaFont,
+              font: unicodeFont,
               color: grayColor,
             });
             yPosition -= 13;
@@ -413,7 +438,7 @@ serve(async (req) => {
               x: 70,
               y: yPosition,
               size: 9,
-              font: helveticaFont,
+              font: unicodeFont,
               color: grayColor,
             });
             yPosition -= 13;
@@ -427,7 +452,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 11,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
       yPosition -= 30;
@@ -456,7 +481,7 @@ serve(async (req) => {
       x: 300,
       y: yPosition,
       size: 12,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: darkColor,
     });
 
@@ -464,7 +489,7 @@ serve(async (req) => {
       x: 470,
       y: yPosition,
       size: 14,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: primaryColor,
     });
 
@@ -475,7 +500,7 @@ serve(async (req) => {
         x: 300,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
 
@@ -486,7 +511,7 @@ serve(async (req) => {
         x: 300,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
     }
@@ -499,7 +524,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 12,
-        font: helveticaBold,
+        font: unicodeFontBold,
         color: darkColor,
       });
 
@@ -509,7 +534,7 @@ serve(async (req) => {
         x: 70,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
 
@@ -517,7 +542,7 @@ serve(async (req) => {
         x: 470,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: darkColor,
       });
 
@@ -527,7 +552,7 @@ serve(async (req) => {
         x: 70,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
 
@@ -535,7 +560,7 @@ serve(async (req) => {
         x: 470,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: darkColor,
       });
 
@@ -546,7 +571,7 @@ serve(async (req) => {
         x: 70,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
 
@@ -554,7 +579,7 @@ serve(async (req) => {
         x: 470,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: darkColor,
       });
     }
@@ -567,7 +592,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 16,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: darkColor,
     });
 
@@ -590,7 +615,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 11,
-        font: helveticaFont,
+        font: unicodeFont,
         color: darkColor,
       });
       yPosition -= 20;
@@ -602,7 +627,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 11,
-        font: helveticaBold,
+        font: unicodeFontBold,
         color: darkColor,
       });
       yPosition -= 18;
@@ -611,7 +636,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
         maxWidth: 495,
       });
@@ -624,7 +649,7 @@ serve(async (req) => {
       x: 50,
       y: yPosition,
       size: 11,
-      font: helveticaBold,
+      font: unicodeFontBold,
       color: darkColor,
     });
 
@@ -635,7 +660,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
       yPosition -= 18;
@@ -646,7 +671,7 @@ serve(async (req) => {
         x: 50,
         y: yPosition,
         size: 10,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
     }
@@ -662,7 +687,7 @@ serve(async (req) => {
         x: 50,
         y: 30,
         size: 8,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
 
@@ -670,7 +695,7 @@ serve(async (req) => {
         x: 520,
         y: 30,
         size: 8,
-        font: helveticaFont,
+        font: unicodeFont,
         color: grayColor,
       });
     }
@@ -678,7 +703,7 @@ serve(async (req) => {
     // Générer le PDF
     const pdfBytes = await pdfDoc.save();
 
-    console.log(`[RENDER-OFFER-PDF-V2] PDF generated successfully (${pdfBytes.length} bytes)`);
+    console.log(`[RENDER-OFFER-PDF-V2] ${ENGINE_VERSION} PDF generated successfully (${pdfBytes.length} bytes)`);
 
     const filename = pdfType === 'client' 
       ? `Offre-${offer.id.substring(0, 8)}.pdf`
@@ -690,15 +715,17 @@ serve(async (req) => {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'private, max-age=0, must-revalidate',
+        'X-PDF-Engine': ENGINE_VERSION,
       },
     });
 
   } catch (error) {
-    console.error('[RENDER-OFFER-PDF-V2] Error:', error);
+    console.error(`[RENDER-OFFER-PDF-V2] ${ENGINE_VERSION} Error:`, error);
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Unknown error',
-        code: 'PDF_GENERATION_FAILED'
+        code: 'PDF_GENERATION_FAILED',
+        engine: ENGINE_VERSION
       }),
       {
         status: 500,
