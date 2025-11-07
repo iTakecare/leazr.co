@@ -24,8 +24,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useAuth } from "@/context/AuthContext";
-import { usePDFPreview } from "@/hooks/usePDFPreview";
-import { PDFViewer } from "@/components/pdf/PDFViewer";
 
 const Offers = () => {
   const {
@@ -45,8 +43,7 @@ const Offers = () => {
     setIncludeConverted,
     fetchOffers,
     handleResendOffer,
-    handleGenerateOffer,
-    handleGenerateInternalPdf
+    handleGenerateOffer
   } = useOffers();
   
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
@@ -54,43 +51,6 @@ const Offers = () => {
   const navigate = useNavigate();
   const { navigateToAdmin } = useRoleNavigation();
   const { isBrokerUser } = useAuth();
-  
-  // Hook pour la prévisualisation PDF
-  const { isOpen, pdfBlob, filename, openPDFPreview, closePDFPreview } = usePDFPreview();
-  
-  // Wrapper functions to generate PDF and open preview
-  const handleGenerateOfferWithPreview = async (id: string) => {
-    try {
-      const blob = await handleGenerateOffer(id);
-      if (blob) {
-        openPDFPreview(blob, `offre_client_${new Date().toISOString().split('T')[0]}.pdf`);
-      } else {
-        // Fallback: try direct download
-        const { downloadOfferPDF } = await import('@/services/clientPdfService');
-        await downloadOfferPDF(id, 'client');
-      }
-    } catch (e) {
-      console.error('[Offers] Preview fallback to download (client):', e);
-      const { downloadOfferPDF } = await import('@/services/clientPdfService');
-      await downloadOfferPDF(id, 'client');
-    }
-  };
-  
-  const handleGenerateInternalPdfWithPreview = async (id: string) => {
-    try {
-      const blob = await handleGenerateInternalPdf(id);
-      if (blob) {
-        openPDFPreview(blob, `offre_interne_${new Date().toISOString().split('T')[0]}.pdf`);
-      } else {
-        const { downloadOfferPDF } = await import('@/services/clientPdfService');
-        await downloadOfferPDF(id, 'internal');
-      }
-    } catch (e) {
-      console.error('[Offers] Preview fallback to download (internal):', e);
-      const { downloadOfferPDF } = await import('@/services/clientPdfService');
-      await downloadOfferPDF(id, 'internal');
-    }
-  };
   
   // Forcer la vue liste pour les broker users
   useEffect(() => {
@@ -234,19 +194,10 @@ const Offers = () => {
             onStatusChange={handleUpdateWorkflowStatus}
             onDeleteOffer={handleDeleteOffer}
             onResendOffer={handleResendOffer}
-            onGenerateOffer={handleGenerateOfferWithPreview}
-            onGenerateInternalPdf={handleGenerateInternalPdfWithPreview}
+            onGenerateOffer={handleGenerateOffer}
             isUpdatingStatus={isUpdatingStatus}
           />
         )}
-        
-        {/* PDF Viewer Modal */}
-        <PDFViewer
-          isOpen={isOpen}
-          onClose={closePDFPreview}
-          pdfBlob={pdfBlob}
-          filename={filename}
-        />
       </div>
     </PageTransition>
   );

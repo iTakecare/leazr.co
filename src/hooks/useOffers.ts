@@ -40,7 +40,6 @@ export const useOffers = () => {
     handleUpdateWorkflowStatus,
     handleResendOffer,
     handleGenerateOffer,
-    handleGenerateInternalPdf,
     handleRequestInfo,
     handleProcessInfoResponse
   } = useOfferActions(offers, setOffers);
@@ -65,7 +64,6 @@ export const useOffers = () => {
     handleDeleteOffer,
     handleResendOffer,
     handleGenerateOffer,
-    handleGenerateInternalPdf,
     handleUpdateWorkflowStatus,
     handleRequestInfo,
     handleProcessInfoResponse,

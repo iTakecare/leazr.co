@@ -35,8 +35,7 @@ import {
   Send, 
   Eye, 
   FileText, 
-  ExternalLink,
-  Lock
+  ExternalLink
 } from "lucide-react";
 import {
   Tooltip,
@@ -85,7 +84,6 @@ interface OffersTableProps {
   onDeleteOffer: (offerId: string) => Promise<void>;
   onResendOffer?: (offerId: string) => void;
   onGenerateOffer?: (offerId: string) => void;
-  onGenerateInternalPdf?: (offerId: string) => void;
   isUpdatingStatus: boolean;
 }
 
@@ -95,7 +93,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onDeleteOffer,
   onResendOffer,
   onGenerateOffer,
-  onGenerateInternalPdf,
   isUpdatingStatus,
 }) => {
   const navigate = useNavigate();
@@ -358,13 +355,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           <DropdownMenuItem onClick={() => onGenerateOffer(offer.id)}>
                             <FileText className="mr-2 h-4 w-4" />
                             Générer PDF Client
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onGenerateInternalPdf && isAdmin() && (
-                          <DropdownMenuItem onClick={() => onGenerateInternalPdf(offer.id)}>
-                            <Lock className="mr-2 h-4 w-4" />
-                            Générer PDF Interne
                           </DropdownMenuItem>
                         )}
                         
