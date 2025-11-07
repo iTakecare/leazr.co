@@ -32,6 +32,17 @@ export interface OfferPDFData {
   annual_insurance?: number;
   contract_duration?: number;
   contract_terms?: string;
+  // Editable content blocks
+  content_blocks?: {
+    cover_greeting?: string;
+    cover_introduction?: string;
+    cover_validity?: string;
+    equipment_title?: string;
+    equipment_footer_note?: string;
+    conditions_general_conditions?: string;
+    conditions_additional_info?: string;
+    conditions_contact_info?: string;
+  };
 }
 
 interface OfferPDFDocumentProps {
@@ -61,6 +72,11 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         companyPhone={offer.company_phone}
         companyVatNumber={offer.company_vat_number}
         companyLogoUrl={offer.company_logo_url}
+        contentBlocks={{
+          greeting: offer.content_blocks?.cover_greeting,
+          introduction: offer.content_blocks?.cover_introduction,
+          validity: offer.content_blocks?.cover_validity,
+        }}
         styles={styles}
       />
 
@@ -76,6 +92,10 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         annualInsurance={offer.annual_insurance}
         contractDuration={offer.contract_duration}
         contractTerms={offer.contract_terms}
+        contentBlocks={{
+          title: offer.content_blocks?.equipment_title,
+          footer_note: offer.content_blocks?.equipment_footer_note,
+        }}
         styles={styles}
       />
 
@@ -87,6 +107,11 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         contactPhone={offer.company_phone}
         companyName={offer.company_name}
         pageNumber={3}
+        contentBlocks={{
+          general_conditions: offer.content_blocks?.conditions_general_conditions,
+          additional_info: offer.content_blocks?.conditions_additional_info,
+          contact_info: offer.content_blocks?.conditions_contact_info,
+        }}
         styles={styles}
       />
     </Document>

@@ -69,6 +69,20 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       offerData.clients?.country,
     ].filter(Boolean);
 
+    // Fetch PDF content blocks
+    const { data: contentBlocksData } = await supabase
+      .from('pdf_content_blocks')
+      .select('page_name, block_key, content')
+      .eq('company_id', offerData.company_id);
+
+    // Convert to object map
+    const contentBlocks: Record<string, string> = {};
+    if (contentBlocksData) {
+      contentBlocksData.forEach(block => {
+        contentBlocks[`${block.page_name}_${block.block_key}`] = block.content;
+      });
+    }
+
     const data: OfferPDFData = {
       id: offerData.id,
       offer_number: offerData.offer_number || `OFF-${new Date().getFullYear()}-${offerData.id.slice(0, 8).toUpperCase()}`,
@@ -96,6 +110,17 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       annual_insurance: offerData.annual_insurance || 0,
       contract_duration: offerData.contract_duration || 36,
       contract_terms: offerData.contract_terms || 'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse',
+      // Content blocks
+      content_blocks: {
+        cover_greeting: contentBlocks.cover_greeting,
+        cover_introduction: contentBlocks.cover_introduction,
+        cover_validity: contentBlocks.cover_validity,
+        equipment_title: contentBlocks.equipment_title,
+        equipment_footer_note: contentBlocks.equipment_footer_note,
+        conditions_general_conditions: contentBlocks.conditions_general_conditions,
+        conditions_additional_info: contentBlocks.conditions_additional_info,
+        conditions_contact_info: contentBlocks.conditions_contact_info,
+      },
     };
 
     console.log('[CLIENT-PDF] PDF data prepared with branding:', {

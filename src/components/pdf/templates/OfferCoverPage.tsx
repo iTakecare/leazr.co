@@ -1,5 +1,6 @@
 import { Page, View, Text, Image } from '@react-pdf/renderer';
 import { colors } from '../styles/pdfStyles';
+import { stripHtmlTags } from '@/utils/htmlToPdfText';
 
 interface OfferCoverPageProps {
   offerNumber: string;
@@ -14,6 +15,11 @@ interface OfferCoverPageProps {
   companyPhone?: string;
   companyVatNumber?: string;
   companyLogoUrl?: string;
+  contentBlocks?: {
+    greeting?: string;
+    introduction?: string;
+    validity?: string;
+  };
   styles: any;
 }
 
@@ -30,8 +36,15 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
   companyPhone,
   companyVatNumber,
   companyLogoUrl,
+  contentBlocks,
   styles,
 }) => {
+  const greeting = contentBlocks?.greeting || 'Madame, Monsieur,';
+  const introduction = contentBlocks?.introduction || 
+    'Nous avons le plaisir de vous présenter notre proposition commerciale pour les équipements et services détaillés dans les pages suivantes.';
+  const validity = contentBlocks?.validity || 
+    'Cette offre est valable 30 jours à compter de la date d\'émission.';
+
   return (
     <Page size="A4" style={styles.page}>
       {/* Company Header */}
@@ -75,14 +88,13 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
       {/* Introduction */}
       <View style={{ marginTop: 40 }}>
         <Text style={styles.text}>
-          Madame, Monsieur,
+          {stripHtmlTags(greeting)}
         </Text>
         <Text style={{ ...styles.text, marginTop: 15 }}>
-          Nous avons le plaisir de vous présenter notre proposition commerciale pour les équipements 
-          et services détaillés dans les pages suivantes.
+          {stripHtmlTags(introduction)}
         </Text>
         <Text style={{ ...styles.text, marginTop: 15 }}>
-          Cette offre est valable 30 jours à compter de la date d'émission.
+          {stripHtmlTags(validity)}
         </Text>
       </View>
 

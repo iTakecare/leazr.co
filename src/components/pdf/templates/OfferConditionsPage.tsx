@@ -1,4 +1,5 @@
 import { Page, View, Text } from '@react-pdf/renderer';
+import { stripHtmlTags } from '@/utils/htmlToPdfText';
 
 interface OfferConditionsPageProps {
   conditions?: string[];
@@ -7,6 +8,11 @@ interface OfferConditionsPageProps {
   contactPhone?: string;
   companyName: string;
   pageNumber: number;
+  contentBlocks?: {
+    general_conditions?: string;
+    additional_info?: string;
+    contact_info?: string;
+  };
   styles: any;
 }
 
@@ -17,6 +23,7 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
   contactPhone,
   companyName,
   pageNumber,
+  contentBlocks,
   styles,
 }) => {
   const defaultConditions = [
@@ -28,7 +35,28 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
     "Un support technique est disponible durant toute la durée du contrat.",
   ];
 
-  const displayConditions = conditions && conditions.length > 0 ? conditions : defaultConditions;
+  // Parse conditions list from HTML
+  const parseConditionsList = (html: string): string[] => {
+    const items = html
+      .split(/<li>|<\/li>|<br\s*\/?>/)
+      .map(item => stripHtmlTags(item).trim())
+      .filter(item => item.length > 0);
+    return items.length > 0 ? items : defaultConditions;
+  };
+
+  const displayConditions = contentBlocks?.general_conditions
+    ? parseConditionsList(contentBlocks.general_conditions)
+    : conditions && conditions.length > 0 
+      ? conditions 
+      : defaultConditions;
+  
+  const additionalText = contentBlocks?.additional_info 
+    ? stripHtmlTags(contentBlocks.additional_info)
+    : additionalInfo;
+  
+  const contactText = contentBlocks?.contact_info
+    ? stripHtmlTags(contentBlocks.contact_info)
+    : 'Pour toute question concernant cette offre, n\'hésitez pas à nous contacter :';
 
   return (
     <Page size="A4" style={styles.page}>
@@ -43,10 +71,10 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
         ))}
       </View>
 
-      {additionalInfo && (
+      {additionalText && (
         <View style={{ marginTop: 25 }}>
           <Text style={styles.subtitle}>Informations Complémentaires</Text>
-          <Text style={styles.text}>{additionalInfo}</Text>
+          <Text style={styles.text}>{additionalText}</Text>
         </View>
       )}
 
@@ -54,7 +82,7 @@ export const OfferConditionsPage: React.FC<OfferConditionsPageProps> = ({
       <View style={{ ...styles.infoBox, marginTop: 30 }}>
         <Text style={styles.subtitle}>Contact</Text>
         <Text style={styles.text}>
-          Pour toute question concernant cette offre, n'hésitez pas à nous contacter :
+          {contactText}
         </Text>
         {contactEmail && (
           <Text style={{ ...styles.text, marginTop: 5 }}>

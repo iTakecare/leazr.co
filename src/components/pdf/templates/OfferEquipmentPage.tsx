@@ -2,6 +2,7 @@ import { Page, View, Text } from '@react-pdf/renderer';
 import { colors } from '../styles/pdfStyles';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { getCategoryEmoji } from '@/utils/equipmentCategoryEmojis';
+import { stripHtmlTags } from '@/utils/htmlToPdfText';
 
 interface OfferEquipmentPageProps {
   equipment: OfferEquipment[];
@@ -14,6 +15,10 @@ interface OfferEquipmentPageProps {
   annualInsurance?: number;
   contractDuration?: number;
   contractTerms?: string;
+  contentBlocks?: {
+    title?: string;
+    footer_note?: string;
+  };
   styles: any;
 }
 
@@ -28,6 +33,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   annualInsurance = 0,
   contractDuration = 36,
   contractTerms = 'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse',
+  contentBlocks,
   styles,
 }) => {
   const formatCurrency = (value: number) => {
@@ -38,10 +44,11 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   };
 
   const isInternal = pdfType === 'internal';
+  const title = contentBlocks?.title || 'Détail des Équipements';
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.sectionTitle}>Détail des Équipements</Text>
+      <Text style={styles.sectionTitle}>{stripHtmlTags(title)}</Text>
 
       {/* Equipment Table */}
       <View style={styles.table}>
@@ -186,6 +193,15 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* Footer Note */}
+      {contentBlocks?.footer_note && (
+        <View style={{ marginTop: 10 }}>
+          <Text style={{ ...styles.text, fontSize: 9, fontStyle: 'italic' }}>
+            {stripHtmlTags(contentBlocks.footer_note)}
+          </Text>
+        </View>
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>

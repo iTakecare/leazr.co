@@ -142,6 +142,23 @@ function stripHTML(html: string): string {
 }
 
 /**
+ * Strips HTML tags and converts to PDF-friendly text with line breaks
+ * Exported version for external use
+ */
+export function stripHtmlTags(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+/**
  * Rend les éléments parsés en composants PDF
  */
 export function renderHTMLAsPDF(html: string, baseStyles: any): React.ReactNode {
