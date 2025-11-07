@@ -1689,44 +1689,6 @@ export type Database = {
           },
         ]
       }
-      company_metrics: {
-        Row: {
-          client_satisfaction_percent: number | null
-          co2_saved_kg: number | null
-          company_id: string
-          created_at: string
-          devices_count: number | null
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          client_satisfaction_percent?: number | null
-          co2_saved_kg?: number | null
-          company_id: string
-          created_at?: string
-          devices_count?: number | null
-          id?: string
-          updated_at?: string
-        }
-        Update: {
-          client_satisfaction_percent?: number | null
-          co2_saved_kg?: number | null
-          company_id?: string
-          created_at?: string
-          devices_count?: number | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_metrics_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       company_module_changes: {
         Row: {
           changed_by: string | null
@@ -1803,94 +1765,6 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "modules"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      company_partner_logos: {
-        Row: {
-          company_id: string
-          created_at: string
-          display_order: number
-          id: string
-          is_active: boolean
-          logo_name: string
-          logo_url: string
-          updated_at: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          display_order?: number
-          id?: string
-          is_active?: boolean
-          logo_name: string
-          logo_url: string
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          display_order?: number
-          id?: string
-          is_active?: boolean
-          logo_name?: string
-          logo_url?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_partner_logos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      company_values: {
-        Row: {
-          company_id: string
-          created_at: string
-          description: string | null
-          display_order: number
-          icon_url: string | null
-          id: string
-          is_active: boolean
-          title: string
-          updated_at: string
-          value_key: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          description?: string | null
-          display_order?: number
-          icon_url?: string | null
-          id?: string
-          is_active?: boolean
-          title: string
-          updated_at?: string
-          value_key: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          description?: string | null
-          display_order?: number
-          icon_url?: string | null
-          id?: string
-          is_active?: boolean
-          title?: string
-          updated_at?: string
-          value_key?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_values_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

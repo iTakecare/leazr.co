@@ -7,13 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Palette, FileText, Layout, Code, Loader2, Sparkles, BarChart3, Building2 } from "lucide-react";
+import { Palette, FileText, Layout, Code, Loader2 } from "lucide-react";
 import PDFTemplatePreview from "./PDFTemplatePreview";
 import PDFTemplateSectionManager from "./PDFTemplateSectionManager";
 import { loadTemplateFiles } from "@/services/pdfTemplateLoaderService";
-import { CompanyValuesContent } from "./CompanyValuesContent";
-import { CompanyMetricsContent } from "./CompanyMetricsContent";
-import { PartnerLogosContent } from "./PartnerLogosContent";
 
 interface PDFTemplateEditorProps {
   template: any;
@@ -197,7 +194,7 @@ export default function PDFTemplateEditor({
         <div className="flex-1 flex gap-6 overflow-hidden">
           <div className="flex-1 overflow-auto">
             <Tabs defaultValue="appearance" className="w-full">
-              <TabsList className="grid w-full grid-cols-7 gap-1 overflow-x-auto">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="appearance" className="flex items-center gap-2">
                   <Palette className="h-4 w-4" />
                   Apparence
@@ -213,18 +210,6 @@ export default function PDFTemplateEditor({
                 <TabsTrigger value="advanced" className="flex items-center gap-2">
                   <Code className="h-4 w-4" />
                   Avancé
-                </TabsTrigger>
-                <TabsTrigger value="values" className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Valeurs
-                </TabsTrigger>
-                <TabsTrigger value="metrics" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Métriques
-                </TabsTrigger>
-                <TabsTrigger value="logos" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Logos
                 </TabsTrigger>
               </TabsList>
 
@@ -422,18 +407,6 @@ export default function PDFTemplateEditor({
                     />
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="values" className="mt-4">
-                <CompanyValuesContent embedded={true} />
-              </TabsContent>
-
-              <TabsContent value="metrics" className="mt-4">
-                <CompanyMetricsContent embedded={true} />
-              </TabsContent>
-
-              <TabsContent value="logos" className="mt-4">
-                <PartnerLogosContent embedded={true} />
               </TabsContent>
             </Tabs>
           </div>

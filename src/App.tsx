@@ -61,9 +61,6 @@ import Offers from "@/pages/Offers";
 import AdminOfferDetail from "@/pages/AdminOfferDetail";
 import Contracts from "@/pages/Contracts";
 import Settings from "@/pages/Settings";
-import CompanyValuesSettings from "@/pages/admin/settings/CompanyValuesSettings";
-import CompanyMetricsSettings from "@/pages/admin/settings/CompanyMetricsSettings";
-import PartnerLogosSettings from "@/pages/admin/settings/PartnerLogosSettings";
 import CatalogManagement from "@/pages/CatalogManagement";
 import CatalogImportPage from "@/pages/AdminPages/CatalogImportPage";
 import InvoicingPage from "@/pages/InvoicingPage";
@@ -267,9 +264,6 @@ const AppRoutes = () => (
       <Route path="contracts" element={<Layout><Contracts /></Layout>} />
       <Route path="contracts/:id" element={<Layout><ContractDetail /></Layout>} />
       <Route path="settings" element={<Layout><Settings /></Layout>} />
-      <Route path="settings/company-values" element={<Layout><CompanyValuesSettings /></Layout>} />
-      <Route path="settings/company-metrics" element={<Layout><CompanyMetricsSettings /></Layout>} />
-      <Route path="settings/partner-logos" element={<Layout><PartnerLogosSettings /></Layout>} />
       <Route path="documents" element={<Layout><CompanyDocuments /></Layout>} />
       <Route path="catalog" element={<Layout><CatalogManagement /></Layout>} />
       <Route path="catalog/import" element={<Layout><CatalogImportPage /></Layout>} />

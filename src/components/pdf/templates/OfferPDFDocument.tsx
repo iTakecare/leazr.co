@@ -1,6 +1,5 @@
 import { Document } from '@react-pdf/renderer';
 import { OfferCoverPage } from './OfferCoverPage';
-import { OfferValuesPage } from './OfferValuesPage';
 import { OfferEquipmentPage } from './OfferEquipmentPage';
 import { OfferConditionsPage } from './OfferConditionsPage';
 import { OfferEquipment } from '@/types/offerEquipment';
@@ -29,23 +28,6 @@ export interface OfferPDFData {
   brand_primary_color?: string;
   brand_secondary_color?: string;
   brand_accent_color?: string;
-  // Company values and metrics
-  values?: Array<{
-    id: string;
-    title: string;
-    description: string;
-    icon_url?: string;
-  }>;
-  metrics?: {
-    client_satisfaction_percent?: number;
-    devices_count?: number;
-    co2_saved_kg?: number;
-  };
-  partner_logos?: Array<{
-    id: string;
-    logo_name: string;
-    logo_url: string;
-  }>;
   // Financial fields
   file_fee?: number;
   annual_insurance?: number;
@@ -100,26 +82,14 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         styles={styles}
       />
 
-      {/* Page 2: Values (if available) */}
-      {offer.values && offer.values.length > 0 && (
-        <OfferValuesPage
-          values={offer.values}
-          metrics={offer.metrics}
-          partnerLogos={offer.partner_logos || []}
-          companyName={offer.company_name}
-          pageNumber={2}
-          styles={styles}
-        />
-      )}
-
-      {/* Page 3: Equipment Details */}
+      {/* Page 2: Equipment Details */}
       <OfferEquipmentPage
         equipment={offer.equipment}
         pdfType={pdfType}
         totalMonthlyPayment={offer.total_monthly_payment}
         totalMargin={pdfType === 'internal' ? offer.total_margin : undefined}
         companyName={offer.company_name}
-        pageNumber={offer.values && offer.values.length > 0 ? 3 : 2}
+        pageNumber={2}
         fileFee={offer.file_fee}
         annualInsurance={offer.annual_insurance}
         contractDuration={offer.contract_duration}
@@ -131,14 +101,14 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         styles={styles}
       />
 
-      {/* Page 4: Conditions */}
+      {/* Page 3: Conditions */}
       <OfferConditionsPage
         conditions={offer.conditions}
         additionalInfo={offer.additional_info}
         contactEmail={offer.company_email}
         contactPhone={offer.company_phone}
         companyName={offer.company_name}
-        pageNumber={offer.values && offer.values.length > 0 ? 4 : 3}
+        pageNumber={3}
         contentBlocks={{
           general_conditions: offer.content_blocks?.conditions_general_conditions,
           additional_info: offer.content_blocks?.conditions_additional_info,

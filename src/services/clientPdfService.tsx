@@ -84,29 +84,6 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       });
     }
 
-    // Fetch company values
-    const { data: companyValues } = await supabase
-      .from('company_values')
-      .select('*')
-      .eq('company_id', offerData.company_id)
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
-
-    // Fetch company metrics
-    const { data: companyMetrics } = await supabase
-      .from('company_metrics')
-      .select('*')
-      .eq('company_id', offerData.company_id)
-      .single();
-
-    // Fetch partner logos
-    const { data: partnerLogos } = await supabase
-      .from('company_partner_logos')
-      .select('*')
-      .eq('company_id', offerData.company_id)
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
-
     const data: OfferPDFData = {
       id: offerData.id,
       offer_number: offerData.offer_number || `OFF-${new Date().getFullYear()}-${offerData.id.slice(0, 8).toUpperCase()}`,
@@ -130,23 +107,6 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       brand_primary_color: offerData.companies?.primary_color || undefined,
       brand_secondary_color: offerData.companies?.secondary_color || undefined,
       brand_accent_color: offerData.companies?.accent_color || undefined,
-      // Company values and metrics
-      values: companyValues?.map(v => ({
-        id: v.id,
-        title: v.title,
-        description: v.description || '',
-        icon_url: v.icon_url,
-      })),
-      metrics: companyMetrics ? {
-        client_satisfaction_percent: companyMetrics.client_satisfaction_percent,
-        devices_count: companyMetrics.devices_count,
-        co2_saved_kg: companyMetrics.co2_saved_kg,
-      } : undefined,
-      partner_logos: partnerLogos?.map(p => ({
-        id: p.id,
-        logo_name: p.logo_name,
-        logo_url: p.logo_url,
-      })),
       // Financial fields
       file_fee: offerData.file_fee || 0,
       annual_insurance: offerData.annual_insurance || 0,
