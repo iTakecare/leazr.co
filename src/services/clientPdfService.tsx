@@ -18,10 +18,10 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
         *,
         clients!inner(
           phone,
-          address,
-          city,
-          postal_code,
-          country
+          billing_address,
+          billing_city,
+          billing_postal_code,
+          billing_country
         ),
         companies!inner(
           name,
@@ -62,11 +62,11 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
 
     // Build client address string
     const clientAddressParts = [
-      offerData.clients?.address,
-      offerData.clients?.postal_code && offerData.clients?.city 
-        ? `${offerData.clients.postal_code} ${offerData.clients.city}`
-        : offerData.clients?.city || offerData.clients?.postal_code,
-      offerData.clients?.country,
+      offerData.clients?.billing_address,
+      offerData.clients?.billing_postal_code && offerData.clients?.billing_city 
+        ? `${offerData.clients.billing_postal_code} ${offerData.clients.billing_city}`
+        : offerData.clients?.billing_city || offerData.clients?.billing_postal_code,
+      offerData.clients?.billing_country,
     ].filter(Boolean);
 
     // Fetch PDF content blocks
