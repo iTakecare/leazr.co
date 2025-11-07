@@ -1,6 +1,9 @@
 import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Import new client-side PDF generation (Option B: @react-pdf/renderer)
+export { generateOfferPDF, downloadOfferPDF } from './clientPdfService';
+
 // ============================================================================
 // Helper: Direct fetch to edge function (bypasses invoke() ambiguity)
 // ============================================================================
