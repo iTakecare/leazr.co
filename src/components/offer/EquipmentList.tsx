@@ -42,6 +42,8 @@ interface EquipmentListProps {
   calculations?: any;
   hidePriceColumn?: boolean;
   offerData?: OfferFinancialData;
+  fileFee?: number;
+  annualInsurance?: number;
 }
 
 const EquipmentList = ({
@@ -58,7 +60,9 @@ const EquipmentList = ({
   commissionLevelId,
   calculations,
   hidePriceColumn = false,
-  offerData
+  offerData,
+  fileFee,
+  annualInsurance
 }: EquipmentListProps) => {
   const { user } = useAuth();
   const handleQuantityChange = (id: string, newQuantity: number) => {
@@ -356,6 +360,8 @@ const EquipmentList = ({
               }}
               showCommission={true}
               offerData={offerData}
+              fileFee={fileFee}
+              annualInsurance={annualInsurance}
             />
           ) : isAmbassadorMode ? (
             // Ambassador creating their own offer: show simplified summary
@@ -373,6 +379,8 @@ const EquipmentList = ({
               useGlobalAdjustment={globalMarginAdjustment.active}
               onToggleAdjustment={toggleAdaptMonthlyPayment}
               offerData={offerData}
+              fileFee={fileFee}
+              annualInsurance={annualInsurance}
             />
           )}
         </>

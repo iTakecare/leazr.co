@@ -703,7 +703,7 @@ const CreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
                     // Transmettre les infos commission pour l'affichage
-                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} />
+                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} />
                         
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} />
                       </div>

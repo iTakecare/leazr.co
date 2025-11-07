@@ -27,6 +27,8 @@ interface FinancialSummaryProps {
   showCommission?: boolean;
   // New prop for using real offer data instead of calculations
   offerData?: OfferFinancialData;
+  fileFee?: number;
+  annualInsurance?: number;
 }
 
 const FinancialSummary = ({ 
@@ -35,7 +37,9 @@ const FinancialSummary = ({
   onToggleAdjustment,
   commissionData,
   showCommission = false,
-  offerData
+  offerData,
+  fileFee,
+  annualInsurance
 }: FinancialSummaryProps) => {
   
   // If offerData is provided, use it instead of calculations
@@ -107,6 +111,30 @@ const FinancialSummary = ({
                 {coefficient.toFixed(3)}%
               </span>
             </div>
+
+            {/* Frais de dossier (si présents) */}
+            {fileFee !== undefined && fileFee > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Frais de dossier :
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatCurrency(fileFee)}
+                </span>
+              </div>
+            )}
+
+            {/* Assurance annuelle (si présente) */}
+            {annualInsurance !== undefined && annualInsurance > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Assurance annuelle :
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatCurrency(annualInsurance)}
+                </span>
+              </div>
+            )}
 
             {/* Commission (si affichée) */}
             {showCommission && commissionData && commissionData.amount > 0 && (
@@ -244,6 +272,30 @@ const FinancialSummary = ({
               {globalCoefficient.toFixed(3)}%
             </span>
           </div>
+
+          {/* Frais de dossier (si présents) */}
+          {fileFee !== undefined && fileFee > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                Frais de dossier :
+              </span>
+              <span className="text-sm font-semibold text-gray-900">
+                {formatCurrency(fileFee)}
+              </span>
+            </div>
+          )}
+
+          {/* Assurance annuelle (si présente) */}
+          {annualInsurance !== undefined && annualInsurance > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                Assurance annuelle :
+              </span>
+              <span className="text-sm font-semibold text-gray-900">
+                {formatCurrency(annualInsurance)}
+              </span>
+            </div>
+          )}
 
           {/* Ajustement du coefficient (si activé) */}
           {useGlobalAdjustment && (

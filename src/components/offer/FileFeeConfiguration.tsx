@@ -1,7 +1,6 @@
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface FileFeeConfigurationProps {
   fileFeeEnabled: boolean;
@@ -17,42 +16,29 @@ export const FileFeeConfiguration: React.FC<FileFeeConfigurationProps> = ({
   onFileFeeAmountChange,
 }) => {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-background">
-        <Checkbox
-          id="file-fee-enabled"
-          checked={fileFeeEnabled}
-          onCheckedChange={onFileFeeEnabledChange}
+    <div className="relative flex items-center gap-2">
+      {/* Cadre principal avec input pour le montant */}
+      <div className="flex-1 relative h-9 px-3 border rounded-md bg-background flex items-center">
+        <Input
+          id="file-fee-amount"
+          type="number"
+          min="0"
+          step="0.01"
+          value={fileFeeAmount}
+          onChange={(e) => onFileFeeAmountChange(parseFloat(e.target.value) || 0)}
+          disabled={!fileFeeEnabled}
+          className="border-0 p-0 h-7 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
         />
-        <Label 
-          htmlFor="file-fee-enabled" 
-          className="text-sm cursor-pointer"
-        >
-          Activé
-        </Label>
+        <span className="text-sm text-muted-foreground ml-2">€</span>
       </div>
       
-      {fileFeeEnabled && (
-        <div className="space-y-1">
-          <Label htmlFor="file-fee-amount" className="text-xs text-muted-foreground">
-            Montant (HTVA)
-          </Label>
-          <div className="relative">
-            <Input
-              id="file-fee-amount"
-              type="number"
-              min="0"
-              step="0.01"
-              value={fileFeeAmount}
-              onChange={(e) => onFileFeeAmountChange(parseFloat(e.target.value) || 0)}
-              className="pr-8"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-              €
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Checkbox à droite */}
+      <Checkbox
+        id="file-fee-enabled"
+        checked={fileFeeEnabled}
+        onCheckedChange={onFileFeeEnabledChange}
+        className="shrink-0"
+      />
     </div>
   );
 };
