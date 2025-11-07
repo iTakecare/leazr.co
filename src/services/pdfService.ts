@@ -1,9 +1,54 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-/**
- * Helper function to invoke edge function with retry logic
- */
+// ============================================================================
+// Helper: Direct fetch to edge function (bypasses invoke() ambiguity)
+// ============================================================================
+
+async function fetchFunctionPdf(functionName: string, body: any): Promise<Blob> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  
+  if (!accessToken) {
+    throw new Error('Session invalide. Veuillez vous reconnecter.');
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
+  console.log(`[PDF-SERVICE] Direct fetch to ${url}`);
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    let message = `Erreur HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      message = errorData?.error || message;
+    } catch {
+      // If can't parse JSON, keep HTTP status message
+    }
+    console.error(`[PDF-SERVICE] HTTP error:`, message);
+    throw new Error(message);
+  }
+
+  const buffer = await response.arrayBuffer();
+  const blob = new Blob([buffer], { type: 'application/pdf' });
+  
+  console.log(`[PDF-SERVICE] Received PDF blob, size: ${blob.size} bytes`);
+  return blob;
+}
+
+// ============================================================================
+// Helper: Invoke edge function with retries (using direct fetch)
+// ============================================================================
+
 async function invokeWithRetry(functionName: string, body: any, maxRetries = 3): Promise<Blob> {
   let lastError: Error | null = null;
   
@@ -11,52 +56,23 @@ async function invokeWithRetry(functionName: string, body: any, maxRetries = 3):
     try {
       console.log(`[PDF-SERVICE] Attempt ${attempt}/${maxRetries} for ${functionName}`);
       
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body,
-        responseType: 'arraybuffer',
-      });
-
-      if (error) throw new Error(error.message || 'PDF service error');
-
-      let blob: Blob | null = null;
-      if (!data) throw new Error('Empty response from PDF service');
-
-      // If the SDK returned a Blob
-      if (typeof Blob !== 'undefined' && data instanceof Blob) {
-        blob = data as Blob;
-      } else if (data instanceof ArrayBuffer) {
-        blob = new Blob([data], { type: 'application/pdf' });
-      } else if (ArrayBuffer.isView(data)) {
-        // TypedArray (Uint8Array, etc.) - extract the underlying ArrayBuffer
-        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-        blob = new Blob([buffer], { type: 'application/pdf' });
-      } else {
-        // Try to detect if a JSON error body slipped through
-        try {
-          const asText = new TextDecoder().decode(data as ArrayBuffer);
-          if (asText.startsWith('{') && asText.includes('"error"')) {
-            const parsed = JSON.parse(asText);
-            throw new Error(parsed.error || 'PDF generation failed');
-          }
-        } catch {
-          // ignore parse attempt
-        }
-        throw new Error('Invalid binary response from PDF service');
-      }
-
-      console.log('[PDF-SERVICE] Received PDF blob size:', blob.size, 'bytes');
+      const blob = await fetchFunctionPdf(functionName, body);
       return blob;
       
     } catch (error) {
       lastError = error as Error;
+      console.error(`[PDF-SERVICE] Attempt ${attempt} failed:`, lastError);
+      
       if (attempt < maxRetries) {
         // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        const delay = 1000 * Math.pow(2, attempt - 1);
+        console.log(`[PDF-SERVICE] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
   
-  throw lastError || new Error('Failed to generate PDF after multiple attempts');
+  throw lastError || new Error('Échec de la génération du PDF après plusieurs tentatives');
 }
 
 /**
