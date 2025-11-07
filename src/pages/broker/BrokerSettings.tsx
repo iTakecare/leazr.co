@@ -17,7 +17,7 @@ import IntegrationsManager from '@/components/settings/IntegrationsManager';
 import LeaserManager from '@/components/settings/LeaserManager';
 import AmbassadorsList from '@/components/crm/AmbassadorsList';
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
-import PDFTemplatesPage from '@/pages/AdminPages/PDFTemplatesPage';
+import PDFContentEditor from '@/pages/AdminPages/PDFContentEditor';
 import { Card, CardContent } from '@/components/ui/card';
 
 const BrokerSettings: React.FC = () => {
@@ -87,7 +87,7 @@ const BrokerSettings: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="templates" className="mt-6">
-              <PDFTemplatesPage />
+              <PDFContentEditor />
             </TabsContent>
 
             <TabsContent value="ambassadors" className="mt-6">

@@ -22,7 +22,7 @@ import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscrip
 
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import BulkClientImport from '@/components/settings/BulkClientImport';
-import PDFTemplatesPage from '@/pages/AdminPages/PDFTemplatesPage';
+import PDFContentEditor from '@/pages/AdminPages/PDFContentEditor';
 import CompanyDocuments from '@/pages/CompanyDocuments';
 
 const Settings: React.FC = () => {
@@ -175,7 +175,7 @@ const Settings: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
-          <PDFTemplatesPage />
+          <PDFContentEditor />
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">
