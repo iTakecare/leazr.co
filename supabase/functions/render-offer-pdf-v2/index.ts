@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
-import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1?target=deno";
+// fontkit disabled; using standard fonts to avoid runtime errors
 
 const ENGINE_VERSION = 'v2.4-unicode';
 
@@ -111,77 +111,11 @@ serve(async (req) => {
     // Créer le document PDF
     const pdfDoc = await PDFDocument.create();
     
-    // Register fontkit for Unicode font support
-    pdfDoc.registerFontkit(fontkit);
-    
-    // Fetch and embed Unicode font (Noto Sans) with robust fallbacks
-    let unicodeFont;
-    let unicodeFontBold;
-
-    const isValidFont = (bytes: Uint8Array) => {
-      if (bytes.length < 4) return false;
-      const b0 = bytes[0], b1 = bytes[1], b2 = bytes[2], b3 = bytes[3];
-      // TrueType (0x00010000) or OpenType CFF ('OTTO')
-      const isTTF = b0 === 0x00 && b1 === 0x01 && b2 === 0x00 && b3 === 0x00;
-      const isOTF = b0 === 0x4f && b1 === 0x54 && b2 === 0x54 && b3 === 0x4f; // 'OTTO'
-      return isTTF || isOTF;
-    };
-
-    const fetchFontBytesFromUrls = async (urls: string[], label: string): Promise<ArrayBuffer | null> => {
-      for (const url of urls) {
-        try {
-          console.log(`[RENDER-OFFER-PDF-V2] Fetching ${label} from`, url);
-          const res = await fetch(url);
-          if (!res.ok) {
-            console.warn(`[RENDER-OFFER-PDF-V2] ${label} fetch failed with status`, res.status);
-            continue;
-          }
-          const buf = await res.arrayBuffer();
-          if (!isValidFont(new Uint8Array(buf))) {
-            console.warn(`[RENDER-OFFER-PDF-V2] ${label} bytes not a valid TTF/OTF, skipping`);
-            continue;
-          }
-          return buf;
-        } catch (e) {
-          console.warn(`[RENDER-OFFER-PDF-V2] ${label} fetch error`, e);
-        }
-      }
-      return null;
-    };
-
-    try {
-      const regularUrls = [
-        'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.0/files/noto-sans-latin-400-normal.ttf',
-        'https://unpkg.com/@fontsource/noto-sans@5.0.0/files/noto-sans-latin-400-normal.ttf',
-        'https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-Regular.ttf',
-        'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosans/NotoSans-Regular.ttf',
-      ];
-      const boldUrls = [
-        'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.0/files/noto-sans-latin-700-normal.ttf',
-        'https://unpkg.com/@fontsource/noto-sans@5.0.0/files/noto-sans-latin-700-normal.ttf',
-        'https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans-Bold.ttf',
-        'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosans/NotoSans-Bold.ttf',
-      ];
-
-      const [regularBytes, boldBytes] = await Promise.all([
-        fetchFontBytesFromUrls(regularUrls, 'Noto Sans Regular'),
-        fetchFontBytesFromUrls(boldUrls, 'Noto Sans Bold'),
-      ]);
-
-      if (regularBytes && boldBytes) {
-        unicodeFont = await pdfDoc.embedFont(regularBytes, { subset: true });
-        unicodeFontBold = await pdfDoc.embedFont(boldBytes, { subset: true });
-        console.log('[RENDER-OFFER-PDF-V2] Unicode fonts embedded successfully');
-      } else {
-        console.warn('[RENDER-OFFER-PDF-V2] Unicode fonts unavailable, falling back to Standard Helvetica with sanitization');
-        unicodeFont = await pdfDoc.embedStandardFont(StandardFonts.Helvetica);
-        unicodeFontBold = await pdfDoc.embedStandardFont(StandardFonts.HelveticaBold);
-      }
-    } catch (fontError) {
-      console.error('[RENDER-OFFER-PDF-V2] Font embedding error, using Standard Helvetica fallback:', fontError);
-      unicodeFont = await pdfDoc.embedStandardFont(StandardFonts.Helvetica);
-      unicodeFontBold = await pdfDoc.embedStandardFont(StandardFonts.HelveticaBold);
-    }
+    // Using Standard Fonts to ensure reliability in all environments
+    // (custom TTF/OTF embedding disabled to avoid fontkit runtime errors)
+    let unicodeFont = await pdfDoc.embedStandardFont(StandardFonts.Helvetica);
+    let unicodeFontBold = await pdfDoc.embedStandardFont(StandardFonts.HelveticaBold);
+    console.log('[RENDER-OFFER-PDF-V2] Using Standard Helvetica fonts (fallback mode)');
 
     // Couleurs
     const primaryColor = rgb(0.231, 0.51, 0.965); // #3b82f6
