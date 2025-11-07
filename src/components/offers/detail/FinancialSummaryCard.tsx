@@ -12,6 +12,8 @@ interface FinancialSummaryCardProps {
   showCommission?: boolean;
   margin?: number;
   coefficient?: number;
+  fileFee?: number;
+  annualInsurance?: number;
 }
 
 const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
@@ -21,7 +23,9 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   commission,
   showCommission = true,
   margin,
-  coefficient
+  coefficient,
+  fileFee,
+  annualInsurance
 }) => {
   console.log("🔍 FinancialSummaryCard - Props received:", {
     monthlyPayment,
@@ -77,6 +81,25 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </div>
           )}
         </div>
+
+        {/* Frais et assurance */}
+        {(fileFee !== undefined || annualInsurance !== undefined) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {fileFee !== undefined && fileFee > 0 && (
+              <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="font-semibold text-lg text-orange-900">{formatCurrency(fileFee)}</div>
+                <div className="text-sm text-orange-700">Frais de dossier (unique)</div>
+              </div>
+            )}
+            
+            {annualInsurance !== undefined && annualInsurance > 0 && (
+              <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="font-semibold text-lg text-green-900">{formatCurrency(annualInsurance)}</div>
+                <div className="text-sm text-green-700">Assurance annuelle</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Commission - Information importante */}
         {showCommission && commission !== undefined && (

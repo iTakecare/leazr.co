@@ -312,6 +312,8 @@ const AmbassadorOfferDetail = () => {
             marginPercentage={marginPercentage}
             showCommission={shouldShowCommission}
             showMargin={false}
+            fileFee={offer.file_fee}
+            annualInsurance={offer.annual_insurance}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -6,6 +6,7 @@ import CompactInternalOfferToggle from "./CompactInternalOfferToggle";
 import AmbassadorButton from "./AmbassadorButton";
 import LeaserButton from "./LeaserButton";
 import DurationButton from "./DurationButton";
+import { FileFeeConfiguration } from "./FileFeeConfiguration";
 import { Leaser } from "@/types/equipment";
 import { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
@@ -18,6 +19,10 @@ interface OfferConfigurationProps {
   onOpenLeaserSelector: () => void;
   selectedDuration: number;
   onDurationChange: (duration: number) => void;
+  fileFeeEnabled?: boolean;
+  fileFeeAmount?: number;
+  onFileFeeEnabledChange?: (enabled: boolean) => void;
+  onFileFeeAmountChange?: (amount: number) => void;
 }
 
 const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
@@ -28,8 +33,17 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
   selectedLeaser,
   onOpenLeaserSelector,
   selectedDuration,
-  onDurationChange
+  onDurationChange,
+  fileFeeEnabled,
+  fileFeeAmount,
+  onFileFeeEnabledChange,
+  onFileFeeAmountChange
 }) => {
+  const showFileFeeConfig = fileFeeEnabled !== undefined && 
+                            fileFeeAmount !== undefined && 
+                            onFileFeeEnabledChange && 
+                            onFileFeeAmountChange;
+
   return (
     <Card className="mb-4">
       <CardHeader className="pb-3">
@@ -39,7 +53,7 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${showFileFeeConfig ? '5' : '4'} gap-3`}>
           {/* Type d'offre */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-700">
@@ -101,6 +115,21 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
               </p>
             )}
           </div>
+
+          {/* Frais de dossier (optionnel) */}
+          {showFileFeeConfig && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">
+                &nbsp;
+              </label>
+              <FileFeeConfiguration
+                fileFeeEnabled={fileFeeEnabled}
+                fileFeeAmount={fileFeeAmount}
+                onFileFeeEnabledChange={onFileFeeEnabledChange}
+                onFileFeeAmountChange={onFileFeeAmountChange}
+              />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -307,6 +307,32 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
                 {formatCurrency(displayCommission)}
               </span>
             </div>}
+          
+          {/* Frais de dossier */}
+          {offer.file_fee !== undefined && offer.file_fee > 0 && (
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="flex items-center gap-2">
+                <Euro className="w-4 h-4 text-orange-600" />
+                <span className="text-sm font-medium text-orange-700">Frais de dossier</span>
+              </div>
+              <span className="text-lg font-bold text-orange-900">
+                {formatCurrency(offer.file_fee)}
+              </span>
+            </div>
+          )}
+          
+          {/* Assurance annuelle */}
+          {offer.annual_insurance !== undefined && offer.annual_insurance > 0 && (
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2">
+                <Euro className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">Assurance annuelle</span>
+              </div>
+              <span className="text-lg font-bold text-green-900">
+                {formatCurrency(offer.annual_insurance)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Statuts et informations additionnelles */}

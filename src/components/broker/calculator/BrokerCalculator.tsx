@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBrokerCalculator } from '@/hooks/useBrokerCalculator';
 import { useOfferCommissionCalculator } from '@/hooks/useOfferCommissionCalculator';
 import { createOffer } from '@/services/offers/createOffer';
+import { calculateAnnualInsurance } from '@/utils/insuranceCalculator';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import LeaserSelector from '@/components/ui/LeaserSelector';
@@ -33,6 +34,10 @@ const BrokerCalculator: React.FC = () => {
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number>(36);
   const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
+  
+  // State for file fee and insurance
+  const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
+  const [fileFeeAmount, setFileFeeAmount] = useState(75);
   
   // State for offer details
   const [offerType, setOfferType] = useState<'client' | 'ambassador'>('client');
@@ -89,6 +94,9 @@ const BrokerCalculator: React.FC = () => {
   
   // Total monthly payment from equipment list
   const totalMonthlyPayment = selectedResult ? selectedResult.monthlyPayment : 0;
+  
+  // Calculate annual insurance
+  const annualInsurance = calculateAnnualInsurance(totalMonthlyPayment, selectedDuration);
   
   // Calculate commission if ambassador offer
   const commission = useOfferCommissionCalculator({
@@ -265,7 +273,9 @@ const BrokerCalculator: React.FC = () => {
         status: 'pending' as const,
         equipment: equipment,
         company_id: companyId,
-        type: offerType
+        type: offerType,
+        file_fee: fileFeeEnabled ? fileFeeAmount : 0,
+        annual_insurance: annualInsurance
       };
     } catch (error) {
       console.error('Erreur dans prepareOfferData:', error);
@@ -421,6 +431,11 @@ const BrokerCalculator: React.FC = () => {
               setCommissionLevelId(ambassador.commission_level_id);
             }}
             calculatedCommission={commission}
+            fileFeeEnabled={fileFeeEnabled}
+            fileFeeAmount={fileFeeAmount}
+            annualInsurance={annualInsurance}
+            onFileFeeEnabledChange={setFileFeeEnabled}
+            onFileFeeAmountChange={setFileFeeAmount}
           />
 
           {/* Additional Details */}

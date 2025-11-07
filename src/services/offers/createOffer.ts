@@ -107,7 +107,10 @@ export const createOffer = async (offerData: OfferData) => {
       margin_difference: typeof offerData.margin_difference === 'string' ? 
         parseFloat(offerData.margin_difference) : (offerData.margin_difference || 0),
       total_margin_with_difference: typeof offerData.total_margin_with_difference === 'string' ? 
-        parseFloat(offerData.total_margin_with_difference) : (offerData.total_margin_with_difference || totalEquipmentMargin)
+        parseFloat(offerData.total_margin_with_difference) : (offerData.total_margin_with_difference || totalEquipmentMargin),
+      // Ajouter les frais de dossier et l'assurance annuelle
+      file_fee: typeof offerData.file_fee === 'number' ? offerData.file_fee : 0,
+      annual_insurance: typeof offerData.annual_insurance === 'number' ? offerData.annual_insurance : 0
     };
 
     console.log("💾 DONNÉES FINALES à sauvegarder:", {

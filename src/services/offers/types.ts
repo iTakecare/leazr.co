@@ -38,6 +38,8 @@ export interface OfferData {
   leaser_id?: string; // ID du bailleur sélectionné
   duration?: number; // Durée du financement en mois
   business_sector?: string; // Secteur d'activité de l'offre
+  file_fee?: number; // Frais de dossier
+  annual_insurance?: number; // Assurance annuelle
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;
