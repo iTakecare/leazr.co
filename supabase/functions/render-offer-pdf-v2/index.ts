@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import fontkit from "https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 const ENGINE_VERSION = 'v2.4-unicode';
 
