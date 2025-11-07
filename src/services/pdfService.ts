@@ -22,6 +22,7 @@ async function fetchFunctionPdf(functionName: string, body: any): Promise<Blob> 
       'Authorization': `Bearer ${accessToken}`,
       'apikey': SUPABASE_PUBLISHABLE_KEY,
       'Content-Type': 'application/json',
+      'Accept': 'application/pdf',
     },
     body: JSON.stringify(body),
   });
@@ -35,6 +36,23 @@ async function fetchFunctionPdf(functionName: string, body: any): Promise<Blob> 
       // If can't parse JSON, keep HTTP status message
     }
     console.error(`[PDF-SERVICE] HTTP error:`, message);
+    throw new Error(message);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  console.log(`[PDF-SERVICE] Response content-type: ${contentType}`);
+  if (contentType && !contentType.toLowerCase().includes('application/pdf')) {
+    let message = `Réponse inattendue du service PDF (Content-Type: ${contentType})`;
+    try {
+      const text = await response.text();
+      if (text?.trim().startsWith('{')) {
+        const parsed = JSON.parse(text);
+        message = parsed?.error || message;
+      } else if (text) {
+        message = `${message} - ${text.slice(0, 200)}`;
+      }
+    } catch {}
+    console.error('[PDF-SERVICE] Invalid content-type:', message);
     throw new Error(message);
   }
 
@@ -241,15 +259,55 @@ export async function previewClientOfferPdf(offerId: string): Promise<void> {
       throw new Error("Réponse inattendue du service PDF (signature PDF manquante)");
     }
     
-    // Load PDF in the popup
-    const url = window.URL.createObjectURL(pdfBlob);
-    popup.location.href = url;
-    
+    // Render PDF via <embed> for better compatibility (incl. Safari)
+    const objectUrl = window.URL.createObjectURL(pdfBlob);
+
+    const downloadName = `offre_client_${new Date().toISOString().split('T')[0]}.pdf`;
+    popup.document.open();
+    popup.document.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Offre - Aperçu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>html,body{height:100%;margin:0}#pdf-embed{position:fixed;inset:0;border:0;width:100%;height:100%}</style>
+  </head>
+  <body>
+    <div style="position:fixed;top:12px;right:12px;z-index:10">
+      <a id="download-link" href="${objectUrl}" download="${downloadName}" style="font-family:system-ui;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;text-decoration:none;color:#0f172a">Télécharger le PDF</a>
+    </div>
+    <embed id="pdf-embed" src="${objectUrl}" type="application/pdf" />
+  </body>
+</html>`);
+    popup.document.close();
+
     toast.success("Aperçu du PDF client ouvert !", { id: toastId });
-    
+
+    // Fallback to data URL if the native PDF renderer doesn't load it
+    setTimeout(async () => {
+      try {
+        const embed = popup.document.getElementById('pdf-embed') as HTMLElement | null;
+        if (embed && (embed.getAttribute('src') === objectUrl)) {
+          console.log('[PDF-SERVICE] Fallback to data URL for client preview');
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+            if (dataUrl) {
+              embed.setAttribute('src', dataUrl);
+              const dl = popup.document.getElementById('download-link') as HTMLAnchorElement | null;
+              if (dl) dl.setAttribute('href', dataUrl);
+            }
+          };
+          reader.readAsDataURL(pdfBlob);
+        }
+      } catch (e) {
+        console.warn('[PDF-SERVICE] Client preview fallback error:', e);
+      }
+    }, 2000);
+
     // Cleanup after delay
     setTimeout(() => {
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(objectUrl);
     }, 30000);
   } catch (error) {
     popup.close();
@@ -327,15 +385,55 @@ export async function previewInternalOfferPdf(offerId: string): Promise<void> {
       throw new Error("Réponse inattendue du service PDF (signature PDF manquante)");
     }
     
-    // Load PDF in the popup
-    const url = window.URL.createObjectURL(pdfBlob);
-    popup.location.href = url;
-    
+    // Render PDF via <embed> for better compatibility (incl. Safari)
+    const objectUrl = window.URL.createObjectURL(pdfBlob);
+
+    const downloadName = `offre_interne_${new Date().toISOString().split('T')[0]}.pdf`;
+    popup.document.open();
+    popup.document.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Offre - Aperçu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>html,body{height:100%;margin:0}#pdf-embed{position:fixed;inset:0;border:0;width:100%;height:100%}</style>
+  </head>
+  <body>
+    <div style="position:fixed;top:12px;right:12px;z-index:10">
+      <a id="download-link" href="${objectUrl}" download="${downloadName}" style="font-family:system-ui;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;text-decoration:none;color:#0f172a">Télécharger le PDF</a>
+    </div>
+    <embed id="pdf-embed" src="${objectUrl}" type="application/pdf" />
+  </body>
+</html>`);
+    popup.document.close();
+
     toast.success("Aperçu du PDF interne ouvert !", { id: toastId });
-    
+
+    // Fallback to data URL if the native PDF renderer doesn't load it
+    setTimeout(async () => {
+      try {
+        const embed = popup.document.getElementById('pdf-embed') as HTMLElement | null;
+        if (embed && (embed.getAttribute('src') === objectUrl)) {
+          console.log('[PDF-SERVICE] Fallback to data URL for internal preview');
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+            if (dataUrl) {
+              embed.setAttribute('src', dataUrl);
+              const dl = popup.document.getElementById('download-link') as HTMLAnchorElement | null;
+              if (dl) dl.setAttribute('href', dataUrl);
+            }
+          };
+          reader.readAsDataURL(pdfBlob);
+        }
+      } catch (e) {
+        console.warn('[PDF-SERVICE] Internal preview fallback error:', e);
+      }
+    }, 2000);
+
     // Cleanup after delay
     setTimeout(() => {
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(objectUrl);
     }, 30000);
   } catch (error) {
     popup.close();
