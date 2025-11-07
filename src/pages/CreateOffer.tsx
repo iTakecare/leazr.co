@@ -21,6 +21,7 @@ import { calculateFinancedAmount } from "@/utils/calculator";
 import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 import { OfferData } from "@/services/offers/types";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateAnnualInsurance } from "@/utils/insuranceCalculator";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
@@ -67,6 +68,8 @@ const CreateOffer = () => {
   const [isAmbassadorSelectorOpen, setIsAmbassadorSelectorOpen] = useState(false);
   const [loadedOfferData, setLoadedOfferData] = useState(null);
   const [isPackSelectorOpen, setIsPackSelectorOpen] = useState(false);
+  const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
+  const [fileFeeAmount, setFileFeeAmount] = useState(75);
   const [selectedPacks, setSelectedPacks] = useState<Array<{
     pack_id: string;
     pack: ProductPack;
@@ -123,6 +126,9 @@ const CreateOffer = () => {
     totalMonthlyPayment,
     totalPurchaseAmount
   });
+  
+  // Calcul de l'assurance annuelle
+  const annualInsurance = calculateAnnualInsurance(totalMonthlyPayment, selectedDuration);
   console.log("🔍 CreateOffer - Commission Debug:", {
     isInternalOffer,
     selectedAmbassadorId: selectedAmbassador?.id,
@@ -570,7 +576,9 @@ const CreateOffer = () => {
         ambassador_id: ambassadorId,
         // CORRECTION: Sauvegarder le bailleur et la durée sélectionnés
         leaser_id: selectedLeaser?.id,
-        duration: selectedDuration
+        duration: selectedDuration,
+        file_fee: fileFeeEnabled ? fileFeeAmount : 0,
+        annual_insurance: annualInsurance
       };
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
@@ -660,7 +668,7 @@ const CreateOffer = () => {
                     <span className="ml-2">Chargement...</span>
                   </div> : <div className="space-y-4">
                     {/* Configuration de l'offre */}
-                    <OfferConfiguration isInternalOffer={isInternalOffer} setIsInternalOffer={handleInternalOfferChange} selectedAmbassador={selectedAmbassador} onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} selectedLeaser={selectedLeaser} onOpenLeaserSelector={handleOpenLeaserSelector} selectedDuration={selectedDuration} onDurationChange={handleDurationChange} />
+                    <OfferConfiguration isInternalOffer={isInternalOffer} setIsInternalOffer={handleInternalOfferChange} selectedAmbassador={selectedAmbassador} onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} selectedLeaser={selectedLeaser} onOpenLeaserSelector={handleOpenLeaserSelector} selectedDuration={selectedDuration} onDurationChange={handleDurationChange} fileFeeEnabled={fileFeeEnabled} fileFeeAmount={fileFeeAmount} onFileFeeEnabledChange={setFileFeeEnabled} onFileFeeAmountChange={setFileFeeAmount} />
 
                     {/* Contenu principal */}
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
