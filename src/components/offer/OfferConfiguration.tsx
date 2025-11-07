@@ -120,7 +120,7 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
           {showFileFeeConfig && (
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-700">
-                &nbsp;
+                Frais de dossier
               </label>
               <FileFeeConfiguration
                 fileFeeEnabled={fileFeeEnabled}
