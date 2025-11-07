@@ -118,10 +118,16 @@ serve(async (req) => {
 
     // Helper functions
     const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('fr-FR', {
+      let formatted = new Intl.NumberFormat('fr-FR', {
         style: 'currency',
         currency: 'EUR'
       }).format(amount || 0);
+      // Normaliser espaces fines/nbsp et remplacer le symbole € par EUR
+      formatted = formatted
+        .replace(/\u202F/g, ' ')
+        .replace(/\u00A0/g, ' ')
+        .replace(/€/g, ' EUR');
+      return sanitizeText(formatted);
     };
 
     const formatDate = (date: string) => {
@@ -300,7 +306,7 @@ serve(async (req) => {
         // Attributs (ex: Couleur, Stockage)
         if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
           for (const attr of item.attributes) {
-            page.drawText(`• ${sanitizeText(attr.key)}: ${sanitizeText(attr.value)}`, {
+            page.drawText(`- ${sanitizeText(attr.key)}: ${sanitizeText(attr.value)}`, {
               x: 70,
               y: yPosition,
               size: 9,
@@ -314,7 +320,7 @@ serve(async (req) => {
         // Spécifications (ex: RAM, Processeur)
         if (item.specifications && Array.isArray(item.specifications) && item.specifications.length > 0) {
           for (const spec of item.specifications) {
-            page.drawText(`• ${sanitizeText(spec.key)}: ${sanitizeText(spec.value)}`, {
+            page.drawText(`- ${sanitizeText(spec.key)}: ${sanitizeText(spec.value)}`, {
               x: 70,
               y: yPosition,
               size: 9,
@@ -479,19 +485,19 @@ serve(async (req) => {
     yPosition -= 40;
 
     const conditions = [
-      `• Durée : ${offer.duration_months || 'À définir'} mois`,
-      `• Mensualité : ${formatCurrency(totalMonthly)}/mois`,
-      `• Livraison incluse`,
-      `• Maintenance incluse`,
-      `• Garantie échange direct incluse`,
+      `- Duree : ${offer.duration_months || 'A definir'} mois`,
+      `- Mensualite : ${formatCurrency(totalMonthly)}/mois`,
+      `- Livraison incluse`,
+      `- Maintenance incluse`,
+      `- Garantie echange direct incluse`,
     ];
 
     if (offer.leaser?.name) {
-      conditions.push(`• Organisme : ${sanitizeText(offer.leaser.name)}`);
+      conditions.push(`- Organisme : ${sanitizeText(offer.leaser.name)}`);
     }
 
     for (const condition of conditions) {
-      page.drawText(condition, {
+      page.drawText(sanitizeText(condition), {
         x: 50,
         y: yPosition,
         size: 11,
