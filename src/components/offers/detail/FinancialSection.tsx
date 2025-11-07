@@ -309,7 +309,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
             </div>}
           
           {/* Frais de dossier */}
-          {offer.file_fee !== undefined && offer.file_fee > 0 && (
+          {offer.file_fee !== undefined && (
             <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
               <div className="flex items-center gap-2">
                 <Euro className="w-4 h-4 text-orange-600" />
@@ -322,7 +322,7 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
           )}
           
           {/* Assurance annuelle */}
-          {offer.annual_insurance !== undefined && offer.annual_insurance > 0 && (
+          {offer.annual_insurance !== undefined && (
             <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center gap-2">
                 <Euro className="w-4 h-4 text-green-600" />

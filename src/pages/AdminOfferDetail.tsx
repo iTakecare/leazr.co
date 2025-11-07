@@ -35,6 +35,7 @@ import { OfferReferenceEditor } from "@/components/offer/OfferReferenceEditor";
 import { getOfferNotes } from "@/services/offers/offerNotes";
 import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
+import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -126,6 +127,17 @@ const [notesLoading, setNotesLoading] = useState(false);
     if (id) {
       fetchOfferNotes(id);
     }
+  };
+
+  // Calculer le total mensuel depuis les équipements
+  const calculateTotalMonthlyPayment = (offer: any): number => {
+    if (!offer.equipment_data || offer.equipment_data.length === 0) {
+      return offer.monthly_payment || 0;
+    }
+    
+    return offer.equipment_data.reduce((total: number, item: any) => {
+      return total + (item.monthly_payment || 0);
+    }, 0);
   };
 
   useEffect(() => {
@@ -543,6 +555,16 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                     };
                     fetchOfferDetails();
                   }}
+                />
+
+                {/* Frais et assurance */}
+                <OfferFinancialFeesEditor
+                  offerId={offer.id}
+                  currentFileFee={offer.file_fee}
+                  currentAnnualInsurance={offer.annual_insurance}
+                  totalMonthlyPayment={calculateTotalMonthlyPayment(offer)}
+                  contractDuration={offer.contract_duration || 36}
+                  onUpdate={fetchOfferDetails}
                 />
               </div>
             </div>
