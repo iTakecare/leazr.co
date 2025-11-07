@@ -164,26 +164,80 @@ export async function downloadInternalOfferPdf(offerId: string, clientName?: str
 export async function previewClientOfferPdf(offerId: string): Promise<void> {
   const toastId = toast.loading("Préparation de l'aperçu du PDF client...");
   
+  // Open tab immediately to avoid popup blockers
+  const popup = window.open('', '_blank');
+  
+  if (!popup) {
+    toast.error("Le navigateur a bloqué l'ouverture de la fenêtre. Veuillez autoriser les pop-ups.", { id: toastId });
+    return;
+  }
+  
+  // Show loading message in the new tab
+  popup.document.write(`
+    <html>
+      <head>
+        <title>Préparation du PDF…</title>
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+          }
+          .loader {
+            text-align: center;
+          }
+          .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loader">
+          <div class="spinner"></div>
+          <p>Préparation du PDF client…</p>
+        </div>
+      </body>
+    </html>
+  `);
+  
   try {
     const pdfBlob = await generateClientOfferPdf(offerId);
     
-    // Create blob URL and open in new tab
-    const url = window.URL.createObjectURL(pdfBlob);
-    const newWindow = window.open(url, '_blank');
+    // Validate PDF signature
+    const head = await pdfBlob.slice(0, 5).arrayBuffer();
+    const signature = new TextDecoder().decode(head);
     
-    if (!newWindow) {
-      toast.error("Le navigateur a bloqué l'ouverture de la fenêtre. Veuillez autoriser les pop-ups.", { id: toastId });
-      return;
+    if (!signature.startsWith('%PDF-')) {
+      throw new Error("Réponse inattendue du service PDF (signature PDF manquante)");
     }
+    
+    // Load PDF in the popup
+    const url = window.URL.createObjectURL(pdfBlob);
+    popup.location.href = url;
     
     toast.success("Aperçu du PDF client ouvert !", { id: toastId });
     
-    // Cleanup after a delay
+    // Cleanup after delay
     setTimeout(() => {
       window.URL.revokeObjectURL(url);
-    }, 1000);
+    }, 30000);
   } catch (error) {
-    console.error('[PDF-SERVICE] Error previewing client PDF:', error);
+    popup.close();
+    console.error('[PDF-SERVICE] Preview error:', error);
     toast.error("Erreur lors de la préparation de l'aperçu du PDF client.", { id: toastId });
     throw error;
   }
@@ -196,26 +250,80 @@ export async function previewClientOfferPdf(offerId: string): Promise<void> {
 export async function previewInternalOfferPdf(offerId: string): Promise<void> {
   const toastId = toast.loading("Préparation de l'aperçu du PDF interne...");
   
+  // Open tab immediately to avoid popup blockers
+  const popup = window.open('', '_blank');
+  
+  if (!popup) {
+    toast.error("Le navigateur a bloqué l'ouverture de la fenêtre. Veuillez autoriser les pop-ups.", { id: toastId });
+    return;
+  }
+  
+  // Show loading message in the new tab
+  popup.document.write(`
+    <html>
+      <head>
+        <title>Préparation du PDF…</title>
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+          }
+          .loader {
+            text-align: center;
+          }
+          .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loader">
+          <div class="spinner"></div>
+          <p>Préparation du PDF interne…</p>
+        </div>
+      </body>
+    </html>
+  `);
+  
   try {
     const pdfBlob = await generateInternalOfferPdf(offerId);
     
-    // Create blob URL and open in new tab
-    const url = window.URL.createObjectURL(pdfBlob);
-    const newWindow = window.open(url, '_blank');
+    // Validate PDF signature
+    const head = await pdfBlob.slice(0, 5).arrayBuffer();
+    const signature = new TextDecoder().decode(head);
     
-    if (!newWindow) {
-      toast.error("Le navigateur a bloqué l'ouverture de la fenêtre. Veuillez autoriser les pop-ups.", { id: toastId });
-      return;
+    if (!signature.startsWith('%PDF-')) {
+      throw new Error("Réponse inattendue du service PDF (signature PDF manquante)");
     }
+    
+    // Load PDF in the popup
+    const url = window.URL.createObjectURL(pdfBlob);
+    popup.location.href = url;
     
     toast.success("Aperçu du PDF interne ouvert !", { id: toastId });
     
-    // Cleanup after a delay
+    // Cleanup after delay
     setTimeout(() => {
       window.URL.revokeObjectURL(url);
-    }, 1000);
+    }, 30000);
   } catch (error) {
-    console.error('[PDF-SERVICE] Error previewing internal PDF:', error);
+    popup.close();
+    console.error('[PDF-SERVICE] Preview error:', error);
     toast.error("Erreur lors de la préparation de l'aperçu du PDF interne.", { id: toastId });
     throw error;
   }
