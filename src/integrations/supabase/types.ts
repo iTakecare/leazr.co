@@ -4088,6 +4088,44 @@ export type Database = {
           },
         ]
       }
+      pdf_content_blocks: {
+        Row: {
+          block_key: string
+          company_id: string
+          content: string
+          created_at: string | null
+          id: string
+          page_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          block_key: string
+          company_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          page_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          block_key?: string
+          company_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          page_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_content_blocks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdf_model_images: {
         Row: {
           created_at: string
