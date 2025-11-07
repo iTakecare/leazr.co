@@ -7,14 +7,46 @@ import { getOfferEquipment } from '@/services/offers/offerEquipment';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Fetch offer data from Supabase for PDF generation (uses existing services)
+ * Fetch offer data from Supabase for PDF generation with proper SQL joins
  */
 async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
   try {
-    const offer = await getOfferById(offerId);
-    if (!offer) return null;
+    // Fetch offer with all related data using SQL joins
+    const { data: offerData, error: offerError } = await supabase
+      .from('offers')
+      .select(`
+        *,
+        clients!inner(
+          phone,
+          address,
+          city,
+          postal_code,
+          country
+        ),
+        companies!inner(
+          name,
+          logo_url,
+          primary_color,
+          secondary_color,
+          accent_color
+        )
+      `)
+      .eq('id', offerId)
+      .single();
 
-    // Always fetch equipment using the shared service to ensure proper RLS and structure
+    if (offerError || !offerData) {
+      console.error('[CLIENT-PDF] Error fetching offer:', offerError);
+      return null;
+    }
+
+    // Fetch company customizations for email/phone/address
+    const { data: customizationData } = await supabase
+      .from('company_customizations')
+      .select('company_email, company_phone, company_address')
+      .eq('company_id', offerData.company_id)
+      .single();
+
+    // Fetch equipment using the shared service to ensure proper RLS and structure
     const equipmentData: OfferEquipment[] = await getOfferEquipment(offerId);
 
     const totalMonthlyPayment = equipmentData.reduce(
@@ -28,71 +60,45 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       return sum + (sellingTotal - purchaseTotal);
     }, 0);
 
-    // Fetch company branding
-    let companyBranding: any = null;
-    
-    if (offer.company_id) {
-      console.log('[CLIENT-PDF] Fetching company branding for company_id:', offer.company_id);
-      const { data: brandingData, error: brandingError } = await supabase
-        .from('company_customizations')
-        .select('settings')
-        .eq('company_id', offer.company_id)
-        .eq('category', 'branding')
-        .single();
-      
-      if (!brandingError && brandingData?.settings) {
-        companyBranding = brandingData.settings;
-      }
-    }
-    
-    // Fallback: try to get company info by slug from URL
-    if (!companyBranding) {
-      const pathParts = window.location.pathname.split('/');
-      const companySlug = pathParts[1]; // e.g., /itakecare/admin/...
-      
-      if (companySlug) {
-        console.log('[CLIENT-PDF] Fetching company info by slug:', companySlug);
-        const { data: companyData, error: companyError } = await supabase
-          .rpc('get_public_company_info', { company_slug: companySlug });
-        
-        if (!companyError && companyData) {
-          companyBranding = {
-            name: companyData.name,
-            logo_url: companyData.logo_url,
-            primary_color: companyData.primary_color,
-            secondary_color: companyData.secondary_color,
-            accent_color: companyData.accent_color,
-          };
-        }
-      }
-    }
+    // Build client address string
+    const clientAddressParts = [
+      offerData.clients?.address,
+      offerData.clients?.postal_code && offerData.clients?.city 
+        ? `${offerData.clients.postal_code} ${offerData.clients.city}`
+        : offerData.clients?.city || offerData.clients?.postal_code,
+      offerData.clients?.country,
+    ].filter(Boolean);
 
     const data: OfferPDFData = {
-      id: offer.id,
-      offer_number: offer.offer_number || offer.id.slice(0, 8).toUpperCase(),
-      offer_date: offer.created_at,
-      client_name: offer.client_name || 'Client',
-      client_address: offer.client_address || undefined,
-      client_email: offer.client_email || undefined,
-      client_phone: offer.client_phone || undefined,
+      id: offerData.id,
+      offer_number: offerData.offer_number || `OFF-${new Date().getFullYear()}-${offerData.id.slice(0, 8).toUpperCase()}`,
+      offer_date: offerData.created_at,
+      client_name: offerData.client_name || 'Client',
+      client_address: clientAddressParts.length > 0 ? clientAddressParts.join(', ') : undefined,
+      client_email: offerData.client_email || undefined,
+      client_phone: offerData.clients?.phone || undefined,
       equipment: equipmentData,
       total_monthly_payment: totalMonthlyPayment,
       total_margin: totalMargin,
-      conditions: offer.conditions || undefined,
-      additional_info: offer.additional_info || undefined,
-      company_name: companyBranding?.name || '',
-      company_address: undefined,
-      company_email: offer.company_email,
-      company_phone: offer.company_phone,
-      company_logo_url: companyBranding?.logo_url,
-      brand_primary_color: companyBranding?.primary_color,
-      brand_secondary_color: companyBranding?.secondary_color,
-      brand_accent_color: companyBranding?.accent_color,
+      conditions: offerData.conditions || undefined,
+      additional_info: offerData.additional_info || undefined,
+      company_name: offerData.companies?.name || '',
+      company_address: customizationData?.company_address || undefined,
+      company_email: customizationData?.company_email || undefined,
+      company_phone: customizationData?.company_phone || undefined,
+      company_logo_url: offerData.companies?.logo_url || undefined,
+      brand_primary_color: offerData.companies?.primary_color || undefined,
+      brand_secondary_color: offerData.companies?.secondary_color || undefined,
+      brand_accent_color: offerData.companies?.accent_color || undefined,
     };
 
     console.log('[CLIENT-PDF] PDF data prepared with branding:', {
+      offerNumber: data.offer_number,
       logo: !!data.company_logo_url,
-      primary: data.brand_primary_color,
+      primaryColor: data.brand_primary_color,
+      companyName: data.company_name,
+      clientPhone: data.client_phone,
+      clientAddress: data.client_address,
     });
 
     return data;
