@@ -228,11 +228,41 @@ export async function downloadOfferPDF(
   pdfType: 'client' | 'internal'
 ): Promise<void> {
   try {
+    // Fetch offer data first to get client info for filename
+    const offerData = await fetchOfferData(offerId);
+    if (!offerData) {
+      throw new Error('Impossible de récupérer les données de l\'offre');
+    }
+
+    // Generate PDF blob
     const blob = await generateOfferPDF(offerId, pdfType);
+    
+    // Format date in French
+    const date = new Date(offerData.offer_date);
+    const formattedDate = date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    // Build filename dynamically
+    const filenameParts = [
+      `Offre ${offerData.company_name || 'iTakecare'}`,
+      offerData.client_name,
+      offerData.client_company,
+      formattedDate
+    ].filter(Boolean); // Remove empty values
+
+    // Clean filename (remove invalid characters for file systems)
+    let filename = filenameParts.join(' - ');
+    filename = filename.replace(/[/\\:*?"<>|]/g, ''); // Remove invalid chars
+    filename = `${filename}.pdf`;
+
+    // Download
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `offre_${pdfType}_${new Date().toISOString().split('T')[0]}.pdf`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
