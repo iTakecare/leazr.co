@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import LeaserSelector from '@/components/ui/LeaserSelector';
 import ClientSelector from '@/components/ui/ClientSelector';
 import { AmbassadorSelectorAmbassador } from '@/components/ui/AmbassadorSelector';
+import { FileFeeConfiguration } from '@/components/offer/FileFeeConfiguration';
 import BrokerCalculationMode from './BrokerCalculationMode';
 import BrokerDurationResults from './BrokerDurationResults';
 import BrokerOfferTypeSelector from './BrokerOfferTypeSelector';
@@ -380,6 +381,16 @@ const BrokerCalculator: React.FC = () => {
                 onClientSelect={setSelectedClientId}
               />
             </div>
+          </div>
+
+          {/* File Fee Configuration */}
+          <div className="border-t pt-4">
+            <FileFeeConfiguration
+              fileFeeEnabled={fileFeeEnabled}
+              fileFeeAmount={fileFeeAmount}
+              onFileFeeEnabledChange={setFileFeeEnabled}
+              onFileFeeAmountChange={setFileFeeAmount}
+            />
           </div>
 
           {/* Calculation Mode */}

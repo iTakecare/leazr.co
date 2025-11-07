@@ -113,25 +113,16 @@ const BrokerOfferTypeSelector: React.FC<BrokerOfferTypeSelectorProps> = ({
         </CardContent>
       </Card>
 
-      {/* Récapitulatif financier avec frais et assurance */}
-      {(annualInsurance !== undefined || (fileFeeEnabled && fileFeeAmount !== undefined)) && (
+      {/* Récapitulatif financier - Assurance annuelle uniquement */}
+      {annualInsurance !== undefined && annualInsurance > 0 && (
         <Card>
           <CardContent className="pt-6 space-y-3">
             <Label className="text-sm font-medium">Récapitulatif</Label>
             
-            {annualInsurance !== undefined && annualInsurance > 0 && (
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
-                <span className="text-sm text-green-700">Assurance annuelle</span>
-                <span className="font-semibold text-green-900">{formatCurrency(annualInsurance)}</span>
-              </div>
-            )}
-            
-            {fileFeeEnabled && fileFeeAmount !== undefined && fileFeeAmount > 0 && (
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <span className="text-sm text-orange-700">Frais de dossier (unique)</span>
-                <span className="font-semibold text-orange-900">{formatCurrency(fileFeeAmount)}</span>
-              </div>
-            )}
+            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+              <span className="text-sm text-green-700">Assurance annuelle</span>
+              <span className="font-semibold text-green-900">{formatCurrency(annualInsurance)}</span>
+            </div>
           </CardContent>
         </Card>
       )}
