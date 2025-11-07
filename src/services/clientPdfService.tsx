@@ -39,10 +39,10 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       return null;
     }
 
-    // Fetch company customizations for email/phone/address
+    // Fetch company customizations for email/phone/address/vat
     const { data: customizationData } = await supabase
       .from('company_customizations')
-      .select('company_email, company_phone, company_address')
+      .select('company_email, company_phone, company_address, company_vat_number')
       .eq('company_id', offerData.company_id)
       .single();
 
@@ -80,16 +80,22 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       equipment: equipmentData,
       total_monthly_payment: totalMonthlyPayment,
       total_margin: totalMargin,
-      conditions: offerData.conditions || undefined,
+      conditions: offerData.conditions ? [offerData.conditions] : undefined,
       additional_info: offerData.additional_info || undefined,
       company_name: offerData.companies?.name || '',
       company_address: customizationData?.company_address || undefined,
       company_email: customizationData?.company_email || undefined,
       company_phone: customizationData?.company_phone || undefined,
+      company_vat_number: customizationData?.company_vat_number || undefined,
       company_logo_url: offerData.companies?.logo_url || undefined,
       brand_primary_color: offerData.companies?.primary_color || undefined,
       brand_secondary_color: offerData.companies?.secondary_color || undefined,
       brand_accent_color: offerData.companies?.accent_color || undefined,
+      // Financial fields
+      file_fee: offerData.file_fee || 0,
+      annual_insurance: offerData.annual_insurance || 0,
+      contract_duration: offerData.contract_duration || 36,
+      contract_terms: offerData.contract_terms || 'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse',
     };
 
     console.log('[CLIENT-PDF] PDF data prepared with branding:', {

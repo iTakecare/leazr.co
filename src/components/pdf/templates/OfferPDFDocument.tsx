@@ -22,10 +22,16 @@ export interface OfferPDFData {
   company_address?: string;
   company_email?: string;
   company_phone?: string;
+  company_vat_number?: string;
   company_logo_url?: string;
   brand_primary_color?: string;
   brand_secondary_color?: string;
   brand_accent_color?: string;
+  // Financial fields
+  file_fee?: number;
+  annual_insurance?: number;
+  contract_duration?: number;
+  contract_terms?: string;
 }
 
 interface OfferPDFDocumentProps {
@@ -53,6 +59,7 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         companyAddress={offer.company_address}
         companyEmail={offer.company_email}
         companyPhone={offer.company_phone}
+        companyVatNumber={offer.company_vat_number}
         companyLogoUrl={offer.company_logo_url}
         styles={styles}
       />
@@ -65,6 +72,10 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         totalMargin={pdfType === 'internal' ? offer.total_margin : undefined}
         companyName={offer.company_name}
         pageNumber={2}
+        fileFee={offer.file_fee}
+        annualInsurance={offer.annual_insurance}
+        contractDuration={offer.contract_duration}
+        contractTerms={offer.contract_terms}
         styles={styles}
       />
 

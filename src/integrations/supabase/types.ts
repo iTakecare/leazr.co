@@ -1452,6 +1452,7 @@ export type Database = {
           company_id: string
           company_name: string | null
           company_phone: string | null
+          company_vat_number: string | null
           created_at: string
           custom_domain: string | null
           favicon_url: string | null
@@ -1476,6 +1477,7 @@ export type Database = {
           company_id: string
           company_name?: string | null
           company_phone?: string | null
+          company_vat_number?: string | null
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
@@ -1500,6 +1502,7 @@ export type Database = {
           company_id?: string
           company_name?: string | null
           company_phone?: string | null
+          company_vat_number?: string | null
           created_at?: string
           custom_domain?: string | null
           favicon_url?: string | null
@@ -3849,6 +3852,7 @@ export type Database = {
         Row: {
           ambassador_id: string | null
           amount: number
+          annual_insurance: number | null
           business_sector: string | null
           client_email: string | null
           client_id: string | null
@@ -3858,11 +3862,14 @@ export type Database = {
           commission_paid_at: string | null
           commission_status: string | null
           company_id: string
+          contract_duration: number | null
+          contract_terms: string | null
           converted_to_contract: boolean | null
           created_at: string | null
           dossier_number: string | null
           duration: number | null
           equipment_description: string | null
+          file_fee: number | null
           financed_amount: number | null
           id: string
           internal_score: string | null
@@ -3890,6 +3897,7 @@ export type Database = {
         Insert: {
           ambassador_id?: string | null
           amount?: number
+          annual_insurance?: number | null
           business_sector?: string | null
           client_email?: string | null
           client_id?: string | null
@@ -3899,11 +3907,14 @@ export type Database = {
           commission_paid_at?: string | null
           commission_status?: string | null
           company_id: string
+          contract_duration?: number | null
+          contract_terms?: string | null
           converted_to_contract?: boolean | null
           created_at?: string | null
           dossier_number?: string | null
           duration?: number | null
           equipment_description?: string | null
+          file_fee?: number | null
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
@@ -3931,6 +3942,7 @@ export type Database = {
         Update: {
           ambassador_id?: string | null
           amount?: number
+          annual_insurance?: number | null
           business_sector?: string | null
           client_email?: string | null
           client_id?: string | null
@@ -3940,11 +3952,14 @@ export type Database = {
           commission_paid_at?: string | null
           commission_status?: string | null
           company_id?: string
+          contract_duration?: number | null
+          contract_terms?: string | null
           converted_to_contract?: boolean | null
           created_at?: string | null
           dossier_number?: string | null
           duration?: number | null
           equipment_description?: string | null
+          file_fee?: number | null
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
@@ -6201,6 +6216,7 @@ export type Database = {
         Returns: {
           ambassador_id: string | null
           amount: number
+          annual_insurance: number | null
           business_sector: string | null
           client_email: string | null
           client_id: string | null
@@ -6210,11 +6226,14 @@ export type Database = {
           commission_paid_at: string | null
           commission_status: string | null
           company_id: string
+          contract_duration: number | null
+          contract_terms: string | null
           converted_to_contract: boolean | null
           created_at: string | null
           dossier_number: string | null
           duration: number | null
           equipment_description: string | null
+          file_fee: number | null
           financed_amount: number | null
           id: string
           internal_score: string | null

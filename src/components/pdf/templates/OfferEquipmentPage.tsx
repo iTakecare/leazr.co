@@ -1,6 +1,7 @@
 import { Page, View, Text } from '@react-pdf/renderer';
 import { colors } from '../styles/pdfStyles';
 import { OfferEquipment } from '@/types/offerEquipment';
+import { getCategoryEmoji } from '@/utils/equipmentCategoryEmojis';
 
 interface OfferEquipmentPageProps {
   equipment: OfferEquipment[];
@@ -9,6 +10,10 @@ interface OfferEquipmentPageProps {
   totalMargin?: number;
   companyName: string;
   pageNumber: number;
+  fileFee?: number;
+  annualInsurance?: number;
+  contractDuration?: number;
+  contractTerms?: string;
   styles: any;
 }
 
@@ -19,6 +24,10 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   totalMargin,
   companyName,
   pageNumber,
+  fileFee = 0,
+  annualInsurance = 0,
+  contractDuration = 36,
+  contractTerms = 'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse',
   styles,
 }) => {
   const formatCurrency = (value: number) => {
@@ -38,6 +47,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
       <View style={styles.table}>
         {/* Table Header */}
         <View style={styles.tableHeader}>
+          <Text style={{ ...styles.tableCellHeader, width: 25 }}>Cat.</Text>
           <Text style={{ ...styles.tableCellHeader, flex: 3 }}>Désignation</Text>
           <Text style={{ ...styles.tableCellHeader, flex: 1, textAlign: 'center' }}>Qté</Text>
           {isInternal && (
@@ -56,11 +66,23 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         {equipment.map((item, index) => {
           const isEven = index % 2 === 0;
           const rowStyle = isEven ? styles.tableRow : styles.tableRowAlt;
+          const categoryEmoji = getCategoryEmoji(item.title);
+          
+          // Filter specifications to remove duplicates with attributes
+          const attributeKeys = item.attributes?.map(attr => attr.key.toLowerCase()) || [];
+          const uniqueSpecs = item.specifications?.filter(
+            spec => !attributeKeys.includes(spec.key.toLowerCase())
+          ) || [];
 
           return (
             <View key={item.id} style={{ marginBottom: 10 }}>
               {/* Main row */}
               <View style={rowStyle}>
+                {/* Category emoji */}
+                <Text style={{ ...styles.tableCell, width: 25, fontSize: 16 }}>
+                  {categoryEmoji}
+                </Text>
+                
                 <View style={{ ...styles.tableCell, flex: 3 }}>
                   <Text style={{ fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
                     {item.title}
@@ -96,10 +118,10 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                 </Text>
               </View>
 
-              {/* Specifications row */}
-              {item.specifications && item.specifications.length > 0 && (
+              {/* Specifications row - only show unique specs */}
+              {uniqueSpecs.length > 0 && (
                 <View style={{ paddingLeft: 10, paddingTop: 5, paddingBottom: 5 }}>
-                  {item.specifications.map((spec, i) => (
+                  {uniqueSpecs.map((spec, i) => (
                     <View key={i} style={styles.listItem}>
                       <Text style={styles.bullet}>•</Text>
                       <Text style={styles.listContent}>
@@ -135,6 +157,33 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>TOTAL MENSUEL HT</Text>
           <Text style={styles.totalValue}>{formatCurrency(totalMonthlyPayment)}</Text>
+        </View>
+        
+        {/* Financial Details */}
+        <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4 }}>
+          <View style={{ ...styles.row, marginBottom: 6 }}>
+            <Text style={styles.text}>Frais de dossier unique :</Text>
+            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+              {formatCurrency(fileFee)}
+            </Text>
+          </View>
+          
+          <View style={styles.row}>
+            <Text style={styles.text}>Montant de l'assurance annuelle :</Text>
+            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+              {formatCurrency(annualInsurance)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Contract Terms */}
+        <View style={{ marginTop: 15, padding: 12, backgroundColor: '#f0f9ff', borderRadius: 4 }}>
+          <Text style={{ ...styles.textBold, marginBottom: 6, color: colors.primary }}>
+            Contrat de {contractDuration} mois
+          </Text>
+          <Text style={{ ...styles.text, fontSize: 10, lineHeight: 1.4 }}>
+            {contractTerms}
+          </Text>
         </View>
       </View>
 

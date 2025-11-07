@@ -12,6 +12,7 @@ interface OfferCoverPageProps {
   companyAddress?: string;
   companyEmail?: string;
   companyPhone?: string;
+  companyVatNumber?: string;
   companyLogoUrl?: string;
   styles: any;
 }
@@ -27,6 +28,7 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
   companyAddress,
   companyEmail,
   companyPhone,
+  companyVatNumber,
   companyLogoUrl,
   styles,
 }) => {
@@ -40,10 +42,12 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
             style={styles.logo}
           />
         )}
-        <Text style={styles.companyName}>{companyName}</Text>
+        {/* Only show company name if no logo */}
+        {!companyLogoUrl && <Text style={styles.companyName}>{companyName}</Text>}
         {companyAddress && <Text style={styles.companyInfo}>{companyAddress}</Text>}
         {companyEmail && <Text style={styles.companyInfo}>Email: {companyEmail}</Text>}
         {companyPhone && <Text style={styles.companyInfo}>Tél: {companyPhone}</Text>}
+        {companyVatNumber && <Text style={styles.companyInfo}>N° TVA: {companyVatNumber}</Text>}
       </View>
 
       {/* Main Title */}
