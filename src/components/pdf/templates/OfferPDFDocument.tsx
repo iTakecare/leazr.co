@@ -3,6 +3,7 @@ import { OfferCoverPage } from './OfferCoverPage';
 import { OfferEquipmentPage } from './OfferEquipmentPage';
 import { OfferConditionsPage } from './OfferConditionsPage';
 import { OfferEquipment } from '@/types/offerEquipment';
+import { createOfferPdfStyles } from '../styles/pdfStyles';
 
 export interface OfferPDFData {
   id: string;
@@ -21,6 +22,10 @@ export interface OfferPDFData {
   company_address?: string;
   company_email?: string;
   company_phone?: string;
+  company_logo_url?: string;
+  brand_primary_color?: string;
+  brand_secondary_color?: string;
+  brand_accent_color?: string;
 }
 
 interface OfferPDFDocumentProps {
@@ -29,6 +34,11 @@ interface OfferPDFDocumentProps {
 }
 
 export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfType }) => {
+  // Create dynamic styles with brand colors
+  const styles = createOfferPdfStyles({
+    primary: offer.brand_primary_color || '#2563eb',
+  });
+
   return (
     <Document>
       {/* Page 1: Cover */}
@@ -43,6 +53,8 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         companyAddress={offer.company_address}
         companyEmail={offer.company_email}
         companyPhone={offer.company_phone}
+        companyLogoUrl={offer.company_logo_url}
+        styles={styles}
       />
 
       {/* Page 2: Equipment Details */}
@@ -53,6 +65,7 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         totalMargin={pdfType === 'internal' ? offer.total_margin : undefined}
         companyName={offer.company_name}
         pageNumber={2}
+        styles={styles}
       />
 
       {/* Page 3: Conditions */}
@@ -63,6 +76,7 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         contactPhone={offer.company_phone}
         companyName={offer.company_name}
         pageNumber={3}
+        styles={styles}
       />
     </Document>
   );

@@ -15,12 +15,28 @@ export const colors = {
   warning: '#f59e0b',
 };
 
-export const pdfStyles = StyleSheet.create({
+/**
+ * Creates dynamic PDF styles with custom theme colors
+ */
+export const createOfferPdfStyles = (theme?: {
+  primary?: string;
+  dark?: string;
+  gray?: string;
+  lightGray?: string;
+  warning?: string;
+  success?: string;
+}) => {
+  const mergedColors = {
+    ...colors,
+    ...theme,
+  };
+
+  return StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
     fontFamily: 'Helvetica',
-    backgroundColor: colors.white,
+    backgroundColor: mergedColors.white,
   },
   
   // Header styles
@@ -28,19 +44,19 @@ export const pdfStyles = StyleSheet.create({
     marginBottom: 30,
     paddingBottom: 15,
     borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
+    borderBottomColor: mergedColors.primary,
   },
   
   companyName: {
     fontSize: 20,
     fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
+    color: mergedColors.primary,
     marginBottom: 5,
   },
   
   companyInfo: {
     fontSize: 9,
-    color: colors.gray,
+    color: mergedColors.gray,
     lineHeight: 1.4,
   },
   
@@ -48,7 +64,7 @@ export const pdfStyles = StyleSheet.create({
   pageTitle: {
     fontSize: 24,
     fontFamily: 'Helvetica-Bold',
-    color: colors.dark,
+    color: mergedColors.dark,
     marginBottom: 10,
     textTransform: 'uppercase',
   },
@@ -56,44 +72,44 @@ export const pdfStyles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
+    color: mergedColors.primary,
     marginTop: 20,
     marginBottom: 10,
     paddingBottom: 5,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: mergedColors.border,
   },
   
   subtitle: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: colors.dark,
+    color: mergedColors.dark,
     marginBottom: 8,
   },
   
   // Text styles
   text: {
     fontSize: 10,
-    color: colors.dark,
+    color: mergedColors.dark,
     lineHeight: 1.5,
   },
   
   textGray: {
     fontSize: 9,
-    color: colors.gray,
+    color: mergedColors.gray,
     lineHeight: 1.4,
   },
   
   textBold: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: colors.dark,
+    color: mergedColors.dark,
   },
   
   label: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    color: colors.gray,
+    color: mergedColors.gray,
     textTransform: 'uppercase',
     marginBottom: 3,
   },
@@ -116,14 +132,14 @@ export const pdfStyles = StyleSheet.create({
   
   // Box styles
   infoBox: {
-    backgroundColor: colors.lightGray,
+    backgroundColor: mergedColors.lightGray,
     padding: 15,
     borderRadius: 4,
     marginBottom: 15,
   },
   
   highlightBox: {
-    backgroundColor: colors.primary,
+    backgroundColor: mergedColors.primary,
     padding: 12,
     borderRadius: 4,
     marginVertical: 10,
@@ -138,26 +154,26 @@ export const pdfStyles = StyleSheet.create({
   
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
+    backgroundColor: mergedColors.primary,
     padding: 8,
     fontFamily: 'Helvetica-Bold',
     fontSize: 9,
-    color: colors.white,
+    color: mergedColors.white,
   },
   
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: mergedColors.border,
     padding: 8,
     fontSize: 9,
   },
   
   tableRowAlt: {
     flexDirection: 'row',
-    backgroundColor: colors.lightGray,
+    backgroundColor: mergedColors.lightGray,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: mergedColors.border,
     padding: 8,
     fontSize: 9,
   },
@@ -170,7 +186,7 @@ export const pdfStyles = StyleSheet.create({
   tableCellHeader: {
     flex: 1,
     paddingRight: 5,
-    color: colors.white,
+    color: mergedColors.white,
   },
   
   // Footer styles
@@ -181,9 +197,9 @@ export const pdfStyles = StyleSheet.create({
     right: 40,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: mergedColors.border,
     fontSize: 8,
-    color: colors.gray,
+    color: mergedColors.gray,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -192,13 +208,13 @@ export const pdfStyles = StyleSheet.create({
   priceText: {
     fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
+    color: mergedColors.primary,
   },
   
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.primary,
+    backgroundColor: mergedColors.primary,
     padding: 10,
     marginTop: 10,
     borderRadius: 4,
@@ -207,23 +223,23 @@ export const pdfStyles = StyleSheet.create({
   totalLabel: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: colors.white,
+    color: mergedColors.white,
   },
   
   totalValue: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: colors.white,
+    color: mergedColors.white,
   },
   
   // Badge styles
   badge: {
-    backgroundColor: colors.lightGray,
+    backgroundColor: mergedColors.lightGray,
     borderRadius: 3,
     paddingVertical: 3,
     paddingHorizontal: 6,
     fontSize: 8,
-    color: colors.dark,
+    color: mergedColors.dark,
     marginRight: 5,
     marginBottom: 3,
   },
@@ -245,4 +261,13 @@ export const pdfStyles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 1.4,
   },
-});
+  
+  logo: {
+    width: 80,
+    height: 'auto',
+    marginBottom: 10,
+  },
+})};
+
+// Default PDF styles for backwards compatibility
+export const pdfStyles = createOfferPdfStyles();

@@ -4,6 +4,7 @@ import { OfferPDFDocument, OfferPDFData } from '@/components/pdf/templates/Offer
 import { OfferEquipment } from '@/types/offerEquipment';
 import { getOfferById } from '@/services/offers/offerDetail';
 import { getOfferEquipment } from '@/services/offers/offerEquipment';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Fetch offer data from Supabase for PDF generation (uses existing services)
@@ -27,6 +28,45 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       return sum + (sellingTotal - purchaseTotal);
     }, 0);
 
+    // Fetch company branding
+    let companyBranding: any = null;
+    
+    if (offer.company_id) {
+      console.log('[CLIENT-PDF] Fetching company branding for company_id:', offer.company_id);
+      const { data: brandingData, error: brandingError } = await supabase
+        .from('company_customizations')
+        .select('settings')
+        .eq('company_id', offer.company_id)
+        .eq('category', 'branding')
+        .single();
+      
+      if (!brandingError && brandingData?.settings) {
+        companyBranding = brandingData.settings;
+      }
+    }
+    
+    // Fallback: try to get company info by slug from URL
+    if (!companyBranding) {
+      const pathParts = window.location.pathname.split('/');
+      const companySlug = pathParts[1]; // e.g., /itakecare/admin/...
+      
+      if (companySlug) {
+        console.log('[CLIENT-PDF] Fetching company info by slug:', companySlug);
+        const { data: companyData, error: companyError } = await supabase
+          .rpc('get_public_company_info', { company_slug: companySlug });
+        
+        if (!companyError && companyData) {
+          companyBranding = {
+            name: companyData.name,
+            logo_url: companyData.logo_url,
+            primary_color: companyData.primary_color,
+            secondary_color: companyData.secondary_color,
+            accent_color: companyData.accent_color,
+          };
+        }
+      }
+    }
+
     const data: OfferPDFData = {
       id: offer.id,
       offer_number: offer.offer_number || offer.id.slice(0, 8).toUpperCase(),
@@ -40,11 +80,20 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       total_margin: totalMargin,
       conditions: offer.conditions || undefined,
       additional_info: offer.additional_info || undefined,
-      company_name: 'Votre Entreprise', // TODO: load from branding/settings
+      company_name: companyBranding?.name || '',
       company_address: undefined,
-      company_email: 'contact@entreprise.fr',
-      company_phone: undefined,
+      company_email: offer.company_email,
+      company_phone: offer.company_phone,
+      company_logo_url: companyBranding?.logo_url,
+      brand_primary_color: companyBranding?.primary_color,
+      brand_secondary_color: companyBranding?.secondary_color,
+      brand_accent_color: companyBranding?.accent_color,
     };
+
+    console.log('[CLIENT-PDF] PDF data prepared with branding:', {
+      logo: !!data.company_logo_url,
+      primary: data.brand_primary_color,
+    });
 
     return data;
   } catch (e) {
