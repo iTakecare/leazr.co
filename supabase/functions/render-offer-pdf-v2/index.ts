@@ -117,16 +117,64 @@ serve(async (req) => {
     const lightGrayColor = rgb(0.945, 0.961, 0.984); // #f1f5f9
 
     // Helper functions
+    
+    // Fonction STRICTE pour nettoyer TOUS les caractères non-supportés par WinAnsi
+    const sanitizeText = (text: string): string => {
+      if (!text) return '';
+      
+      let sanitized = String(text);
+      
+      // 1. Retirer les emojis (toutes les plages Unicode d'emojis)
+      sanitized = sanitized.replace(/[\u{1F000}-\u{1FAFF}]/gu, ''); // Emojis principaux
+      sanitized = sanitized.replace(/[\u{2600}-\u{27BF}]/gu, '');   // Dingbats & symboles divers
+      sanitized = sanitized.replace(/[\u{E000}-\u{F8FF}]/gu, '');   // Private Use Area
+      sanitized = sanitized.replace(/[\u{FE00}-\u{FE0F}]/gu, '');   // Variation Selectors
+      
+      // 2. Normaliser les espaces (nbsp, thin space, etc.)
+      sanitized = sanitized.replace(/\u202F/g, ' '); // Narrow no-break space
+      sanitized = sanitized.replace(/\u00A0/g, ' '); // Non-breaking space
+      
+      // 3. Remplacer les caractères problématiques par des équivalents sûrs
+      sanitized = sanitized.replace(/×/g, 'x');      // Symbole multiplier
+      sanitized = sanitized.replace(/€/g, ' EUR');   // Symbole euro
+      
+      // 4. Ne garder QUE les caractères WinAnsi (0x20-0xFF)
+      sanitized = sanitized.replace(/[^\x20-\xFF]/g, '');
+      
+      return sanitized.trim();
+    };
+
+    // Helper pour dessiner du texte de manière sécurisée (toujours sanitized)
+    const drawTextSafe = (page: any, text: string, options: any) => {
+      const safeText = sanitizeText(String(text ?? ''));
+      page.drawText(safeText, options);
+    };
+
+    // Scanner pour détecter et logger les caractères non-supportés AVANT génération
+    const scanUnsupportedChars = (obj: any, path = ''): void => {
+      if (obj === null || obj === undefined) return;
+      
+      if (typeof obj === 'string') {
+        // Détecter les caractères hors WinAnsi
+        const unsupportedChars = obj.match(/[^\x20-\xFF]/g);
+        if (unsupportedChars && unsupportedChars.length > 0) {
+          const codes = unsupportedChars.map(c => c.charCodeAt(0).toString(16).toUpperCase());
+          console.log(`[SANITIZE] path="${path}" removedCodes=[${codes.join(',')}]`);
+        }
+      } else if (Array.isArray(obj)) {
+        obj.forEach((item, index) => scanUnsupportedChars(item, `${path}[${index}]`));
+      } else if (typeof obj === 'object') {
+        Object.keys(obj).forEach(key => {
+          scanUnsupportedChars(obj[key], path ? `${path}.${key}` : key);
+        });
+      }
+    };
+
     const formatCurrency = (amount: number) => {
       let formatted = new Intl.NumberFormat('fr-FR', {
         style: 'currency',
         currency: 'EUR'
       }).format(amount || 0);
-      // Normaliser espaces fines/nbsp et remplacer le symbole € par EUR
-      formatted = formatted
-        .replace(/\u202F/g, ' ')
-        .replace(/\u00A0/g, ' ')
-        .replace(/€/g, ' EUR');
       return sanitizeText(formatted);
     };
 
@@ -134,22 +182,16 @@ serve(async (req) => {
       return new Date(date).toLocaleDateString('fr-FR');
     };
 
-    // Fonction pour nettoyer les emojis et caractères spéciaux non-supportés par WinAnsi
-    const sanitizeText = (text: string): string => {
-      if (!text) return '';
-      // Retire tous les emojis et caractères Unicode spéciaux
-      // WinAnsi supporte uniquement les caractères de 0x20 à 0xFF (Latin basique)
-      return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
-                 .replace(/[^\x20-\xFF]/g, '')
-                 .trim();
-    };
+    // Scanner preflight - logger les caractères problématiques
+    console.log('[RENDER-OFFER-PDF-V2] Scanning offer data for unsupported characters...');
+    scanUnsupportedChars(offer, 'offer');
 
     // PAGE 1 - COUVERTURE
     let page = pdfDoc.addPage([595, 842]); // A4
     let yPosition = 750;
 
     // Titre principal
-    page.drawText('OFFRE DE LEASING', {
+    drawTextSafe(page, 'OFFRE DE LEASING', {
       x: 50,
       y: yPosition,
       size: 28,
@@ -158,7 +200,7 @@ serve(async (req) => {
     });
 
     yPosition -= 40;
-    page.drawText(`Offre N° ${offer.id.substring(0, 8)}...`, {
+    drawTextSafe(page, `Offre N° ${offer.id.substring(0, 8)}...`, {
       x: 50,
       y: yPosition,
       size: 10,
@@ -169,7 +211,7 @@ serve(async (req) => {
     yPosition -= 60;
 
     // Informations client
-    page.drawText('Pour :', {
+    drawTextSafe(page, 'Pour :', {
       x: 50,
       y: yPosition,
       size: 12,
@@ -178,7 +220,7 @@ serve(async (req) => {
     });
 
     yPosition -= 20;
-    page.drawText(sanitizeText(offer.client?.name || 'Non renseigné'), {
+    drawTextSafe(page, offer.client?.name || 'Non renseigné', {
       x: 50,
       y: yPosition,
       size: 14,
@@ -188,7 +230,7 @@ serve(async (req) => {
 
     if (offer.client?.company) {
       yPosition -= 20;
-      page.drawText(`Entreprise : ${sanitizeText(offer.client.company)}`, {
+      drawTextSafe(page, `Entreprise : ${offer.client.company}`, {
         x: 50,
         y: yPosition,
         size: 11,
@@ -198,7 +240,7 @@ serve(async (req) => {
     }
 
     yPosition -= 40;
-    page.drawText(`Date : ${formatDate(offer.created_at)}`, {
+    drawTextSafe(page, `Date : ${formatDate(offer.created_at)}`, {
       x: 50,
       y: yPosition,
       size: 10,
@@ -207,7 +249,7 @@ serve(async (req) => {
     });
 
     // Footer - Nom de l'entreprise
-    page.drawText(sanitizeText(offer.company?.name || 'Leazr'), {
+    drawTextSafe(page, offer.company?.name || 'Leazr', {
       x: 50,
       y: 50,
       size: 10,
@@ -224,7 +266,7 @@ serve(async (req) => {
       ? 'VOTRE SOLUTION DE LEASING'
       : 'DÉTAILS FINANCIERS COMPLETS';
 
-    page.drawText(sectionTitle, {
+    drawTextSafe(page, sectionTitle, {
       x: 50,
       y: yPosition,
       size: 16,
@@ -255,9 +297,9 @@ serve(async (req) => {
                            item.title?.toLowerCase().includes('laptop') || item.title?.toLowerCase().includes('ordinateur') ? '[PC] ' :
                            item.title?.toLowerCase().includes('office') || item.title?.toLowerCase().includes('logiciel') ? '[Soft] ' : '';
 
-        // Titre de l'équipement (nettoyer le texte pour éviter les emojis)
-        const cleanTitle = sanitizeText(item.title || 'Équipement');
-        page.drawText(`${iconPrefix}${cleanTitle}`, {
+        // Titre de l'équipement
+        const cleanTitle = item.title || 'Équipement';
+        drawTextSafe(page, `${iconPrefix}${cleanTitle}`, {
           x: 50,
           y: yPosition,
           size: 12,
@@ -266,8 +308,8 @@ serve(async (req) => {
         });
 
         // Mensualité
-        const monthlyText = `${item.quantity || 1} × ${formatCurrency(item.monthly_payment || 0)}/mois`;
-        page.drawText(monthlyText, {
+        const monthlyText = `${item.quantity || 1} x ${formatCurrency(item.monthly_payment || 0)}/mois`;
+        drawTextSafe(page, monthlyText, {
           x: 450,
           y: yPosition,
           size: 11,
@@ -284,7 +326,7 @@ serve(async (req) => {
           totalPurchase += purchasePrice;
           totalMargin += margin;
 
-          page.drawText(`Prix d'achat : ${formatCurrency(item.purchase_price || 0)}`, {
+          drawTextSafe(page, `Prix d'achat : ${formatCurrency(item.purchase_price || 0)}`, {
             x: 70,
             y: yPosition,
             size: 9,
@@ -292,7 +334,7 @@ serve(async (req) => {
             color: grayColor,
           });
 
-          page.drawText(`Marge : ${formatCurrency(item.margin || 0)}`, {
+          drawTextSafe(page, `Marge : ${formatCurrency(item.margin || 0)}`, {
             x: 250,
             y: yPosition,
             size: 9,
@@ -306,7 +348,7 @@ serve(async (req) => {
         // Attributs (ex: Couleur, Stockage)
         if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
           for (const attr of item.attributes) {
-            page.drawText(`- ${sanitizeText(attr.key)}: ${sanitizeText(attr.value)}`, {
+            drawTextSafe(page, `- ${attr.key}: ${attr.value}`, {
               x: 70,
               y: yPosition,
               size: 9,
@@ -320,7 +362,7 @@ serve(async (req) => {
         // Spécifications (ex: RAM, Processeur)
         if (item.specifications && Array.isArray(item.specifications) && item.specifications.length > 0) {
           for (const spec of item.specifications) {
-            page.drawText(`- ${sanitizeText(spec.key)}: ${sanitizeText(spec.value)}`, {
+            drawTextSafe(page, `- ${spec.key}: ${spec.value}`, {
               x: 70,
               y: yPosition,
               size: 9,
@@ -334,7 +376,7 @@ serve(async (req) => {
         yPosition -= 10; // Espace entre les équipements
       }
     } else {
-      page.drawText('Aucun équipement', {
+      drawTextSafe(page, 'Aucun équipement', {
         x: 50,
         y: yPosition,
         size: 11,
@@ -363,7 +405,7 @@ serve(async (req) => {
     yPosition -= 30;
 
     // TOTAUX
-    page.drawText('MENSUALITÉ TOTALE :', {
+    drawTextSafe(page, 'MENSUALITE TOTALE :', {
       x: 300,
       y: yPosition,
       size: 12,
@@ -371,7 +413,7 @@ serve(async (req) => {
       color: darkColor,
     });
 
-    page.drawText(formatCurrency(totalMonthly) + '/mois', {
+    drawTextSafe(page, formatCurrency(totalMonthly) + '/mois', {
       x: 470,
       y: yPosition,
       size: 14,
@@ -382,7 +424,7 @@ serve(async (req) => {
     yPosition -= 25;
 
     if (offer.duration_months) {
-      page.drawText(`Durée du contrat : ${offer.duration_months} mois`, {
+      drawTextSafe(page, `Duree du contrat : ${offer.duration_months} mois`, {
         x: 300,
         y: yPosition,
         size: 10,
@@ -393,7 +435,7 @@ serve(async (req) => {
       yPosition -= 18;
 
       const totalOverDuration = totalMonthly * offer.duration_months;
-      page.drawText(`Total sur la durée : ${formatCurrency(totalOverDuration)}`, {
+      drawTextSafe(page, `Total sur la duree : ${formatCurrency(totalOverDuration)}`, {
         x: 300,
         y: yPosition,
         size: 10,
@@ -406,7 +448,7 @@ serve(async (req) => {
     if (pdfType === 'internal') {
       yPosition -= 40;
 
-      page.drawText('DÉTAILS FINANCIERS', {
+      drawTextSafe(page, 'DETAILS FINANCIERS', {
         x: 50,
         y: yPosition,
         size: 12,
@@ -416,7 +458,7 @@ serve(async (req) => {
 
       yPosition -= 25;
 
-      page.drawText(`Total prix d'achat :`, {
+      drawTextSafe(page, `Total prix d'achat :`, {
         x: 70,
         y: yPosition,
         size: 10,
@@ -424,7 +466,7 @@ serve(async (req) => {
         color: grayColor,
       });
 
-      page.drawText(formatCurrency(totalPurchase), {
+      drawTextSafe(page, formatCurrency(totalPurchase), {
         x: 470,
         y: yPosition,
         size: 10,
@@ -434,7 +476,7 @@ serve(async (req) => {
 
       yPosition -= 18;
 
-      page.drawText(`Marge totale :`, {
+      drawTextSafe(page, `Marge totale :`, {
         x: 70,
         y: yPosition,
         size: 10,
@@ -442,7 +484,7 @@ serve(async (req) => {
         color: grayColor,
       });
 
-      page.drawText(formatCurrency(totalMargin), {
+      drawTextSafe(page, formatCurrency(totalMargin), {
         x: 470,
         y: yPosition,
         size: 10,
@@ -453,7 +495,7 @@ serve(async (req) => {
       yPosition -= 18;
 
       const marginPercent = totalPurchase > 0 ? (totalMargin / totalPurchase * 100) : 0;
-      page.drawText(`Taux de marge :`, {
+      drawTextSafe(page, `Taux de marge :`, {
         x: 70,
         y: yPosition,
         size: 10,
@@ -461,7 +503,7 @@ serve(async (req) => {
         color: grayColor,
       });
 
-      page.drawText(`${marginPercent.toFixed(1)}%`, {
+      drawTextSafe(page, `${marginPercent.toFixed(1)}%`, {
         x: 470,
         y: yPosition,
         size: 10,
@@ -474,7 +516,7 @@ serve(async (req) => {
     page = pdfDoc.addPage([595, 842]);
     yPosition = 750;
 
-    page.drawText('CONDITIONS DU CONTRAT', {
+    drawTextSafe(page, 'CONDITIONS DU CONTRAT', {
       x: 50,
       y: yPosition,
       size: 16,
@@ -493,11 +535,11 @@ serve(async (req) => {
     ];
 
     if (offer.leaser?.name) {
-      conditions.push(`- Organisme : ${sanitizeText(offer.leaser.name)}`);
+      conditions.push(`- Organisme : ${offer.leaser.name}`);
     }
 
     for (const condition of conditions) {
-      page.drawText(sanitizeText(condition), {
+      drawTextSafe(page, condition, {
         x: 50,
         y: yPosition,
         size: 11,
@@ -509,7 +551,7 @@ serve(async (req) => {
 
     if (offer.additional_terms) {
       yPosition -= 10;
-      page.drawText('Conditions supplémentaires :', {
+      drawTextSafe(page, 'Conditions supplementaires :', {
         x: 50,
         y: yPosition,
         size: 11,
@@ -518,7 +560,7 @@ serve(async (req) => {
       });
       yPosition -= 18;
 
-      page.drawText(sanitizeText(offer.additional_terms), {
+      drawTextSafe(page, offer.additional_terms, {
         x: 50,
         y: yPosition,
         size: 10,
@@ -531,7 +573,7 @@ serve(async (req) => {
     // Contact
     yPosition -= 60;
 
-    page.drawText('Contact Leazr :', {
+    drawTextSafe(page, 'Contact Leazr :', {
       x: 50,
       y: yPosition,
       size: 11,
@@ -542,7 +584,7 @@ serve(async (req) => {
     yPosition -= 20;
 
     if (offer.company?.email) {
-      page.drawText(`Email : ${sanitizeText(offer.company.email)}`, {
+      drawTextSafe(page, `Email : ${offer.company.email}`, {
         x: 50,
         y: yPosition,
         size: 10,
@@ -553,7 +595,7 @@ serve(async (req) => {
     }
 
     if (offer.company?.phone) {
-      page.drawText(`Tél : ${sanitizeText(offer.company.phone)}`, {
+      drawTextSafe(page, `Tel : ${offer.company.phone}`, {
         x: 50,
         y: yPosition,
         size: 10,
@@ -565,11 +607,11 @@ serve(async (req) => {
     // Footer sur toutes les pages
     const pageCount = pdfDoc.getPageCount();
     const pages = pdfDoc.getPages();
-    const footerText = `Document genere le ${formatDate(new Date().toISOString())} - ${sanitizeText(offer.company?.name || 'Leazr')}`;
+    const footerText = `Document genere le ${formatDate(new Date().toISOString())} - ${offer.company?.name || 'Leazr'}`;
     
     for (let i = 0; i < pageCount; i++) {
       const currentPage = pages[i];
-      currentPage.drawText(sanitizeText(footerText), {
+      drawTextSafe(currentPage, footerText, {
         x: 50,
         y: 30,
         size: 8,
@@ -577,7 +619,7 @@ serve(async (req) => {
         color: grayColor,
       });
 
-      currentPage.drawText(`Page ${i + 1} / ${pageCount}`, {
+      drawTextSafe(currentPage, `Page ${i + 1} / ${pageCount}`, {
         x: 520,
         y: 30,
         size: 8,
