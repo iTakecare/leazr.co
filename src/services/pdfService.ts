@@ -13,13 +13,39 @@ async function invokeWithRetry(functionName: string, body: any, maxRetries = 3):
       
       const { data, error } = await supabase.functions.invoke(functionName, {
         body,
-        responseType: 'blob' as any,
+        responseType: 'arraybuffer',
       });
 
-      if (error) throw new Error(error.message);
-      if (!data || !(data instanceof Blob)) throw new Error('Invalid response from PDF service');
-      
-      return data;
+      if (error) throw new Error(error.message || 'PDF service error');
+
+      let blob: Blob | null = null;
+      if (!data) throw new Error('Empty response from PDF service');
+
+      // If the SDK returned a Blob
+      if (typeof Blob !== 'undefined' && data instanceof Blob) {
+        blob = data as Blob;
+      } else if (data instanceof ArrayBuffer) {
+        blob = new Blob([data], { type: 'application/pdf' });
+      } else if (ArrayBuffer.isView(data)) {
+        // TypedArray (Uint8Array, etc.) - extract the underlying ArrayBuffer
+        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+        blob = new Blob([buffer], { type: 'application/pdf' });
+      } else {
+        // Try to detect if a JSON error body slipped through
+        try {
+          const asText = new TextDecoder().decode(data as ArrayBuffer);
+          if (asText.startsWith('{') && asText.includes('"error"')) {
+            const parsed = JSON.parse(asText);
+            throw new Error(parsed.error || 'PDF generation failed');
+          }
+        } catch {
+          // ignore parse attempt
+        }
+        throw new Error('Invalid binary response from PDF service');
+      }
+
+      console.log('[PDF-SERVICE] Received PDF blob size:', blob.size, 'bytes');
+      return blob;
       
     } catch (error) {
       lastError = error as Error;
