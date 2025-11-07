@@ -128,6 +128,16 @@ serve(async (req) => {
       return new Date(date).toLocaleDateString('fr-FR');
     };
 
+    // Fonction pour nettoyer les emojis et caractères spéciaux non-supportés par WinAnsi
+    const sanitizeText = (text: string): string => {
+      if (!text) return '';
+      // Retire tous les emojis et caractères Unicode spéciaux
+      // WinAnsi supporte uniquement les caractères de 0x20 à 0xFF (Latin basique)
+      return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+                 .replace(/[^\x20-\xFF]/g, '')
+                 .trim();
+    };
+
     // PAGE 1 - COUVERTURE
     let page = pdfDoc.addPage([595, 842]); // A4
     let yPosition = 750;
@@ -162,7 +172,7 @@ serve(async (req) => {
     });
 
     yPosition -= 20;
-    page.drawText(offer.client?.name || 'Non renseigné', {
+    page.drawText(sanitizeText(offer.client?.name || 'Non renseigné'), {
       x: 50,
       y: yPosition,
       size: 14,
@@ -172,7 +182,7 @@ serve(async (req) => {
 
     if (offer.client?.company) {
       yPosition -= 20;
-      page.drawText(`Entreprise : ${offer.client.company}`, {
+      page.drawText(`Entreprise : ${sanitizeText(offer.client.company)}`, {
         x: 50,
         y: yPosition,
         size: 11,
@@ -191,7 +201,7 @@ serve(async (req) => {
     });
 
     // Footer - Nom de l'entreprise
-    page.drawText(offer.company?.name || 'Leazr', {
+    page.drawText(sanitizeText(offer.company?.name || 'Leazr'), {
       x: 50,
       y: 50,
       size: 10,
@@ -234,13 +244,14 @@ serve(async (req) => {
         const itemMonthly = (item.monthly_payment || 0) * (item.quantity || 1);
         totalMonthly += itemMonthly;
 
-        // Icône (emoji simple)
-        const icon = item.title?.toLowerCase().includes('iphone') || item.title?.toLowerCase().includes('phone') ? '📱' :
-                     item.title?.toLowerCase().includes('laptop') || item.title?.toLowerCase().includes('ordinateur') ? '💻' :
-                     item.title?.toLowerCase().includes('office') || item.title?.toLowerCase().includes('logiciel') ? '📄' : '📦';
+        // Préfixe textuel au lieu d'emoji
+        const iconPrefix = item.title?.toLowerCase().includes('iphone') || item.title?.toLowerCase().includes('phone') ? '[Phone] ' :
+                           item.title?.toLowerCase().includes('laptop') || item.title?.toLowerCase().includes('ordinateur') ? '[PC] ' :
+                           item.title?.toLowerCase().includes('office') || item.title?.toLowerCase().includes('logiciel') ? '[Soft] ' : '';
 
-        // Titre de l'équipement
-        page.drawText(`${icon} ${item.title || 'Équipement'}`, {
+        // Titre de l'équipement (nettoyer le texte pour éviter les emojis)
+        const cleanTitle = sanitizeText(item.title || 'Équipement');
+        page.drawText(`${iconPrefix}${cleanTitle}`, {
           x: 50,
           y: yPosition,
           size: 12,
@@ -289,7 +300,7 @@ serve(async (req) => {
         // Attributs (ex: Couleur, Stockage)
         if (item.attributes && Array.isArray(item.attributes) && item.attributes.length > 0) {
           for (const attr of item.attributes) {
-            page.drawText(`• ${attr.key}: ${attr.value}`, {
+            page.drawText(`• ${sanitizeText(attr.key)}: ${sanitizeText(attr.value)}`, {
               x: 70,
               y: yPosition,
               size: 9,
@@ -303,7 +314,7 @@ serve(async (req) => {
         // Spécifications (ex: RAM, Processeur)
         if (item.specifications && Array.isArray(item.specifications) && item.specifications.length > 0) {
           for (const spec of item.specifications) {
-            page.drawText(`• ${spec.key}: ${spec.value}`, {
+            page.drawText(`• ${sanitizeText(spec.key)}: ${sanitizeText(spec.value)}`, {
               x: 70,
               y: yPosition,
               size: 9,
@@ -476,7 +487,7 @@ serve(async (req) => {
     ];
 
     if (offer.leaser?.name) {
-      conditions.push(`• Organisme : ${offer.leaser.name}`);
+      conditions.push(`• Organisme : ${sanitizeText(offer.leaser.name)}`);
     }
 
     for (const condition of conditions) {
@@ -501,7 +512,7 @@ serve(async (req) => {
       });
       yPosition -= 18;
 
-      page.drawText(offer.additional_terms, {
+      page.drawText(sanitizeText(offer.additional_terms), {
         x: 50,
         y: yPosition,
         size: 10,
@@ -525,7 +536,7 @@ serve(async (req) => {
     yPosition -= 20;
 
     if (offer.company?.email) {
-      page.drawText(`Email : ${offer.company.email}`, {
+      page.drawText(`Email : ${sanitizeText(offer.company.email)}`, {
         x: 50,
         y: yPosition,
         size: 10,
@@ -536,7 +547,7 @@ serve(async (req) => {
     }
 
     if (offer.company?.phone) {
-      page.drawText(`Tél : ${offer.company.phone}`, {
+      page.drawText(`Tél : ${sanitizeText(offer.company.phone)}`, {
         x: 50,
         y: yPosition,
         size: 10,
@@ -548,11 +559,11 @@ serve(async (req) => {
     // Footer sur toutes les pages
     const pageCount = pdfDoc.getPageCount();
     const pages = pdfDoc.getPages();
-    const footerText = `Document généré le ${formatDate(new Date().toISOString())} - ${offer.company?.name || 'Leazr'}`;
+    const footerText = `Document genere le ${formatDate(new Date().toISOString())} - ${sanitizeText(offer.company?.name || 'Leazr')}`;
     
     for (let i = 0; i < pageCount; i++) {
       const currentPage = pages[i];
-      currentPage.drawText(footerText, {
+      currentPage.drawText(sanitizeText(footerText), {
         x: 50,
         y: 30,
         size: 8,
