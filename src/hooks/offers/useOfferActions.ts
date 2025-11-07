@@ -149,11 +149,24 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const handleGenerateOffer = async (id: string) => {
     setIsGeneratingPdf(true);
     try {
-      const { previewOfferPdf } = await import('@/services/pdfService');
-      await previewOfferPdf(id);
+      const { previewClientOfferPdf } = await import('@/services/pdfService');
+      await previewClientOfferPdf(id);
     } catch (error) {
       console.error("Error generating offer:", error);
       toast.error("Erreur lors de la génération de l'offre");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+  
+  const handleGenerateInternalPdf = async (id: string) => {
+    setIsGeneratingPdf(true);
+    try {
+      const { previewInternalOfferPdf } = await import('@/services/pdfService');
+      await previewInternalOfferPdf(id);
+    } catch (error) {
+      console.error("Error generating internal PDF:", error);
+      toast.error("Erreur lors de la génération du PDF interne");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -361,6 +374,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
     handleUpdateWorkflowStatus,
     handleResendOffer,
     handleGenerateOffer,
+    handleGenerateInternalPdf,
     handleRequestInfo,
     handleProcessInfoResponse,
     handleInternalScoring,

@@ -43,7 +43,8 @@ const Offers = () => {
     setIncludeConverted,
     fetchOffers,
     handleResendOffer,
-    handleGenerateOffer
+    handleGenerateOffer,
+    handleGenerateInternalPdf
   } = useOffers();
   
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
@@ -195,6 +196,7 @@ const Offers = () => {
             onDeleteOffer={handleDeleteOffer}
             onResendOffer={handleResendOffer}
             onGenerateOffer={handleGenerateOffer}
+            onGenerateInternalPdf={handleGenerateInternalPdf}
             isUpdatingStatus={isUpdatingStatus}
           />
         )}
