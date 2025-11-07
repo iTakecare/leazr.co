@@ -3871,6 +3871,7 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
+          offer_number: string | null
           previous_status: string | null
           remarks: string | null
           request_date: string | null
@@ -3911,6 +3912,7 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
+          offer_number?: string | null
           previous_status?: string | null
           remarks?: string | null
           request_date?: string | null
@@ -3951,6 +3953,7 @@ export type Database = {
           margin?: number | null
           margin_difference?: number | null
           monthly_payment?: number
+          offer_number?: string | null
           previous_status?: string | null
           remarks?: string | null
           request_date?: string | null
@@ -6220,6 +6223,7 @@ export type Database = {
           margin: number | null
           margin_difference: number | null
           monthly_payment: number
+          offer_number: string | null
           previous_status: string | null
           remarks: string | null
           request_date: string | null
