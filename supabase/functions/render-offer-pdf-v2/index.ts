@@ -144,11 +144,30 @@ serve(async (req) => {
       return sanitized.trim();
     };
 
-    // Helper pour dessiner du texte de manière sécurisée (toujours sanitized)
-    const drawTextSafe = (page: any, text: string, options: any) => {
-      const safeText = sanitizeText(String(text ?? ''));
-      page.drawText(safeText, options);
+    // ASCII fallback sanitizer (used only when WinAnsi encoding fails)
+    const sanitizeAsciiFallback = (text: string): string => {
+      return String(text ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+        .replace(/[^\x20-\x7E]/g, '')    // keep printable ASCII only
+        .trim();
     };
+
+    // Helper pour dessiner du texte de manière sécurisée (sanitized + retry fallback)
+    const drawTextSafe = (page: any, text: string, options: any) => {
+      const primary = sanitizeText(String(text ?? ''));
+      try {
+        page.drawText(primary, options);
+      } catch (e) {
+        const ascii = sanitizeAsciiFallback(primary);
+        console.log('[DRAW-RETRY] Fallback ASCII used', { sample: primary.slice(0, 60) });
+        page.drawText(ascii, options);
+      }
+    };
+
+    // Compteurs globaux de scan (préflight)
+    let sanitizeFieldsTouched = 0;
+    let sanitizeCharsFound = 0;
 
     // Scanner pour détecter et logger les caractères non-supportés AVANT génération
     const scanUnsupportedChars = (obj: any, path = ''): void => {
@@ -158,8 +177,13 @@ serve(async (req) => {
         // Détecter les caractères hors WinAnsi
         const unsupportedChars = obj.match(/[^\x20-\xFF]/g);
         if (unsupportedChars && unsupportedChars.length > 0) {
-          const codes = unsupportedChars.map(c => c.charCodeAt(0).toString(16).toUpperCase());
-          console.log(`[SANITIZE] path="${path}" removedCodes=[${codes.join(',')}]`);
+          sanitizeFieldsTouched++;
+          sanitizeCharsFound += unsupportedChars.length;
+          const codes = unsupportedChars.map(c => {
+            const cp = (c as string).codePointAt(0) || 0;
+            return cp.toString(16).toUpperCase();
+          });
+          console.log(`[SANITIZE] path="${path}" codes=[${codes.join(',')}] count=${unsupportedChars.length}`);
         }
       } else if (Array.isArray(obj)) {
         obj.forEach((item, index) => scanUnsupportedChars(item, `${path}[${index}]`));
@@ -170,6 +194,22 @@ serve(async (req) => {
       }
     };
 
+    // Sanitize profond: applique sanitizeText à toutes les chaînes de l'objet (mutation in-place)
+    const deepSanitizeObject = (obj: any): any => {
+      if (obj == null) return obj;
+      if (typeof obj === 'string') return sanitizeText(obj);
+      if (Array.isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) obj[i] = deepSanitizeObject(obj[i]);
+        return obj;
+      }
+      if (typeof obj === 'object') {
+        for (const k of Object.keys(obj)) {
+          obj[k] = deepSanitizeObject(obj[k]);
+        }
+        return obj;
+      }
+      return obj;
+    };
     const formatCurrency = (amount: number) => {
       let formatted = new Intl.NumberFormat('fr-FR', {
         style: 'currency',
@@ -185,6 +225,13 @@ serve(async (req) => {
     // Scanner preflight - logger les caractères problématiques
     console.log('[RENDER-OFFER-PDF-V2] Scanning offer data for unsupported characters...');
     scanUnsupportedChars(offer, 'offer');
+    if (sanitizeFieldsTouched > 0) {
+      console.log(`[SANITIZE] summary fields=${sanitizeFieldsTouched} chars=${sanitizeCharsFound}`);
+    }
+
+    // Deep sanitize all strings in offer to guarantee WinAnsi-safe rendering
+    deepSanitizeObject(offer);
+
 
     // PAGE 1 - COUVERTURE
     let page = pdfDoc.addPage([595, 842]); // A4
