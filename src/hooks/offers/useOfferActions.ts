@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import html2pdf from 'html2pdf.js';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { 
@@ -150,7 +151,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   };
   
   const handleGenerateOffer = async (id: string): Promise<void> => {
-    const toastId = toast.loading('Génération du PDF en cours...');
+    const toastId = toast.loading('Préparation du PDF...');
     
     try {
       // 1. Récupérer les données de l'offre
@@ -160,13 +161,15 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         return;
       }
 
-      // 2. Créer un conteneur invisible dans le DOM
+      // 2. Créer un conteneur VISIBLE (crucial pour le rendu CSS)
       const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
+      container.style.position = 'fixed';
       container.style.top = '0';
+      container.style.left = '0';
       container.style.width = '210mm';
+      container.style.minHeight = '297mm';
       container.style.background = 'white';
+      container.style.zIndex = '9999';
       document.body.appendChild(container);
 
       // 3. Préparer les données pour CommercialOffer
@@ -176,62 +179,91 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         clientName: offer.client_name || '',
         clientEmail: offer.client_email || (offer.clients as any)?.email || '',
         clientPhone: (offer as any).client_phone || (offer.clients as any)?.phone || '',
-        showPrintButton: false, // Masquer le bouton dans le PDF
+        showPrintButton: false,
       };
 
       // 4. Render le composant React dans le conteneur
       const root = createRoot(container);
       root.render(
-        React.createElement(CommercialOffer, offerData)
+        React.createElement('div', 
+          { 
+            style: { 
+              width: '100%', 
+              background: 'white', 
+              fontFamily: 'Inter, sans-serif' 
+            } 
+          },
+          React.createElement(CommercialOffer, offerData)
+        )
       );
 
-      // 5. Attendre que le rendu soit complet (images, styles, etc.)
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // 5. Attendre que TOUT soit chargé (polices, images, styles)
+      toast.loading('Chargement du contenu...', { id: toastId });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // 6. Configuration de html2pdf
-      const filename = `Offre_${offerData.offerNumber}_${offerData.clientName.replace(/\s+/g, '_')}.pdf`;
-      const options = {
-        margin: 0,
-        filename: filename,
-        image: { 
-          type: 'jpeg' as const, 
-          quality: 0.98 
-        },
-        html2canvas: { 
+      // 6. Vérifier qu'il y a du contenu
+      const pages = container.querySelectorAll('.page');
+      console.log(`📄 Pages trouvées: ${pages.length}`);
+      console.log(`📏 Hauteur du conteneur: ${container.scrollHeight}px`);
+      
+      if (pages.length === 0) {
+        console.error('❌ Aucune page trouvée. HTML:', container.innerHTML.substring(0, 500));
+        throw new Error('Aucune page trouvée. Le composant ne s\'est pas rendu correctement.');
+      }
+
+      // 7. Créer le PDF avec jsPDF
+      toast.loading('Génération du PDF...', { id: toastId });
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // 8. Convertir chaque page en image et l'ajouter au PDF
+      for (let i = 0; i < pages.length; i++) {
+        console.log(`🖼️ Traitement page ${i + 1}/${pages.length}`);
+        
+        const page = pages[i] as HTMLElement;
+        
+        // Convertir la page en canvas (image haute qualité)
+        const canvas = await html2canvas(page, {
           scale: 2,
           useCORS: true,
+          backgroundColor: '#ffffff',
           logging: false,
-          letterRendering: true,
-          windowWidth: 794, // 210mm à 96dpi
-        },
-        jsPDF: { 
-          unit: 'mm' as const, 
-          format: 'a4' as const, 
-          orientation: 'portrait' as const,
-          compress: true
-        },
-        pagebreak: { 
-          mode: 'css' as const,
-          before: '.page'
+          width: 794,
+          height: 1123,
+          windowWidth: 794,
+          windowHeight: 1123
+        });
+
+        // Convertir le canvas en image JPEG
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+        // Ajouter une nouvelle page au PDF (sauf pour la première)
+        if (i > 0) {
+          pdf.addPage();
         }
-      };
+        
+        // Ajouter l'image au PDF (dimensions A4 en mm)
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      }
 
-      // 7. Générer et télécharger le PDF
-      await html2pdf()
-        .set(options)
-        .from(container)
-        .save();
+      // 9. Télécharger le PDF
+      const filename = `Offre_${offerData.offerNumber}_${offerData.clientName.replace(/\s+/g, '_')}.pdf`;
+      pdf.save(filename);
 
-      // 8. Nettoyage : supprimer le conteneur du DOM
+      // 10. Nettoyage : supprimer le conteneur du DOM
       root.unmount();
       document.body.removeChild(container);
 
-      // 9. Notification de succès
-      toast.success(`PDF téléchargé : ${filename}`, { id: toastId });
+      // 11. Notification de succès
+      toast.success(`✅ PDF téléchargé : ${filename}`, { id: toastId });
+      console.log(`✅ PDF généré avec succès: ${filename}`);
 
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Erreur lors de la génération du PDF", { id: toastId });
+      console.error('❌ Erreur complète:', error);
+      toast.error(`Erreur: ${(error as Error).message}`, { id: toastId });
     }
   };
   
