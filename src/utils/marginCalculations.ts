@@ -17,19 +17,8 @@ export interface OfferFinancialData {
  * Returns totalPurchasePrice, totalMonthlyPayment, and totalSellingPrice
  */
 export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentItems?: any[]) => {
-  // Utiliser les équipements passés en paramètre ou fallback sur equipment_description
-  let equipmentList = equipmentItems || [];
-  
-  if (!equipmentList.length && offer.equipment_description) {
-    try {
-      const parsedEquipment = JSON.parse(offer.equipment_description);
-      if (Array.isArray(parsedEquipment)) {
-        equipmentList = parsedEquipment;
-      }
-    } catch (e) {
-      console.warn("Could not parse equipment_description as JSON");
-    }
-  }
+  // Utiliser uniquement les équipements passés en paramètre
+  const equipmentList = equipmentItems || [];
 
   // Si on a des équipements parsés, calculer depuis ces données
   if (equipmentList.length > 0) {
@@ -81,31 +70,23 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
 export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
   const totals = calculateEquipmentTotals(offer, equipmentItems);
   
-  console.log("🔍 getEffectiveFinancedAmount - totals:", totals);
-  console.log("🔍 getEffectiveFinancedAmount - offer.financed_amount:", offer.financed_amount);
-  console.log("🔍 getEffectiveFinancedAmount - offer.amount:", offer.amount);
-  
   // Priorité 1: totalSellingPrice depuis les équipements (prix de vente calculé)
   if (totals.totalSellingPrice > 0) {
-    console.log("✅ Using totalSellingPrice:", totals.totalSellingPrice);
     return totals.totalSellingPrice;
   }
   
   // Priorité 2: si on a un coefficient global et une mensualité totale, calculer à partir de là
   if ((offer.coefficient || 0) > 0 && totals.totalMonthlyPayment > 0) {
     const computed = totals.totalMonthlyPayment * (offer.coefficient as number);
-    console.log("✅ Using monthly_payment * coefficient:", computed);
     return computed;
   }
   
   // Priorité 3: financed_amount depuis l'offre (si mis à jour en base)
   if (offer.financed_amount && offer.financed_amount > 0) {
-    console.log("✅ Using offer.financed_amount:", offer.financed_amount);
     return offer.financed_amount;
   }
   
   // Priorité 3: Fallback sur offer.amount
-  console.log("⚠️ Fallback to offer.amount:", offer.amount || 0);
   return offer.amount || 0;
 };
 
@@ -114,26 +95,18 @@ export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentI
  * Formula: (montant financé - prix d'achat total) / prix d'achat total * 100
  */
 export const calculateOfferMargin = (offer: OfferFinancialData, equipmentItems?: any[]): number | null => {
-  console.log("🔍 calculateOfferMargin - offer.financed_amount:", offer.financed_amount);
-  console.log("🔍 calculateOfferMargin - offer.amount:", offer.amount);
-  console.log("🔍 calculateOfferMargin - equipmentItems:", equipmentItems);
-  
   const totals = calculateEquipmentTotals(offer, equipmentItems);
-  console.log("🔍 calculateOfferMargin - totals:", totals);
   
   // Utiliser le montant financé effectif (priorité au totalSellingPrice)
   const financedAmount = getEffectiveFinancedAmount(offer, equipmentItems);
-  console.log("🔍 calculateOfferMargin - effectiveFinancedAmount:", financedAmount);
 
   // Si pas de prix d'achat total, retourner 0
   if (totals.totalPurchasePrice <= 0) {
-    console.log("🔍 calculateOfferMargin - No purchase price, returning 0");
     return 0;
   }
 
   // Calculer la marge en pourcentage : (montant financé - prix d'achat total) / prix d'achat total * 100
   const marginPercentage = ((financedAmount - totals.totalPurchasePrice) / totals.totalPurchasePrice) * 100;
-  console.log("🔍 calculateOfferMargin - marginPercentage calculated:", marginPercentage);
   
   return marginPercentage;
 };
