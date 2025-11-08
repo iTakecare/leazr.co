@@ -42,8 +42,8 @@ export const createOfferPdfStyles = (theme?: {
   
   // Header styles
   header: {
-    marginBottom: 30,
-    paddingBottom: 15,
+    marginBottom: 10,
+    paddingBottom: 8,
     borderBottomWidth: 3,
     borderBottomColor: mergedColors.secondary,
   },
@@ -279,22 +279,22 @@ export const createOfferPdfStyles = (theme?: {
   
   // Values page styles
   mainTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     color: mergedColors.primary,
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: 'center',
   },
   
   valuesContainer: {
     flexDirection: 'column',
-    gap: 20,
-    marginVertical: 20,
+    gap: 10,
+    marginVertical: 10,
   },
   
   valueCard: {
     flexDirection: 'row',
-    padding: 15,
+    padding: 10,
     backgroundColor: mergedColors.white,
     borderRadius: 4,
     alignItems: 'flex-start',
@@ -321,10 +321,10 @@ export const createOfferPdfStyles = (theme?: {
   },
   
   valueTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: mergedColors.primary,
-    marginBottom: 8,
+    marginBottom: 5,
     textAlign: 'left',
   },
   
@@ -337,17 +337,17 @@ export const createOfferPdfStyles = (theme?: {
   },
   
   valueDescription: {
-    fontSize: 9,
+    fontSize: 8,
     textAlign: 'left',
     color: mergedColors.gray,
-    lineHeight: 1.5,
+    lineHeight: 1.3,
   },
   
   metricsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 30,
-    padding: 25,
+    marginVertical: 15,
+    padding: 12,
     backgroundColor: mergedColors.primary,
     borderRadius: 0,
   },
@@ -358,27 +358,27 @@ export const createOfferPdfStyles = (theme?: {
   },
   
   metricValue: {
-    fontSize: 40,
+    fontSize: 24,
     fontFamily: 'Helvetica-Bold',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   
   metricLabel: {
-    fontSize: 10,
+    fontSize: 8,
     color: '#FFFFFF',
     opacity: 0.9,
     textAlign: 'center',
-    lineHeight: 1.4,
-    maxWidth: 150,
+    lineHeight: 1.2,
+    maxWidth: 120,
   },
   
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: mergedColors.dark,
-    marginTop: 25,
-    marginBottom: 15,
+    marginTop: 15,
+    marginBottom: 10,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
@@ -387,13 +387,14 @@ export const createOfferPdfStyles = (theme?: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 20,
-    marginTop: 15,
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 15,
   },
   
   partnerLogo: {
-    width: 60,
-    height: 35,
+    width: 50,
+    height: 30,
     objectFit: 'contain',
   },
   

@@ -49,27 +49,27 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* Company Header with Gradient */}
-      <View style={styles.headerGradient}>
+      {/* Header simple - logo + adresse en haut à gauche */}
+      <View style={{ flexDirection: 'column', alignItems: 'flex-start', marginBottom: 20 }}>
         {companyLogoUrl && (
           <Image 
             src={companyLogoUrl} 
-            style={{ ...styles.logo, marginBottom: 0 }}
+            style={{ width: 60, height: 60, marginBottom: 10 }}
           />
         )}
         {!companyLogoUrl && (
-          <Text style={{ ...styles.companyName, color: colors.white }}>
+          <Text style={{ ...styles.companyName, color: colors.primary, fontSize: 16 }}>
             {companyName}
           </Text>
         )}
-      </View>
-
-      {/* Company Info */}
-      <View style={{ paddingHorizontal: 40, marginTop: 15 }}>
-        {companyAddress && <Text style={styles.companyInfo}>{companyAddress}</Text>}
-        {companyEmail && <Text style={styles.companyInfo}>Email: {companyEmail}</Text>}
-        {companyPhone && <Text style={styles.companyInfo}>Tél: {companyPhone}</Text>}
-        {companyVatNumber && <Text style={styles.companyInfo}>N° TVA: {companyVatNumber}</Text>}
+        
+        {/* Adresse directement en dessous */}
+        <View style={{ marginTop: 5 }}>
+          {companyAddress && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>{companyAddress}</Text>}
+          {companyVatNumber && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>TVA : {companyVatNumber}</Text>}
+          {companyEmail && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>Email: {companyEmail}</Text>}
+          {companyPhone && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>Tél: {companyPhone}</Text>}
+        </View>
       </View>
 
       {/* Main Title with Decorative Line */}
