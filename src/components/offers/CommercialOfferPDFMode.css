@@ -1,7 +1,7 @@
-/* Override des gradients en mode PDF - Couleurs solides uniquement */
+/* Override des gradients en mode PDF - Couleurs solides iTakecare (#33638e) */
 
 .pdf-mode .print-button {
-  background: #667eea !important;
+  background: #33638e !important;
 }
 
 .pdf-mode .pattern-bg {
@@ -10,23 +10,23 @@
 }
 
 .pdf-mode .logo-icon {
-  background: #667eea !important;
+  background: #33638e !important;
 }
 
 .pdf-mode .logo-text {
-  background: #667eea !important;
+  background: none !important;
   -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #667eea !important;
+  -webkit-text-fill-color: #33638e !important;
   background-clip: initial !important;
-  color: #667eea !important;
+  color: #33638e !important;
 }
 
 .pdf-mode .gradient-text {
-  background: #667eea !important;
+  background: none !important;
   -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #667eea !important;
+  -webkit-text-fill-color: #33638e !important;
   background-clip: initial !important;
-  color: #667eea !important;
+  color: #33638e !important;
 }
 
 .pdf-mode .product-icon.gray {
@@ -38,11 +38,11 @@
 }
 
 .pdf-mode .price-amount {
-  background: #667eea !important;
+  background: none !important;
   -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #667eea !important;
+  -webkit-text-fill-color: #33638e !important;
   background-clip: initial !important;
-  color: #667eea !important;
+  color: #33638e !important;
 }
 
 .pdf-mode .total-box {
@@ -50,11 +50,11 @@
 }
 
 .pdf-mode .total-amount {
-  background: #667eea !important;
+  background: none !important;
   -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #667eea !important;
+  -webkit-text-fill-color: #33638e !important;
   background-clip: initial !important;
-  color: #667eea !important;
+  color: #33638e !important;
 }
 
 .pdf-mode .page-3 {
@@ -74,11 +74,11 @@
 }
 
 .pdf-mode .stat-number {
-  background: #667eea !important;
+  background: none !important;
   -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #667eea !important;
+  -webkit-text-fill-color: #33638e !important;
   background-clip: initial !important;
-  color: #667eea !important;
+  color: #33638e !important;
 }
 
 .pdf-mode .condition-card.blue-card {
@@ -106,13 +106,20 @@
 }
 
 .pdf-mode .signature-logo {
-  background: #667eea !important;
+  background: #33638e !important;
 }
 
 .pdf-mode .signature-text {
-  background: #667eea !important;
+  background: none !important;
   -webkit-background-clip: initial !important;
-  -webkit-text-fill-color: #667eea !important;
+  -webkit-text-fill-color: #33638e !important;
   background-clip: initial !important;
-  color: #667eea !important;
+  color: #33638e !important;
+}
+
+/* Style pour le logo iTakecare en image */
+.pdf-mode .logo-itakecare {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
 }

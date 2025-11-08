@@ -122,12 +122,12 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
           <div className="header">
             <div className="logo-section">
               <div className="logo-box">
-                <div className="logo-icon">
-                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-                <span className="logo-text">iTakecare</span>
+                <img 
+                  src="/pdf-templates/itakecare-v1/assets/logo.png" 
+                  alt="iTakecare Logo" 
+                  className="logo-itakecare"
+                  style={{ height: '40px', width: 'auto' }}
+                />
               </div>
               <div className="company-info">
                 <p>Avenue Général Michel 1E, 6000 Charleroi</p>
