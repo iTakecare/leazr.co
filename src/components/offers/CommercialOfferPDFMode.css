@@ -182,3 +182,50 @@
 .pdf-mode .contract-subtitle {
   font-size: 9px !important;
 }
+
+/* Style "Fin de contrat" sur une ligne en mode PDF */
+.pdf-mode .contract-end-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  gap: 16px !important;
+  padding: 14px !important;
+}
+
+.pdf-mode .contract-end-header {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  min-width: 220px !important;
+  max-width: 240px !important;
+}
+
+.pdf-mode .contract-end-text .condition-title {
+  font-size: 13px !important;
+}
+
+.pdf-mode .contract-end-text .contract-subtitle {
+  font-size: 9px !important;
+}
+
+.pdf-mode .options-grid-horizontal {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 10px !important;
+}
+
+.pdf-mode .options-grid-horizontal .option-box {
+  padding: 12px 10px !important;
+}
+
+.pdf-mode .options-grid-horizontal .option-emoji {
+  font-size: 20px !important;
+}
+
+.pdf-mode .options-grid-horizontal .option-title {
+  font-size: 10px !important;
+}
+
+.pdf-mode .options-grid-horizontal .option-text {
+  font-size: 8px !important;
+}

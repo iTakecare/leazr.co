@@ -439,19 +439,22 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
       <div className="page page-5">
         {/* Fin de contrat */}
         <div className="contract-end-section">
-          <div className="condition-card indigo-card">
-            <div className="condition-header">
+          <div className="condition-card indigo-card contract-end-card">
+            {/* Section gauche : Header avec icône + titre */}
+            <div className="contract-end-header">
               <div className="condition-icon indigo-bg">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                 </svg>
               </div>
-              <div>
+              <div className="contract-end-text">
                 <h3 className="condition-title">⏱️ Fin de contrat ({contractDuration} mois)</h3>
                 <p className="contract-subtitle">À l'issue des {contractDuration} mois, vous avez <strong>3 options</strong> :</p>
               </div>
             </div>
-            <div className="options-grid">
+            
+            {/* Section droite : Les 3 options */}
+            <div className="options-grid-horizontal">
               <div className="option-box">
                 <div className="option-emoji">🔄</div>
                 <h4 className="option-title">Option 1</h4>
