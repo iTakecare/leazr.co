@@ -148,23 +148,33 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   
   const handleGenerateOffer = async (id: string): Promise<void> => {
     try {
-      // Navigation vers la page d'impression au lieu de générer un PDF
-      const currentPath = window.location.pathname;
-      const isAdmin = currentPath.includes('/admin');
-      const isAmbassador = currentPath.includes('/ambassador');
-      
-      if (isAdmin) {
-        window.open(`/itakecare/admin/offers/${id}/print`, '_blank');
-      } else if (isAmbassador) {
-        window.open(`/itakecare/ambassador/offers/${id}/print`, '_blank');
-      } else {
-        window.open(`/offers/${id}/print`, '_blank');
+      const offer = offers.find(o => o.id === id);
+      if (!offer) {
+        toast.error("Offre introuvable");
+        return;
       }
-      
-      toast.success("Offre ouverte dans un nouvel onglet");
+
+      // Construire les query params avec les vraies données de l'offre
+      const params = new URLSearchParams({
+        offerNumber: offer.dossier_number || offer.id || '',
+        offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : '',
+        clientName: offer.client_name || '',
+        clientEmail: offer.client_email || (offer.clients as any)?.email || '',
+        clientPhone: (offer as any).client_phone || (offer.clients as any)?.phone || '',
+      });
+
+      const printUrl = `/offer-print?${params.toString()}`;
+      const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800,noopener,noreferrer');
+
+      if (printWindow) {
+        toast.success("Ouverture de la vue d'impression…");
+      } else {
+        // Fallback si popup bloquée
+        window.location.href = printUrl;
+      }
     } catch (error) {
-      console.error("Error opening offer:", error);
-      toast.error("Erreur lors de l'ouverture de l'offre");
+      console.error("Error opening offer print view:", error);
+      toast.error("Erreur lors de l'ouverture de la vue d'impression");
     }
   };
   
