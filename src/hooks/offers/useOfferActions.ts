@@ -1,8 +1,6 @@
 // Hooks for offer actions including PDF generation
 import React, { useState } from "react";
 import { toast } from "sonner";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { 
@@ -214,7 +212,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
 
       // 7. Créer le PDF avec jsPDF
       toast.loading('Génération du PDF...', { id: toastId });
-      const pdf = new jsPDF({
+      // Import dynamiques pour éviter les problèmes de compilation
+      const { default: JsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+      const pdf = new JsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
