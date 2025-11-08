@@ -15,23 +15,40 @@ import {
   upsertMultiplePDFContentBlocks, 
   initializeDefaultPDFContent 
 } from '@/services/pdfContentService';
-import { FileText, Save, Info } from 'lucide-react';
+import { FileText, Save, Info, Sparkles, BarChart3, Building2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const PDFContentEditor: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companySlug, setCompanySlug] = useState<string>('');
   const [blocks, setBlocks] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeTab, setActiveTab] = useState('cover');
 
-  // Chargement du company_id au montage
+  // Chargement du company_id et company_slug au montage
   useEffect(() => {
-    const loadCompanyId = async () => {
+    const loadCompanyData = async () => {
       try {
         const id = await getCurrentUserCompanyId();
         setCompanyId(id);
+        
+        // Récupérer le slug de l'entreprise
+        if (id) {
+          const { data } = await supabase
+            .from('companies')
+            .select('slug')
+            .eq('id', id)
+            .single();
+          
+          if (data?.slug) {
+            setCompanySlug(data.slug);
+          }
+        }
       } catch (error) {
         console.error('Erreur lors de la récupération du company_id:', error);
         toast({
@@ -41,7 +58,7 @@ const PDFContentEditor: React.FC = () => {
         });
       }
     };
-    loadCompanyId();
+    loadCompanyData();
   }, [toast]);
 
   // Chargement des blocs de contenu
@@ -171,6 +188,61 @@ const PDFContentEditor: React.FC = () => {
           aux prochaines offres PDF générées.
         </AlertDescription>
       </Alert>
+
+      {/* Section de gestion du contenu de la page Valeurs */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Contenu de la page "Nos valeurs"</CardTitle>
+          <CardDescription>
+            Gérez les valeurs, métriques et logos qui apparaissent dans vos offres PDF
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button 
+              variant="outline" 
+              className="h-auto p-6 flex flex-col items-start gap-3"
+              onClick={() => navigate(`/${companySlug}/admin/settings/company-values`)}
+            >
+              <Sparkles className="h-8 w-8 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold text-base">Valeurs de l'entreprise</div>
+                <div className="text-sm text-muted-foreground">
+                  Définissez les valeurs affichées dans vos PDFs
+                </div>
+              </div>
+            </Button>
+
+            <Button 
+              variant="outline" 
+              className="h-auto p-6 flex flex-col items-start gap-3"
+              onClick={() => navigate(`/${companySlug}/admin/settings/company-metrics`)}
+            >
+              <BarChart3 className="h-8 w-8 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold text-base">Métriques</div>
+                <div className="text-sm text-muted-foreground">
+                  Satisfaction client, CO2 économisé, appareils gérés...
+                </div>
+              </div>
+            </Button>
+
+            <Button 
+              variant="outline" 
+              className="h-auto p-6 flex flex-col items-start gap-3"
+              onClick={() => navigate(`/${companySlug}/admin/settings/partner-logos`)}
+            >
+              <Building2 className="h-8 w-8 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold text-base">Logos partenaires</div>
+                <div className="text-sm text-muted-foreground">
+                  Ajoutez les logos de vos clients pour la preuve sociale
+                </div>
+              </div>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Onglets */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
