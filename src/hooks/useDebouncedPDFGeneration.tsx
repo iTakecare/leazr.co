@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { generateOfferPDFWithOverrides } from '@/services/clientPdfService';
+import { generateOfferPDFFromHtmlTemplate } from '@/services/clientPdfService';
 import { OfferPDFData } from '@/components/pdf/templates/OfferPDFDocument';
 
 export const useDebouncedPDFGeneration = (
@@ -17,7 +17,7 @@ export const useDebouncedPDFGeneration = (
       setIsGenerating(true);
       setError(null);
       try {
-        const blob = await generateOfferPDFWithOverrides(offerId, pdfType, editedData);
+        const blob = await generateOfferPDFFromHtmlTemplate(offerId, pdfType);
         setPdfBlob(blob);
       } catch (err) {
         console.error('[PDF-PREVIEW-EDITOR] Generation error:', err);

@@ -249,7 +249,97 @@ export async function generateOfferPDFWithOverrides(
 }
 
 /**
- * Download offer PDF directly
+ * Generate PDF using HTML template (new approach)
+ */
+export async function generateOfferPDFFromHtmlTemplate(
+  offerId: string,
+  pdfType: 'client' | 'internal'
+): Promise<Blob> {
+  const { generatePdfFromHtmlTemplate } = await import('./htmlToPdfService');
+  const { mapOfferDataToHandlebars } = await import('./offerToTemplateDataMapper');
+  
+  console.log(`[CLIENT-PDF] Generating ${pdfType} PDF from HTML template for offer ${offerId}`);
+  
+  // 1. Fetch offer data
+  const offerData = await fetchOfferData(offerId);
+  if (!offerData) {
+    throw new Error('Impossible de récupérer les données de l\'offre');
+  }
+  
+  // 2. Remove internal data for client PDF
+  if (pdfType === 'client') {
+    offerData.equipment = offerData.equipment.map((item) => ({
+      ...item,
+      purchase_price: 0,
+      margin: 0,
+      selling_price: undefined,
+    }));
+    offerData.total_margin = undefined;
+  }
+  
+  // 3. Map to Handlebars format
+  const templateData = mapOfferDataToHandlebars(offerData);
+  
+  // 4. Generate PDF from HTML template
+  const blob = await generatePdfFromHtmlTemplate(
+    'itakecare-modern',
+    templateData
+  );
+  
+  return blob;
+}
+
+/**
+ * Download offer PDF from HTML template
+ */
+export async function downloadOfferPDFFromHtmlTemplate(
+  offerId: string,
+  pdfType: 'client' | 'internal'
+): Promise<void> {
+  try {
+    const offerData = await fetchOfferData(offerId);
+    if (!offerData) {
+      throw new Error('Impossible de récupérer les données de l\'offre');
+    }
+    
+    // Generate filename
+    const date = new Date(offerData.offer_date);
+    const formattedDate = date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    
+    const filenameParts = [
+      `Offre ${offerData.company_name || 'iTakecare'}`,
+      offerData.client_name,
+      offerData.client_company,
+      formattedDate
+    ].filter(Boolean);
+    
+    let filename = filenameParts.join(' - ');
+    filename = filename.replace(/[/\\:*?"<>|]/g, '');
+    filename = `${filename}.pdf`;
+    
+    // Generate and download
+    const blob = await generateOfferPDFFromHtmlTemplate(offerId, pdfType);
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('[CLIENT-PDF] Download error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Download offer PDF directly (original @react-pdf/renderer method)
  */
 export async function downloadOfferPDF(
   offerId: string,
