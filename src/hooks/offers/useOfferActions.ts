@@ -148,18 +148,28 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   
   const handleGenerateOffer = async (id: string): Promise<void> => {
     try {
-      // Navigation vers la page d'impression au lieu de générer un PDF
+      // Extraire dynamiquement le companySlug de l'URL actuelle
       const currentPath = window.location.pathname;
+      const pathSegments = currentPath.split('/').filter(Boolean);
+      
+      // Le slug est toujours le premier segment pour les routes multi-tenant
+      // Ex: /itakecare/admin/offers → companySlug = "itakecare"
+      const companySlug = pathSegments[0];
       const isAdmin = currentPath.includes('/admin');
       const isAmbassador = currentPath.includes('/ambassador');
       
+      let printUrl: string;
+      
       if (isAdmin) {
-        window.open(`/itakecare/admin/offers/${id}/print`, '_blank');
+        printUrl = `/${companySlug}/admin/offers/${id}/print`;
       } else if (isAmbassador) {
-        window.open(`/itakecare/ambassador/offers/${id}/print`, '_blank');
+        printUrl = `/${companySlug}/ambassador/offers/${id}/print`;
       } else {
-        window.open(`/offers/${id}/print`, '_blank');
+        printUrl = `/offers/${id}/print`;
       }
+      
+      console.log('🔗 Opening offer print view:', printUrl);
+      window.open(printUrl, '_blank');
       
       toast.success("Offre ouverte dans un nouvel onglet");
     } catch (error) {
