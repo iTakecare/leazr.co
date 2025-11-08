@@ -42,6 +42,9 @@ interface CommercialOfferProps {
   
   // Logos partenaires
   partnerLogos?: string[];
+  
+  // Contrôle d'affichage
+  showPrintButton?: boolean;
 }
 
 // Helper functions
@@ -87,7 +90,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
     devicesManaged: '710',
     co2Saved: '91,03'
   },
-  partnerLogos = []
+  partnerLogos = [],
+  showPrintButton = true
 }) => {
   
   const handlePrintPDF = () => {
@@ -97,14 +101,16 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   return (
     <div className="offer-container">
       {/* Bouton de téléchargement - masqué à l'impression */}
-      <div className="no-print print-button-container">
-        <button onClick={handlePrintPDF} className="print-button">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
-          </svg>
-          Télécharger en PDF
-        </button>
-      </div>
+      {showPrintButton && (
+        <div className="no-print print-button-container">
+          <button onClick={handlePrintPDF} className="print-button">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+            </svg>
+            Télécharger en PDF
+          </button>
+        </div>
+      )}
 
       {/* PAGE 1: Couverture */}
       <div className="page page-1">

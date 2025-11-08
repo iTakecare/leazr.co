@@ -1,5 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
+import html2pdf from 'html2pdf.js';
+import { createRoot } from 'react-dom/client';
+import CommercialOffer from '@/components/offers/CommercialOffer';
 import { 
   deleteOffer, 
   updateOfferStatus, 
@@ -147,34 +150,88 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   };
   
   const handleGenerateOffer = async (id: string): Promise<void> => {
+    const toastId = toast.loading('Génération du PDF en cours...');
+    
     try {
+      // 1. Récupérer les données de l'offre
       const offer = offers.find(o => o.id === id);
       if (!offer) {
-        toast.error("Offre introuvable");
+        toast.error("Offre introuvable", { id: toastId });
         return;
       }
 
-      // Construire les query params avec les vraies données de l'offre
-      const params = new URLSearchParams({
+      // 2. Créer un conteneur invisible dans le DOM
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '210mm';
+      container.style.background = 'white';
+      document.body.appendChild(container);
+
+      // 3. Préparer les données pour CommercialOffer
+      const offerData = {
         offerNumber: offer.dossier_number || offer.id || '',
         offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : '',
         clientName: offer.client_name || '',
         clientEmail: offer.client_email || (offer.clients as any)?.email || '',
         clientPhone: (offer as any).client_phone || (offer.clients as any)?.phone || '',
-      });
+        showPrintButton: false, // Masquer le bouton dans le PDF
+      };
 
-      const printUrl = `/offer-print?${params.toString()}`;
-      const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800,noopener,noreferrer');
+      // 4. Render le composant React dans le conteneur
+      const root = createRoot(container);
+      root.render(
+        React.createElement(CommercialOffer, offerData)
+      );
 
-      if (printWindow) {
-        toast.success("Ouverture de la vue d'impression…");
-      } else {
-        // Fallback si popup bloquée
-        window.location.href = printUrl;
-      }
+      // 5. Attendre que le rendu soit complet (images, styles, etc.)
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 6. Configuration de html2pdf
+      const filename = `Offre_${offerData.offerNumber}_${offerData.clientName.replace(/\s+/g, '_')}.pdf`;
+      const options = {
+        margin: 0,
+        filename: filename,
+        image: { 
+          type: 'jpeg' as const, 
+          quality: 0.98 
+        },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          letterRendering: true,
+          windowWidth: 794, // 210mm à 96dpi
+        },
+        jsPDF: { 
+          unit: 'mm' as const, 
+          format: 'a4' as const, 
+          orientation: 'portrait' as const,
+          compress: true
+        },
+        pagebreak: { 
+          mode: 'css' as const,
+          before: '.page'
+        }
+      };
+
+      // 7. Générer et télécharger le PDF
+      await html2pdf()
+        .set(options)
+        .from(container)
+        .save();
+
+      // 8. Nettoyage : supprimer le conteneur du DOM
+      root.unmount();
+      document.body.removeChild(container);
+
+      // 9. Notification de succès
+      toast.success(`PDF téléchargé : ${filename}`, { id: toastId });
+
     } catch (error) {
-      console.error("Error opening offer print view:", error);
-      toast.error("Erreur lors de l'ouverture de la vue d'impression");
+      console.error("Error generating PDF:", error);
+      toast.error("Erreur lors de la génération du PDF", { id: toastId });
     }
   };
   

@@ -47,7 +47,6 @@ import PublicSlugProductBySlug from "@/components/public/PublicSlugProductBySlug
 import PublicSlugCart from "@/components/public/PublicSlugCart";
 import PublicSlugRequestSteps from "@/components/public/PublicSlugRequestSteps";
 import PackDetailPage from "@/pages/PackDetailPage";
-import PublicOfferPrintView from "@/components/OfferPrintView";
 
 // Routing guards
 import CompanySlugGuard from "@/components/routing/CompanySlugGuard";
@@ -184,9 +183,6 @@ const AppRoutes = () => (
     <Route path="/" element={<HomePage />} />
     <Route path="/catalog" element={<PublicCatalogList />} />
     <Route path="/debug-slugs" element={<DebugSlugs />} />
-    
-    {/* Public offer print view - no authentication required */}
-    <Route path="/offer-print" element={<PublicOfferPrintView />} />
     
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
