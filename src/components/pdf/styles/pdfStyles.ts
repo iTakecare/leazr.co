@@ -4,13 +4,14 @@ import { StyleSheet, Font } from '@react-pdf/renderer';
 // Font.register({ family: 'Roboto', src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf' });
 
 export const colors = {
-  primary: '#2563eb',
-  primaryDark: '#1e40af',
-  dark: '#1e293b',
+  primary: '#33638e',      // Bleu foncé iTakecare
+  primaryDark: '#1a2942',  // Bleu très foncé
+  secondary: '#4ab6c4',    // Bleu clair/turquoise iTakecare
+  dark: '#1a2942',
   gray: '#64748b',
-  lightGray: '#f1f5f9',
+  lightGray: '#e8f4f8',   // Bleu très clair iTakecare
   white: '#ffffff',
-  border: '#e2e8f0',
+  border: '#c5e5ed',      // Bordure bleu clair
   success: '#22c55e',
   warning: '#f59e0b',
 };
@@ -43,8 +44,14 @@ export const createOfferPdfStyles = (theme?: {
   header: {
     marginBottom: 30,
     paddingBottom: 15,
-    borderBottomWidth: 2,
-    borderBottomColor: mergedColors.primary,
+    borderBottomWidth: 3,
+    borderBottomColor: mergedColors.secondary,
+  },
+  
+  headerGradient: {
+    backgroundColor: mergedColors.primary,
+    padding: 20,
+    marginBottom: 20,
   },
   
   companyName: {
@@ -136,6 +143,8 @@ export const createOfferPdfStyles = (theme?: {
     padding: 15,
     borderRadius: 4,
     marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: mergedColors.secondary,
   },
   
   highlightBox: {
@@ -155,7 +164,7 @@ export const createOfferPdfStyles = (theme?: {
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: mergedColors.primary,
-    padding: 8,
+    padding: 10,
     fontFamily: 'Helvetica-Bold',
     fontSize: 9,
     color: mergedColors.white,
@@ -234,12 +243,12 @@ export const createOfferPdfStyles = (theme?: {
   
   // Badge styles
   badge: {
-    backgroundColor: mergedColors.lightGray,
+    backgroundColor: mergedColors.secondary,
     borderRadius: 3,
     paddingVertical: 3,
     paddingHorizontal: 6,
     fontSize: 8,
-    color: mergedColors.dark,
+    color: mergedColors.white,
     marginRight: 5,
     marginBottom: 3,
   },
@@ -286,10 +295,14 @@ export const createOfferPdfStyles = (theme?: {
   valueCard: {
     flexDirection: 'row',
     padding: 15,
-    backgroundColor: mergedColors.lightGray,
+    backgroundColor: mergedColors.white,
     borderRadius: 4,
     alignItems: 'flex-start',
     gap: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: mergedColors.secondary,
+    borderWidth: 1,
+    borderColor: mergedColors.border,
   },
   
   valueIcon: {
@@ -298,6 +311,8 @@ export const createOfferPdfStyles = (theme?: {
     borderRadius: 40,
     objectFit: 'cover',
     flexShrink: 0,
+    borderWidth: 3,
+    borderColor: mergedColors.secondary,
   },
   
   valueContent: {
@@ -311,6 +326,14 @@ export const createOfferPdfStyles = (theme?: {
     color: mergedColors.primary,
     marginBottom: 8,
     textAlign: 'left',
+  },
+  
+  decorativeLine: {
+    height: 3,
+    backgroundColor: mergedColors.secondary,
+    width: 60,
+    marginTop: 5,
+    marginBottom: 15,
   },
   
   valueDescription: {
@@ -335,7 +358,7 @@ export const createOfferPdfStyles = (theme?: {
   },
   
   metricValue: {
-    fontSize: 32,
+    fontSize: 40,
     fontFamily: 'Helvetica-Bold',
     color: '#FFFFFF',
     marginBottom: 8,
@@ -344,6 +367,7 @@ export const createOfferPdfStyles = (theme?: {
   metricLabel: {
     fontSize: 10,
     color: '#FFFFFF',
+    opacity: 0.9,
     textAlign: 'center',
     lineHeight: 1.4,
     maxWidth: 150,
