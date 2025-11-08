@@ -1,3 +1,4 @@
+// Hooks for offer actions including PDF generation
 import React, { useState } from "react";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
