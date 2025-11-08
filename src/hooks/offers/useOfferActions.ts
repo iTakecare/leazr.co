@@ -178,7 +178,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       // 3. Préparer les données COMPLÈTES pour CommercialOffer
       const offerData = {
         // Données de base
-        offerNumber: offer.dossier_number || offer.id || 'N/A',
+        offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
         offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
         clientName: offer.client_name || 'Client',
         clientEmail: offer.client_email || (offer.clients as any)?.email || '',
@@ -209,7 +209,15 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         insuranceCost: Number(offer.annual_insurance) || 0,
       };
 
-      // 4. Render le composant React dans le conteneur
+      // 4a. Attendre que toutes les polices soient chargées
+      toast.loading('Chargement des polices...', { id: toastId });
+      if ('fonts' in document) {
+        await document.fonts.ready;
+      }
+      // Délai supplémentaire pour s'assurer que TOUT est prêt
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 4b. Render le composant React dans le conteneur
       const root = createRoot(container);
       root.render(
         React.createElement('div', 
@@ -226,7 +234,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
 
       // 5. Attendre que TOUT soit chargé (polices, images, styles)
       toast.loading('Chargement du contenu...', { id: toastId });
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // 6. Vérifier qu'il y a du contenu
       const pages = container.querySelectorAll('.page');
@@ -257,7 +265,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         
         // Convertir la page en canvas (image haute qualité)
         const canvas = await html2canvas(page, {
-          scale: 2,
+          scale: 3,
           useCORS: true,
           backgroundColor: '#ffffff',
           logging: false,
@@ -280,7 +288,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       }
 
       // 9. Télécharger le PDF
-      const filename = `Offre_${offerData.offerNumber}_${offerData.clientName.replace(/\s+/g, '_')}.pdf`;
+      const date = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+      const clientName = (offer.client_company || offer.client_name || offerData.clientName || 'Client')
+        .replace(/[^a-zA-Z0-9\s]/g, '')  // Enlève les caractères spéciaux
+        .replace(/\s+/g, '_')             // Remplace espaces par underscore
+        .substring(0, 30);                // Limite à 30 caractères
+      const filename = `Offre_${offerData.offerNumber}_${clientName}_${date}.pdf`;
       pdf.save(filename);
 
       // 10. Nettoyage : supprimer le conteneur du DOM
