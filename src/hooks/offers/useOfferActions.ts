@@ -160,6 +160,19 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         return;
       }
 
+      // ÉTAPE 1 : Logs de diagnostic
+      console.log('=== DEBUG GÉNÉRATION PDF ===');
+      console.log('1. Offre complète:', offer);
+      console.log('2. Prix mensuel total:', offer.monthly_payment);
+      console.log('3. Durée:', offer.duration);
+      console.log('4. Frais dossier:', offer.file_fee);
+      console.log('5. Assurance:', offer.annual_insurance);
+
+      // ÉTAPE 2 : Récupérer les équipements depuis la base de données
+      const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
+      const equipmentData = await getOfferEquipment(id);
+      console.log('7. Équipements récupérés depuis la DB:', equipmentData);
+
       // 2. Créer un conteneur VISIBLE (crucial pour le rendu CSS)
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -171,15 +184,43 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       container.style.zIndex = '9999';
       document.body.appendChild(container);
 
-      // 3. Préparer les données pour CommercialOffer
+      // 3. Préparer les données COMPLÈTES pour CommercialOffer
       const offerData = {
-        offerNumber: offer.dossier_number || offer.id || '',
-        offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : '',
-        clientName: offer.client_name || '',
+        // Données de base
+        offerNumber: offer.dossier_number || offer.id || 'N/A',
+        offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
+        clientName: offer.client_name || 'Client',
         clientEmail: offer.client_email || (offer.clients as any)?.email || '',
         clientPhone: (offer as any).client_phone || (offer.clients as any)?.phone || '',
+        clientCompany: (offer as any).client_company || (offer.clients as any)?.company || '',
         showPrintButton: false,
+        
+        // Équipements - Convertir le format DB vers le format CommercialOffer
+        equipment: equipmentData.map((eq: any) => ({
+          id: eq.id,
+          title: eq.title,
+          quantity: eq.quantity || 1,
+          monthlyPayment: eq.monthly_payment || 0,
+          attributes: eq.attributes?.reduce((acc: any, attr: any) => {
+            acc[attr.key] = attr.value;
+            return acc;
+          }, {}) || {},
+          specifications: eq.specifications?.reduce((acc: any, spec: any) => {
+            acc[spec.key] = spec.value;
+            return acc;
+          }, {}) || {}
+        })),
+        
+        // Totaux et informations financières
+        totalMonthly: Number(offer.monthly_payment) || 0,
+        contractDuration: Number(offer.duration) || 36,
+        fileFee: Number(offer.file_fee) || 0,
+        insuranceCost: Number(offer.annual_insurance) || 0,
       };
+
+      console.log('8. Données mappées pour CommercialOffer:', offerData);
+      console.log('9. Nombre d\'équipements:', offerData.equipment.length);
+      console.log('10. Total mensuel:', offerData.totalMonthly);
 
       // 4. Render le composant React dans le conteneur
       const root = createRoot(container);
