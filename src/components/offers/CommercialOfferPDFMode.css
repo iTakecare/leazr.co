@@ -146,8 +146,12 @@
 
 /* Stats compactes en mode PDF */
 .pdf-mode .stats-box {
-  padding: 18px !important;
-  gap: 14px !important;
+  padding: 24px 18px !important;
+  gap: 20px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-around !important;
+  align-items: center !important;
 }
 
 .pdf-mode .stat-number {
