@@ -187,7 +187,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         </View>
 
         {/* Contract Terms */}
-        <View style={{ marginTop: 15, padding: 12, backgroundColor: '#f0f9ff', borderRadius: 4 }}>
+        <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
           <Text style={{ ...styles.textBold, marginBottom: 6, color: colors.primary }}>
             Contrat de {contractDuration} mois
           </Text>
