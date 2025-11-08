@@ -147,16 +147,24 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   };
   
   const handleGenerateOffer = async (id: string): Promise<void> => {
-    setIsGeneratingPdf(true);
     try {
-      const { downloadOfferPDF } = await import('@/services/clientPdfService');
-      await downloadOfferPDF(id, 'client');
-      toast.success("PDF téléchargé avec succès");
+      // Navigation vers la page d'impression au lieu de générer un PDF
+      const currentPath = window.location.pathname;
+      const isAdmin = currentPath.includes('/admin');
+      const isAmbassador = currentPath.includes('/ambassador');
+      
+      if (isAdmin) {
+        window.open(`/itakecare/admin/offers/${id}/print`, '_blank');
+      } else if (isAmbassador) {
+        window.open(`/itakecare/ambassador/offers/${id}/print`, '_blank');
+      } else {
+        window.open(`/offers/${id}/print`, '_blank');
+      }
+      
+      toast.success("Offre ouverte dans un nouvel onglet");
     } catch (error) {
-      console.error("Error generating offer:", error);
-      toast.error("Erreur lors de la génération de l'offre");
-    } finally {
-      setIsGeneratingPdf(false);
+      console.error("Error opening offer:", error);
+      toast.error("Erreur lors de l'ouverture de l'offre");
     }
   };
   

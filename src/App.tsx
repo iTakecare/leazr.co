@@ -123,6 +123,7 @@ import AmbassadorOfferDetail from "@/pages/AmbassadorPages/AmbassadorOfferDetail
 import AmbassadorProductDetailPage from "@/pages/AmbassadorPages/AmbassadorProductDetailPage";
 import CreateOffer from "@/pages/CreateOffer";
 import AdminCreateOfferSwitch from "@/components/routing/AdminCreateOfferSwitch";
+import OfferPrintView from "@/pages/offers/OfferPrintView";
 
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
@@ -230,6 +231,8 @@ const AppRoutes = () => (
         <Route path="offers/:id" element={<AmbassadorOfferDetail />} />
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
+      {/* Offer print view route - outside Layout for clean printing */}
+      <Route path="offers/:offerId/print" element={<OfferPrintView />} />
     </Route>
     
     {/* ⚠️ MULTI-TENANT BROKER ROUTES ⚠️ */}
@@ -289,6 +292,9 @@ const AppRoutes = () => (
       {/* Legacy redirects for backward compatibility */}
       <Route path="catalog/create" element={<Layout><ProductFormPage /></Layout>} />
       <Route path="catalog/edit/:id" element={<Layout><ProductFormPage /></Layout>} />
+      
+      {/* Offer print view route - outside Layout for clean printing */}
+      <Route path="offers/:offerId/print" element={<OfferPrintView />} />
     </Route>
 
     {/* ⚠️ MULTI-TENANT CLIENT ROUTES ⚠️ */}
