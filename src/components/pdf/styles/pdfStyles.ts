@@ -278,24 +278,31 @@ export const createOfferPdfStyles = (theme?: {
   },
   
   valuesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 20,
     marginVertical: 20,
-    gap: 15,
   },
   
   valueCard: {
-    flex: 1,
+    flexDirection: 'row',
     padding: 15,
     backgroundColor: mergedColors.lightGray,
     borderRadius: 4,
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 15,
   },
   
   valueIcon: {
-    width: 40,
-    height: 40,
-    marginBottom: 10,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    objectFit: 'cover',
+    flexShrink: 0,
+  },
+  
+  valueContent: {
+    flex: 1,
+    flexDirection: 'column',
   },
   
   valueTitle: {
@@ -303,14 +310,14 @@ export const createOfferPdfStyles = (theme?: {
     fontFamily: 'Helvetica-Bold',
     color: mergedColors.primary,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   
   valueDescription: {
     fontSize: 9,
-    textAlign: 'center',
+    textAlign: 'left',
     color: mergedColors.gray,
-    lineHeight: 1.4,
+    lineHeight: 1.5,
   },
   
   metricsContainer: {

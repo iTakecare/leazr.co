@@ -117,14 +117,26 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         styles={styles}
       />
 
-      {/* Page 3: Conditions */}
+      {/* Page 3: Values (conditional) */}
+      {(offer.values?.length > 0 || offer.metrics?.length > 0 || offer.partner_logos?.length > 0) && (
+        <OfferValuesPage
+          values={offer.values || []}
+          metrics={offer.metrics || []}
+          partnerLogos={offer.partner_logos || []}
+          companyName={offer.company_name}
+          pageNumber={3}
+          styles={styles}
+        />
+      )}
+
+      {/* Page 4: Conditions */}
       <OfferConditionsPage
         conditions={offer.conditions}
         additionalInfo={offer.additional_info}
         contactEmail={offer.company_email}
         contactPhone={offer.company_phone}
         companyName={offer.company_name}
-        pageNumber={3}
+        pageNumber={4}
         contentBlocks={{
           general_conditions: offer.content_blocks?.conditions_general_conditions,
           additional_info: offer.content_blocks?.conditions_additional_info,
@@ -132,18 +144,6 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         }}
         styles={styles}
       />
-
-      {/* Page 4: Values (conditional) */}
-      {(offer.values?.length > 0 || offer.metrics?.length > 0 || offer.partner_logos?.length > 0) && (
-        <OfferValuesPage
-          values={offer.values || []}
-          metrics={offer.metrics || []}
-          partnerLogos={offer.partner_logos || []}
-          companyName={offer.company_name}
-          pageNumber={4}
-          styles={styles}
-        />
-      )}
     </Document>
   );
 };

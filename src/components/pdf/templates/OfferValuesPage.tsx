@@ -52,8 +52,10 @@ export const OfferValuesPage: React.FC<OfferValuesPageProps> = ({
               {value.icon_url && (
                 <Image src={value.icon_url} style={styles.valueIcon} />
               )}
-              <Text style={styles.valueTitle}>{value.title}</Text>
-              <Text style={styles.valueDescription}>{value.description}</Text>
+              <View style={styles.valueContent}>
+                <Text style={styles.valueTitle}>{value.title}</Text>
+                <Text style={styles.valueDescription}>{value.description}</Text>
+              </View>
             </View>
           ))}
         </View>
