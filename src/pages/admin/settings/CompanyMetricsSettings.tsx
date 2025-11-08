@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, GripVertical, Trash2, Save } from "lucide-react";
+import * as icons from 'lucide-react';
+import { IconPickerDialog } from '@/components/ui/icon-picker-dialog';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,7 @@ const CompanyMetricsSettings = () => {
   const [metrics, setMetrics] = useState<CompanyMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMetrics();
@@ -273,18 +276,43 @@ const CompanyMetricsSettings = () => {
                             </div>
 
                             <div className="md:col-span-2">
-                              <Label>Nom de l'icône (optionnel)</Label>
-                              <Input
-                                value={metric.icon_name || ''}
-                                onChange={(e) =>
-                                  handleUpdateMetric(metric.id, 'icon_name', e.target.value)
-                                }
-                                placeholder="Ex: Heart, Laptop, Leaf"
-                              />
+                              <Label>Icône (optionnel)</Label>
+                              <div className="flex items-center gap-2">
+                                {/* Affichage de l'icône sélectionnée */}
+                                {metric.icon_name && (() => {
+                                  const IconComponent = icons[metric.icon_name as keyof typeof icons] as React.ComponentType<{ className?: string }>;
+                                  return IconComponent ? (
+                                    <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-muted">
+                                      <IconComponent className="h-5 w-5" />
+                                      <span className="text-sm">{metric.icon_name}</span>
+                                    </div>
+                                  ) : null;
+                                })()}
+                                
+                                {/* Bouton pour ouvrir le sélecteur */}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setIconPickerOpen(metric.id)}
+                                >
+                                  {metric.icon_name ? 'Changer l\'icône' : 'Choisir une icône'}
+                                </Button>
+                              </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                Nom d'une icône Lucide (non utilisé dans le PDF actuellement)
+                                L'icône sera affichée à côté de la métrique dans le PDF
                               </p>
                             </div>
+                            
+                            {/* Modale de sélection d'icône */}
+                            <IconPickerDialog
+                              open={iconPickerOpen === metric.id}
+                              onOpenChange={(open) => !open && setIconPickerOpen(null)}
+                              selectedIcon={metric.icon_name}
+                              onSelectIcon={(iconName) => {
+                                handleUpdateMetric(metric.id, 'icon_name', iconName);
+                                setIconPickerOpen(null);
+                              }}
+                            />
                           </div>
                         </div>
                       )}
