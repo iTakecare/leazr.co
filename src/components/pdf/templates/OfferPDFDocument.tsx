@@ -70,7 +70,9 @@ interface OfferPDFDocumentProps {
 export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfType }) => {
   // Create dynamic styles with brand colors
   const styles = createOfferPdfStyles({
-    primary: offer.brand_primary_color || '#2563eb',
+    primary: offer.brand_primary_color || '#33638e',
+    secondary: offer.brand_secondary_color || '#4ab6c4',
+    dark: '#1a2942',
   });
 
   return (

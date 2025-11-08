@@ -21,6 +21,7 @@ export const colors = {
  */
 export const createOfferPdfStyles = (theme?: {
   primary?: string;
+  secondary?: string;
   dark?: string;
   gray?: string;
   lightGray?: string;
