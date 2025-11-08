@@ -164,6 +164,47 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
       const equipmentData = await getOfferEquipment(id);
 
+      // Récupérer les données complètes du client depuis la table clients
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('billing_address, billing_city, billing_postal_code, billing_country, phone')
+        .eq('id', offer.client_id)
+        .single();
+
+      // Récupérer les paramètres de l'entreprise (logo, couleurs, nom)
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('logo_url, primary_color, secondary_color, name')
+        .eq('id', offer.company_id)
+        .single();
+
+      // Formater l'adresse de facturation complète
+      const billingAddress = clientData ? 
+        [
+          clientData.billing_address,
+          clientData.billing_postal_code,
+          clientData.billing_city,
+          clientData.billing_country
+        ].filter(Boolean).join(', ') 
+        : '';
+
+      // Convertir le logo en Base64 pour compatibilité html2canvas
+      let companyLogoBase64 = null;
+      if (companyData?.logo_url) {
+        try {
+          const response = await fetch(companyData.logo_url);
+          const blob = await response.blob();
+          companyLogoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          console.log('✅ Logo converti en Base64');
+        } catch (error) {
+          console.warn('⚠️ Erreur chargement logo:', error);
+        }
+      }
+
       // 2. Créer un conteneur VISIBLE (crucial pour le rendu CSS)
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -181,9 +222,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
         offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
         clientName: offer.client_name || 'Client',
-        clientEmail: offer.client_email || (offer.clients as any)?.email || '',
-        clientPhone: (offer as any).client_phone || (offer.clients as any)?.phone || '',
-        clientCompany: (offer as any).client_company || (offer.clients as any)?.company || '',
+        clientEmail: offer.client_email || clientData?.email || '',
+        clientPhone: clientData?.phone || '',
+        clientCompany: (offer as any).client_company || '',
+        clientAddress: billingAddress,
+        companyLogo: companyLogoBase64,
+        companyName: companyData?.name || 'iTakecare',
         showPrintButton: false,
         
         // Équipements - Convertir le format DB vers le format CommercialOffer
@@ -215,7 +259,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         await document.fonts.ready;
       }
       // Délai supplémentaire pour s'assurer que TOUT est prêt
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       // 4b. Activer le mode PDF (remplace gradients par couleurs solides)
       container.classList.add('pdf-mode');
@@ -237,7 +281,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
 
       // 5. Attendre que TOUT soit chargé (polices, images, styles)
       toast.loading('Chargement du contenu...', { id: toastId });
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 3500));
 
       // 6. Vérifier qu'il y a du contenu
       const pages = container.querySelectorAll('.page');

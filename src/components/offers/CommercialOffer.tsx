@@ -10,6 +10,9 @@ interface CommercialOfferProps {
   clientEmail?: string;
   clientPhone?: string;
   clientCompany?: string;
+  clientAddress?: string;
+  companyLogo?: string | null;
+  companyName?: string;
   validityDays?: number;
   
   // Équipements
@@ -75,6 +78,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   clientEmail = "email@example.com",
   clientPhone = "N/A",
   clientCompany,
+  clientAddress,
+  companyLogo,
+  companyName = 'iTakecare',
   validityDays = 10,
   equipment = [],
   totalMonthly = 0,
@@ -122,12 +128,23 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
           <div className="header">
             <div className="logo-section">
               <div className="logo-box">
-                <img 
-                  src="/pdf-templates/itakecare-v1/assets/logo.png" 
-                  alt="iTakecare Logo" 
-                  className="logo-itakecare"
-                  style={{ height: '40px', width: 'auto' }}
-                />
+                {companyLogo ? (
+                  <img 
+                    src={companyLogo} 
+                    alt={`${companyName} Logo`}
+                    className="logo-itakecare"
+                    style={{ height: '40px', width: 'auto', maxWidth: '150px', objectFit: 'contain' }}
+                  />
+                ) : (
+                  <>
+                    <div className="logo-icon">
+                      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                    </div>
+                    <span className="logo-text">{companyName}</span>
+                  </>
+                )}
               </div>
               <div className="company-info">
                 <p>Avenue Général Michel 1E, 6000 Charleroi</p>
@@ -159,9 +176,12 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               <p className="client-label">Destinataire</p>
               <h3 className="client-name">{clientName}</h3>
               {clientCompany && <p className="client-company">{clientCompany}</p>}
+              {clientAddress && <p className="client-address">{clientAddress}</p>}
               <div className="client-contact">
                 <span>📧 {clientEmail}</span>
-                <span>📞 {clientPhone}</span>
+                {clientPhone && clientPhone !== 'N/A' && clientPhone !== '' && (
+                  <span>📞 {clientPhone}</span>
+                )}
               </div>
             </div>
           </div>
@@ -190,40 +210,33 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
         <div className="products-grid">
           {equipment.map((item, index) => (
             <div key={item.id} className="product-card">
-              <div className="product-header">
-                <div className={`product-icon ${index % 2 === 0 ? 'gray' : 'blue'}`}>
-                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                  </svg>
-                </div>
-                <span className="available-badge">Disponible</span>
+              <div className="product-icon gray">
+                <span className="icon-symbol">📦</span>
               </div>
               
-              <h3 className="product-name">{item.title}</h3>
-              
-              <div className="product-specs">
-                {Object.keys(item.attributes || {}).length === 0 ? (
-                  <p>📦 Équipement standard</p>
-                ) : (
-                  Object.entries(item.attributes || {}).map(([key, value]) => (
-                    <p key={key}>
-                      {getAttributeIcon(key)} {key}: <strong>{value}</strong>
-                    </p>
-                  ))
-                )}
-              </div>
-              
-              <div className="product-footer">
-                <div className="price-section">
-                  <p className="price-label">Prix mensuel HT</p>
-                  <div className="price-value">
-                    <span className="price-amount">{formatCurrency(item.monthlyPayment)}</span>
-                    <span className="price-period">/mois</span>
+              <div className="product-details">
+                <h3 className="product-name">{item.title}</h3>
+                
+                {item.attributes && Object.keys(item.attributes).length > 0 && (
+                  <div className="product-specs">
+                    {Object.entries(item.attributes).map(([key, value]) => (
+                      <span key={key} className="spec-item">
+                        <span className="spec-icon">{getAttributeIcon(key)}</span>
+                        <span className="spec-label">{key}:</span>
+                        <span className="spec-value">{value}</span>
+                      </span>
+                    ))}
                   </div>
-                </div>
-                <div className="quantity-section">
-                  <p className="quantity-label">Quantité</p>
-                  <p className="quantity-value">{item.quantity}</p>
+                )}
+                
+                <div className="product-footer-compact">
+                  <div className="product-info-line">
+                    <span className="quantity-compact">Qté: {item.quantity}</span>
+                    <div className="price-section-compact">
+                      <span className="price-amount-compact">{formatCurrency(item.monthlyPayment)}</span>
+                      <span className="price-period">/mois</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

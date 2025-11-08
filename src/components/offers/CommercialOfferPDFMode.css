@@ -119,7 +119,62 @@
 
 /* Style pour le logo iTakecare en image */
 .pdf-mode .logo-itakecare {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
+  height: 40px !important;
+  width: auto !important;
+  max-width: 150px !important;
+  object-fit: contain !important;
+}
+
+/* Styles pour les cartes produits compactes en mode PDF */
+.pdf-mode .product-card {
+  padding: 14px !important;
+}
+
+.pdf-mode .product-name {
+  font-size: 14px !important;
+}
+
+.pdf-mode .spec-item {
+  font-size: 9px !important;
+  padding: 4px 8px !important;
+}
+
+.pdf-mode .price-amount-compact {
+  font-size: 18px !important;
+  color: #33638e !important;
+}
+
+/* Stats compactes en mode PDF */
+.pdf-mode .stats-box {
+  padding: 18px !important;
+  gap: 14px !important;
+}
+
+.pdf-mode .stat-number {
+  font-size: 32px !important;
+}
+
+.pdf-mode .stat-label {
+  font-size: 9px !important;
+}
+
+/* Options fin de contrat compactes en mode PDF */
+.pdf-mode .option-box {
+  padding: 10px !important;
+}
+
+.pdf-mode .option-emoji {
+  font-size: 18px !important;
+}
+
+.pdf-mode .option-title {
+  font-size: 10px !important;
+}
+
+.pdf-mode .option-text {
+  font-size: 8px !important;
+}
+
+.pdf-mode .contract-subtitle {
+  font-size: 9px !important;
 }
