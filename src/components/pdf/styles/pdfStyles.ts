@@ -71,7 +71,7 @@ export const createOfferPdfStyles = (theme?: {
   pageTitle: {
     fontSize: 24,
     fontFamily: 'Helvetica-Bold',
-    color: mergedColors.dark,
+    color: mergedColors.primary,
     marginBottom: 10,
     textTransform: 'uppercase',
   },

@@ -54,7 +54,7 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
         {companyLogoUrl && (
           <Image 
             src={companyLogoUrl} 
-            style={{ width: 60, height: 60, marginBottom: 10 }}
+            style={{ width: 100, height: 'auto', marginBottom: 10, objectFit: 'contain' }}
           />
         )}
         {!companyLogoUrl && (
