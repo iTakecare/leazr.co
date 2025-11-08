@@ -1,0 +1,118 @@
+/* Override des gradients en mode PDF - Couleurs solides uniquement */
+
+.pdf-mode .print-button {
+  background: #667eea !important;
+}
+
+.pdf-mode .pattern-bg {
+  background-image: none !important;
+  background-color: #f5f5f5 !important;
+}
+
+.pdf-mode .logo-icon {
+  background: #667eea !important;
+}
+
+.pdf-mode .logo-text {
+  background: #667eea !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #667eea !important;
+  background-clip: initial !important;
+  color: #667eea !important;
+}
+
+.pdf-mode .gradient-text {
+  background: #667eea !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #667eea !important;
+  background-clip: initial !important;
+  color: #667eea !important;
+}
+
+.pdf-mode .product-icon.gray {
+  background: #e5e7eb !important;
+}
+
+.pdf-mode .product-icon.blue {
+  background: #dbeafe !important;
+}
+
+.pdf-mode .price-amount {
+  background: #667eea !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #667eea !important;
+  background-clip: initial !important;
+  color: #667eea !important;
+}
+
+.pdf-mode .total-box {
+  background: #eff6ff !important;
+}
+
+.pdf-mode .total-amount {
+  background: #667eea !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #667eea !important;
+  background-clip: initial !important;
+  color: #667eea !important;
+}
+
+.pdf-mode .page-3 {
+  background: #fafafa !important;
+}
+
+.pdf-mode .value-icon.blue-icon {
+  background: #dbeafe !important;
+}
+
+.pdf-mode .value-icon.purple-icon {
+  background: #f3e8ff !important;
+}
+
+.pdf-mode .value-icon.green-icon {
+  background: #dcfce7 !important;
+}
+
+.pdf-mode .stat-number {
+  background: #667eea !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #667eea !important;
+  background-clip: initial !important;
+  color: #667eea !important;
+}
+
+.pdf-mode .condition-card.blue-card {
+  background: #eff6ff !important;
+}
+
+.pdf-mode .condition-card.purple-card {
+  background: #faf5ff !important;
+}
+
+.pdf-mode .condition-card.green-card {
+  background: #f0fdf4 !important;
+}
+
+.pdf-mode .condition-card.amber-card {
+  background: #fffbeb !important;
+}
+
+.pdf-mode .condition-card.indigo-card {
+  background: #eef2ff !important;
+}
+
+.pdf-mode .page-5 {
+  background: #eff6ff !important;
+}
+
+.pdf-mode .signature-logo {
+  background: #667eea !important;
+}
+
+.pdf-mode .signature-text {
+  background: #667eea !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #667eea !important;
+  background-clip: initial !important;
+  color: #667eea !important;
+}

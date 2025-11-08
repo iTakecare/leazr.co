@@ -217,7 +217,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       // Délai supplémentaire pour s'assurer que TOUT est prêt
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 4b. Render le composant React dans le conteneur
+      // 4b. Activer le mode PDF (remplace gradients par couleurs solides)
+      container.classList.add('pdf-mode');
+
+      // 4c. Render le composant React dans le conteneur
       const root = createRoot(container);
       root.render(
         React.createElement('div', 
@@ -295,6 +298,9 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         .substring(0, 30);                // Limite à 30 caractères
       const filename = `Offre_${offerData.offerNumber}_${clientName}_${date}.pdf`;
       pdf.save(filename);
+
+      // 9b. Retirer le mode PDF
+      container.classList.remove('pdf-mode');
 
       // 10. Nettoyage : supprimer le conteneur du DOM
       root.unmount();

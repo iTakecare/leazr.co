@@ -1,5 +1,6 @@
 import React from 'react';
 import './CommercialOffer.css';
+import './CommercialOfferPDFMode.css';
 
 interface CommercialOfferProps {
   // Données de base
