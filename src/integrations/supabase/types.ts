@@ -1691,41 +1691,80 @@ export type Database = {
       }
       company_metrics: {
         Row: {
-          client_satisfaction_percent: number | null
-          co2_saved_kg: number | null
           company_id: string
-          created_at: string
-          devices_count: number | null
+          created_at: string | null
+          display_order: number | null
+          icon_name: string | null
           id: string
-          updated_at: string
+          is_active: boolean | null
+          label: string
+          metric_key: string
+          updated_at: string | null
+          value: string
         }
         Insert: {
-          client_satisfaction_percent?: number | null
-          co2_saved_kg?: number | null
           company_id: string
-          created_at?: string
-          devices_count?: number | null
+          created_at?: string | null
+          display_order?: number | null
+          icon_name?: string | null
           id?: string
-          updated_at?: string
+          is_active?: boolean | null
+          label: string
+          metric_key: string
+          updated_at?: string | null
+          value: string
         }
         Update: {
-          client_satisfaction_percent?: number | null
-          co2_saved_kg?: number | null
           company_id?: string
-          created_at?: string
-          devices_count?: number | null
+          created_at?: string | null
+          display_order?: number | null
+          icon_name?: string | null
           id?: string
-          updated_at?: string
+          is_active?: boolean | null
+          label?: string
+          metric_key?: string
+          updated_at?: string | null
+          value?: string
         }
         Relationships: [
           {
             foreignKeyName: "company_metrics_company_id_fkey"
             columns: ["company_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
+      }
+      company_metrics_backup: {
+        Row: {
+          client_satisfaction_percent: number | null
+          co2_saved_kg: number | null
+          company_id: string | null
+          created_at: string | null
+          devices_count: number | null
+          id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_satisfaction_percent?: number | null
+          co2_saved_kg?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          devices_count?: number | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_satisfaction_percent?: number | null
+          co2_saved_kg?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          devices_count?: number | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       company_module_changes: {
         Row: {
@@ -1814,8 +1853,8 @@ export type Database = {
           display_order: number
           id: string
           is_active: boolean
-          logo_name: string
           logo_url: string
+          name: string
           updated_at: string
         }
         Insert: {
@@ -1824,8 +1863,8 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean
-          logo_name: string
           logo_url: string
+          name: string
           updated_at?: string
         }
         Update: {
@@ -1834,8 +1873,8 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean
-          logo_name?: string
           logo_url?: string
+          name?: string
           updated_at?: string
         }
         Relationships: [

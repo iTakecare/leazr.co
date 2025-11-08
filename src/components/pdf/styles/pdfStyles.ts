@@ -323,49 +323,53 @@ export const createOfferPdfStyles = (theme?: {
   metricsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 20,
-    padding: 20,
-    backgroundColor: mergedColors.lightGray,
-    borderRadius: 4,
+    marginVertical: 30,
+    padding: 25,
+    backgroundColor: mergedColors.primary,
+    borderRadius: 0,
   },
   
   metricCard: {
     alignItems: 'center',
+    flex: 1,
   },
   
   metricValue: {
-    fontSize: 24,
+    fontSize: 32,
     fontFamily: 'Helvetica-Bold',
-    color: mergedColors.primary,
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
   
   metricLabel: {
     fontSize: 10,
-    color: mergedColors.gray,
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginTop: 5,
+    lineHeight: 1.4,
+    maxWidth: 150,
   },
   
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: mergedColors.dark,
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 25,
+    marginBottom: 15,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   
   logosContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 15,
+    gap: 20,
     marginTop: 15,
   },
   
   partnerLogo: {
-    width: 80,
-    height: 40,
+    width: 60,
+    height: 35,
     objectFit: 'contain',
   },
   
