@@ -2,6 +2,7 @@ import { Document } from '@react-pdf/renderer';
 import { OfferCoverPage } from './OfferCoverPage';
 import { OfferEquipmentPage } from './OfferEquipmentPage';
 import { OfferConditionsPage } from './OfferConditionsPage';
+import { OfferValuesPage } from './OfferValuesPage';
 import { OfferEquipment } from '@/types/offerEquipment';
 import { createOfferPdfStyles } from '../styles/pdfStyles';
 
@@ -28,6 +29,21 @@ export interface OfferPDFData {
   brand_primary_color?: string;
   brand_secondary_color?: string;
   brand_accent_color?: string;
+  // Values page data
+  values?: Array<{
+    title: string;
+    description: string;
+    icon_url?: string;
+  }>;
+  metrics?: Array<{
+    label: string;
+    value: string;
+    icon_name?: string;
+  }>;
+  partner_logos?: Array<{
+    name: string;
+    logo_url: string;
+  }>;
   // Financial fields
   file_fee?: number;
   annual_insurance?: number;
@@ -116,6 +132,18 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         }}
         styles={styles}
       />
+
+      {/* Page 4: Values (conditional) */}
+      {(offer.values?.length > 0 || offer.metrics?.length > 0 || offer.partner_logos?.length > 0) && (
+        <OfferValuesPage
+          values={offer.values || []}
+          metrics={offer.metrics || []}
+          partnerLogos={offer.partner_logos || []}
+          companyName={offer.company_name}
+          pageNumber={4}
+          styles={styles}
+        />
+      )}
     </Document>
   );
 };

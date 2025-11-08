@@ -267,6 +267,112 @@ export const createOfferPdfStyles = (theme?: {
     height: 'auto',
     marginBottom: 10,
   },
+  
+  // Values page styles
+  mainTitle: {
+    fontSize: 20,
+    fontFamily: 'Helvetica-Bold',
+    color: mergedColors.primary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  
+  valuesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+    gap: 15,
+  },
+  
+  valueCard: {
+    flex: 1,
+    padding: 15,
+    backgroundColor: mergedColors.lightGray,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  
+  valueIcon: {
+    width: 40,
+    height: 40,
+    marginBottom: 10,
+  },
+  
+  valueTitle: {
+    fontSize: 14,
+    fontFamily: 'Helvetica-Bold',
+    color: mergedColors.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  
+  valueDescription: {
+    fontSize: 9,
+    textAlign: 'center',
+    color: mergedColors.gray,
+    lineHeight: 1.4,
+  },
+  
+  metricsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 20,
+    padding: 20,
+    backgroundColor: mergedColors.lightGray,
+    borderRadius: 4,
+  },
+  
+  metricCard: {
+    alignItems: 'center',
+  },
+  
+  metricValue: {
+    fontSize: 24,
+    fontFamily: 'Helvetica-Bold',
+    color: mergedColors.primary,
+  },
+  
+  metricLabel: {
+    fontSize: 10,
+    color: mergedColors.gray,
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  
+  sectionSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Helvetica-Bold',
+    color: mergedColors.dark,
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  
+  logosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 15,
+    marginTop: 15,
+  },
+  
+  partnerLogo: {
+    width: 80,
+    height: 40,
+    objectFit: 'contain',
+  },
+  
+  pageNumber: {
+    fontSize: 9,
+    color: mergedColors.gray,
+    textAlign: 'right',
+  },
+  
+  footerText: {
+    fontSize: 8,
+    color: mergedColors.gray,
+    textAlign: 'center',
+  },
 })};
 
 // Default PDF styles for backwards compatibility

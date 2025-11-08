@@ -47,6 +47,30 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       .eq('company_id', offerData.company_id)
       .single();
 
+    // Fetch company values
+    const { data: valuesData } = await supabase
+      .from('company_values')
+      .select('title, description, icon_url')
+      .eq('company_id', offerData.company_id)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    // Fetch company metrics
+    const { data: metricsData } = await supabase
+      .from('company_metrics')
+      .select('label, value, icon_name')
+      .eq('company_id', offerData.company_id)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    // Fetch partner logos
+    const { data: logosData } = await supabase
+      .from('company_partner_logos')
+      .select('name, logo_url')
+      .eq('company_id', offerData.company_id)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
     // Fetch equipment using the shared service to ensure proper RLS and structure
     const equipmentData: OfferEquipment[] = await getOfferEquipment(offerId);
 
@@ -107,6 +131,10 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       brand_primary_color: offerData.companies?.primary_color || undefined,
       brand_secondary_color: offerData.companies?.secondary_color || undefined,
       brand_accent_color: offerData.companies?.accent_color || undefined,
+      // Values page data
+      values: valuesData || [],
+      metrics: metricsData || [],
+      partner_logos: logosData || [],
       // Financial fields
       file_fee: offerData.file_fee || 0,
       annual_insurance: offerData.annual_insurance || 0,

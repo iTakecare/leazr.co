@@ -69,6 +69,11 @@ import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import CompanyDocuments from "@/pages/CompanyDocuments";
 import ClientDuplicates from "@/pages/admin/ClientDuplicates";
 
+// Admin settings pages
+import CompanyValuesSettings from "@/pages/admin/settings/CompanyValuesSettings";
+import CompanyMetricsSettings from "@/pages/admin/settings/CompanyMetricsSettings";
+import PartnerLogosSettings from "@/pages/admin/settings/PartnerLogosSettings";
+
 import LeazrSaaSDashboard from "@/pages/LeazrSaaSDashboard";
 import LeazrSaasClients from "@/pages/LeazrSaasClients";
 import LeazrSaaSUsers from "@/pages/LeazrSaaSUsers";
@@ -272,6 +277,11 @@ const AppRoutes = () => (
       <Route path="invoicing/:id/edit" element={<Layout><InvoiceEditPage /></Layout>} />
       <Route path="create-offer" element={<Layout><AdminCreateOfferSwitch /></Layout>} />
       <Route path="panier" element={<Layout><CartPage /></Layout>} />
+      
+      {/* Settings sub-routes */}
+      <Route path="settings/company-values" element={<Layout><CompanyValuesSettings /></Layout>} />
+      <Route path="settings/company-metrics" element={<Layout><CompanyMetricsSettings /></Layout>} />
+      <Route path="settings/partner-logos" element={<Layout><PartnerLogosSettings /></Layout>} />
       
       {/* Unified product form routes - handles both creation and editing */}
       <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />
