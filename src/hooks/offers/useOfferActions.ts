@@ -149,8 +149,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
   const handleGenerateOffer = async (id: string): Promise<void> => {
     setIsGeneratingPdf(true);
     try {
-      const { downloadOfferPDFFromHtmlTemplate } = await import('@/services/clientPdfService');
-      await downloadOfferPDFFromHtmlTemplate(id, 'client');
+      const { downloadOfferPDF } = await import('@/services/clientPdfService');
+      await downloadOfferPDF(id, 'client');
       toast.success("PDF téléchargé avec succès");
     } catch (error) {
       console.error("Error generating offer:", error);

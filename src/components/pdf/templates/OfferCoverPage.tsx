@@ -49,88 +49,64 @@ export const OfferCoverPage: React.FC<OfferCoverPageProps> = ({
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* Modern Header with gradient simulation */}
-      <View style={{
-        backgroundColor: colors.primary,
-        padding: 25,
-        marginTop: -40,
-        marginHorizontal: -40,
-        marginBottom: 30,
-      }}>
+      {/* Header simple - logo + adresse en haut à gauche */}
+      <View style={{ flexDirection: 'column', alignItems: 'flex-start', marginBottom: 20 }}>
         {companyLogoUrl && (
           <Image 
             src={companyLogoUrl} 
-            style={{ width: 120, height: 'auto', objectFit: 'contain' }}
+            style={{ width: 100, height: 'auto', marginBottom: 10, objectFit: 'contain' }}
           />
         )}
         {!companyLogoUrl && (
-          <Text style={{ color: '#ffffff', fontSize: 18, fontFamily: 'Helvetica-Bold' }}>
+          <Text style={{ ...styles.companyName, color: colors.primary, fontSize: 16 }}>
             {companyName}
           </Text>
         )}
-        <View style={{ marginTop: 10 }}>
-          {companyAddress && <Text style={{ color: '#ffffff', fontSize: 9, opacity: 0.9 }}>{companyAddress}</Text>}
-          {companyVatNumber && <Text style={{ color: '#ffffff', fontSize: 9, opacity: 0.9 }}>TVA : {companyVatNumber}</Text>}
+        
+        {/* Adresse directement en dessous */}
+        <View style={{ marginTop: 5 }}>
+          {companyAddress && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>{companyAddress}</Text>}
+          {companyVatNumber && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>TVA : {companyVatNumber}</Text>}
+          {companyEmail && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>Email: {companyEmail}</Text>}
+          {companyPhone && <Text style={{ ...styles.companyInfo, fontSize: 8 }}>Tél: {companyPhone}</Text>}
         </View>
       </View>
 
       {/* Main Title with Decorative Line */}
-      <View style={{ marginTop: 40, marginBottom: 30, alignItems: 'center' }}>
-        <Text style={{ ...styles.pageTitle, fontSize: 28 }}>OFFRE COMMERCIALE</Text>
-        <View style={{ ...styles.decorativeLine, width: 100, marginTop: 10 }} />
+      <View style={{ marginTop: 60, marginBottom: 40, alignItems: 'center' }}>
+        <Text style={styles.pageTitle}>OFFRE COMMERCIALE</Text>
+        <View style={styles.decorativeLine} />
+        <View style={{ marginTop: 20, alignItems: 'center' }}>
+          <Text style={{ fontSize: 14, color: colors.gray, marginBottom: 5 }}>
+            N° {offerNumber}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.gray }}>
+            Date: {new Date(offerDate).toLocaleDateString('fr-FR')}
+          </Text>
+        </View>
       </View>
 
-      {/* Offer Number Box - Elegant Design */}
-      <View style={styles.offerNumberBox}>
-        <Text style={styles.offerNumberLabel}>NUMÉRO D'OFFRE</Text>
-        <Text style={styles.offerNumber}>{offerNumber}</Text>
-        <Text style={styles.offerDate}>
-          Émise le {new Date(offerDate).toLocaleDateString('fr-FR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </Text>
-      </View>
-
-      {/* Client Information - Enhanced */}
-      <View style={{ ...styles.infoBox, marginTop: 30 }}>
-        <Text style={{ ...styles.subtitle, color: colors.primary, marginBottom: 10 }}>Destinataire</Text>
-        <Text style={{ ...styles.textBold, fontSize: 12 }}>
+      {/* Client Information */}
+      <View style={styles.infoBox}>
+        <Text style={styles.subtitle}>Destinataire</Text>
+        <Text style={styles.textBold}>
           {clientName}{clientCompany ? ` - ${clientCompany}` : ''}
         </Text>
         {clientAddress && <Text style={{ ...styles.text, marginTop: 8 }}>{clientAddress}</Text>}
-        <View style={{ flexDirection: 'row', gap: 20, marginTop: 8 }}>
-          {clientEmail && (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 12, color: colors.secondary, marginRight: 6 }}>✉</Text>
-              <Text style={styles.textGray}>{clientEmail}</Text>
-            </View>
-          )}
-          {clientPhone && (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 12, color: colors.secondary, marginRight: 6 }}>☎</Text>
-              <Text style={styles.textGray}>{clientPhone}</Text>
-            </View>
-          )}
-        </View>
+        {clientEmail && <Text style={styles.textGray}>Email: {clientEmail}</Text>}
+        {clientPhone && <Text style={styles.textGray}>Tél: {clientPhone}</Text>}
       </View>
 
-      {/* Introduction - Enhanced */}
+      {/* Introduction */}
       <View style={{ marginTop: 40 }}>
-        <View style={{ ...styles.text, lineHeight: 1.6 }}>
+        <View style={styles.text}>
           {renderHTMLAsPDF(greeting, styles)}
         </View>
-        <View style={{ ...styles.text, marginTop: 15, lineHeight: 1.6 }}>
+        <View style={{ ...styles.text, marginTop: 15 }}>
           {renderHTMLAsPDF(introduction, styles)}
         </View>
-        <View style={{ ...styles.exampleBox, marginTop: 20 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 16, color: colors.secondary, marginRight: 10 }}>⏱️</Text>
-            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
-              {renderHTMLAsPDF(validity, styles)}
-            </Text>
-          </View>
+        <View style={{ ...styles.text, marginTop: 15 }}>
+          {renderHTMLAsPDF(validity, styles)}
         </View>
       </View>
 

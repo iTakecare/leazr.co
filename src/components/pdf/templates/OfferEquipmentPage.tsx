@@ -1,8 +1,8 @@
-import { Page, View, Text, Image } from '@react-pdf/renderer';
+import { Page, View, Text } from '@react-pdf/renderer';
 import { renderHTMLAsPDF } from '@/utils/htmlToPdfText';
 import { colors } from '../styles/pdfStyles';
 import { OfferEquipment } from '@/types/offerEquipment';
-import { getCategoryEmoji, getProductImage } from '@/utils/productImageMapper';
+import { getCategoryEmoji } from '@/utils/equipmentCategoryEmojis';
 import { stripHtmlTags } from '@/utils/htmlToPdfText';
 
 interface OfferEquipmentPageProps {
@@ -53,10 +53,29 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         {renderHTMLAsPDF(title, styles)}
       </View>
 
-      {/* Equipment Cards (Modern Design) */}
-      <View style={{ marginTop: 15 }}>
+      {/* Equipment Table */}
+      <View style={styles.table}>
+        {/* Table Header */}
+        <View style={styles.tableHeader}>
+          <Text style={{ ...styles.tableCellHeader, width: 25 }}>Cat.</Text>
+          <Text style={{ ...styles.tableCellHeader, flex: 3 }}>Désignation</Text>
+          <Text style={{ ...styles.tableCellHeader, flex: 1, textAlign: 'center' }}>Qté</Text>
+          {isInternal && (
+            <>
+              <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Prix achat</Text>
+              <Text style={{ ...styles.tableCellHeader, flex: 1, textAlign: 'right' }}>Marge</Text>
+            </>
+          )}
+          <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>
+            {isInternal ? 'Prix vente' : 'Prix'}
+          </Text>
+          <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Mens. HT</Text>
+        </View>
+
+        {/* Table Rows */}
         {equipment.map((item, index) => {
-          const productImage = getProductImage(item.title);
+          const isEven = index % 2 === 0;
+          const rowStyle = isEven ? styles.tableRow : styles.tableRowAlt;
           const categoryEmoji = getCategoryEmoji(item.title);
           
           // Filter specifications to remove duplicates with attributes
@@ -66,45 +85,20 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           ) || [];
 
           return (
-            <View key={item.id} style={styles.equipmentCard}>
-              {/* Layout horizontal : image + contenu */}
-              <View style={{ flexDirection: 'row', gap: 20 }}>
+            <View key={item.id} style={{ marginBottom: 10 }}>
+              {/* Main row */}
+              <View style={rowStyle}>
+                {/* Category emoji */}
+                <Text style={{ ...styles.tableCell, width: 25, fontSize: 16 }}>
+                  {categoryEmoji}
+                </Text>
                 
-                {/* Image produit (gauche) */}
-                {productImage ? (
-                  <View style={{ width: 120, height: 120 }}>
-                    <Image 
-                      src={productImage} 
-                      style={styles.productImage}
-                    />
-                  </View>
-                ) : (
-                  <View style={{
-                    width: 120,
-                    height: 120,
-                    backgroundColor: colors.lightGray,
-                    borderRadius: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{ fontSize: 48 }}>{categoryEmoji}</Text>
-                  </View>
-                )}
-                
-                {/* Contenu (droite) */}
-                <View style={{ flex: 1 }}>
-                  {/* Titre + badge catégorie */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <Text style={{ fontSize: 12, marginRight: 8 }}>{categoryEmoji}</Text>
-                    <Text style={styles.productTitle}>
-                      {item.title}
-                    </Text>
-                  </View>
-                  
-                  {/* Attributs (CPU, RAM, etc.) */}
+                <View style={{ ...styles.tableCell, flex: 3 }}>
+                  <Text style={{ fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
+                    {item.title}
+                  </Text>
                   {item.attributes && item.attributes.length > 0 && (
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 3 }}>
                       {item.attributes.map((attr, i) => (
                         <View key={i} style={styles.badge}>
                           <Text>{attr.key}: {attr.value}</Text>
@@ -112,61 +106,31 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                       ))}
                     </View>
                   )}
-                  
-                  {/* Benefits avec icônes */}
-                  <View style={styles.benefitRow}>
-                    <View style={styles.benefitItem}>
-                      <Text style={styles.benefitIcon}>✓</Text>
-                      <Text style={styles.benefitText}>Livraison incluse</Text>
-                    </View>
-                    <View style={styles.benefitItem}>
-                      <Text style={styles.benefitIcon}>✓</Text>
-                      <Text style={styles.benefitText}>Maintenance incluse</Text>
-                    </View>
-                    <View style={styles.benefitItem}>
-                      <Text style={styles.benefitIcon}>✓</Text>
-                      <Text style={styles.benefitText}>Garantie incluse</Text>
-                    </View>
-                  </View>
-                  
-                  {/* Prix et quantité (bas) */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
-                    <View>
-                      <Text style={styles.priceLabel}>Quantité</Text>
-                      <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold' }}>{item.quantity}</Text>
-                    </View>
-                    
-                    {isInternal && (
-                      <>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.priceLabel}>Prix achat HT</Text>
-                          <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: colors.gray }}>
-                            {formatCurrency(item.purchase_price)}
-                          </Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.priceLabel}>Marge</Text>
-                          <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: colors.success }}>
-                            {item.margin}%
-                          </Text>
-                        </View>
-                      </>
-                    )}
-                    
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.priceLabel}>Mensualité HT</Text>
-                      <Text style={styles.priceHighlight}>
-                        {item.monthly_payment ? formatCurrency(item.monthly_payment) : '-'}
-                      </Text>
-                    </View>
-                  </View>
                 </View>
+                <Text style={{ ...styles.tableCell, flex: 1, textAlign: 'center' }}>
+                  {item.quantity}
+                </Text>
+                {isInternal && (
+                  <>
+                    <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right' }}>
+                      {formatCurrency(item.purchase_price)}
+                    </Text>
+                    <Text style={{ ...styles.tableCell, flex: 1, textAlign: 'right' }}>
+                      {item.margin}%
+                    </Text>
+                  </>
+                )}
+                <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right' }}>
+                  {item.selling_price ? formatCurrency(item.selling_price) : '-'}
+                </Text>
+                <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
+                  {item.monthly_payment ? formatCurrency(item.monthly_payment) : '-'}
+                </Text>
               </View>
-              
-              {/* Specifications en dessous (si présentes) */}
+
+              {/* Specifications row - only show unique specs */}
               {uniqueSpecs.length > 0 && (
-                <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-                  <Text style={{ fontSize: 8, color: colors.gray, marginBottom: 6 }}>Spécifications :</Text>
+                <View style={{ paddingLeft: 10, paddingTop: 5, paddingBottom: 5 }}>
                   {uniqueSpecs.map((spec, i) => (
                     <View key={i} style={styles.listItem}>
                       <Text style={styles.bullet}>•</Text>
@@ -182,34 +146,48 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         })}
       </View>
 
-      {/* Summary - Modern Design */}
-      <View style={{ marginTop: 20 }}>
+      {/* Summary */}
+      <View style={{ marginTop: 20, paddingTop: 15, borderTop: `2pt solid ${colors.border}` }}>
+        <View style={styles.row}>
+          <Text style={styles.textBold}>Total articles:</Text>
+          <Text style={styles.text}>
+            {equipment.reduce((sum, item) => sum + item.quantity, 0)}
+          </Text>
+        </View>
+
         {isInternal && totalMargin !== undefined && (
-          <View style={{ ...styles.row, marginBottom: 12 }}>
+          <View style={styles.row}>
             <Text style={styles.textBold}>Marge totale générée:</Text>
-            <Text style={{ ...styles.text, color: colors.success, fontSize: 12, fontFamily: 'Helvetica-Bold' }}>
+            <Text style={{ ...styles.text, color: colors.success }}>
               {formatCurrency(totalMargin)}
             </Text>
           </View>
         )}
 
-        {/* Total Box - Modern */}
-        <View style={styles.summaryBox}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={styles.summaryTotal}>TOTAL MENSUEL HT</Text>
-              <Text style={styles.summaryAmount}>{formatCurrency(totalMonthlyPayment)}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.summaryDetail}>Contrat {contractDuration} mois</Text>
-              <Text style={styles.summaryDetail}>+ Frais dossier {formatCurrency(fileFee)}</Text>
-              <Text style={styles.summaryDetail}>+ Assurance {formatCurrency(annualInsurance)}/an</Text>
-            </View>
-          </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>TOTAL MENSUEL HT</Text>
+          <Text style={styles.totalValue}>{formatCurrency(totalMonthlyPayment)}</Text>
         </View>
         
+        {/* Financial Details */}
+        <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4 }}>
+          <View style={{ ...styles.row, marginBottom: 6 }}>
+            <Text style={styles.text}>Frais de dossier unique :</Text>
+            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+              {formatCurrency(fileFee)}
+            </Text>
+          </View>
+          
+          <View style={styles.row}>
+            <Text style={styles.text}>Montant de l'assurance annuelle :</Text>
+            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+              {formatCurrency(annualInsurance)}
+            </Text>
+          </View>
+        </View>
+
         {/* Contract Terms */}
-        <View style={{ ...styles.infoBox, marginTop: 15 }}>
+        <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
           <Text style={{ ...styles.textBold, marginBottom: 6, color: colors.primary }}>
             Contrat de {contractDuration} mois
           </Text>

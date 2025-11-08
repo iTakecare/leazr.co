@@ -34,15 +34,6 @@ export const OfferValuesPage: React.FC<OfferValuesPageProps> = ({
   pageNumber,
   styles
 }) => {
-  // Emoji icons for values if no icon_url provided
-  const getValueEmoji = (title: string): string => {
-    const normalizedTitle = title.toLowerCase();
-    if (normalizedTitle.includes('evolution') || normalizedTitle.includes('évolution')) return '🚀';
-    if (normalizedTitle.includes('confiance')) return '🤝';
-    if (normalizedTitle.includes('entraide')) return '💪';
-    return '✨';
-  };
-
   return (
     <Page size="A4" style={styles.page}>
       {/* Header with page number */}
@@ -51,49 +42,31 @@ export const OfferValuesPage: React.FC<OfferValuesPageProps> = ({
       </View>
 
       {/* Main title */}
-      <Text style={{ ...styles.mainTitle, marginBottom: 25 }}>Nos valeurs</Text>
+      <Text style={styles.mainTitle}>Nos valeurs</Text>
 
-      {/* Values section - Enhanced spacing */}
+      {/* Values section */}
       {values && values.length > 0 && (
-        <View style={{ flexDirection: 'column', gap: 20, marginVertical: 15 }}>
+        <View style={styles.valuesContainer}>
           {values.map((value, index) => (
-            <View key={index} style={styles.valueCardEnhanced}>
-              {value.icon_url ? (
-                <Image src={value.icon_url} style={styles.valueIconEnhanced} />
-              ) : (
-                <View style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: 50,
-                  backgroundColor: '#e8f4f8',
-                  borderWidth: 4,
-                  borderColor: '#4ab6c4',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{ fontSize: 40 }}>{getValueEmoji(value.title)}</Text>
-                </View>
+            <View key={index} style={styles.valueCard}>
+              {value.icon_url && (
+                <Image src={value.icon_url} style={styles.valueIcon} />
               )}
               <View style={styles.valueContent}>
-                <Text style={{ ...styles.valueTitle, fontSize: 14, marginBottom: 8 }}>
-                  {value.title}
-                </Text>
-                <Text style={{ ...styles.valueDescription, fontSize: 9, lineHeight: 1.5 }}>
-                  {value.description}
-                </Text>
+                <Text style={styles.valueTitle}>{value.title}</Text>
+                <Text style={styles.valueDescription}>{value.description}</Text>
               </View>
             </View>
           ))}
         </View>
       )}
 
-      {/* Metrics section - Larger values */}
+      {/* Metrics section */}
       {metrics && metrics.length > 0 && (
-        <View style={{ ...styles.metricsContainer, marginTop: 25 }}>
+        <View style={styles.metricsContainer}>
           {metrics.map((metric, index) => (
             <View key={index} style={styles.metricCard}>
-              <Text style={styles.metricValueLarge}>{metric.value}</Text>
+              <Text style={styles.metricValue}>{metric.value}</Text>
               <Text style={styles.metricLabel}>{metric.label}</Text>
             </View>
           ))}
@@ -103,9 +76,7 @@ export const OfferValuesPage: React.FC<OfferValuesPageProps> = ({
       {/* Partner logos section */}
       {partnerLogos && partnerLogos.length > 0 && (
         <>
-          <Text style={{ ...styles.sectionSubtitle, marginTop: 25, marginBottom: 15 }}>
-            Ils nous font confiance
-          </Text>
+          <Text style={styles.sectionSubtitle}>Ils nous font confiance</Text>
           <View style={styles.logosContainer}>
             {partnerLogos.map((partner, index) => (
               <Image 
