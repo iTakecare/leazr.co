@@ -127,8 +127,8 @@ const OffersTable: React.FC<OffersTableProps> = ({
   };
 
   const openOnlineOffer = (offerId: string) => {
-    // Navigation directe vers la page de signature au lieu d'ouvrir un nouvel onglet
-    navigate(`/client/offer/${offerId}/sign`);
+    const link = generateSignatureLink(offerId);
+    window.open(link, '_blank', 'noopener,noreferrer');
   };
 
   // Memoize computed data for all offers to avoid recalculating on every render
@@ -341,48 +341,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           Voir détails
                         </DropdownMenuItem>
                         
-                        {offer.workflow_status === "draft" && !isAmbassador() && (
-                          <DropdownMenuItem
-                            onClick={() => handleSendToClient(offer.id)}
-                            disabled={isUpdatingStatus}
-                          >
-                            <Send className="mr-2 h-4 w-4" />
-                            Envoyer au client
-                          </DropdownMenuItem>
-                        )}
-                        
                         {onGenerateOffer && !isAmbassador() && (
                           <DropdownMenuItem onClick={() => onGenerateOffer(offer.id)}>
                             <FileText className="mr-2 h-4 w-4" />
-                            Générer PDF Client
+                            Générer PDF
                           </DropdownMenuItem>
                         )}
                         
                         {!isAmbassador() && (
-                          <DropdownMenuItem onClick={() => handleCopyOnlineOfferLink(offer.id)}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Copier lien public
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {!isAmbassador() && ['sent', 'approved', 'info_requested', 'valid_itc', 'leaser_review', 'financed'].includes(offer.workflow_status) && (
                           <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
                             <ExternalLink className="mr-2 h-4 w-4" />
-                            Voir offre en ligne
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {!isAmbassador() && offer.workflow_status === 'draft' && (
-                          <DropdownMenuItem disabled onClick={() => {}}>
-                            <ExternalLink className="mr-2 h-4 w-4 opacity-50" />
-                            <span className="text-muted-foreground">Offre non accessible (brouillon)</span>
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {onResendOffer && offer.workflow_status === "sent" && !isAmbassador() && (
-                          <DropdownMenuItem onClick={() => onResendOffer(offer.id)}>
-                            <Send className="mr-2 h-4 w-4" />
-                            Renvoyer
+                            Ouvrir le lien public
                           </DropdownMenuItem>
                         )}
                         
