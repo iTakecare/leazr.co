@@ -91,18 +91,7 @@ serve(async (req) => {
         from: 'iTakecare <noreply@itakecare.be>',
         to: [to],
         subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #33638e;">Nouvelle offre de leasing</h2>
-            <div style="margin: 20px 0;">
-              ${message || ''}
-            </div>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              Cordialement,<br>
-              L'équipe iTakecare
-            </p>
-          </div>
-        `,
+        html: message,
         attachments: [
           {
             filename: pdfFilename || `offre-${offerId}.pdf`,

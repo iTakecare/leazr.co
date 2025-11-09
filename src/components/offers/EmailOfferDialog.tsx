@@ -1,20 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Mail, Loader2 } from 'lucide-react';
+import { Mail, Loader2, FileText, Eye, Trash2, Send, X, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateOfferPDF } from '@/services/clientPdfService';
+import DOMPurify from 'dompurify';
 
 interface EmailOfferDialogProps {
   open: boolean;
@@ -36,26 +34,74 @@ export const EmailOfferDialog = ({
   validity = '',
 }: EmailOfferDialogProps) => {
   const [to, setTo] = useState(clientEmail);
-  const [subject, setSubject] = useState(`Votre offre de leasing ${offerNumber}`);
-  const [message, setMessage] = useState(
-    validity 
-      ? `Bonjour ${clientName || ''},\n\nVeuillez trouver ci-joint votre offre de leasing n°${offerNumber}.\n\n${validity}\n\nN'hésitez pas à nous contacter pour toute question.\n\nCordialement,\nL'équipe iTakecare`
-      : `Bonjour ${clientName || ''},\n\nVeuillez trouver ci-joint votre offre de leasing n°${offerNumber}.\n\nN'hésitez pas à nous contacter pour toute question.\n\nCordialement,\nL'équipe iTakecare`
-  );
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [customContent, setCustomContent] = useState('');
+  const [emailPreview, setEmailPreview] = useState('');
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [includePdf, setIncludePdf] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
+  // Generate PDF and email preview on modal open
+  useEffect(() => {
+    if (open) {
+      generatePdfPreview();
+      generateEmailPreview();
+    }
+    return () => {
+      // Cleanup
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
+  }, [open, offerId]);
+
+  const generatePdfPreview = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      console.log('[EMAIL-OFFER] Generating PDF preview for offer:', offerId);
+      const blob = await generateOfferPDF(offerId, 'client');
+      setPdfBlob(blob);
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+      console.log('[EMAIL-OFFER] PDF preview generated successfully');
+    } catch (error) {
+      console.error('[EMAIL-OFFER] PDF generation error:', error);
+      toast.error('Erreur lors de la génération du PDF');
+      setPdfBlob(null);
+      setPdfUrl(null);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const generateEmailPreview = () => {
+    const preview = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #33638e;">🎉 Félicitations - Votre demande de leasing a été acceptée !</h2>
+        <p>Bonjour <strong>${clientName || 'Client'}</strong>,</p>
+        <p>Veuillez trouver ci-joint votre offre de leasing n°<strong>${offerNumber}</strong>.</p>
+        ${validity ? `<p style="background: #f0f9ff; padding: 12px; border-left: 4px solid #33638e; margin: 20px 0;">
+          <strong>⏰ Attention :</strong> ${validity}
+        </p>` : ''}
+        <p>N'hésitez pas à nous contacter pour toute question.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">
+          Cordialement,<br>
+          L'équipe iTakecare
+        </p>
+      </div>
+    `;
+    setEmailPreview(preview);
+    setCustomContent(preview);
+  };
+
   const handleSend = async () => {
-    if (!to || !subject) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+    if (!to || !pdfBlob || !includePdf) {
+      toast.error('Veuillez vérifier tous les champs obligatoires');
       return;
     }
 
     setIsSending(true);
     try {
-      // Generate PDF
-      console.log('[EMAIL-OFFER] Generating PDF for offer:', offerId);
-      const pdfBlob = await generateOfferPDF(offerId, 'client');
-      
       // Convert PDF to base64
       const reader = new FileReader();
       const base64Promise = new Promise<string>((resolve, reject) => {
@@ -70,7 +116,10 @@ export const EmailOfferDialog = ({
       reader.readAsDataURL(pdfBlob);
       const pdfBase64 = await base64Promise;
 
-      console.log('[EMAIL-OFFER] PDF generated, sending email to:', to);
+      // Use custom content if edited, otherwise use preview
+      const messageToSend = customContent || emailPreview;
+
+      console.log('[EMAIL-OFFER] Sending email to:', to);
 
       // Send email via edge function with timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -81,8 +130,8 @@ export const EmailOfferDialog = ({
         body: {
           offerId,
           to,
-          subject,
-          message,
+          subject: `Votre offre de leasing ${offerNumber}`,
+          message: messageToSend,
           pdfBase64,
           pdfFilename: `offre-${offerNumber}.pdf`,
         },
@@ -116,83 +165,198 @@ export const EmailOfferDialog = ({
     }
   };
 
+  const handleValidateWithoutSending = () => {
+    if (confirm("Fermer sans envoyer l'email ?")) {
+      onOpenChange(false);
+    }
+  };
+
+  const handlePreviewPdf = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const handleRemovePdf = () => {
+    if (confirm("Êtes-vous sûr de vouloir retirer la pièce jointe du mail ?")) {
+      setIncludePdf(false);
+      toast.info("La pièce jointe ne sera pas incluse dans l'email");
+    }
+  };
+
+  const sanitizedHtml = DOMPurify.sanitize(customContent || emailPreview, {
+    ALLOWED_TAGS: ['div', 'p', 'br', 'strong', 'em', 'ul', 'li', 'h1', 'h2', 'h3', 'a', 'hr', 'span', 'style'],
+    ALLOWED_ATTR: ['href', 'style', 'class']
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="z-[100] max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
+            <Send className="h-5 w-5" />
             Envoyer l'offre par email
           </DialogTitle>
           <DialogDescription>
-            Le PDF de l'offre sera généré et envoyé en pièce jointe.
+            Prévisualisez et personnalisez l'email avant envoi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="to">
-              Destinataire <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="to"
-              type="email"
-              placeholder="client@example.com"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              disabled={isSending}
-            />
+        <div className="space-y-6">
+          {/* Destinataire */}
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <p className="text-sm font-medium mb-1">Destinataire :</p>
+            <p className="text-sm text-muted-foreground">{to}</p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="subject">
-              Objet <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="subject"
-              placeholder="Objet de l'email"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+          {/* Toggle Edit Mode */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={isEditMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsEditMode(!isEditMode)}
               disabled={isSending}
-            />
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              {isEditMode ? "Mode prévisualisation" : "Éditer le contenu"}
+            </Button>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
-            <Textarea
-              id="message"
-              placeholder="Votre message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+          {/* Email Content */}
+          <div className="border rounded-lg">
+            <div className="bg-muted/30 p-3 border-b">
+              <p className="text-sm font-medium">Contenu de l'email</p>
+            </div>
+            
+            {isEditMode ? (
+              <Textarea
+                value={customContent}
+                onChange={(e) => setCustomContent(e.target.value)}
+                className="min-h-[400px] font-mono text-xs border-0 rounded-t-none"
+                placeholder="Contenu HTML de l'email..."
+                disabled={isSending}
+              />
+            ) : (
+              <div 
+                className="p-4 prose prose-sm max-w-none overflow-auto max-h-[400px]"
+                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+              />
+            )}
+          </div>
+
+          {/* PDF Attachment */}
+          <div className="border rounded-lg">
+            <div className="bg-muted/30 p-3 border-b">
+              <p className="text-sm font-medium">Pièce jointe</p>
+            </div>
+            
+            <div className="p-4">
+              {isGeneratingPdf ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Génération du PDF...</span>
+                </div>
+              ) : pdfBlob ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">offre-{offerNumber}.pdf</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(pdfBlob.size / 1024).toFixed(2)} KB
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviewPdf}
+                      disabled={isSending}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Prévisualiser
+                    </Button>
+                    
+                    {includePdf ? (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemovePdf}
+                        disabled={isSending}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Supprimer
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIncludePdf(true);
+                          toast.info("La pièce jointe sera incluse dans l'email");
+                        }}
+                        disabled={isSending}
+                      >
+                        Rétablir
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-destructive">
+                  ⚠️ Erreur lors de la génération du PDF
+                </div>
+              )}
+              
+              {!includePdf && pdfBlob && (
+                <div className="mt-2 text-xs text-destructive">
+                  ⚠️ La pièce jointe ne sera pas incluse dans l'email
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
               disabled={isSending}
-              rows={8}
-              className="resize-none"
-            />
+            >
+              <X className="h-4 w-4 mr-2" />
+              Annuler
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleValidateWithoutSending}
+                disabled={isSending}
+              >
+                Valider sans envoyer
+              </Button>
+              
+              <Button
+                onClick={handleSend}
+                disabled={isSending || !includePdf || !pdfBlob}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Envoi en cours...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Envoyer l'email et valider
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSending}
-          >
-            Annuler
-          </Button>
-          <Button onClick={handleSend} disabled={isSending}>
-            {isSending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Envoi en cours...
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                Envoyer
-              </>
-            )}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
