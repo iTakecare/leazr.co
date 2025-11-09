@@ -55,7 +55,14 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
       </View>
 
       <View style={styles.sectionTitle}>
-        {renderHTMLAsPDF(title, styles)}
+        <Text style={{
+          fontSize: 24,
+          fontFamily: 'Helvetica-Bold',
+          color: colors.primary,
+          marginBottom: 10,
+        }}>
+          {title}
+        </Text>
       </View>
 
       {/* Equipment Table */}
