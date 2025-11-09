@@ -229,6 +229,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         companyLogo: companyLogoBase64,
         companyName: companyData?.name || 'iTakecare',
         showPrintButton: false,
+        isPDFMode: true, // 🆕 Active le mode PDF avec styles en pixels
         
         // Équipements - Convertir le format DB vers le format CommercialOffer
         equipment: equipmentData.map((eq: any) => ({

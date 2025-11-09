@@ -49,6 +49,7 @@ interface CommercialOfferProps {
   
   // Contrôle d'affichage
   showPrintButton?: boolean;
+  isPDFMode?: boolean; // 🆕 Permet de basculer entre écran et PDF
 }
 
 // Helper functions
@@ -70,6 +71,62 @@ const formatCurrency = (amount: number): string => {
     currency: 'EUR',
   }).format(amount);
 };
+
+// Système de styles conditionnels pour écran vs PDF
+const getResponsiveStyle = (isPDFMode: boolean) => ({
+  // Espacements
+  spacing: {
+    xs: isPDFMode ? '4px' : '0.25rem',
+    sm: isPDFMode ? '8px' : '0.5rem',
+    md: isPDFMode ? '12px' : '0.75rem',
+    lg: isPDFMode ? '16px' : '1rem',
+    xl: isPDFMode ? '20px' : '1.25rem',
+    '2xl': isPDFMode ? '24px' : '1.5rem',
+    '3xl': isPDFMode ? '32px' : '2rem',
+    '4xl': isPDFMode ? '40px' : '2.5rem',
+    '5xl': isPDFMode ? '48px' : '3rem',
+  },
+  
+  // Tailles de police
+  fontSize: {
+    xs: isPDFMode ? '12px' : '0.75rem',
+    sm: isPDFMode ? '14px' : '0.875rem',
+    base: isPDFMode ? '16px' : '1rem',
+    lg: isPDFMode ? '18px' : '1.125rem',
+    xl: isPDFMode ? '20px' : '1.25rem',
+    '2xl': isPDFMode ? '24px' : '1.5rem',
+    '3xl': isPDFMode ? '32px' : '2rem',
+    '4xl': isPDFMode ? '36px' : '2.25rem',
+    '5xl': isPDFMode ? '48px' : '3rem',
+  },
+  
+  // Border radius
+  borderRadius: {
+    sm: isPDFMode ? '4px' : '0.25rem',
+    md: isPDFMode ? '8px' : '0.5rem',
+    lg: isPDFMode ? '12px' : '0.75rem',
+    xl: isPDFMode ? '16px' : '1rem',
+    full: isPDFMode ? '9999px' : '9999px',
+  },
+  
+  // Couleurs de fond (remplace les gradients en mode PDF)
+  background: {
+    totalBox: isPDFMode ? '#DBEAFE' : 'linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)',
+    blueCard: isPDFMode ? '#EFF6FF' : 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+    purpleCard: isPDFMode ? '#FAF5FF' : 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)',
+    greenCard: isPDFMode ? '#F0FDF4' : 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+    amberCard: isPDFMode ? '#FFFBEB' : 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
+    indigoCard: isPDFMode ? '#EEF2FF' : 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
+  },
+  
+  // Box shadows
+  shadow: {
+    sm: isPDFMode ? 'none' : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    md: isPDFMode ? 'none' : '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+    lg: isPDFMode ? 'none' : '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+    xl: isPDFMode ? 'none' : '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+  },
+});
 
 const CommercialOffer: React.FC<CommercialOfferProps> = ({
   offerNumber = "N/A",
@@ -98,8 +155,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
     co2Saved: '91,03'
   },
   partnerLogos = [],
-  showPrintButton = true
+  showPrintButton = true,
+  isPDFMode = false // 🆕 Par défaut, mode écran
 }) => {
+  const styles = getResponsiveStyle(isPDFMode);
   
   const handlePrintPDF = () => {
     window.print();
