@@ -383,43 +383,40 @@ export const EmailOfferDialog = ({
           </p>
           
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 15px 0; font-size: 14px;"><strong>Cordialement,</strong></p>
-            <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 13px; color: #333; width: 100%; max-width: 650px;">
+            <p style="margin: 0 0 15px 0; font-size: 12px;"><strong>Cordialement,</strong></p>
+            <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 11px; color: #333; width: 100%; max-width: 650px;">
               <tr>
                 <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
-                  <div style="margin-bottom: 15px;">
-                    <img src="https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/company-logos/itakecare-logo.png" alt="iTakecare" style="height: 45px; margin-bottom: 12px;" onerror="this.style.display='none'">
-                  </div>
-                  <div style="font-weight: bold; color: #1e40af; font-size: 15px; margin-bottom: 10px;">
+                  <div style="font-weight: bold; color: #1e40af; font-size: 13px; margin-bottom: 10px;">
                     iTakecare SRL
                   </div>
-                  <div style="color: #5CC5CC; font-size: 12px; line-height: 1.5; font-style: italic;">
+                  <div style="color: #5CC5CC; font-size: 10px; line-height: 1.5; font-style: italic;">
                     Leasing de pack informatique simple, économique et éco-responsable pour PME et startup
                   </div>
                 </td>
                 <td style="vertical-align: top; padding-left: 20px; width: 55%;">
-                  <div style="margin-bottom: 6px;">
+                  <div style="margin-bottom: 5px;">
                     <span style="color: #5CC5CC; font-weight: 600;">Tel direct :</span> <a href="tel:+3271491685" style="color: #333; text-decoration: none;">+32 (0)71 49 16 85</a>
                   </div>
-                  <div style="margin-bottom: 6px;">
+                  <div style="margin-bottom: 5px;">
                     <span style="color: #5CC5CC; font-weight: 600;">Mail :</span> <a href="mailto:hello@itakecare.be" style="color: #333; text-decoration: none;">hello@itakecare.be</a>
                   </div>
-                  <div style="margin-bottom: 15px;">
+                  <div style="margin-bottom: 12px;">
                     <span style="color: #5CC5CC; font-weight: 600;">Web :</span> <a href="https://www.itakecare.be" style="color: #5CC5CC; text-decoration: none;">www.itakecare.be</a>
                   </div>
-                  <div style="font-size: 12px; line-height: 1.6; margin-bottom: 12px; color: #555;">
+                  <div style="font-size: 10px; line-height: 1.6; margin-bottom: 10px; color: #555;">
                     <strong style="color: #333;">Adresse :</strong><br>
                     iTakecare SRL<br>
                     Avenue du Général Michel 1E<br>
                     BE-6000 Charleroi<br>
                     TVA : BE0795.642.894
                   </div>
-                  <div style="margin-top: 12px;">
-                    <a href="https://www.facebook.com/itakecarebe" style="margin-right: 12px; display: inline-block;">
-                      <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" style="width: 28px; height: 28px; vertical-align: middle;">
+                  <div style="margin-top: 10px;">
+                    <a href="https://www.facebook.com/itakecarebe" style="margin-right: 10px; display: inline-block;">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" style="width: 22px; height: 22px; vertical-align: middle;">
                     </a>
                     <a href="https://www.linkedin.com/company/itakecare" style="display: inline-block;">
-                      <img src="https://cdn-icons-png.flaticon.com/512/733/733561.png" alt="LinkedIn" style="width: 28px; height: 28px; vertical-align: middle;">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733561.png" alt="LinkedIn" style="width: 22px; height: 22px; vertical-align: middle;">
                     </a>
                   </div>
                 </td>
@@ -459,43 +456,40 @@ export const EmailOfferDialog = ({
           </p>
           
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 15px 0; font-size: 14px;"><strong>Cordialement,</strong></p>
-            <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 13px; color: #333; width: 100%; max-width: 650px;">
+            <p style="margin: 0 0 15px 0; font-size: 12px;"><strong>Cordialement,</strong></p>
+            <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 11px; color: #333; width: 100%; max-width: 650px;">
               <tr>
                 <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
-                  <div style="margin-bottom: 15px;">
-                    <img src="https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/public/company-logos/itakecare-logo.png" alt="iTakecare" style="height: 45px; margin-bottom: 12px;" onerror="this.style.display='none'">
-                  </div>
-                  <div style="font-weight: bold; color: #1e40af; font-size: 15px; margin-bottom: 10px;">
+                  <div style="font-weight: bold; color: #1e40af; font-size: 13px; margin-bottom: 10px;">
                     iTakecare SRL
                   </div>
-                  <div style="color: #5CC5CC; font-size: 12px; line-height: 1.5; font-style: italic;">
+                  <div style="color: #5CC5CC; font-size: 10px; line-height: 1.5; font-style: italic;">
                     Leasing de pack informatique simple, économique et éco-responsable pour PME et startup
                   </div>
                 </td>
                 <td style="vertical-align: top; padding-left: 20px; width: 55%;">
-                  <div style="margin-bottom: 6px;">
+                  <div style="margin-bottom: 5px;">
                     <span style="color: #5CC5CC; font-weight: 600;">Tel direct :</span> <a href="tel:+3271491685" style="color: #333; text-decoration: none;">+32 (0)71 49 16 85</a>
                   </div>
-                  <div style="margin-bottom: 6px;">
+                  <div style="margin-bottom: 5px;">
                     <span style="color: #5CC5CC; font-weight: 600;">Mail :</span> <a href="mailto:hello@itakecare.be" style="color: #333; text-decoration: none;">hello@itakecare.be</a>
                   </div>
-                  <div style="margin-bottom: 15px;">
+                  <div style="margin-bottom: 12px;">
                     <span style="color: #5CC5CC; font-weight: 600;">Web :</span> <a href="https://www.itakecare.be" style="color: #5CC5CC; text-decoration: none;">www.itakecare.be</a>
                   </div>
-                  <div style="font-size: 12px; line-height: 1.6; margin-bottom: 12px; color: #555;">
+                  <div style="font-size: 10px; line-height: 1.6; margin-bottom: 10px; color: #555;">
                     <strong style="color: #333;">Adresse :</strong><br>
                     iTakecare SRL<br>
                     Avenue du Général Michel 1E<br>
                     BE-6000 Charleroi<br>
                     TVA : BE0795.642.894
                   </div>
-                  <div style="margin-top: 12px;">
-                    <a href="https://www.facebook.com/itakecarebe" style="margin-right: 12px; display: inline-block;">
-                      <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" style="width: 28px; height: 28px; vertical-align: middle;">
+                  <div style="margin-top: 10px;">
+                    <a href="https://www.facebook.com/itakecarebe" style="margin-right: 10px; display: inline-block;">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" style="width: 22px; height: 22px; vertical-align: middle;">
                     </a>
                     <a href="https://www.linkedin.com/company/itakecare" style="display: inline-block;">
-                      <img src="https://cdn-icons-png.flaticon.com/512/733/733561.png" alt="LinkedIn" style="width: 28px; height: 28px; vertical-align: middle;">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733561.png" alt="LinkedIn" style="width: 22px; height: 22px; vertical-align: middle;">
                     </a>
                   </div>
                 </td>
