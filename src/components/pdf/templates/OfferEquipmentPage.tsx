@@ -45,15 +45,11 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   };
 
   const isInternal = pdfType === 'internal';
-  const title = contentBlocks?.title || 'Détail des Équipements';
+  const title = stripHtmlTags(contentBlocks?.title || 'Votre pack tech');
 
   return (
     <Page size="A4" style={styles.page}>
-      {/* Badge "Vos équipements" */}
-      <View style={styles.equipmentBadge}>
-        <Text>💼 Vos équipements</Text>
-      </View>
-
+      {/* Titre "Votre pack tech" */}
       <View style={styles.sectionTitle}>
         <Text style={{
           fontSize: 24,
@@ -63,6 +59,11 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         }}>
           {title}
         </Text>
+      </View>
+
+      {/* Badge "Vos équipements" */}
+      <View style={{ ...styles.equipmentBadge, marginTop: 4 }}>
+        <Text>💼 Vos équipements</Text>
       </View>
 
       {/* Equipment Table */}
