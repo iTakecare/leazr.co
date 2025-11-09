@@ -52,6 +52,11 @@ export interface OfferData {
     monthly_payment?: number;
     serialNumber?: string;
     serial_number?: string;
+    productId?: string;
+    product_id?: string;
+    imageUrl?: string;
+    image_url?: string;
+    image_urls?: string[];
     attributes?: Record<string, any>;
     specifications?: Record<string, any>;
   }>;

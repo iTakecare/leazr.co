@@ -257,7 +257,10 @@ export const createOffer = async (offerData: OfferData) => {
             quantity: equipment.quantity || 1,
             margin: equipment.margin || 0,
             monthly_payment: equipment.monthlyPayment || equipment.monthly_payment || 0,
-            serial_number: equipment.serialNumber || equipment.serial_number
+            serial_number: equipment.serialNumber || equipment.serial_number,
+            product_id: equipment.productId || equipment.product_id || null,
+            image_url: equipment.imageUrl || equipment.image_url || 
+                      (equipment.image_urls && equipment.image_urls[0]) || null
           };
           
           console.log("💾 Sauvegarde équipement:", newEquipment);

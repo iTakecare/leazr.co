@@ -39,6 +39,7 @@ const OfferPrintView: React.FC = () => {
     title: item.title,
     quantity: item.quantity,
     monthlyPayment: item.monthlyPayment,
+    imageUrl: item.imageUrl || item.image_url || null,
     attributes: item.attributes || {},
     specifications: item.specifications || {},
   })) || [];

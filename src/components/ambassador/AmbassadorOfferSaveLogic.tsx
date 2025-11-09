@@ -167,7 +167,10 @@ export const useAmbassadorOfferSave = ({
                 quantity: equipmentItem.quantity,
                 margin: equipmentItem.margin,
                 monthly_payment: equipmentItem.monthlyPayment || 0,
-                serial_number: null
+                serial_number: null,
+                product_id: equipmentItem.productId || null,
+                image_url: equipmentItem.imageUrl || equipmentItem.image_url || 
+                          (equipmentItem.image_urls && equipmentItem.image_urls[0]) || null
               },
               equipmentItem.attributes || {}, // Save attributes
               {} // Specifications (empty for now)

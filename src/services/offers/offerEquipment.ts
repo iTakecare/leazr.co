@@ -69,8 +69,15 @@ const fetchEquipmentWithDetails = async (equipmentData: any[]): Promise<OfferEqu
       console.error("Erreur lors de la récupération des spécifications:", specificationsError);
     }
     
+    // Déterminer l'image URL prioritaire (snapshot > product image_urls[0] > product image_url)
+    const finalImageUrl = equipment.image_url || 
+                          equipment.product?.image_urls?.[0] || 
+                          equipment.product?.image_url || 
+                          null;
+    
     equipmentWithDetails.push({
       ...equipment,
+      image_url: finalImageUrl,
       attributes: attributesData || [],
       specifications: specificationsData || []
     });
@@ -103,6 +110,7 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       .from('offer_equipment')
       .select(`
         *,
+        product:products(image_url, image_urls),
         attributes:offer_equipment_attributes(key, value),
         specifications:offer_equipment_specifications(key, value)
       `)
@@ -220,7 +228,9 @@ export const saveEquipment = async (
         p_delivery_country: equipment.delivery_country,
         p_delivery_contact_name: equipment.delivery_contact_name,
         p_delivery_contact_email: equipment.delivery_contact_email,
-        p_delivery_contact_phone: equipment.delivery_contact_phone
+        p_delivery_contact_phone: equipment.delivery_contact_phone,
+        p_product_id: equipment.product_id || null,
+        p_image_url: equipment.image_url || null
       });
     
     if (equipmentError) {

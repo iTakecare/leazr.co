@@ -6,6 +6,10 @@ export interface Equipment {
   quantity: number;
   margin: number;
   monthlyPayment?: number;
+  productId?: string;
+  imageUrl?: string;
+  image_url?: string;
+  image_urls?: string[];
   attributes?: Record<string, any>; // Attributs sélectionnés (couleur, taille, etc.)
   specifications?: Record<string, any>; // Spécifications techniques du produit
   // Division fields

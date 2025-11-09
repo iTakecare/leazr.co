@@ -21,6 +21,7 @@ interface CommercialOfferProps {
     title: string;
     quantity: number;
     monthlyPayment: number;
+    imageUrl?: string;
     attributes?: Record<string, string>;
     specifications?: Record<string, string>;
   }>;
@@ -321,11 +322,15 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               }}
             >
               <div className="section-header">
-                {pageIndex === 0 && (
+                 {pageIndex === 0 && (
                   <div className="section-badge blue" style={{
                     padding: `${styles.spacing.sm} ${styles.spacing.lg}`,
                     borderRadius: styles.borderRadius.full,
                     fontSize: styles.fontSize.sm,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: '1',
                   }}>
                     💼 Votre pack tech
                   </div>
@@ -369,7 +374,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       border: '1px solid #E5E7EB',
                     }}
                   >
-                    {/* Icône produit */}
+                    {/* Image ou icône produit */}
                     <div style={{
                       width: isPDFMode ? '40px' : '2.5rem',
                       height: isPDFMode ? '40px' : '2.5rem',
@@ -381,8 +386,22 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       justifyContent: 'center',
                       flexShrink: 0,
                       fontSize: styles.fontSize.xl,
+                      overflow: 'hidden',
                     }}>
-                      📦
+                      {item.imageUrl ? (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title}
+                          crossOrigin="anonymous"
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'contain' 
+                          }}
+                        />
+                      ) : (
+                        <span>📦</span>
+                      )}
                     </div>
                     
                     {/* Infos produit */}
@@ -400,6 +419,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                           display: 'flex',
                           flexWrap: 'wrap',
                           gap: styles.spacing.xs,
+                          paddingBottom: styles.spacing.sm,
                         }}>
                           {Object.entries(item.attributes).slice(0, 3).map(([key, value]) => (
                             <span 
@@ -527,6 +547,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: styles.fontSize.xs,
+                        lineHeight: '0',
+                        fontWeight: '700',
                       }}>
                         ✓
                       </span>
@@ -549,6 +571,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: styles.fontSize.xs,
+                        lineHeight: '0',
+                        fontWeight: '700',
                       }}>
                         ✓
                       </span>
@@ -571,6 +595,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: styles.fontSize.xs,
+                        lineHeight: '0',
+                        fontWeight: '700',
                       }}>
                         ✓
                       </span>
