@@ -129,7 +129,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                   {item.selling_price ? formatCurrency(item.selling_price) : '-'}
                 </Text>
                 <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
-                  {item.monthly_payment ? formatCurrency(item.monthly_payment) : '-'}
+                  {item.monthly_payment ? formatCurrency(item.monthly_payment * (item.quantity || 1)) : '-'}
                 </Text>
               </View>
 
