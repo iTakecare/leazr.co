@@ -364,7 +364,7 @@ export const createOfferPdfStyles = (theme?: {
     justifyContent: 'space-around',
     marginVertical: 15,
     padding: 12,
-    backgroundColor: mergedColors.primary,
+    backgroundColor: 'transparent',
     borderRadius: 0,
   },
   
@@ -376,14 +376,14 @@ export const createOfferPdfStyles = (theme?: {
   metricValue: {
     fontSize: 24,
     fontFamily: 'Helvetica-Bold',
-    color: '#FFFFFF',
+    color: mergedColors.primary,
     marginBottom: 4,
   },
   
   metricLabel: {
     fontSize: 8,
-    color: '#FFFFFF',
-    opacity: 0.9,
+    color: mergedColors.gray,
+    opacity: 1,
     textAlign: 'center',
     lineHeight: 1.2,
     maxWidth: 120,
