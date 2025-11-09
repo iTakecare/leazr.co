@@ -119,13 +119,18 @@ const getResponsiveStyle = (isPDFMode: boolean) => ({
     indigoCard: isPDFMode ? '#EEF2FF' : 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
   },
   
-  // Box shadows
-  shadow: {
-    sm: isPDFMode ? 'none' : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    md: isPDFMode ? 'none' : '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-    lg: isPDFMode ? 'none' : '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-    xl: isPDFMode ? 'none' : '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-  },
+    // Box shadows
+    shadow: {
+      sm: isPDFMode ? 'none' : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      md: isPDFMode ? 'none' : '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+      lg: isPDFMode ? 'none' : '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+      xl: isPDFMode ? 'none' : '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+    },
+    // Ombres visibles en PDF pour les cartes
+    pdfShadow: {
+      card: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      stats: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    },
 });
 
 const CommercialOffer: React.FC<CommercialOfferProps> = ({
@@ -553,7 +558,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
       })()}
 
       {/* PAGE 3: Valeurs */}
-      <div className="page page-3">
+      <div className="page page-3" style={{
+        backgroundColor: '#FFFFFF',
+        padding: isPDFMode ? '40px' : '2.5rem',
+      }}>
         <div className="section-header">
           <div className="section-badge purple">💎 Notre ADN</div>
           <h2 className="section-title">Nos Valeurs</h2>
@@ -589,11 +597,11 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               <div 
                 key={index} 
                 style={{
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: styles.borderRadius.lg,
-                  padding: styles.spacing['2xl'],
-                  boxShadow: styles.shadow.md,
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: styles.borderRadius.lg,
+          padding: styles.spacing['2xl'],
+          boxShadow: isPDFMode ? styles.pdfShadow.card : styles.shadow.md,
                 }}
               >
                 <div style={{
@@ -629,32 +637,137 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
           })}
         </div>
 
-        {/* Stats */}
-        <div className="stats-box">
-          <div className="stat-item">
-            <div className="stat-number">{metrics.clientsSatisfied}</div>
-            <p className="stat-label">De clients satisfaits</p>
+        {/* Stats - Avec styles inline */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: styles.borderRadius.lg,
+          padding: isPDFMode ? '32px' : '2rem',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: styles.spacing.lg,
+          marginBottom: styles.spacing['3xl'],
+          boxShadow: isPDFMode ? styles.pdfShadow.stats : '0 10px 30px rgba(0, 0, 0, 0.12)',
+        }}>
+          {/* Stat 1 : 99.30% */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: isPDFMode ? '40px' : '2.5rem',
+              fontWeight: '700',
+              color: '#1E40AF',
+              lineHeight: '1',
+              marginBottom: isPDFMode ? '12px' : '0.75rem',
+            }}>
+              {metrics.clientsSatisfied}
+            </div>
+            <div style={{
+              fontSize: styles.fontSize.sm,
+              color: '#6B7280',
+              fontWeight: '500',
+              lineHeight: '1.3',
+            }}>
+              De clients satisfaits
+            </div>
           </div>
-          <div className="stat-item">
-            <div className="stat-number">{metrics.devicesManaged}</div>
-            <p className="stat-label">Appareils pris en charge</p>
+          
+          {/* Stat 2 : 710 */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: isPDFMode ? '40px' : '2.5rem',
+              fontWeight: '700',
+              color: '#1E40AF',
+              lineHeight: '1',
+              marginBottom: isPDFMode ? '12px' : '0.75rem',
+            }}>
+              {metrics.devicesManaged}
+            </div>
+            <div style={{
+              fontSize: styles.fontSize.sm,
+              color: '#6B7280',
+              fontWeight: '500',
+              lineHeight: '1.3',
+            }}>
+              Appareils pris en charge
+            </div>
           </div>
-          <div className="stat-item">
-            <div className="stat-number">{metrics.co2Saved}</div>
-            <p className="stat-label">Tonnes CO2e économisées</p>
+          
+          {/* Stat 3 : 91,03 */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: isPDFMode ? '40px' : '2.5rem',
+              fontWeight: '700',
+              color: '#1E40AF',
+              lineHeight: '1',
+              marginBottom: isPDFMode ? '12px' : '0.75rem',
+            }}>
+              {metrics.co2Saved}
+            </div>
+            <div style={{
+              fontSize: styles.fontSize.sm,
+              color: '#6B7280',
+              fontWeight: '500',
+              lineHeight: '1.3',
+            }}>
+              Tonnes CO2e économisées
+            </div>
           </div>
         </div>
 
-        {/* Clients logos */}
+        {/* Clients logos - Section "Ils nous font confiance" */}
         {partnerLogos.length > 0 && (
-          <div className="clients-section">
-            <p className="clients-label">Ils nous font confiance</p>
-            <div className="clients-logos">
-              {partnerLogos.map((logo, index) => (
-                <div key={index} className="client-logo">
-                  <img src={logo} alt={`Partenaire ${index + 1}`} />
-                </div>
-              ))}
+          <div style={{
+            marginTop: styles.spacing['3xl'],
+          }}>
+            <h3 style={{
+              fontSize: isPDFMode ? '20px' : '1.25rem',
+              fontWeight: '700',
+              textAlign: 'center',
+              marginBottom: styles.spacing['2xl'],
+              color: '#111827',
+            }}>
+              Ils nous font confiance
+            </h3>
+            
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: styles.borderRadius.lg,
+              padding: isPDFMode ? '32px' : '2rem',
+              boxShadow: isPDFMode ? styles.pdfShadow.card : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: styles.spacing['2xl'],
+                alignItems: 'center',
+                justifyItems: 'center',
+              }}>
+                {partnerLogos.map((logo, index) => (
+                  <div 
+                    key={index}
+                    style={{
+                      width: isPDFMode ? '100px' : '6.25rem',
+                      height: isPDFMode ? '60px' : '3.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      filter: 'grayscale(100%)',
+                      opacity: '0.7',
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    <img 
+                      src={logo} 
+                      alt={`Partenaire ${index + 1}`}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
