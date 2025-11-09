@@ -36,3 +36,23 @@ export async function uploadTemplateImage(file: File, bucketName: string): Promi
 
   return urlData.publicUrl;
 }
+
+export async function uploadMultipleTemplateImages(
+  files: File[],
+  bucketName: string
+): Promise<string[]> {
+  if (!files || files.length === 0) {
+    throw new Error('No files provided');
+  }
+
+  // Upload all files in parallel
+  const uploadPromises = files.map(file => uploadTemplateImage(file, bucketName));
+  
+  try {
+    const urls = await Promise.all(uploadPromises);
+    return urls;
+  } catch (error) {
+    console.error('Error uploading multiple files:', error);
+    throw error;
+  }
+}
