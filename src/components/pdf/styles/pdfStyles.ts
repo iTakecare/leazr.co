@@ -96,11 +96,11 @@ export const createOfferPdfStyles = (theme?: {
   },
   
   // Text styles
-  text: {
-    fontSize: 10,
-    color: mergedColors.dark,
-    lineHeight: 1.5,
-  },
+    text: {
+      fontSize: 9,
+      color: mergedColors.dark,
+      lineHeight: 1.5,
+    },
   
   textGray: {
     fontSize: 9,
