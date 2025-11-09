@@ -300,6 +300,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
           title: eq.title,
           quantity: eq.quantity || 1,
           monthlyPayment: eq.monthly_payment || 0,
+          imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
           attributes: eq.attributes?.reduce((acc: any, attr: any) => {
             acc[attr.key] = attr.value;
             return acc;

@@ -327,10 +327,11 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     padding: `${styles.spacing.sm} ${styles.spacing.lg}`,
                     borderRadius: styles.borderRadius.full,
                     fontSize: styles.fontSize.sm,
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     lineHeight: '1',
+                    width: 'fit-content',
                   }}>
                     💼 Votre pack tech
                   </div>
@@ -546,11 +547,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: styles.fontSize.xs,
-                        lineHeight: '0',
-                        fontWeight: '700',
                       }}>
-                        ✓
+                        <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                       </span>
                       Livraison incluse
                     </div>
@@ -570,11 +570,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: styles.fontSize.xs,
-                        lineHeight: '0',
-                        fontWeight: '700',
                       }}>
-                        ✓
+                        <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                       </span>
                       Maintenance incluse
                     </div>
@@ -594,11 +593,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: styles.fontSize.xs,
-                        lineHeight: '0',
-                        fontWeight: '700',
                       }}>
-                        ✓
+                        <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                       </span>
                       Garantie échange direct
                     </div>

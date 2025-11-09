@@ -89,6 +89,8 @@ export const useOfferDetail = (offerId: string) => {
                 margin: item.margin || 0,
                 monthlyPayment: item.monthly_payment || 0,
                 serialNumber: item.serial_number || '',
+                image_url: item.image_url || null,
+                product_id: item.product_id || null,
                 // Garder les deux formats pour la compatibilité
                 attributes: attributesObject,
                 attributesArray: item.attributes || [],
