@@ -77,11 +77,11 @@ const OfferPrintView: React.FC = () => {
         fileFee={offer.file_fee || 0}
         insuranceCost={offer.insurance_cost || 0}
         companyValues={offer.companies?.values || []}
-        metrics={{
-          clientsSatisfied: '99.30%',
-          devicesManaged: '710',
-          co2Saved: '91,03',
-        }}
+        metrics={[
+          { label: 'De clients satisfaits', value: '99.30%' },
+          { label: 'Appareils pris en charge', value: '710' },
+          { label: 'Tonnes CO2e économisées', value: '91,03' },
+        ]}
       />
     </div>
   );

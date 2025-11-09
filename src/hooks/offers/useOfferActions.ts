@@ -213,6 +213,39 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
+      // Récupérer les valeurs de l'entreprise
+      const { data: companyValuesData } = await supabase
+        .from('company_values')
+        .select('title, description, icon_url')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
+
+      // Récupérer les métriques de l'entreprise
+      const { data: companyMetricsData } = await supabase
+        .from('company_metrics')
+        .select('label, value, icon_name')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
+
+      // Récupérer les blocs de contenu texte
+      const { data: contentBlocksData } = await supabase
+        .from('pdf_content_blocks')
+        .select('page_name, block_key, content')
+        .eq('company_id', companyData.id);
+
+      // Créer un map pour faciliter l'accès
+      const contentBlocksMap: Record<string, Record<string, string>> = {};
+      contentBlocksData?.forEach(block => {
+        if (!contentBlocksMap[block.page_name]) {
+          contentBlocksMap[block.page_name] = {};
+        }
+        contentBlocksMap[block.page_name][block.block_key] = block.content;
+      });
+
       // 2. Créer un conteneur VISIBLE (crucial pour le rendu CSS)
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -263,6 +296,38 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         
         // Logos partenaires
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
+        
+        // Valeurs de l'entreprise
+        companyValues: companyValuesData?.map(v => ({
+          title: v.title,
+          description: v.description,
+          iconUrl: v.icon_url,
+        })) || [],
+        
+        // Métriques de l'entreprise
+        metrics: companyMetricsData?.map(m => ({
+          label: m.label,
+          value: m.value,
+          iconName: m.icon_name,
+        })) || [],
+        
+        // Blocs de contenu texte
+        contentBlocks: {
+          cover: {
+            greeting: contentBlocksMap['cover']?.['greeting'] || '<p>Madame, Monsieur,</p>',
+            introduction: contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>',
+            validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
+          },
+          equipment: {
+            title: contentBlocksMap['equipment']?.['title'] || 'Détail de l\'équipement',
+            footer_note: contentBlocksMap['equipment']?.['footer_note'] || 'Tous nos équipements sont garantis.',
+          },
+          conditions: {
+            general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
+            additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
+            contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
+          },
+        },
       };
 
       // 4a. Attendre que toutes les polices soient chargées

@@ -35,17 +35,36 @@ interface CommercialOfferProps {
   companyValues?: Array<{
     title: string;
     description: string;
+    iconUrl?: string;
   }>;
   
   // Métriques
-  metrics?: {
-    clientsSatisfied?: string;
-    devicesManaged?: string;
-    co2Saved?: string;
-  };
+  metrics?: Array<{
+    label: string;
+    value: string;
+    iconName?: string;
+  }>;
   
   // Logos partenaires
   partnerLogos?: string[];
+  
+  // Blocs de contenu texte
+  contentBlocks?: {
+    cover?: {
+      greeting?: string;
+      introduction?: string;
+      validity?: string;
+    };
+    equipment?: {
+      title?: string;
+      footer_note?: string;
+    };
+    conditions?: {
+      general_conditions?: string;
+      additional_info?: string;
+      contact_info?: string;
+    };
+  };
   
   // Contrôle d'affichage
   showPrintButton?: boolean;
@@ -149,17 +168,25 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   contractDuration = 36,
   fileFee = 0,
   insuranceCost = 0,
-  companyValues = [
-    { title: "Evolution", description: "Tournés vers l'avenir, nous travaillons à devancer les besoins des professionnels et adaptons nos idées à la réalité du terrain." },
-    { title: "Confiance", description: "Nous valorisons les relations humaines authentiques. Accessibles et disponibles, nous sommes convaincus que se soutenir nous donne des ailes." },
-    { title: "Entraide", description: "En partageant nos connaissances, nous contribuons au développement de chacun. C'est un plaisir de semer des sourires sur notre chemin." }
-  ],
-  metrics = {
-    clientsSatisfied: '99.30%',
-    devicesManaged: '710',
-    co2Saved: '91,03'
-  },
+  companyValues = [],
+  metrics = [],
   partnerLogos = [],
+  contentBlocks = {
+    cover: {
+      greeting: '<p>Madame, Monsieur,</p>',
+      introduction: '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>',
+      validity: '<p>Cette offre est valable 30 jours.</p>',
+    },
+    equipment: {
+      title: 'Détail de l\'équipement',
+      footer_note: 'Tous nos équipements sont garantis.',
+    },
+    conditions: {
+      general_conditions: '<h3>Conditions générales</h3>',
+      additional_info: '',
+      contact_info: 'Contactez-nous pour plus d\'informations.',
+    },
+  },
   showPrintButton = true,
   isPDFMode = false // 🆕 Par défaut, mode écran
 }) => {
@@ -649,68 +676,28 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
           marginBottom: styles.spacing['3xl'],
           boxShadow: isPDFMode ? styles.pdfShadow.stats : '0 10px 30px rgba(0, 0, 0, 0.12)',
         }}>
-          {/* Stat 1 : 99.30% */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              fontSize: isPDFMode ? '40px' : '2.5rem',
-              fontWeight: '700',
-              color: '#1E40AF',
-              lineHeight: '1',
-              marginBottom: isPDFMode ? '12px' : '0.75rem',
-            }}>
-              {metrics.clientsSatisfied}
+          {/* Statistiques dynamiques depuis company_metrics */}
+          {metrics.map((metric, index) => (
+            <div key={index} style={{ textAlign: 'center' }}>
+              <div style={{
+                fontSize: isPDFMode ? '40px' : '2.5rem',
+                fontWeight: '700',
+                color: '#1E40AF',
+                lineHeight: '1',
+                marginBottom: isPDFMode ? '12px' : '0.75rem',
+              }}>
+                {metric.value}
+              </div>
+              <div style={{
+                fontSize: styles.fontSize.sm,
+                color: '#6B7280',
+                fontWeight: '500',
+                lineHeight: '1.3',
+              }}>
+                {metric.label}
+              </div>
             </div>
-            <div style={{
-              fontSize: styles.fontSize.sm,
-              color: '#6B7280',
-              fontWeight: '500',
-              lineHeight: '1.3',
-            }}>
-              De clients satisfaits
-            </div>
-          </div>
-          
-          {/* Stat 2 : 710 */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              fontSize: isPDFMode ? '40px' : '2.5rem',
-              fontWeight: '700',
-              color: '#1E40AF',
-              lineHeight: '1',
-              marginBottom: isPDFMode ? '12px' : '0.75rem',
-            }}>
-              {metrics.devicesManaged}
-            </div>
-            <div style={{
-              fontSize: styles.fontSize.sm,
-              color: '#6B7280',
-              fontWeight: '500',
-              lineHeight: '1.3',
-            }}>
-              Appareils pris en charge
-            </div>
-          </div>
-          
-          {/* Stat 3 : 91,03 */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              fontSize: isPDFMode ? '40px' : '2.5rem',
-              fontWeight: '700',
-              color: '#1E40AF',
-              lineHeight: '1',
-              marginBottom: isPDFMode ? '12px' : '0.75rem',
-            }}>
-              {metrics.co2Saved}
-            </div>
-            <div style={{
-              fontSize: styles.fontSize.sm,
-              color: '#6B7280',
-              fontWeight: '500',
-              lineHeight: '1.3',
-            }}>
-              Tonnes CO2e économisées
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Clients logos - Section "Ils nous font confiance" */}
