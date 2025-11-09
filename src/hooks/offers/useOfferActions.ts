@@ -174,9 +174,25 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       // Récupérer les paramètres de l'entreprise (logo, couleurs, nom)
       const { data: companyData } = await supabase
         .from('companies')
-        .select('logo_url, primary_color, secondary_color, name')
+        .select('id, logo_url, primary_color, secondary_color, name')
         .eq('id', offer.company_id)
         .single();
+
+      console.log('🏢 Company Data:', {
+        id: companyData?.id,
+        name: companyData?.name,
+        hasLogo: !!companyData?.logo_url
+      });
+
+      if (!companyData?.id) {
+        console.error('❌ Company ID manquant !', { 
+          offerId: id, 
+          companyId: offer.company_id,
+          companyData 
+        });
+        toast.error("Impossible de récupérer les informations de l'entreprise", { id: toastId });
+        return;
+      }
 
       // Formater l'adresse de facturation complète
       const billingAddress = clientData ? 
@@ -230,6 +246,12 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         .eq('is_active', true)
         .order('display_order', { ascending: true })
         .limit(3);
+
+      console.log('📊 Données récupérées:', {
+        partnerLogos: partnerLogosData?.length || 0,
+        companyValues: companyValuesData?.length || 0,
+        companyMetrics: companyMetricsData?.length || 0
+      });
 
       // Récupérer les blocs de contenu texte
       const { data: contentBlocksData } = await supabase
