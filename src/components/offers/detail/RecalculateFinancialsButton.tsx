@@ -30,7 +30,7 @@ const RecalculateFinancialsButton: React.FC<RecalculateFinancialsButtonProps> = 
       console.log("🔄 MANUAL RECALCULATE: Starting for offer:", offerId);
       console.log("🔄 MANUAL RECALCULATE: Equipment found:", equipment.length, "items");
 
-      // Calculate totals from equipment (no quantity multiplication for monthly_payment)
+      // Calculate totals from equipment (multiply monthly_payment by quantity)
       const totals = equipment.reduce((acc, item) => {
         const purchasePrice = Number(item.purchase_price) || 0;
         const quantity = Number(item.quantity) || 1;
@@ -39,7 +39,7 @@ const RecalculateFinancialsButton: React.FC<RecalculateFinancialsButtonProps> = 
         
         return {
           totalPurchasePrice: acc.totalPurchasePrice + (purchasePrice * quantity),
-          totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
+          totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity),
           totalSellingPrice: acc.totalSellingPrice + (sellingPrice * quantity)
         };
       }, {

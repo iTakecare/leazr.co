@@ -186,7 +186,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     }, 0);
 
     const totalMonthlyPayment = equipment.reduce((acc, item) => {
-      return acc + (item.monthly_payment || 0);
+      const qty = Number(item.quantity) || 1;
+      const unitMonthly = Number(item.monthly_payment) || 0;
+      return acc + unitMonthly * qty;
     }, 0);
 
     const totalSellingPrice = equipment.reduce((acc, item) => {

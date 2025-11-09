@@ -136,7 +136,7 @@ const [notesLoading, setNotesLoading] = useState(false);
     }
     
     return offer.equipment_data.reduce((total: number, item: any) => {
-      return total + (item.monthly_payment || 0);
+      return total + ((item.monthly_payment || 0) * (item.quantity || 1));
     }, 0);
   };
 

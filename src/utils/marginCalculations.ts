@@ -26,7 +26,7 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
       // Utiliser purchasePrice ou purchase_price pour le prix d'achat
       const purchasePrice = parseFloat(item.purchasePrice || item.purchase_price) || 0;
       const quantity = parseInt(item.quantity) || 1;
-      // Utiliser monthlyPayment ou monthly_payment pour la mensualité (déjà inclut la quantité)
+      // Utiliser monthlyPayment ou monthly_payment pour la mensualité unitaire
       const monthlyPayment = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
       // Utiliser selling_price si disponible, sinon le calculer via la marge
       const marginPercent = parseFloat(item.margin || item.marginPercent || item.margin_percentage) || 0;
@@ -38,7 +38,7 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
       
       return {
         totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-        totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
+        totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity),
         totalSellingPrice: acc.totalSellingPrice + sellingPrice * quantity
       };
     }, {
