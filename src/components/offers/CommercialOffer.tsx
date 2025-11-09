@@ -108,6 +108,7 @@ const getResponsiveStyle = (isPDFMode: boolean) => ({
   
   // Tailles de police
   fontSize: {
+    xxs: isPDFMode ? '10px' : '0.625rem',
     xs: isPDFMode ? '12px' : '0.75rem',
     sm: isPDFMode ? '14px' : '0.875rem',
     base: isPDFMode ? '16px' : '1rem',
@@ -653,7 +654,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   {value.title}
                 </h3>
                 <p style={{
-                  fontSize: styles.fontSize.sm,
+                  fontSize: styles.fontSize.xxs,
                   color: '#6B7280',
                   lineHeight: '1.5',
                 }}>
@@ -689,7 +690,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                 {metric.value}
               </div>
               <div style={{
-                fontSize: styles.fontSize.sm,
+                fontSize: styles.fontSize.xxs,
                 color: '#6B7280',
                 fontWeight: '500',
                 lineHeight: '1.3',
