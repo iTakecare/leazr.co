@@ -205,6 +205,14 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         }
       }
 
+      // Récupérer les logos partenaires
+      const { data: partnerLogosData } = await supabase
+        .from('company_partner_logos')
+        .select('logo_url')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
       // 2. Créer un conteneur VISIBLE (crucial pour le rendu CSS)
       const container = document.createElement('div');
       container.style.position = 'fixed';
@@ -252,6 +260,9 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         contractDuration: Number(offer.duration) || 36,
         fileFee: Number(offer.file_fee) || 0,
         insuranceCost: Number(offer.annual_insurance) || 0,
+        
+        // Logos partenaires
+        partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
       };
 
       // 4a. Attendre que toutes les polices soient chargées
