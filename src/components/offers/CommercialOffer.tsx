@@ -335,7 +335,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     height: 'fit-content',
                   }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center' }}>💼</span>
-                    <span style={{ lineHeight: '1' }}>Votre pack tech</span>
+                    <span style={{ lineHeight: '1' }}>Vos équipements</span>
                   </div>
                 )}
                 
