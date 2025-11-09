@@ -517,13 +517,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     marginBottom: styles.spacing.lg,
                   }}>
                     <div>
-                      <p style={{
-                        fontSize: styles.fontSize.sm,
-                        color: '#1E40AF',
-                        marginBottom: styles.spacing.xs,
-                      }}>
-                        Total mensuel HT
-                      </p>
+              <p style={{
+                fontSize: styles.fontSize.sm,
+                color: '#1E40AF',
+                marginBottom: styles.spacing.xs,
+              }}>
+                Mensualité HTVA
+              </p>
                       <p style={{
                         fontSize: isPDFMode ? '40px' : '2.5rem',
                         fontWeight: '700',

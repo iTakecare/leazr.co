@@ -74,7 +74,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>
             {isInternal ? 'Prix vente' : 'Prix'}
           </Text>
-          <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Mens. HT</Text>
+          <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Mens. HTVA</Text>
         </View>
 
         {/* Table Rows */}
@@ -170,7 +170,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         )}
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>TOTAL MENSUEL HT</Text>
+          <Text style={styles.totalLabel}>MENSUALITÉ HTVA</Text>
           <Text style={styles.totalValue}>{formatCurrency(totalMonthlyPayment)}</Text>
         </View>
         
