@@ -432,13 +432,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               </ul>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* PAGE 5: Fin de contrat + Contact */}
-      <div className="page page-5">
-        {/* Fin de contrat */}
-        <div className="contract-end-section">
+          {/* Fin de contrat */}
           <div className="condition-card indigo-card contract-end-card">
             {/* Section gauche : Header avec icône + titre */}
             <div className="contract-end-header">
@@ -473,7 +468,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             </div>
           </div>
         </div>
+      </div>
 
+      {/* PAGE 5: Contact */}
+      <div className="page page-5">
         {/* CTA Section */}
         <div className="cta-section">
           <div className="section-badge green">✅ Prêt à démarrer ?</div>

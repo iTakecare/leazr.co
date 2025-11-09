@@ -872,6 +872,11 @@ body {
   line-height: 1.3;
 }
 
+/* Ajouter une marge supplémentaire pour la carte "Fin de contrat" dans .conditions-list */
+.conditions-list .contract-end-card {
+  margin-top: 16px;
+}
+
 .options-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

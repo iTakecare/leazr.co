@@ -229,3 +229,7 @@
 .pdf-mode .options-grid-horizontal .option-text {
   font-size: 8px !important;
 }
+
+.pdf-mode .conditions-list .contract-end-card {
+  margin-top: 16px !important;
+}
