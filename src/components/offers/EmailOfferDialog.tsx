@@ -72,8 +72,12 @@ export const EmailOfferDialog = ({
 
       console.log('[EMAIL-OFFER] PDF generated, sending email to:', to);
 
-      // Send email via edge function
-      const { data, error } = await supabase.functions.invoke('send-offer-email', {
+      // Send email via edge function with timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout: L\'envoi a pris trop de temps')), 30000);
+      });
+
+      const sendPromise = supabase.functions.invoke('send-offer-email', {
         body: {
           offerId,
           to,
@@ -84,7 +88,18 @@ export const EmailOfferDialog = ({
         },
       });
 
-      if (error) throw error;
+      const { data, error } = await Promise.race([sendPromise, timeoutPromise]);
+
+      if (error) {
+        console.error('[EMAIL-OFFER] Edge function error:', error);
+        throw new Error(error.message || 'Erreur lors de l\'appel de la fonction d\'envoi');
+      }
+
+      // Check response data for errors
+      if (data?.error) {
+        console.error('[EMAIL-OFFER] Response error:', data.error);
+        throw new Error(data.error);
+      }
 
       console.log('[EMAIL-OFFER] Email sent successfully:', data);
       toast.success('Email envoyé avec succès');

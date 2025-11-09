@@ -15,27 +15,43 @@ serve(async (req) => {
   }
 
   try {
+    console.log('📧 [SEND-OFFER-EMAIL] Starting email send process');
+    
     const authHeader = req.headers.get('Authorization');
+    console.log('[SEND-OFFER-EMAIL] Authorization header present:', !!authHeader);
+    console.log('[SEND-OFFER-EMAIL] RESEND_API_KEY configured:', !!RESEND_API_KEY);
+    
     if (!authHeader) {
       throw new Error('No authorization header');
     }
 
-    // Create Supabase client
+    // Create Supabase client with service role key
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
-        global: {
-          headers: { Authorization: authHeader },
+        auth: {
+          persistSession: false,
         },
       }
     );
 
+    // Extract JWT token from header
+    const token = authHeader.replace('Bearer ', '');
+    
     // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Unauthorized');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError) {
+      console.error('[SEND-OFFER-EMAIL] Auth error:', authError);
     }
+    
+    if (!user) {
+      console.error('[SEND-OFFER-EMAIL] No user found');
+      throw new Error('Unauthorized - User not authenticated');
+    }
+    
+    console.log('[SEND-OFFER-EMAIL] User authenticated:', user.email);
 
     const { 
       offerId, 
@@ -45,6 +61,14 @@ serve(async (req) => {
       pdfBase64,
       pdfFilename 
     } = await req.json();
+
+    console.log('[SEND-OFFER-EMAIL] Request payload:', {
+      offerId,
+      to,
+      subject,
+      hasPdfBase64: !!pdfBase64,
+      pdfSize: pdfBase64?.length || 0,
+    });
 
     if (!offerId || !to || !subject || !pdfBase64) {
       throw new Error('Missing required fields');
