@@ -322,7 +322,18 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               }}
             >
               <div className="section-header">
-                 {pageIndex === 0 && (
+                {/* Titre principal */}
+                <h2 className="section-title" style={{
+                  fontSize: styles.fontSize['3xl'],
+                  fontWeight: '700',
+                  marginBottom: styles.spacing.xs,
+                }}>
+                  {pageIndex === 0 ? 'Votre pack tech' : 'Détail des Équipements'}
+                  {pageIndex > 0 && totalProductPages > 1 && ` (${pageIndex + 1}/${totalProductPages})`}
+                </h2>
+                
+                {/* Badge bleu - uniquement sur la première page */}
+                {pageIndex === 0 && (
                   <div className="section-badge blue" style={{
                     padding: `${styles.spacing.md} ${styles.spacing.xl}`,
                     borderRadius: styles.borderRadius.md,
@@ -338,15 +349,6 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     <span style={{ lineHeight: '1' }}>Votre sélection d'équipements professionnels</span>
                   </div>
                 )}
-                
-                <h2 className="section-title" style={{
-                  fontSize: styles.fontSize['3xl'],
-                  fontWeight: '700',
-                  marginBottom: styles.spacing.xs,
-                }}>
-                  Détail des Équipements
-                  {totalProductPages > 1 && ` (${pageIndex + 1}/${totalProductPages})`}
-                </h2>
                 
                 <p className="section-subtitle" style={{
                   fontSize: styles.fontSize.sm,
