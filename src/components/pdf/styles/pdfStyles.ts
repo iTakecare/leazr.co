@@ -81,7 +81,7 @@ export const createOfferPdfStyles = (theme?: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: mergedColors.primary,
-    marginTop: 20,
+    marginTop: 5,
     marginBottom: 10,
     paddingBottom: 5,
     borderBottomWidth: 1,
@@ -252,6 +252,21 @@ export const createOfferPdfStyles = (theme?: {
     color: mergedColors.white,
     marginRight: 5,
     marginBottom: 3,
+  },
+
+  equipmentBadge: {
+    backgroundColor: '#f3e8ff',
+    color: '#7c3aed',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    width: 'auto',
+    alignSelf: 'flex-start',
   },
   
   // List styles

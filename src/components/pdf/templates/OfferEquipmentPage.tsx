@@ -49,6 +49,11 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
 
   return (
     <Page size="A4" style={styles.page}>
+      {/* Badge "Vos équipements" */}
+      <View style={styles.equipmentBadge}>
+        <Text>💼 Vos équipements</Text>
+      </View>
+
       <View style={styles.sectionTitle}>
         {renderHTMLAsPDF(title, styles)}
       </View>
