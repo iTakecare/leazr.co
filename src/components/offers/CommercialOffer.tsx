@@ -760,8 +760,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: styles.spacing['2xl'],
+                gridTemplateColumns: 'repeat(8, 1fr)',
+                gap: '12px',
                 alignItems: 'center',
                 justifyItems: 'center',
               }}>
@@ -769,8 +769,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   <div 
                     key={index}
                     style={{
-                      width: isPDFMode ? '100px' : '6.25rem',
-                      height: isPDFMode ? '60px' : '3.75rem',
+                      width: isPDFMode ? '45px' : '2.8rem',
+                      height: isPDFMode ? '30px' : '1.9rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -790,6 +790,17 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     />
                   </div>
                 ))}
+              </div>
+              
+              <div style={{
+                marginTop: '16px',
+                textAlign: 'right',
+                fontSize: isPDFMode ? '11px' : '0.875rem',
+                color: '#6B7280',
+                fontStyle: 'italic',
+                fontWeight: '500',
+              }}>
+                Et beaucoup d'autres encore...
               </div>
             </div>
           </div>

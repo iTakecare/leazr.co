@@ -86,6 +86,9 @@ export const OfferValuesPage: React.FC<OfferValuesPageProps> = ({
               />
             ))}
           </View>
+          <Text style={styles.partnerLogosFooter}>
+            Et beaucoup d'autres encore...
+          </Text>
         </>
       )}
 

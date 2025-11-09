@@ -403,15 +403,24 @@ export const createOfferPdfStyles = (theme?: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     marginTop: 8,
-    marginBottom: 15,
+    marginBottom: 8,
   },
   
   partnerLogo: {
-    width: 50,
-    height: 30,
+    width: 38,
+    height: 24,
     objectFit: 'contain',
+  },
+  
+  partnerLogosFooter: {
+    fontSize: 9,
+    color: mergedColors.gray,
+    fontStyle: 'italic',
+    textAlign: 'right',
+    marginTop: 6,
+    marginBottom: 10,
   },
   
   pageNumber: {
