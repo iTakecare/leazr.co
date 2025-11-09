@@ -10,8 +10,6 @@ export interface OfferEquipment {
   selling_price?: number;
   coefficient?: number;
   serial_number?: string;
-  product_id?: string;
-  image_url?: string;
   // Delivery information fields
   collaborator_id?: string;
   delivery_site_id?: string;
