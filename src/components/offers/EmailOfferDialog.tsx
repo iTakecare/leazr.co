@@ -455,7 +455,7 @@ export const EmailOfferDialog = ({
         body: {
           offerId,
           to,
-          subject: `Votre offre de leasing ${offerNumber}`,
+          subject: `Votre offre de leasing iTakecare - ${offerNumber}`,
           message: messageToSend,
           pdfBase64,
           pdfFilename: `offre-${offerNumber}.pdf`,
