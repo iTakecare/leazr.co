@@ -392,7 +392,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 <TableHead className="text-right">Prix d'achat</TableHead>
                 <TableHead className="text-right">Marge (%)</TableHead>
                 <TableHead className="text-right">Prix de vente</TableHead>
-                <TableHead className="text-right">Mensualité</TableHead>
+                <TableHead className="text-right">Mensualité unit.</TableHead>
+                <TableHead className="text-right">Total mensuel</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -502,6 +503,17 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         </span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      {isEditing ? (
+                        <span className="font-mono text-purple-600 font-semibold">
+                          {formatPrice((values.monthly_payment || 0) * values.quantity)}
+                        </span>
+                      ) : (
+                        <span className="font-mono text-purple-600 font-semibold">
+                          {formatPrice((item.monthly_payment || 0) * item.quantity)}
+                        </span>
+                      )}
+                    </TableCell>
                      <TableCell className="text-center">
                        {isEditing ? (
                          <div className="flex gap-1 justify-center">
@@ -602,6 +614,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
+                  <span className="text-muted-foreground text-sm">—</span>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
                   {isEditingTotalMonthly ? (
                     <div className="flex items-center gap-2 justify-end">
                       <Input
@@ -635,7 +651,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 justify-end">
-                      <div className="font-mono font-bold text-base text-blue-600">
+                      <div className="font-mono font-bold text-base text-purple-600">
                         {formatPrice(totals.totalMonthlyPayment)}
                       </div>
                       <Button
