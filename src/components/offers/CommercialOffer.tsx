@@ -324,18 +324,18 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               <div className="section-header">
                  {pageIndex === 0 && (
                   <div className="section-badge blue" style={{
-                    padding: `${styles.spacing.sm} ${styles.spacing.lg}`,
-                    borderRadius: styles.borderRadius.full,
-                    fontSize: styles.fontSize.sm,
+                    padding: `${styles.spacing.md} ${styles.spacing.xl}`,
+                    borderRadius: styles.borderRadius.md,
+                    fontSize: styles.fontSize.base,
+                    fontWeight: '600',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: styles.spacing.xs,
+                    gap: styles.spacing.sm,
                     width: 'fit-content',
-                    height: 'fit-content',
+                    marginBottom: styles.spacing.md,
                   }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>💼</span>
-                    <span style={{ lineHeight: '1' }}>Vos équipements</span>
+                    <span style={{ fontSize: styles.fontSize.lg, display: 'inline-flex', alignItems: 'center' }}>💼</span>
+                    <span style={{ lineHeight: '1' }}>Votre sélection d'équipements professionnels</span>
                   </div>
                 )}
                 
@@ -452,23 +452,39 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       Qté: <strong>{item.quantity}</strong>
                     </div>
                     
-                    {/* Prix */}
+                    {/* Prix unitaire et total */}
                     <div style={{
-                      fontSize: styles.fontSize.lg,
-                      fontWeight: '600',
-                      color: '#1E40AF',
                       textAlign: 'right',
-                      minWidth: isPDFMode ? '100px' : '6.25rem',
+                      minWidth: isPDFMode ? '140px' : '8.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
                     }}>
-                      {formatCurrency(item.monthlyPayment)}
-                      <span style={{
+                      {/* Prix unitaire HTVA/mois */}
+                      <div style={{
                         fontSize: styles.fontSize.xs,
                         color: '#6B7280',
                         fontWeight: '400',
-                        marginLeft: styles.spacing.xs,
                       }}>
-                        /mois
-                      </span>
+                        {formatCurrency(item.monthlyPayment / item.quantity)} HTVA/mois
+                      </div>
+                      
+                      {/* Prix total HTVA/mois */}
+                      <div style={{
+                        fontSize: styles.fontSize.lg,
+                        fontWeight: '600',
+                        color: '#1E40AF',
+                      }}>
+                        {formatCurrency(item.monthlyPayment)}
+                        <span style={{
+                          fontSize: styles.fontSize.xs,
+                          color: '#6B7280',
+                          fontWeight: '400',
+                          marginLeft: styles.spacing.xs,
+                        }}>
+                          HTVA/mois
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
