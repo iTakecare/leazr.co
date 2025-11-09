@@ -233,3 +233,30 @@
 .pdf-mode .conditions-list .contract-end-card {
   margin-top: 16px !important;
 }
+
+/* Forcer l'affichage horizontal des valeurs en mode PDF */
+@media print {
+  .values-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 16px !important;
+  }
+  
+  /* Empêcher les sauts de page à l'intérieur des cartes */
+  .value-card,
+  .product-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* Forcer le saut de page entre les pages d'équipements */
+  .page-2 {
+    page-break-before: auto !important;
+    page-break-after: always !important;
+  }
+  
+  /* Dernière page d'équipements ne force pas de saut après */
+  .page-2:last-of-type {
+    page-break-after: auto !important;
+  }
+}

@@ -257,85 +257,300 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
         </div>
       </div>
 
-      {/* PAGE 2: Équipements */}
-      <div className="page page-2">
-        <div className="section-header">
-          <div className="section-badge blue">💼 Votre pack tech</div>
-          <h2 className="section-title">Détail des Équipements</h2>
-          <p className="section-subtitle">Des appareils premium pour vos besoins professionnels</p>
-        </div>
-
-        {/* Product Cards */}
-        <div className="products-grid">
-          {equipment.map((item, index) => (
-            <div key={item.id} className="product-card">
-              <div className="product-icon gray">
-                <span className="icon-symbol">📦</span>
-              </div>
-              
-              <div className="product-details">
-                <h3 className="product-name">{item.title}</h3>
-                
-                {item.attributes && Object.keys(item.attributes).length > 0 && (
-                  <div className="product-specs">
-                    {Object.entries(item.attributes).map(([key, value]) => (
-                      <span key={key} className="spec-item">
-                        <span className="spec-icon">{getAttributeIcon(key)}</span>
-                        <span className="spec-label">{key}:</span>
-                        <span className="spec-value">{value}</span>
-                      </span>
-                    ))}
+      {/* PAGE 2+ : Équipements (avec pagination) */}
+      {(() => {
+        const productsPerPage = 15;
+        const totalProductPages = Math.ceil(equipment.length / productsPerPage);
+        
+        return Array.from({ length: totalProductPages }, (_, pageIndex) => {
+          const startIdx = pageIndex * productsPerPage;
+          const endIdx = startIdx + productsPerPage;
+          const pageProducts = equipment.slice(startIdx, endIdx);
+          const isLastProductPage = pageIndex === totalProductPages - 1;
+          
+          return (
+            <div 
+              key={`equipment-page-${pageIndex}`}
+              className="page page-2"
+              style={{
+                pageBreakBefore: pageIndex > 0 ? 'always' : 'auto',
+                pageBreakAfter: 'auto',
+                pageBreakInside: 'avoid',
+              }}
+            >
+              <div className="section-header">
+                {pageIndex === 0 && (
+                  <div className="section-badge blue" style={{
+                    padding: `${styles.spacing.sm} ${styles.spacing.lg}`,
+                    borderRadius: styles.borderRadius.full,
+                    fontSize: styles.fontSize.sm,
+                  }}>
+                    💼 Votre pack tech
                   </div>
                 )}
                 
-                <div className="product-footer-compact">
-                  <div className="product-info-line">
-                    <span className="quantity-compact">Qté: {item.quantity}</span>
-                    <div className="price-section-compact">
-                      <span className="price-amount-compact">{formatCurrency(item.monthlyPayment)}</span>
-                      <span className="price-period">/mois</span>
+                <h2 className="section-title" style={{
+                  fontSize: styles.fontSize['3xl'],
+                  fontWeight: '700',
+                  marginBottom: styles.spacing.xs,
+                }}>
+                  Détail des Équipements
+                  {totalProductPages > 1 && ` (${pageIndex + 1}/${totalProductPages})`}
+                </h2>
+                
+                <p className="section-subtitle" style={{
+                  fontSize: styles.fontSize.sm,
+                  color: '#6B7280',
+                  marginBottom: styles.spacing['2xl'],
+                }}>
+                  Des appareils premium pour vos besoins professionnels
+                </p>
+              </div>
+
+              {/* Product Cards - Format compact */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: styles.spacing.sm,
+                marginBottom: styles.spacing['2xl'],
+              }}>
+                {pageProducts.map((item) => (
+                  <div 
+                    key={item.id} 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: styles.spacing.md,
+                      padding: styles.spacing.md,
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: styles.borderRadius.md,
+                      border: '1px solid #E5E7EB',
+                    }}
+                  >
+                    {/* Icône produit */}
+                    <div style={{
+                      width: isPDFMode ? '40px' : '2.5rem',
+                      height: isPDFMode ? '40px' : '2.5rem',
+                      minWidth: isPDFMode ? '40px' : '2.5rem',
+                      backgroundColor: '#E5E7EB',
+                      borderRadius: styles.borderRadius.md,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontSize: styles.fontSize.xl,
+                    }}>
+                      📦
+                    </div>
+                    
+                    {/* Infos produit */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: styles.fontSize.sm,
+                        fontWeight: '600',
+                        color: '#111827',
+                        marginBottom: styles.spacing.xs,
+                      }}>
+                        {item.title}
+                      </div>
+                      {item.attributes && Object.keys(item.attributes).length > 0 && (
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: styles.spacing.xs,
+                        }}>
+                          {Object.entries(item.attributes).slice(0, 3).map(([key, value]) => (
+                            <span 
+                              key={key} 
+                              style={{
+                                fontSize: isPDFMode ? '10px' : '0.625rem',
+                                color: '#6B7280',
+                                backgroundColor: '#F3F4F6',
+                                padding: `2px ${styles.spacing.xs}`,
+                                borderRadius: styles.borderRadius.sm,
+                              }}
+                            >
+                              {getAttributeIcon(key)} {key}: <strong>{value}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Quantité */}
+                    <div style={{
+                      fontSize: styles.fontSize.sm,
+                      color: '#6B7280',
+                      textAlign: 'center',
+                      minWidth: isPDFMode ? '50px' : '3.125rem',
+                    }}>
+                      Qté: <strong>{item.quantity}</strong>
+                    </div>
+                    
+                    {/* Prix */}
+                    <div style={{
+                      fontSize: styles.fontSize.lg,
+                      fontWeight: '600',
+                      color: '#1E40AF',
+                      textAlign: 'right',
+                      minWidth: isPDFMode ? '100px' : '6.25rem',
+                    }}>
+                      {formatCurrency(item.monthlyPayment)}
+                      <span style={{
+                        fontSize: styles.fontSize.xs,
+                        color: '#6B7280',
+                        fontWeight: '400',
+                        marginLeft: styles.spacing.xs,
+                      }}>
+                        /mois
+                      </span>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Total Section */}
-        <div className="total-box">
-          <div className="total-header">
-            <div>
-              <p className="total-label">Total mensuel HT</p>
-              <p className="total-amount">{formatCurrency(totalMonthly)}</p>
+              {/* Total Section - Uniquement sur la dernière page de produits */}
+              {isLastProductPage && (
+                <div style={{
+                  background: styles.background.totalBox,
+                  borderRadius: styles.borderRadius.lg,
+                  padding: styles.spacing['2xl'],
+                  boxShadow: styles.shadow.lg,
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: styles.spacing.lg,
+                  }}>
+                    <div>
+                      <p style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        marginBottom: styles.spacing.xs,
+                      }}>
+                        Total mensuel HT
+                      </p>
+                      <p style={{
+                        fontSize: isPDFMode ? '40px' : '2.5rem',
+                        fontWeight: '700',
+                        color: '#1E40AF',
+                        lineHeight: '1',
+                      }}>
+                        {formatCurrency(totalMonthly)}
+                      </p>
+                    </div>
+                    
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        marginBottom: styles.spacing.xs,
+                      }}>
+                        Durée du contrat
+                      </p>
+                      <p style={{
+                        fontSize: isPDFMode ? '32px' : '2rem',
+                        fontWeight: '600',
+                        color: '#1E40AF',
+                        lineHeight: '1',
+                      }}>
+                        {contractDuration} mois
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    marginTop: styles.spacing.lg,
+                    paddingTop: styles.spacing.lg,
+                    borderTop: '1px solid #93C5FD',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: styles.spacing.md,
+                  }}>
+                    <div style={{
+                      fontSize: styles.fontSize.sm,
+                      color: '#1E40AF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: styles.spacing.xs,
+                    }}>
+                      <span style={{
+                        width: styles.spacing.lg,
+                        height: styles.spacing.lg,
+                        borderRadius: '50%',
+                        backgroundColor: '#10B981',
+                        color: 'white',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: styles.fontSize.xs,
+                      }}>
+                        ✓
+                      </span>
+                      Livraison incluse
+                    </div>
+                    <div style={{
+                      fontSize: styles.fontSize.sm,
+                      color: '#1E40AF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: styles.spacing.xs,
+                    }}>
+                      <span style={{
+                        width: styles.spacing.lg,
+                        height: styles.spacing.lg,
+                        borderRadius: '50%',
+                        backgroundColor: '#10B981',
+                        color: 'white',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: styles.fontSize.xs,
+                      }}>
+                        ✓
+                      </span>
+                      Maintenance incluse
+                    </div>
+                    <div style={{
+                      fontSize: styles.fontSize.sm,
+                      color: '#1E40AF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: styles.spacing.xs,
+                    }}>
+                      <span style={{
+                        width: styles.spacing.lg,
+                        height: styles.spacing.lg,
+                        borderRadius: '50%',
+                        backgroundColor: '#10B981',
+                        color: 'white',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: styles.fontSize.xs,
+                      }}>
+                        ✓
+                      </span>
+                      Garantie échange direct
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    marginTop: styles.spacing.lg,
+                    fontSize: styles.fontSize.xs,
+                    color: '#1E40AF',
+                    textAlign: 'center',
+                  }}>
+                    💼 Frais de dossier unique : <strong>{formatCurrency(fileFee)}</strong> • 
+                    🛡️ Montant de l'assurance annuelle : <strong>{formatCurrency(insuranceCost)}</strong>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="contract-duration">
-              <p className="duration-label">Durée du contrat</p>
-              <p className="duration-value">{contractDuration} mois</p>
-            </div>
-          </div>
-          
-          <div className="included-features">
-            <div className="feature-item">
-              <div className="feature-check">✓</div>
-              <span>Livraison incluse</span>
-            </div>
-            <div className="feature-item">
-              <div className="feature-check">✓</div>
-              <span>Maintenance incluse</span>
-            </div>
-            <div className="feature-item">
-              <div className="feature-check">✓</div>
-              <span>Garantie échange direct</span>
-            </div>
-          </div>
-          
-          <div className="additional-fees">
-            💼 Frais de dossier unique : <strong>{formatCurrency(fileFee)}</strong> • 
-            🛡️ Montant de l'assurance annuelle : <strong>{formatCurrency(insuranceCost)}</strong>
-          </div>
-        </div>
-      </div>
+          );
+        });
+      })()}
 
       {/* PAGE 3: Valeurs */}
       <div className="page page-3">
@@ -346,9 +561,18 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
         </div>
 
         {/* Values Cards */}
-        <div className="values-grid">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: styles.spacing.lg,
+          marginBottom: styles.spacing['3xl'],
+        }}>
           {companyValues.map((value, index) => {
-            const iconColors = ['blue-icon', 'purple-icon', 'green-icon'];
+            const iconColors = [
+              { bg: '#DBEAFE', text: '#1E40AF' },
+              { bg: '#F3E8FF', text: '#7C3AED' },
+              { bg: '#DCFCE7', text: '#059669' }
+            ];
             const icons = [
               <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -362,12 +586,44 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             ];
             
             return (
-              <div key={index} className="value-card">
-                <div className={`value-icon ${iconColors[index % iconColors.length]}`}>
+              <div 
+                key={index} 
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: styles.borderRadius.lg,
+                  padding: styles.spacing['2xl'],
+                  boxShadow: styles.shadow.md,
+                }}
+              >
+                <div style={{
+                  width: isPDFMode ? '48px' : '3rem',
+                  height: isPDFMode ? '48px' : '3rem',
+                  backgroundColor: iconColors[index % iconColors.length].bg,
+                  color: iconColors[index % iconColors.length].text,
+                  borderRadius: styles.borderRadius.lg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: styles.spacing.lg,
+                }}>
                   {icons[index % icons.length]}
                 </div>
-                <h3 className="value-title">{value.title}</h3>
-                <p className="value-description">{value.description}</p>
+                <h3 style={{
+                  fontSize: styles.fontSize.lg,
+                  fontWeight: '600',
+                  marginBottom: styles.spacing.sm,
+                  color: '#111827',
+                }}>
+                  {value.title}
+                </h3>
+                <p style={{
+                  fontSize: styles.fontSize.sm,
+                  color: '#6B7280',
+                  lineHeight: '1.5',
+                }}>
+                  {value.description}
+                </p>
               </div>
             );
           })}
