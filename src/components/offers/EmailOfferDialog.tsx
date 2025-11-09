@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateOfferPDF } from '@/services/clientPdfService';
 import DOMPurify from 'dompurify';
+import { updateOfferStatus } from '@/services/offers/offerStatus';
 
 interface EmailOfferDialogProps {
   open: boolean;
@@ -150,6 +151,27 @@ export const EmailOfferDialog = ({
       }
 
       console.log('[EMAIL-OFFER] Email sent successfully:', data);
+
+      // Mettre à jour le workflow_status vers 'sent'
+      console.log('[EMAIL-OFFER] Updating workflow status to "sent"...');
+      try {
+        const statusUpdated = await updateOfferStatus(
+          offerId,
+          'sent',
+          null,
+          'Email envoyé au client'
+        );
+        
+        if (statusUpdated) {
+          console.log('[EMAIL-OFFER] Workflow status updated to "sent"');
+        } else {
+          console.warn('[EMAIL-OFFER] Failed to update workflow status');
+        }
+      } catch (statusError) {
+        console.error('[EMAIL-OFFER] Error updating workflow status:', statusError);
+        // Ne pas bloquer l'utilisateur si l'update du status échoue
+      }
+
       toast.success('Email envoyé avec succès');
       onOpenChange(false);
     } catch (error) {
@@ -164,11 +186,6 @@ export const EmailOfferDialog = ({
     }
   };
 
-  const handleValidateWithoutSending = () => {
-    if (confirm("Fermer sans envoyer l'email ?")) {
-      onOpenChange(false);
-    }
-  };
 
   const handlePreviewPdf = () => {
     if (pdfUrl) {
@@ -328,32 +345,22 @@ export const EmailOfferDialog = ({
               Annuler
             </Button>
             
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={handleValidateWithoutSending}
-                disabled={isSending}
-              >
-                Valider sans envoyer
-              </Button>
-              
-              <Button
-                onClick={handleSend}
-                disabled={isSending || !includePdf || !pdfBlob}
-              >
-                {isSending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Envoi en cours...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Envoyer l'email et valider
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button
+              onClick={handleSend}
+              disabled={isSending || !includePdf || !pdfBlob}
+            >
+              {isSending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Envoi en cours...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Envoyer l'email
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>
