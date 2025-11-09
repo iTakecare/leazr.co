@@ -35,7 +35,8 @@ import {
   Send, 
   Eye, 
   FileText, 
-  ExternalLink
+  ExternalLink,
+  Mail
 } from "lucide-react";
 import {
   Tooltip,
@@ -48,6 +49,7 @@ import OfferTypeTag from "./OfferTypeTag";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
+import { EmailOfferDialog } from "./EmailOfferDialog";
 import { toast } from "sonner";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
@@ -99,6 +101,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
   const { isAdmin, isAmbassador } = useAuth();
   const { navigateToAdmin, navigateToAmbassador } = useRoleNavigation();
   const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
+  const [emailOfferDialog, setEmailOfferDialog] = React.useState<{
+    offerId: string;
+    offerNumber: string;
+    clientEmail?: string;
+    clientName?: string;
+    validity?: string;
+  } | null>(null);
 
   const formatDate = (dateString: string) => {
     try {
@@ -349,6 +358,19 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         )}
                         
                         {!isAmbassador() && (
+                          <DropdownMenuItem onClick={() => setEmailOfferDialog({
+                            offerId: offer.id,
+                            offerNumber: offer.offer_number,
+                            clientEmail: offer.clients?.email,
+                            clientName: `${offer.clients?.first_name || ''} ${offer.clients?.last_name || ''}`.trim(),
+                            validity: offer.content_blocks?.cover_validity,
+                          })}>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Envoyer offre par mail
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {!isAmbassador() && (
                           <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Ouvrir le lien public
@@ -394,6 +416,18 @@ const OffersTable: React.FC<OffersTableProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {emailOfferDialog && (
+        <EmailOfferDialog
+          open={!!emailOfferDialog}
+          onOpenChange={(open) => !open && setEmailOfferDialog(null)}
+          offerId={emailOfferDialog.offerId}
+          offerNumber={emailOfferDialog.offerNumber}
+          clientEmail={emailOfferDialog.clientEmail}
+          clientName={emailOfferDialog.clientName}
+          validity={emailOfferDialog.validity}
+        />
+      )}
     </TooltipProvider>
   );
 };

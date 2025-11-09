@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.generate-offer-images]
 verify_jwt = true
+
+[functions.send-offer-email]
+verify_jwt = true
