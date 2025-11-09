@@ -42,6 +42,70 @@ const parseEquipmentFromJson = (equipmentJson: string): OfferEquipment[] => {
 };
 
 /**
+ * Enrichit les équipements sans image en cherchant dans le catalogue par titre
+ */
+const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: string): Promise<OfferEquipment[]> => {
+  try {
+    // Récupérer le company_id de l'offre
+    const { data: offer, error: offerError } = await supabase
+      .from('offers')
+      .select('company_id')
+      .eq('id', offerId)
+      .single();
+    
+    if (offerError || !offer?.company_id) {
+      console.warn("Cannot enrich images: company_id not found");
+      return equipment;
+    }
+    
+    const companyId = offer.company_id;
+    const imageCache = new Map<string, string | null>();
+    
+    // Enrichir en parallèle tous les équipements sans image
+    const enrichedEquipment = await Promise.all(
+      equipment.map(async (item) => {
+        // Si l'équipement a déjà une image, le retourner tel quel
+        if (item.image_url) {
+          return item;
+        }
+        
+        // Vérifier le cache d'abord
+        const cacheKey = item.title.toLowerCase().trim();
+        if (imageCache.has(cacheKey)) {
+          return { ...item, image_url: imageCache.get(cacheKey) };
+        }
+        
+        // Chercher un produit correspondant par titre
+        const { data: products, error: productError } = await supabase
+          .from('products')
+          .select('id, name, image_url, image_urls')
+          .eq('company_id', companyId)
+          .ilike('name', `%${item.title}%`)
+          .limit(1);
+        
+        if (productError || !products || products.length === 0) {
+          imageCache.set(cacheKey, null);
+          return item;
+        }
+        
+        const product = products[0];
+        const finalImage = product.image_urls?.[0] || product.image_url || null;
+        
+        imageCache.set(cacheKey, finalImage);
+        console.log(`✅ Enriched image for "${item.title}":`, finalImage);
+        
+        return { ...item, image_url: finalImage };
+      })
+    );
+    
+    return enrichedEquipment;
+  } catch (error) {
+    console.error("Error enriching equipment images:", error);
+    return equipment;
+  }
+};
+
+/**
  * Fetch equipment with their attributes and specifications
  */
 const fetchEquipmentWithDetails = async (equipmentData: any[]): Promise<OfferEquipment[]> => {
@@ -129,7 +193,10 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       console.log("🔥 EQUIPMENT SERVICE - Processing equipment details...");
       const processed = await fetchEquipmentWithDetails(equipmentData);
       console.log("🔥 EQUIPMENT SERVICE - Processed equipment:", processed.length, "items");
-      return processed;
+      
+      // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
+      const enriched = await enrichEquipmentImages(processed, offerId);
+      return enriched;
     }
 
     console.log("🔥 EQUIPMENT SERVICE - No equipment in offer_equipment, checking offer JSON...");
@@ -137,7 +204,7 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
     // Sinon, essayer de migrer depuis le champ JSON de la table offers
     const { data: offerData, error: offerError } = await supabase
       .from('offers')
-      .select('equipment_description')
+      .select('equipment_description, company_id')
       .eq('id', offerId)
       .single();
 
@@ -175,7 +242,10 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
 
           const processed = await fetchEquipmentWithDetails(migratedData || []);
           console.log("🔥 EQUIPMENT SERVICE - Final migrated equipment:", processed.length, "items");
-          return processed;
+          
+          // Fallback: enrichir les images manquantes en cherchant par titre dans le catalogue
+          const enriched = await enrichEquipmentImages(processed, offerId);
+          return enriched;
         } else {
           console.warn("🔥 EQUIPMENT SERVICE - Migration failed");
         }
