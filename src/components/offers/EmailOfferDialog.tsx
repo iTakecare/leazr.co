@@ -77,13 +77,12 @@ export const EmailOfferDialog = ({
   const generateEmailPreview = () => {
     const preview = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #33638e;">🎉 Félicitations - Votre demande de leasing a été acceptée !</h2>
         <p>Bonjour <strong>${clientName || 'Client'}</strong>,</p>
         <p>Veuillez trouver ci-joint votre offre de leasing n°<strong>${offerNumber}</strong>.</p>
         ${validity ? `<p style="background: #f0f9ff; padding: 12px; border-left: 4px solid #33638e; margin: 20px 0;">
           <strong>⏰ Attention :</strong> ${validity}
         </p>` : ''}
-        <p>N'hésitez pas à nous contacter pour toute question.</p>
+        <p>N'hésitez pas à nous contacter pour toute question, ou marquer votre accord par retour de mail.</p>
         <p style="color: #666; font-size: 14px; margin-top: 30px;">
           Cordialement,<br>
           L'équipe iTakecare
