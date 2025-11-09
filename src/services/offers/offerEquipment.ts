@@ -71,6 +71,7 @@ const fetchEquipmentWithDetails = async (equipmentData: any[]): Promise<OfferEqu
     
     equipmentWithDetails.push({
       ...equipment,
+      image_url: equipment.product?.image_url || null,
       attributes: attributesData || [],
       specifications: specificationsData || []
     });
@@ -103,6 +104,7 @@ export const getOfferEquipment = async (offerId: string): Promise<OfferEquipment
       .from('offer_equipment')
       .select(`
         *,
+        product:products(image_url),
         attributes:offer_equipment_attributes(key, value),
         specifications:offer_equipment_specifications(key, value)
       `)

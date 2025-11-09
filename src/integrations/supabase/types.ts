@@ -3701,6 +3701,7 @@ export type Database = {
           margin: number
           monthly_payment: number | null
           offer_id: string
+          product_id: string | null
           purchase_price: number
           quantity: number
           selling_price: number | null
@@ -3727,6 +3728,7 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           offer_id: string
+          product_id?: string | null
           purchase_price?: number
           quantity?: number
           selling_price?: number | null
@@ -3753,6 +3755,7 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           offer_id?: string
+          product_id?: string | null
           purchase_price?: number
           quantity?: number
           selling_price?: number | null
@@ -3780,6 +3783,13 @@ export type Database = {
             columns: ["offer_id"]
             isOneToOne: false
             referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_equipment_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]

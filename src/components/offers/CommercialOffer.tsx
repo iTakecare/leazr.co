@@ -21,6 +21,7 @@ interface CommercialOfferProps {
     title: string;
     quantity: number;
     monthlyPayment: number;
+    image_url?: string;
     attributes?: Record<string, string>;
     specifications?: Record<string, string>;
   }>;
@@ -322,13 +323,17 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             >
               <div className="section-header">
                 {pageIndex === 0 && (
-                  <div className="section-badge blue" style={{
-                    padding: `${styles.spacing.sm} ${styles.spacing.lg}`,
-                    borderRadius: styles.borderRadius.full,
-                    fontSize: styles.fontSize.sm,
-                  }}>
-                    💼 Votre pack tech
-                  </div>
+            <div className="section-badge blue" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: `${styles.spacing.sm} ${styles.spacing.lg}`,
+              borderRadius: styles.borderRadius.full,
+              fontSize: styles.fontSize.sm,
+              lineHeight: '1',
+            }}>
+              💼 Votre pack tech
+            </div>
                 )}
                 
                 <h2 className="section-title" style={{
@@ -381,8 +386,21 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       justifyContent: 'center',
                       flexShrink: 0,
                       fontSize: styles.fontSize.xl,
+                      overflow: 'hidden',
                     }}>
-                      📦
+                      {item.image_url ? (
+                        <img 
+                          src={item.image_url} 
+                          alt={item.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      ) : (
+                        '📦'
+                      )}
                     </div>
                     
                     {/* Infos produit */}
@@ -395,12 +413,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       }}>
                         {item.title}
                       </div>
-                      {item.attributes && Object.keys(item.attributes).length > 0 && (
-                        <div style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: styles.spacing.xs,
-                        }}>
+                  {item.attributes && Object.keys(item.attributes).length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: styles.spacing.xs,
+                      paddingBottom: styles.spacing.sm,
+                    }}>
                           {Object.entries(item.attributes).slice(0, 3).map(([key, value]) => (
                             <span 
                               key={key} 
@@ -517,19 +536,21 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       alignItems: 'center',
                       gap: styles.spacing.xs,
                     }}>
-                      <span style={{
-                        width: styles.spacing.lg,
-                        height: styles.spacing.lg,
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                        color: 'white',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: styles.fontSize.xs,
-                      }}>
-                        ✓
-                      </span>
+                <span style={{
+                  width: styles.spacing.lg,
+                  height: styles.spacing.lg,
+                  borderRadius: '50%',
+                  backgroundColor: '#10B981',
+                  color: 'white',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: styles.fontSize.xs,
+                  lineHeight: '0',
+                  fontWeight: 'bold',
+                }}>
+                  ✓
+                </span>
                       Livraison incluse
                     </div>
                     <div style={{
@@ -549,6 +570,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: styles.fontSize.xs,
+                        lineHeight: '0',
+                        fontWeight: 'bold',
                       }}>
                         ✓
                       </span>
@@ -571,6 +594,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: styles.fontSize.xs,
+                        lineHeight: '0',
+                        fontWeight: 'bold',
                       }}>
                         ✓
                       </span>
