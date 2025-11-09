@@ -101,6 +101,13 @@ export const EmailOfferDialog = ({
       const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
       const equipmentData = await getOfferEquipment(offerId);
 
+      // Calculer le total mensualité à partir des équipements
+      const computedTotalMonthly = equipmentData.reduce(
+        (sum, eq) => sum + (Number(eq.monthly_payment) || 0) * (Number(eq.quantity) || 1),
+        0
+      );
+      console.log('[EMAIL-OFFER] totalMonthly computed from equipment:', computedTotalMonthly);
+
       // Convertir le logo en Base64
       let companyLogoBase64 = null;
       if (offerData.companies?.logo_url) {
@@ -207,7 +214,7 @@ export const EmailOfferDialog = ({
             return acc;
           }, {}) || {}
         })),
-        totalMonthly: Number(offerData.monthly_payment) || 0,
+        totalMonthly: computedTotalMonthly,
         contractDuration: Number(offerData.duration) || 36,
         fileFee: Number(offerData.file_fee) || 0,
         insuranceCost: Number(offerData.annual_insurance) || 0,
@@ -229,7 +236,7 @@ export const EmailOfferDialog = ({
             validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
           },
           equipment: {
-            title: contentBlocksMap['equipment']?.['title'] || 'Détail de l\'équipement',
+            title: 'Votre sélection d\'équipements professionnels',
             footer_note: contentBlocksMap['equipment']?.['footer_note'] || 'Tous nos équipements sont garantis.',
           },
           conditions: {
