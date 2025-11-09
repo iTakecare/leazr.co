@@ -75,15 +75,41 @@ const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: strin
           return { ...item, image_url: imageCache.get(cacheKey) };
         }
         
-        // Chercher un produit correspondant par titre
-        const { data: products, error: productError } = await supabase
+        // Première recherche: exacte par titre complet
+        let { data: products, error: productError } = await supabase
           .from('products')
           .select('id, name, image_url, image_urls')
           .eq('company_id', companyId)
           .ilike('name', `%${item.title}%`)
           .limit(1);
         
+        // Si pas de résultat, recherche permissive avec titre nettoyé
+        if (!products || products.length === 0) {
+          // Nettoyer le titre: retirer chiffres et normaliser espaces
+          const cleanTitle = item.title
+            .replace(/\d+/g, '') // Retirer "2", "3", etc.
+            .replace(/\s+/g, ' ') // Normaliser espaces multiples
+            .trim();
+          
+          if (cleanTitle !== item.title) {
+            console.log(`🔍 Fallback search for "${item.title}" → "${cleanTitle}"`);
+            
+            const { data: altProducts, error: altError } = await supabase
+              .from('products')
+              .select('id, name, image_url, image_urls')
+              .eq('company_id', companyId)
+              .ilike('name', `%${cleanTitle}%`)
+              .limit(1);
+            
+            if (!altError && altProducts && altProducts.length > 0) {
+              products = altProducts;
+              console.log(`✅ Found with fallback: "${altProducts[0].name}"`);
+            }
+          }
+        }
+        
         if (productError || !products || products.length === 0) {
+          console.warn(`❌ No image found for "${item.title}"`);
           imageCache.set(cacheKey, null);
           return item;
         }
@@ -92,7 +118,7 @@ const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: strin
         const finalImage = product.image_urls?.[0] || product.image_url || null;
         
         imageCache.set(cacheKey, finalImage);
-        console.log(`✅ Enriched image for "${item.title}":`, finalImage);
+        console.log(`✅ Enriched image for "${item.title}": ${finalImage ? 'found' : 'null'}`);
         
         return { ...item, image_url: finalImage };
       })

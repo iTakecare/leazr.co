@@ -330,10 +330,12 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    lineHeight: '1',
+                    gap: styles.spacing.xs,
                     width: 'fit-content',
+                    height: 'fit-content',
                   }}>
-                    💼 Votre pack tech
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>💼</span>
+                    <span style={{ lineHeight: '1' }}>Votre pack tech</span>
                   </div>
                 )}
                 
