@@ -61,11 +61,6 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
         </Text>
       </View>
 
-      {/* Badge "Vos équipements" */}
-      <View style={{ ...styles.equipmentBadge, marginTop: 4 }}>
-        <Text>💼 Vos équipements</Text>
-      </View>
-
       {/* Equipment Table */}
       <View style={styles.table}>
         {/* Table Header */}

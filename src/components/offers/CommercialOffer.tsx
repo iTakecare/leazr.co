@@ -332,24 +332,6 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   {pageIndex > 0 && totalProductPages > 1 && ` (${pageIndex + 1}/${totalProductPages})`}
                 </h2>
                 
-                {/* Badge bleu - uniquement sur la première page */}
-                {pageIndex === 0 && (
-                  <div className="section-badge blue" style={{
-                    padding: `${styles.spacing.md} ${styles.spacing.xl}`,
-                    borderRadius: styles.borderRadius.md,
-                    fontSize: styles.fontSize.base,
-                    fontWeight: '600',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: styles.spacing.sm,
-                    width: 'fit-content',
-                    marginBottom: styles.spacing.md,
-                  }}>
-                    <span style={{ fontSize: styles.fontSize.lg, display: 'inline-flex', alignItems: 'center' }}>💼</span>
-                    <span style={{ lineHeight: '1' }}>Votre sélection d'équipements professionnels</span>
-                  </div>
-                )}
-                
                 <p className="section-subtitle" style={{
                   fontSize: styles.fontSize.sm,
                   color: '#6B7280',
