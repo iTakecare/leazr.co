@@ -259,9 +259,14 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               Offre<br/>
               <span className="gradient-text">Commerciale</span>
             </h1>
-            <p className="subtitle">
-              Votre solution de leasing tech premium pour équiper votre entreprise avec les derniers MacBook et iPhone.
-            </p>
+            <div className="subtitle">
+              {contentBlocks?.cover?.greeting && (
+                <div dangerouslySetInnerHTML={{ __html: contentBlocks.cover.greeting }} />
+              )}
+              {contentBlocks?.cover?.introduction && (
+                <div dangerouslySetInnerHTML={{ __html: contentBlocks.cover.introduction }} />
+              )}
+            </div>
             
             {/* Destinataire card */}
             <div className="client-card">
@@ -283,9 +288,13 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <p>
-              <strong>Attention :</strong> Cette offre est valable {validityDays} jours à compter de la date d'émission.
-            </p>
+            {contentBlocks?.cover?.validity ? (
+              <div dangerouslySetInnerHTML={{ __html: contentBlocks.cover.validity }} />
+            ) : (
+              <p>
+                <strong>Attention :</strong> Cette offre est valable {validityDays} jours à compter de la date d'émission.
+              </p>
+            )}
           </div>
         </div>
       </div>
