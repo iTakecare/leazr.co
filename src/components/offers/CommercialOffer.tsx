@@ -455,7 +455,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     {/* Prix unitaire et total */}
                     <div style={{
                       textAlign: 'right',
-                      minWidth: isPDFMode ? '140px' : '8.75rem',
+                      minWidth: isPDFMode ? '160px' : '9.5rem',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '2px',
@@ -466,7 +466,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         color: '#6B7280',
                         fontWeight: '400',
                       }}>
-                        {formatCurrency(item.monthlyPayment / item.quantity)} HTVA/mois
+                        {formatCurrency(item.monthlyPayment)} HTVA/mois
+                        <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
+                          • unitaire
+                        </span>
                       </div>
                       
                       {/* Prix total HTVA/mois */}
@@ -475,7 +478,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         fontWeight: '600',
                         color: '#1E40AF',
                       }}>
-                        {formatCurrency(item.monthlyPayment)}
+                        {formatCurrency(item.monthlyPayment * Math.max(1, item.quantity || 1))}
                         <span style={{
                           fontSize: styles.fontSize.xs,
                           color: '#6B7280',
@@ -484,6 +487,15 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         }}>
                           HTVA/mois
                         </span>
+                      </div>
+                      
+                      {/* Légende pour la clarté */}
+                      <div style={{
+                        fontSize: '9px',
+                        color: '#9CA3AF',
+                        fontStyle: 'italic',
+                      }}>
+                        Total pour l'équipement
                       </div>
                     </div>
                   </div>
