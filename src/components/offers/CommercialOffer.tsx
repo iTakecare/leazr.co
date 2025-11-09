@@ -226,7 +226,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     src={companyLogo} 
                     alt={`${companyName} Logo`}
                     className="logo-itakecare"
-                    style={{ height: '40px', width: 'auto', maxWidth: '150px', objectFit: 'contain' }}
+                    style={{ height: 'auto', maxHeight: '40px', width: 'auto', maxWidth: '150px', objectFit: 'contain' }}
                   />
                 ) : (
                   <>

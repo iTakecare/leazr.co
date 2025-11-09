@@ -119,7 +119,8 @@
 
 /* Style pour le logo iTakecare en image */
 .pdf-mode .logo-itakecare {
-  height: 40px !important;
+  height: auto !important;
+  max-height: 40px !important;
   width: auto !important;
   max-width: 150px !important;
   object-fit: contain !important;
