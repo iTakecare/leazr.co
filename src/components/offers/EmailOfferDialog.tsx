@@ -15,6 +15,7 @@ import DOMPurify from 'dompurify';
 import { updateOfferStatus } from '@/services/offers/offerStatus';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { RichTextEditor } from '@/components/admin/RichTextEditor';
+import { getPlatformSettings } from '@/services/platformSettingsService';
 
 interface EmailOfferDialogProps {
   open: boolean;
@@ -345,6 +346,10 @@ export const EmailOfferDialog = ({
         .eq('id', offerId)
         .single();
 
+      // Récupérer les paramètres de la plateforme (logo, nom, etc.)
+      const platformSettings = await getPlatformSettings();
+      const logoUrl = platformSettings?.logo_url || '/leazr-logo.png';
+
       // Extraire le prénom
       let firstName = 'Client';
       if (offerData?.clients?.first_name) {
@@ -387,6 +392,9 @@ export const EmailOfferDialog = ({
             <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 11px; color: #333; width: 100%; max-width: 650px;">
               <tr>
                 <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
+                  <div style="margin-bottom: 12px;">
+                    <img src="${logoUrl}" alt="iTakecare" style="height: 40px; max-width: 150px; object-fit: contain;" onerror="this.style.display='none'">
+                  </div>
                   <div style="font-weight: bold; color: #1e40af; font-size: 13px; margin-bottom: 10px;">
                     iTakecare SRL
                   </div>
@@ -428,6 +436,9 @@ export const EmailOfferDialog = ({
     } catch (error) {
       console.error('[EMAIL-OFFER] Error generating email preview:', error);
       // Fallback si erreur
+      const platformSettings = await getPlatformSettings();
+      const logoUrl = platformSettings?.logo_url || '/leazr-logo.png';
+      
       const validityText = validity 
         ? `<p style="margin-top: 16px; padding: 12px; background-color: #f3f4f6; border-left: 4px solid #3b82f6; font-size: 14px;">
              <strong>⏰ Validité:</strong> Cette offre est valable ${validity} jours à compter de ce jour.
@@ -460,6 +471,9 @@ export const EmailOfferDialog = ({
             <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 11px; color: #333; width: 100%; max-width: 650px;">
               <tr>
                 <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
+                  <div style="margin-bottom: 12px;">
+                    <img src="${logoUrl}" alt="iTakecare" style="height: 40px; max-width: 150px; object-fit: contain;" onerror="this.style.display='none'">
+                  </div>
                   <div style="font-weight: bold; color: #1e40af; font-size: 13px; margin-bottom: 10px;">
                     iTakecare SRL
                   </div>
