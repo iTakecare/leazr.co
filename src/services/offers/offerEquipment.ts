@@ -566,7 +566,8 @@ export const updateOfferEquipment = async (
   updates: Partial<Pick<OfferEquipment, 'title' | 'purchase_price' | 'quantity' | 'margin' | 'monthly_payment' | 'selling_price' | 'coefficient' | 'serial_number'>>
 ): Promise<boolean> => {
   try {
-    console.log("Updating equipment:", equipmentId, "with:", updates);
+    console.log("🔵 UPDATE EQUIPMENT SERVICE - Updating equipment:", equipmentId);
+    console.log("🔵 UPDATE EQUIPMENT SERVICE - Updates:", updates);
     
     const { data, error } = await supabase
       .rpc('update_offer_equipment_secure', {
@@ -582,15 +583,21 @@ export const updateOfferEquipment = async (
       });
     
     if (error) {
-      console.error("Erreur lors de la mise à jour de l'équipement:", error);
-      throw new Error(error.message);
+      console.error("🔴 UPDATE EQUIPMENT SERVICE - RPC Error:", error);
+      console.error("🔴 UPDATE EQUIPMENT SERVICE - Error details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(error.message || "Erreur lors de la mise à jour de l'équipement");
     }
     
-    console.log("Equipment updated successfully:", data);
+    console.log("✅ UPDATE EQUIPMENT SERVICE - Equipment updated successfully:", data);
     return true;
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour de l'équipement:", error);
-    throw error;
+  } catch (error: any) {
+    console.error("🔴 UPDATE EQUIPMENT SERVICE - Catch error:", error);
+    throw new Error(error?.message || "Erreur lors de la mise à jour de l'équipement");
   }
 };
 

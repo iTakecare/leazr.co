@@ -76,8 +76,35 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
       return;
     }
 
+    // Validation des données
+    if (!editedItem.title || editedItem.title.trim() === '') {
+      toast.error("Le titre ne peut pas être vide");
+      return;
+    }
+
+    if (editedItem.quantity <= 0) {
+      toast.error("La quantité doit être supérieure à 0");
+      return;
+    }
+
+    if (editedItem.purchasePrice < 0) {
+      toast.error("Le prix d'achat ne peut pas être négatif");
+      return;
+    }
+
     setIsSaving(true);
     try {
+      console.log("🔵 Saving equipment with data:", {
+        id: item.id,
+        title: editedItem.title,
+        purchase_price: editedItem.purchasePrice,
+        quantity: editedItem.quantity,
+        margin: editedItem.margin,
+        monthly_payment: editedItem.monthlyPayment,
+        selling_price: editedItem.sellingPrice,
+        coefficient: editedItem.coefficient
+      });
+
       await updateOfferEquipment(item.id, {
         title: editedItem.title,
         purchase_price: editedItem.purchasePrice,
@@ -91,11 +118,10 @@ const EditableEquipmentCard: React.FC<EditableEquipmentCardProps> = ({ item, ind
       toast.success("Équipement mis à jour avec succès");
       setIsEditing(false);
       onUpdate();
-      // Déclencher un refresh de l'offre pour synchroniser les données
       onOfferUpdate?.();
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
-      toast.error("Erreur lors de la sauvegarde");
+    } catch (error: any) {
+      console.error("🔴 Erreur lors de la sauvegarde:", error);
+      toast.error(error?.message || "Erreur lors de la sauvegarde");
     } finally {
       setIsSaving(false);
     }
