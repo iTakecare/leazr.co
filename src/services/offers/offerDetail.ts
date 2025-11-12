@@ -37,10 +37,14 @@ export const updateOffer = async (id: string, updates: any) => {
     console.log("🔄 UPDATING OFFER - ID:", id);
     console.log("🔄 UPDATING OFFER - Updates:", updates);
     
+    // Ajouter updated_at pour satisfaire les règles RLS/politiques
+    const payload = { ...updates, updated_at: new Date().toISOString() };
+    console.log("🔄 UPDATING OFFER - Payload:", payload);
+    
     // 1. Mettre à jour l'offre elle-même
     const { data, error } = await supabase
       .from('offers')
-      .update(updates)
+      .update(payload)
       .eq('id', id)
       .select();
 

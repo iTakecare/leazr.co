@@ -38,23 +38,36 @@ export const OfferFinancialFeesEditor: React.FC<OfferFinancialFeesEditorProps> =
   };
 
   const handleSave = async () => {
+    // Validation des données
+    if (fileFee < 0) {
+      toast.error("Les frais de dossier ne peuvent pas être négatifs");
+      return;
+    }
+
+    if (annualInsurance < 0) {
+      toast.error("L'assurance annuelle ne peut pas être négative");
+      return;
+    }
+
     setIsSaving(true);
     try {
+      console.log("💾 Saving fees", { offerId, fileFee, annualInsurance });
+      
       const result = await updateOffer(offerId, {
         file_fee: fileFee,
         annual_insurance: annualInsurance
       });
 
       if (result.error) {
-        throw new Error(result.error.message);
+        throw new Error(result.error.message || 'Mise à jour refusée');
       }
 
       toast.success('Frais mis à jour avec succès');
       setIsEditing(false);
       onUpdate?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la mise à jour des frais:', error);
-      toast.error('Erreur lors de la mise à jour des frais');
+      toast.error(error?.message || 'Erreur lors de la mise à jour des frais');
     } finally {
       setIsSaving(false);
     }
