@@ -563,7 +563,31 @@ export const forceMigrateEquipmentData = async (offerId: string): Promise<boolea
  */
 export const updateOfferEquipment = async (
   equipmentId: string,
-  updates: Partial<Pick<OfferEquipment, 'title' | 'purchase_price' | 'quantity' | 'margin' | 'monthly_payment' | 'selling_price' | 'coefficient' | 'serial_number'>>
+  updates: Partial<
+    Pick<
+      OfferEquipment,
+      | 'title'
+      | 'purchase_price'
+      | 'quantity'
+      | 'margin'
+      | 'monthly_payment'
+      | 'selling_price'
+      | 'coefficient'
+      | 'serial_number'
+      | 'collaborator_id'
+      | 'delivery_site_id'
+      | 'delivery_type'
+      | 'delivery_address'
+      | 'delivery_city'
+      | 'delivery_postal_code'
+      | 'delivery_country'
+      | 'delivery_contact_name'
+      | 'delivery_contact_email'
+      | 'delivery_contact_phone'
+      | 'product_id'
+      | 'image_url'
+    >
+  >
 ): Promise<boolean> => {
   try {
     console.log("🔵 UPDATE EQUIPMENT SERVICE - Updating equipment:", equipmentId);
@@ -579,7 +603,20 @@ export const updateOfferEquipment = async (
         p_monthly_payment: updates.monthly_payment ?? null,
         p_selling_price: updates.selling_price ?? null,
         p_coefficient: updates.coefficient ?? null,
-        p_serial_number: updates.serial_number ?? null
+        p_serial_number: updates.serial_number ?? null,
+        // Extended delivery/product fields to disambiguate RPC overload
+        p_collaborator_id: updates.collaborator_id ?? null,
+        p_delivery_site_id: updates.delivery_site_id ?? null,
+        p_delivery_type: updates.delivery_type ?? null,
+        p_delivery_address: updates.delivery_address ?? null,
+        p_delivery_city: updates.delivery_city ?? null,
+        p_delivery_postal_code: updates.delivery_postal_code ?? null,
+        p_delivery_country: updates.delivery_country ?? null,
+        p_delivery_contact_name: updates.delivery_contact_name ?? null,
+        p_delivery_contact_email: updates.delivery_contact_email ?? null,
+        p_delivery_contact_phone: updates.delivery_contact_phone ?? null,
+        p_product_id: updates.product_id ?? null,
+        p_image_url: updates.image_url ?? null
       });
     
     if (error) {
