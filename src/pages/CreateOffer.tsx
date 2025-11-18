@@ -12,7 +12,12 @@ import { createOffer, getOfferById, updateOffer } from "@/services/offerService"
 import { getLeasers } from "@/services/leaserService";
 import { getClientById } from "@/services/clientService";
 import { defaultLeasers } from "@/data/leasers";
-import { Calculator as CalcIcon, Loader2, ArrowLeft, Package } from "lucide-react";
+import { Calculator as CalcIcon, Loader2, ArrowLeft, Package, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import PackSelectorModal from "@/components/offers/PackSelectorModal";
 import { ProductPack } from "@/types/pack";
 import PageTransition from "@/components/layout/PageTransition";
@@ -70,6 +75,8 @@ const CreateOffer = () => {
   const [isPackSelectorOpen, setIsPackSelectorOpen] = useState(false);
   const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
   const [fileFeeAmount, setFileFeeAmount] = useState(75);
+  const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
+  const [estimatedBudget, setEstimatedBudget] = useState<number>(0);
   const [selectedPacks, setSelectedPacks] = useState<Array<{
     pack_id: string;
     pack: ProductPack;
@@ -464,8 +471,19 @@ const CreateOffer = () => {
       toast.error("Vous devez être connecté pour créer une offre");
       return;
     }
-    if (!clientName || !clientEmail || equipmentList.length === 0) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
+    // Validation
+    if (!productsToBeDetermined && equipmentList.length === 0) {
+      toast.error("Veuillez ajouter au moins un équipement");
+      return;
+    }
+
+    if (productsToBeDetermined && estimatedBudget <= 0) {
+      toast.error("Veuillez saisir un budget estimé");
+      return;
+    }
+
+    if (!clientName) {
+      toast.error("Veuillez sélectionner ou créer un client");
       return;
     }
 
@@ -553,32 +571,31 @@ const CreateOffer = () => {
       const offerData: OfferData = {
         user_id: user.id,
         company_id: userCompanyId,
-        // Champ obligatoire
         client_name: clientName,
         client_email: clientEmail || null,
         client_id: clientId,
-        equipment_description: JSON.stringify(equipmentData),
-        amount: totalAmount,
+        
+        // Gestion "produits à déterminer"
+        products_to_be_determined: productsToBeDetermined,
+        estimated_budget: productsToBeDetermined ? estimatedBudget : null,
+        equipment_description: productsToBeDetermined ? '[]' : JSON.stringify(equipmentData),
+        
+        amount: productsToBeDetermined ? estimatedBudget : totalAmount,
         coefficient: globalMarginAdjustment.newCoef,
-        monthly_payment: totalMonthlyPayment,
+        monthly_payment: productsToBeDetermined ? 0 : totalMonthlyPayment,
         commission: calculatedCommission,
-        // Utiliser la commission calculée dynamiquement
-        financed_amount: financedAmount,
+        financed_amount: productsToBeDetermined ? estimatedBudget : financedAmount,
         remarks: remarks,
         type: offerType,
-        // S'assurer que workflow_status est toujours défini
         workflow_status: 'draft',
-        // UTILISER DIRECTEMENT la marge calculée depuis les équipements
-        margin: totalEquipmentMargin,
+        margin: productsToBeDetermined ? 0 : totalEquipmentMargin,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
-        total_margin_with_difference: totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0),
-        // Assigner l'ambassadeur si c'est une offre ambassadeur
+        total_margin_with_difference: productsToBeDetermined ? 0 : (totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)),
         ambassador_id: ambassadorId,
-        // CORRECTION: Sauvegarder le bailleur et la durée sélectionnés
         leaser_id: selectedLeaser?.id,
         duration: selectedDuration,
         file_fee: fileFeeEnabled ? fileFeeAmount : 0,
-        annual_insurance: annualInsurance
+        annual_insurance: productsToBeDetermined ? 0 : annualInsurance
       };
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
@@ -670,7 +687,59 @@ const CreateOffer = () => {
                     {/* Configuration de l'offre */}
                     <OfferConfiguration isInternalOffer={isInternalOffer} setIsInternalOffer={handleInternalOfferChange} selectedAmbassador={selectedAmbassador} onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} selectedLeaser={selectedLeaser} onOpenLeaserSelector={handleOpenLeaserSelector} selectedDuration={selectedDuration} onDurationChange={handleDurationChange} fileFeeEnabled={fileFeeEnabled} fileFeeAmount={fileFeeAmount} onFileFeeEnabledChange={setFileFeeEnabled} onFileFeeAmountChange={setFileFeeAmount} />
 
+                    {/* Option Produits à déterminer */}
+                    <Card className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id="products-tbd-simple"
+                          checked={productsToBeDetermined}
+                          onCheckedChange={(checked) => {
+                            setProductsToBeDetermined(checked as boolean);
+                            if (checked) {
+                              setEquipmentList([]);
+                            }
+                          }}
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor="products-tbd-simple" className="text-sm font-medium cursor-pointer">
+                            Produits à déterminer
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Créer une demande sans définir les produits pour scorer le client d'abord
+                          </p>
+                        </div>
+                      </div>
+
+                      {productsToBeDetermined && (
+                        <div className="mt-4">
+                          <Label htmlFor="estimated-budget">Budget estimé (€)</Label>
+                          <Input
+                            id="estimated-budget"
+                            type="number"
+                            value={estimatedBudget}
+                            onChange={(e) => setEstimatedBudget(Number(e.target.value))}
+                            placeholder="Ex: 5000"
+                            min="0"
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </Card>
+
+                    {productsToBeDetermined && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Mode "Produits à déterminer" activé</AlertTitle>
+                        <AlertDescription>
+                          Budget estimé : <strong>{estimatedBudget.toLocaleString('fr-FR')} €</strong>
+                          <br />
+                          Vous pourrez définir les produits spécifiques après avoir scoré le client.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {/* Contenu principal */}
+                    {!productsToBeDetermined && (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                       <div className="xl:col-span-1">
                         <EquipmentForm 
@@ -708,6 +777,12 @@ const CreateOffer = () => {
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} />
                       </div>
                     </div>
+                    )}
+
+                    {/* Client Info quand produits à déterminer */}
+                    {productsToBeDetermined && (
+                      <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} />
+                    )}
                   </div>}
               </div>
             </div>
