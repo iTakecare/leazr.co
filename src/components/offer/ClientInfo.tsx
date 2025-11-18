@@ -20,6 +20,7 @@ interface ClientInfoProps {
   selectedLeaser: Leaser | null;
   equipmentList: any[];
   hideFinancialDetails?: boolean;
+  productsToBeDetermined?: boolean;
 }
 
 const ClientInfo: React.FC<ClientInfoProps> = ({
@@ -34,7 +35,8 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
   isSubmitting,
   selectedLeaser,
   equipmentList,
-  hideFinancialDetails = false
+  hideFinancialDetails = false,
+  productsToBeDetermined = false
 }) => {
   return (
     <div className="space-y-6">
@@ -91,7 +93,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
       {/* Save Button */}
       <Button
         onClick={handleSaveOffer}
-        disabled={isSubmitting || !clientName || !clientEmail || equipmentList.length === 0}
+        disabled={isSubmitting || !clientName || !clientEmail || (!productsToBeDetermined && equipmentList.length === 0)}
         className="w-full"
         size="lg"
       >
