@@ -48,6 +48,8 @@ export interface OfferFormData {
     monthlyPayment: number;
     margin: number;
     commission: number;
+    products_to_be_determined?: boolean;
+    estimated_budget?: number;
   };
   
   // Additional Options
@@ -140,6 +142,11 @@ export const useCustomOfferGenerator = () => {
         );
       
       case 'equipment':
+        // Si produits à déterminer, valider que le budget estimé est > 0
+        if (formData.financing?.products_to_be_determined) {
+          return (formData.financing?.estimated_budget ?? 0) > 0;
+        }
+        // Sinon, valider qu'il y a au moins un équipement
         return formData.equipment.length > 0;
       
       case 'financing':
@@ -207,17 +214,31 @@ export const useCustomOfferGenerator = () => {
         company_id: null, // Will be set by createOffer
         client_name: formData.clientInfo.name,
         client_email: formData.clientInfo.email,
-        equipment_description: JSON.stringify(formData.equipment),
-        amount: totals.totalAmount,
+        equipment_description: formData.financing?.products_to_be_determined 
+          ? `Budget estimé: ${formData.financing.estimated_budget}€ - Produits à déterminer`
+          : JSON.stringify(formData.equipment),
+        amount: formData.financing?.products_to_be_determined
+          ? formData.financing.estimated_budget
+          : totals.totalAmount,
         coefficient: formData.financing.coefficient,
-        monthly_payment: totals.totalMonthlyPayment,
-        margin: totals.totalMargin,
-        financed_amount: totals.totalAmount,
+        monthly_payment: formData.financing?.products_to_be_determined
+          ? 0 // Sera calculé plus tard
+          : totals.totalMonthlyPayment,
+        margin: formData.financing?.products_to_be_determined
+          ? 0 // Sera calculé plus tard
+          : totals.totalMargin,
+        financed_amount: formData.financing?.products_to_be_determined
+          ? formData.financing.estimated_budget
+          : totals.totalAmount,
         status: 'pending',
         workflow_status: 'draft',
         type: 'client_request',
-        equipment: formData.equipment,
+        equipment: formData.financing?.products_to_be_determined ? [] : formData.equipment,
         remarks: formData.options.remarks,
+        products_to_be_determined: formData.financing?.products_to_be_determined,
+        estimated_budget: formData.financing?.estimated_budget,
+        leaser_id: formData.financing.leaserId,
+        duration: formData.financing.duration,
       };
 
       setProgress(80);

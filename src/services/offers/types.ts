@@ -60,6 +60,8 @@ export interface OfferData {
     attributes?: Record<string, any>;
     specifications?: Record<string, any>;
   }>;
+  products_to_be_determined?: boolean; // Flag pour créer une offre sans produits spécifiques
+  estimated_budget?: number; // Budget estimé quand les produits ne sont pas définis
 }
 
 export enum OfferStatus {
