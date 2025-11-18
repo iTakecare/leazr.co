@@ -1,21 +1,27 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import PageTransition from "@/components/layout/PageTransition";
-import { Calculator as CalcIcon } from "lucide-react";
+import { Calculator as CalcIcon, AlertCircle } from "lucide-react";
 import ClientSelector from "@/components/ui/ClientSelector";
 import LeaserSelector from "@/components/ui/LeaserSelector";
 import OffersLoading from "@/components/offers/OffersLoading";
 import { useAmbassadorOfferState } from "@/hooks/useAmbassadorOfferState";
 import { useAmbassadorOfferSave } from "@/components/ambassador/AmbassadorOfferSaveLogic";
 import { useEquipmentCalculator } from "@/hooks/useEquipmentCalculator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AmbassadorCreateOffer = () => {
   const { navigateToAmbassador } = useRoleNavigation();
+  const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
+  const [estimatedBudget, setEstimatedBudget] = useState(0);
   
   console.log("🎯 AmbassadorCreateOffer - Component rendered");
   
@@ -222,6 +228,50 @@ const AmbassadorCreateOffer = () => {
                   </div>
                 )}
                 
+                {/* Products to be determined option */}
+                <div className="px-2 mb-4">
+                  <div className="flex items-start space-x-3 p-4 border border-border rounded-lg bg-muted/30">
+                    <Checkbox
+                      id="ambassador-products-tbd"
+                      checked={productsToBeDetermined}
+                      onCheckedChange={(checked) => setProductsToBeDetermined(checked as boolean)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="ambassador-products-tbd" className="text-sm font-medium cursor-pointer">
+                        Produits à déterminer
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Créer une demande sans produits spécifiques pour scorer le client d'abord
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {productsToBeDetermined && (
+                    <Alert className="mt-3">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="space-y-3">
+                          <p className="text-sm">Mode qualification client activé.</p>
+                          <div className="space-y-2">
+                            <Label htmlFor="amb-estimated-budget">Budget estimé (€)</Label>
+                            <Input
+                              id="amb-estimated-budget"
+                              type="number"
+                              min="0"
+                              step="100"
+                              value={estimatedBudget}
+                              onChange={(e) => setEstimatedBudget(parseFloat(e.target.value) || 0)}
+                              placeholder="5000"
+                              className="bg-background"
+                            />
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                
+                {!productsToBeDetermined && (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 px-2">
                   <div className="xl:col-span-1">
                     {selectedLeaser ? (

@@ -15,6 +15,14 @@ export const createOffer = async (offerData: OfferData) => {
       throw new Error("Le nom du client est obligatoire");
     }
     
+    // Si mode "produits à déterminer", ignorer la validation des équipements
+    if (offerData.products_to_be_determined) {
+      console.log("✅ MODE PRODUITS À DÉTERMINER - Validation d'équipements ignorée");
+      if (!offerData.estimated_budget || offerData.estimated_budget <= 0) {
+        throw new Error("Le budget estimé est obligatoire en mode 'produits à déterminer'");
+      }
+    }
+    
     // Récupérer le company_id de l'utilisateur connecté si pas fourni
     let companyId = offerData.company_id;
     if (!companyId) {
@@ -33,7 +41,7 @@ export const createOffer = async (offerData: OfferData) => {
     
     // Calculer la marge totale des équipements si présents
     let totalEquipmentMargin = 0;
-    if (offerData.equipment && Array.isArray(offerData.equipment)) {
+    if (offerData.equipment && Array.isArray(offerData.equipment) && !offerData.products_to_be_determined) {
       totalEquipmentMargin = offerData.equipment.reduce((sum, eq) => {
         const equipmentMargin = (eq.purchasePrice * eq.quantity * eq.margin) / 100;
         return sum + equipmentMargin;
@@ -97,6 +105,8 @@ export const createOffer = async (offerData: OfferData) => {
       converted_to_contract: offerData.converted_to_contract,
       dossier_number: offerData.dossier_number, // Ajouter le numéro de dossier
       source: offerData.source, // Ajouter la source
+      products_to_be_determined: offerData.products_to_be_determined || false,
+      estimated_budget: offerData.estimated_budget,
       // Utiliser la marge calculée depuis les équipements si disponible, sinon utiliser celle fournie
       margin: totalEquipmentMargin > 0 ? totalEquipmentMargin : (
         offerData.margin !== undefined && offerData.margin !== null ?
@@ -240,7 +250,8 @@ export const createOffer = async (offerData: OfferData) => {
     }
     
     // Maintenant sauvegarder les équipements avec leurs attributs et spécifications
-    if (offerData.equipment && Array.isArray(offerData.equipment) && data.id) {
+    // SAUF si mode "produits à déterminer"
+    if (offerData.equipment && Array.isArray(offerData.equipment) && data.id && !offerData.products_to_be_determined) {
       console.log("💾 SAUVEGARDE des équipements avec attributs et spécifications...");
       
       for (const equipment of offerData.equipment) {

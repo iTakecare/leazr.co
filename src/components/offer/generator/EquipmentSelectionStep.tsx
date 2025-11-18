@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Laptop, Package, Plus, Edit, Trash2, ShoppingCart, Loader2 } from 'lucide-react';
+import { Laptop, Package, Plus, Edit, Trash2, ShoppingCart, Loader2, AlertCircle } from 'lucide-react';
 import { OfferFormData } from '@/hooks/useCustomOfferGenerator';
 import ProductSelector from '@/components/ui/ProductSelector';
 import { Product } from '@/types/catalog';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EquipmentSelectionStepProps {
   formData: OfferFormData;
@@ -30,8 +32,23 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
     quantity: 1,
     margin: 20
   });
+  const [productsToBeDetermined, setProductsToBeDetermined] = useState(
+    formData.financing?.products_to_be_determined || false
+  );
+  const [estimatedBudget, setEstimatedBudget] = useState(
+    formData.financing?.estimated_budget || 0
+  );
 
   const { equipment = [] } = formData;
+
+  // Synchroniser les changements avec formData
+  useEffect(() => {
+    updateFormData('financing', {
+      ...formData.financing,
+      products_to_be_determined: productsToBeDetermined,
+      estimated_budget: productsToBeDetermined ? estimatedBudget : undefined
+    });
+  }, [productsToBeDetermined, estimatedBudget]);
 
   // Récupérer les produits du catalogue pour créer des packs réels
   const { data: catalogProducts = [], isLoading: productsLoading } = useQuery({
@@ -212,8 +229,57 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Option: Produits à déterminer */}
+        <div className="p-4 border border-border rounded-lg space-y-4 bg-muted/30">
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="products-tbd"
+              checked={productsToBeDetermined}
+              onCheckedChange={(checked) => setProductsToBeDetermined(checked as boolean)}
+            />
+            <div className="flex-1">
+              <Label 
+                htmlFor="products-tbd" 
+                className="text-sm font-medium cursor-pointer"
+              >
+                Produits à déterminer
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Créer une demande de financement sans produits spécifiques pour scorer le client d'abord
+              </p>
+            </div>
+          </div>
+          
+          {productsToBeDetermined && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-3">
+                  <p className="text-sm">
+                    Cette option permet de créer une demande sans définir les produits spécifiques, 
+                    idéal pour qualifier le client avant l'effort de création d'offre détaillée.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="estimated-budget">Budget estimé (€)</Label>
+                    <Input
+                      id="estimated-budget"
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={estimatedBudget}
+                      onChange={(e) => setEstimatedBudget(parseFloat(e.target.value) || 0)}
+                      placeholder="5000"
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
         {/* Résumé */}
-        {(equipment || []).length > 0 && (
+        {!productsToBeDetermined && (equipment || []).length > 0 && (
           <div className="p-4 bg-primary/5 rounded-lg">
             <div className="flex justify-between items-center">
               <div>
@@ -230,8 +296,10 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
           </div>
         )}
 
-        {/* Actions d'ajout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Actions d'ajout - masquées si produits à déterminer */}
+        {!productsToBeDetermined && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Button
             variant="outline"
             className="h-24 flex flex-col items-center justify-center space-y-2"
@@ -347,7 +415,7 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
         )}
 
         {/* Formulaire d'ajout/modification manuel */}
-        {editingEquipment && (
+        {!productsToBeDetermined && editingEquipment && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
@@ -433,6 +501,8 @@ export const EquipmentSelectionStep: React.FC<EquipmentSelectionStepProps> = ({
               </div>
             </CardContent>
           </Card>
+        )}
+          </>
         )}
       </CardContent>
 

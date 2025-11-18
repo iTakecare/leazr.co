@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Leaser } from '@/types/equipment';
 import { BrokerEquipmentItem } from '@/types/brokerEquipment';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +22,8 @@ import BrokerDurationResults from './BrokerDurationResults';
 import BrokerOfferTypeSelector from './BrokerOfferTypeSelector';
 import BrokerAdditionalDetailsForm from './BrokerAdditionalDetailsForm';
 import BrokerCalculatorActions from './BrokerCalculatorActions';
-import { Calculator } from 'lucide-react';
+import { Calculator, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const BrokerCalculator: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +37,9 @@ const BrokerCalculator: React.FC = () => {
   const [selectedLeaser, setSelectedLeaser] = useState<Leaser | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number>(36);
   const [isLeaserSelectorOpen, setIsLeaserSelectorOpen] = useState(false);
+  
+  // State for "products to be determined" mode
+  const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
   
   // State for file fee and insurance
   const [fileFeeEnabled, setFileFeeEnabled] = useState(true);
@@ -265,18 +270,20 @@ const BrokerCalculator: React.FC = () => {
         ambassador_id: offerType === 'ambassador' ? selectedAmbassadorId : null,
         leaser_id: selectedLeaser?.id,
         duration: selectedDuration,
-        amount: totalBudget,
-        monthly_payment: selectedResult.monthlyPayment,
-        financed_amount: totalBudget,
+        amount: productsToBeDetermined ? inputAmount : totalBudget,
+        monthly_payment: productsToBeDetermined ? 0 : selectedResult.monthlyPayment,
+        financed_amount: productsToBeDetermined ? inputAmount : totalBudget,
         coefficient: selectedResult.coefficient,
         commission: offerType === 'ambassador' ? commission.amount : 0,
         workflow_status: 'draft' as const,
         status: 'pending' as const,
-        equipment: equipment,
+        equipment: productsToBeDetermined ? [] : equipment,
         company_id: companyId,
         type: offerType,
         file_fee: fileFeeEnabled ? fileFeeAmount : 0,
-        annual_insurance: annualInsurance
+        annual_insurance: annualInsurance,
+        products_to_be_determined: productsToBeDetermined,
+        estimated_budget: productsToBeDetermined ? inputAmount : undefined
       };
     } catch (error) {
       console.error('Erreur dans prepareOfferData:', error);
@@ -398,6 +405,36 @@ const BrokerCalculator: React.FC = () => {
             mode={calculationMode}
             onModeChange={setCalculationMode}
           />
+          
+          {/* Products to be Determined Checkbox */}
+          <div className="flex items-start space-x-3 p-4 border border-border rounded-lg bg-muted/30">
+            <Checkbox
+              id="broker-products-tbd"
+              checked={productsToBeDetermined}
+              onCheckedChange={(checked) => setProductsToBeDetermined(checked as boolean)}
+            />
+            <div className="flex-1">
+              <Label 
+                htmlFor="broker-products-tbd" 
+                className="text-sm font-medium cursor-pointer"
+              >
+                Produits à déterminer
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Créer une demande sans définir les produits spécifiques (scorer le client d'abord)
+              </p>
+            </div>
+          </div>
+          
+          {productsToBeDetermined && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                En mode "Produits à déterminer", le montant saisi sera utilisé comme budget estimé. 
+                Les équipements pourront être définis plus tard après qualification du client.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Amount Input */}
           <div className="space-y-2">
