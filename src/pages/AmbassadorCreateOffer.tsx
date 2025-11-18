@@ -337,6 +337,7 @@ const AmbassadorCreateOffer = () => {
                     />
                   </div>
                 </div>
+                )}
               </div>
             </div>
           </div>
