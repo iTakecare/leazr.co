@@ -23,6 +23,7 @@ import { ProductPack } from "@/types/pack";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
 import { calculateFinancedAmount } from "@/utils/calculator";
+import { getMaxCoefficientFromLeaser } from "@/utils/leaserCalculator";
 import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 import { OfferData } from "@/services/offers/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -581,7 +582,7 @@ const CreateOffer = () => {
         equipment_description: productsToBeDetermined ? '[]' : JSON.stringify(equipmentData),
         
         amount: productsToBeDetermined ? (estimatedBudget || 0) : (totalAmount || 0),
-        coefficient: productsToBeDetermined ? 3.27 : (globalMarginAdjustment.newCoef || 3.27),
+        coefficient: productsToBeDetermined ? getMaxCoefficientFromLeaser(selectedLeaser) : (globalMarginAdjustment.newCoef || 3.55),
         monthly_payment: productsToBeDetermined ? 0 : (totalMonthlyPayment || 0),
         commission: calculatedCommission || 0,
         financed_amount: productsToBeDetermined ? (estimatedBudget || 0) : (financedAmount || 0),
