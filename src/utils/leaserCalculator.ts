@@ -39,6 +39,39 @@ export const getCoefficientFromLeaser = (
 };
 
 /**
+ * Get the maximum coefficient from all ranges and durations of a leaser
+ * Used when creating offers with "Produits à déterminer" to be conservative
+ */
+export const getMaxCoefficientFromLeaser = (leaser: Leaser | null): number => {
+  if (!leaser || !leaser.ranges || leaser.ranges.length === 0) {
+    // Fallback: 3.55 is the maximum coefficient found across all leasers
+    return 3.55;
+  }
+
+  let maxCoefficient = 0;
+
+  // Iterate through all ranges of the leaser
+  leaser.ranges.forEach(range => {
+    // Check the base coefficient of the range
+    if (range.coefficient && range.coefficient > maxCoefficient) {
+      maxCoefficient = range.coefficient;
+    }
+
+    // Check all duration_coefficients of the range
+    if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+      range.duration_coefficients.forEach(dc => {
+        if (dc.coefficient > maxCoefficient) {
+          maxCoefficient = dc.coefficient;
+        }
+      });
+    }
+  });
+
+  // If no coefficient found, use the fallback of 3.55
+  return maxCoefficient > 0 ? maxCoefficient : 3.55;
+};
+
+/**
  * Calculate the financed amount (montant financé) using the leaser's specific coefficient
  */
 export const calculateSalePriceWithLeaser = (
