@@ -93,7 +93,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
       {/* Save Button */}
       <Button
         onClick={handleSaveOffer}
-        disabled={isSubmitting || !clientName || !clientEmail || (!productsToBeDetermined && equipmentList.length === 0)}
+        disabled={isSubmitting || !clientName || !clientEmail || !selectedLeaser || (!productsToBeDetermined && equipmentList.length === 0)}
         className="w-full"
         size="lg"
       >
