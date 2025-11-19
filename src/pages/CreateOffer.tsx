@@ -583,7 +583,9 @@ const CreateOffer = () => {
         
         amount: productsToBeDetermined ? (estimatedBudget || 0) : (totalAmount || 0),
         coefficient: productsToBeDetermined ? getMaxCoefficientFromLeaser(selectedLeaser) : (globalMarginAdjustment.newCoef || 3.55),
-        monthly_payment: productsToBeDetermined ? 0 : (totalMonthlyPayment || 0),
+        monthly_payment: productsToBeDetermined 
+          ? ((estimatedBudget || 0) * getMaxCoefficientFromLeaser(selectedLeaser)) / 100
+          : (totalMonthlyPayment || 0),
         commission: calculatedCommission || 0,
         financed_amount: productsToBeDetermined ? (estimatedBudget || 0) : (financedAmount || 0),
         remarks: remarks,
