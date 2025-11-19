@@ -4047,6 +4047,7 @@ export type Database = {
           dossier_number: string | null
           duration: number | null
           equipment_description: string | null
+          estimated_budget: number | null
           file_fee: number | null
           financed_amount: number | null
           id: string
@@ -4058,6 +4059,7 @@ export type Database = {
           monthly_payment: number
           offer_number: string | null
           previous_status: string | null
+          products_to_be_determined: boolean | null
           remarks: string | null
           request_date: string | null
           signature_data: string | null
@@ -4092,6 +4094,7 @@ export type Database = {
           dossier_number?: string | null
           duration?: number | null
           equipment_description?: string | null
+          estimated_budget?: number | null
           file_fee?: number | null
           financed_amount?: number | null
           id?: string
@@ -4103,6 +4106,7 @@ export type Database = {
           monthly_payment?: number
           offer_number?: string | null
           previous_status?: string | null
+          products_to_be_determined?: boolean | null
           remarks?: string | null
           request_date?: string | null
           signature_data?: string | null
@@ -4137,6 +4141,7 @@ export type Database = {
           dossier_number?: string | null
           duration?: number | null
           equipment_description?: string | null
+          estimated_budget?: number | null
           file_fee?: number | null
           financed_amount?: number | null
           id?: string
@@ -4148,6 +4153,7 @@ export type Database = {
           monthly_payment?: number
           offer_number?: string | null
           previous_status?: string | null
+          products_to_be_determined?: boolean | null
           remarks?: string | null
           request_date?: string | null
           signature_data?: string | null
@@ -6449,6 +6455,7 @@ export type Database = {
           dossier_number: string | null
           duration: number | null
           equipment_description: string | null
+          estimated_budget: number | null
           file_fee: number | null
           financed_amount: number | null
           id: string
@@ -6460,6 +6467,7 @@ export type Database = {
           monthly_payment: number
           offer_number: string | null
           previous_status: string | null
+          products_to_be_determined: boolean | null
           remarks: string | null
           request_date: string | null
           signature_data: string | null
