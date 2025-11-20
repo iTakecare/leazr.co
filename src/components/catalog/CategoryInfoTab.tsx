@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SimplifiedCategory, CATEGORY_TYPES, getCategoryStats } from "@/services/simplifiedCategoryService";
+import { SimplifiedCategory, getCategoryStats } from "@/services/simplifiedCategoryService";
+import { getCategoryTypes } from "@/services/categoryTypeService";
 import { Pencil, Trash2, Save, X, Package, DollarSign, CheckCircle, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -24,6 +25,11 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
     translation: category.translation,
     type: category.type,
     description: category.description || "",
+  });
+
+  const { data: categoryTypes = [] } = useQuery({
+    queryKey: ["category-types"],
+    queryFn: getCategoryTypes,
   });
 
   const { data: stats, isLoading: loadingStats } = useQuery({
@@ -81,9 +87,12 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORY_TYPES.map((type) => (
+                {categoryTypes.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                    <div className="flex items-center gap-2">
+                      <span>{type.icon}</span>
+                      <span>{type.label}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -133,7 +142,7 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Type</p>
-              <p className="font-medium">{CATEGORY_TYPES.find(t => t.value === category.type)?.label}</p>
+              <p className="font-medium">{categoryTypes.find(t => t.value === category.type)?.label || category.type}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Créée le</p>

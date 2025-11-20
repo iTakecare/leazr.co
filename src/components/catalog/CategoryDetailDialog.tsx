@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SimplifiedCategory } from "@/services/simplifiedCategoryService";
+import { getCategoryTypes } from "@/services/categoryTypeService";
 import { CategoryInfoTab } from "./CategoryInfoTab";
 import { CategoryProductList } from "./CategoryProductList";
 import { CategoryExceptionsManager } from "./CategoryExceptionsManager";
@@ -9,7 +10,7 @@ import { CategoryStatsTab } from "./CategoryStatsTab";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTypeCompatibilities, setTypeCompatibilities, CATEGORY_TYPES } from "@/services/simplifiedCategoryService";
+import { getTypeCompatibilities, setTypeCompatibilities } from "@/services/simplifiedCategoryService";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -22,14 +23,6 @@ interface CategoryDetailDialogProps {
   onDelete: (id: string) => void;
 }
 
-const CATEGORY_TYPE_COLORS = {
-  device: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-800 dark:text-blue-200", icon: "📱" },
-  accessory: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-800 dark:text-green-200", icon: "🎧" },
-  software: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-800 dark:text-purple-200", icon: "💾" },
-  service: { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-800 dark:text-orange-200", icon: "🛠️" },
-  peripheral: { bg: "bg-cyan-100 dark:bg-cyan-900/30", text: "text-cyan-800 dark:text-cyan-200", icon: "🖨️" },
-};
-
 export function CategoryDetailDialog({
   isOpen,
   onClose,
@@ -41,6 +34,11 @@ export function CategoryDetailDialog({
   const queryClient = useQueryClient();
   const [selectedCompatibilities, setSelectedCompatibilities] = useState<string[]>([]);
   const [isSavingCompatibilities, setIsSavingCompatibilities] = useState(false);
+
+  const { data: categoryTypes = [] } = useQuery({
+    queryKey: ["category-types"],
+    queryFn: getCategoryTypes,
+  });
 
   const { data: productCount = 0 } = useQuery({
     queryKey: ["category-product-count", category?.id],
@@ -105,16 +103,21 @@ export function CategoryDetailDialog({
 
   if (!category) return null;
 
-  const typeInfo = CATEGORY_TYPE_COLORS[category.type as keyof typeof CATEGORY_TYPE_COLORS] || CATEGORY_TYPE_COLORS.device;
+  const typeConfig = categoryTypes.find(t => t.value === category.type) || {
+    bg_color: "bg-gray-100 dark:bg-gray-900/30",
+    text_color: "text-gray-800 dark:text-gray-200",
+    icon: "📦",
+    label: category.type,
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] h-[90vh] p-0 flex flex-col">
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-3">
-            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${typeInfo.bg} ${typeInfo.text}`}>
-              <span>{typeInfo.icon}</span>
-              <span>{CATEGORY_TYPES.find(t => t.value === category.type)?.label || category.type}</span>
+            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${typeConfig.bg_color} ${typeConfig.text_color}`}>
+              <span>{typeConfig.icon}</span>
+              <span>{typeConfig.label}</span>
             </span>
             <span className="text-2xl font-bold">{category.name}</span>
           </DialogTitle>
@@ -158,7 +161,7 @@ export function CategoryDetailDialog({
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Compatibilités générales</h3>
                   <p className="text-sm text-muted-foreground">
-                    Les catégories de type <span className="font-medium">{CATEGORY_TYPES.find(t => t.value === category.type)?.label}</span> sont compatibles avec :
+                    Les catégories de type <span className="font-medium">{typeConfig.label}</span> sont compatibles avec :
                   </p>
                 </div>
 
@@ -168,7 +171,7 @@ export function CategoryDetailDialog({
                   </div>
                 ) : (
                   <div className="space-y-4 border rounded-lg p-4">
-                    {CATEGORY_TYPES.filter(t => t.value !== category.type).map((type) => (
+                    {categoryTypes.filter(t => t.value !== category.type).map((type) => (
                       <div key={type.value} className="flex items-center space-x-3">
                         <Checkbox
                           id={`compat-${type.value}`}
