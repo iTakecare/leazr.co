@@ -67,7 +67,7 @@ export default function SimplifiedCategoryManager() {
 
   const { data: categoryProducts = [] } = useQuery({
     queryKey: ["category-products", selectedCategory?.id],
-    queryFn: () => selectedCategory ? getCategoryProducts(selectedCategory.id, 30) : Promise.resolve([]),
+    queryFn: () => selectedCategory ? getCategoryProducts(selectedCategory.id, { limit: 30 }) : Promise.resolve([]),
     enabled: !!selectedCategory,
   });
 

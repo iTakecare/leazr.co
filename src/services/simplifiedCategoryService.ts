@@ -94,20 +94,65 @@ export const deleteCategory = async (id: string): Promise<void> => {
 };
 
 // Récupérer les produits d'une catégorie
-export const getCategoryProducts = async (categoryId: string, limit?: number) => {
+export const getCategoryProducts = async (
+  categoryId: string, 
+  options?: { 
+    limit?: number;
+    offset?: number;
+    searchTerm?: string;
+    includeInactive?: boolean;
+  }
+) => {
   let query = supabase
-    .from("products")
-    .select("id, name, brand_name, monthly_price, purchase_price, image_url")
-    .eq("category_id", categoryId)
-    .order("name", { ascending: true });
+    .from('products')
+    .select('*')
+    .eq('category_id', categoryId);
 
-  if (limit) {
-    query = query.limit(limit);
+  if (!options?.includeInactive) {
+    query = query.eq('active', true);
+  }
+
+  if (options?.searchTerm) {
+    query = query.or(`name.ilike.%${options.searchTerm}%,brand_name.ilike.%${options.searchTerm}%`);
+  }
+
+  query = query.order('name', { ascending: true });
+
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  if (options?.offset) {
+    query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
   }
 
   const { data, error } = await query;
   if (error) throw error;
   return data || [];
+};
+
+export const getCategoryStats = async (categoryId: string) => {
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('purchase_price, monthly_price, active, brand_name')
+    .eq('category_id', categoryId);
+
+  if (error) throw error;
+
+  const stats = {
+    totalProducts: products?.length || 0,
+    activeProducts: products?.filter(p => p.active).length || 0,
+    inactiveProducts: products?.filter(p => !p.active).length || 0,
+    totalCatalogValue: products?.reduce((sum, p) => sum + (Number(p.purchase_price) || 0), 0) || 0,
+    totalMonthlyValue: products?.reduce((sum, p) => sum + (Number(p.monthly_price) || 0), 0) || 0,
+    brandDistribution: products?.reduce((acc, p) => {
+      const brand = p.brand_name || 'Sans marque';
+      acc[brand] = (acc[brand] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {}
+  };
+
+  return stats;
 };
 
 // Récupérer les compatibilités d'un type

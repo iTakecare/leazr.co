@@ -1,24 +1,23 @@
 
 import React, { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getBrands, getCategories } from "@/services/catalogService";
-import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { getBrands } from "@/services/brandService";
+import { getCategoriesWithProductCount, getCategoryById, CATEGORY_TYPES } from "@/services/simplifiedCategoryService";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
+import { uploadProductImage } from "@/services/uploadService";
+import { X, Upload, Loader2, Sparkles, Tag } from "lucide-react";
 import AIDescriptionHelper from "./AIDescriptionHelper";
+import { Product } from "@/types/catalog";
 
 interface ProductFormInfoTabProps {
   productToEdit?: any;
@@ -49,7 +48,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   onProductCreated,
   onProductUpdated
 }) => {
-  const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState(productToEdit || {});
   const [imagePreview, setImagePreview] = useState<string | null>(
     productToEdit?.image_url || productToEdit?.imageUrl || null
@@ -64,9 +63,15 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     queryFn: getBrands,
   });
 
-  const { data: categories = [] } = useQuery<Category[]>({
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: getCategories,
+    queryFn: getCategoriesWithProductCount,
+  });
+
+  const { data: selectedCategoryDetails } = useQuery({
+    queryKey: ["category-details", formData.category_id],
+    queryFn: () => formData.category_id ? getCategoryById(formData.category_id) : null,
+    enabled: !!formData.category_id,
   });
 
   useEffect(() => {
@@ -254,6 +259,16 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              
+              {selectedCategoryDetails && (
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <Tag className="h-3 w-3" />
+                  <span>Type:</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {CATEGORY_TYPES.find(t => t.value === selectedCategoryDetails.type)?.label}
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         </div>

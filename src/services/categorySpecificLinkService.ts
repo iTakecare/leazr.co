@@ -49,3 +49,30 @@ export const getLinkedCategories = async (categoryId: string): Promise<string[]>
   if (error) throw error;
   return data?.map((link) => link.child_category_id) || [];
 };
+
+export const updateSpecificLinkPriority = async (
+  id: string,
+  priority: number
+): Promise<void> => {
+  const { error } = await supabase
+    .from("category_specific_links")
+    .update({ priority, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw error;
+};
+
+export const getSpecificLinkDetails = async (categoryId: string): Promise<CategorySpecificLink[]> => {
+  const { data, error } = await supabase
+    .from("category_specific_links")
+    .select(`
+      *,
+      parent_category:categories!parent_category_id(id, name, translation, type),
+      child_category:categories!child_category_id(id, name, translation, type)
+    `)
+    .eq("parent_category_id", categoryId)
+    .order("priority", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
