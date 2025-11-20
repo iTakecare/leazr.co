@@ -15,9 +15,9 @@ import {
   getCategoriesWithProductCount,
   updateCategory,
   deleteCategory,
-  CATEGORY_TYPES,
   SimplifiedCategory,
 } from "@/services/simplifiedCategoryService";
+import { getCategoryTypes } from "@/services/categoryTypeService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { CategoryDetailDialog } from "./CategoryDetailDialog";
 
@@ -33,6 +33,11 @@ export default function SimplifiedCategoryManager() {
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["simplified-categories"],
     queryFn: getCategoriesWithProductCount,
+  });
+
+  const { data: categoryTypes = [] } = useQuery({
+    queryKey: ["category-types"],
+    queryFn: getCategoryTypes,
   });
 
   // Mutations
@@ -136,7 +141,7 @@ export default function SimplifiedCategoryManager() {
                     <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                        {CATEGORY_TYPES.find(t => t.value === category.type)?.label || category.type}
+                        {categoryTypes.find(t => t.value === category.type)?.label || category.type}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">{category.product_count || 0}</TableCell>

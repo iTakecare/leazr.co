@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { getBrands } from "@/services/catalogService";
-import { getCategoriesWithProductCount, getCategoryById, CATEGORY_TYPES } from "@/services/simplifiedCategoryService";
+import { getCategoriesWithProductCount, getCategoryById } from "@/services/simplifiedCategoryService";
+import { getCategoryTypes } from "@/services/categoryTypeService";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import { useAuth } from "@/context/AuthContext";
@@ -67,6 +68,11 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: getCategoriesWithProductCount,
+  });
+
+  const { data: categoryTypes = [] } = useQuery({
+    queryKey: ["category-types"],
+    queryFn: getCategoryTypes,
   });
 
   const { data: selectedCategoryDetails } = useQuery({
@@ -266,7 +272,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   <Tag className="h-3 w-3" />
                   <span>Type:</span>
                   <Badge variant="secondary" className="text-xs">
-                    {CATEGORY_TYPES.find(t => t.value === selectedCategoryDetails.type)?.label}
+                    {categoryTypes.find(t => t.value === selectedCategoryDetails.type)?.label || selectedCategoryDetails.type}
                   </Badge>
                 </div>
               )}

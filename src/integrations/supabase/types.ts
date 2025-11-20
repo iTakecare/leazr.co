@@ -636,6 +636,45 @@ export type Database = {
         }
         Relationships: []
       }
+      category_types: {
+        Row: {
+          bg_color: string | null
+          created_at: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          text_color: string | null
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          bg_color?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          text_color?: string | null
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          bg_color?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          text_color?: string | null
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       chat_agent_status: {
         Row: {
           agent_id: string

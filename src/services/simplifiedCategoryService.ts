@@ -20,16 +20,6 @@ export interface CategoryTypeCompatibility {
   updated_at?: string;
 }
 
-// Types disponibles
-export const CATEGORY_TYPES = [
-  { value: 'device', label: 'Appareil' },
-  { value: 'accessory', label: 'Accessoire' },
-  { value: 'peripheral', label: 'Périphérique' },
-  { value: 'software', label: 'Logiciel' },
-  { value: 'service', label: 'Service' },
-  { value: 'consumable', label: 'Consommable' },
-] as const;
-
 // Récupérer toutes les catégories avec comptage produits
 export const getCategoriesWithProductCount = async (): Promise<SimplifiedCategory[]> => {
   const { data, error } = await supabase
