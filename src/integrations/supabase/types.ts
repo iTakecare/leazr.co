@@ -447,93 +447,41 @@ export type Database = {
       }
       categories: {
         Row: {
-          category_type_id: string | null
           company_id: string
           created_at: string
           description: string | null
           id: string
           name: string
           translation: string
+          type: string
           updated_at: string
         }
         Insert: {
-          category_type_id?: string | null
           company_id: string
           created_at?: string
           description?: string | null
           id?: string
           name: string
           translation: string
+          type: string
           updated_at?: string
         }
         Update: {
-          category_type_id?: string | null
           company_id?: string
           created_at?: string
           description?: string | null
           id?: string
           name?: string
           translation?: string
+          type?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "categories_category_type_id_fkey"
-            columns: ["category_type_id"]
-            isOneToOne: false
-            referencedRelation: "category_types"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "categories_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      category_compatibilities: {
-        Row: {
-          child_category_type_id: string
-          compatibility_strength: number | null
-          created_at: string | null
-          id: string
-          is_bidirectional: boolean | null
-          parent_category_type_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          child_category_type_id: string
-          compatibility_strength?: number | null
-          created_at?: string | null
-          id?: string
-          is_bidirectional?: boolean | null
-          parent_category_type_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          child_category_type_id?: string
-          compatibility_strength?: number | null
-          created_at?: string | null
-          id?: string
-          is_bidirectional?: boolean | null
-          parent_category_type_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "category_compatibilities_child_category_type_id_fkey"
-            columns: ["child_category_type_id"]
-            isOneToOne: false
-            referencedRelation: "category_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "category_compatibilities_parent_category_type_id_fkey"
-            columns: ["parent_category_type_id"]
-            isOneToOne: false
-            referencedRelation: "category_types"
             referencedColumns: ["id"]
           },
         ]
@@ -590,6 +538,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "category_environmental_data_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories_with_product_count"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "category_environmental_data_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -635,40 +590,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "category_specific_links_child_category_id_fkey"
+            columns: ["child_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories_with_product_count"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "category_specific_links_parent_category_id_fkey"
             columns: ["parent_category_id"]
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "category_specific_links_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories_with_product_count"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      category_types: {
+      category_type_compatibilities: {
         Row: {
+          child_type: string
           created_at: string | null
-          description: string | null
-          display_order: number | null
           id: string
-          is_active: boolean | null
-          name: string
+          parent_type: string
           updated_at: string | null
         }
         Insert: {
+          child_type: string
           created_at?: string | null
-          description?: string | null
-          display_order?: number | null
           id?: string
-          is_active?: boolean | null
-          name: string
+          parent_type: string
           updated_at?: string | null
         }
         Update: {
+          child_type?: string
           created_at?: string | null
-          description?: string | null
-          display_order?: number | null
           id?: string
-          is_active?: boolean | null
-          name?: string
+          parent_type?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -5156,7 +5119,6 @@ export type Database = {
           brand_name: string | null
           category_id: string | null
           category_name: string | null
-          category_type_id: string | null
           company_id: string
           condition: string | null
           created_at: string | null
@@ -5205,7 +5167,6 @@ export type Database = {
           brand_name?: string | null
           category_id?: string | null
           category_name?: string | null
-          category_type_id?: string | null
           company_id: string
           condition?: string | null
           created_at?: string | null
@@ -5254,7 +5215,6 @@ export type Database = {
           brand_name?: string | null
           category_id?: string | null
           category_name?: string | null
-          category_type_id?: string | null
           company_id?: string
           condition?: string | null
           created_at?: string | null
@@ -5310,17 +5270,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_products_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories_with_product_count"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "products_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_category_type_id_fkey"
-            columns: ["category_type_id"]
-            isOneToOne: false
-            referencedRelation: "category_types"
             referencedColumns: ["id"]
           },
           {
@@ -5939,7 +5899,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      categories_with_product_count: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          name: string | null
+          product_count: number | null
+          translation: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_prospect:
