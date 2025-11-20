@@ -229,6 +229,85 @@ Retourne la liste des marques disponibles.
 
 ---
 
+### GET /v1/{companySlug}/products/{productId}/upsells
+
+**NOUVEAU v1.2** - Retourne les produits upsells recommandés pour un produit spécifique.
+
+**Système de cohabitation :** Combine upsells manuels (sélectionnés par l'administrateur) + suggestions automatiques (basées sur compatibilités de catégories).
+
+**Ordre de priorité :** Upsells manuels d'abord (triés par `priority`), puis suggestions automatiques (triées par prix).
+
+**Paramètres de requête :**
+- `limit` (number, optionnel) - Nombre maximum d'upsells à retourner (défaut: 10)
+
+**Réponse :**
+```json
+{
+  "upsells": [
+    {
+      "id": "uuid",
+      "name": "Magic Mouse 2",
+      "slug": "magic-mouse-2",
+      "price": 89,
+      "monthly_price": 3.15,
+      "image_url": "https://...",
+      "brand": "Apple",
+      "category": "Souris",
+      "short_description": "Souris sans fil rechargeable",
+      "source": "manual",
+      "priority": 10,
+      "upsell_reason": "Sélectionné manuellement par l'administrateur"
+    },
+    {
+      "id": "uuid",
+      "name": "Magic Keyboard",
+      "slug": "magic-keyboard",
+      "price": 129,
+      "monthly_price": 4.55,
+      "image_url": "https://...",
+      "brand": "Apple",
+      "category": "Clavier",
+      "source": "auto",
+      "priority": null,
+      "upsell_reason": "Suggéré automatiquement - Compatible avec Ordinateur portable"
+    }
+  ],
+  "total": 2,
+  "manual_count": 1,
+  "auto_count": 1
+}
+```
+
+**Comment fonctionnent les upsells ?**
+
+1. **Upsells manuels** (priorité haute)
+   - Sélectionnés explicitement par l'administrateur dans la fiche produit
+   - Stockés dans `product_upsells` avec `source: 'manual'`
+   - Ordre défini par le champ `priority` (drag & drop dans l'interface admin)
+   - Affichés en premier dans la liste
+
+2. **Suggestions automatiques** (priorité normale)
+   - Générées dynamiquement selon les compatibilités de catégories
+   - Basées sur `category_type_compatibilities` et `category_specific_links`
+   - Affichées après les upsells manuels
+   - Triées par prix croissant
+
+3. **Logique de fusion**
+   - Les upsells manuels sont toujours affichés en premier
+   - Les suggestions auto complètent la liste (si limite pas atteinte)
+   - Pas de doublons : si un produit est manuel ET suggéré auto, seule la version manuelle apparaît
+
+**Bonnes pratiques :**
+
+- **Affichage :** Limiter à 4-6 upsells sur la page produit (paramètre `limit`)
+- **Badges :** Upsells manuels avec badge "Recommandé par nos experts", suggestions auto avec "Compatible" ou "Souvent acheté avec"
+- **Raison :** Utiliser `upsell_reason` pour expliquer la recommandation
+- **Prix :** Afficher le `monthly_price` pour maximiser l'accessibilité
+- **Performance :** Cacher les résultats côté client (5 minutes recommandé)
+- **Analytics :** Tracker les clics et conversions par `source` pour optimisation
+
+---
+
 ### POST /v1/{companySlug}/cart/submit
 
 Soumet un panier pour créer un devis ou une commande.
@@ -310,6 +389,66 @@ if (selectedCategory.type.value === 'device') {
   const compatibleTypes = compatibilities['device']; // ['accessory', 'peripheral']
   // Afficher des produits de ces types
 }
+
+// Récupérer les upsells pour un produit
+async function getProductUpsells(
+  companySlug: string, 
+  productId: string, 
+  limit: number = 10
+): Promise<UpsellsResponse> {
+  const response = await fetch(
+    `${BASE_URL}/v1/${companySlug}/products/${productId}/upsells?limit=${limit}`,
+    { headers: { 'x-api-key': API_KEY }}
+  );
+  
+  if (!response.ok) throw new Error('Failed to fetch upsells');
+  return response.json();
+}
+
+// Afficher les upsells sur la page produit
+const { upsells } = await getProductUpsells('itakecare', productId, 6);
+
+// Section "Accessoires recommandés" (upsells manuels)
+const manualUpsells = upsells.filter(u => u.source === 'manual');
+manualUpsells.forEach(upsell => {
+  renderUpsellCard(upsell, 'Recommandé par nos experts');
+});
+
+// Section "Vous aimerez aussi" (suggestions auto)
+const autoUpsells = upsells.filter(u => u.source === 'auto');
+autoUpsells.forEach(upsell => {
+  renderUpsellCard(upsell, 'Compatible');
+});
+
+// Tracker le taux de conversion
+analytics.track('upsell_displayed', {
+  product_id: productId,
+  upsell_source: upsell.source,
+  upsell_priority: upsell.priority
+});
+
+// Interface TypeScript pour les upsells
+interface ProductUpsell {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  monthly_price: number;
+  image_url?: string;
+  brand?: string;
+  category?: string;
+  short_description?: string;
+  source: 'manual' | 'auto';
+  priority?: number;
+  upsell_reason?: string;
+}
+
+interface UpsellsResponse {
+  upsells: ProductUpsell[];
+  total: number;
+  manual_count: number;
+  auto_count: number;
+}
 ```
 
 ### cURL
@@ -327,6 +466,10 @@ curl "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itake
 curl "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/compatibilities" \
   -H "x-api-key: YOUR_API_KEY"
 
+# Récupérer les upsells pour un MacBook Pro
+curl "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/products/550e8400-e29b-41d4-a716-446655440000/upsells?limit=5" \
+  -H "x-api-key: YOUR_API_KEY"
+
 # Rechercher des produits par catégorie
 curl "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/products?category=macbook&limit=10" \
   -H "x-api-key: YOUR_API_KEY"
@@ -335,6 +478,29 @@ curl "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itake
 ---
 
 ## Changelog
+
+### v1.2.0 (2025-11-20)
+
+#### ✅ Nouveautés - Système d'Upsells Produits
+
+- **Nouvel endpoint :** `GET /v1/{companySlug}/products/{productId}/upsells`
+- **Système hybride :** Combine upsells manuels (sélectionnés par admin) + suggestions automatiques (compatibilités)
+- **Personnalisation :** Les administrateurs peuvent définir des upsells spécifiques par produit
+- **Priorités :** Ordre d'affichage contrôlé via drag & drop dans l'interface admin
+- **Intelligence :** Suggestions auto basées sur types de catégories compatibles
+
+#### 🔧 Améliorations techniques
+
+- Table `product_upsells` pour stocker les relations manuelles
+- Champ `source` ('manual' | 'auto') pour distinguer l'origine
+- Champ `priority` pour l'ordre d'affichage des upsells manuels
+- Déduplication automatique (pas de doublons entre manuel et auto)
+
+#### 📊 Impact business
+
+- **Augmentation du panier moyen :** Suggestions pertinentes et personnalisées
+- **Flexibilité marketing :** Contrôle total sur les produits recommandés
+- **Analytics :** Tracking possible entre upsells manuels vs automatiques
 
 ### v1.1.0 (2025-01-20)
 - ✅ **NOUVEAU:** Endpoint `/category-types` pour récupérer les types dynamiques
