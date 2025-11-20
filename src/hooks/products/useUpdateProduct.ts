@@ -10,6 +10,7 @@ interface UpdateProductData {
   description?: string;
   short_description?: string;
   category_id?: string;
+  category_type_id?: string;
   brand_id?: string;
   price?: number;
   stock?: number;
@@ -33,6 +34,7 @@ export const useUpdateProduct = () => {
           description: data.description,
           short_description: data.short_description,
           category_id: data.category_id,
+          category_type_id: data.category_type_id,
           brand_id: data.brand_id,
           price: data.price,
           stock: data.stock,

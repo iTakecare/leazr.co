@@ -4,8 +4,7 @@ import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Award, Folder, Download, Package, Users, Settings, Leaf } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
-import CategoryManager from "@/components/catalog/CategoryManager";
-import CategoryTypeManager from "@/components/catalog/CategoryTypeManager";
+import UnifiedCategoryManager from "@/components/catalog/UnifiedCategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
 import { ClientCatalogManager } from "@/components/catalog/client-management/ClientCatalogManager";
 import EnvironmentalDataManager from "@/components/admin/environmental/EnvironmentalDataManager";
@@ -78,9 +77,6 @@ const CatalogManagement = () => {
               <Settings className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Config" : <span>Configuration</span>}
             </TabsTrigger>
-            <TabsTrigger value="category-types">
-              Types
-            </TabsTrigger>
             <TabsTrigger value="import" onClick={() => navigateToAdmin("catalog/import")}>
               <Download className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Import" : <span>Import</span>}
@@ -124,13 +120,13 @@ const CatalogManagement = () => {
             </div>
           </TabsContent>
           
-        <TabsContent value="categories">
-          <CategoryManager />
-        </TabsContent>
+          <TabsContent value="categories">
+            <UnifiedCategoryManager />
+          </TabsContent>
 
-        <TabsContent value="brands">
-          <BrandManager />
-        </TabsContent>
+          <TabsContent value="brands">
+            <BrandManager />
+          </TabsContent>
 
         <TabsContent value="packs">
           <PackManager />
@@ -147,11 +143,7 @@ const CatalogManagement = () => {
           <TabsContent value="configuration">
             <PublicCatalogSettings />
           </TabsContent>
-
-          <TabsContent value="category-types">
-            <CategoryTypeManager />
-          </TabsContent>
-          </Tabs>
+        </Tabs>
         </div>
       </Container>
     );
