@@ -19,7 +19,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import AIDescriptionHelper from "./AIDescriptionHelper";
-import { getCategoryTypes } from "@/services/categoryTypeService";
 
 interface ProductFormInfoTabProps {
   productToEdit?: any;
@@ -70,11 +69,6 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
     queryFn: getCategories,
   });
 
-  const { data: categoryTypes = [] } = useQuery({
-    queryKey: ["categoryTypes"],
-    queryFn: getCategoryTypes,
-  });
-
   useEffect(() => {
     if (productToEdit) {
       setFormData(productToEdit);
@@ -110,7 +104,6 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         name: formData.name,
         brand_id: formData.brand_id,
         category_id: formData.category_id,
-        category_type_id: formData.category_type_id,
         description: formData.description,
         short_description: formData.short_description,
         price: formData.price,
@@ -261,29 +254,6 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="category_type">Type de catégorie</Label>
-              <Select 
-                value={formData.category_type_id || ''} 
-                onValueChange={(value) => handleInputChange('category_type_id', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un type (optionnel)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
-                  {categoryTypes.map((type: any) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Le type détermine les compatibilités automatiques pour l'upsell
-              </p>
             </div>
           </div>
         </div>

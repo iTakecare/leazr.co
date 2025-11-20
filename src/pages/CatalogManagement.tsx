@@ -4,7 +4,7 @@ import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Award, Folder, Download, Package, Users, Settings, Leaf } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
-import UnifiedCategoryManager from "@/components/catalog/UnifiedCategoryManager";
+import SimplifiedCategoryManager from "@/components/catalog/SimplifiedCategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
 import { ClientCatalogManager } from "@/components/catalog/client-management/ClientCatalogManager";
 import EnvironmentalDataManager from "@/components/admin/environmental/EnvironmentalDataManager";
@@ -121,7 +121,7 @@ const CatalogManagement = () => {
           </TabsContent>
           
           <TabsContent value="categories">
-            <UnifiedCategoryManager />
+            <SimplifiedCategoryManager />
           </TabsContent>
 
           <TabsContent value="brands">
