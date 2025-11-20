@@ -484,6 +484,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categories_type_fkey"
+            columns: ["type"]
+            isOneToOne: false
+            referencedRelation: "category_types"
+            referencedColumns: ["value"]
+          },
         ]
       }
       category_environmental_data: {
@@ -5957,6 +5964,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_type_fkey"
+            columns: ["type"]
+            isOneToOne: false
+            referencedRelation: "category_types"
+            referencedColumns: ["value"]
           },
         ]
       }
