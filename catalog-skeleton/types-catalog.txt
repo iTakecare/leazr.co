@@ -1,6 +1,15 @@
 // Types for iTakecare Catalog Integration
 // Compatible with Leazr API responses
 
+export interface CategoryType {
+  value: string;
+  label: string;
+  icon?: string;
+  bg_color: string;
+  text_color: string;
+  display_order?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -58,9 +67,22 @@ export interface Company {
 }
 
 export interface Category {
+  id: string;
   name: string;
   translation: string;
-  count: number;
+  type: CategoryType;
+  description?: string;
+  co2_savings_kg?: number;
+  environmental_impact?: {
+    co2_savings_kg: number;
+    carbon_footprint_reduction_percentage: number;
+    energy_savings_kwh: number;
+    water_savings_liters: number;
+    waste_reduction_kg: number;
+    source_url: string;
+    last_updated: string;
+  } | null;
+  count?: number;
 }
 
 export interface Brand {

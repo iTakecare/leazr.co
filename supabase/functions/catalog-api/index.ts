@@ -212,6 +212,16 @@ Deno.serve(async (req) => {
         console.log('📂 CATEGORIES RESULT:', data)
         break
 
+      case 'category-types':
+        console.log('🏷️ FETCHING CATEGORY TYPES')
+        data = await getCategoryTypes(supabaseAdmin, keyData.permissions)
+        break
+
+      case 'compatibilities':
+        console.log('🔗 FETCHING CATEGORY COMPATIBILITIES')
+        data = await getCategoryCompatibilities(supabaseAdmin, keyData.permissions)
+        break
+
       case 'brands':
         data = await getBrands(supabaseAdmin, companyId, keyData.permissions)
         break
@@ -440,6 +450,14 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
     .from('categories')
     .select(`
       *,
+      category_types!categories_type_fkey (
+        value,
+        label,
+        icon,
+        bg_color,
+        text_color,
+        display_order
+      ),
       category_environmental_data (
         co2_savings_kg,
         carbon_footprint_reduction_percentage,
@@ -458,9 +476,25 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
     categories: categories?.slice(0, 2) // First 2 categories for debugging
   })
 
-  // Enrich categories with environmental impact data
+  // Enrich categories with type info and environmental data
   const enrichedCategories = categories?.map((category: any) => ({
-    ...category,
+    id: category.id,
+    name: category.name,
+    translation: category.translation,
+    description: category.description,
+    type: category.category_types ? {
+      value: category.category_types.value,
+      label: category.category_types.label,
+      icon: category.category_types.icon,
+      bg_color: category.category_types.bg_color,
+      text_color: category.category_types.text_color
+    } : {
+      value: category.type, // Fallback if join fails
+      label: category.type,
+      icon: null,
+      bg_color: 'bg-gray-100',
+      text_color: 'text-gray-800'
+    },
     co2_savings_kg: category.category_environmental_data?.[0]?.co2_savings_kg || 0,
     environmental_impact: category.category_environmental_data?.[0] ? {
       co2_savings_kg: category.category_environmental_data[0].co2_savings_kg,
@@ -470,11 +504,42 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
       waste_reduction_kg: category.category_environmental_data[0].waste_reduction_kg,
       source_url: category.category_environmental_data[0].source_url,
       last_updated: category.category_environmental_data[0].last_updated
-    } : null,
-    category_environmental_data: undefined // Remove raw data from response
+    } : null
   }))
 
   return { categories: enrichedCategories }
+}
+
+async function getCategoryTypes(supabase: any, permissions: any) {
+  const { data: types } = await supabase
+    .from('category_types')
+    .select('value, label, icon, bg_color, text_color, display_order')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true })
+
+  return { category_types: types }
+}
+
+async function getCategoryCompatibilities(supabase: any, permissions: any) {
+  const { data: compatibilities } = await supabase
+    .from('category_type_compatibilities')
+    .select(`
+      parent_type,
+      child_type,
+      created_at
+    `)
+    .order('parent_type', { ascending: true })
+
+  // Group by parent_type for easier use
+  const grouped = compatibilities?.reduce((acc: any, comp: any) => {
+    if (!acc[comp.parent_type]) {
+      acc[comp.parent_type] = []
+    }
+    acc[comp.parent_type].push(comp.child_type)
+    return acc
+  }, {})
+
+  return { compatibilities: grouped }
 }
 
 async function getBrands(supabase: any, companyId: string, permissions: any) {
