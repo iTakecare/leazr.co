@@ -55,7 +55,7 @@ serve(async (req) => {
     if (userError || !user) {
       console.log('[CHECK-SUBSCRIPTION] ERROR in check-subscription -', { message: userError?.message || 'No user found' })
       return new Response(
-        JSON.stringify({ error: 'Authentication error: ' + (userError?.message || 'No user found') }),
+        JSON.stringify({ error: 'Authentication failed. Please log in again.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
