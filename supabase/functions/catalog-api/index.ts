@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       if (pathParts.length < 6) {
         console.error('❌ INVALID PATH LENGTH FOR FUNCTIONS FORMAT:', pathParts.length)
         return new Response(
-          JSON.stringify({ error: 'Invalid API path', expected: '/functions/v1/catalog-api/v1/{companyId}/{endpoint}', received: pathParts }), 
+          JSON.stringify({ error: 'Invalid API path format' }), 
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
       if (pathParts.length < 4) {
         console.error('❌ INVALID PATH LENGTH FOR DIRECT FORMAT:', pathParts.length)
         return new Response(
-          JSON.stringify({ error: 'Invalid API path', expected: '/catalog-api/v1/{companyId}/{endpoint}', received: pathParts }), 
+          JSON.stringify({ error: 'Invalid API path format' }), 
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     if (keyError || !keyData) {
       console.error('❌ INVALID API KEY:', { keyError, keyData })
       return new Response(
-        JSON.stringify({ error: 'Invalid API key', details: keyError?.message }), 
+        JSON.stringify({ error: 'Invalid API key' }), 
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
