@@ -5156,6 +5156,7 @@ export type Database = {
           brand_name: string | null
           category_id: string | null
           category_name: string | null
+          category_type_id: string | null
           company_id: string
           condition: string | null
           created_at: string | null
@@ -5204,6 +5205,7 @@ export type Database = {
           brand_name?: string | null
           category_id?: string | null
           category_name?: string | null
+          category_type_id?: string | null
           company_id: string
           condition?: string | null
           created_at?: string | null
@@ -5252,6 +5254,7 @@ export type Database = {
           brand_name?: string | null
           category_id?: string | null
           category_name?: string | null
+          category_type_id?: string | null
           company_id?: string
           condition?: string | null
           created_at?: string | null
@@ -5311,6 +5314,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_type_id_fkey"
+            columns: ["category_type_id"]
+            isOneToOne: false
+            referencedRelation: "category_types"
             referencedColumns: ["id"]
           },
           {
