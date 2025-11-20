@@ -147,6 +147,32 @@ export interface ProductVariant extends Omit<Product, 'variants' | 'variation_at
   attributes: ProductAttributes;
 }
 
+// Brand interface
+export interface Brand {
+  id?: string;
+  name: string;
+  translation?: string;
+  count?: number;
+  company_id?: string;
+  website_url?: string;
+  image_search_patterns?: {
+    product_paths?: string[];
+    image_selectors?: string[];
+  };
+}
+
+// Category interface with category type support
+export interface Category {
+  id: string;
+  name: string;
+  translation: string;
+  company_id: string;
+  category_type_id?: string;
+  description?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
 // Attribute type definition for the new product_attributes table
 export interface AttributeDefinition {
   id: string;
@@ -176,31 +202,6 @@ export interface VariantCombinationPrice {
   purchase_price?: number; // Purchase price (cost)
   monthly_price?: number;
   stock?: number;
-  created_at?: Date | string;
-  updated_at?: Date | string;
-}
-
-// Category type definition
-export interface Category {
-  id: string;
-  name: string;
-  slug?: string;
-  translation?: string;
-  description?: string;
-  imageUrl?: string;
-  products?: Product[];
-  created_at?: Date | string;
-  updated_at?: Date | string;
-}
-
-// Brand type definition
-export interface Brand {
-  id: string;
-  name: string;
-  translation?: string;
-  logo?: string;
-  description?: string;
-  products?: Product[];
   created_at?: Date | string;
   updated_at?: Date | string;
 }

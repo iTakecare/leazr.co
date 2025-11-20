@@ -447,24 +447,30 @@ export type Database = {
       }
       categories: {
         Row: {
+          category_type_id: string | null
           company_id: string
           created_at: string
+          description: string | null
           id: string
           name: string
           translation: string
           updated_at: string
         }
         Insert: {
+          category_type_id?: string | null
           company_id: string
           created_at?: string
+          description?: string | null
           id?: string
           name: string
           translation: string
           updated_at?: string
         }
         Update: {
+          category_type_id?: string | null
           company_id?: string
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
           translation?: string
@@ -472,10 +478,62 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "categories_category_type_id_fkey"
+            columns: ["category_type_id"]
+            isOneToOne: false
+            referencedRelation: "category_types"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "categories_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_compatibilities: {
+        Row: {
+          child_category_type_id: string
+          compatibility_strength: number | null
+          created_at: string | null
+          id: string
+          is_bidirectional: boolean | null
+          parent_category_type_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          child_category_type_id: string
+          compatibility_strength?: number | null
+          created_at?: string | null
+          id?: string
+          is_bidirectional?: boolean | null
+          parent_category_type_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          child_category_type_id?: string
+          compatibility_strength?: number | null
+          created_at?: string | null
+          id?: string
+          is_bidirectional?: boolean | null
+          parent_category_type_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_compatibilities_child_category_type_id_fkey"
+            columns: ["child_category_type_id"]
+            isOneToOne: false
+            referencedRelation: "category_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_compatibilities_parent_category_type_id_fkey"
+            columns: ["parent_category_type_id"]
+            isOneToOne: false
+            referencedRelation: "category_types"
             referencedColumns: ["id"]
           },
         ]
@@ -539,6 +597,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      category_specific_links: {
+        Row: {
+          child_category_id: string
+          created_at: string | null
+          id: string
+          link_type: string | null
+          parent_category_id: string
+          priority: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          child_category_id: string
+          created_at?: string | null
+          id?: string
+          link_type?: string | null
+          parent_category_id: string
+          priority?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          child_category_id?: string
+          created_at?: string | null
+          id?: string
+          link_type?: string | null
+          parent_category_id?: string
+          priority?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_specific_links_child_category_id_fkey"
+            columns: ["child_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_specific_links_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       chat_agent_status: {
         Row: {

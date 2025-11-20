@@ -31,23 +31,38 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
     const loadRelatedProducts = async () => {
       try {
         setIsLoading(true);
-        const relatedProducts = await getRelatedProducts(
-          companyId, 
-          category, 
-          brand, 
-          currentProductId, 
+        
+        // Utiliser le nouveau service upsell si disponible
+        const { getUpsellProducts } = await import("@/services/upsellService");
+        const upsellProducts = await getUpsellProducts(
+          category, // Utiliser category comme categoryId
+          companyId,
+          currentProductId,
           limit
         );
         
-        setProducts(relatedProducts);
+        setProducts(upsellProducts as Product[]);
       } catch (error) {
-        console.error("Error loading related products:", error);
+        console.error("Error loading upsell products:", error);
+        // Fallback to old system
+        try {
+          const relatedProducts = await getRelatedProducts(
+            companyId, 
+            category, 
+            brand, 
+            currentProductId, 
+            limit
+          );
+          setProducts(relatedProducts);
+        } catch (fallbackError) {
+          console.error("Error loading related products (fallback):", fallbackError);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (companyId && (category || brand)) {
+    if (companyId && category) {
       loadRelatedProducts();
     }
   }, [companyId, category, currentProductId, brand, limit]);
