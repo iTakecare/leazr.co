@@ -92,6 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (updateError) {
       console.error("❌ Erreur mise à jour mot de passe:", updateError.message);
       
+      // Check for specific known errors without exposing details
       if (updateError.message?.includes('weak') || updateError.message?.includes('pwned')) {
         return new Response(
           JSON.stringify({ 
@@ -102,11 +103,13 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       
+      // Generic error message - don't expose internal details
       return new Response(
         JSON.stringify({ 
-          error: 'Erreur lors de la mise à jour du mot de passe: ' + updateError.message
+          error: 'Impossible de mettre à jour le mot de passe. Veuillez réessayer.',
+          code: 'update_failed'
         }),
-        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 

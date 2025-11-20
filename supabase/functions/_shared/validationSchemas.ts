@@ -85,6 +85,36 @@ export const passwordResetRequestSchema = z.object({
   email: emailSchema
 });
 
+// Product request schema
+const productItemSchema = z.object({
+  product_id: uuidSchema,
+  variant_id: uuidSchema.optional(),
+  quantity: z.number().int().positive().max(1000, 'Quantité trop élevée'),
+  purchase_price: z.number().positive().max(1000000, 'Prix d\'achat invalide').optional(),
+  monthly_payment: z.number().positive().max(100000, 'Mensualité invalide').optional()
+});
+
+export const createProductRequestSchema = z.object({
+  products: z.array(productItemSchema).min(1, 'Au moins un produit requis').max(50, 'Maximum 50 produits'),
+  client: z.object({
+    name: z.string().trim().min(2, 'Nom trop court').max(100, 'Nom trop long'),
+    email: emailSchema,
+    company: z.string().trim().max(200, 'Nom entreprise trop long').optional(),
+    phone: z.string().trim().max(20, 'Téléphone invalide').optional()
+  }),
+  estimated_budget: z.number().positive().max(10000000, 'Budget invalide').optional()
+});
+
+// Document request schema
+export const sendDocumentRequestSchema = z.object({
+  offerId: uuidSchema,
+  clientEmail: emailSchema,
+  clientName: z.string().trim().min(1, 'Nom requis').max(100, 'Nom trop long'),
+  requestedDocs: z.array(z.string().trim().min(1).max(100)).min(1, 'Au moins un document requis').max(20, 'Trop de documents'),
+  customMessage: z.string().trim().max(1000, 'Message trop long').optional(),
+  uploadToken: z.string().trim().min(10).max(500, 'Token invalide').optional()
+});
+
 /**
  * Helper function pour valider et parser les données de requête
  * Retourne les données validées ou lance une erreur ZodError
