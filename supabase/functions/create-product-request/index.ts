@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getAppUrl, getFromEmail, getFromName } from "../_shared/url-utils.ts";
+import { createProductRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
 const corsHeaders = {
@@ -31,8 +33,21 @@ serve(async (req) => {
     // Client Supabase avec les privilèges admin
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Récupération des données depuis le body de la requête
-    const data = await req.json();
+    // Récupération et validation des données
+    const rawData = await req.json();
+    
+    // Validation with zod to prevent injection attacks
+    let data;
+    try {
+      data = createProductRequestSchema.parse(rawData);
+      console.log("✅ Données validées avec succès");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error("❌ Validation échouée:", error.errors);
+        return createValidationErrorResponse(error, corsHeaders);
+      }
+      throw error;
+    }
     
     console.log("Données reçues par la fonction Edge:", data);
     

@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { sendDocumentRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,22 +49,22 @@ serve(async (req) => {
     const envKeys = Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"));
     console.log("Variables d'environnement contenant 'RESEND':", envKeys);
     
-    // Récupérer le corps de la requête
+    // Récupérer et valider le corps de la requête
     let requestData: RequestDocumentsData;
     
     if (req.headers.get("content-type")?.includes("application/json")) {
       const bodyText = await req.text();
-      console.log("Corps de la requête brut:", bodyText);
+      console.log("Corps de la requête reçu (taille:", bodyText.length, "bytes)");
       
+      let rawData;
       try {
-        requestData = JSON.parse(bodyText);
+        rawData = JSON.parse(bodyText);
       } catch (parseError) {
-        console.error("Erreur lors du parsing JSON:", parseError);
+        console.error("❌ Erreur lors du parsing JSON:", parseError);
         return new Response(
           JSON.stringify({
             success: false,
-            message: `Erreur de parsing JSON: ${parseError.message}`,
-            receivedBody: bodyText
+            message: "Format JSON invalide"
           }),
           {
             status: 400,
@@ -70,13 +72,24 @@ serve(async (req) => {
           }
         );
       }
+      
+      // Validation with zod to prevent injection attacks
+      try {
+        requestData = sendDocumentRequestSchema.parse(rawData);
+        console.log("✅ Données validées avec succès");
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          console.error("❌ Validation échouée:", error.errors);
+          return createValidationErrorResponse(error, corsHeaders);
+        }
+        throw error;
+      }
     } else {
       console.error("Type de contenu non supporté:", req.headers.get("content-type"));
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Type de contenu non supporté. Utilisez application/json",
-          contentType: req.headers.get("content-type")
+          message: "Type de contenu non supporté. Utilisez application/json"
         }),
         {
           status: 400,
@@ -85,7 +98,7 @@ serve(async (req) => {
       );
     }
     
-    console.log("Données de la requête parsed:", JSON.stringify(requestData, null, 2));
+    console.log("Données de la requête validées:", JSON.stringify(requestData, null, 2));
     
     const { 
       offerId,
