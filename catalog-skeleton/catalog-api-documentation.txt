@@ -1,0 +1,1382 @@
+# Documentation complète - iTakecare Catalogue API
+
+**Version:** 1.1.0  
+**Dernière mise à jour:** 20 novembre 2025  
+**Base URL:** `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api`
+
+---
+
+## Table des matières
+
+1. [Introduction](#introduction)
+2. [Configuration](#configuration)
+3. [Endpoints disponibles](#endpoints-disponibles)
+4. [Documentation détaillée](#documentation-détaillée)
+5. [Gestion des erreurs](#gestion-des-erreurs)
+6. [Rate Limiting](#rate-limiting)
+7. [Exemples d'utilisation](#exemples-dutilisation)
+8. [Changelog](#changelog)
+9. [Guide de migration v1.0 → v1.1](#guide-de-migration)
+10. [Cas d'usage recommandés](#cas-dusage-recommandés)
+11. [Support](#support)
+
+---
+
+## Introduction
+
+L'iTakecare Catalogue API permet d'accéder au catalogue de produits reconditionnés et services de leasing d'iTakecare. Cette API RESTful fournit des endpoints pour récupérer des informations sur les produits, catégories, marques, et soumettre des demandes de devis.
+
+**Nouveautés v1.1.0:**
+- ✅ Types de catégories dynamiques avec propriétés visuelles (icônes, couleurs)
+- ✅ Endpoint dédié pour les types de catégories
+- ✅ Endpoint pour les compatibilités entre types
+- ✅ Catégories enrichies avec objets type complets
+
+---
+
+## Configuration
+
+### Base URL
+```
+https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api
+```
+
+### Authentification
+
+Toutes les requêtes nécessitent un header d'authentification:
+
+```http
+x-api-key: YOUR_API_KEY
+```
+
+**Important:** Contactez iTakecare pour obtenir votre clé API.
+
+### Format des réponses
+
+- **Content-Type:** `application/json`
+- **Encodage:** UTF-8
+- Toutes les réponses incluent un statut HTTP approprié
+
+---
+
+## Endpoints disponibles
+
+### Informations Entreprise
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/v1/{companySlug}/company` | Informations sur l'entreprise |
+
+### Produits
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/v1/{companySlug}/products` | Liste des produits avec filtres |
+| GET | `/v1/{companySlug}/products/{productId}` | Détail d'un produit spécifique |
+
+### Catégories
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/v1/{companySlug}/categories` | Liste des catégories avec types enrichis |
+| GET | `/v1/{companySlug}/category-types` | ⭐ **NOUVEAU** - Types de catégories dynamiques |
+| GET | `/v1/{companySlug}/compatibilities` | ⭐ **NOUVEAU** - Compatibilités entre types |
+
+### Marques
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/v1/{companySlug}/brands` | Liste des marques disponibles |
+
+### Panier
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/v1/{companySlug}/cart/submit` | Soumettre une demande de devis |
+
+---
+
+## Documentation détaillée
+
+### GET /v1/{companySlug}/company
+
+Récupère les informations sur l'entreprise.
+
+**Paramètres:**
+- `companySlug` (path) - Slug de l'entreprise (ex: `itakecare`)
+
+**Réponse:**
+```json
+{
+  "id": "c1ce66bb-3ad2-474d-b477-583baa7ff1c0",
+  "name": "iTakecare",
+  "slug": "itakecare",
+  "logo_url": "https://...",
+  "primary_color": "#3B82F6",
+  "secondary_color": "#10B981"
+}
+```
+
+---
+
+### GET /v1/{companySlug}/products
+
+Liste paginée des produits avec filtres avancés.
+
+**Paramètres de requête:**
+
+| Paramètre | Type | Description | Exemple |
+|-----------|------|-------------|---------|
+| `search` | string | Recherche textuelle | `?search=macbook` |
+| `category` | string | Filtre par catégorie ID | `?category=xxx-yyy-zzz` |
+| `brand` | string | Filtre par marque | `?brand=Apple` |
+| `minPrice` | number | Prix minimum | `?minPrice=500` |
+| `maxPrice` | number | Prix maximum | `?maxPrice=2000` |
+| `page` | number | Numéro de page (défaut: 1) | `?page=2` |
+| `limit` | number | Produits par page (défaut: 20, max: 100) | `?limit=50` |
+
+**Réponse:**
+```json
+{
+  "products": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "MacBook Pro 13\" M1",
+      "slug": "macbook-pro-13-m1",
+      "price": 1299,
+      "monthly_price": 45.99,
+      "image_url": "https://...",
+      "brand": "Apple",
+      "category": "Ordinateur portable",
+      "description": "MacBook Pro reconditionné avec puce M1...",
+      "short_description": "Puissance et efficacité énergétique",
+      "active": true,
+      "has_variants": true,
+      "variants_count": 3,
+      "min_variant_price": 1199,
+      "specifications": {
+        "processor": "Apple M1",
+        "ram": "8 GB",
+        "storage": "256 GB SSD",
+        "screen": "13.3 pouces Retina"
+      }
+    }
+  ],
+  "total": 145,
+  "page": 1,
+  "totalPages": 8,
+  "categories": [...],
+  "brands": [...]
+}
+```
+
+---
+
+### GET /v1/{companySlug}/products/{productId}
+
+Détail complet d'un produit spécifique (par ID ou slug).
+
+**Paramètres:**
+- `companySlug` (path) - Slug de l'entreprise
+- `productId` (path) - ID UUID ou slug du produit
+
+**Réponse:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "MacBook Pro 13\" M1",
+  "slug": "macbook-pro-13-m1",
+  "price": 1299,
+  "monthly_price": 45.99,
+  "image_url": "https://...",
+  "brand": "Apple",
+  "category": "Ordinateur portable",
+  "description": "Description complète du produit...",
+  "short_description": "Résumé court",
+  "active": true,
+  "has_variants": true,
+  "variants": [
+    {
+      "id": "variant-1",
+      "name": "256GB / 8GB RAM",
+      "price": 1199,
+      "monthly_price": 42.99,
+      "image_url": "https://...",
+      "attributes": {
+        "storage": "256GB",
+        "ram": "8GB"
+      },
+      "active": true
+    },
+    {
+      "id": "variant-2",
+      "name": "512GB / 16GB RAM",
+      "price": 1499,
+      "monthly_price": 52.99,
+      "attributes": {
+        "storage": "512GB",
+        "ram": "16GB"
+      },
+      "active": true
+    }
+  ],
+  "variation_attributes": {
+    "storage": ["256GB", "512GB", "1TB"],
+    "ram": ["8GB", "16GB", "32GB"]
+  },
+  "specifications": {
+    "processor": "Apple M1",
+    "screen": "13.3 pouces Retina",
+    "graphics": "GPU 8 cœurs",
+    "battery": "Jusqu'à 20 heures"
+  }
+}
+```
+
+---
+
+### GET /v1/{companySlug}/categories
+
+⭐ **MISE À JOUR v1.1.0** - Liste des catégories avec types enrichis et données environnementales.
+
+**Changement majeur:** Le champ `type` retourne maintenant un objet `CategoryType` complet au lieu d'une simple string.
+
+**Réponse:**
+```json
+{
+  "categories": [
+    {
+      "id": "cat-123",
+      "name": "MacBook Pro",
+      "translation": "Ordinateur portable professionnel",
+      "type": {
+        "value": "device",
+        "label": "Appareil",
+        "icon": "📱",
+        "bg_color": "bg-blue-100",
+        "text_color": "text-blue-800",
+        "display_order": 1
+      },
+      "description": "MacBook Pro reconditionnés de qualité premium",
+      "count": 24,
+      "environmental_impact": {
+        "co2_savings_kg": 156,
+        "carbon_footprint_reduction_percentage": 75,
+        "energy_savings_kwh": 450,
+        "water_savings_liters": 12000,
+        "waste_reduction_kg": 8,
+        "source_url": "https://www.ademe.fr/...",
+        "last_updated": "2025-11-15T10:00:00Z"
+      }
+    },
+    {
+      "id": "cat-456",
+      "name": "Souris sans fil",
+      "translation": "Accessoire de pointage",
+      "type": {
+        "value": "accessory",
+        "label": "Accessoire",
+        "icon": "🔌",
+        "bg_color": "bg-green-100",
+        "text_color": "text-green-800",
+        "display_order": 2
+      },
+      "count": 18,
+      "environmental_impact": null
+    }
+  ]
+}
+```
+
+**Notes importantes:**
+- `type` est maintenant un objet avec propriétés visuelles
+- `environmental_impact` peut être `null` si non disponible
+- Les couleurs utilisent les classes Tailwind CSS
+
+---
+
+### GET /v1/{companySlug}/category-types
+
+⭐ **NOUVEAU v1.1.0** - Récupère tous les types de catégories disponibles avec leurs propriétés visuelles.
+
+**Utilisation:** Pour afficher des filtres dynamiques, badges, ou légendes dans votre UI.
+
+**Réponse:**
+```json
+{
+  "category_types": [
+    {
+      "value": "device",
+      "label": "Appareil",
+      "icon": "📱",
+      "bg_color": "bg-blue-100",
+      "text_color": "text-blue-800",
+      "display_order": 1
+    },
+    {
+      "value": "accessory",
+      "label": "Accessoire",
+      "icon": "🔌",
+      "bg_color": "bg-green-100",
+      "text_color": "text-green-800",
+      "display_order": 2
+    },
+    {
+      "value": "service",
+      "label": "Service",
+      "icon": "🛠️",
+      "bg_color": "bg-purple-100",
+      "text_color": "text-purple-800",
+      "display_order": 3
+    },
+    {
+      "value": "software",
+      "label": "Logiciel",
+      "icon": "💾",
+      "bg_color": "bg-orange-100",
+      "text_color": "text-orange-800",
+      "display_order": 4
+    },
+    {
+      "value": "consumable",
+      "label": "Consommable",
+      "icon": "📦",
+      "bg_color": "bg-yellow-100",
+      "text_color": "text-yellow-800",
+      "display_order": 5
+    }
+  ]
+}
+```
+
+**Cas d'usage:**
+- Créer des filtres par type de catégorie
+- Afficher des badges colorés pour chaque catégorie
+- Construire une légende visuelle du catalogue
+- Synchroniser les couleurs entre applications
+
+---
+
+### GET /v1/{companySlug}/compatibilities
+
+⭐ **NOUVEAU v1.1.0** - Récupère les relations de compatibilité entre types de catégories.
+
+**Utilisation:** Pour afficher des suggestions de produits complémentaires (upselling/cross-selling).
+
+**Réponse:**
+```json
+{
+  "compatibilities": {
+    "device": ["accessory", "service", "software"],
+    "accessory": ["consumable"],
+    "service": ["software"],
+    "software": [],
+    "consumable": []
+  }
+}
+```
+
+**Interprétation:**
+- `device` est compatible avec `accessory`, `service`, et `software`
+- Lorsqu'un client ajoute un "device", suggérer des produits de type "accessory", "service", ou "software"
+- Les compatibilités ne sont pas forcément bidirectionnelles
+
+**Exemple d'utilisation:**
+```javascript
+// Client ajoute un MacBook Pro (type: device)
+const productType = "device";
+const compatibleTypes = compatibilities[productType]; // ["accessory", "service", "software"]
+
+// Afficher: "Accessoires recommandés", "Services associés", "Logiciels compatibles"
+```
+
+---
+
+### GET /v1/{companySlug}/brands
+
+Liste des marques disponibles avec le nombre de produits par marque.
+
+**Réponse:**
+```json
+{
+  "brands": [
+    {
+      "name": "Apple",
+      "count": 87
+    },
+    {
+      "name": "Dell",
+      "count": 52
+    },
+    {
+      "name": "HP",
+      "count": 45
+    },
+    {
+      "name": "Lenovo",
+      "count": 38
+    }
+  ]
+}
+```
+
+---
+
+### POST /v1/{companySlug}/cart/submit
+
+Soumet un panier pour créer une demande de devis.
+
+**Body:**
+```json
+{
+  "cart": [
+    {
+      "product_id": "550e8400-e29b-41d4-a716-446655440000",
+      "quantity": 2,
+      "duration": 36,
+      "selected_options": {
+        "storage": "512GB",
+        "ram": "16GB"
+      }
+    }
+  ],
+  "customer": {
+    "name": "Jean Dupont",
+    "email": "jean.dupont@example.com",
+    "company": "Acme Corp",
+    "phone": "+32 471 23 45 67"
+  },
+  "message": "Demande de devis pour équiper 5 collaborateurs"
+}
+```
+
+**Réponse succès:**
+```json
+{
+  "success": true,
+  "id": "quote-789",
+  "message": "Votre demande a été enregistrée avec succès. Nous vous contacterons sous 24h."
+}
+```
+
+**Réponse erreur:**
+```json
+{
+  "success": false,
+  "message": "Email client invalide"
+}
+```
+
+---
+
+## Gestion des erreurs
+
+### Codes de statut HTTP
+
+| Code | Signification | Description |
+|------|---------------|-------------|
+| 200 | OK | Requête réussie |
+| 400 | Bad Request | Paramètres invalides ou manquants |
+| 401 | Unauthorized | Clé API manquante ou invalide |
+| 404 | Not Found | Ressource non trouvée |
+| 429 | Too Many Requests | Limite de taux dépassée |
+| 500 | Internal Server Error | Erreur serveur |
+
+### Format des erreurs
+
+```json
+{
+  "error": "Message d'erreur descriptif",
+  "code": "ERROR_CODE",
+  "details": {
+    "field": "Détails supplémentaires"
+  }
+}
+```
+
+### Exemples d'erreurs
+
+**401 - Clé API manquante:**
+```json
+{
+  "error": "Missing API key",
+  "code": "MISSING_API_KEY"
+}
+```
+
+**404 - Produit non trouvé:**
+```json
+{
+  "error": "Product not found",
+  "code": "PRODUCT_NOT_FOUND",
+  "details": {
+    "productId": "invalid-id-123"
+  }
+}
+```
+
+**429 - Rate limit dépassé:**
+```json
+{
+  "error": "Rate limit exceeded",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "details": {
+    "retryAfter": 3600
+  }
+}
+```
+
+---
+
+## Rate Limiting
+
+### Limites
+
+- **100 requêtes par heure** par adresse IP
+- Les limites se réinitialisent toutes les heures
+- Les requêtes dépassant la limite reçoivent un code 429
+
+### Headers de réponse
+
+Chaque réponse inclut des headers indiquant votre utilisation:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 1700654400
+```
+
+**Description:**
+- `X-RateLimit-Limit`: Limite totale de requêtes
+- `X-RateLimit-Remaining`: Nombre de requêtes restantes
+- `X-RateLimit-Reset`: Timestamp Unix de réinitialisation
+
+### Bonnes pratiques
+
+1. **Mettre en cache les réponses** (catégories, types, compatibilités)
+2. **Implémenter un retry avec backoff exponentiel**
+3. **Surveiller le header `X-RateLimit-Remaining`**
+4. **Grouper les requêtes** quand possible
+
+---
+
+## Exemples d'utilisation
+
+### JavaScript / TypeScript avec ApiService
+
+#### Installation
+
+Copiez le fichier `api-service.txt` dans votre projet et importez-le:
+
+```typescript
+import { ApiService } from './services/ApiService';
+
+const apiService = new ApiService('itakecare');
+```
+
+#### Récupérer les produits
+
+```typescript
+// Tous les produits
+const catalog = await apiService.getPublicCatalog('itakecare');
+console.log(catalog.products);
+
+// Avec filtres
+const filtered = await apiService.getPublicCatalog('itakecare', {
+  search: 'macbook',
+  category: 'cat-123',
+  brand: 'Apple',
+  minPrice: 1000,
+  maxPrice: 2000,
+  page: 1,
+  limit: 20
+});
+```
+
+#### Récupérer un produit spécifique
+
+```typescript
+const product = await apiService.getProductBySlug('itakecare', 'macbook-pro-13-m1');
+
+if (product) {
+  console.log(`${product.name} - ${product.monthly_price}€/mois`);
+  
+  // Afficher les variantes
+  product.variants?.forEach(variant => {
+    console.log(`${variant.name}: ${variant.monthly_price}€/mois`);
+  });
+}
+```
+
+#### Récupérer les catégories avec types enrichis
+
+```typescript
+const { categories } = await apiService.getCategories('itakecare');
+
+categories.forEach(category => {
+  // Accéder au type enrichi
+  const typeLabel = category.type.label; // "Appareil"
+  const typeIcon = category.type.icon; // "📱"
+  const bgColor = category.type.bg_color; // "bg-blue-100"
+  const textColor = category.type.text_color; // "text-blue-800"
+  
+  console.log(`${typeIcon} ${category.name} (${typeLabel})`);
+  
+  // Afficher impact environnemental si disponible
+  if (category.environmental_impact) {
+    const co2 = category.environmental_impact.co2_savings_kg;
+    console.log(`💚 Économie CO2: ${co2} kg`);
+  }
+});
+```
+
+#### ⭐ NOUVEAU - Récupérer les types de catégories
+
+```typescript
+const { category_types } = await apiService.getCategoryTypes();
+
+// Créer une légende visuelle
+category_types.forEach(type => {
+  console.log(`${type.icon} ${type.label}`);
+  // Utiliser type.bg_color et type.text_color pour le style
+});
+
+// Créer des filtres dynamiques
+const filters = category_types.map(type => ({
+  label: type.label,
+  value: type.value,
+  icon: type.icon
+}));
+```
+
+#### ⭐ NOUVEAU - Utiliser les compatibilités pour suggestions
+
+```typescript
+const { compatibilities } = await apiService.getCategoryCompatibilities();
+
+// Client sélectionne un MacBook (type: device)
+const selectedProductType = "device";
+const compatibleTypes = compatibilities[selectedProductType]; 
+// ["accessory", "service", "software"]
+
+// Filtrer les produits compatibles
+const { categories } = await apiService.getCategories('itakecare');
+
+const compatibleProducts = categories.filter(cat => 
+  compatibleTypes.includes(cat.type.value)
+);
+
+console.log("Produits recommandés:");
+compatibleProducts.forEach(cat => {
+  console.log(`${cat.type.icon} ${cat.name}`);
+});
+```
+
+#### Afficher des badges avec couleurs dynamiques
+
+```typescript
+import React from 'react';
+
+function CategoryBadge({ category }) {
+  return (
+    <span className={`px-3 py-1 rounded-full ${category.type.bg_color} ${category.type.text_color}`}>
+      <span className="mr-1">{category.type.icon}</span>
+      {category.name}
+    </span>
+  );
+}
+
+// Utilisation
+const { categories } = await apiService.getCategories('itakecare');
+categories.map(cat => <CategoryBadge key={cat.id} category={cat} />)
+```
+
+#### Soumettre un panier
+
+```typescript
+const result = await apiService.submitCart('itakecare', {
+  cart: [
+    {
+      product_id: "550e8400-e29b-41d4-a716-446655440000",
+      quantity: 2,
+      duration: 36,
+      selected_options: {
+        storage: "512GB",
+        ram: "16GB"
+      }
+    }
+  ],
+  customer: {
+    name: "Jean Dupont",
+    email: "jean.dupont@example.com",
+    company: "Acme Corp",
+    phone: "+32 471 23 45 67"
+  },
+  message: "Demande de devis urgente"
+});
+
+if (result.success) {
+  console.log("Devis envoyé:", result.id);
+}
+```
+
+---
+
+### cURL
+
+#### Récupérer les produits
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/products?search=macbook&brand=Apple' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+#### Récupérer un produit spécifique
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/products/macbook-pro-13-m1' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+#### Récupérer les catégories
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/categories' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+#### ⭐ NOUVEAU - Récupérer les types de catégories
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/category-types' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+#### ⭐ NOUVEAU - Récupérer les compatibilités
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/compatibilities' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+#### Récupérer les marques
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/brands' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+#### Soumettre un panier
+
+```bash
+curl -X POST \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/cart/submit' \
+  -H 'x-api-key: YOUR_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "cart": [
+      {
+        "product_id": "550e8400-e29b-41d4-a716-446655440000",
+        "quantity": 2,
+        "duration": 36
+      }
+    ],
+    "customer": {
+      "name": "Jean Dupont",
+      "email": "jean.dupont@example.com",
+      "company": "Acme Corp",
+      "phone": "+32 471 23 45 67"
+    }
+  }'
+```
+
+---
+
+## Changelog
+
+### Version 1.1.0 - 20 novembre 2025
+
+#### ✅ Nouveaux endpoints
+
+- **`GET /category-types`** - Récupérer tous les types de catégories avec propriétés visuelles (icônes, couleurs)
+- **`GET /compatibilities`** - Récupérer les relations de compatibilité entre types de catégories
+
+#### ✅ Améliorations majeures
+
+- **Endpoint `/categories` enrichi:**
+  - Le champ `type` retourne maintenant un objet `CategoryType` complet au lieu d'une simple string
+  - Inclut `value`, `label`, `icon`, `bg_color`, `text_color`, `display_order`
+  - Permet un affichage uniforme des catégories avec couleurs et icônes dynamiques
+
+#### ✅ Améliorations techniques
+
+- **Intégrité des données:**
+  - Ajout de contrainte de clé étrangère `categories.type` → `category_types.value`
+  - Règle `ON UPDATE CASCADE` pour synchronisation automatique
+  - Règle `ON DELETE RESTRICT` pour prévenir la suppression de types utilisés
+
+- **Performances:**
+  - Index `idx_categories_type` sur `categories.type`
+  - Index `idx_category_types_value` sur `category_types.value`
+  - Amélioration des temps de réponse des jointures
+
+#### ⚠️ Breaking Changes
+
+**IMPORTANT:** Le format de réponse de l'endpoint `/categories` a changé.
+
+**Avant (v1.0):**
+```json
+{
+  "type": "device"  // String simple
+}
+```
+
+**Après (v1.1):**
+```json
+{
+  "type": {  // Objet enrichi
+    "value": "device",
+    "label": "Appareil",
+    "icon": "📱",
+    "bg_color": "bg-blue-100",
+    "text_color": "text-blue-800"
+  }
+}
+```
+
+**Migration nécessaire:** Voir section [Guide de migration](#guide-de-migration).
+
+---
+
+### Version 1.0.0 - Janvier 2025
+
+#### ✅ Fonctionnalités initiales
+
+- Endpoints de base pour produits, catégories, marques
+- Filtrage et pagination des produits
+- Récupération de produits par ID ou slug
+- Soumission de paniers pour devis
+- Authentification par clé API
+- Rate limiting (100 req/h)
+
+---
+
+## Guide de migration
+
+### Migration v1.0 → v1.1
+
+#### Changements nécessaires dans votre code
+
+**1. Accès au type de catégorie**
+
+```typescript
+// ❌ Avant (v1.0)
+const categoryType = category.type; // "device"
+const displayName = categoryType; // Affichage direct
+
+// ✅ Après (v1.1)
+const categoryType = category.type.value; // "device"
+const displayName = category.type.label; // "Appareil"
+const icon = category.type.icon; // "📱"
+```
+
+**2. Affichage des badges**
+
+```typescript
+// ❌ Avant (v1.0) - Couleurs hardcodées
+function getBadgeColor(type: string) {
+  switch(type) {
+    case 'device': return 'bg-blue-100 text-blue-800';
+    case 'accessory': return 'bg-green-100 text-green-800';
+    // ...
+  }
+}
+
+// ✅ Après (v1.1) - Couleurs dynamiques
+function CategoryBadge({ category }) {
+  return (
+    <span className={`${category.type.bg_color} ${category.type.text_color}`}>
+      {category.type.icon} {category.type.label}
+    </span>
+  );
+}
+```
+
+**3. Filtrage par type**
+
+```typescript
+// ❌ Avant (v1.0)
+const devices = categories.filter(cat => cat.type === 'device');
+
+// ✅ Après (v1.1)
+const devices = categories.filter(cat => cat.type.value === 'device');
+```
+
+**4. Tri par type**
+
+```typescript
+// ❌ Avant (v1.0) - Pas d'ordre défini
+categories.sort((a, b) => a.type.localeCompare(b.type));
+
+// ✅ Après (v1.1) - Ordre configurable
+categories.sort((a, b) => a.type.display_order - b.type.display_order);
+```
+
+#### Nouvelles opportunités v1.1
+
+**1. Récupérer les types au chargement**
+
+```typescript
+// Au chargement de l'application
+const { category_types } = await apiService.getCategoryTypes();
+
+// Mettre en cache localement
+localStorage.setItem('categoryTypes', JSON.stringify(category_types));
+
+// Utiliser pour filtres, légendes, etc.
+```
+
+**2. Implémenter des suggestions intelligentes**
+
+```typescript
+// Récupérer les compatibilités
+const { compatibilities } = await apiService.getCategoryCompatibilities();
+
+// Quand un client ajoute un produit
+function getSuggestedProducts(addedProduct, allProducts, compatibilities) {
+  const productType = addedProduct.category.type.value;
+  const compatibleTypes = compatibilities[productType] || [];
+  
+  return allProducts.filter(product => 
+    compatibleTypes.includes(product.category.type.value)
+  );
+}
+```
+
+**3. Affichage uniforme avec Tailwind**
+
+```tsx
+import React from 'react';
+
+function CategoryGrid({ categories }) {
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {categories.map(category => (
+        <div 
+          key={category.id}
+          className={`p-4 rounded-lg ${category.type.bg_color}`}
+        >
+          <div className="text-4xl mb-2">{category.type.icon}</div>
+          <h3 className={`font-bold ${category.type.text_color}`}>
+            {category.name}
+          </h3>
+          <p className="text-sm text-gray-600">
+            {category.type.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+#### Rétrocompatibilité
+
+Si vous ne pouvez pas migrer immédiatement, vous pouvez créer un adaptateur temporaire:
+
+```typescript
+function adaptCategoryToV1Format(category) {
+  return {
+    ...category,
+    type: category.type.value, // Convertir objet → string
+    type_label: category.type.label,
+    type_icon: category.type.icon,
+    type_colors: {
+      bg: category.type.bg_color,
+      text: category.type.text_color
+    }
+  };
+}
+```
+
+---
+
+## Cas d'usage recommandés
+
+### 1. Catalogue externe / E-commerce
+
+**Objectif:** Afficher le catalogue iTakecare sur votre site web.
+
+**Workflow recommandé:**
+
+```typescript
+// 1. Initialiser au chargement de la page
+async function initCatalog() {
+  // Récupérer les types et compatibilités (à mettre en cache)
+  const types = await apiService.getCategoryTypes();
+  const compatibilities = await apiService.getCategoryCompatibilities();
+  
+  // Récupérer les produits
+  const catalog = await apiService.getPublicCatalog('itakecare', {
+    limit: 50,
+    page: 1
+  });
+  
+  return { types, compatibilities, catalog };
+}
+
+// 2. Afficher avec filtres dynamiques basés sur les types
+function CatalogFilters({ types, onFilterChange }) {
+  return (
+    <div className="flex gap-2">
+      {types.category_types.map(type => (
+        <button
+          key={type.value}
+          className={`px-4 py-2 rounded ${type.bg_color} ${type.text_color}`}
+          onClick={() => onFilterChange(type.value)}
+        >
+          {type.icon} {type.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// 3. Afficher les suggestions de produits compatibles
+function ProductSuggestions({ product, compatibilities, allProducts }) {
+  const productType = product.category.type.value;
+  const compatibleTypes = compatibilities[productType] || [];
+  
+  const suggestions = allProducts.filter(p =>
+    compatibleTypes.includes(p.category.type.value) &&
+    p.id !== product.id
+  );
+  
+  return (
+    <div>
+      <h3>Produits recommandés</h3>
+      {suggestions.map(p => <ProductCard key={p.id} product={p} />)}
+    </div>
+  );
+}
+```
+
+---
+
+### 2. Configurateur de pack
+
+**Objectif:** Permettre aux clients de créer des packs personnalisés.
+
+**Workflow recommandé:**
+
+```typescript
+class PackConfigurator {
+  constructor(apiService, compatibilities) {
+    this.api = apiService;
+    this.compatibilities = compatibilities;
+    this.selectedProducts = [];
+  }
+  
+  // Ajouter un produit et obtenir les suggestions
+  async addProduct(product) {
+    this.selectedProducts.push(product);
+    
+    // Récupérer les types compatibles
+    const productType = product.category.type.value;
+    const compatibleTypes = this.compatibilities[productType];
+    
+    // Suggérer des produits complémentaires
+    const suggestions = await this.api.getPublicCatalog('itakecare', {
+      category: compatibleTypes.join(','),
+      limit: 10
+    });
+    
+    return suggestions.products;
+  }
+  
+  // Calculer le total mensuel
+  calculateMonthlyTotal(duration = 36) {
+    return this.selectedProducts.reduce((total, product) => {
+      return total + (product.monthly_price * product.quantity);
+    }, 0);
+  }
+  
+  // Soumettre le pack
+  async submitPack(customerInfo) {
+    const cart = this.selectedProducts.map(product => ({
+      product_id: product.id,
+      quantity: product.quantity,
+      duration: 36,
+      selected_options: product.selectedOptions || {}
+    }));
+    
+    return await this.api.submitCart('itakecare', {
+      cart,
+      customer: customerInfo,
+      message: "Pack personnalisé"
+    });
+  }
+}
+
+// Utilisation
+const configurator = new PackConfigurator(apiService, compatibilities);
+
+// Client ajoute un MacBook
+const macbook = await apiService.getProductBySlug('itakecare', 'macbook-pro');
+const suggestions = await configurator.addProduct(macbook);
+
+console.log("Nous vous recommandons:", suggestions);
+// → Souris, clavier, sacoche, logiciels compatibles...
+```
+
+---
+
+### 3. Application mobile
+
+**Objectif:** Intégrer le catalogue dans une app React Native / Flutter.
+
+**Bonnes pratiques:**
+
+```typescript
+// 1. Cache local des types et compatibilités
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+class CatalogCache {
+  static async getCategoryTypes() {
+    // Vérifier le cache
+    const cached = await AsyncStorage.getItem('categoryTypes');
+    const cacheTime = await AsyncStorage.getItem('categoryTypesTime');
+    
+    // Cache valide 24h
+    if (cached && Date.now() - parseInt(cacheTime) < 86400000) {
+      return JSON.parse(cached);
+    }
+    
+    // Récupérer depuis l'API
+    const types = await apiService.getCategoryTypes();
+    await AsyncStorage.setItem('categoryTypes', JSON.stringify(types));
+    await AsyncStorage.setItem('categoryTypesTime', Date.now().toString());
+    
+    return types;
+  }
+  
+  // Même principe pour compatibilités
+}
+
+// 2. Utiliser dans les composants
+function CategoryList() {
+  const [types, setTypes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  
+  useEffect(() => {
+    async function loadData() {
+      const cachedTypes = await CatalogCache.getCategoryTypes();
+      setTypes(cachedTypes.category_types);
+      
+      const catalog = await apiService.getCategories('itakecare');
+      setCategories(catalog.categories);
+    }
+    
+    loadData();
+  }, []);
+  
+  return (
+    <ScrollView>
+      {categories.map(cat => (
+        <CategoryCard key={cat.id} category={cat} />
+      ))}
+    </ScrollView>
+  );
+}
+```
+
+---
+
+### 4. Dashboard analytique
+
+**Objectif:** Afficher des statistiques sur le catalogue.
+
+**Exemple:**
+
+```typescript
+async function getCatalogStatistics() {
+  const catalog = await apiService.getPublicCatalog('itakecare', {
+    limit: 1000 // Récupérer tout
+  });
+  
+  const types = await apiService.getCategoryTypes();
+  
+  // Statistiques par type
+  const statsByType = types.category_types.map(type => {
+    const productsOfType = catalog.products.filter(p =>
+      p.category.type.value === type.value
+    );
+    
+    return {
+      type: type.label,
+      icon: type.icon,
+      count: productsOfType.length,
+      avgPrice: productsOfType.reduce((sum, p) => sum + (p.price || 0), 0) / productsOfType.length,
+      totalValue: productsOfType.reduce((sum, p) => sum + (p.price || 0), 0)
+    };
+  });
+  
+  return statsByType;
+}
+
+// Affichage
+const stats = await getCatalogStatistics();
+console.table(stats);
+
+// Résultat:
+// ┌──────────────┬──────┬──────────┬──────────────┐
+// │ Type         │ Icon │ Count    │ Avg Price    │
+// ├──────────────┼──────┼──────────┼──────────────┤
+// │ Appareil     │ 📱   │ 145      │ 1,234 €      │
+// │ Accessoire   │ 🔌   │ 78       │ 45 €         │
+// │ Service      │ 🛠️   │ 23       │ 15 €/mois    │
+// │ Logiciel     │ 💾   │ 34       │ 29 €/mois    │
+// └──────────────┴──────┴──────────┴──────────────┘
+```
+
+---
+
+### 5. Widget catalogue iframe
+
+**Objectif:** Intégrer le catalogue iTakecare dans un site tiers via iframe.
+
+**HTML:**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Catalogue iTakecare</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="catalog-widget"></div>
+  
+  <script>
+    const API_KEY = 'YOUR_API_KEY';
+    const BASE_URL = 'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api';
+    
+    async function loadCatalog() {
+      const response = await fetch(`${BASE_URL}/v1/itakecare/products`, {
+        headers: { 'x-api-key': API_KEY }
+      });
+      
+      const data = await response.json();
+      const widget = document.getElementById('catalog-widget');
+      
+      widget.innerHTML = data.products.map(product => `
+        <div class="border p-4 rounded-lg">
+          <img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-cover mb-4">
+          <span class="px-3 py-1 rounded-full text-sm ${product.category?.type?.bg_color} ${product.category?.type?.text_color}">
+            ${product.category?.type?.icon} ${product.category?.type?.label}
+          </span>
+          <h3 class="text-lg font-bold mt-2">${product.name}</h3>
+          <p class="text-gray-600">${product.short_description}</p>
+          <p class="text-2xl font-bold mt-4">${product.monthly_price}€<span class="text-sm">/mois</span></p>
+          <button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">Demander un devis</button>
+        </div>
+      `).join('');
+    }
+    
+    loadCatalog();
+  </script>
+</body>
+</html>
+```
+
+---
+
+## Support
+
+### Documentation technique
+
+- **Types TypeScript:** Voir `catalog-skeleton/types-catalog.txt`
+- **Service JavaScript:** Voir `catalog-skeleton/api-service.txt`
+- **API Reference:** Voir `catalog-skeleton/API-REFERENCE.md`
+
+### Contact iTakecare
+
+- **Email:** hello@itakecare.be
+- **Téléphone:** +32 (0)71 49 16 85
+- **Site web:** https://www.itakecare.be
+- **LinkedIn:** https://www.linkedin.com/company/itakecare
+- **Facebook:** https://www.facebook.com/itakecarebe
+
+### Demande de clé API
+
+Pour obtenir votre clé API, contactez-nous à **hello@itakecare.be** en précisant:
+- Nom de votre entreprise
+- Cas d'usage prévu
+- Volume de requêtes estimé
+
+### Signaler un bug
+
+Envoyez un email à **hello@itakecare.be** avec:
+- Description du problème
+- Endpoint concerné
+- Requête et réponse complètes
+- Timestamp de l'erreur
+
+---
+
+## Annexes
+
+### Liste complète des types de catégories (au 20/11/2025)
+
+| Value | Label | Icon | Description |
+|-------|-------|------|-------------|
+| `device` | Appareil | 📱 | Ordinateurs, smartphones, tablettes |
+| `accessory` | Accessoire | 🔌 | Souris, claviers, câbles, adaptateurs |
+| `service` | Service | 🛠️ | Support, maintenance, formation |
+| `software` | Logiciel | 💾 | Licences logicielles, abonnements |
+| `consumable` | Consommable | 📦 | Cartouches, papier, fournitures |
+
+**Note:** Cette liste est dynamique et peut évoluer. Utilisez l'endpoint `/category-types` pour obtenir la liste à jour.
+
+---
+
+### Compatibilités types (au 20/11/2025)
+
+```
+device → accessory, service, software
+accessory → consumable
+service → software
+software → (aucune)
+consumable → (aucune)
+```
+
+**Note:** Ces compatibilités peuvent évoluer. Utilisez l'endpoint `/compatibilities` pour obtenir les relations à jour.
+
+---
+
+### Performance et optimisation
+
+**Temps de réponse moyens:**
+- `/products` (20 produits): ~200ms
+- `/products/{id}`: ~150ms
+- `/categories`: ~100ms
+- `/category-types`: ~50ms (données légères)
+- `/compatibilities`: ~50ms (données légères)
+
+**Recommandations:**
+1. **Mettre en cache** `/category-types` et `/compatibilities` (changent rarement)
+2. **Paginer** les requêtes `/products` avec `limit=20-50`
+3. **Filtrer côté API** plutôt que récupérer tout et filtrer localement
+4. **Utiliser le slug** pour `/products/{productId}` (meilleur SEO)
+
+---
+
+**Document généré le 20 novembre 2025**  
+**Version 1.1.0**  
+**© 2025 iTakecare SRL - Tous droits réservés**
