@@ -11,6 +11,7 @@ import ProductFormInfoTab from "@/components/catalog/ProductFormInfoTab";
 import ProductFormImagesTab from "@/components/catalog/ProductFormImagesTab";
 import ProductVariantManager from "@/components/catalog/ProductVariantManager";
 import { DefaultVariantSelector } from "@/components/products/DefaultVariantSelector";
+import { ProductUpsellsTab } from "@/components/catalog/ProductUpsellsTab";
 import { useProductById } from "@/hooks/products/useProductById";
 import { Product } from "@/types/catalog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -160,6 +161,7 @@ const ProductFormPage = () => {
               <TabsTrigger value="images">Images</TabsTrigger>
               <TabsTrigger value="variants">Variantes</TabsTrigger>
               <TabsTrigger value="defaults">Variante par défaut</TabsTrigger>
+              <TabsTrigger value="upsells" disabled={!isEditMode}>Upsells</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info">
@@ -223,6 +225,24 @@ const ProductFormPage = () => {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Créez d'abord le produit et configurez ses variantes, puis revenez ici pour définir la variante par défaut.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="upsells">
+              {isEditMode && currentProduct ? (
+                <ProductUpsellsTab product={currentProduct} />
+              ) : (
+                <div className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-lg font-medium mb-2">Upsells non disponibles</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Les upsells ne peuvent être configurés qu'après la création du produit.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Créez d'abord le produit, puis revenez ici pour configurer les produits complémentaires recommandés.
                     </p>
                   </div>
                 </div>

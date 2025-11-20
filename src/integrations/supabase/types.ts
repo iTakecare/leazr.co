@@ -5114,6 +5114,51 @@ export type Database = {
           },
         ]
       }
+      product_upsells: {
+        Row: {
+          created_at: string | null
+          id: string
+          priority: number
+          product_id: string
+          source: string
+          updated_at: string | null
+          upsell_product_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          priority?: number
+          product_id: string
+          source?: string
+          updated_at?: string | null
+          upsell_product_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          priority?: number
+          product_id?: string
+          source?: string
+          updated_at?: string | null
+          upsell_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_upsells_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_upsells_upsell_product_id_fkey"
+            columns: ["upsell_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variant_prices: {
         Row: {
           attributes: Json
