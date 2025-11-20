@@ -223,3 +223,19 @@ export const setTypeCompatibilities = async (
     if (error) throw error;
   }
 };
+
+/**
+ * Get top N products from a category sorted by purchase price
+ */
+export const getTopCategoryProducts = async (categoryId: string, limit = 10) => {
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, name, brand_name, purchase_price, monthly_price, image_url, active')
+    .eq('category_id', categoryId)
+    .eq('active', true)
+    .order('purchase_price', { ascending: false })
+    .limit(limit);
+  
+  if (error) throw error;
+  return data || [];
+};
