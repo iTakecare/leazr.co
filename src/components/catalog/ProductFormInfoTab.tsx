@@ -10,11 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { getBrands } from "@/services/brandService";
+import { getBrands } from "@/services/catalogService";
 import { getCategoriesWithProductCount, getCategoryById, CATEGORY_TYPES } from "@/services/simplifiedCategoryService";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
-import { uploadProductImage } from "@/services/uploadService";
+import { useAuth } from "@/context/AuthContext";
 import { X, Upload, Loader2, Sparkles, Tag } from "lucide-react";
 import AIDescriptionHelper from "./AIDescriptionHelper";
 import { Product } from "@/types/catalog";
@@ -49,6 +49,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   onProductUpdated
 }) => {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [formData, setFormData] = useState(productToEdit || {});
   const [imagePreview, setImagePreview] = useState<string | null>(
     productToEdit?.image_url || productToEdit?.imageUrl || null
@@ -310,7 +311,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
 
         {/* Pricing Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isAdmin() && (
+          {isAdmin && (
             <div>
               <Label htmlFor="price">Prix d'achat (€)</Label>
               <Input
@@ -348,7 +349,7 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
             <Label htmlFor="active">Produit actif</Label>
           </div>
 
-          {isAdmin() && (
+          {isAdmin && (
             <div className="flex items-center space-x-2">
               <Switch
                 id="admin_only"
