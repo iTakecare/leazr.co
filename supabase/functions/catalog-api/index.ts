@@ -491,14 +491,11 @@ async function getProductUpsells(
 
   console.log('📋 Manual upsells found:', manualUpsells?.length || 0)
 
-  // 3. Pas de suggestions automatiques (système de types supprimé)
-  
-  // 4. Retourner uniquement les upsells manuels
+  // 3. Transformer les upsells manuels
   const manualProductIds = new Set(
     manualUpsells?.map((u: any) => u.products?.id).filter(Boolean) || []
   )
 
-  // Transformer les manuels avec source='manual'
   const manualUpsellsList = (manualUpsells || [])
     .filter((u: any) => u.products)
     .map((u: any) => ({
@@ -506,7 +503,7 @@ async function getProductUpsells(
       name: u.products.name,
       slug: u.products.slug,
       price: u.products.price,
-      monthly_price: u.monthly_price,
+      monthly_price: u.products.monthly_price,
       image_url: u.products.image_url,
       brand: u.products.brands?.name,
       category: u.products.categories?.translation || u.products.categories?.name,
@@ -515,19 +512,70 @@ async function getProductUpsells(
       priority: u.priority,
       upsell_reason: 'Sélectionné manuellement par l\'administrateur'
     }))
-    .slice(0, limit)
+
+  // 4. Si pas d'upsells manuels, ajouter un fallback avec des produits similaires
+  let fallbackUpsells: any[] = []
+  const remainingSlots = limit - manualUpsellsList.length
+
+  if (remainingSlots > 0) {
+    console.log('🔄 Adding fallback similar products, remaining slots:', remainingSlots)
+    
+    // Récupérer des produits de la même catégorie
+    const { data: similarProducts } = await supabase
+      .from('products')
+      .select(`
+        id,
+        name,
+        slug,
+        price,
+        monthly_price,
+        image_url,
+        brand_id,
+        category_id,
+        short_description,
+        brands(name, translation),
+        categories(name, translation)
+      `)
+      .eq('company_id', companyId)
+      .eq('category_id', sourceProduct.category_id)
+      .neq('id', productId)
+      .eq('active', true)
+      .or("admin_only.is.null,admin_only.eq.false")
+      .limit(remainingSlots)
+
+    fallbackUpsells = (similarProducts || [])
+      .filter((p: any) => !manualProductIds.has(p.id))
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        price: p.price,
+        monthly_price: p.monthly_price,
+        image_url: p.image_url,
+        brand: p.brands?.name,
+        category: p.categories?.translation || p.categories?.name,
+        short_description: p.short_description,
+        source: 'compatibility' as const,
+        priority: 999,
+        upsell_reason: 'Produits similaires'
+      }))
+
+    console.log('🔄 Fallback products added:', fallbackUpsells.length)
+  }
+
+  const finalUpsells = [...manualUpsellsList, ...fallbackUpsells].slice(0, limit)
 
   console.log('✅ Final upsells:', {
-    total: manualUpsellsList.length,
+    total: finalUpsells.length,
     manual: manualUpsellsList.length,
-    auto: 0
+    fallback: fallbackUpsells.length
   })
 
   return {
-    upsells: manualUpsellsList,
-    total: manualUpsellsList.length,
+    upsells: finalUpsells,
+    total: finalUpsells.length,
     manual_count: manualUpsellsList.length,
-    auto_count: 0
+    auto_count: fallbackUpsells.length
   }
 }
 
