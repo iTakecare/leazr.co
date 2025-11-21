@@ -93,6 +93,8 @@ Utilise la même authentification que l'API Catalogue (header `x-api-key`).
 | GET | `/products/{productId}/co2` | Données CO2 d'un produit |
 | GET | `/categories` | Liste des catégories |
 | GET | `/brands` | Liste des marques |
+| GET | `/packs` | Liste des packs actifs |
+| GET | `/packs/{packId}` | Détail d'un pack |
 | GET | `/customizations` | Personnalisations visuelles |
 | GET | `/search` | Recherche produits |
 | POST | `/cart/submit` | Soumettre un panier |
@@ -411,6 +413,161 @@ Soumet un panier pour créer une demande de devis.
 
 ---
 
+### 🎁 GET /packs
+
+Récupère la liste des packs de produits actifs.
+
+**URL :** `/catalog-api/v1/{companySlug}/packs`
+
+**Paramètres Query :**  
+Aucun. Retourne tous les packs actifs, avec les featured en premier.
+
+**Réponse Success (200) :**
+
+```json
+{
+  "packs": [
+    {
+      "id": "uuid",
+      "name": "Pack Bureau Pro",
+      "description": "Pack complet pour équiper un bureau professionnel",
+      "image_url": "https://...",
+      "is_active": true,
+      "is_featured": true,
+      "total_monthly_price": 150.00,
+      "pack_monthly_price": 135.00,
+      "pack_promo_price": 120.00,
+      "promo_active": true,
+      "promo_valid_from": "2025-01-01T00:00:00Z",
+      "promo_valid_to": "2025-12-31T23:59:59Z",
+      "items": [
+        {
+          "id": "uuid",
+          "product_id": "uuid",
+          "quantity": 1,
+          "unit_monthly_price": 80.00,
+          "position": 0,
+          "product": {
+            "id": "uuid",
+            "name": "MacBook Pro 14\"",
+            "slug": "macbook-pro-14",
+            "image_url": "https://...",
+            "brand_name": "Apple",
+            "category_name": "Laptop"
+          }
+        },
+        {
+          "id": "uuid",
+          "product_id": "uuid",
+          "quantity": 1,
+          "unit_monthly_price": 55.00,
+          "position": 1,
+          "product": {
+            "id": "uuid",
+            "name": "iPhone 13 Pro",
+            "slug": "iphone-13-pro",
+            "image_url": "https://...",
+            "brand_name": "Apple",
+            "category_name": "Smartphone"
+          }
+        }
+      ],
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+**Exemple cURL :**
+
+```bash
+curl -X GET \
+  'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/packs' \
+  -H 'x-api-key: YOUR_API_KEY'
+```
+
+---
+
+### 🎁 GET /packs/{packId}
+
+Récupère le détail complet d'un pack spécifique.
+
+**URL :** `/catalog-api/v1/{companySlug}/packs/{packId}`
+
+**Paramètres Path :**
+- `packId` (string, required) : UUID du pack
+
+**Réponse Success (200) :**
+
+Structure identique à `/packs` mais pour un seul pack avec tous les détails des produits incluant descriptions, spécifications et variantes.
+
+**Réponse Error (404) :**
+
+```json
+{
+  "error": "Pack not found"
+}
+```
+
+**Exemple JavaScript :**
+
+```typescript
+const response = await fetch(
+  `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itakecare/packs/${packId}`,
+  {
+    headers: {
+      'x-api-key': 'YOUR_API_KEY'
+    }
+  }
+)
+const { pack } = await response.json()
+
+// Calculer le prix effectif (promo > custom > total)
+const effectivePrice = pack.promo_active && pack.pack_promo_price 
+  ? pack.pack_promo_price
+  : pack.pack_monthly_price || pack.total_monthly_price
+
+console.log(`Pack: ${pack.name} - ${effectivePrice}€/mois`)
+console.log(`Contient ${pack.items.length} produits`)
+```
+
+---
+
+### 💡 Logique des prix des packs
+
+Les packs ont trois niveaux de prix :
+
+1. **`total_monthly_price`** : Somme des prix individuels des produits
+2. **`pack_monthly_price`** : Prix personnalisé du pack (remise pack)
+3. **`pack_promo_price`** : Prix promotionnel temporaire
+
+**Ordre de priorité pour l'affichage :**
+
+```typescript
+function getEffectivePackPrice(pack) {
+  // 1. Si promo active et dans la période de validité
+  if (pack.promo_active && pack.pack_promo_price) {
+    const now = new Date()
+    const validFrom = pack.promo_valid_from ? new Date(pack.promo_valid_from) : null
+    const validTo = pack.promo_valid_to ? new Date(pack.promo_valid_to) : null
+    
+    if ((!validFrom || now >= validFrom) && (!validTo || now <= validTo)) {
+      return pack.pack_promo_price
+    }
+  }
+  
+  // 2. Sinon prix personnalisé du pack
+  if (pack.pack_monthly_price > 0) {
+    return pack.pack_monthly_price
+  }
+  
+  // 3. Sinon somme des prix individuels
+  return pack.total_monthly_price
+}
+```
+
+---
+
 ## API Product Request
 
 ### Endpoint Principal
@@ -724,6 +881,69 @@ interface ProductUpsell {
   short_description?: string;
   source: 'manual'; // Toujours 'manual' (upsells 100% configurés par admin)
   priority?: number; // Ordre d'affichage
+}
+```
+
+### Pack Object
+
+```typescript
+interface Pack {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  is_active: boolean;
+  is_featured: boolean;
+  admin_only: boolean;
+  valid_from?: string; // ISO 8601
+  valid_to?: string; // ISO 8601
+  total_purchase_price: number;
+  total_monthly_price: number;
+  total_margin: number;
+  pack_monthly_price?: number;
+  pack_promo_price?: number;
+  promo_active: boolean;
+  promo_valid_from?: string; // ISO 8601
+  promo_valid_to?: string; // ISO 8601
+  leaser_id?: string;
+  selected_duration?: number;
+  items: PackItem[];
+  created_at: string; // ISO 8601
+  updated_at: string; // ISO 8601
+}
+```
+
+### PackItem Object
+
+```typescript
+interface PackItem {
+  id: string;
+  pack_id: string;
+  product_id: string;
+  variant_price_id?: string;
+  quantity: number;
+  unit_purchase_price: number;
+  unit_monthly_price: number;
+  margin_percentage: number;
+  position: number;
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    short_description?: string;
+    image_url?: string;
+    brand_name?: string;
+    category_name?: string;
+    specifications?: Record<string, any>;
+  };
+  variant_price?: {
+    id: string;
+    attributes: Record<string, string>;
+    price: number;
+    monthly_price?: number;
+  };
 }
 ```
 
