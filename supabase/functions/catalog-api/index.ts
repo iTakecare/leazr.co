@@ -635,24 +635,80 @@ async function getBrands(supabase: any, companyId: string, permissions: any) {
 }
 
 async function getPacks(supabase: any, companyId: string, permissions: any) {
-  const { data: packs } = await supabase
+  const { data: packs, error } = await supabase
     .from('product_packs')
-    .select('*')
+    .select(`
+      *,
+      items:product_pack_items(
+        id,
+        product_id,
+        variant_price_id,
+        quantity,
+        unit_monthly_price,
+        position,
+        product:products(
+          id,
+          name,
+          slug,
+          image_url,
+          brand_name,
+          category_name
+        )
+      )
+    `)
     .eq('company_id', companyId)
     .eq('is_active', true)
+    .order('is_featured', { ascending: false })
+    .order('name', { ascending: true })
 
-  return { packs }
+  if (error) throw error
+  return { packs: packs || [] }
 }
 
 async function getPack(supabase: any, companyId: string, packId: string, permissions: any) {
-  const { data: pack } = await supabase
+  const { data: pack, error } = await supabase
     .from('product_packs')
-    .select('*')
+    .select(`
+      *,
+      items:product_pack_items(
+        id,
+        product_id,
+        variant_price_id,
+        quantity,
+        unit_purchase_price,
+        unit_monthly_price,
+        margin_percentage,
+        position,
+        product:products(
+          id,
+          name,
+          slug,
+          description,
+          short_description,
+          image_url,
+          brand_name,
+          category_name,
+          specifications
+        ),
+        variant_price:product_variant_prices(
+          id,
+          attributes,
+          price,
+          monthly_price
+        )
+      )
+    `)
     .eq('company_id', companyId)
     .eq('id', packId)
     .eq('is_active', true)
     .single()
 
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new Error('Pack not found')
+    }
+    throw error
+  }
   return { pack }
 }
 
