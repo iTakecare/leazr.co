@@ -4,8 +4,9 @@ import { Plus, Package, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-r
 import { formatCurrency } from "@/utils/formatters";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
-import { getUpsellProducts } from "@/services/catalogServiceOptimized";
+import { getProductUpsells } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FrequentlyBoughtTogetherProps {
   productId: string;
@@ -26,15 +27,38 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
   const [loading, setLoading] = useState(true);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [companySlug, setCompanySlug] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
 
+  // Get company slug from ID
+  useEffect(() => {
+    const fetchCompanySlug = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('slug')
+          .eq('id', companyId)
+          .single();
+        
+        if (error) throw error;
+        setCompanySlug(data?.slug || null);
+      } catch (error) {
+        console.error('Error fetching company slug:', error);
+      }
+    };
+    
+    fetchCompanySlug();
+  }, [companyId]);
+
   useEffect(() => {
     const fetchUpsellProducts = async () => {
+      if (!companySlug) return;
+      
       try {
         setLoading(true);
-        const products = await getUpsellProducts(companyId, productId, category, brand);
-        setUpsellProducts(products.slice(0, 5)); // Limit to 5 products for better variety
+        const products = await getProductUpsells(companySlug, productId, 5);
+        setUpsellProducts(products);
       } catch (error) {
         console.error('Error fetching upsell products:', error);
       } finally {
@@ -43,7 +67,7 @@ const FrequentlyBoughtTogether: React.FC<FrequentlyBoughtTogetherProps> = ({
     };
 
     fetchUpsellProducts();
-  }, [companyId, productId, category, brand]);
+  }, [companySlug, productId]);
 
   const checkScrollButtons = () => {
     if (!scrollContainerRef.current) return;
