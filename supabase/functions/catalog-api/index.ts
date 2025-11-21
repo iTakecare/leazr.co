@@ -198,6 +198,9 @@ Deno.serve(async (req) => {
             data = await getRelatedProducts(supabaseAdmin, companyId, productId, keyData.permissions)
           } else if (subPaths[1] === 'co2') {
             data = await getProductCO2(supabaseAdmin, companyId, productId, keyData.permissions)
+          } else if (subPaths[1] === 'upsells') {
+            const limit = parseInt(url.searchParams.get('limit') || '10')
+            data = await getProductUpsells(supabaseAdmin, companyId, productId, keyData.permissions, limit)
           } else {
             data = await getProduct(supabaseAdmin, companyId, productId, keyData.permissions)
           }
@@ -440,6 +443,175 @@ async function getProductCO2(supabase: any, companyId: string, productId: string
       energy_savings_kwh: environmentalData?.energy_savings_kwh || 0,
       source_url: environmentalData?.source_url || 'https://impactco2.fr'
     } 
+  }
+}
+
+async function getProductUpsells(
+  supabase: any, 
+  companyId: string, 
+  productId: string, 
+  permissions: any,
+  limit: number = 10
+) {
+  console.log('🎯 GET PRODUCT UPSELLS - Starting with productId:', productId, 'limit:', limit)
+  
+  // 1. Récupérer le produit source pour connaître sa catégorie
+  const { data: sourceProduct, error: productError } = await supabase
+    .from('products')
+    .select(`
+      id, 
+      name, 
+      category_id,
+      categories!inner(id, name, translation, type)
+    `)
+    .eq('id', productId)
+    .eq('company_id', companyId)
+    .single()
+
+  if (productError || !sourceProduct) {
+    console.log('❌ Product not found:', productError?.message)
+    return { upsells: [], total: 0, manual_count: 0, auto_count: 0 }
+  }
+
+  console.log('✅ Source product:', sourceProduct.name, 'category type:', sourceProduct.categories?.type)
+
+  // 2. Récupérer les upsells MANUELS depuis product_upsells
+  const { data: manualUpsells, error: manualError } = await supabase
+    .from('product_upsells')
+    .select(`
+      upsell_product_id,
+      priority,
+      source,
+      products!product_upsells_upsell_product_id_fkey(
+        id,
+        name,
+        slug,
+        price,
+        monthly_price,
+        image_url,
+        brand_id,
+        category_id,
+        short_description,
+        brands(name, translation),
+        categories(name, translation)
+      )
+    `)
+    .eq('product_id', productId)
+    .order('priority', { ascending: true })
+
+  console.log('📋 Manual upsells found:', manualUpsells?.length || 0)
+
+  // 3. Récupérer les upsells AUTO (compatibilités de catégories)
+  
+  // 3a. Trouver les types de catégories compatibles via category_type_compatibilities
+  const { data: typeCompatibilities } = await supabase
+    .from('category_type_compatibilities')
+    .select('child_type')
+    .eq('parent_type', sourceProduct.categories?.type)
+
+  const compatibleTypes = typeCompatibilities?.map((c: any) => c.child_type) || []
+  console.log('🔗 Compatible category types:', compatibleTypes)
+
+  // 3b. Récupérer les exceptions spécifiques via category_specific_links
+  const { data: specificLinks } = await supabase
+    .from('category_specific_links')
+    .select('child_category_id, priority')
+    .eq('parent_category_id', sourceProduct.category_id)
+
+  const specificCategoryIds = specificLinks?.map((l: any) => l.child_category_id) || []
+  console.log('🎯 Specific category links:', specificCategoryIds.length)
+
+  // 3c. Récupérer les produits des catégories compatibles + exceptions
+  let autoProducts: any[] = []
+
+  if (compatibleTypes.length > 0 || specificCategoryIds.length > 0) {
+    const { data: fetchedProducts } = await supabase
+      .from('products')
+      .select(`
+        id,
+        name,
+        slug,
+        price,
+        monthly_price,
+        image_url,
+        brand_id,
+        category_id,
+        short_description,
+        brands(name, translation),
+        categories(name, translation, type)
+      `)
+      .eq('company_id', companyId)
+      .eq('active', true)
+      .or("admin_only.is.null,admin_only.eq.false")
+      .neq('id', productId)
+      .limit(limit * 2)
+
+    // Filtrer les produits selon les critères
+    autoProducts = fetchedProducts?.filter((p: any) => {
+      const isCompatibleType = compatibleTypes.includes(p.categories?.type)
+      const isSpecificCategory = specificCategoryIds.includes(p.category_id)
+      return isCompatibleType || isSpecificCategory
+    }) || []
+  }
+
+  console.log('🤖 Auto suggestions found:', autoProducts.length)
+
+  // 4. FUSION: Combiner manuel + auto en évitant les doublons
+  const manualProductIds = new Set(
+    manualUpsells?.map((u: any) => u.products?.id).filter(Boolean) || []
+  )
+
+  // Transformer les manuels avec source='manual'
+  const manualUpsellsList = (manualUpsells || [])
+    .filter((u: any) => u.products)
+    .map((u: any) => ({
+      id: u.products.id,
+      name: u.products.name,
+      slug: u.products.slug,
+      price: u.products.price,
+      monthly_price: u.products.monthly_price,
+      image_url: u.products.image_url,
+      brand: u.products.brands?.name,
+      category: u.products.categories?.translation || u.products.categories?.name,
+      short_description: u.products.short_description,
+      source: 'manual' as const,
+      priority: u.priority,
+      upsell_reason: 'Sélectionné manuellement par l\'administrateur'
+    }))
+
+  // Transformer les auto en excluant ceux déjà dans manuel
+  const autoUpsellsList = autoProducts
+    .filter((p: any) => !manualProductIds.has(p.id))
+    .map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      price: p.price,
+      monthly_price: p.monthly_price,
+      image_url: p.image_url,
+      brand: p.brands?.name,
+      category: p.categories?.translation || p.categories?.name,
+      short_description: p.short_description,
+      source: 'auto' as const,
+      priority: null,
+      upsell_reason: `Suggéré automatiquement - Compatible avec ${sourceProduct.categories?.translation || sourceProduct.categories?.name}`
+    }))
+    .sort((a: any, b: any) => (a.price || 0) - (b.price || 0))
+
+  // 5. Combiner: manuels d'abord, puis auto jusqu'à limit
+  const allUpsells = [...manualUpsellsList, ...autoUpsellsList].slice(0, limit)
+
+  console.log('✅ Final upsells:', {
+    total: allUpsells.length,
+    manual: manualUpsellsList.length,
+    auto: autoUpsellsList.length
+  })
+
+  return {
+    upsells: allUpsells,
+    total: allUpsells.length,
+    manual_count: manualUpsellsList.length,
+    auto_count: Math.min(autoUpsellsList.length, limit - manualUpsellsList.length)
   }
 }
 
