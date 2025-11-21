@@ -535,6 +535,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "category_environmental_data_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories_with_product_count"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "category_environmental_data_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -5222,6 +5229,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_products_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories_with_product_count"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "products_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
@@ -5844,7 +5858,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      categories_with_product_count: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          name: string | null
+          product_count: number | null
+          translation: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_prospect:
