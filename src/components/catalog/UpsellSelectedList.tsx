@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,9 @@ export const UpsellSelectedList = ({ productId, manualUpsells, isLoading }: Upse
   const updatePriorities = useUpdateUpsellPriorities();
 
   // Synchroniser les items avec les props
-  useState(() => {
+  useEffect(() => {
     setItems(manualUpsells);
-  });
+  }, [manualUpsells]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
