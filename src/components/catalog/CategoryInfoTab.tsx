@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SimplifiedCategory, getCategoryStats } from "@/services/simplifiedCategoryService";
-import { getCategoryTypes } from "@/services/categoryTypeService";
 import { Pencil, Trash2, Save, X, Package, DollarSign, CheckCircle, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,13 +21,7 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
   const [formData, setFormData] = useState({
     name: category.name,
     translation: category.translation,
-    type: category.type,
     description: category.description || "",
-  });
-
-  const { data: categoryTypes = [] } = useQuery({
-    queryKey: ["category-types"],
-    queryFn: getCategoryTypes,
   });
 
   const { data: stats, isLoading: loadingStats } = useQuery({
@@ -50,7 +42,6 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
     setFormData({
       name: category.name,
       translation: category.translation,
-      type: category.type,
       description: category.description || "",
     });
     setMode('view');
@@ -78,25 +69,6 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
               onChange={(e) => setFormData({ ...formData, translation: e.target.value })}
               placeholder="Ex: Smartphones"
             />
-          </div>
-
-          <div>
-            <Label htmlFor="type">Type de catégorie</Label>
-            <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-              <SelectTrigger id="type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    <div className="flex items-center gap-2">
-                      <span>{type.icon}</span>
-                      <span>{type.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div>
@@ -139,10 +111,6 @@ export function CategoryInfoTab({ category, mode: initialMode, onSave, onDelete 
             <div>
               <p className="text-xs text-muted-foreground">Traduction</p>
               <p className="font-medium">{category.translation}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Type</p>
-              <p className="font-medium">{categoryTypes.find(t => t.value === category.type)?.label || category.type}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Créée le</p>
