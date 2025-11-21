@@ -4,20 +4,11 @@ export interface SimplifiedCategory {
   id: string;
   name: string;
   translation: string;
-  type: string;
   description?: string;
   company_id: string;
   created_at: string;
   updated_at: string;
   product_count?: number;
-}
-
-export interface CategoryTypeCompatibility {
-  id: string;
-  parent_type: string;
-  child_type: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 // Récupérer toutes les catégories avec comptage produits
@@ -143,75 +134,6 @@ export const getCategoryStats = async (categoryId: string) => {
   };
 
   return stats;
-};
-
-// Récupérer les compatibilités d'un type
-export const getTypeCompatibilities = async (type: string): Promise<string[]> => {
-  const { data, error } = await supabase
-    .from("category_type_compatibilities")
-    .select("child_type")
-    .eq("parent_type", type);
-
-  if (error) throw error;
-  return data?.map((c) => c.child_type) || [];
-};
-
-// Récupérer toutes les compatibilités
-export const getAllTypeCompatibilities = async (): Promise<CategoryTypeCompatibility[]> => {
-  const { data, error } = await supabase
-    .from("category_type_compatibilities")
-    .select("*")
-    .order("parent_type", { ascending: true });
-
-  if (error) throw error;
-  return data || [];
-};
-
-// Ajouter une compatibilité de type
-export const addTypeCompatibility = async (
-  parentType: string,
-  childType: string
-): Promise<CategoryTypeCompatibility> => {
-  const { data, error } = await supabase
-    .from("category_type_compatibilities")
-    .insert({ parent_type: parentType, child_type: childType })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-// Supprimer une compatibilité de type
-export const deleteTypeCompatibility = async (parentType: string, childType: string): Promise<void> => {
-  const { error } = await supabase
-    .from("category_type_compatibilities")
-    .delete()
-    .eq("parent_type", parentType)
-    .eq("child_type", childType);
-
-  if (error) throw error;
-};
-
-// Définir toutes les compatibilités pour un type
-export const setTypeCompatibilities = async (
-  parentType: string,
-  childTypes: string[]
-): Promise<void> => {
-  // Supprimer les anciennes compatibilités
-  await supabase
-    .from("category_type_compatibilities")
-    .delete()
-    .eq("parent_type", parentType);
-
-  // Ajouter les nouvelles
-  if (childTypes.length > 0) {
-    const { error } = await supabase
-      .from("category_type_compatibilities")
-      .insert(childTypes.map(ct => ({ parent_type: parentType, child_type: ct })));
-
-    if (error) throw error;
-  }
 };
 
 /**

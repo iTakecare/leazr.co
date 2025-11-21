@@ -12,7 +12,6 @@ interface CreateProductData {
   category?: string;
   brand?: string;
   category_id?: string;
-  category_type_id?: string;
   brand_id?: string;
   price: number;
   monthly_price?: number;
@@ -50,7 +49,6 @@ export const useCreateProduct = () => {
         category: data.category,
         brand: data.brand,
         category_id: data.category_id,
-        category_type_id: data.category_type_id,
         brand_id: data.brand_id,
         price: data.price,
         monthly_price: data.monthly_price,

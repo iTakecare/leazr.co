@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   getCategoriesWithProductCount,
@@ -18,10 +17,8 @@ import {
   deleteCategory,
   SimplifiedCategory,
 } from "@/services/simplifiedCategoryService";
-import { getCategoryTypes } from "@/services/categoryTypeService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { CategoryDetailDialog } from "./CategoryDetailDialog";
-import { CategoryTypeManager } from "./CategoryTypeManager";
 
 export default function SimplifiedCategoryManager() {
   const { companyId } = useMultiTenant();
@@ -35,11 +32,6 @@ export default function SimplifiedCategoryManager() {
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["simplified-categories"],
     queryFn: getCategoriesWithProductCount,
-  });
-
-  const { data: categoryTypes = [] } = useQuery({
-    queryKey: ["category-types"],
-    queryFn: getCategoryTypes,
   });
 
   // Mutations
@@ -72,7 +64,6 @@ export default function SimplifiedCategoryManager() {
       await updateCategory(category.id, {
         name: category.name,
         translation: category.translation,
-        type: category.type,
         description: category.description,
       });
       queryClient.invalidateQueries({ queryKey: ["simplified-categories"] });
@@ -89,93 +80,73 @@ export default function SimplifiedCategoryManager() {
   };
 
   return (
-    <Tabs defaultValue="categories" className="w-full">
-      <TabsList className="mb-6">
-        <TabsTrigger value="categories">Catégories</TabsTrigger>
-        <TabsTrigger value="types">Types de catégories</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="categories">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold">Gestion des catégories</h2>
-            <Button onClick={() => {
-              setSelectedCategory({
-                id: '',
-                name: '',
-                translation: '',
-                type: 'device',
-                description: '',
-                company_id: companyId || '',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              });
-              setDialogMode('create');
-              setIsDialogOpen(true);
-            }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle catégorie
-            </Button>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold">Gestion des catégories</h2>
+        <Button onClick={() => {
+          setSelectedCategory({
+            id: '',
+            name: '',
+            translation: '',
+            description: '',
+            company_id: companyId || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          setDialogMode('create');
+          setIsDialogOpen(true);
+        }}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nouvelle catégorie
+        </Button>
+      </div>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Chargement...</div>
-            </div>
-          ) : (
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Produits</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categories.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                        <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>Aucune catégorie trouvée</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    categories.map((category) => (
-                      <TableRow
-                        key={category.id}
-                        className="cursor-pointer hover:bg-accent/50"
-                        onClick={() => handleViewCategory(category)}
-                      >
-                        <TableCell className="font-medium">{category.name}</TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                            {categoryTypes.find(t => t.value === category.type)?.label || category.type}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">{category.product_count || 0}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          <CategoryDetailDialog
-            isOpen={isDialogOpen}
-            onClose={() => setIsDialogOpen(false)}
-            category={selectedCategory}
-            mode={dialogMode}
-            onSave={handleSaveCategory}
-            onDelete={handleDeleteCategory}
-          />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-muted-foreground">Chargement...</div>
         </div>
-      </TabsContent>
-      
-      <TabsContent value="types">
-        <CategoryTypeManager />
-      </TabsContent>
-    </Tabs>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead className="text-right">Produits</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Aucune catégorie trouvée</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                categories.map((category) => (
+                  <TableRow
+                    key={category.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => handleViewCategory(category)}
+                  >
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell className="text-right">{category.product_count || 0}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <CategoryDetailDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        category={selectedCategory}
+        mode={dialogMode}
+        onSave={handleSaveCategory}
+        onDelete={handleDeleteCategory}
+      />
+    </div>
   );
 }

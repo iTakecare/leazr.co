@@ -12,7 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { getBrands } from "@/services/catalogService";
 import { getCategoriesWithProductCount, getCategoryById } from "@/services/simplifiedCategoryService";
-import { getCategoryTypes } from "@/services/categoryTypeService";
 import { useCreateProduct } from "@/hooks/products/useCreateProduct";
 import { useUpdateProduct } from "@/hooks/products/useUpdateProduct";
 import { useAuth } from "@/context/AuthContext";
@@ -68,11 +67,6 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: getCategoriesWithProductCount,
-  });
-
-  const { data: categoryTypes = [] } = useQuery({
-    queryKey: ["category-types"],
-    queryFn: getCategoryTypes,
   });
 
   const { data: selectedCategoryDetails } = useQuery({
@@ -136,7 +130,6 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
         name: formData.name || '',
         brand_id: formData.brand_id || '',
         category_id: formData.category_id || '',
-        category_type_id: formData.category_type_id || null,
         description: formData.description || '',
         short_description: formData.short_description || '',
         price: formData.price || 0,
@@ -266,16 +259,6 @@ export const ProductFormInfoTab: React.FC<ProductFormInfoTabProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              
-              {selectedCategoryDetails && (
-                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <Tag className="h-3 w-3" />
-                  <span>Type:</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {categoryTypes.find(t => t.value === selectedCategoryDetails.type)?.label || selectedCategoryDetails.type}
-                  </Badge>
-                </div>
-              )}
             </div>
           </div>
         </div>

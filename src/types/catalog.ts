@@ -161,13 +161,12 @@ export interface Brand {
   };
 }
 
-// Category interface with category type support
+// Category interface - simplified without type system
 export interface Category {
   id: string;
   name: string;
   translation: string;
   company_id: string;
-  category_type_id?: string;
   description?: string;
   created_at?: Date | string;
   updated_at?: Date | string;

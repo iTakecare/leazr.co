@@ -215,16 +215,6 @@ Deno.serve(async (req) => {
         console.log('📂 CATEGORIES RESULT:', data)
         break
 
-      case 'category-types':
-        console.log('🏷️ FETCHING CATEGORY TYPES')
-        data = await getCategoryTypes(supabaseAdmin, keyData.permissions)
-        break
-
-      case 'compatibilities':
-        console.log('🔗 FETCHING CATEGORY COMPATIBILITIES')
-        data = await getCategoryCompatibilities(supabaseAdmin, keyData.permissions)
-        break
-
       case 'brands':
         data = await getBrands(supabaseAdmin, companyId, keyData.permissions)
         break
@@ -501,62 +491,9 @@ async function getProductUpsells(
 
   console.log('📋 Manual upsells found:', manualUpsells?.length || 0)
 
-  // 3. Récupérer les upsells AUTO (compatibilités de catégories)
+  // 3. Pas de suggestions automatiques (système de types supprimé)
   
-  // 3a. Trouver les types de catégories compatibles via category_type_compatibilities
-  const { data: typeCompatibilities } = await supabase
-    .from('category_type_compatibilities')
-    .select('child_type')
-    .eq('parent_type', sourceProduct.categories?.type)
-
-  const compatibleTypes = typeCompatibilities?.map((c: any) => c.child_type) || []
-  console.log('🔗 Compatible category types:', compatibleTypes)
-
-  // 3b. Récupérer les exceptions spécifiques via category_specific_links
-  const { data: specificLinks } = await supabase
-    .from('category_specific_links')
-    .select('child_category_id, priority')
-    .eq('parent_category_id', sourceProduct.category_id)
-
-  const specificCategoryIds = specificLinks?.map((l: any) => l.child_category_id) || []
-  console.log('🎯 Specific category links:', specificCategoryIds.length)
-
-  // 3c. Récupérer les produits des catégories compatibles + exceptions
-  let autoProducts: any[] = []
-
-  if (compatibleTypes.length > 0 || specificCategoryIds.length > 0) {
-    const { data: fetchedProducts } = await supabase
-      .from('products')
-      .select(`
-        id,
-        name,
-        slug,
-        price,
-        monthly_price,
-        image_url,
-        brand_id,
-        category_id,
-        short_description,
-        brands(name, translation),
-        categories(name, translation, type)
-      `)
-      .eq('company_id', companyId)
-      .eq('active', true)
-      .or("admin_only.is.null,admin_only.eq.false")
-      .neq('id', productId)
-      .limit(limit * 2)
-
-    // Filtrer les produits selon les critères
-    autoProducts = fetchedProducts?.filter((p: any) => {
-      const isCompatibleType = compatibleTypes.includes(p.categories?.type)
-      const isSpecificCategory = specificCategoryIds.includes(p.category_id)
-      return isCompatibleType || isSpecificCategory
-    }) || []
-  }
-
-  console.log('🤖 Auto suggestions found:', autoProducts.length)
-
-  // 4. FUSION: Combiner manuel + auto en évitant les doublons
+  // 4. Retourner uniquement les upsells manuels
   const manualProductIds = new Set(
     manualUpsells?.map((u: any) => u.products?.id).filter(Boolean) || []
   )
@@ -569,7 +506,7 @@ async function getProductUpsells(
       name: u.products.name,
       slug: u.products.slug,
       price: u.products.price,
-      monthly_price: u.products.monthly_price,
+      monthly_price: u.monthly_price,
       image_url: u.products.image_url,
       brand: u.products.brands?.name,
       category: u.products.categories?.translation || u.products.categories?.name,
@@ -578,40 +515,19 @@ async function getProductUpsells(
       priority: u.priority,
       upsell_reason: 'Sélectionné manuellement par l\'administrateur'
     }))
-
-  // Transformer les auto en excluant ceux déjà dans manuel
-  const autoUpsellsList = autoProducts
-    .filter((p: any) => !manualProductIds.has(p.id))
-    .map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      price: p.price,
-      monthly_price: p.monthly_price,
-      image_url: p.image_url,
-      brand: p.brands?.name,
-      category: p.categories?.translation || p.categories?.name,
-      short_description: p.short_description,
-      source: 'auto' as const,
-      priority: null,
-      upsell_reason: `Suggéré automatiquement - Compatible avec ${sourceProduct.categories?.translation || sourceProduct.categories?.name}`
-    }))
-    .sort((a: any, b: any) => (a.price || 0) - (b.price || 0))
-
-  // 5. Combiner: manuels d'abord, puis auto jusqu'à limit
-  const allUpsells = [...manualUpsellsList, ...autoUpsellsList].slice(0, limit)
+    .slice(0, limit)
 
   console.log('✅ Final upsells:', {
-    total: allUpsells.length,
+    total: manualUpsellsList.length,
     manual: manualUpsellsList.length,
-    auto: autoUpsellsList.length
+    auto: 0
   })
 
   return {
-    upsells: allUpsells,
-    total: allUpsells.length,
+    upsells: manualUpsellsList,
+    total: manualUpsellsList.length,
     manual_count: manualUpsellsList.length,
-    auto_count: Math.min(autoUpsellsList.length, limit - manualUpsellsList.length)
+    auto_count: 0
   }
 }
 
@@ -622,14 +538,6 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
     .from('categories')
     .select(`
       *,
-      category_types!categories_type_fkey (
-        value,
-        label,
-        icon,
-        bg_color,
-        text_color,
-        display_order
-      ),
       category_environmental_data (
         co2_savings_kg,
         carbon_footprint_reduction_percentage,
@@ -645,28 +553,15 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
   console.log('📂 GET CATEGORIES - Query result:', { 
     categoriesCount: categories?.length, 
     error: categoriesError?.message,
-    categories: categories?.slice(0, 2) // First 2 categories for debugging
+    categories: categories?.slice(0, 2)
   })
 
-  // Enrich categories with type info and environmental data
+  // Simplified categories without type system
   const enrichedCategories = categories?.map((category: any) => ({
     id: category.id,
     name: category.name,
     translation: category.translation,
     description: category.description,
-    type: category.category_types ? {
-      value: category.category_types.value,
-      label: category.category_types.label,
-      icon: category.category_types.icon,
-      bg_color: category.category_types.bg_color,
-      text_color: category.category_types.text_color
-    } : {
-      value: category.type, // Fallback if join fails
-      label: category.type,
-      icon: null,
-      bg_color: 'bg-gray-100',
-      text_color: 'text-gray-800'
-    },
     co2_savings_kg: category.category_environmental_data?.[0]?.co2_savings_kg || 0,
     environmental_impact: category.category_environmental_data?.[0] ? {
       co2_savings_kg: category.category_environmental_data[0].co2_savings_kg,
@@ -680,38 +575,6 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
   }))
 
   return { categories: enrichedCategories }
-}
-
-async function getCategoryTypes(supabase: any, permissions: any) {
-  const { data: types } = await supabase
-    .from('category_types')
-    .select('value, label, icon, bg_color, text_color, display_order')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true })
-
-  return { category_types: types }
-}
-
-async function getCategoryCompatibilities(supabase: any, permissions: any) {
-  const { data: compatibilities } = await supabase
-    .from('category_type_compatibilities')
-    .select(`
-      parent_type,
-      child_type,
-      created_at
-    `)
-    .order('parent_type', { ascending: true })
-
-  // Group by parent_type for easier use
-  const grouped = compatibilities?.reduce((acc: any, comp: any) => {
-    if (!acc[comp.parent_type]) {
-      acc[comp.parent_type] = []
-    }
-    acc[comp.parent_type].push(comp.child_type)
-    return acc
-  }, {})
-
-  return { compatibilities: grouped }
 }
 
 async function getBrands(supabase: any, companyId: string, permissions: any) {
