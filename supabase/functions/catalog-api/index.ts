@@ -452,7 +452,7 @@ async function getProductUpsells(
       id, 
       name, 
       category_id,
-      categories!inner(id, name, translation, type)
+      categories!inner(id, name, translation)
     `)
     .eq('id', productId)
     .eq('company_id', companyId)
@@ -463,7 +463,7 @@ async function getProductUpsells(
     return { upsells: [], total: 0, manual_count: 0, auto_count: 0 }
   }
 
-  console.log('✅ Source product:', sourceProduct.name, 'category type:', sourceProduct.categories?.type)
+  console.log('✅ Source product:', sourceProduct.name, 'category:', sourceProduct.categories?.translation || sourceProduct.categories?.name)
 
   // 2. Récupérer les upsells MANUELS depuis product_upsells
   const { data: manualUpsells, error: manualError } = await supabase
