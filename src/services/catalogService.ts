@@ -496,6 +496,63 @@ export const getEnvironmentalData = async (companySlug: string): Promise<Environ
 };
 
 /**
+ * Get product upsells using the catalog-api Edge Function
+ */
+export const getProductUpsells = async (
+  companySlug: string, 
+  productId: string, 
+  limit: number = 4
+): Promise<Product[]> => {
+  console.log("🎯 getProductUpsells - Fetching upsells for product:", productId, "company:", companySlug, "limit:", limit);
+  
+  try {
+    // Get company ID from slug
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('slug', companySlug)
+      .single();
+
+    if (companyError || !company) {
+      throw new Error(`Company not found for slug: ${companySlug}`);
+    }
+
+    // Get active API key
+    const apiKey = await getActiveApiKey(company.id);
+    if (!apiKey) {
+      throw new Error('No active API key found. Please create one in the API settings.');
+    }
+
+    // Call edge function
+    const response = await fetch(
+      `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/${companySlug}/products/${productId}/upsells?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-key': apiKey,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("🎯 getProductUpsells - Error:", error);
+      throw new Error(error.error || 'Failed to fetch product upsells');
+    }
+
+    const data = await response.json();
+    console.log("🎯 getProductUpsells - Success:", data.upsells?.length, "upsells found");
+    return data.upsells || [];
+  } catch (error) {
+    console.error("🎯 getProductUpsells - Exception:", error);
+    throw error;
+  }
+};
+
+/**
  * Get categories with environmental data using the catalog-api Edge Function
  */
 export const getCategoriesWithEnvironmentalData = async (companySlug: string): Promise<CategoryWithEnvironmental[]> => {

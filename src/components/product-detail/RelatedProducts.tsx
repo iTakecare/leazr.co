@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getRelatedProducts } from "@/services/catalogServiceOptimized";
+import { getProductUpsells } from "@/services/catalogService";
 import { Product } from "@/types/catalog";
 import ProductGridCard from "@/components/catalog/public/ProductGridCard";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RelatedProductsProps {
   companyId: string;
@@ -25,47 +25,49 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [companySlug, setCompanySlug] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Get company slug from ID
+  useEffect(() => {
+    const fetchCompanySlug = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('slug')
+          .eq('id', companyId)
+          .single();
+        
+        if (error) throw error;
+        setCompanySlug(data?.slug || null);
+      } catch (error) {
+        console.error('Error fetching company slug:', error);
+      }
+    };
+    
+    fetchCompanySlug();
+  }, [companyId]);
 
   useEffect(() => {
     const loadRelatedProducts = async () => {
+      if (!companySlug || !currentProductId) {
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
-        
-        // Utiliser le nouveau service upsell si disponible
-        const { getUpsellProducts } = await import("@/services/upsellService");
-        const upsellProducts = await getUpsellProducts(
-          category, // Utiliser category comme categoryId
-          companyId,
-          currentProductId,
-          limit
-        );
-        
-        setProducts(upsellProducts as Product[]);
+        const upsellProducts = await getProductUpsells(companySlug, currentProductId, limit);
+        setProducts(upsellProducts);
       } catch (error) {
         console.error("Error loading upsell products:", error);
-        // Fallback to old system
-        try {
-          const relatedProducts = await getRelatedProducts(
-            companyId, 
-            category, 
-            brand, 
-            currentProductId, 
-            limit
-          );
-          setProducts(relatedProducts);
-        } catch (fallbackError) {
-          console.error("Error loading related products (fallback):", fallbackError);
-        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (companyId && category) {
-      loadRelatedProducts();
-    }
-  }, [companyId, category, currentProductId, brand, limit]);
+    loadRelatedProducts();
+  }, [companySlug, currentProductId, limit]);
 
 const handleProductClick = (productId: string) => {
   if (onProductSelect) {
