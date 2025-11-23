@@ -3770,6 +3770,7 @@ export type Database = {
           serial_number: string | null
           title: string
           updated_at: string
+          variant_id: string | null
         }
         Insert: {
           coefficient?: number | null
@@ -3802,6 +3803,7 @@ export type Database = {
           serial_number?: string | null
           title: string
           updated_at?: string
+          variant_id?: string | null
         }
         Update: {
           coefficient?: number | null
@@ -3834,8 +3836,16 @@ export type Database = {
           serial_number?: string | null
           title?: string
           updated_at?: string
+          variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_offer_equipment_variant"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variant_prices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "offer_equipment_collaborator_id_fkey"
             columns: ["collaborator_id"]
