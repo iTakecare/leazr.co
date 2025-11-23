@@ -703,11 +703,15 @@ Content-Type: application/json
 
 **Products (Obligatoire) :**
 
-- `product_name` : Nom du produit
-- `quantity` : Quantité (défaut: 1)
-- `unit_price` : Prix mensuel unitaire en euros (€) - **Recommandé** (calculé par iTakecare avec le coefficient)
-- `product_id` : ID du produit dans le catalogue Leazr (requis pour récupérer le prix d'achat)
-- `variant_id` : ID de la variante si applicable (optionnel)
+- `product_id` (string, obligatoire) : ID du produit dans la base Leazr
+- `variant_id` (string, optionnel) : ID de la variante si applicable
+- `quantity` (number, défaut: 1) : Quantité commandée
+- `unit_price` (number, optionnel) : **Mensualité TOTALE** pour ce produit (déjà × quantité × réduction pack)
+- `pack_id` (string, optionnel) : ID du pack personnalisé auquel appartient le produit
+- `pack_discount_percentage` (number, optionnel) : Pourcentage de réduction appliqué par le pack (2-5%)
+
+**⚠️ Important sur `unit_price`** :  
+Ce champ contient la **mensualité totale** pour le produit (pas unitaire). iTakecare calcule : `mensualité_unitaire × quantité × (1 - réduction_pack)`. Leazr divise ensuite par la quantité pour obtenir la mensualité unitaire à stocker en base.
 
 > **📊 Note sur le coefficient** : Le coefficient de financement utilisé par défaut est **3.53** (Grenke Lease). Ce coefficient peut varier selon le montant financé grâce aux tranches définies dans la configuration du leaser.
 
@@ -717,57 +721,63 @@ Content-Type: application/json
 - `notes` : Remarques additionnelles
 - `delivery_info` : Adresse de livraison différente
 
-### Calculs Financiers - Priorités et Comportement
+### Calculs Financiers
 
-#### 🔵 Prix d'Achat (purchase_price)
+#### Par équipement
 
-**Source unique : Base de données Leazr**
+1. **Prix d'achat unitaire** :
+   - **TOUJOURS** récupéré depuis la base de données Leazr
+   - Recherche par priorité : `product_variant_prices` puis `products`
+   - Si produit non trouvé : nom = "Produit inconnu", prix = 0
 
-L'API **ignore complètement** le champ `total_price` envoyé par iTakecare et récupère **TOUJOURS** le prix d'achat depuis la base Leazr :
+2. **Mensualité totale** :
+   - Reçue dans `unit_price` (déjà × quantité × réduction pack)
+   - Exemple : Magic Mouse × 3 avec -5% = `3.95 × 3 × 0.95 = 11.25€`
 
-1. **Priorité 1** : Table `product_variant_prices` (si `variant_id` fourni)
-2. **Priorité 2** : Table `products` (via `product_id`)
+3. **Mensualité unitaire** :
+   ```
+   monthly_payment = unit_price / quantity
+   ```
 
-✅ **Garantit** que le prix d'achat correspond au catalogue officiel Leazr  
-⚠️ **Important** : Le produit doit exister dans la DB, sinon il sera marqué "Produit inconnu"
+4. **Prix de vente unitaire** :
+   ```
+   selling_price = (monthly_payment × 100) / coefficient
+   ```
 
-#### 🟢 Prix Mensuel (monthly_price)
+5. **Marge individuelle** :
+   ```
+   margin (%) = ((selling_price - purchase_price) / purchase_price) × 100
+   ```
 
-**Source prioritaire : iTakecare**
+#### Totaux de l'offre
 
-L'API utilise en priorité le `unit_price` calculé par iTakecare, avec fallback sur la DB :
+- **Total prix d'achat** (`amount`) : Somme de `purchase_price × quantity` pour chaque équipement
+- **Total mensualités** (`monthly_payment`) : Somme des `unit_price` (mensualités totales déjà réduites)
+- **Total prix de vente** (`financed_amount`) : `(monthly_payment × 100) / coefficient`
+- **Marge globale** (`margin`) : `((financed_amount - amount) / amount) × 100`
 
-1. **Priorité 1** : Champ `unit_price` du payload iTakecare (recommandé)
-2. **Priorité 2** : Table `product_variant_prices` (si absent)
-3. **Priorité 3** : Table `products` (fallback final)
+**Exemple de calcul** :
+```javascript
+// Données reçues (Magic Mouse × 3 avec -5% pack)
+const product = {
+  product_id: "abc123",
+  quantity: 3,
+  unit_price: 11.25  // Mensualité TOTALE (3.95 × 3 × 0.95)
+};
 
-✅ **Garantit** la cohérence avec l'affichage client iTakecare  
-✅ **Permet** à iTakecare de contrôler les mensualités affichées
+// Recherche dans DB Leazr
+const dbPrice = 123.00;  // Prix d'achat unitaire
 
-#### 📊 Calculs effectués par l'API
+// Calculs par équipement
+const monthlyPrice = 11.25 / 3 = 3.75;                    // Mensualité unitaire
+const sellingPrice = (3.75 * 100) / 3.53 = 106.23;        // Prix vente unitaire
+const margin = ((106.23 - 123) / 123) * 100 = -13.61%;    // Marge négative (réduction)
 
+// Totaux pour cet équipement
+const totalPurchasePrice = 123 * 3 = 369.00;
+const totalSellingPrice = 106.23 * 3 = 318.69;
+const totalMonthly = 11.25;  // Déjà le total
 ```
-Prix d'Achat Total (amount) = Somme des (price DB × quantity)
-Paiement Mensuel (monthly_payment) = Somme des (unit_price iTakecare × quantity)
-Montant Financé (financed_amount) = (monthly_payment × 100) / coefficient
-Coefficient = Déterminé selon tranches Grenke (fallback: 3.53)
-Marge (margin) = ((financed_amount - amount) / amount) × 100
-```
-
-#### Exemple concret
-
-**Produits envoyés par iTakecare :**
-
-```json
-{
-  "products": [
-    {
-      "product_id": "abc-123",
-      "variant_id": "var-456",
-      "product_name": "MacBook Pro 14\"",
-      "quantity": 2,
-      "unit_price": 45.50
-    }
   ]
 }
 ```
