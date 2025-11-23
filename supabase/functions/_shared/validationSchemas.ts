@@ -122,18 +122,21 @@ const productItemSchema = z.object({
 
 export const createProductRequestSchema = z.object({
   products: z.array(productItemSchema).min(1, 'Au moins un produit requis').max(100, 'Maximum 100 produits'),
+  
+  // Format ancien (rétrocompatibilité) - maintenant optionnel
   client: z.object({
     name: z.string().trim().min(2, 'Nom trop court').max(100, 'Nom trop long'),
     email: emailSchema,
     company: z.string().trim().max(200, 'Nom entreprise trop long').optional(),
     phone: z.string().trim().max(20, 'Téléphone invalide').optional()
-  }),
+  }).optional(),
+  
   estimated_budget: z.number().positive().max(10000000, 'Budget invalide').optional(),
   
   // Custom packs support
   packs: z.array(customPackSchema).max(20, 'Maximum 20 packs').optional(),
   
-  // Additional fields for iTakecare integration
+  // Format nouveau (iTakecare integration)
   contact_info: z.object({
     first_name: nameSchema.optional(),
     last_name: nameSchema.optional(),
@@ -160,6 +163,13 @@ export const createProductRequestSchema = z.object({
   create_client_account: z.boolean().optional(),
   notes: z.string().trim().max(2000, 'Notes trop longues').optional(),
   request_type: z.enum(['quote', 'order'], { errorMap: () => ({ message: 'Type de requête invalide' }) }).optional()
+}).refine((data) => {
+  // Au moins l'un des deux formats doit être fourni
+  const hasOldFormat = !!data.client;
+  const hasNewFormat = !!data.contact_info && !!data.company_info;
+  return hasOldFormat || hasNewFormat;
+}, {
+  message: "Vous devez fournir soit 'client', soit 'contact_info' + 'company_info'"
 });
 
 // Document request schema

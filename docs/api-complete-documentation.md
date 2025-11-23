@@ -591,6 +591,18 @@ https://cifbetjefyfocafanlhv.supabase.co/functions/v1/create-product-request
 
 **Publique** - Aucune authentification requise. La détection de l'entreprise se fait automatiquement via le header `referer`.
 
+### Formats de Requête Acceptés
+
+L'API accepte **deux formats de requête** pour garantir la rétrocompatibilité :
+
+#### Format 1 : Ancien Format (client)
+Le format historique avec un objet `client` simple.
+
+#### Format 2 : Nouveau Format (contact_info + company_info)  
+Le format étendu utilisé par iTakecare avec des informations détaillées.
+
+**Important :** Vous devez fournir **soit** le format 1 (`client`), **soit** le format 2 (`contact_info` + `company_info`). Les deux formats sont mutuellement exclusifs mais l'un des deux est **obligatoire**.
+
 ### Structure de la Requête
 
 **Headers :**
@@ -598,7 +610,28 @@ https://cifbetjefyfocafanlhv.supabase.co/functions/v1/create-product-request
 Content-Type: application/json
 ```
 
-**Body :**
+#### Exemple Format 1 (Ancien - avec `client`)
+
+```json
+{
+  "products": [
+    {
+      "product_id": "uuid",
+      "variant_id": "uuid (optionnel)",
+      "quantity": 1,
+      "unit_price": 49.99
+    }
+  ],
+  "client": {
+    "name": "Jean Dupont",
+    "email": "jean.dupont@exemple.be",
+    "company": "Exemple SPRL",
+    "phone": "+32470123456"
+  }
+}
+```
+
+#### Exemple Format 2 (Nouveau - avec `contact_info` + `company_info`)
 ```json
 {
   "contact_info": {
