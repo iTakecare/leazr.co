@@ -51,6 +51,63 @@ serve(async (req) => {
     
     console.log("Données reçues par la fonction Edge:", data);
     
+    // ========= EXTRACTION DES INFORMATIONS CLIENT ==========
+    // Support des deux formats : ancien (client) et nouveau (contact_info + company_info)
+    let clientName: string;
+    let clientEmail: string;
+    let clientCompany: string | undefined;
+    let clientPhone: string | undefined;
+    let clientAddress: string | undefined;
+    let clientCity: string | undefined;
+    let clientPostalCode: string | undefined;
+    let clientCountry: string | undefined;
+    let clientVatNumber: string | undefined;
+    let deliveryAddress: string | undefined;
+    let deliveryCity: string | undefined;
+    let deliveryPostalCode: string | undefined;
+    let deliveryCountry: string | undefined;
+    let deliverySameAsBilling = true;
+
+    if (data.client) {
+      // Format ancien (client direct)
+      console.log("📦 Utilisation du format ancien (client)");
+      clientName = data.client.name;
+      clientEmail = data.client.email;
+      clientCompany = data.client.company;
+      clientPhone = data.client.phone;
+    } else if (data.contact_info && data.company_info) {
+      // Format nouveau (iTakecare)
+      console.log("📦 Utilisation du format nouveau (contact_info + company_info)");
+      const firstName = data.contact_info.first_name || '';
+      const lastName = data.contact_info.last_name || '';
+      clientName = `${firstName} ${lastName}`.trim();
+      clientEmail = data.contact_info.email || '';
+      clientPhone = data.contact_info.phone;
+      
+      clientCompany = data.company_info.company_name;
+      clientVatNumber = data.company_info.vat_number;
+      clientAddress = data.company_info.address;
+      clientCity = data.company_info.city;
+      clientPostalCode = data.company_info.postal_code;
+      clientCountry = data.company_info.country;
+      
+      // Adresse de livraison
+      if (data.delivery_info) {
+        deliverySameAsBilling = data.delivery_info.same_as_company ?? true;
+        deliveryAddress = deliverySameAsBilling ? clientAddress : data.delivery_info.address;
+        deliveryCity = deliverySameAsBilling ? clientCity : data.delivery_info.city;
+        deliveryPostalCode = deliverySameAsBilling ? clientPostalCode : data.delivery_info.postal_code;
+        deliveryCountry = deliverySameAsBilling ? clientCountry : data.delivery_info.country;
+      }
+    }
+
+    console.log("Informations client extraites:", {
+      clientName,
+      clientEmail,
+      clientCompany,
+      format: data.client ? 'ancien' : 'nouveau'
+    });
+    
     // Traitement des produits
     console.log("Traitement des produits:", data.products);
     
@@ -230,33 +287,30 @@ serve(async (req) => {
     const requestId = crypto.randomUUID();
     const clientId = crypto.randomUUID();
 
-    // Extraction des informations clients
-    const clientName = `${data.contact_info.first_name || ''} ${data.contact_info.last_name || ''}`.trim();
-    const clientEmail = data.contact_info.email;
-    const companyName = data.company_info.company_name;
+    // Les informations client ont déjà été extraites plus haut (lignes 55-106)
     const equipmentDescription = equipmentList.join(', ');
 
-    // Création du client
+    // Création du client avec les informations extraites
     const clientData = {
       id: clientId,
       name: clientName,
       email: clientEmail,
-      company: companyName,
-      phone: data.contact_info.phone,
-      vat_number: data.company_info.vat_number || '',
-      address: data.company_info.address,
-      city: data.company_info.city,
-      postal_code: data.company_info.postal_code,
-      country: data.company_info.country,
-      billing_address: data.company_info.address,
-      billing_city: data.company_info.city,
-      billing_postal_code: data.company_info.postal_code,
-      billing_country: data.company_info.country,
-      delivery_address: data.delivery_info.same_as_company ? data.company_info.address : data.delivery_info.address,
-      delivery_city: data.delivery_info.same_as_company ? data.company_info.city : data.delivery_info.city,
-      delivery_postal_code: data.delivery_info.same_as_company ? data.company_info.postal_code : data.delivery_info.postal_code,
-      delivery_country: data.delivery_info.same_as_company ? data.company_info.country : data.delivery_info.country,
-      delivery_same_as_billing: data.delivery_info.same_as_company,
+      company: clientCompany,
+      phone: clientPhone,
+      vat_number: clientVatNumber || '',
+      address: clientAddress,
+      city: clientCity,
+      postal_code: clientPostalCode,
+      country: clientCountry,
+      billing_address: clientAddress,
+      billing_city: clientCity,
+      billing_postal_code: clientPostalCode,
+      billing_country: clientCountry,
+      delivery_address: deliveryAddress,
+      delivery_city: deliveryCity,
+      delivery_postal_code: deliveryPostalCode,
+      delivery_country: deliveryCountry,
+      delivery_same_as_billing: deliverySameAsBilling,
       status: 'active',
       contact_name: clientName,
       company_id: targetCompanyId
