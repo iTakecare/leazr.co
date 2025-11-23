@@ -1,6 +1,6 @@
 # iTakecare - Documentation API Complète
 
-**Version :** 2024.4  
+**Version :** 2025.5  
 **Dernière mise à jour :** 23 novembre 2025  
 **Base URL :** `https://cifbetjefyfocafanlhv.supabase.co/functions/v1`
 
@@ -85,20 +85,20 @@ Utilise la même authentification que l'API Catalogue (header `x-api-key`).
 
 ### Endpoints Disponibles
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/company` | Informations entreprise |
-| GET | `/products` | Liste des produits avec filtres |
-| GET | `/products/{productId}` | Détail d'un produit |
-| GET | `/products/{productId}/upsells` | Upsells manuels pour un produit |
-| GET | `/products/{productId}/co2` | Données CO2 d'un produit |
-| GET | `/categories` | Liste des catégories |
-| GET | `/brands` | Liste des marques |
-| GET | `/packs` | Liste des packs actifs |
-| GET | `/packs/{packId}` | Détail d'un pack |
-| GET | `/customizations` | Personnalisations visuelles |
-| GET | `/search` | Recherche produits |
-| POST | `/cart/submit` | Soumettre un panier |
+| Méthode | Endpoint                        | Description                     |
+| ------- | ------------------------------- | ------------------------------- |
+| GET     | `/company`                      | Informations entreprise         |
+| GET     | `/products`                     | Liste des produits avec filtres |
+| GET     | `/products/{productId}`         | Détail d'un produit             |
+| GET     | `/products/{productId}/upsells` | Upsells manuels pour un produit |
+| GET     | `/products/{productId}/co2`     | Données CO2 d'un produit        |
+| GET     | `/categories`                   | Liste des catégories            |
+| GET     | `/brands`                       | Liste des marques               |
+| GET     | `/packs`                        | Liste des packs actifs          |
+| GET     | `/packs/{packId}`               | Détail d'un pack                |
+| GET     | `/customizations`               | Personnalisations visuelles     |
+| GET     | `/search`                       | Recherche produits              |
+| POST    | `/cart/submit`                  | Soumettre un panier             |
 
 ---
 
@@ -109,6 +109,7 @@ Récupère les informations de l'entreprise.
 **URL :** `/catalog-api/v1/{companySlug}/company`
 
 **Réponse :**
+
 ```json
 {
   "company": {
@@ -133,22 +134,24 @@ Liste paginée des produits avec filtres optionnels.
 
 **Paramètres de requête :**
 
-| Paramètre | Type | Description | Défaut |
-|-----------|------|-------------|--------|
-| `search` | string | Recherche textuelle | - |
-| `category` | string | ID de catégorie | - |
-| `brand` | string | Nom de la marque | - |
-| `minPrice` | number | Prix minimum (€) | - |
-| `maxPrice` | number | Prix maximum (€) | - |
-| `page` | number | Numéro de page | 1 |
-| `limit` | number | Résultats par page (max 100) | 50 |
+| Paramètre  | Type   | Description                  | Défaut |
+| ---------- | ------ | ---------------------------- | ------ |
+| `search`   | string | Recherche textuelle          | -      |
+| `category` | string | ID de catégorie              | -      |
+| `brand`    | string | Nom de la marque             | -      |
+| `minPrice` | number | Prix minimum (€)             | -      |
+| `maxPrice` | number | Prix maximum (€)             | -      |
+| `page`     | number | Numéro de page               | 1      |
+| `limit`    | number | Résultats par page (max 100) | 50     |
 
 **Exemple de requête :**
+
 ```bash
 GET /catalog-api/v1/itakecare/products?category=laptop&minPrice=500&limit=20
 ```
 
 **Réponse :**
+
 ```json
 {
   "products": [
@@ -183,6 +186,7 @@ Détail complet d'un produit spécifique (par ID ou slug).
 **URL :** `/catalog-api/v1/{companySlug}/products/{productId}`
 
 **Réponse :**
+
 ```json
 {
   "product": {
@@ -236,9 +240,9 @@ Détail complet d'un produit spécifique (par ID ou slug).
 
 **Paramètres de requête :**
 
-| Paramètre | Type | Description | Défaut |
-|-----------|------|-------------|--------|
-| `limit` | number | Nombre maximum d'upsells | 10 |
+| Paramètre | Type   | Description              | Défaut |
+| --------- | ------ | ------------------------ | ------ |
+| `limit`   | number | Nombre maximum d'upsells | 10     |
 
 **Système d'Upsells iTakecare :**
 
@@ -247,6 +251,7 @@ Les upsells sont **100% manuels** : les administrateurs sélectionnent directeme
 Si un produit n'a aucun upsell configuré, l'API retourne des produits de la même catégorie comme fallback.
 
 **Réponse :**
+
 ```json
 {
   "upsells": [
@@ -283,12 +288,14 @@ Si un produit n'a aucun upsell configuré, l'API retourne des produits de la mê
 ```
 
 **Champs :**
+
 - `source` : Toujours `"manual"` pour les upsells configurés par admin
 - `priority` : Ordre d'affichage (plus élevé = affiché en premier)
 - `manual_count` : Nombre d'upsells configurés manuellement
 - `auto_count` : Nombre de suggestions de fallback (même catégorie)
 
 **Bonnes pratiques :**
+
 - Limiter à 4-6 upsells sur la page produit (`?limit=6`)
 - Afficher un badge "Recommandé par nos experts" pour les upsells manuels
 - Cacher les résultats côté client (5 minutes recommandé)
@@ -303,6 +310,7 @@ Liste des catégories avec données environnementales.
 **URL :** `/catalog-api/v1/{companySlug}/categories`
 
 **Réponse :**
+
 ```json
 {
   "categories": [
@@ -335,6 +343,7 @@ Liste des marques disponibles.
 **URL :** `/catalog-api/v1/{companySlug}/brands`
 
 **Réponse :**
+
 ```json
 {
   "brands": [
@@ -361,6 +370,7 @@ Personnalisations visuelles de l'entreprise.
 **URL :** `/catalog-api/v1/{companySlug}/customizations`
 
 **Réponse :**
+
 ```json
 {
   "customizations": {
@@ -384,6 +394,7 @@ Soumet un panier pour créer une demande de devis.
 **URL :** `/catalog-api/v1/{companySlug}/cart/submit`
 
 **Body :**
+
 ```json
 {
   "type": "quote",
@@ -404,6 +415,7 @@ Soumet un panier pour créer une demande de devis.
 ```
 
 **Réponse succès :**
+
 ```json
 {
   "success": true,
@@ -496,6 +508,7 @@ Récupère le détail complet d'un pack spécifique.
 **URL :** `/catalog-api/v1/{companySlug}/packs/{packId}`
 
 **Paramètres Path :**
+
 - `packId` (string, required) : UUID du pack
 
 **Réponse Success (200) :**
@@ -524,7 +537,7 @@ const response = await fetch(
 const { pack } = await response.json()
 
 // Calculer le prix effectif (promo > custom > total)
-const effectivePrice = pack.promo_active && pack.pack_promo_price 
+const effectivePrice = pack.promo_active && pack.pack_promo_price
   ? pack.pack_promo_price
   : pack.pack_monthly_price || pack.total_monthly_price
 
@@ -551,17 +564,17 @@ function getEffectivePackPrice(pack) {
     const now = new Date()
     const validFrom = pack.promo_valid_from ? new Date(pack.promo_valid_from) : null
     const validTo = pack.promo_valid_to ? new Date(pack.promo_valid_to) : null
-    
+
     if ((!validFrom || now >= validFrom) && (!validTo || now <= validTo)) {
       return pack.pack_promo_price
     }
   }
-  
+
   // 2. Sinon prix personnalisé du pack
   if (pack.pack_monthly_price > 0) {
     return pack.pack_monthly_price
   }
-  
+
   // 3. Sinon somme des prix individuels
   return pack.total_monthly_price
 }
@@ -576,6 +589,7 @@ function getEffectivePackPrice(pack) {
 **POST** `/create-product-request`
 
 Cette API permet la création automatisée de demandes d'équipement complètes avec :
+
 - Création automatique du client dans la base de données
 - Génération de l'offre avec calculs financiers
 - Création optionnelle d'un compte utilisateur
@@ -596,9 +610,11 @@ https://cifbetjefyfocafanlhv.supabase.co/functions/v1/create-product-request
 L'API accepte **deux formats de requête** pour garantir la rétrocompatibilité :
 
 #### Format 1 : Ancien Format (client)
+
 Le format historique avec un objet `client` simple.
 
-#### Format 2 : Nouveau Format (contact_info + company_info)  
+#### Format 2 : Nouveau Format (contact_info + company_info)
+
 Le format étendu utilisé par iTakecare avec des informations détaillées.
 
 **Important :** Vous devez fournir **soit** le format 1 (`client`), **soit** le format 2 (`contact_info` + `company_info`). Les deux formats sont mutuellement exclusifs mais l'un des deux est **obligatoire**.
@@ -606,6 +622,7 @@ Le format étendu utilisé par iTakecare avec des informations détaillées.
 ### Structure de la Requête
 
 **Headers :**
+
 ```http
 Content-Type: application/json
 ```
@@ -632,6 +649,7 @@ Content-Type: application/json
 ```
 
 #### Exemple Format 2 (Nouveau - avec `contact_info` + `company_info`)
+
 ```json
 {
   "contact_info": {
@@ -675,13 +693,16 @@ Content-Type: application/json
 ### Champs Requis
 
 **Contact Info (Obligatoire) :**
+
 - `email` : Email du contact principal
 - `first_name` OU `last_name` : Au moins un nom
 
 **Company Info (Obligatoire) :**
+
 - `company_name` : Nom de l'entreprise cliente
 
 **Products (Obligatoire) :**
+
 - `product_name` : Nom du produit
 - `quantity` : Quantité (défaut: 1)
 - `unit_price` : Prix mensuel unitaire en euros (€) - **Prioritaire pour tous les calculs de marges et financement**
@@ -692,6 +713,7 @@ Content-Type: application/json
 > **📊 Note sur le coefficient** : Le coefficient de financement utilisé par défaut est **3.53** (Grenke Lease). Ce coefficient peut varier selon le montant financé grâce aux tranches définies dans la configuration du leaser.
 
 **Champs Optionnels :**
+
 - `create_client_account` : Créer un compte utilisateur (défaut: false)
 - `notes` : Remarques additionnelles
 - `delivery_info` : Adresse de livraison différente
@@ -701,15 +723,18 @@ Content-Type: application/json
 L'API utilise les prix selon cet ordre de priorité :
 
 **PRIORITÉ 1 : Prix iTakecare (recommandé)**
+
 - Si `unit_price` et `total_price` sont fournis dans le payload, ils sont utilisés tels quels
 - iTakecare calcule les prix avec le coefficient et les envoie pré-calculés
 - ✅ Garantit la cohérence entre iTakecare et Leazr
 
 **PRIORITÉ 2 : Fallback sur base de données Leazr**
+
 - Si les prix iTakecare sont absents ou = 0, l'API cherche le produit dans la DB Leazr
 - Utilise alors `purchase_price` et `monthly_price` de la table `products`
 
 **Calculs effectués par l'API** :
+
 ```
 Montant Total (amount) = Somme des total_price (ou purchase_price × quantity)
 Paiement Mensuel (monthly_payment) = Somme des unit_price (ou monthly_price × quantity)
@@ -719,6 +744,7 @@ Marge (margin) = ((financed_amount - amount) / amount) × 100
 ```
 
 **Exemple (avec prix iTakecare) :**
+
 ```
 Produit 1: unit_price: 45.50€, total_price: 1800€ ← Envoyé par iTakecare
 Produit 2: unit_price: 25.00€, total_price: 900€  ← Envoyé par iTakecare
@@ -733,6 +759,7 @@ Résultats :
 ### Réponse de l'API
 
 **Succès (200) :**
+
 ```json
 {
   "id": "uuid-offer-id",
@@ -764,20 +791,25 @@ Résultats :
 ### Fonctionnalités Automatiques
 
 #### Création d'Équipements Détaillés
+
 Chaque produit génère :
+
 - Un enregistrement dans `offer_equipment`
 - Nom complet : `product_name - variant_name`
 - Prix et quantités individuels
 - Lien vers les IDs produit/variant
 
 #### Gestion des Comptes Clients
+
 Si `create_client_account: true` :
+
 1. Création automatique d'un compte Supabase Auth
 2. Génération d'un lien de définition de mot de passe
 3. Email d'activation personnalisé
 4. Mise à jour du statut client
 
 #### Envoi d'Emails Automatique
+
 - Templates personnalisables depuis `email_templates`
 - Fallback vers template par défaut
 - Variables dynamiques remplacées automatiquement
@@ -786,6 +818,7 @@ Si `create_client_account: true` :
 ### Adresses de Facturation et Livraison
 
 L'API supporte la séparation des adresses :
+
 - **Facturation** : Extraite de `company_info`
 - **Livraison** : Extraite de `delivery_info`
 
@@ -800,6 +833,7 @@ Si `delivery_info` est absent ou identique à `company_info`, le système défin
 #### Vue d'ensemble
 
 Le configurateur de packs permet aux clients de :
+
 - ✅ Sélectionner plusieurs produits de catégories différentes
 - ✅ Bénéficier automatiquement d'une réduction progressive (2% à 5%)
 - ✅ Sauvegarder et partager leur configuration
@@ -808,11 +842,11 @@ Le configurateur de packs permet aux clients de :
 #### Système de Réductions par Paliers
 
 | Prix mensuel total | Réduction appliquée |
-|-------------------|---------------------|
-| 100,00€ - 110,00€ | -2% |
-| 110,01€ - 125,00€ | -3% |
-| 125,01€ - 150,00€ | -4% |
-| > 150,00€ | -5% |
+| ------------------ | ------------------- |
+| 100,00€ - 110,00€  | -2%                 |
+| 110,01€ - 125,00€  | -3%                 |
+| 125,01€ - 150,00€  | -4%                 |
+| > 150,00€          | -5%                 |
 
 **Conditions** : Minimum 2 produits de 2 catégories différentes.
 
@@ -836,6 +870,7 @@ interface PackItem {
 ```
 
 **Exemple JSON :**
+
 ```json
 {
   "packs": [
@@ -870,7 +905,7 @@ interface Product {
   quantity: number;
   unit_price: number;                  // ⚠️ Prix AVEC réduction appliquée
   total_price: number;
-  
+
   // ✅ NOUVEAUX CHAMPS
   pack_id?: string;                    // UUID du pack (si fait partie d'un pack)
   pack_discount_percentage?: number;   // % de réduction du pack (2-5)
@@ -882,6 +917,7 @@ interface Product {
 Le champ `unit_price` inclut **DÉJÀ** la réduction du pack.
 
 **Exemple :**
+
 ```
 Prix catalogue : 50,00€/mois
 Réduction pack : -4%
@@ -893,10 +929,12 @@ unit_price envoyé : 48,00€/mois  ← Réduction déjà appliquée
 ##### Scénario
 
 Un client commande un pack personnalisé contenant :
+
 - **2× MacBook Pro 14"** (99,96€/mois × 2 = 199,92€/mois)
 - **1× Magic Mouse 2** (4,00€/mois)
 
 **Calculs :**
+
 - Total mensuel avant réduction : **203,92€/mois**
 - Réduction applicable : **-5%** (car > 150€)
 - Total mensuel après réduction : **193,72€/mois**
@@ -1037,25 +1075,25 @@ Les champs liés aux packs sont **optionnels**. Une commande sans pack fonctionn
 
 Stocke les métadonnées des packs personnalisés.
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| `id` | UUID | Identifiant unique du pack |
-| `offer_id` | UUID | Référence à l'offre |
-| `custom_pack_id` | UUID | UUID généré par le frontend |
-| `pack_name` | TEXT | Nom du pack |
-| `discount_percentage` | INTEGER | % de réduction (0-100) |
-| `original_monthly_total` | NUMERIC | Total mensuel avant réduction |
+| Colonne                    | Type    | Description                   |
+| -------------------------- | ------- | ----------------------------- |
+| `id`                       | UUID    | Identifiant unique du pack    |
+| `offer_id`                 | UUID    | Référence à l'offre           |
+| `custom_pack_id`           | UUID    | UUID généré par le frontend   |
+| `pack_name`                | TEXT    | Nom du pack                   |
+| `discount_percentage`      | INTEGER | % de réduction (0-100)        |
+| `original_monthly_total`   | NUMERIC | Total mensuel avant réduction |
 | `discounted_monthly_total` | NUMERIC | Total mensuel après réduction |
-| `monthly_savings` | NUMERIC | Économie mensuelle |
+| `monthly_savings`          | NUMERIC | Économie mensuelle            |
 
 ##### Extensions de `offer_equipment`
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| `custom_pack_id` | UUID | Référence au pack personnalisé |
-| `pack_discount_percentage` | INTEGER | % de réduction du pack |
-| `original_unit_price` | NUMERIC | Prix unitaire avant réduction |
-| `is_part_of_custom_pack` | BOOLEAN | Indicateur d'appartenance à un pack |
+| Colonne                    | Type    | Description                         |
+| -------------------------- | ------- | ----------------------------------- |
+| `custom_pack_id`           | UUID    | Référence au pack personnalisé      |
+| `pack_discount_percentage` | INTEGER | % de réduction du pack              |
+| `original_unit_price`      | NUMERIC | Prix unitaire avant réduction       |
+| `is_part_of_custom_pack`   | BOOLEAN | Indicateur d'appartenance à un pack |
 
 ---
 
@@ -1069,10 +1107,10 @@ Stocke les métadonnées des packs personnalisés.
 
 ### Endpoints Disponibles
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/categories` | Données CO2 par catégorie |
-| GET | `/products/{productId}` | Données CO2 d'un produit |
+| Méthode | Endpoint                | Description               |
+| ------- | ----------------------- | ------------------------- |
+| GET     | `/categories`           | Données CO2 par catégorie |
+| GET     | `/products/{productId}` | Données CO2 d'un produit  |
 
 ---
 
@@ -1083,6 +1121,7 @@ Récupère toutes les données environnementales par catégorie.
 **URL :** `/catalog-api/v1/{companySlug}/environmental/categories`
 
 **Réponse :**
+
 ```json
 {
   "environmental_categories": [
@@ -1114,6 +1153,7 @@ Récupère les données CO2 pour un produit spécifique.
 **URL :** `/catalog-api/v1/{companySlug}/environmental/products/{productId}`
 
 **Réponse :**
+
 ```json
 {
   "product": {
@@ -1139,15 +1179,15 @@ Le système calcule automatiquement les équivalences :
 
 ### Données par Défaut
 
-| Catégorie | CO2 économisé (kg) | Source |
-|-----------|-------------------|---------|
-| Serveurs | 300 | Base de données iTakecare |
-| Laptop/Desktop | 170 | Base de données iTakecare |
-| Tablettes | 87 | Base de données iTakecare |
-| Écrans | 85 | Base de données iTakecare |
-| Imprimantes | 65 | Base de données iTakecare |
-| Smartphones | 45 | Base de données iTakecare |
-| Accessoires | 15-25 | Base de données iTakecare |
+| Catégorie      | CO2 économisé (kg) | Source                    |
+| -------------- | ------------------ | ------------------------- |
+| Serveurs       | 300                | Base de données iTakecare |
+| Laptop/Desktop | 170                | Base de données iTakecare |
+| Tablettes      | 87                 | Base de données iTakecare |
+| Écrans         | 85                 | Base de données iTakecare |
+| Imprimantes    | 65                 | Base de données iTakecare |
+| Smartphones    | 45                 | Base de données iTakecare |
+| Accessoires    | 15-25              | Base de données iTakecare |
 
 Les catégories sans données réelles utilisent automatiquement des valeurs de fallback basées sur impactco2.fr.
 
@@ -1313,7 +1353,7 @@ interface ProductRequest {
   duration: number;
   unit_price: number;                  // ⚠️ Prix AVEC réduction si pack
   total_price: number;
-  
+
   // ✅ NOUVEAUX CHAMPS POUR PACKS
   pack_id?: string;                    // UUID du pack (si fait partie d'un pack)
   pack_discount_percentage?: number;   // % de réduction du pack (2-5)
@@ -1334,15 +1374,15 @@ interface PacksSummary {
 
 ### Codes de Statut HTTP
 
-| Code | Signification | Description |
-|------|---------------|-------------|
-| 200 | OK | Requête réussie |
-| 400 | Bad Request | Paramètres invalides ou manquants |
-| 401 | Unauthorized | Clé API manquante ou invalide |
-| 404 | Not Found | Ressource non trouvée |
-| 405 | Method Not Allowed | Méthode HTTP non supportée |
-| 429 | Too Many Requests | Limite de taux dépassée |
-| 500 | Internal Server Error | Erreur serveur |
+| Code | Signification         | Description                       |
+| ---- | --------------------- | --------------------------------- |
+| 200  | OK                    | Requête réussie                   |
+| 400  | Bad Request           | Paramètres invalides ou manquants |
+| 401  | Unauthorized          | Clé API manquante ou invalide     |
+| 404  | Not Found             | Ressource non trouvée             |
+| 405  | Method Not Allowed    | Méthode HTTP non supportée        |
+| 429  | Too Many Requests     | Limite de taux dépassée           |
+| 500  | Internal Server Error | Erreur serveur                    |
 
 ### Format des Erreurs
 
@@ -1359,6 +1399,7 @@ interface PacksSummary {
 ### Exemples d'Erreurs
 
 **401 - Clé API manquante :**
+
 ```json
 {
   "error": "API key manquante ou invalide",
@@ -1367,6 +1408,7 @@ interface PacksSummary {
 ```
 
 **404 - Produit non trouvé :**
+
 ```json
 {
   "error": "Produit non trouvé",
@@ -1378,6 +1420,7 @@ interface PacksSummary {
 ```
 
 **400 - Données manquantes (Product Request) :**
+
 ```json
 {
   "error": "Données manquantes : company_info.company_name et contact_info.email sont requis"
@@ -1425,9 +1468,9 @@ async function getCatalog(filters?: {
 }
 
 // Usage
-const catalog = await getCatalog({ 
-  search: 'macbook', 
-  page: 1 
+const catalog = await getCatalog({
+  search: 'macbook',
+  page: 1
 });
 ```
 
@@ -1685,12 +1728,14 @@ curl "https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/itake
 #### Caching Côté Client
 
 **Recommandé :**
+
 - Catégories : 15 minutes
 - Produits : 5 minutes
 - Upsells : 5 minutes
 - Données CO2 : 10 minutes
 
 **Exemple (React Query) :**
+
 ```typescript
 const { data } = useQuery({
   queryKey: ['products', filters],
@@ -1715,13 +1760,13 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3) {
     try {
       const response = await fetch(url, options);
       if (response.ok) return response.json();
-      
+
       if (response.status === 429) {
         // Rate limit: attendre avant de réessayer
         await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
         continue;
       }
-      
+
       throw new Error(`HTTP ${response.status}`);
     } catch (error) {
       if (i === retries - 1) throw error;
@@ -1773,11 +1818,11 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3) {
 #### 💡 Système de Réductions Progressives
 
 | Prix mensuel total | Réduction |
-|-------------------|-----------|
-| 100€ - 110€ | -2% |
-| 110€ - 125€ | -3% |
-| 125€ - 150€ | -4% |
-| > 150€ | -5% |
+| ------------------ | --------- |
+| 100€ - 110€        | -2%       |
+| 110€ - 125€        | -3%       |
+| 125€ - 150€        | -4%       |
+| > 150€             | -5%       |
 
 ### Version 2024.3 - 21 novembre 2025
 
@@ -1863,6 +1908,7 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3) {
 ### Demande de Clé API
 
 Pour obtenir votre clé API, contactez-nous à hello@itakecare.be avec :
+
 - Le nom de votre entreprise
 - L'URL de votre site web
 - Votre cas d'usage prévu
@@ -1870,6 +1916,7 @@ Pour obtenir votre clé API, contactez-nous à hello@itakecare.be avec :
 ### Rapporter un Bug
 
 Si vous rencontrez un problème avec l'API :
+
 1. Vérifiez cette documentation
 2. Consultez les logs de votre application
 3. Contactez-nous avec les détails de votre requête et la réponse reçue
