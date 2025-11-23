@@ -705,10 +705,9 @@ Content-Type: application/json
 
 - `product_name` : Nom du produit
 - `quantity` : Quantité (défaut: 1)
-- `unit_price` : Prix mensuel unitaire en euros (€) - **Prioritaire pour tous les calculs de marges et financement**
-- `total_price` : Prix d'achat total en euros (€) - **Prioritaire pour tous les calculs de marges et financement**
-
-> **⚠️ Important** : Si `unit_price` et `total_price` sont fournis par iTakecare, ils seront utilisés en priorité pour **tous les calculs** (marges, financement, équipements, commission). Si absents, l'API récupérera les prix depuis la base de données Leazr.
+- `unit_price` : Prix mensuel unitaire en euros (€) - **Recommandé** (calculé par iTakecare avec le coefficient)
+- `product_id` : ID du produit dans le catalogue Leazr (requis pour récupérer le prix d'achat)
+- `variant_id` : ID de la variante si applicable (optionnel)
 
 > **📊 Note sur le coefficient** : Le coefficient de financement utilisé par défaut est **3.53** (Grenke Lease). Ce coefficient peut varier selon le montant financé grâce aux tranches définies dans la configuration du leaser.
 
@@ -720,41 +719,68 @@ Content-Type: application/json
 
 ### Calculs Financiers - Priorités et Comportement
 
-L'API utilise les prix selon cet ordre de priorité :
+#### 🔵 Prix d'Achat (purchase_price)
 
-**PRIORITÉ 1 : Prix iTakecare (recommandé)**
+**Source unique : Base de données Leazr**
 
-- Si `unit_price` et `total_price` sont fournis dans le payload, ils sont utilisés tels quels
-- iTakecare calcule les prix avec le coefficient et les envoie pré-calculés
-- ✅ Garantit la cohérence entre iTakecare et Leazr
+L'API **ignore complètement** le champ `total_price` envoyé par iTakecare et récupère **TOUJOURS** le prix d'achat depuis la base Leazr :
 
-**PRIORITÉ 2 : Fallback sur base de données Leazr**
+1. **Priorité 1** : Table `product_variant_prices` (si `variant_id` fourni)
+2. **Priorité 2** : Table `products` (via `product_id`)
 
-- Si les prix iTakecare sont absents ou = 0, l'API cherche le produit dans la DB Leazr
-- Utilise alors `purchase_price` et `monthly_price` de la table `products`
+✅ **Garantit** que le prix d'achat correspond au catalogue officiel Leazr  
+⚠️ **Important** : Le produit doit exister dans la DB, sinon il sera marqué "Produit inconnu"
 
-**Calculs effectués par l'API** :
+#### 🟢 Prix Mensuel (monthly_price)
+
+**Source prioritaire : iTakecare**
+
+L'API utilise en priorité le `unit_price` calculé par iTakecare, avec fallback sur la DB :
+
+1. **Priorité 1** : Champ `unit_price` du payload iTakecare (recommandé)
+2. **Priorité 2** : Table `product_variant_prices` (si absent)
+3. **Priorité 3** : Table `products` (fallback final)
+
+✅ **Garantit** la cohérence avec l'affichage client iTakecare  
+✅ **Permet** à iTakecare de contrôler les mensualités affichées
+
+#### 📊 Calculs effectués par l'API
 
 ```
-Montant Total (amount) = Somme des total_price (ou purchase_price × quantity)
-Paiement Mensuel (monthly_payment) = Somme des unit_price (ou monthly_price × quantity)
+Prix d'Achat Total (amount) = Somme des (price DB × quantity)
+Paiement Mensuel (monthly_payment) = Somme des (unit_price iTakecare × quantity)
 Montant Financé (financed_amount) = (monthly_payment × 100) / coefficient
 Coefficient = Déterminé selon tranches Grenke (fallback: 3.53)
 Marge (margin) = ((financed_amount - amount) / amount) × 100
 ```
 
-**Exemple (avec prix iTakecare) :**
+#### Exemple concret
 
-```
-Produit 1: unit_price: 45.50€, total_price: 1800€ ← Envoyé par iTakecare
-Produit 2: unit_price: 25.00€, total_price: 900€  ← Envoyé par iTakecare
+**Produits envoyés par iTakecare :**
 
-Résultats :
-- amount: 2700€
-- monthly_payment: 70.50€
-- financed_amount: (70.50 × 100) / 3.53 = 1997.17€
-- margin: ((1997.17 - 2700) / 2700) × 100 = -26.03%
+```json
+{
+  "products": [
+    {
+      "product_id": "abc-123",
+      "variant_id": "var-456",
+      "product_name": "MacBook Pro 14\"",
+      "quantity": 2,
+      "unit_price": 45.50
+    }
+  ]
+}
 ```
+
+**Traitement par l'API :**
+
+1. **Prix d'achat** : DB Leazr `product_variant_prices` → `1800€`
+2. **Prix mensuel** : iTakecare `unit_price` → `45.50€`
+3. **Calculs** :
+   - `amount` = 1800€ × 2 = `3600€`
+   - `monthly_payment` = 45.50€ × 2 = `91€`
+   - `financed_amount` = (91 × 100) / 3.53 = `2578.47€`
+   - `margin` = ((2578.47 - 3600) / 3600) × 100 = `-28.38%`
 
 ### Réponse de l'API
 
