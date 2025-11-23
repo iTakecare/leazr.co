@@ -164,47 +164,71 @@ serve(async (req) => {
       
       console.log("Informations produit récupérées:", productInfo);
 
-      // Récupérer les prix et attributs du variant
-      console.log("Tentative de récupération des prix et attributs pour variant_id:", product.variant_id);
-      
+      // Récupérer les informations du produit depuis iTakecare ou la DB
       let price = 0;
       let monthlyPrice = 0;
       let attributes = {};
 
-      if (product.variant_id) {
-        const { data: variantData, error: variantError } = await supabaseAdmin
-          .from('product_variant_prices')
-          .select('price, monthly_price, attributes')
-          .eq('id', product.variant_id)
-          .single();
-        
-        if (!variantError && variantData) {
-          console.log("Prix et attributs récupérés de product_variant_prices:", {
-            price: variantData.price,
-            monthly_price: variantData.monthly_price,
-            attributes: variantData.attributes
-          });
-          
-          price = variantData.price || 0;
-          monthlyPrice = variantData.monthly_price || 0;
-          attributes = variantData.attributes || {};
-        } else {
-          console.log("Fallback: tentative de récupération des prix pour product_id:", product.product_id);
-          
-          const { data: productPrices } = await supabaseAdmin
-            .from('products')
-            .select('price, monthly_price')
-            .eq('id', product.product_id)
+      // Priorité 1 : Utiliser les prix envoyés par iTakecare
+      if (product.total_price !== undefined) {
+        price = product.total_price / product.quantity;
+        console.log(`📊 Prix d'achat depuis iTakecare pour ${product.name}:`, price);
+      }
+      if (product.unit_price !== undefined) {
+        monthlyPrice = product.unit_price;
+        console.log(`📊 Prix mensuel depuis iTakecare pour ${product.name}:`, monthlyPrice);
+      }
+
+      // Priorité 2 : Fallback sur la DB Leazr si pas de prix iTakecare
+      if (price === 0 || monthlyPrice === 0) {
+        if (product.variant_id) {
+          console.log(`🔍 Fallback DB pour variante ${product.variant_id}`);
+          const { data: variantData, error: variantError } = await supabaseAdmin
+            .from('product_variant_prices')
+            .select('price, monthly_price, attributes')
+            .eq('id', product.variant_id)
             .single();
           
-          console.log("Prix récupérés de products (fallback):", { price: productPrices?.price || 0, monthly_price: productPrices?.monthly_price || 0 });
-          
-          price = productPrices?.price || 0;
-          monthlyPrice = productPrices?.monthly_price || 0;
+          if (!variantError && variantData) {
+            console.log("Prix et attributs récupérés de product_variant_prices:", {
+              price: variantData.price,
+              monthly_price: variantData.monthly_price,
+              attributes: variantData.attributes
+            });
+            
+            if (price === 0) price = variantData.price || 0;
+            if (monthlyPrice === 0) monthlyPrice = variantData.monthly_price || 0;
+            attributes = variantData.attributes || {};
+          } else {
+            console.log("Fallback: tentative de récupération des prix pour product_id:", product.product_id);
+            
+            const { data: productPrices } = await supabaseAdmin
+              .from('products')
+              .select('price, monthly_price')
+              .eq('id', product.product_id)
+              .single();
+            
+            console.log("Prix récupérés de products (fallback):", { price: productPrices?.price || 0, monthly_price: productPrices?.monthly_price || 0 });
+            
+            if (price === 0) price = productPrices?.price || 0;
+            if (monthlyPrice === 0) monthlyPrice = productPrices?.monthly_price || 0;
+          }
         }
       }
 
       console.log("Prix calculés - Unitaire:", monthlyPrice, "Total:", price, "Quantité:", product.quantity);
+      
+      const itemTotalPrice = price * product.quantity;
+      const itemTotalMonthly = monthlyPrice * product.quantity;
+      
+      console.log(`💰 Totaux pour ${product.name}:`, {
+        prix_unitaire: price,
+        prix_mensuel: monthlyPrice,
+        quantite: product.quantity,
+        total_achat: itemTotalPrice,
+        total_mensuel: itemTotalMonthly,
+        source: product.unit_price !== undefined ? 'iTakecare' : 'DB Leazr'
+      });
       
       const itemTotalPrice = price * product.quantity;
       const itemTotalMonthly = monthlyPrice * product.quantity;
@@ -445,13 +469,22 @@ serve(async (req) => {
         }
       }
 
-      // Utiliser les prix fournis par iTakecare si disponibles
+      // Utiliser les prix fournis par iTakecare si disponibles (prioritaires)
       if (product.unit_price !== undefined) {
         monthlyPrice = product.unit_price;
+        console.log(`✅ Prix mensuel depuis iTakecare pour ${product.name}:`, monthlyPrice);
       }
       if (product.total_price !== undefined) {
         purchasePrice = product.total_price / product.quantity;
+        console.log(`✅ Prix d'achat depuis iTakecare pour ${product.name}:`, purchasePrice);
       }
+      
+      console.log(`✅ Création équipement ${product.name}:`, {
+        purchasePrice,
+        monthlyPrice,
+        quantity: product.quantity,
+        source: product.unit_price !== undefined ? 'iTakecare' : 'DB Leazr'
+      });
 
       // ✅ NOUVEAU : Calculer le prix original si le produit fait partie d'un pack
       const originalUnitPrice = product.pack_discount_percentage 

@@ -684,8 +684,10 @@ Content-Type: application/json
 **Products (Obligatoire) :**
 - `product_name` : Nom du produit
 - `quantity` : Quantité (défaut: 1)
-- `unit_price` : Prix mensuel unitaire (€)
-- `total_price` : Prix d'achat total (€)
+- `unit_price` : Prix mensuel unitaire en euros (€) - **Prioritaire pour tous les calculs de marges et financement**
+- `total_price` : Prix d'achat total en euros (€) - **Prioritaire pour tous les calculs de marges et financement**
+
+> **⚠️ Important** : Si `unit_price` et `total_price` sont fournis par iTakecare, ils seront utilisés en priorité pour **tous les calculs** (marges, financement, équipements, commission). Si absents, l'API récupérera les prix depuis la base de données Leazr.
 
 **Champs Optionnels :**
 - `create_client_account` : Créer un compte utilisateur (défaut: false)
