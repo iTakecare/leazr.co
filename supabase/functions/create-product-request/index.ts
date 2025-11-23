@@ -230,9 +230,6 @@ serve(async (req) => {
         source: product.unit_price !== undefined ? 'iTakecare' : 'DB Leazr'
       });
       
-      const itemTotalPrice = price * product.quantity;
-      const itemTotalMonthly = monthlyPrice * product.quantity;
-      
       totalPurchaseAmount += itemTotalPrice;
       totalMonthlyPayment += itemTotalMonthly;
       
