@@ -3632,6 +3632,53 @@ export type Database = {
           },
         ]
       }
+      offer_custom_packs: {
+        Row: {
+          created_at: string
+          custom_pack_id: string
+          discount_percentage: number
+          discounted_monthly_total: number
+          id: string
+          monthly_savings: number
+          offer_id: string
+          original_monthly_total: number
+          pack_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_pack_id: string
+          discount_percentage: number
+          discounted_monthly_total?: number
+          id?: string
+          monthly_savings?: number
+          offer_id: string
+          original_monthly_total?: number
+          pack_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_pack_id?: string
+          discount_percentage?: number
+          discounted_monthly_total?: number
+          id?: string
+          monthly_savings?: number
+          offer_id?: string
+          original_monthly_total?: number
+          pack_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_custom_packs_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_documents: {
         Row: {
           admin_notes: string | null
@@ -3696,6 +3743,7 @@ export type Database = {
           coefficient: number | null
           collaborator_id: string | null
           created_at: string
+          custom_pack_id: string | null
           delivery_address: string | null
           delivery_city: string | null
           delivery_contact_email: string | null
@@ -3709,9 +3757,12 @@ export type Database = {
           duration: number
           id: string
           image_url: string | null
+          is_part_of_custom_pack: boolean | null
           margin: number
           monthly_payment: number | null
           offer_id: string
+          original_unit_price: number | null
+          pack_discount_percentage: number | null
           product_id: string | null
           purchase_price: number
           quantity: number
@@ -3724,6 +3775,7 @@ export type Database = {
           coefficient?: number | null
           collaborator_id?: string | null
           created_at?: string
+          custom_pack_id?: string | null
           delivery_address?: string | null
           delivery_city?: string | null
           delivery_contact_email?: string | null
@@ -3737,9 +3789,12 @@ export type Database = {
           duration?: number
           id?: string
           image_url?: string | null
+          is_part_of_custom_pack?: boolean | null
           margin?: number
           monthly_payment?: number | null
           offer_id: string
+          original_unit_price?: number | null
+          pack_discount_percentage?: number | null
           product_id?: string | null
           purchase_price?: number
           quantity?: number
@@ -3752,6 +3807,7 @@ export type Database = {
           coefficient?: number | null
           collaborator_id?: string | null
           created_at?: string
+          custom_pack_id?: string | null
           delivery_address?: string | null
           delivery_city?: string | null
           delivery_contact_email?: string | null
@@ -3765,9 +3821,12 @@ export type Database = {
           duration?: number
           id?: string
           image_url?: string | null
+          is_part_of_custom_pack?: boolean | null
           margin?: number
           monthly_payment?: number | null
           offer_id?: string
+          original_unit_price?: number | null
+          pack_discount_percentage?: number | null
           product_id?: string | null
           purchase_price?: number
           quantity?: number
@@ -3782,6 +3841,13 @@ export type Database = {
             columns: ["collaborator_id"]
             isOneToOne: false
             referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_equipment_custom_pack_id_fkey"
+            columns: ["custom_pack_id"]
+            isOneToOne: false
+            referencedRelation: "offer_custom_packs"
             referencedColumns: ["id"]
           },
           {
