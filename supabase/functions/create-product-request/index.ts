@@ -315,6 +315,53 @@ serve(async (req) => {
       throw new Error(`Erreur offre: ${offerError.message}`);
     }
 
+    // ========= GESTION DES PACKS PERSONNALISÉS ==========
+    if (data.packs && data.packs.length > 0) {
+      console.log("Traitement des packs personnalisés:", data.packs.length, "packs");
+      
+      for (const pack of data.packs) {
+        console.log("Création du pack:", pack.pack_name);
+        
+        // Calculer les totaux du pack à partir des produits
+        const packProducts = data.products.filter(p => p.pack_id === pack.custom_pack_id);
+        
+        const originalMonthlyTotal = packProducts.reduce((sum, p) => {
+          // Recalculer le prix original sans réduction
+          const originalUnitPrice = p.unit_price ? p.unit_price / (1 - (p.pack_discount_percentage || 0) / 100) : 0;
+          return sum + (originalUnitPrice * p.quantity);
+        }, 0);
+        
+        const discountedMonthlyTotal = packProducts.reduce((sum, p) => 
+          sum + ((p.unit_price || 0) * p.quantity), 0
+        );
+        
+        const monthlySavings = originalMonthlyTotal - discountedMonthlyTotal;
+        
+        // Insérer le pack personnalisé
+        const { data: createdPack, error: packError } = await supabaseAdmin
+          .from('offer_custom_packs')
+          .insert({
+            offer_id: requestId,
+            custom_pack_id: pack.custom_pack_id,
+            pack_name: pack.pack_name,
+            discount_percentage: pack.discount_percentage,
+            original_monthly_total: originalMonthlyTotal,
+            discounted_monthly_total: discountedMonthlyTotal,
+            monthly_savings: monthlySavings
+          })
+          .select('id')
+          .single();
+        
+        if (packError) {
+          console.error("Erreur lors de la création du pack personnalisé:", packError);
+          // Ne pas bloquer la création de l'offre, juste logger
+          continue;
+        }
+        
+        console.log("Pack personnalisé créé avec succès:", pack.pack_name, "- ID:", createdPack.id);
+      }
+    }
+
     // Création des équipements détaillés
     console.log("Création des équipements détaillés:", data.products.length, "items");
 
@@ -344,14 +391,46 @@ serve(async (req) => {
         }
       }
 
+      // Utiliser les prix fournis par iTakecare si disponibles
+      if (product.unit_price !== undefined) {
+        monthlyPrice = product.unit_price;
+      }
+      if (product.total_price !== undefined) {
+        purchasePrice = product.total_price / product.quantity;
+      }
+
+      // ✅ NOUVEAU : Calculer le prix original si le produit fait partie d'un pack
+      const originalUnitPrice = product.pack_discount_percentage 
+        ? monthlyPrice / (1 - product.pack_discount_percentage / 100)
+        : monthlyPrice;
+      
+      // ✅ NOUVEAU : Récupérer l'ID du pack personnalisé si applicable
+      let customPackDbId = null;
+      if (product.pack_id) {
+        const { data: packData } = await supabaseAdmin
+          .from('offer_custom_packs')
+          .select('id')
+          .eq('offer_id', requestId)
+          .eq('custom_pack_id', product.pack_id)
+          .single();
+        
+        customPackDbId = packData?.id || null;
+      }
+
       const equipmentData = {
         offer_id: requestId,
-        title: productInfo?.name || 'Produit',
+        title: product.product_name || productInfo?.name || 'Produit',
         purchase_price: purchasePrice,
         quantity: product.quantity,
         monthly_payment: monthlyPrice * product.quantity,
         margin: 0,
-        duration: 36
+        duration: product.duration || 36,
+        
+        // ✅ NOUVEAUX CHAMPS POUR LES PACKS
+        custom_pack_id: customPackDbId,
+        pack_discount_percentage: product.pack_discount_percentage || 0,
+        original_unit_price: originalUnitPrice,
+        is_part_of_custom_pack: !!product.pack_id
       };
 
       console.log("Création de l'équipement:", equipmentData);
@@ -367,7 +446,7 @@ serve(async (req) => {
         continue;
       }
 
-      console.log("Équipement créé avec succès:", productInfo?.name);
+      console.log("Équipement créé avec succès:", product.product_name || productInfo?.name);
 
       // Stockage des attributs
       if (equipment && attributes && Object.keys(attributes).length > 0) {
@@ -770,6 +849,25 @@ serve(async (req) => {
       // Ne pas bloquer le processus même si les notifications admin échouent
     }
 
+    // ✅ NOUVEAU : Récupérer les packs créés pour la réponse
+    let packsSummary = [];
+    if (data.packs && data.packs.length > 0) {
+      const { data: createdPacks } = await supabaseAdmin
+        .from('offer_custom_packs')
+        .select('pack_name, discount_percentage, monthly_savings, original_monthly_total, discounted_monthly_total')
+        .eq('offer_id', requestId);
+      
+      if (createdPacks) {
+        packsSummary = createdPacks.map(pack => ({
+          pack_name: pack.pack_name,
+          discount_percentage: pack.discount_percentage,
+          monthly_savings: parseFloat(pack.monthly_savings.toFixed(2)),
+          original_monthly_total: parseFloat(pack.original_monthly_total.toFixed(2)),
+          discounted_monthly_total: parseFloat(pack.discounted_monthly_total.toFixed(2))
+        }));
+      }
+    }
+
     // Préparer les données de réponse
     const responseData = {
       id: requestId,
@@ -783,6 +881,7 @@ serve(async (req) => {
       coefficient: coefficient,
       financed_amount: totalFinancedAmount,
       margin: parseFloat(marginAmount.toFixed(2)),
+      packs_summary: packsSummary, // ✅ NOUVEAU
       created_at: new Date().toISOString()
     };
 
