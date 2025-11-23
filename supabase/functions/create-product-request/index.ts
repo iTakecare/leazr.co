@@ -221,7 +221,6 @@ serve(async (req) => {
       // Totaux pour cet équipement
       const totalPurchasePrice = price * product.quantity;
       const totalSellingPrice = sellingPrice * product.quantity;
-      const totalMonthlyPayment = totalMonthlyFromItakecare;
       
       console.log(`💰 Calculs pour ${productName}:`, {
         quantite: product.quantity,
