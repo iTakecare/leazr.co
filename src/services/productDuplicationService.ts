@@ -217,13 +217,11 @@ export const duplicateProduct = async (
       admin_only: originalProduct.admin_only ?? false,
       is_refurbished: originalProduct.is_refurbished ?? false,
       is_parent: originalProduct.is_parent ?? false,
-      has_variants: originalProduct.has_variants ?? false,
       
       // Other business fields
       model: originalProduct.model,
       condition: originalProduct.condition,
       location: originalProduct.location,
-      type: originalProduct.type,
       
       // Reset fields
       is_variation: false,
@@ -233,8 +231,10 @@ export const duplicateProduct = async (
       serial_number: null,
       status: 'available',
       woocommerce_id: null,
-      warranty_expiration_date: null,
-      maintenance_date: null,
+      warranty_end_date: null,
+      purchase_date: null,
+      last_maintenance_date: null,
+      next_maintenance_date: null,
       
       // Timestamps
       created_at: new Date().toISOString(),
