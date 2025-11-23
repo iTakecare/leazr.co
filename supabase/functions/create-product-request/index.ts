@@ -141,8 +141,10 @@ serve(async (req) => {
     }
 
     const equipmentList = [];
+    const equipmentCalculations = []; // Store calculations for later use
     let totalPurchaseAmount = 0;
     let totalMonthlyPayment = 0;
+    let totalFinancedAmountEstimate = 0;
 
     // Traitement des produits individuels
     for (const product of data.products) {
@@ -169,8 +171,7 @@ serve(async (req) => {
       }
 
       // ========== RÉCUPÉRATION DES PRIX ==========
-      let price = 0; // Prix d'achat (purchase_price)
-      let monthlyPrice = 0; // Prix mensuel
+      let price = 0; // Prix d'achat unitaire (purchase_price)
       let attributes = {};
 
       // 🔵 PRIX D'ACHAT : TOUJOURS depuis DB Leazr
@@ -204,53 +205,56 @@ serve(async (req) => {
         console.log(`✅ Prix d'achat récupéré de products (fallback): ${price}€`);
       }
 
-      // 🟢 MENSUALITÉ : Priorité iTakecare, fallback DB
-      if (product.unit_price !== undefined) {
-        monthlyPrice = product.unit_price;
-        console.log(`✅ Prix mensuel depuis iTakecare: ${monthlyPrice}€`);
-      } else {
-        console.log("⚠️ Prix mensuel iTakecare absent, fallback sur DB");
-        
-        if (product.variant_id) {
-          const { data: variantData } = await supabaseAdmin
-            .from('product_variant_prices')
-            .select('monthly_price')
-            .eq('id', product.variant_id)
-            .single();
-          
-          monthlyPrice = variantData?.monthly_price || 0;
-        }
-        
-        if (monthlyPrice === 0) {
-          const { data: productPrices } = await supabaseAdmin
-            .from('products')
-            .select('monthly_price')
-            .eq('id', product.product_id)
-            .single();
-          
-          monthlyPrice = productPrices?.monthly_price || 0;
-        }
-        
-        console.log(`✅ Prix mensuel récupéré de DB: ${monthlyPrice}€`);
-      }
-
-      const itemTotalPrice = price * product.quantity;
-      const itemTotalMonthly = monthlyPrice * product.quantity;
+      // 🟢 MENSUALITÉ : unit_price contient la mensualité TOTALE (déjà × quantité × réduction)
+      const totalMonthlyFromItakecare = product.unit_price || 0;
+      console.log(`✅ Mensualité TOTALE depuis iTakecare: ${totalMonthlyFromItakecare}€`);
       
-      console.log(`💰 Totaux pour ${productName}:`, {
-        prix_achat_unitaire: price,
-        source_prix_achat: 'DB Leazr',
-        prix_mensuel: monthlyPrice,
-        source_mensuel: product.unit_price !== undefined ? 'iTakecare' : 'DB Leazr',
+      // Calculer la mensualité UNITAIRE en divisant par la quantité
+      const monthlyPrice = totalMonthlyFromItakecare / product.quantity;
+      console.log(`✅ Mensualité UNITAIRE calculée: ${monthlyPrice}€ (${totalMonthlyFromItakecare} / ${product.quantity})`);
+      
+      // Calculs par équipement
+      const coefficient = 3.53; // On utilisera le coefficient final plus tard, mais on utilise 3.53 pour l'estimation
+      const sellingPrice = (monthlyPrice * 100) / coefficient;
+      const equipmentMargin = price > 0 ? ((sellingPrice - price) / price) * 100 : 0;
+      
+      // Totaux pour cet équipement
+      const totalPurchasePrice = price * product.quantity;
+      const totalSellingPrice = sellingPrice * product.quantity;
+      const totalMonthlyPayment = totalMonthlyFromItakecare;
+      
+      console.log(`💰 Calculs pour ${productName}:`, {
         quantite: product.quantity,
-        total_achat: itemTotalPrice,
-        total_mensuel: itemTotalMonthly
+        prix_achat_unitaire: price.toFixed(2),
+        prix_achat_total: totalPurchasePrice.toFixed(2),
+        mensualite_totale_itakecare: totalMonthlyFromItakecare.toFixed(2),
+        mensualite_unitaire: monthlyPrice.toFixed(2),
+        prix_vente_unitaire: sellingPrice.toFixed(2),
+        prix_vente_total: totalSellingPrice.toFixed(2),
+        marge_pct: equipmentMargin.toFixed(2) + '%'
       });
       
-      totalPurchaseAmount += itemTotalPrice;
-      totalMonthlyPayment += itemTotalMonthly;
+      // Accumuler les totaux
+      totalPurchaseAmount += totalPurchasePrice;
+      totalMonthlyPayment += totalMonthlyFromItakecare; // Utiliser le total mensuel de l'équipement
+      totalFinancedAmountEstimate += totalSellingPrice;
       
-      console.log("Montants calculés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
+      console.log("Montants cumulés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
+      
+      // Stocker les calculs pour plus tard
+      equipmentCalculations.push({
+        productName,
+        productId: product.product_id,
+        variantId: product.variant_id,
+        quantity: product.quantity,
+        purchasePrice: price,
+        monthlyPrice,
+        sellingPrice,
+        margin: equipmentMargin,
+        attributes,
+        packId: product.pack_id,
+        packDiscountPercentage: product.pack_discount_percentage
+      });
       
       equipmentList.push(`${productName} (x${product.quantity})`);
       console.log("Attributs du variant à stocker:", attributes);
@@ -311,15 +315,15 @@ serve(async (req) => {
     }
 
     const marginAmount = totalFinancedAmount - totalPurchaseAmount;
-    const marginPercentage = totalPurchaseAmount > 0 ? ((marginAmount / totalPurchaseAmount) * 100).toFixed(1) : "0.0";
+    const marginPercentage = totalPurchaseAmount > 0 ? (marginAmount / totalPurchaseAmount) * 100 : 0;
     const calculatedMonthlyPayment = totalMonthlyPayment;
 
-    console.log("Calculs selon le calculateur d'offre:\n" +
-      "      - Prix d'achat total: " + totalPurchaseAmount + "€\n" +
+    console.log("📊 Calculs finaux de l'offre:\n" +
+      "      - Prix d'achat total: " + totalPurchaseAmount.toFixed(2) + "€\n" +
       "      - Montant financé total: " + totalFinancedAmount.toFixed(2) + "€\n" +
       "      - Coefficient utilisé: " + coefficient + "\n" +
-      "      - Mensualité calculée: " + calculatedMonthlyPayment + "€\n" +
-      "      - Marge calculée: " + marginAmount.toFixed(2) + "€ (" + marginPercentage + "%)");
+      "      - Mensualité totale: " + calculatedMonthlyPayment.toFixed(2) + "€\n" +
+      "      - Marge: " + marginAmount.toFixed(2) + "€ (" + marginPercentage.toFixed(2) + "%)");
 
     // Génération d'un ID unique pour la demande
     const requestId = crypto.randomUUID();
@@ -385,7 +389,7 @@ serve(async (req) => {
       monthly_payment: calculatedMonthlyPayment,
       coefficient: coefficient,
       financed_amount: totalFinancedAmount,
-      margin: totalFinancedAmount,
+      margin: marginPercentage,
       commission: 0,
       type: 'client_request',
       workflow_status: 'draft',
@@ -455,117 +459,60 @@ serve(async (req) => {
     }
 
     // Création des équipements détaillés
-    console.log("Création des équipements détaillés:", data.products.length, "items");
+    console.log("Création des équipements détaillés:", equipmentCalculations.length, "items");
 
-    for (const product of data.products) {
-      // Récupérer les informations du produit
-      const { data: productInfo, error: productError } = await supabaseAdmin
-        .from('products')
-        .select('name')
-        .eq('id', product.product_id)
-        .single();
-
-      const productName = productError 
-        ? "Produit inconnu" 
-        : (productInfo?.name || "Produit inconnu");
-
-      // ========== RÉCUPÉRATION DES PRIX (équipement) ==========
-      let monthlyPrice = 0;
-      let purchasePrice = 0;
-      let attributes = {};
-
-      // 🔵 PRIX D'ACHAT : TOUJOURS depuis DB Leazr
-      if (product.variant_id) {
-        const { data: variantData } = await supabaseAdmin
-          .from('product_variant_prices')
-          .select('price, attributes')
-          .eq('id', product.variant_id)
-          .single();
-        
-        if (variantData) {
-          purchasePrice = variantData.price || 0;
-          attributes = variantData.attributes || {};
-        }
-      }
-
-      if (purchasePrice === 0) {
-        const { data: productPrices } = await supabaseAdmin
-          .from('products')
-          .select('price')
-          .eq('id', product.product_id)
-          .single();
-        
-        purchasePrice = productPrices?.price || 0;
-      }
-
-      // 🟢 MENSUALITÉ : Priorité iTakecare, fallback DB
-      if (product.unit_price !== undefined) {
-        monthlyPrice = product.unit_price;
-        console.log(`✅ Prix mensuel depuis iTakecare pour ${productName}:`, monthlyPrice);
-      } else {
-        if (product.variant_id) {
-          const { data: variantData } = await supabaseAdmin
-            .from('product_variant_prices')
-            .select('monthly_price')
-            .eq('id', product.variant_id)
-            .single();
-          
-          monthlyPrice = variantData?.monthly_price || 0;
-        }
-        
-        if (monthlyPrice === 0) {
-          const { data: productPrices } = await supabaseAdmin
-            .from('products')
-            .select('monthly_price')
-            .eq('id', product.product_id)
-            .single();
-          
-          monthlyPrice = productPrices?.monthly_price || 0;
-        }
-        
-        console.log(`✅ Prix mensuel récupéré de DB pour ${productName}:`, monthlyPrice);
-      }
+    for (let i = 0; i < equipmentCalculations.length; i++) {
+      const calc = equipmentCalculations[i];
+      const product = data.products[i];
       
-      console.log(`✅ Création équipement ${productName}:`, {
-        prix_achat: purchasePrice,
-        source_achat: 'DB Leazr',
-        prix_mensuel: monthlyPrice,
-        source_mensuel: product.unit_price !== undefined ? 'iTakecare' : 'DB Leazr',
-        quantity: product.quantity
+      // Recalculer le prix de vente et la marge avec le coefficient final
+      const finalSellingPrice = (calc.monthlyPrice * 100) / coefficient;
+      const finalMargin = calc.purchasePrice > 0 ? ((finalSellingPrice - calc.purchasePrice) / calc.purchasePrice) * 100 : 0;
+      
+      console.log(`✅ Création équipement ${calc.productName}:`, {
+        prix_achat: calc.purchasePrice.toFixed(2),
+        prix_vente: finalSellingPrice.toFixed(2),
+        mensualite_unitaire: calc.monthlyPrice.toFixed(2),
+        marge: finalMargin.toFixed(2) + '%',
+        quantity: calc.quantity
       });
 
-      // ✅ NOUVEAU : Calculer le prix original si le produit fait partie d'un pack
-      const originalUnitPrice = product.pack_discount_percentage 
-        ? monthlyPrice / (1 - product.pack_discount_percentage / 100)
-        : monthlyPrice;
-      
-      // ✅ NOUVEAU : Récupérer l'ID du pack personnalisé si applicable
+      // Récupérer l'ID du pack personnalisé si applicable
       let customPackDbId = null;
-      if (product.pack_id) {
+      if (calc.packId) {
         const { data: packData } = await supabaseAdmin
           .from('offer_custom_packs')
           .select('id')
           .eq('offer_id', requestId)
-          .eq('custom_pack_id', product.pack_id)
+          .eq('custom_pack_id', calc.packId)
           .single();
         
         customPackDbId = packData?.id || null;
       }
+      
+      // Calculer le prix original si le produit fait partie d'un pack
+      const originalUnitPrice = calc.packDiscountPercentage 
+        ? calc.monthlyPrice / (1 - calc.packDiscountPercentage / 100)
+        : null;
 
       const equipmentData = {
         offer_id: requestId,
-        title: product.product_name || productName,
-        purchase_price: purchasePrice,
-        quantity: product.quantity,
-        monthly_payment: monthlyPrice * product.quantity,
-        margin: 0,
+        title: product.product_name || calc.productName,
+        purchase_price: calc.purchasePrice,
+        quantity: calc.quantity,
+        monthly_payment: calc.monthlyPrice,
+        selling_price: finalSellingPrice,
+        margin: finalMargin,
+        coefficient: coefficient,
         duration: product.duration || 36,
+        product_id: calc.productId || null,
+        variant_id: calc.variantId || null,
         
-        // ✅ NOUVEAUX CHAMPS POUR LES PACKS
+        // Champs pour les packs
         custom_pack_id: customPackDbId,
-        pack_discount_percentage: product.pack_discount_percentage || 0,
+        pack_discount_percentage: calc.packDiscountPercentage || null,
         original_unit_price: originalUnitPrice,
-        is_part_of_custom_pack: !!product.pack_id
+        is_part_of_custom_pack: !!calc.packId
       };
 
       console.log("Création de l'équipement:", equipmentData);
@@ -577,23 +524,23 @@ serve(async (req) => {
         .single();
 
       if (equipmentError) {
-        console.error("Erreur lors de la création de l'équipement :", equipmentError);
+        console.error("Erreur lors de la création de l'équipement:", equipmentError);
         continue;
       }
 
-      console.log("Équipement créé avec succès:", product.product_name || productName);
+      console.log("Équipement créé avec succès:", calc.productName);
 
       // Stockage des attributs
-      if (equipment && attributes && Object.keys(attributes).length > 0) {
+      if (equipment && calc.attributes && Object.keys(calc.attributes).length > 0) {
         console.log("Stockage des attributs pour l'équipement ID:", equipment.id);
         
-        for (const [key, value] of Object.entries(attributes)) {
+        for (const [key, value] of Object.entries(calc.attributes)) {
           const { error: attrError } = await supabaseAdmin
             .from('offer_equipment_attributes')
             .insert({
               equipment_id: equipment.id,
               key: key,
-              value: value
+              value: String(value)
             });
 
           if (attrError) {
