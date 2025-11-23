@@ -1,6 +1,6 @@
 # iTakecare - Documentation API Complète
 
-**Version :** 2025.5  
+**Version :** 2025.6  
 **Dernière mise à jour :** 23 novembre 2025  
 **Base URL :** `https://cifbetjefyfocafanlhv.supabase.co/functions/v1`
 
@@ -735,11 +735,13 @@ Ce champ contient la **mensualité totale** pour le produit (pas unitaire). iTak
    - Exemple : Magic Mouse × 3 avec -5% = `3.95 × 3 × 0.95 = 11.25€`
 
 3. **Mensualité unitaire** :
+
    ```
    monthly_payment = unit_price / quantity
    ```
 
 4. **Prix de vente unitaire** :
+
    ```
    selling_price = (monthly_payment × 100) / coefficient
    ```
@@ -757,6 +759,7 @@ Ce champ contient la **mensualité totale** pour le produit (pas unitaire). iTak
 - **Marge globale** (`margin`) : `((financed_amount - amount) / amount) × 100`
 
 **Exemple de calcul** :
+
 ```javascript
 // Données reçues (Magic Mouse × 3 avec -5% pack)
 const product = {
@@ -778,9 +781,11 @@ const totalPurchasePrice = 123 * 3 = 369.00;
 const totalSellingPrice = 106.23 * 3 = 318.69;
 const totalMonthly = 11.25;  // Déjà le total
 ```
-  ]
+
+]
 }
-```
+
+````
 
 **Traitement par l'API :**
 
@@ -822,7 +827,7 @@ const totalMonthly = 11.25;  // Déjà le total
     }
   ]
 }
-```
+````
 
 ### Fonctionnalités Automatiques
 
