@@ -173,27 +173,82 @@ export const duplicateProduct = async (
       imageData = copiedImages;
     }
     
-    // 4. Create new product data
+    // 4. Create new product data with explicit field mapping
     const newProductData = {
-      ...originalProduct,
+      // Identifiers
       id: newId,
+      company_id: originalProduct.company_id,
+      
+      // Basic information
       name: `${originalProduct.name} (${nameSuffix})`,
       slug: newSlug,
       sku: newSku,
-      ...imageData,
+      
+      // Relations
+      brand_id: originalProduct.brand_id,
+      brand_name: originalProduct.brand_name,
+      category_id: originalProduct.category_id,
+      category_name: originalProduct.category_name,
+      
+      // Prices and stock
+      price: originalProduct.price ?? 0,
+      monthly_price: originalProduct.monthly_price,
+      purchase_price: originalProduct.purchase_price,
+      stock: originalProduct.stock,
+      
+      // Descriptions
+      description: originalProduct.description,
+      short_description: originalProduct.short_description,
+      
+      // Images (copied or referenced)
+      image_url: imageData.image_url || originalProduct.image_url,
+      image_urls: imageData.image_urls || originalProduct.image_urls,
+      image_alt: originalProduct.image_alt,
+      image_alts: originalProduct.image_alts,
+      
+      // Specifications and attributes (JSON)
+      specifications: originalProduct.specifications,
+      attributes: originalProduct.attributes,
+      variation_attributes: originalProduct.variation_attributes,
+      default_variant_attributes: originalProduct.default_variant_attributes,
+      
+      // Boolean flags
+      active: originalProduct.active ?? true,
+      admin_only: originalProduct.admin_only ?? false,
+      is_refurbished: originalProduct.is_refurbished ?? false,
+      is_parent: originalProduct.is_parent ?? false,
+      has_variants: originalProduct.has_variants ?? false,
+      
+      // Other business fields
+      model: originalProduct.model,
+      condition: originalProduct.condition,
+      location: originalProduct.location,
+      type: originalProduct.type,
+      
       // Reset fields
-      parent_id: null,
       is_variation: false,
-      variants_ids: [],
-      serial_number: null,
+      parent_id: null,
+      variants_ids: null,
       assigned_to: null,
+      serial_number: null,
       status: 'available',
       woocommerce_id: null,
       warranty_expiration_date: null,
       maintenance_date: null,
+      
+      // Timestamps
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+    
+    // Validation before insertion
+    if (!newProductData.name || !newProductData.company_id) {
+      return {
+        success: false,
+        error: 'Données manquantes : name ou company_id requis',
+        product: {} as Product
+      };
+    }
     
     // 5. Insert new product
     const { data: insertedProduct, error: insertError } = await supabase
@@ -206,7 +261,7 @@ export const duplicateProduct = async (
       console.error('Product insert error:', insertError);
       return {
         success: false,
-        error: 'Erreur lors de la création du produit dupliqué',
+        error: insertError?.message || 'Erreur lors de la création du produit dupliqué',
         product: {} as Product
       };
     }
