@@ -689,32 +689,45 @@ Content-Type: application/json
 
 > **⚠️ Important** : Si `unit_price` et `total_price` sont fournis par iTakecare, ils seront utilisés en priorité pour **tous les calculs** (marges, financement, équipements, commission). Si absents, l'API récupérera les prix depuis la base de données Leazr.
 
+> **📊 Note sur le coefficient** : Le coefficient de financement utilisé par défaut est **3.53** (Grenke Lease). Ce coefficient peut varier selon le montant financé grâce aux tranches définies dans la configuration du leaser.
+
 **Champs Optionnels :**
 - `create_client_account` : Créer un compte utilisateur (défaut: false)
 - `notes` : Remarques additionnelles
 - `delivery_info` : Adresse de livraison différente
 
-### Calculs Financiers Automatiques
+### Calculs Financiers - Priorités et Comportement
 
-L'API effectue automatiquement les calculs suivants :
+L'API utilise les prix selon cet ordre de priorité :
 
+**PRIORITÉ 1 : Prix iTakecare (recommandé)**
+- Si `unit_price` et `total_price` sont fournis dans le payload, ils sont utilisés tels quels
+- iTakecare calcule les prix avec le coefficient et les envoie pré-calculés
+- ✅ Garantit la cohérence entre iTakecare et Leazr
+
+**PRIORITÉ 2 : Fallback sur base de données Leazr**
+- Si les prix iTakecare sont absents ou = 0, l'API cherche le produit dans la DB Leazr
+- Utilise alors `purchase_price` et `monthly_price` de la table `products`
+
+**Calculs effectués par l'API** :
 ```
-Montant Total (amount) = Somme des total_price
-Paiement Mensuel (monthly_payment) = Somme des unit_price
-Montant Financé (financed_amount) = amount × coefficient (3.55)
+Montant Total (amount) = Somme des total_price (ou purchase_price × quantity)
+Paiement Mensuel (monthly_payment) = Somme des unit_price (ou monthly_price × quantity)
+Montant Financé (financed_amount) = (monthly_payment × 100) / coefficient
+Coefficient = Déterminé selon tranches Grenke (fallback: 3.53)
 Marge (margin) = ((financed_amount - amount) / amount) × 100
 ```
 
-**Exemple :**
+**Exemple (avec prix iTakecare) :**
 ```
-Produit 1: unit_price: 45.50€, total_price: 1800€
-Produit 2: unit_price: 25.00€, total_price: 900€
+Produit 1: unit_price: 45.50€, total_price: 1800€ ← Envoyé par iTakecare
+Produit 2: unit_price: 25.00€, total_price: 900€  ← Envoyé par iTakecare
 
-Résultats calculés automatiquement:
+Résultats :
 - amount: 2700€
 - monthly_payment: 70.50€
-- financed_amount: 9585€
-- margin: 255.00%
+- financed_amount: (70.50 × 100) / 3.53 = 1997.17€
+- margin: ((1997.17 - 2700) / 2700) × 100 = -26.03%
 ```
 
 ### Réponse de l'API
@@ -729,9 +742,9 @@ Résultats calculés automatiquement:
   "equipment_description": "MacBook Pro 14\" - M3 Pro - 512GB (x2)",
   "amount": 2700.00,
   "monthly_payment": 70.50,
-  "financed_amount": 9585.00,
-  "coefficient": 3.55,
-  "margin": 255.00,
+  "financed_amount": 1997.17,
+  "coefficient": 3.53,
+  "margin": -26.03,
   "type": "client_request",
   "workflow_status": "requested",
   "status": "pending",
