@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -8,11 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Package, Leaf } from "lucide-react";
+import { Edit, Trash2, Package, Leaf, Copy } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Product } from "@/types/catalog";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useBulkCO2Calculator } from "@/hooks/environmental/useBulkCO2Calculator";
+import { useDuplicateProduct } from "@/hooks/products/useDuplicateProduct";
+import ProductDuplicationDialog from "./ProductDuplicationDialog";
 
 interface AccordionProductListProps {
   products: Product[];
@@ -26,6 +28,10 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
   readOnly = false,
 }) => {
   const { navigateToAdmin } = useRoleNavigation();
+  const [productToDuplicate, setProductToDuplicate] = useState<Product | null>(null);
+  const [duplicationDialogOpen, setDuplicationDialogOpen] = useState(false);
+  
+  const { mutate: duplicateProduct, isPending: isDuplicating } = useDuplicateProduct();
   
   // Calculate CO2 data for all products at once
   const { products: co2Results, isLoading: co2Loading } = useBulkCO2Calculator({
@@ -51,10 +57,43 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
       onProductDeleted(productId);
     }
   };
+  
+  const handleDuplicateClick = (product: Product) => {
+    setProductToDuplicate(product);
+    setDuplicationDialogOpen(true);
+  };
+  
+  const handleDuplicateConfirm = (options: {
+    copyImages: boolean;
+    copyUpsells: boolean;
+    copyVariantPrices: boolean;
+    nameSuffix: string;
+  }) => {
+    if (!productToDuplicate) return;
+    
+    duplicateProduct({
+      productId: productToDuplicate.id,
+      ...options
+    }, {
+      onSuccess: () => {
+        setDuplicationDialogOpen(false);
+        setProductToDuplicate(null);
+      }
+    });
+  };
 
   return (
-    <div className="space-y-4">
-      <Accordion type="multiple" className="w-full space-y-2">
+    <>
+      <ProductDuplicationDialog
+        product={productToDuplicate}
+        open={duplicationDialogOpen}
+        onOpenChange={setDuplicationDialogOpen}
+        onConfirm={handleDuplicateConfirm}
+        isLoading={isDuplicating}
+      />
+      
+      <div className="space-y-4">
+        <Accordion type="multiple" className="w-full space-y-2">
         {products.map((product) => {
           const hasVariants = product.has_variants || (product.variants && product.variants.length > 0) || (product.variant_combination_prices && product.variant_combination_prices.length > 0);
           const existingVariantsCount = (product.variants ? product.variants.length : 0) + (product.variant_combination_prices ? product.variant_combination_prices.length : 0);
@@ -156,6 +195,16 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
                       <Button
                         variant="outline"
                         size="sm"
+                        className="flex items-center gap-2"
+                        onClick={() => handleDuplicateClick(product)}
+                        disabled={isDuplicating}
+                      >
+                        <Copy className="h-4 w-4" />
+                        Dupliquer
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex items-center gap-2 text-destructive hover:text-destructive"
                         onClick={() => {
                           handleDeleteProduct(product.id, product.name);
@@ -171,8 +220,9 @@ const AccordionProductList: React.FC<AccordionProductListProps> = ({
             </AccordionItem>
           );
         })}
-      </Accordion>
-    </div>
+        </Accordion>
+      </div>
+    </>
   );
 };
 
