@@ -1,7 +1,7 @@
 # iTakecare - Documentation API Complète
 
-**Version :** 2024.3  
-**Dernière mise à jour :** 21 novembre 2025  
+**Version :** 2024.4  
+**Dernière mise à jour :** 23 novembre 2025  
 **Base URL :** `https://cifbetjefyfocafanlhv.supabase.co/functions/v1`
 
 ---
@@ -12,6 +12,7 @@
 2. [Configuration et Authentification](#configuration-et-authentification)
 3. [API Catalogue](#api-catalogue)
 4. [API Product Request](#api-product-request)
+   - [Packs Personnalisés](#packs-personnalisés)
 5. [API Environmental](#api-environmental)
 6. [Structures de Données](#structures-de-données)
 7. [Gestion des Erreurs](#gestion-des-erreurs)
@@ -699,7 +700,16 @@ Résultats calculés automatiquement:
   "type": "client_request",
   "workflow_status": "requested",
   "status": "pending",
-  "created_at": "2024-01-15T10:30:00Z"
+  "created_at": "2024-01-15T10:30:00Z",
+  "packs_summary": [
+    {
+      "pack_name": "Pack Personnalisé - 1",
+      "discount_percentage": 5,
+      "monthly_savings": 10.20,
+      "original_monthly_total": 203.92,
+      "discounted_monthly_total": 193.72
+    }
+  ]
 }
 ```
 
@@ -732,6 +742,272 @@ L'API supporte la séparation des adresses :
 - **Livraison** : Extraite de `delivery_info`
 
 Si `delivery_info` est absent ou identique à `company_info`, le système définit automatiquement `delivery_same_as_billing: true`.
+
+---
+
+### Packs Personnalisés
+
+⭐ **Nouveauté v2024.4** - Support complet des packs personnalisés avec réductions progressives.
+
+#### Vue d'ensemble
+
+Le configurateur de packs permet aux clients de :
+- ✅ Sélectionner plusieurs produits de catégories différentes
+- ✅ Bénéficier automatiquement d'une réduction progressive (2% à 5%)
+- ✅ Sauvegarder et partager leur configuration
+- ✅ Commander le pack avec la réduction appliquée
+
+#### Système de Réductions par Paliers
+
+| Prix mensuel total | Réduction appliquée |
+|-------------------|---------------------|
+| 100,00€ - 110,00€ | -2% |
+| 110,01€ - 125,00€ | -3% |
+| 125,01€ - 150,00€ | -4% |
+| > 150,00€ | -5% |
+
+**Conditions** : Minimum 2 produits de 2 catégories différentes.
+
+#### Structure de la Requête - Packs
+
+##### Nouveau champ `packs[]`
+
+```typescript
+interface CustomPack {
+  custom_pack_id: string;              // UUID du pack (généré frontend)
+  pack_name: string;                   // Nom du pack (ex: "Pack Personnalisé - 1")
+  discount_percentage: number;         // % de réduction (2, 3, 4, ou 5)
+  items: PackItem[];                   // Liste des produits dans le pack
+}
+
+interface PackItem {
+  product_id: string;                  // UUID du produit
+  quantity: number;                    // Quantité commandée
+  variant_id?: string;                 // UUID de la variante (si applicable)
+}
+```
+
+**Exemple JSON :**
+```json
+{
+  "packs": [
+    {
+      "custom_pack_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "pack_name": "Pack Personnalisé - 1",
+      "discount_percentage": 4,
+      "items": [
+        {
+          "product_id": "550e8400-e29b-41d4-a716-446655440000",
+          "quantity": 2,
+          "variant_id": "660e8400-e29b-41d4-a716-446655440111"
+        },
+        {
+          "product_id": "770e8400-e29b-41d4-a716-446655440222",
+          "quantity": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### Extension du champ `products[]`
+
+Les produits faisant partie d'un pack incluent deux nouveaux champs optionnels :
+
+```typescript
+interface Product {
+  // Champs existants...
+  product_id: string;
+  quantity: number;
+  unit_price: number;                  // ⚠️ Prix AVEC réduction appliquée
+  total_price: number;
+  
+  // ✅ NOUVEAUX CHAMPS
+  pack_id?: string;                    // UUID du pack (si fait partie d'un pack)
+  pack_discount_percentage?: number;   // % de réduction du pack (2-5)
+}
+```
+
+##### ⚠️ Point Important : Prix déjà réduit
+
+Le champ `unit_price` inclut **DÉJÀ** la réduction du pack.
+
+**Exemple :**
+```
+Prix catalogue : 50,00€/mois
+Réduction pack : -4%
+unit_price envoyé : 48,00€/mois  ← Réduction déjà appliquée
+```
+
+#### Exemple Complet avec Pack
+
+##### Scénario
+
+Un client commande un pack personnalisé contenant :
+- **2× MacBook Pro 14"** (99,96€/mois × 2 = 199,92€/mois)
+- **1× Magic Mouse 2** (4,00€/mois)
+
+**Calculs :**
+- Total mensuel avant réduction : **203,92€/mois**
+- Réduction applicable : **-5%** (car > 150€)
+- Total mensuel après réduction : **193,72€/mois**
+- **Économie : 10,20€/mois**
+
+##### Requête JSON
+
+```json
+{
+  "contact_info": {
+    "first_name": "Marie",
+    "last_name": "Dubois",
+    "email": "marie.dubois@example.com",
+    "phone": "+32 471 12 34 56"
+  },
+  "company_info": {
+    "company_name": "Tech Solutions SPRL",
+    "vat_number": "BE0987654321",
+    "address": "Avenue Louise 123",
+    "postal_code": "1050",
+    "city": "Bruxelles",
+    "country": "BE"
+  },
+  "delivery_info": {
+    "address": "Avenue Louise 123",
+    "postal_code": "1050",
+    "city": "Bruxelles",
+    "country": "BE"
+  },
+  "products": [
+    {
+      "product_id": "550e8400-e29b-41d4-a716-446655440000",
+      "quantity": 2,
+      "variant_id": "660e8400-e29b-41d4-a716-446655440111",
+      "product_name": "MacBook Pro 14\"",
+      "variant_name": "M3 Pro - 512GB - 18GB RAM",
+      "unit_price": 94.96,
+      "total_price": 2399.00,
+      "duration": 36,
+      "pack_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "pack_discount_percentage": 5
+    },
+    {
+      "product_id": "770e8400-e29b-41d4-a716-446655440222",
+      "quantity": 1,
+      "product_name": "Magic Mouse 2",
+      "unit_price": 3.80,
+      "total_price": 99.00,
+      "duration": 36,
+      "pack_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "pack_discount_percentage": 5
+    }
+  ],
+  "packs": [
+    {
+      "custom_pack_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "pack_name": "Pack Personnalisé - 1",
+      "discount_percentage": 5,
+      "items": [
+        {
+          "product_id": "550e8400-e29b-41d4-a716-446655440000",
+          "quantity": 2,
+          "variant_id": "660e8400-e29b-41d4-a716-446655440111"
+        },
+        {
+          "product_id": "770e8400-e29b-41d4-a716-446655440222",
+          "quantity": 1
+        }
+      ]
+    }
+  ],
+  "subtotal": 203.92,
+  "total": 193.72,
+  "create_client_account": false,
+  "notes": "",
+  "request_type": "quote"
+}
+```
+
+##### Réponse avec Pack
+
+```json
+{
+  "id": "a7b8c9d0-e1f2-3456-7890-abcdef123456",
+  "client_id": "c1d2e3f4-a5b6-7890-cdef-123456789abc",
+  "client_name": "Marie Dubois",
+  "client_email": "marie.dubois@example.com",
+  "client_company": "Tech Solutions SPRL",
+  "equipment_description": "MacBook Pro 14\" (x2), Magic Mouse 2 (x1)",
+  "amount": 4897.00,
+  "monthly_payment": 193.72,
+  "coefficient": 3.53,
+  "financed_amount": 5487.26,
+  "margin": 590.26,
+  "packs_summary": [
+    {
+      "pack_name": "Pack Personnalisé - 1",
+      "discount_percentage": 5,
+      "monthly_savings": 10.20,
+      "original_monthly_total": 203.92,
+      "discounted_monthly_total": 193.72
+    }
+  ],
+  "created_at": "2025-11-23T15:30:00.000Z"
+}
+```
+
+#### Points Clés
+
+1. **Le `unit_price` inclut DÉJÀ la réduction** - Ne pas recalculer la réduction côté Leazr
+2. **Tous les produits sont dans `products[]`** - Même ceux faisant partie de packs
+3. **Le lien produit ↔ pack se fait via `pack_id`** - Permet de regrouper les produits d'un même pack
+4. **Les métadonnées du pack sont dans `packs[]`** - Nom, réduction, liste des items
+5. **Un panier peut contenir plusieurs packs** - Et également des produits individuels
+
+#### Rétrocompatibilité
+
+Les champs liés aux packs sont **optionnels**. Une commande sans pack fonctionnera exactement comme avant :
+
+```json
+{
+  "products": [
+    {
+      "product_id": "550e8400-...",
+      "quantity": 1,
+      "unit_price": 99.96,
+      "total_price": 2499.00
+      // Pas de pack_id ni pack_discount_percentage
+    }
+  ],
+  "packs": []  // Tableau vide ou absent
+}
+```
+
+#### Stockage en Base de Données
+
+##### Table `offer_custom_packs`
+
+Stocke les métadonnées des packs personnalisés.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | UUID | Identifiant unique du pack |
+| `offer_id` | UUID | Référence à l'offre |
+| `custom_pack_id` | UUID | UUID généré par le frontend |
+| `pack_name` | TEXT | Nom du pack |
+| `discount_percentage` | INTEGER | % de réduction (0-100) |
+| `original_monthly_total` | NUMERIC | Total mensuel avant réduction |
+| `discounted_monthly_total` | NUMERIC | Total mensuel après réduction |
+| `monthly_savings` | NUMERIC | Économie mensuelle |
+
+##### Extensions de `offer_equipment`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `custom_pack_id` | UUID | Référence au pack personnalisé |
+| `pack_discount_percentage` | INTEGER | % de réduction du pack |
+| `original_unit_price` | NUMERIC | Prix unitaire avant réduction |
+| `is_part_of_custom_pack` | BOOLEAN | Indicateur d'appartenance à un pack |
 
 ---
 
@@ -960,6 +1236,47 @@ interface EnvironmentalData {
   waste_reduction_kg?: number;
   source_url?: string;
   last_updated?: string;
+}
+```
+
+### Custom Pack Objects (v2024.4)
+
+```typescript
+interface CustomPackRequest {
+  custom_pack_id: string;              // UUID du pack (généré frontend)
+  pack_name: string;                   // Nom du pack
+  discount_percentage: number;         // % de réduction (2-5)
+  items: CustomPackItem[];             // Liste des produits
+}
+
+interface CustomPackItem {
+  product_id: string;                  // UUID du produit
+  quantity: number;                    // Quantité commandée
+  variant_id?: string;                 // UUID de la variante (optionnel)
+}
+
+interface ProductRequest {
+  // Champs existants
+  product_id: string;
+  product_name: string;
+  variant_name?: string;
+  variant_id?: string;
+  quantity: number;
+  duration: number;
+  unit_price: number;                  // ⚠️ Prix AVEC réduction si pack
+  total_price: number;
+  
+  // ✅ NOUVEAUX CHAMPS POUR PACKS
+  pack_id?: string;                    // UUID du pack (si fait partie d'un pack)
+  pack_discount_percentage?: number;   // % de réduction du pack (2-5)
+}
+
+interface PacksSummary {
+  pack_name: string;
+  discount_percentage: number;
+  monthly_savings: number;
+  original_monthly_total: number;
+  discounted_monthly_total: number;
 }
 ```
 
@@ -1376,6 +1693,43 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3) {
 ---
 
 ## Changelog
+
+### Version 2024.4 - Packs Personnalisés iTakecare - 23 novembre 2025
+
+#### 🎁 Nouveautés Majeures
+
+- **Support complet des packs personnalisés** avec réductions progressives (2%-5%)
+- **Nouveau champ `packs[]`** dans create-product-request pour les métadonnées des packs
+- **Extension de `products[]`** avec `pack_id` et `pack_discount_percentage`
+- **Calcul automatique des économies** réalisées par pack
+- **Réponse enrichie avec `packs_summary`** contenant les détails de chaque pack
+- **Rétrocompatibilité totale** : les champs packs sont optionnels
+
+#### 🗄️ Base de Données
+
+- **Nouvelle table `offer_custom_packs`** pour stocker les métadonnées des packs
+- **Extension de `offer_equipment`** avec colonnes pack-related :
+  - `custom_pack_id` : Référence au pack personnalisé
+  - `pack_discount_percentage` : % de réduction du pack
+  - `original_unit_price` : Prix unitaire avant réduction
+  - `is_part_of_custom_pack` : Indicateur d'appartenance à un pack
+- **RLS policies** pour `offer_custom_packs`
+- **Trigger `updated_at`** sur `offer_custom_packs`
+
+#### ✅ Validation
+
+- **Schémas Zod** pour `customPackItemSchema` et `customPackSchema`
+- **Validation stricte** des pourcentages (0-100)
+- **Limites de sécurité** : 20 packs max, 100 produits max par commande
+
+#### 💡 Système de Réductions Progressives
+
+| Prix mensuel total | Réduction |
+|-------------------|-----------|
+| 100€ - 110€ | -2% |
+| 110€ - 125€ | -3% |
+| 125€ - 150€ | -4% |
+| > 150€ | -5% |
 
 ### Version 2024.3 - 21 novembre 2025
 
