@@ -765,36 +765,77 @@ serve(async (req) => {
 
     // ========= NOTIFICATION AUX ADMINISTRATEURS ==========
     try {
-      console.log("Début de l'envoi des notifications aux administrateurs...");
+      console.log("🔔 Début de l'envoi des notifications aux administrateurs...");
       
-      // Récupérer tous les administrateurs de l'entreprise
+      // Récupérer tous les administrateurs avec leurs emails directement via SQL
       const { data: adminUsers, error: adminError } = await supabaseAdmin
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('company_id', targetCompanyId)
-        .eq('role', 'admin');
+        .rpc('get_admin_emails_for_company', { p_company_id: targetCompanyId });
+      
+      console.log("✅ Nombre d'admins trouvés:", adminUsers?.length || 0);
+      console.log("✅ Détails des admins:", JSON.stringify(adminUsers));
       
       if (adminError) {
-        console.error("Erreur lors de la récupération des administrateurs:", adminError);
-      } else if (!adminUsers || adminUsers.length === 0) {
-        console.log("Aucun administrateur trouvé pour l'entreprise");
-      } else {
-        console.log(`${adminUsers.length} administrateur(s) trouvé(s)`);
+        console.error("❌ Erreur lors de la récupération des administrateurs:", adminError);
         
-        // Récupérer les emails des administrateurs depuis auth.users
-        const adminEmails = [];
-        for (const admin of adminUsers) {
-          const { data: userAuth, error: userError } = await supabaseAdmin.auth.admin.getUserById(admin.id);
-          if (!userError && userAuth?.user?.email) {
-            adminEmails.push({
-              email: userAuth.user.email,
-              name: `${admin.first_name || ''} ${admin.last_name || ''}`.trim() || 'Administrateur'
-            });
+        // Créer une notification de secours dans la base
+        await supabaseAdmin.from('admin_notifications').insert({
+          company_id: targetCompanyId,
+          offer_id: requestId,
+          type: 'new_offer',
+          title: `Nouvelle demande d'offre - ${clientName || companyName}`,
+          message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
+          metadata: {
+            client_name: clientName,
+            company_name: companyName,
+            client_email: clientEmail,
+            total_monthly: totalMonthlyPayment,
+            error: 'Failed to retrieve admin emails'
           }
-        }
+        });
+      } else if (!adminUsers || adminUsers.length === 0) {
+        console.log("⚠️ Aucun administrateur trouvé pour l'entreprise");
+        
+        // Créer une notification de secours dans la base
+        await supabaseAdmin.from('admin_notifications').insert({
+          company_id: targetCompanyId,
+          offer_id: requestId,
+          type: 'new_offer',
+          title: `Nouvelle demande d'offre - ${clientName || companyName}`,
+          message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
+          metadata: {
+            client_name: clientName,
+            company_name: companyName,
+            client_email: clientEmail,
+            total_monthly: totalMonthlyPayment,
+            error: 'No admin users found'
+          }
+        });
+      } else {
+        const adminEmails = adminUsers.map(admin => ({
+          email: admin.email,
+          name: admin.name || 'Administrateur'
+        }));
+        
+        console.log("✅ Emails récupérés:", adminEmails.map(a => a.email).join(', '));
         
         if (adminEmails.length === 0) {
-          console.log("Aucun email d'administrateur récupéré");
+          console.log("⚠️ Aucun email d'administrateur valide récupéré");
+          
+          // Créer une notification de secours dans la base
+          await supabaseAdmin.from('admin_notifications').insert({
+            company_id: targetCompanyId,
+            offer_id: requestId,
+            type: 'new_offer',
+            title: `Nouvelle demande d'offre - ${clientName || companyName}`,
+            message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
+            metadata: {
+              client_name: clientName,
+              company_name: companyName,
+              client_email: clientEmail,
+              total_monthly: totalMonthlyPayment,
+              error: 'No valid admin emails'
+            }
+          });
         } else {
           console.log(`Envoi de notifications à ${adminEmails.length} administrateur(s)`);
           
@@ -807,6 +848,8 @@ serve(async (req) => {
             .single();
           
           const resendApiKey = globalResendKey || smtpSettings?.resend_api_key;
+          
+          console.log("✅ Clé Resend configurée:", !!resendApiKey);
           
           if (resendApiKey) {
             const resend = new Resend(resendApiKey);
@@ -915,12 +958,46 @@ serve(async (req) => {
               }
 
               if (adminEmailResult.error) {
-                console.error('Erreur lors de l\'envoi groupé aux admins:', adminEmailResult.error);
+                console.error('❌ Erreur lors de l\'envoi groupé aux admins:', adminEmailResult.error);
+                
+                // Créer une notification de secours dans la base
+                await supabaseAdmin.from('admin_notifications').insert({
+                  company_id: targetCompanyId,
+                  offer_id: requestId,
+                  type: 'new_offer',
+                  title: `Nouvelle demande d'offre - ${clientName || companyName}`,
+                  message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
+                  metadata: {
+                    client_name: clientName,
+                    company_name: companyName,
+                    client_email: clientEmail,
+                    total_monthly: totalMonthlyPayment,
+                    error: 'Email sending failed',
+                    error_details: adminEmailResult.error
+                  }
+                });
               } else {
-                console.log(`Email admin groupé envoyé avec succès à: ${recipients.join(', ')}`);
+                console.log(`✅ Email admin groupé envoyé avec succès à: ${recipients.join(', ')}`);
               }
             } catch (adminEmailError) {
-              console.error('Exception lors de l\'envoi groupé aux admins:', adminEmailError);
+              console.error('❌ Exception lors de l\'envoi groupé aux admins:', adminEmailError);
+              
+              // Créer une notification de secours dans la base
+              await supabaseAdmin.from('admin_notifications').insert({
+                company_id: targetCompanyId,
+                offer_id: requestId,
+                type: 'new_offer',
+                title: `Nouvelle demande d'offre - ${clientName || companyName}`,
+                message: `Une nouvelle demande d'offre a été reçue de ${clientEmail}. Montant: ${totalMonthlyPayment.toFixed(2)}€/mois`,
+                metadata: {
+                  client_name: clientName,
+                  company_name: companyName,
+                  client_email: clientEmail,
+                  total_monthly: totalMonthlyPayment,
+                  error: 'Email exception',
+                  error_details: String(adminEmailError)
+                }
+              });
             }
           }
         }
