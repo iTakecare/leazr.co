@@ -251,7 +251,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Type */}
                   <TableCell className="w-[100px] text-[11px] py-2 hidden xl:table-cell">
-                    <OfferTypeTag type={offer.type} size="sm" />
+                    <OfferTypeTag type={offer.type} source={offer.source} size="sm" />
                   </TableCell>
                   
                   {/* Équipement */}
@@ -276,7 +276,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                   {/* Source */}
                   <TableCell className="text-[11px] py-2 hidden xl:table-cell">
-                    {offer.source || '-'}
+                    {offer.source ? (
+                      <OfferTypeTag type="" source={offer.source} size="sm" />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   
                   {/* Bailleur */}

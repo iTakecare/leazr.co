@@ -21,6 +21,22 @@ export const translateOfferType = (type: string | undefined | null): string => {
 };
 
 /**
+ * Traduit les sources d'offres en libellés français
+ */
+export const translateOfferSource = (source: string | undefined | null): string => {
+  if (!source) return "Non défini";
+  
+  switch (source.toLowerCase()) {
+    case 'custom_pack':
+      return "Pack personnalisé";
+    case 'web_catalog':
+      return "Catalogue web";
+    default:
+      return source;
+  }
+};
+
+/**
  * Vérifie si le type d'offre a une commission
  * Les offres internes et web n'ont pas de commission
  */

@@ -34,6 +34,7 @@ const AmbassadorOffersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('active');
   const [activeType, setActiveType] = useState('all');
+  const [activeSource, setActiveSource] = useState('all');
   const [error, setError] = useState(null);
   
   // Définir les ensembles de statuts
@@ -109,6 +110,16 @@ const AmbassadorOffersPage = () => {
       );
     }
     
+    // Filtre par type d'offre
+    if (activeType !== "all") {
+      filtered = filtered.filter(offer => offer.type === activeType);
+    }
+    
+    // Filtre par source
+    if (activeSource !== "all") {
+      filtered = filtered.filter(offer => offer.source === activeSource);
+    }
+    
     // Filtre par statut
     if (activeTab === 'active') {
       const activeStatuses = [...DRAFT, ...IN_PROGRESS];
@@ -124,7 +135,7 @@ const AmbassadorOffersPage = () => {
     }
     
     setFilteredOffers(filtered);
-  }, [searchTerm, activeTab, activeType, offers]);
+  }, [searchTerm, activeTab, activeType, activeSource, offers]);
   
   // Gestion de la suppression d'une offre
   const handleDeleteOffer = async (id) => {
@@ -263,6 +274,8 @@ const AmbassadorOffersPage = () => {
               onTabChange={setActiveTab}
               activeType={activeType}
               onTypeChange={setActiveType}
+              activeSource={activeSource}
+              onSourceChange={setActiveSource}
               hideTypeFilter={isBrokerUser()}
             />
             

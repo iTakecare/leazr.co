@@ -6,6 +6,7 @@ export const useOfferFilters = (offers: Offer[]) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("in_progress");
   const [activeType, setActiveType] = useState("all");
+  const [activeSource, setActiveSource] = useState("all");
   const [filteredOffers, setFilteredOffers] = useState<Offer[]>([]);
   
   useEffect(() => {
@@ -17,7 +18,8 @@ export const useOfferFilters = (offers: Offer[]) => {
     console.log(`Filtering ${offers.length} offers with criteria:`, {
       searchTerm,
       activeTab,
-      activeType
+      activeType,
+      activeSource
     });
     
     // Définir les statuts acceptés et refusés
@@ -48,6 +50,12 @@ export const useOfferFilters = (offers: Offer[]) => {
       result = result.filter(offer => offer.type === activeType);
     }
     
+    // Filtre par source (custom_pack, web_catalog)
+    if (activeSource !== "all") {
+      console.log(`Filtering by offer source: ${activeSource}`);
+      result = result.filter(offer => offer.source === activeSource);
+    }
+    
     // Filtre par terme de recherche
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
@@ -62,7 +70,7 @@ export const useOfferFilters = (offers: Offer[]) => {
     
     console.log(`Filtering complete: ${result.length} offers remain`);
     setFilteredOffers(result);
-  }, [offers, searchTerm, activeTab, activeType]);
+  }, [offers, searchTerm, activeTab, activeType, activeSource]);
   
   return {
     searchTerm,
@@ -71,6 +79,8 @@ export const useOfferFilters = (offers: Offer[]) => {
     setActiveTab,
     activeType,
     setActiveType,
+    activeSource,
+    setActiveSource,
     filteredOffers
   };
 };

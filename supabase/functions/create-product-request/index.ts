@@ -377,6 +377,12 @@ serve(async (req) => {
 
     const leaserId = leaserIdData?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
 
+    // Déterminer le type de source en fonction de la présence de packs
+    const hasCustomPacks = data.packs && data.packs.length > 0;
+    const offerSource = hasCustomPacks ? 'custom_pack' : 'web_catalog';
+    
+    console.log(`Type de source déterminé: ${offerSource} (packs: ${hasCustomPacks})`);
+
     // Création de l'offre
     const offerData = {
       id: requestId,
@@ -391,6 +397,7 @@ serve(async (req) => {
       margin: marginPercentage,
       commission: 0,
       type: 'client_request',
+      source: offerSource,
       workflow_status: 'draft',
       status: 'pending',
       remarks: 'Demande créée via API web avec Grenke (36 mois)',
