@@ -39,18 +39,18 @@ export const WorkflowTemplateForm: React.FC<WorkflowTemplateFormProps> = ({
     },
     {
       value: 'web_request',
-      label: 'Demande Web',
-      description: 'Processus pour les demandes provenant du site web'
+      label: 'Demande Web - Standard',
+      description: 'Processus pour les demandes catalogue du site web'
+    },
+    {
+      value: 'custom_pack_request',
+      label: 'Demande Web - Pack Perso',
+      description: 'Processus pour les demandes de packs personnalisés du site web'
     },
     {
       value: 'ambassador_offer',
-      label: 'Offre Ambassadeur',
+      label: 'Demande Ambassadeur',
       description: 'Workflow avec commission pour ambassadeur'
-    },
-    {
-      value: 'partner_offer',
-      label: 'Offre Partenaire',
-      description: 'Workflow pour les offres créées par des partenaires'
     }
   ];
 
