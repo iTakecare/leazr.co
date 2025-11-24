@@ -18,6 +18,11 @@ export interface Offer extends OfferData {
   margin_percentage?: number;
   internal_score?: string | null;
   leaser_score?: string | null;
+  offer_custom_packs?: Array<{
+    id: string;
+    pack_name: string;
+    discount_percentage: number;
+  }>;
 }
 
 export const useFetchOffers = () => {

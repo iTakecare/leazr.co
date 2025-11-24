@@ -7,28 +7,25 @@ import { User, Briefcase, Flag, UserCog, Phone, Building, Globe, Package } from 
 interface OfferTypeTagProps {
   type: string;
   source?: string | null;
+  hasCustomPacks?: boolean;
   size?: "sm" | "md" | "lg";
 }
 
-const OfferTypeTag = ({ type, source, size = "md" }: OfferTypeTagProps) => {
-  // Si une source est définie, afficher le badge de source
-  if (source) {
+const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: OfferTypeTagProps) => {
+  // Si source est "web_catalog" ou "site_web", afficher le badge approprié selon la présence de packs
+  if (source === "web_catalog" || source === "site_web") {
     let color = "";
     let icon = null;
-    const translatedSource = translateOfferSource(source);
+    let label = "";
 
-    switch (source.toLowerCase()) {
-      case "custom_pack":
-        color = "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-50";
-        icon = <Package className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
-        break;
-      case "web_catalog":
-        color = "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50";
-        icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
-        break;
-      default:
-        color = "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-50";
-        icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+    if (hasCustomPacks) {
+      color = "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-50";
+      icon = <Package className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      label = "Pack personnalisé";
+    } else {
+      color = "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50";
+      icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      label = "Catalogue web";
     }
 
     if (size === "sm") {
@@ -38,7 +35,7 @@ const OfferTypeTag = ({ type, source, size = "md" }: OfferTypeTagProps) => {
           className={`${color} flex items-center gap-1.5 py-1 px-2 text-xs font-medium border`}
         >
           {icon}
-          <span className="truncate">{translatedSource}</span>
+          <span className="truncate">{label}</span>
         </Badge>
       );
     }
@@ -49,7 +46,7 @@ const OfferTypeTag = ({ type, source, size = "md" }: OfferTypeTagProps) => {
         className={`${color} flex items-center gap-2 py-1 px-3 border`}
       >
         {icon}
-        {translatedSource}
+        {label}
       </Badge>
     );
   }

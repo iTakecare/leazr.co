@@ -50,10 +50,14 @@ export const useOfferFilters = (offers: Offer[]) => {
       result = result.filter(offer => offer.type === activeType);
     }
     
-    // Filtre par source (custom_pack, web_catalog)
+    // Filtre par présence de packs personnalisés
     if (activeSource !== "all") {
-      console.log(`Filtering by offer source: ${activeSource}`);
-      result = result.filter(offer => offer.source === activeSource);
+      console.log(`Filtering by pack presence: ${activeSource}`);
+      const hasCustomPacks = activeSource === "custom_pack";
+      result = result.filter(offer => {
+        const offerHasPacks = offer.offer_custom_packs && offer.offer_custom_packs.length > 0;
+        return hasCustomPacks ? offerHasPacks : !offerHasPacks;
+      });
     }
     
     // Filtre par terme de recherche
