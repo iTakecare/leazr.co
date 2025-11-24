@@ -1,7 +1,7 @@
 # iTakecare - Documentation API Complète
 
-**Version :** 2025.6  
-**Dernière mise à jour :** 23 novembre 2025  
+**Version :** 2025.7  
+**Dernière mise à jour :** 24 novembre 2025  
 **Base URL :** `https://cifbetjefyfocafanlhv.supabase.co/functions/v1`
 
 ---
@@ -12,6 +12,7 @@
 2. [Configuration et Authentification](#configuration-et-authentification)
 3. [API Catalogue](#api-catalogue)
 4. [API Product Request](#api-product-request)
+   - [Identification du Type de Demande](#identification-du-type-de-demande-via-source)
    - [Packs Personnalisés](#packs-personnalisés)
 5. [API Environmental](#api-environmental)
 6. [Structures de Données](#structures-de-données)
@@ -814,6 +815,7 @@ const totalMonthly = 11.25;  // Déjà le total
   "coefficient": 3.53,
   "margin": -26.03,
   "type": "client_request",
+  "source": "custom_pack",
   "workflow_status": "requested",
   "status": "pending",
   "created_at": "2024-01-15T10:30:00Z",
@@ -827,6 +829,162 @@ const totalMonthly = 11.25;  // Déjà le total
     }
   ]
 }
+```
+
+### Identification du Type de Demande via `source`
+
+⭐ **Nouveauté v2025.7** - Différenciation automatique entre demandes de packs personnalisés et commandes catalogue.
+
+#### Champ `source`
+
+Toutes les demandes créées via l'API incluent désormais un champ `source` qui identifie automatiquement leur origine :
+
+| Valeur           | Description                                              |
+|------------------|----------------------------------------------------------|
+| `custom_pack`    | Demande créée via le configurateur de packs personnalisés |
+| `web_catalog`    | Commande standard depuis le catalogue web iTakecare       |
+
+#### Attribution Automatique
+
+Le champ `source` est **automatiquement** rempli par l'API selon la présence du champ `packs[]` dans votre requête :
+
+```typescript
+// Logique d'attribution interne de l'API
+if (request.packs && request.packs.length > 0) {
+  source = 'custom_pack'
+} else {
+  source = 'web_catalog'
+}
+```
+
+**Règle simple :** Si votre requête contient un tableau `packs[]` avec au moins un pack, la demande sera automatiquement marquée comme `custom_pack`.
+
+#### Cas d'Usage
+
+**Côté iTakecare (Frontend) :**
+- Aucune action requise - le champ est calculé automatiquement par l'API
+- Utilisé pour afficher des badges visuels différents dans l'interface admin Leazr
+- Permet de filtrer facilement les demandes par type dans l'interface admin
+
+**Côté Intégrations Tierces :**
+
+```javascript
+// Envoi d'une commande catalogue normale
+const response = await fetch('https://cifbetjefyfocafanlhv.supabase.co/functions/v1/create-product-request', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    contact_info: {...},
+    company_info: {...},
+    products: [...]
+    // Pas de champ packs[] → source sera automatiquement "web_catalog"
+  })
+})
+
+// Envoi d'un pack personnalisé
+const response = await fetch('https://cifbetjefyfocafanlhv.supabase.co/functions/v1/create-product-request', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    contact_info: {...},
+    company_info: {...},
+    products: [...],
+    packs: [{...}]  // ← Présence de packs[] → source sera automatiquement "custom_pack"
+  })
+})
+
+// Vérifier le type de demande dans la réponse
+const offer = await response.json()
+if (offer.source === 'custom_pack') {
+  console.log('🎁 Pack personnalisé créé')
+  console.log(`Économies : ${offer.packs_summary[0]?.monthly_savings}€/mois`)
+  // Traitement spécifique pour packs
+  trackCustomPackOrder(offer)
+} else if (offer.source === 'web_catalog') {
+  console.log('📦 Commande catalogue standard')
+  // Traitement standard
+  trackStandardOrder(offer)
+}
+```
+
+#### Affichage dans l'Interface Admin Leazr
+
+Les demandes sont visuellement différenciées dans l'interface admin :
+
+- **Pack personnalisé** : Badge violet "Pack personnalisé"
+- **Catalogue web** : Badge bleu ciel "Catalogue web"
+
+Un filtre dédié permet d'afficher uniquement les demandes d'un type spécifique.
+
+#### Exemples de Réponses Complètes
+
+**Demande Catalogue Web :**
+
+```json
+{
+  "id": "abc-123-def-456",
+  "client_id": "client-uuid",
+  "client_name": "Pierre Martin",
+  "client_email": "pierre.martin@example.com",
+  "type": "client_request",
+  "source": "web_catalog",
+  "monthly_payment": 45.50,
+  "amount": 1200.00,
+  "financed_amount": 1289.23,
+  "packs_summary": [],
+  "created_at": "2025-11-24T10:00:00Z"
+}
+```
+
+**Demande Pack Personnalisé :**
+
+```json
+{
+  "id": "def-456-ghi-789",
+  "client_id": "client-uuid",
+  "client_name": "Sophie Dubois",
+  "client_email": "sophie.dubois@example.com",
+  "type": "client_request",
+  "source": "custom_pack",
+  "monthly_payment": 193.72,
+  "amount": 4897.00,
+  "financed_amount": 5487.26,
+  "packs_summary": [
+    {
+      "pack_name": "Pack Personnalisé - 1",
+      "discount_percentage": 5,
+      "monthly_savings": 10.20,
+      "original_monthly_total": 203.92,
+      "discounted_monthly_total": 193.72
+    }
+  ],
+  "created_at": "2025-11-24T10:30:00Z"
+}
+```
+
+#### Tableau Récapitulatif - Champs de Réponse
+
+| Champ                    | Type     | Description                                        |
+|--------------------------|----------|----------------------------------------------------|
+| `id`                     | string   | UUID de l'offre créée                              |
+| `client_id`              | string   | UUID du client créé/utilisé                        |
+| `client_name`            | string   | Nom complet du contact                             |
+| `client_email`           | string   | Email du contact                                   |
+| `type`                   | string   | Type de demande (`client_request`, `web_request`)  |
+| `source`                 | string   | **Source de la demande** (`custom_pack`, `web_catalog`) ⭐ Nouveau |
+| `amount`                 | number   | Montant total d'achat HT (€)                       |
+| `monthly_payment`        | number   | Mensualité totale (€)                              |
+| `financed_amount`        | number   | Montant total financé (€)                          |
+| `coefficient`            | number   | Coefficient de financement utilisé                 |
+| `margin`                 | number   | Marge globale (%)                                  |
+| `workflow_status`        | string   | Statut du workflow (`requested`, `draft`, etc.)    |
+| `packs_summary`          | array    | Résumé des packs inclus (vide si pas de pack)      |
+| `created_at`             | string   | Date/heure de création (ISO 8601)                  |
+
+#### Rétrocompatibilité
+
+Le champ `source` est ajouté à **toutes** les nouvelles demandes créées via l'API, y compris celles sans packs. Les intégrations existantes continueront à fonctionner sans modification - le nouveau champ est simplement présent dans les réponses.
+
 ````
 
 ### Fonctionnalités Automatiques
@@ -869,7 +1027,10 @@ Si `delivery_info` est absent ou identique à `company_info`, le système défin
 
 ### Packs Personnalisés
 
-⭐ **Nouveauté v2024.4** - Support complet des packs personnalisés avec réductions progressives.
+⭐ **Nouveauté v2024.4** - Support complet des packs personnalisés avec réductions progressives.  
+🆕 **v2025.7** - Les demandes avec packs sont maintenant automatiquement identifiées via `source: "custom_pack"`
+
+**Important :** Toute demande contenant un tableau `packs[]` sera automatiquement marquée avec `source: "custom_pack"` pour faciliter l'identification et le traitement dans l'interface admin Leazr. Voir la section [Identification du Type de Demande](#identification-du-type-de-demande-via-source) pour plus de détails.
 
 #### Vue d'ensemble
 
@@ -1827,6 +1988,36 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3) {
 ---
 
 ## Changelog
+
+### Version 2025.7 - Identification Automatique des Types de Demandes - 24 novembre 2025
+
+#### 🆕 Nouveautés
+
+- **Champ `source` automatique** dans toutes les réponses de création de demande
+  - Valeurs possibles : `custom_pack` (packs personnalisés), `web_catalog` (commandes catalogue)
+  - Attribution automatique basée sur la présence du champ `packs[]` dans la requête
+  - Aucune action requise côté frontend - calcul interne par l'API
+- **Différenciation visuelle** dans l'interface admin Leazr
+  - Badge violet pour les packs personnalisés
+  - Badge bleu ciel pour les commandes catalogue standards
+- **Nouveau filtre par source** dans la liste des demandes admin
+  - Filtrer par : Tous / Packs personnalisés / Catalogue web
+  - Améliore la gestion et le suivi des différents types de commandes
+
+#### 🔧 Améliorations
+
+- **Traçabilité renforcée** de l'origine des demandes
+- **Interface admin enrichie** avec badges visuels par type de source
+- **Meilleure segmentation** des demandes pour l'analyse et le reporting
+- **Rétrocompatible** - Appliqué automatiquement à toutes les nouvelles demandes sans modification de code requise
+
+#### 📊 Impact
+
+- Facilite l'identification rapide des demandes issues du configurateur de packs
+- Permet un traitement différencié selon le type de demande
+- Améliore le suivi des conversions par canal (packs vs catalogue)
+
+---
 
 ### Version 2024.4 - Packs Personnalisés iTakecare - 23 novembre 2025
 
