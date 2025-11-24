@@ -31,7 +31,8 @@ const SOURCE_OPTIONS = [
 
 const TYPE_OPTIONS = [
   { value: 'client_request', label: 'Demande client' },
-  { value: 'web_request', label: 'Demande web' },
+  { value: 'web_request', label: 'Dem. web - standard' },
+  { value: 'custom_pack_request', label: 'Dem. web - pack perso' },
   { value: 'ambassador_offer', label: 'Offre ambassadeur' },
   { value: 'partner_offer', label: 'Offre partenaire' }
 ];
