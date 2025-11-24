@@ -3,6 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Plus, Edit, Trash2, Copy, Settings } from 'lucide-react';
 import { useWorkflows } from '@/hooks/workflows/useWorkflows';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
@@ -17,6 +20,8 @@ const WorkflowManagement: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState('templates');
+  const [editingTemplate, setEditingTemplate] = useState<WorkflowTemplate | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const handleCreateTemplate = async (templateData: any) => {
     await createTemplate(templateData);
@@ -24,6 +29,23 @@ const WorkflowManagement: React.FC = () => {
   };
 
   const handleEditTemplate = (template: WorkflowTemplate) => {
+    setEditingTemplate(template);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateTemplate = async (templateData: any) => {
+    if (editingTemplate) {
+      await updateTemplate(editingTemplate.id, templateData);
+      setShowEditDialog(false);
+      setEditingTemplate(null);
+    }
+  };
+
+  const handleToggleActive = async (templateId: string, isActive: boolean) => {
+    await updateTemplate(templateId, { is_active: isActive });
+  };
+
+  const handleConfigureSteps = (template: WorkflowTemplate) => {
     setSelectedTemplate(template);
     setActiveTab('steps');
   };
@@ -159,15 +181,35 @@ const WorkflowManagement: React.FC = () => {
                   )}
                 </CardHeader>
 
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id={`active-${template.id}`}
+                      checked={template.is_active}
+                      onCheckedChange={(checked) => handleToggleActive(template.id, checked)}
+                    />
+                    <Label htmlFor={`active-${template.id}`} className="cursor-pointer text-sm">
+                      {template.is_active ? 'Actif' : 'Inactif'}
+                    </Label>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditTemplate(template)}
                     >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Modifier
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleConfigureSteps(template)}
+                    >
                       <Settings className="w-4 h-4 mr-1" />
-                      Configurer
+                      Étapes
                     </Button>
                     
                     <Button
@@ -221,6 +263,25 @@ const WorkflowManagement: React.FC = () => {
           </TabsContent>
         )}
       </Tabs>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier le workflow</DialogTitle>
+          </DialogHeader>
+          {editingTemplate && (
+            <WorkflowTemplateForm
+              template={editingTemplate}
+              onSubmit={handleUpdateTemplate}
+              onCancel={() => {
+                setShowEditDialog(false);
+                setEditingTemplate(null);
+              }}
+              isEditMode
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
