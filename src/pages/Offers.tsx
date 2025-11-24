@@ -36,6 +36,8 @@ const Offers = () => {
     setActiveTab,
     activeType,
     setActiveType,
+    activeSource,
+    setActiveSource,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     isUpdatingStatus,
@@ -99,6 +101,8 @@ const Offers = () => {
             onTabChange={setActiveTab}
             activeType={activeType}
             onTypeChange={setActiveType}
+            activeSource={activeSource}
+            onSourceChange={setActiveSource}
             hideTypeFilter={isBrokerUser()}
           />
           

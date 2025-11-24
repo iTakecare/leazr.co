@@ -1,15 +1,60 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { translateOfferType } from "@/utils/offerTypeTranslator";
-import { User, Briefcase, Flag, UserCog, Phone, Building, Globe } from "lucide-react";
+import { translateOfferType, translateOfferSource } from "@/utils/offerTypeTranslator";
+import { User, Briefcase, Flag, UserCog, Phone, Building, Globe, Package } from "lucide-react";
 
 interface OfferTypeTagProps {
   type: string;
+  source?: string | null;
   size?: "sm" | "md" | "lg";
 }
 
-const OfferTypeTag = ({ type, size = "md" }: OfferTypeTagProps) => {
+const OfferTypeTag = ({ type, source, size = "md" }: OfferTypeTagProps) => {
+  // Si une source est définie, afficher le badge de source
+  if (source) {
+    let color = "";
+    let icon = null;
+    const translatedSource = translateOfferSource(source);
+
+    switch (source.toLowerCase()) {
+      case "custom_pack":
+        color = "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-50";
+        icon = <Package className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+        break;
+      case "web_catalog":
+        color = "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50";
+        icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+        break;
+      default:
+        color = "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-50";
+        icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+    }
+
+    if (size === "sm") {
+      return (
+        <Badge
+          variant="outline"
+          className={`${color} flex items-center gap-1.5 py-1 px-2 text-xs font-medium border`}
+        >
+          {icon}
+          <span className="truncate">{translatedSource}</span>
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge
+        variant="outline"
+        className={`${color} flex items-center gap-2 py-1 px-3 border`}
+      >
+        {icon}
+        {translatedSource}
+      </Badge>
+    );
+  }
+
+  // Sinon, afficher le badge de type (comportement par défaut)
   let color = "";
   let icon = null;
 

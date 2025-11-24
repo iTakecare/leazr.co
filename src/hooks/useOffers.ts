@@ -23,6 +23,8 @@ export const useOffers = () => {
     setActiveTab,
     activeType,
     setActiveType,
+    activeSource,
+    setActiveSource,
     filteredOffers
   } = useOfferFilters(offers);
 
@@ -55,6 +57,8 @@ export const useOffers = () => {
     setActiveTab,
     activeType,
     setActiveType,
+    activeSource,
+    setActiveSource,
     isUpdatingStatus,
     isRequestingInfo,
     isGeneratingPdf,

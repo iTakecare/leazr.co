@@ -7,12 +7,12 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { 
-  Building, Clock, PenLine, Trash2, User, CreditCard, Check, X, ExternalLink, Users
+  Building, Clock, PenLine, Trash2, CreditCard, Check, ExternalLink, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import OfferStatusBadge from "./OfferStatusBadge";
+import OfferTypeTag from "./OfferTypeTag";
 import { generateSignatureLink } from "@/services/offerService";
 
 interface OfferCardProps {
@@ -57,39 +57,6 @@ const OfferCard: React.FC<OfferCardProps> = ({
   
   const isConverted = offer.converted_to_contract;
 
-  const getOfferTypeBadge = () => {
-    switch(offer.type) {
-      case 'ambassador_offer':
-        return (
-          <Badge variant="outline" className="bg-purple-50 text-purple-700 text-xs">
-            <Users className="h-3 w-3 mr-1" />
-            Ambassadeur
-          </Badge>
-        );
-      case 'partner_offer':
-        return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
-            <Building className="h-3 w-3 mr-1" />
-            Partenaire
-          </Badge>
-        );
-      case 'client_request':
-        return (
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 text-xs">
-            <User className="h-3 w-3 mr-1" />
-            Demande
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline" className="bg-gray-50 text-gray-700 text-xs">
-            <Building className="h-3 w-3 mr-1" />
-            Admin
-          </Badge>
-        );
-    }
-  };
-
   return (
     <Card className={cn(
       "transition-all",
@@ -114,7 +81,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
           
           <div className="ml-2">
-            {getOfferTypeBadge()}
+            <OfferTypeTag type={offer.type} source={offer.source} size="sm" />
           </div>
         </div>
         
