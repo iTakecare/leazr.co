@@ -12,7 +12,7 @@ import type { WorkflowTemplate } from '@/types/workflow';
 
 const WorkflowManagement: React.FC = () => {
   const { companyId, loading: companyLoading } = useMultiTenant();
-  const { templates, loading: templatesLoading, createTemplate, updateTemplate, deleteTemplate } = useWorkflows(companyId || undefined);
+  const { templates, loading: templatesLoading, createTemplate, updateTemplate, deleteTemplate, cloneTemplate } = useWorkflows(companyId || undefined);
   
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -31,6 +31,18 @@ const WorkflowManagement: React.FC = () => {
   const handleDeleteTemplate = async (template: WorkflowTemplate) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le workflow "${template.name}" ?`)) {
       await deleteTemplate(template.id);
+    }
+  };
+
+  const handleCloneTemplate = async (template: WorkflowTemplate) => {
+    const newName = prompt(`Dupliquer le workflow "${template.name}".\n\nNom du nouveau workflow :`, `${template.name} (copie)`);
+    
+    if (newName && newName.trim()) {
+      try {
+        await cloneTemplate(template.id, newName.trim());
+      } catch (err) {
+        // Error already handled in the hook
+      }
     }
   };
 
@@ -161,7 +173,7 @@ const WorkflowManagement: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {/* TODO: Clone template */}}
+                      onClick={() => handleCloneTemplate(template)}
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
