@@ -10,7 +10,9 @@ export const translateOfferType = (type: string | undefined | null): string => {
     case 'client_request':
       return "Dem. client";
     case 'web_request':
-      return "Dem. web";
+      return "Dem. web - standard";
+    case 'custom_pack_request':
+      return "Dem. web - pack perso";
     case 'ambassador_offer':
       return "Offre ambassadeur";
     case 'partner_offer':

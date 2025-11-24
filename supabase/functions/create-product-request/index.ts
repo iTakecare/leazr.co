@@ -377,11 +377,15 @@ serve(async (req) => {
 
     const leaserId = leaserIdData?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
 
-    // La source est toujours 'web_catalog' car toutes les demandes viennent du site iTakecare
-    // La différenciation entre packs perso et catalogue se fait via la présence de offer_custom_packs
-    const offerSource = 'web_catalog';
+    // La source est toujours 'site_web' car toutes les demandes viennent du site iTakecare
+    const offerSource = 'site_web';
     
-    console.log(`Source: ${offerSource} (toutes les demandes viennent du site web iTakecare)`);
+    // Le type est déterminé selon la présence de packs personnalisés
+    const offerType = (data.packs && data.packs.length > 0) 
+      ? 'custom_pack_request'  // Demande web avec pack personnalisé
+      : 'web_request';         // Demande web standard (catalogue)
+    
+    console.log(`Type: ${offerType}, Source: ${offerSource}`);
 
     // Création de l'offre
     const offerData = {
@@ -396,7 +400,7 @@ serve(async (req) => {
       financed_amount: totalFinancedAmount,
       margin: marginPercentage,
       commission: 0,
-      type: 'client_request',
+      type: offerType,
       source: offerSource,
       workflow_status: 'draft',
       status: 'pending',
