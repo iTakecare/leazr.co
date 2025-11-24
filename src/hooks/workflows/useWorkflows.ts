@@ -104,6 +104,28 @@ export const useWorkflows = (companyId?: string) => {
     }
   };
 
+  const cloneTemplate = async (templateId: string, newName: string) => {
+    if (!companyId) return;
+    
+    try {
+      const clonedTemplate = await workflowService.cloneWorkflowTemplate(templateId, newName);
+      setTemplates(prev => [...prev, clonedTemplate]);
+      toast({
+        title: "Succès",
+        description: `Workflow "${newName}" créé avec succès`
+      });
+      return clonedTemplate;
+    } catch (err) {
+      console.error('Error cloning template:', err);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de dupliquer le workflow"
+      });
+      throw err;
+    }
+  };
+
   return {
     templates,
     loading,
@@ -111,7 +133,8 @@ export const useWorkflows = (companyId?: string) => {
     loadTemplates,
     createTemplate,
     updateTemplate,
-    deleteTemplate
+    deleteTemplate,
+    cloneTemplate
   };
 };
 
