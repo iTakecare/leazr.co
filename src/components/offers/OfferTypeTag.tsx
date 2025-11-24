@@ -2,7 +2,12 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { translateOfferType } from "@/utils/offerTypeTranslator";
-import { User, Briefcase, Flag, UserCog, Phone, Building, Globe, Package, Users, UserCheck, Handshake, FileText } from "lucide-react";
+import { translateOfferSource, getSourceStyle } from "@/utils/offerSourceTranslator";
+import { 
+  User, Briefcase, Flag, UserCog, Phone, Building, Globe, Package, 
+  Users, UserCheck, Handshake, FileText, Search, Facebook, Linkedin, 
+  Calendar, HelpCircle 
+} from "lucide-react";
 
 interface OfferTypeTagProps {
   type: string;
@@ -12,15 +17,32 @@ interface OfferTypeTagProps {
 }
 
 const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: OfferTypeTagProps) => {
-  // Si type est vide, afficher "Site Web" (pour colonne Source)
+  // Si type est vide, afficher la SOURCE au lieu du type
   if (!type || type === "") {
+    const sourceLabel = translateOfferSource(source);
+    const sourceStyle = getSourceStyle(source);
+    
+    // Map des icônes lucide-react
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      UserCheck,
+      Search,
+      Facebook,
+      Linkedin,
+      Users,
+      Globe,
+      Calendar,
+      HelpCircle
+    };
+    
+    const IconComponent = iconMap[sourceStyle.icon] || Globe;
+    
     return (
       <Badge
         variant="outline"
-        className="bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50 flex items-center gap-1.5 py-1 px-2 text-xs font-medium border"
+        className={`${sourceStyle.color} hover:${sourceStyle.color} flex items-center gap-1.5 py-1 px-2 text-xs font-medium border`}
       >
-        <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />
-        <span className="truncate">Site Web</span>
+        <IconComponent className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />
+        <span className="truncate">{sourceLabel}</span>
       </Badge>
     );
   }
