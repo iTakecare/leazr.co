@@ -7,7 +7,6 @@ import { Combobox } from '@/components/ui/combobox';
 import { Edit3, Save, X } from 'lucide-react';
 import { translateOfferType } from '@/utils/offerTypeTranslator';
 import { useUpdateOfferMutation } from '@/hooks/offers/useOffersQuery';
-import { toast } from 'sonner';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '@/constants/businessSectors';
 
 interface OfferEditConfigurationProps {
@@ -76,14 +75,14 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
         return;
       }
 
+      console.log("📝 Saving updates:", updates);
       await updateOffer({ id: offerId, updates });
       
-      toast.success('Configuration mise à jour avec succès');
       setIsEditing(false);
       onUpdate?.();
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
-      toast.error('Erreur lors de la mise à jour');
+      console.error('❌ Save failed:', error);
+      // Toast géré par la mutation
     }
   };
 
