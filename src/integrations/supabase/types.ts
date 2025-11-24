@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          offer_id: string | null
+          read_at: string | null
+          read_by: string | null
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          offer_id?: string | null
+          read_at?: string | null
+          read_by?: string | null
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          offer_id?: string | null
+          read_at?: string | null
+          read_by?: string | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notifications_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_pending_requests: {
         Row: {
           amount: number | null
@@ -6208,6 +6268,14 @@ export type Database = {
         Returns: string
       }
       generate_offer_id: { Args: never; Returns: string }
+      get_admin_emails_for_company: {
+        Args: { p_company_id: string }
+        Returns: {
+          email: string
+          id: string
+          name: string
+        }[]
+      }
       get_all_clients_secure: {
         Args: never
         Returns: {

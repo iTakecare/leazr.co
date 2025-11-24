@@ -27,6 +27,7 @@ import {
 import CompanyLogo from "./CompanyLogo";
 import SidebarUserSection from "./SidebarUserSection";
 import SidebarMenuItem from "./SidebarMenuItem";
+import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 
 interface SidebarProps {
   className?: string;
@@ -173,12 +174,15 @@ const Sidebar = memo(({ className }: SidebarProps) => {
                 </>
               )}
             </div>
-            <button
-              onClick={toggleCollapsed}
-              className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
-            >
-              <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200 rotate-180" />
-            </button>
+            <div className="flex items-center gap-2">
+              <AdminNotificationBadge />
+              <button
+                onClick={toggleCollapsed}
+                className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+              >
+                <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200 rotate-180" />
+              </button>
+            </div>
           </div>
         )}
       </div>
