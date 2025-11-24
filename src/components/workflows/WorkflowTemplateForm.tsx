@@ -12,12 +12,14 @@ interface WorkflowTemplateFormProps {
   template?: any;
   onSubmit: (data: CreateWorkflowTemplate) => void;
   onCancel: () => void;
+  isEditMode?: boolean;
 }
 
 export const WorkflowTemplateForm: React.FC<WorkflowTemplateFormProps> = ({
   template,
   onSubmit,
-  onCancel
+  onCancel,
+  isEditMode = false
 }) => {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CreateWorkflowTemplate>({
     defaultValues: {
@@ -131,7 +133,7 @@ export const WorkflowTemplateForm: React.FC<WorkflowTemplateFormProps> = ({
 
       <div className="flex gap-3 pt-4">
         <Button type="submit">
-          {template ? 'Mettre à jour' : 'Créer le workflow'}
+          {isEditMode ? 'Mettre à jour' : 'Créer le workflow'}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
           Annuler
