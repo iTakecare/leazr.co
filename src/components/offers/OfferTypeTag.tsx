@@ -12,7 +12,20 @@ interface OfferTypeTagProps {
 }
 
 const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: OfferTypeTagProps) => {
-  // Si source est "web_catalog" ou "site_web", afficher le badge approprié selon la présence de packs
+  // CAS 1: Si type est vide, on affiche TOUJOURS la source comme "Site Web"
+  if (!type || type === "") {
+    return (
+      <Badge
+        variant="outline"
+        className="bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50 flex items-center gap-1.5 py-1 px-2 text-xs font-medium border"
+      >
+        <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />
+        <span className="truncate">Site Web</span>
+      </Badge>
+    );
+  }
+
+  // CAS 2: Si source est "web_catalog" ou "site_web", afficher le badge approprié selon la présence de packs
   if (source === "web_catalog" || source === "site_web") {
     let color = "";
     let icon = null;
