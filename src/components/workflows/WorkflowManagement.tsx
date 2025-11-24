@@ -49,10 +49,10 @@ const WorkflowManagement: React.FC = () => {
   const getOfferTypeLabel = (offerType: string) => {
     const labels: Record<string, string> = {
       'client_request': 'Demande Client',
-      'web_request': 'Demande Web',
-      'ambassador_offer': 'Offre Ambassadeur',
+      'web_request': 'Dem. web - standard',
+      'custom_pack_request': 'Dem. web - pack perso',
+      'ambassador_offer': 'Dem. ambassadeur',
       'internal_offer': 'Offre Interne',
-      'partner_offer': 'Offre Partenaire',
       'standard': 'Standard'
     };
     return labels[offerType] || offerType;
@@ -62,9 +62,9 @@ const WorkflowManagement: React.FC = () => {
     const colors: Record<string, string> = {
       'client_request': 'bg-blue-100 text-blue-800 border-blue-200',
       'web_request': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      'custom_pack_request': 'bg-teal-100 text-teal-800 border-teal-200',
       'ambassador_offer': 'bg-green-100 text-green-800 border-green-200',
       'internal_offer': 'bg-purple-100 text-purple-800 border-purple-200',
-      'partner_offer': 'bg-orange-100 text-orange-800 border-orange-200',
       'standard': 'bg-gray-100 text-gray-800 border-gray-200'
     };
     return colors[offerType] || colors.standard;
