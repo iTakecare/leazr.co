@@ -17,15 +17,21 @@ export const useUpdateOfferMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) => 
-      updateOfferService(id, updates),
-    onSuccess: () => {
-      // Invalider le cache des offres pour forcer un refresh
-      queryClient.invalidateQueries({ queryKey: OFFERS_QUERY_KEY });
+    mutationFn: ({ id, updates }: { id: string; updates: any }) => {
+      console.log("🔄 Mutation called with:", { id, updates });
+      return updateOfferService(id, updates);
     },
-    onError: (error) => {
-      console.error('Erreur lors de la mise à jour:', error);
-      toast.error('Erreur lors de la mise à jour de l\'offre');
+    onSuccess: (data, variables) => {
+      console.log("✅ Mutation success:", data);
+      queryClient.invalidateQueries({ queryKey: OFFERS_QUERY_KEY });
+      toast.success('Offre mise à jour avec succès');
+    },
+    onError: (error: any, variables) => {
+      console.error('❌ Mutation error:', error);
+      console.error('❌ Variables:', variables);
+      
+      const errorMessage = error?.message || 'Erreur lors de la mise à jour';
+      toast.error(errorMessage);
     }
   });
 };

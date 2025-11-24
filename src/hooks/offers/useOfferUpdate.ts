@@ -8,12 +8,7 @@ export const useOfferUpdate = () => {
     setIsUpdating(true);
     try {
       const result = await updateOfferService(offerId, updates);
-      
-      if (result.error) {
-        throw new Error(result.error.message || 'Erreur lors de la mise à jour');
-      }
-      
-      return result.data;
+      return result;
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'offre:', error);
       throw error;

@@ -33,22 +33,24 @@ export const getOfferById = async (id: string) => {
 };
 
 export const updateOffer = async (id: string, updates: any) => {
-  try {
-    console.log("🔄 UPDATING OFFER - ID:", id);
-    console.log("🔄 UPDATING OFFER - Updates:", updates);
-    
-    // Ajouter updated_at pour satisfaire les règles RLS/politiques
-    const payload = { ...updates, updated_at: new Date().toISOString() };
-    console.log("🔄 UPDATING OFFER - Payload:", payload);
-    
-    // 1. Mettre à jour l'offre elle-même
-    const { data, error } = await supabase
-      .from('offers')
-      .update(payload)
-      .eq('id', id)
-      .select();
+  console.log("🔄 UPDATING OFFER - ID:", id);
+  console.log("🔄 UPDATING OFFER - Updates:", updates);
+  
+  // Ajouter updated_at pour satisfaire les règles RLS/politiques
+  const payload = { ...updates, updated_at: new Date().toISOString() };
+  console.log("🔄 UPDATING OFFER - Payload:", payload);
+  
+  // 1. Mettre à jour l'offre elle-même
+  const { data, error } = await supabase
+    .from('offers')
+    .update(payload)
+    .eq('id', id)
+    .select();
 
-    if (error) throw error;
+  if (error) {
+    console.error("❌ Database error:", error);
+    throw new Error(error.message || "Erreur lors de la mise à jour");
+  }
     
     // 2. Si equipment_description est fourni, synchroniser avec offer_equipment
     if (updates.equipment_description) {
@@ -85,11 +87,7 @@ export const updateOffer = async (id: string, updates: any) => {
     }
     
     console.log("✅ OFFER UPDATED successfully:", data);
-    return { data, error: null };
-  } catch (error) {
-    console.error("❌ Erreur lors de la mise à jour de l'offre:", error);
-    return { data: null, error };
-  }
+    return data;
 };
 
 export const updateOfferDate = async (offerId: string, newDate: string): Promise<boolean> => {
