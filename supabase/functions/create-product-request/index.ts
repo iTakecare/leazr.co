@@ -377,11 +377,11 @@ serve(async (req) => {
 
     const leaserId = leaserIdData?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949';
 
-    // Déterminer le type de source en fonction de la présence de packs
-    const hasCustomPacks = data.packs && data.packs.length > 0;
-    const offerSource = hasCustomPacks ? 'custom_pack' : 'web_catalog';
+    // La source est toujours 'web_catalog' car toutes les demandes viennent du site iTakecare
+    // La différenciation entre packs perso et catalogue se fait via la présence de offer_custom_packs
+    const offerSource = 'web_catalog';
     
-    console.log(`Type de source déterminé: ${offerSource} (packs: ${hasCustomPacks})`);
+    console.log(`Source: ${offerSource} (toutes les demandes viennent du site web iTakecare)`);
 
     // Création de l'offre
     const offerData = {

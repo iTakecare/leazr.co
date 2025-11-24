@@ -81,7 +81,12 @@ const OfferCard: React.FC<OfferCardProps> = ({
           </div>
           
           <div className="ml-2">
-            <OfferTypeTag type={offer.type} source={offer.source} size="sm" />
+            <OfferTypeTag 
+              type={offer.type} 
+              source={offer.source} 
+              hasCustomPacks={offer.offer_custom_packs && offer.offer_custom_packs.length > 0}
+              size="sm" 
+            />
           </div>
         </div>
         
