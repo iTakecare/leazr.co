@@ -205,13 +205,13 @@ serve(async (req) => {
         console.log(`✅ Prix d'achat récupéré de products (fallback): ${price}€`);
       }
 
-      // 🟢 MENSUALITÉ : unit_price contient la mensualité UNITAIRE
-      const monthlyPrice = product.unit_price || 0;
-      console.log(`✅ Mensualité UNITAIRE depuis iTakecare: ${monthlyPrice}€`);
+      // 🟢 MENSUALITÉ : unit_price contient la mensualité TOTALE de la ligne (déjà multiplié par quantité)
+      const totalMonthlyFromItakecare = product.unit_price || 0;
+      console.log(`✅ Mensualité TOTALE depuis iTakecare: ${totalMonthlyFromItakecare}€`);
       
-      // Calculer le total mensuel pour cette ligne (× quantité)
-      const totalMonthlyForLine = monthlyPrice * product.quantity;
-      console.log(`✅ Mensualité TOTALE calculée: ${totalMonthlyForLine}€ (${monthlyPrice} × ${product.quantity})`);
+      // Calculer la mensualité UNITAIRE en divisant par la quantité
+      const monthlyPrice = totalMonthlyFromItakecare / product.quantity;
+      console.log(`✅ Mensualité UNITAIRE calculée: ${monthlyPrice}€ (${totalMonthlyFromItakecare} / ${product.quantity})`);
       
       // Calculs par équipement
       const coefficient = 3.53; // On utilisera le coefficient final plus tard, mais on utilise 3.53 pour l'estimation
@@ -226,8 +226,8 @@ serve(async (req) => {
         quantite: product.quantity,
         prix_achat_unitaire: price.toFixed(2),
         prix_achat_total: totalPurchasePrice.toFixed(2),
+        mensualite_totale_itakecare: totalMonthlyFromItakecare.toFixed(2),
         mensualite_unitaire: monthlyPrice.toFixed(2),
-        mensualite_totale_ligne: totalMonthlyForLine.toFixed(2),
         prix_vente_unitaire: sellingPrice.toFixed(2),
         prix_vente_total: totalSellingPrice.toFixed(2),
         marge_pct: equipmentMargin.toFixed(2) + '%'
@@ -235,7 +235,7 @@ serve(async (req) => {
       
       // Accumuler les totaux
       totalPurchaseAmount += totalPurchasePrice;
-      totalMonthlyPayment += totalMonthlyForLine; // Utiliser le total mensuel de cette ligne
+      totalMonthlyPayment += totalMonthlyFromItakecare; // Utiliser le total mensuel depuis iTakecare
       totalFinancedAmountEstimate += totalSellingPrice;
       
       console.log("Montants cumulés - Total d'achat:", totalPurchaseAmount, "Mensuel:", totalMonthlyPayment);
