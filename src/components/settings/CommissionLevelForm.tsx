@@ -27,7 +27,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
 }) => {
   const [name, setName] = useState(level?.name || '');
   const [isDefault, setIsDefault] = useState(level?.is_default || false);
-  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment'>(level?.calculation_mode || 'margin');
+  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up'>(level?.calculation_mode || 'margin');
   const [fixedRate, setFixedRate] = useState<number>(level?.fixed_rate || 100);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +60,8 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
       toast.error("Le taux de commission est requis pour le mode mensualité");
       return;
     }
+    
+    // Pour le mode one_monthly_rounded_up, pas besoin de taux (toujours 100%)
 
     setIsSubmitting(true);
     try {
@@ -134,7 +136,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="calculationMode">Mode de calcul</Label>
-              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment') => setCalculationMode(value)}>
+              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up') => setCalculationMode(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner le mode de calcul" />
                 </SelectTrigger>
@@ -142,6 +144,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                   <SelectItem value="margin">% sur marge</SelectItem>
                   <SelectItem value="purchase_price">% sur prix d'achat</SelectItem>
                   <SelectItem value="monthly_payment">% sur mensualité client</SelectItem>
+                  <SelectItem value="one_monthly_rounded_up">1 mensualité (arrondi à l'euro supérieur)</SelectItem>
                 </SelectContent>
               </Select>
               <div className="text-sm text-muted-foreground">
@@ -149,7 +152,9 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                   ? 'Commission calculée en pourcentage de la marge générée'
                   : calculationMode === 'purchase_price'
                   ? 'Commission calculée en pourcentage du prix d\'achat total HTVA'
-                  : 'Commission calculée en pourcentage de la mensualité totale du client'
+                  : calculationMode === 'monthly_payment'
+                  ? 'Commission calculée en pourcentage de la mensualité totale du client'
+                  : 'L\'ambassadeur touche 1 mensualité complète, arrondie à l\'euro supérieur. Ex: 92,30€ → 93€'
                 }
               </div>
             </div>

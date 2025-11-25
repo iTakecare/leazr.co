@@ -16,7 +16,7 @@ export interface CommissionLevel {
   name: string;
   type: 'partner' | 'ambassador';
   is_default: boolean;
-  calculation_mode: 'margin' | 'purchase_price' | 'monthly_payment';
+  calculation_mode: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up';
   fixed_rate?: number; // Taux fixe utilisé quand calculation_mode = 'monthly_payment'
   created_at: string;
   updated_at: string;
@@ -127,7 +127,7 @@ export const getDefaultCommissionLevel = async (type: 'partner' | 'ambassador' =
 /**
  * Crée un niveau de commission
  */
-export const createCommissionLevel = async (levelData: { name: string; type: 'partner' | 'ambassador'; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment'; fixed_rate?: number }): Promise<CommissionLevel | null> => {
+export const createCommissionLevel = async (levelData: { name: string; type: 'partner' | 'ambassador'; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up'; fixed_rate?: number }): Promise<CommissionLevel | null> => {
   try {
     const { name, type, is_default = false, calculation_mode = 'margin', fixed_rate } = levelData;
     
@@ -169,7 +169,7 @@ export const createCommissionLevel = async (levelData: { name: string; type: 'pa
 /**
  * Met à jour un niveau de commission
  */
-export const updateCommissionLevel = async (id: string, levelData: { name: string; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment'; fixed_rate?: number }): Promise<CommissionLevel | null> => {
+export const updateCommissionLevel = async (id: string, levelData: { name: string; is_default?: boolean; calculation_mode?: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up'; fixed_rate?: number }): Promise<CommissionLevel | null> => {
   try {
     const { name, is_default = false, calculation_mode, fixed_rate } = levelData;
     

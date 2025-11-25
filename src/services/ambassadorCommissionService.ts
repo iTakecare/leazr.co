@@ -77,6 +77,33 @@ export const calculateAmbassadorCommission = async (
       };
     }
 
+    // Mode "1 mensualité arrondie à l'euro supérieur"
+    if (calculationMode === 'one_monthly_rounded_up') {
+      console.log(`[calculateAmbassadorCommission] Using one_monthly_rounded_up mode`);
+      
+      if (!totalMonthlyPayment || totalMonthlyPayment <= 0) {
+        console.log("[calculateAmbassadorCommission] one_monthly_rounded_up mode requires valid monthly payment amount");
+        return {
+          amount: 0,
+          rate: 100,
+          levelName: commissionLevel.name,
+          marginAmount
+        };
+      }
+      
+      // Arrondi à l'euro supérieur avec Math.ceil()
+      const commissionAmount = Math.ceil(totalMonthlyPayment);
+      
+      console.log(`[calculateAmbassadorCommission] Commission: ${commissionAmount}€ (mensualité ${totalMonthlyPayment}€ arrondie à l'euro supérieur)`);
+      
+      return {
+        amount: commissionAmount,
+        rate: 100,
+        levelName: `${commissionLevel.name} (1 mensualité)`,
+        marginAmount
+      };
+    }
+
     // Récupérer les taux du niveau de commission pour les modes margin et purchase_price
     const rates = await getCommissionRates(commissionLevel.id);
     
