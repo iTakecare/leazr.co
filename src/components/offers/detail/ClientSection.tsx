@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { User, Mail, Phone, Building, ExternalLink } from "lucide-react";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
@@ -14,11 +15,19 @@ const ClientSection: React.FC<ClientSectionProps> = ({ offer }) => {
   
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <User className="w-5 h-5" />
           Informations client
         </CardTitle>
+        {offer.client_id && companySlug && (
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/${companySlug}/admin/clients/${offer.client_id}`}>
+              <ExternalLink className="w-4 h-4" />
+              Voir fiche client
+            </Link>
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -26,17 +35,7 @@ const ClientSection: React.FC<ClientSectionProps> = ({ offer }) => {
             <User className="w-4 h-4 text-gray-500" />
             <div>
               <p className="text-sm text-gray-500">Nom</p>
-              {offer.client_id && companySlug ? (
-                <Link 
-                  to={`/${companySlug}/admin/clients/${offer.client_id}`}
-                  className="font-medium text-primary hover:underline flex items-center gap-1"
-                >
-                  {offer.client_name}
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-              ) : (
-                <p className="font-medium">{offer.client_name}</p>
-              )}
+              <p className="font-medium">{offer.client_name}</p>
             </div>
           </div>
           
