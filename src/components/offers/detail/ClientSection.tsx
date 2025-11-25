@@ -1,13 +1,17 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Phone, Building } from "lucide-react";
+import { User, Mail, Phone, Building, ExternalLink } from "lucide-react";
+import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 
 interface ClientSectionProps {
   offer: any;
 }
 
 const ClientSection: React.FC<ClientSectionProps> = ({ offer }) => {
+  const { companySlug } = useRoleNavigation();
+  
   return (
     <Card>
       <CardHeader>
@@ -22,7 +26,17 @@ const ClientSection: React.FC<ClientSectionProps> = ({ offer }) => {
             <User className="w-4 h-4 text-gray-500" />
             <div>
               <p className="text-sm text-gray-500">Nom</p>
-              <p className="font-medium">{offer.client_name}</p>
+              {offer.client_id && companySlug ? (
+                <Link 
+                  to={`/${companySlug}/admin/clients/${offer.client_id}`}
+                  className="font-medium text-primary hover:underline flex items-center gap-1"
+                >
+                  {offer.client_name}
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              ) : (
+                <p className="font-medium">{offer.client_name}</p>
+              )}
             </div>
           </div>
           
