@@ -486,6 +486,34 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
               </Badge>
             )}
           </div>
+          
+          {/* Section contact rapide */}
+          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+            {client.email && (
+              <a 
+                href={`mailto:${client.email}`} 
+                className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                <span>{client.email}</span>
+              </a>
+            )}
+            {client.phone && (
+              <a 
+                href={`tel:${client.phone}`} 
+                className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                <span>{client.phone}</span>
+              </a>
+            )}
+            {client.vat_number && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span>{client.vat_number}</span>
+              </div>
+            )}
+          </div>
         </div>
         {!readOnly && (
           <div className="flex gap-2">
