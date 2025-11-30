@@ -393,6 +393,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 <TableHead className="text-right">P.A. unitaire</TableHead>
                 <TableHead className="text-right">P.A. total</TableHead>
                 <TableHead className="text-right">Marge (%)</TableHead>
+                <TableHead className="text-right">Marge (€)</TableHead>
                 <TableHead className="text-right">Prix de vente</TableHead>
                 <TableHead className="text-right">Mensualité unit.</TableHead>
                 <TableHead className="text-right">Total mensuel</TableHead>
@@ -473,11 +474,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           min="0"
                         />
                       ) : (
-                        <span className="font-mono">{formatPrice(item.purchase_price)}</span>
+                        <span>{formatPrice(item.purchase_price)}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono">{formatPrice(item.purchase_price * item.quantity)}</span>
+                      <span>{formatPrice(item.purchase_price * item.quantity)}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
@@ -490,8 +491,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           min="0"
                         />
                       ) : (
-                        <span className="font-mono">{(item.margin || 0).toFixed(1)}%</span>
+                        <span>{(item.margin || 0).toFixed(1)}%</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-green-600">
+                        {formatPrice(equipmentMargin)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
@@ -504,7 +510,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           min="0"
                         />
                       ) : (
-                        <span className="font-mono text-green-600">
+                        <span className="text-green-600">
                           {formatPrice(item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0))}
                         </span>
                       )}
@@ -520,18 +526,18 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           min="0"
                         />
                       ) : (
-                        <span className="font-mono text-blue-600">
+                        <span className="text-blue-600">
                           {formatPrice(item.monthly_payment || 0)}
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
-                        <span className="font-mono text-purple-600 font-semibold">
+                        <span className="text-purple-600 font-semibold">
                           {formatPrice((values.monthly_payment || 0) * values.quantity)}
                         </span>
                       ) : (
-                        <span className="font-mono text-purple-600 font-semibold">
+                        <span className="text-purple-600 font-semibold">
                           {formatPrice((item.monthly_payment || 0) * item.quantity)}
                         </span>
                       )}
@@ -624,19 +630,25 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-mono font-bold text-base text-foreground">
+                  <div className="font-bold text-base text-foreground">
                     {formatPrice(totals.totalPrice)}
                   </div>
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-mono font-bold text-base text-green-600">
+                  <div className="font-bold text-base text-foreground">
+                    {totals.marginPercentage.toFixed(1)}%
+                  </div>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
+                  <div className="font-bold text-base text-green-600">
                     {formatPrice(totals.totalMargin)}
                   </div>
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-mono font-bold text-base text-blue-600">
+                  <div className="font-bold text-base text-blue-600">
                     {formatPrice(totals.totalSellingPrice)}
                   </div>
                 </TableCell>
@@ -679,7 +691,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 justify-end">
-                      <div className="font-mono font-bold text-base text-purple-600">
+                      <div className="font-bold text-base text-purple-600">
                         {formatPrice(totals.totalMonthlyPayment)}
                       </div>
                       <Button
