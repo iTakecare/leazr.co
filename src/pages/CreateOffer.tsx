@@ -617,12 +617,13 @@ const CreateOffer = () => {
       let result;
       if (isEditMode && offerId) {
         result = await updateOffer(offerId, offerData);
-        if (result && result.data) {
+        // updateOffer retourne directement les données (array), pas {data: ...}
+        if (result && ((Array.isArray(result) && result.length > 0) || (!Array.isArray(result) && typeof result === 'object'))) {
           console.log("✅ OFFRE MISE À JOUR avec succès:", result);
           toast.success("Offre mise à jour avec succès !");
         } else {
-          const errMsg = result?.error?.message || "Échec de la mise à jour de l'offre";
-          console.error("❌ ÉCHEC MISE À JOUR OFFRE:", result);
+          const errMsg = "Échec de la mise à jour de l'offre";
+          console.error("❌ ÉCHEC MISE À JOUR OFFRE - Aucune donnée retournée:", result);
           toast.error(errMsg);
           throw new Error(errMsg);
         }
