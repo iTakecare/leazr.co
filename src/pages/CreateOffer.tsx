@@ -36,6 +36,7 @@ import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipment
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 import { calculateEquipmentTotals, getFinancedAmount } from "@/utils/marginCalculations";
+import { findCoefficientForAmount } from "@/utils/equipmentCalculations";
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
@@ -517,17 +518,27 @@ const CreateOffer = () => {
       }
 
       // Préparer les données d'équipement avec les attributs et spécifications
-      const equipmentData = equipmentList.map(eq => ({
-        id: eq.id,
-        title: eq.title,
-        purchasePrice: eq.purchasePrice,
-        quantity: eq.quantity,
-        margin: eq.margin,
-        monthlyPayment: eq.monthlyPayment || totalMonthlyPayment / equipmentList.length,
-        // S'assurer que les attributs et spécifications sont inclus avec des valeurs par défaut
-        attributes: eq.attributes || {},
-        specifications: eq.specifications || {}
-      }));
+      // IMPORTANT: Recalculer les mensualités avec la durée actuelle pour chaque équipement
+      const equipmentData = equipmentList.map(eq => {
+        // Calculer le montant financé pour cet équipement
+        const financedAmountForEquipment = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
+        // Trouver le coefficient pour ce montant et la durée actuelle
+        const coeff = findCoefficientForAmount(financedAmountForEquipment, selectedLeaser, selectedDuration);
+        // Calculer la mensualité avec le coefficient actuel
+        const recalculatedMonthlyPayment = (financedAmountForEquipment * coeff) / 100;
+        
+        return {
+          id: eq.id,
+          title: eq.title,
+          purchasePrice: eq.purchasePrice,
+          quantity: eq.quantity,
+          margin: eq.margin,
+          monthlyPayment: recalculatedMonthlyPayment,
+          // S'assurer que les attributs et spécifications sont inclus avec des valeurs par défaut
+          attributes: eq.attributes || {},
+          specifications: eq.specifications || {}
+        };
+      });
       console.log("💾 Saving equipment data with attributes:", equipmentData);
       console.log("💰 COMMISSION DEBUG - Commission calculée:", commissionData);
 
