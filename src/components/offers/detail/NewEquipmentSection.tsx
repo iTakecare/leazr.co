@@ -388,7 +388,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]"></TableHead>
-                <TableHead className="min-w-[150px]">Description</TableHead>
+                <TableHead className="max-w-[200px]">Description</TableHead>
                 <TableHead className="text-center">Qté</TableHead>
                 <TableHead className="text-right">P.A. unitaire</TableHead>
                 <TableHead className="text-right">P.A. total</TableHead>
@@ -434,9 +434,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           <div className="font-medium">{item.title}</div>
                         )}
                         {attributes && attributes.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
+                          <div className="flex flex-col gap-0.5 mt-1">
                             {attributes.map((attr, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs font-normal">
+                              <Badge key={idx} variant="secondary" className="text-xs font-normal py-0 px-1.5">
                                 {attr.key}: {attr.value}
                               </Badge>
                             ))}
