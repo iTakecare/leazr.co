@@ -518,13 +518,9 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
 
               {/* Sidebar des actions compacte */}
               <div className="lg:col-span-1 space-y-4">
-                <CompactActionsSidebar
+              <CompactActionsSidebar
                   offer={offer}
-                  onSendEmail={handleSendEmail}
-                  onRequestInfo={() => setIsRequestInfoModalOpen(true)}
                   onEdit={handleEditOffer}
-                  onPreview={handlePreview}
-                  sendingEmail={sendingEmail}
                   onEditRequestDate={() => {
                     setDateEditorType('request');
                     setIsDateEditorOpen(true);
