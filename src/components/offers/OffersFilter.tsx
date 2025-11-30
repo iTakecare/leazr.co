@@ -26,7 +26,7 @@ const OffersFilter = ({
       <div className="flex flex-col sm:flex-row gap-4">
         <Tabs value={activeTab} onValueChange={onTabChange} className="w-full sm:w-auto">
           <TabsList>
-            <TabsTrigger value="in_progress">En cours</TabsTrigger>
+            <TabsTrigger value="in_progress">À traiter</TabsTrigger>
             <TabsTrigger value="accepted">Acceptées</TabsTrigger>
             <TabsTrigger value="rejected">Refusées</TabsTrigger>
           </TabsList>

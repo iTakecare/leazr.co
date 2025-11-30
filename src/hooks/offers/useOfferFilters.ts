@@ -22,12 +22,21 @@ export const useOfferFilters = (offers: Offer[]) => {
       activeSource
     });
     
-    // Définir les statuts acceptés et refusés
+    // Statuts "Acceptées" = UNIQUEMENT validation finale par le leaser
     const acceptedStatuses = new Set([
-      'validated', 'accepted', 'offer_validation', 'financed', 'contract_sent', 'signed', 'approved', 'offer_accepted'
+      'accepted',        // Accepté par le leaser
+      'offer_accepted',  // Offre acceptée par le leaser
+      'financed',        // Financé
+      'contract_sent',   // Contrat envoyé
+      'signed'           // Signé
     ]);
+    
+    // Statuts "Refusées" = Tous les types de rejets
     const rejectedStatuses = new Set([
-      'internal_rejected', 'leaser_rejected', 'rejected', 'client_rejected'
+      'internal_rejected',  // Rejeté en interne
+      'leaser_rejected',    // Rejeté par le leaser
+      'rejected',           // Rejeté (général)
+      'client_rejected'     // Rejeté par le client
     ]);
     
     // Filtre par statut (onglet actif) - basé uniquement sur workflow_status
