@@ -89,12 +89,9 @@ export const calculateEquipmentResults = (
     return sum + calculateFinancedAmountForEquipment(equipment);
   }, 0);
 
-  // 4. Calculer la mensualité normale (somme des mensualités individuelles)
+  // 4. Calculer la mensualité normale (TOUJOURS recalculer avec la durée actuelle)
+  // Ne pas utiliser equipment.monthlyPayment car elle est figée à l'ancienne durée
   const normalMonthlyPayment = equipmentList.reduce((sum, equipment) => {
-    if (equipment.monthlyPayment) {
-      return sum + (equipment.monthlyPayment * equipment.quantity);
-    }
-    // Si pas de mensualité définie, calculer avec le coefficient individuel
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
     const coeff = findCoefficientForAmount(financedAmount, leaser, duration);
     const monthlyForOne = (financedAmount * coeff) / 100;
