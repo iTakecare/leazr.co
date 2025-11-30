@@ -127,11 +127,16 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
       scoring_type: targetStep?.scoring_type
     });
     
-    // Vérifier si l'étape a le scoring activé
+    // Vérifier si l'étape a le scoring activé - uniquement si on avance ou reste sur place
+    // Si on revient en arrière, on permet le changement de statut
     if (targetStep?.enables_scoring && onAnalysisClick && targetStep.scoring_type) {
-      console.log("🎯 STEPPER DEBUG - Calling onAnalysisClick with:", targetStep.scoring_type);
-      onAnalysisClick(targetStep.scoring_type as 'internal' | 'leaser');
-      return;
+      if (targetIndex >= currentIndex) {
+        console.log("🎯 STEPPER DEBUG - Calling onAnalysisClick with:", targetStep.scoring_type);
+        onAnalysisClick(targetStep.scoring_type as 'internal' | 'leaser');
+        return;
+      }
+      // Si on revient en arrière (targetIndex < currentIndex), on continue vers la mise à jour du statut
+      console.log("🔙 STEPPER DEBUG - Going back to step with scoring, allowing status change");
     }
     
     if (targetIndex > currentIndex + 1) {
