@@ -110,7 +110,7 @@ const CreateOffer = () => {
     findCoefficient,
     toggleAdaptMonthlyPayment,
     calculations
-  } = useSimplifiedEquipmentCalculator(selectedLeaser);
+  } = useSimplifiedEquipmentCalculator(selectedLeaser, selectedDuration);
 
   // Calcul de la marge totale depuis les équipements
   const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {

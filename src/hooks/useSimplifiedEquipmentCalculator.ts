@@ -349,13 +349,13 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     if (equipment.purchasePrice > 0) {
       calculateMonthlyPayment();
     }
-  }, [equipment.margin, equipment.purchasePrice, leaser?.id]);
+  }, [equipment.margin, equipment.purchasePrice, leaser?.id, duration]);
 
   useEffect(() => {
     if (targetMonthlyPayment > 0 && equipment.purchasePrice > 0) {
       calculateMarginFromMonthlyPayment();
     }
-  }, [targetMonthlyPayment, equipment.purchasePrice, leaser?.id]);
+  }, [targetMonthlyPayment, equipment.purchasePrice, leaser?.id, duration]);
 
   useEffect(() => {
     if (targetSalePrice > 0 && equipment.purchasePrice > 0) {
