@@ -1,14 +1,13 @@
 
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Mail, 
-  FileText, 
   Edit, 
   Eye, 
-  Download,
   Clock,
   CheckCircle,
   XCircle
@@ -16,22 +15,14 @@ import {
 
 interface CompactActionsSidebarProps {
   offer: any;
-  onSendEmail: () => void;
-  onRequestInfo: () => void;
   onEdit: () => void;
-  onPreview: () => void;
-  sendingEmail: boolean;
   onEditRequestDate?: () => void;
   onEditCreatedDate?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   offer,
-  onSendEmail,
-  onRequestInfo,
   onEdit,
-  onPreview,
-  sendingEmail,
   onEditRequestDate,
   onEditCreatedDate
 }) => {
@@ -95,10 +86,7 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
     return labels[status] || status;
   };
 
-  const canSendEmail = offer.workflow_status === 'draft' || offer.workflow_status === 'sent';
   const canEdit = offer.workflow_status === 'draft';
-  const canRequestInfo = true; // Toujours actif - on peut demander des documents à tout moment
-  const canProgressToAnalysis = offer.workflow_status === 'sent';
 
   return (
     <div className="space-y-4">
@@ -184,40 +172,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
               <span>Modifier</span>
             </Button>
           )}
-          
-          {canSendEmail && (
-            <Button 
-              size="sm"
-              className="w-full justify-start text-sm h-8" 
-              onClick={onSendEmail}
-              disabled={sendingEmail}
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              <span>{sendingEmail ? "Envoi..." : "Envoyer"}</span>
-            </Button>
-          )}
-          
-          {canRequestInfo && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="w-full justify-start text-sm h-8"
-              onClick={onRequestInfo}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              <span>Demander docs</span>
-            </Button>
-          )}
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="w-full justify-start text-sm h-8"
-            onClick={onPreview}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            <span>Aperçu</span>
-          </Button>
         </CardContent>
       </Card>
 
