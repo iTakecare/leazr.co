@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit, Save, X, Edit3, Calculator, Trash2 } from "lucide-react";
+import { Loader2, Edit, Save, X, Edit3, Calculator, Trash2, ImageIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -387,9 +387,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[250px]">Description</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="min-w-[150px]">Description</TableHead>
                 <TableHead className="text-center">Qté</TableHead>
-                <TableHead className="text-right">Prix d'achat</TableHead>
+                <TableHead className="text-right">P.A. unitaire</TableHead>
+                <TableHead className="text-right">P.A. total</TableHead>
                 <TableHead className="text-right">Marge (%)</TableHead>
                 <TableHead className="text-right">Prix de vente</TableHead>
                 <TableHead className="text-right">Mensualité unit.</TableHead>
@@ -407,6 +409,19 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
                 return (
                   <TableRow key={item.id}>
+                    <TableCell className="w-[50px]">
+                      {item.image_url ? (
+                        <img 
+                          src={item.image_url} 
+                          alt={item.title}
+                          className="w-10 h-10 object-cover rounded border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
+                          <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {isEditing ? (
@@ -456,6 +471,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                       ) : (
                         <span className="font-mono">{formatPrice(item.purchase_price)}</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-mono">{formatPrice(item.purchase_price * item.quantity)}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
@@ -585,6 +603,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
               
               {/* Ligne de totaux - Compacte avec police plus petite */}
               <TableRow className="border-t-2 bg-muted/30 hover:bg-muted/50 transition-colors">
+                <TableCell className="py-4"></TableCell>
+                
                 <TableCell className="py-4">
                   <div className="font-bold text-base text-primary">TOTAUX</div>
                 </TableCell>
@@ -593,6 +613,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                   <div className="font-bold text-sm">
                     {equipment.reduce((acc, item) => acc + item.quantity, 0)}
                   </div>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
+                  <span className="text-muted-foreground text-sm">—</span>
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
