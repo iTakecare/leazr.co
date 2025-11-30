@@ -37,7 +37,8 @@ import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNote
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
-import { generateOfferPDF } from "@/services/clientPdfService";
+import { createRoot } from 'react-dom/client';
+import CommercialOffer from '@/components/offers/CommercialOffer';
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -242,28 +243,303 @@ const [emailDialogOpen, setEmailDialogOpen] = useState(false);
     window.open(previewUrl, '_blank');
   };
 
-  // Générer le PDF de l'offre
+  // Générer le PDF de l'offre (même logique que handleGenerateOffer dans useOfferActions)
   const handleGeneratePDF = async () => {
     if (!offer) return;
     
+    const toastId = toast.loading('Préparation du PDF...');
+    setIsGeneratingPDF(true);
+    
     try {
-      setIsGeneratingPDF(true);
-      const blob = await generateOfferPDF(offer.id, 'client');
+      // 1. Récupérer les équipements depuis la base de données
+      const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
+      const equipmentData = await getOfferEquipment(offer.id);
+
+      // Récupérer les données complètes du client depuis la table clients
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('billing_address, billing_city, billing_postal_code, billing_country, phone')
+        .eq('id', offer.client_id)
+        .single();
+
+      // Récupérer les paramètres de l'entreprise (logo, couleurs, nom)
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id, logo_url, primary_color, secondary_color, name')
+        .eq('id', offer.company_id)
+        .single();
+
+      console.log('🏢 Company Data:', {
+        id: companyData?.id,
+        name: companyData?.name,
+        hasLogo: !!companyData?.logo_url
+      });
+
+      if (!companyData?.id) {
+        console.error('❌ Company ID manquant !', { 
+          offerId: offer.id, 
+          companyId: offer.company_id,
+          companyData 
+        });
+        toast.error("Impossible de récupérer les informations de l'entreprise", { id: toastId });
+        return;
+      }
+
+      // Formater l'adresse de facturation complète
+      const billingAddress = clientData ? 
+        [
+          clientData.billing_address,
+          clientData.billing_postal_code,
+          clientData.billing_city,
+          clientData.billing_country
+        ].filter(Boolean).join(', ') 
+        : '';
+
+      // Convertir le logo en Base64 pour compatibilité html2canvas
+      let companyLogoBase64 = null;
+      if (companyData?.logo_url) {
+        try {
+          const response = await fetch(companyData.logo_url);
+          const blob = await response.blob();
+          companyLogoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          console.log('✅ Logo converti en Base64');
+        } catch (error) {
+          console.warn('⚠️ Erreur chargement logo:', error);
+        }
+      }
+
+      // Récupérer les logos partenaires
+      const { data: partnerLogosData } = await supabase
+        .from('company_partner_logos')
+        .select('logo_url')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      // Récupérer les valeurs de l'entreprise
+      const { data: companyValuesData } = await supabase
+        .from('company_values')
+        .select('title, description, icon_url')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
+
+      // Récupérer les métriques de l'entreprise
+      const { data: companyMetricsData } = await supabase
+        .from('company_metrics')
+        .select('label, value, icon_name')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
+
+      console.log('📊 Données récupérées:', {
+        partnerLogos: partnerLogosData?.length || 0,
+        companyValues: companyValuesData?.length || 0,
+        companyMetrics: companyMetricsData?.length || 0
+      });
+
+      // Récupérer les blocs de contenu texte
+      const { data: contentBlocksData } = await supabase
+        .from('pdf_content_blocks')
+        .select('page_name, block_key, content')
+        .eq('company_id', companyData.id);
+
+      // Créer un map pour faciliter l'accès
+      const contentBlocksMap: Record<string, Record<string, string>> = {};
+      contentBlocksData?.forEach(block => {
+        if (!contentBlocksMap[block.page_name]) {
+          contentBlocksMap[block.page_name] = {};
+        }
+        contentBlocksMap[block.page_name][block.block_key] = block.content;
+      });
+
+      // 2. Créer un conteneur VISIBLE (crucial pour le rendu CSS)
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '0';
+      container.style.left = '0';
+      container.style.width = '210mm';
+      container.style.minHeight = '297mm';
+      container.style.background = 'white';
+      container.style.zIndex = '9999';
+      document.body.appendChild(container);
+
+      // 3. Préparer les données COMPLÈTES pour CommercialOffer
+      const offerData = {
+        // Données de base
+        offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
+        offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
+        clientName: offer.client_name || 'Client',
+        clientEmail: offer.client_email || clientData?.email || '',
+        clientPhone: clientData?.phone || '',
+        clientCompany: offer.client_company || '',
+        clientAddress: billingAddress,
+        companyLogo: companyLogoBase64,
+        companyName: companyData?.name || 'iTakecare',
+        showPrintButton: false,
+        isPDFMode: true,
+        
+        // Équipements - Convertir le format DB vers le format CommercialOffer
+        equipment: equipmentData.map((eq: any) => ({
+          id: eq.id,
+          title: eq.title,
+          quantity: eq.quantity || 1,
+          monthlyPayment: eq.monthly_payment || 0,
+          imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
+          attributes: eq.attributes?.reduce((acc: any, attr: any) => {
+            acc[attr.key] = attr.value;
+            return acc;
+          }, {}) || {},
+          specifications: eq.specifications?.reduce((acc: any, spec: any) => {
+            acc[spec.key] = spec.value;
+            return acc;
+          }, {}) || {}
+        })),
+        
+        // Totaux et informations financières
+        totalMonthly: Number(offer.monthly_payment) || 0,
+        contractDuration: Number(offer.duration) || 36,
+        fileFee: Number(offer.file_fee) || 0,
+        insuranceCost: Number(offer.annual_insurance) || 0,
+        
+        // Logos partenaires
+        partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
+        
+        // Valeurs de l'entreprise
+        companyValues: companyValuesData?.map(v => ({
+          title: v.title,
+          description: v.description,
+          iconUrl: v.icon_url,
+        })) || [],
+        
+        // Métriques de l'entreprise
+        metrics: companyMetricsData?.map(m => ({
+          label: m.label,
+          value: m.value,
+          iconName: m.icon_name,
+        })) || [],
+        
+        // Blocs de contenu texte
+        contentBlocks: {
+          cover: {
+            greeting: contentBlocksMap['cover']?.['greeting'] || '<p>Madame, Monsieur,</p>',
+            introduction: contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>',
+            validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
+          },
+          equipment: {
+            title: contentBlocksMap['equipment']?.['title'] || 'Détail de l\'équipement',
+            footer_note: contentBlocksMap['equipment']?.['footer_note'] || 'Tous nos équipements sont garantis.',
+          },
+          conditions: {
+            general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
+            additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
+            contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
+          },
+        },
+      };
+
+      // 4a. Attendre que toutes les polices soient chargées
+      toast.loading('Chargement des polices...', { id: toastId });
+      if ('fonts' in document) {
+        await document.fonts.ready;
+      }
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 4b. Activer le mode PDF
+      container.classList.add('pdf-mode');
+
+      // 4c. Render le composant React dans le conteneur
+      const root = createRoot(container);
+      root.render(
+        React.createElement('div', 
+          { 
+            style: { 
+              width: '100%', 
+              background: 'white', 
+              fontFamily: 'Inter, sans-serif' 
+            } 
+          },
+          React.createElement(CommercialOffer, offerData)
+        )
+      );
+
+      // 5. Attendre que TOUT soit chargé
+      toast.loading('Chargement du contenu...', { id: toastId });
+      await new Promise(resolve => setTimeout(resolve, 3500));
+
+      // 6. Vérifier qu'il y a du contenu
+      const pages = container.querySelectorAll('.page');
+      console.log(`📄 Pages trouvées: ${pages.length}`);
+      console.log(`📏 Hauteur du conteneur: ${container.scrollHeight}px`);
       
-      // Télécharger le PDF
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `offre-${offer.offer_number || offer.id.slice(0, 8)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success("PDF généré avec succès");
+      if (pages.length === 0) {
+        console.error('❌ Aucune page trouvée. HTML:', container.innerHTML.substring(0, 500));
+        throw new Error('Aucune page trouvée. Le composant ne s\'est pas rendu correctement.');
+      }
+
+      // 7. Créer le PDF avec jsPDF
+      toast.loading('Génération du PDF...', { id: toastId });
+      const { default: JsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+      const pdf = new JsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // 8. Convertir chaque page en image et l'ajouter au PDF
+      for (let i = 0; i < pages.length; i++) {
+        console.log(`🖼️ Traitement page ${i + 1}/${pages.length}`);
+        
+        const page = pages[i] as HTMLElement;
+        
+        const canvas = await html2canvas(page, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: 794,
+          height: 1123,
+          windowWidth: 794,
+          windowHeight: 1123
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+        if (i > 0) {
+          pdf.addPage();
+        }
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      }
+
+      // 9. Télécharger le PDF
+      const date = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+      const clientName = (offer.client_company || offer.client_name || offerData.clientName || 'Client')
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 30);
+      const filename = `Offre_${offerData.offerNumber}_${clientName}_${date}.pdf`;
+      pdf.save(filename);
+
+      // 9b. Retirer le mode PDF
+      container.classList.remove('pdf-mode');
+
+      // 10. Nettoyage
+      root.unmount();
+      document.body.removeChild(container);
+
+      // 11. Notification de succès
+      toast.success('PDF téléchargé avec succès !', { id: toastId });
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+      toast.error("Erreur lors de la génération du PDF", { id: toastId });
     } finally {
       setIsGeneratingPDF(false);
     }
