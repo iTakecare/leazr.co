@@ -22,10 +22,9 @@ export const useOfferFilters = (offers: Offer[]) => {
       activeSource
     });
     
-    // Statuts "Acceptées" = UNIQUEMENT validation finale par le leaser
+    // Statuts "Acceptées" = UNIQUEMENT après validation finale par le leaser (contrat prêt)
     const acceptedStatuses = new Set([
-      'accepted',        // Accepté par le leaser
-      'offer_accepted',  // Offre acceptée par le leaser
+      'validated',       // Contrat prêt (après validation leaser)
       'financed',        // Financé
       'contract_sent',   // Contrat envoyé
       'signed'           // Signé
