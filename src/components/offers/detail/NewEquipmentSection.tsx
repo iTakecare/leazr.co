@@ -626,9 +626,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-mono font-bold text-base text-green-600">
-                    {formatPrice(totals.totalMargin)}
-                  </div>
+                  <span className="text-muted-foreground text-sm">—</span>
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
