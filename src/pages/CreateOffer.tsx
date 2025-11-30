@@ -495,15 +495,20 @@ const CreateOffer = () => {
     }
     setIsSubmitting(true);
     try {
-      // Récupérer le company_id avant de créer l'offre
+      // Récupérer le company_id - en mode édition, utiliser celui de l'offre existante
       let userCompanyId;
-      try {
-        userCompanyId = await getCurrentUserCompanyId();
-        console.log("💾 CRÉATION OFFRE - Company ID récupéré:", userCompanyId);
-      } catch (error) {
-        console.error("❌ Erreur lors de la récupération du company_id:", error);
-        toast.error("Impossible de récupérer l'ID de l'entreprise");
-        return;
+      if (isEditMode && loadedOfferData?.company_id) {
+        userCompanyId = loadedOfferData.company_id;
+        console.log("💾 MODE ÉDITION - Utilisation du company_id existant:", userCompanyId);
+      } else {
+        try {
+          userCompanyId = await getCurrentUserCompanyId();
+          console.log("💾 CRÉATION OFFRE - Company ID récupéré:", userCompanyId);
+        } catch (error) {
+          console.error("❌ Erreur lors de la récupération du company_id:", error);
+          toast.error("Impossible de récupérer l'ID de l'entreprise");
+          return;
+        }
       }
       if (!userCompanyId) {
         console.error("❌ Company ID manquant");
