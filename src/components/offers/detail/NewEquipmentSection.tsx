@@ -390,13 +390,38 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 <TableHead className="w-[50px]"></TableHead>
                 <TableHead className="max-w-[200px]">Description</TableHead>
                 <TableHead className="text-center">Qté</TableHead>
-                <TableHead className="text-right">P.A. unitaire</TableHead>
-                <TableHead className="text-right">P.A. total</TableHead>
-                <TableHead className="text-right">Prix de vente</TableHead>
-                <TableHead className="text-right">Marge (%)</TableHead>
-                <TableHead className="text-right">Marge (€)</TableHead>
-                <TableHead className="text-right">Mensualité unit.</TableHead>
-                <TableHead className="text-right">Total mensuel</TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>P.A.</div>
+                  <div>unitaire</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>P.A.</div>
+                  <div>total</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>P.V.</div>
+                  <div>unitaire</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>P.V.</div>
+                  <div>total</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>Marge</div>
+                  <div>(%)</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>Marge</div>
+                  <div>(€)</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>Mens.</div>
+                  <div>unitaire</div>
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">
+                  <div>Total</div>
+                  <div>mensuel</div>
+                </TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -486,7 +511,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           type="number"
                           value={values.selling_price || 0}
                           onChange={(e) => handleFieldChange('selling_price', parseFloat(e.target.value) || 0)}
-                          className="w-32 text-right"
+                          className="w-28 text-right"
                           step="0.01"
                           min="0"
                         />
@@ -495,6 +520,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                           {formatPrice(item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0))}
                         </span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-green-600">
+                        {formatPrice((item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0)) * item.quantity)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
@@ -636,7 +666,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-bold text-base text-blue-600">
+                  <span className="text-muted-foreground text-sm">—</span>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
+                  <div className="font-bold text-base text-green-600">
                     {formatPrice(totals.totalSellingPrice)}
                   </div>
                 </TableCell>
