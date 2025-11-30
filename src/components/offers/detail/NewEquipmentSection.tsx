@@ -81,8 +81,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   };
 
   const formatAttributes = (attributes: Array<{ key: string; value: string }> = []) => {
-    if (!attributes.length) return "";
-    return attributes.map(attr => `${attr.key}: ${attr.value}`).join(", ");
+    if (!attributes.length) return [];
+    return attributes;
   };
 
   // Calculate selling price automatically
@@ -433,9 +433,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         ) : (
                           <div className="font-medium">{item.title}</div>
                         )}
-                        {attributes && (
-                          <div className="text-sm text-muted-foreground">
-                            {attributes}
+                        {attributes && attributes.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {attributes.map((attr, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs font-normal">
+                                {attr.key}: {attr.value}
+                              </Badge>
+                            ))}
                           </div>
                         )}
                         {item.serial_number && (
