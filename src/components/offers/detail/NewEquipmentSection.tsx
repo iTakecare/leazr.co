@@ -392,9 +392,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 <TableHead className="text-center">Qté</TableHead>
                 <TableHead className="text-right">P.A. unitaire</TableHead>
                 <TableHead className="text-right">P.A. total</TableHead>
+                <TableHead className="text-right">Prix de vente</TableHead>
                 <TableHead className="text-right">Marge (%)</TableHead>
                 <TableHead className="text-right">Marge (€)</TableHead>
-                <TableHead className="text-right">Prix de vente</TableHead>
                 <TableHead className="text-right">Mensualité unit.</TableHead>
                 <TableHead className="text-right">Total mensuel</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
@@ -484,6 +484,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                       {isEditing ? (
                         <Input
                           type="number"
+                          value={values.selling_price || 0}
+                          onChange={(e) => handleFieldChange('selling_price', parseFloat(e.target.value) || 0)}
+                          className="w-32 text-right"
+                          step="0.01"
+                          min="0"
+                        />
+                      ) : (
+                        <span className="text-green-600">
+                          {formatPrice(item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0))}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isEditing ? (
+                        <Input
+                          type="number"
                           value={values.margin || 0}
                           onChange={(e) => handleFieldChange('margin', parseFloat(e.target.value) || 0)}
                           className="w-20 text-right"
@@ -498,22 +514,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                       <span className="text-green-600">
                         {formatPrice(equipmentMargin)}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={values.selling_price || 0}
-                          onChange={(e) => handleFieldChange('selling_price', parseFloat(e.target.value) || 0)}
-                          className="w-32 text-right"
-                          step="0.01"
-                          min="0"
-                        />
-                      ) : (
-                        <span className="text-green-600">
-                          {formatPrice(item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0))}
-                        </span>
-                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
@@ -636,6 +636,12 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
+                  <div className="font-bold text-base text-blue-600">
+                    {formatPrice(totals.totalSellingPrice)}
+                  </div>
+                </TableCell>
+                
+                <TableCell className="text-right py-4">
                   <div className="font-bold text-base text-foreground">
                     {totals.marginPercentage.toFixed(1)}%
                   </div>
@@ -644,12 +650,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 <TableCell className="text-right py-4">
                   <div className="font-bold text-base text-green-600">
                     {formatPrice(totals.totalMargin)}
-                  </div>
-                </TableCell>
-                
-                <TableCell className="text-right py-4">
-                  <div className="font-bold text-base text-blue-600">
-                    {formatPrice(totals.totalSellingPrice)}
                   </div>
                 </TableCell>
                 
