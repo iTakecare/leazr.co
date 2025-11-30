@@ -77,6 +77,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSubscription(data);
     } catch (error) {
       console.error('Error checking subscription:', error);
+      // En cas d'erreur (ex: preview environment), définir un état par défaut
+      // pour éviter de bloquer l'application
+      setSubscription({
+        subscribed: true, // Assumé actif pour ne pas bloquer l'UX
+        subscription_tier: 'unknown',
+        subscription_end: undefined
+      });
     }
   };
 
