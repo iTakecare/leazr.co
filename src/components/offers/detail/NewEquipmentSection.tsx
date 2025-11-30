@@ -435,15 +435,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
                 return (
                   <TableRow key={item.id}>
-                    <TableCell className="w-[50px]">
+                    <TableCell className="w-[60px]">
                       {item.image_url ? (
                         <img 
                           src={item.image_url} 
                           alt={item.title}
-                          className="w-10 h-10 object-cover rounded border"
+                          className="w-12 h-12 object-contain rounded border bg-white p-0.5"
                         />
                       ) : (
-                        <div className="w-10 h-10 bg-muted rounded border flex items-center justify-center">
+                        <div className="w-12 h-12 bg-muted rounded border flex items-center justify-center">
                           <ImageIcon className="w-5 h-5 text-muted-foreground" />
                         </div>
                       )}
