@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
-import { getOfferById, updateOfferStatus } from "@/services/offerService";
+import { getOfferById, updateOfferStatus, deleteOffer, generateSignatureLink } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
@@ -36,6 +36,8 @@ import { getOfferNotes } from "@/services/offers/offerNotes";
 import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
+import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
+import { generateOfferPDF } from "@/services/clientPdfService";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -67,6 +69,10 @@ const [rejectionReason, setRejectionReason] = useState("");
 // États pour les notes
 const [offerNotes, setOfferNotes] = useState<any[]>([]);
 const [notesLoading, setNotesLoading] = useState(false);
+
+// États pour les nouvelles actions
+const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -234,6 +240,58 @@ const [notesLoading, setNotesLoading] = useState(false);
     // Ouvrir l'aperçu de l'offre dans un nouvel onglet avec la bonne route
     const previewUrl = `/client/offer/${id}`;
     window.open(previewUrl, '_blank');
+  };
+
+  // Générer le PDF de l'offre
+  const handleGeneratePDF = async () => {
+    if (!offer) return;
+    
+    try {
+      setIsGeneratingPDF(true);
+      const blob = await generateOfferPDF(offer.id, 'client');
+      
+      // Télécharger le PDF
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `offre-${offer.offer_number || offer.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success("PDF généré avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  // Ouvrir le lien public de l'offre
+  const handleOpenPublicLink = () => {
+    if (!offer) return;
+    const link = generateSignatureLink(offer.id);
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
+
+  // Supprimer l'offre
+  const handleDeleteOffer = async () => {
+    if (!offer) return;
+    
+    try {
+      const success = await deleteOffer(offer.id);
+      if (success) {
+        toast.success("Offre supprimée avec succès");
+        navigateToAdmin('offers');
+      } else {
+        toast.error("Erreur lors de la suppression");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression de l'offre");
+    }
   };
 
 
@@ -521,6 +579,11 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               <CompactActionsSidebar
                   offer={offer}
                   onEdit={handleEditOffer}
+                  onGeneratePDF={handleGeneratePDF}
+                  onSendEmail={() => setEmailDialogOpen(true)}
+                  onOpenPublicLink={handleOpenPublicLink}
+                  onDelete={handleDeleteOffer}
+                  isGeneratingPDF={isGeneratingPDF}
                   onEditRequestDate={() => {
                     setDateEditorType('request');
                     setIsDateEditorOpen(true);
@@ -665,6 +728,17 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           offerData={offer}
           onSendEmailAndValidate={handleSendEmailAndValidate}
           onValidateWithoutEmail={handleValidateWithoutEmail}
+        />
+
+        {/* Dialog d'envoi d'email */}
+        <EmailOfferDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          offerId={offer.id}
+          offerNumber={offer.offer_number || offer.dossier_number}
+          clientEmail={offer.client_email}
+          clientName={offer.client_name}
+          validity={offer.content_blocks?.cover_validity}
         />
       </Container>
     </PageTransition>

@@ -1,21 +1,39 @@
 
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Mail, 
   Edit, 
-  Eye, 
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  FileText,
+  Mail,
+  ExternalLink,
+  Trash2,
+  Eye
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface CompactActionsSidebarProps {
   offer: any;
   onEdit: () => void;
+  onGeneratePDF: () => void;
+  onSendEmail: () => void;
+  onOpenPublicLink: () => void;
+  onDelete: () => void;
+  isGeneratingPDF?: boolean;
   onEditRequestDate?: () => void;
   onEditCreatedDate?: () => void;
 }
@@ -23,9 +41,15 @@ interface CompactActionsSidebarProps {
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   offer,
   onEdit,
+  onGeneratePDF,
+  onSendEmail,
+  onOpenPublicLink,
+  onDelete,
+  isGeneratingPDF = false,
   onEditRequestDate,
   onEditCreatedDate
 }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -172,8 +196,72 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
               <span>Modifier</span>
             </Button>
           )}
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="w-full justify-start text-sm h-8" 
+            onClick={onGeneratePDF}
+            disabled={isGeneratingPDF}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            <span>{isGeneratingPDF ? "Génération..." : "Générer PDF"}</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="w-full justify-start text-sm h-8" 
+            onClick={onSendEmail}
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            <span>Envoyer offre par mail</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="w-full justify-start text-sm h-8" 
+            onClick={onOpenPublicLink}
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            <span>Ouvrir le lien public</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="w-full justify-start text-sm h-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            <span>Supprimer</span>
+          </Button>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action ne peut pas être annulée. Cela supprimera définitivement cette offre.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                onDelete();
+                setShowDeleteConfirm(false);
+              }} 
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Informations signature */}
       {offer.signed_at && (
