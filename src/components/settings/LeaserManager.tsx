@@ -17,7 +17,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { Leaser } from "@/types/equipment";
-import { getLeasers, addLeaser, updateLeaser, deleteLeaser } from "@/services/leaserService";
+import { getLeasers, addLeaser, updateLeaser, deleteLeaser, duplicateLeaser } from "@/services/leaserService";
 import { toast } from "sonner";
 import { forceRefreshCRMCache } from "@/utils/crmCacheUtils";
 import LeaserList from "./LeaserList";
@@ -134,6 +134,18 @@ const LeaserManager = () => {
     }
   };
 
+  const handleDuplicateLeaser = async (leaser: Leaser) => {
+    try {
+      const duplicated = await duplicateLeaser(leaser.id);
+      if (duplicated) {
+        await refreshLeasers();
+      }
+    } catch (error: any) {
+      console.error("LeaserManager: Error duplicating leaser:", error);
+      toast.error(`Erreur: ${error.message}`);
+    }
+  };
+
   // Vue formulaire pleine page
   if (viewMode === 'form') {
     return (
@@ -235,6 +247,7 @@ const LeaserManager = () => {
           isLoading={isLoading}
           onEdit={handleOpenForm}
           onDelete={handleDeleteLeaser}
+          onDuplicate={handleDuplicateLeaser}
         />
       </CardContent>
     </Card>
