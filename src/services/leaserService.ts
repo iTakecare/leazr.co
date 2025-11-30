@@ -439,11 +439,65 @@ export const deleteLeaser = async (id: string): Promise<boolean> => {
   }
 };
 
+/**
+ * Duplique un leaser existant
+ * @param id ID du leaser à dupliquer
+ * @returns Le leaser dupliqué ou null en cas d'erreur
+ */
+export const duplicateLeaser = async (id: string): Promise<Leaser | null> => {
+  try {
+    // Récupérer le leaser complet avec ses ranges et duration_coefficients
+    const sourceLeaser = await getLeaserById(id);
+    if (!sourceLeaser) {
+      toast.error("Leaser source introuvable");
+      return null;
+    }
+    
+    // Créer un nouveau leaser avec nom "(Copie)"
+    const duplicatedLeaserData: Omit<Leaser, 'id'> = {
+      name: `${sourceLeaser.name} (Copie)`,
+      company_name: sourceLeaser.company_name,
+      logo_url: sourceLeaser.logo_url,
+      address: sourceLeaser.address,
+      city: sourceLeaser.city,
+      postal_code: sourceLeaser.postal_code,
+      country: sourceLeaser.country,
+      vat_number: sourceLeaser.vat_number,
+      phone: sourceLeaser.phone,
+      email: sourceLeaser.email,
+      available_durations: sourceLeaser.available_durations,
+      ranges: sourceLeaser.ranges.map(range => ({
+        ...range,
+        id: undefined // Remove ID so new ones are created
+      }))
+    };
+    
+    // Ajouter use_duration_coefficients si présent
+    if ((sourceLeaser as any).use_duration_coefficients !== undefined) {
+      (duplicatedLeaserData as any).use_duration_coefficients = (sourceLeaser as any).use_duration_coefficients;
+    }
+    
+    // Utiliser createLeaser qui gère déjà les ranges et duration_coefficients
+    const duplicated = await createLeaser(duplicatedLeaserData);
+    
+    if (duplicated) {
+      toast.success(`Leaser "${sourceLeaser.name}" dupliqué avec succès`);
+    }
+    
+    return duplicated;
+  } catch (error) {
+    console.error('Exception during leaser duplication:', error);
+    toast.error("Erreur lors de la duplication du leaser");
+    return null;
+  }
+};
+
 export default {
   getLeasers,
   getLeaserById,
   createLeaser,
   addLeaser,
   updateLeaser,
-  deleteLeaser
+  deleteLeaser,
+  duplicateLeaser
 };
