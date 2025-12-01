@@ -74,8 +74,9 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
     // Fetch equipment using the shared service to ensure proper RLS and structure
     const equipmentData: OfferEquipment[] = await getOfferEquipment(offerId);
 
+    // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
     const totalMonthlyPayment = equipmentData.reduce(
-      (sum, item) => sum + (item.monthly_payment || 0) * (item.quantity || 1),
+      (sum, item) => sum + (item.monthly_payment || 0),
       0
     );
 

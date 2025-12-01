@@ -564,7 +564,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <TableCell className="text-right">
                       {isEditing ? (
                         <span className="text-purple-600 font-semibold">
-                          {formatPrice((values.monthly_payment || 0) * values.quantity)}
+                          {formatPrice(values.monthly_payment || 0)}
                         </span>
                       ) : (
                         <span className="text-purple-600 font-semibold">

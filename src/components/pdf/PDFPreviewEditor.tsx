@@ -66,8 +66,9 @@ export const PDFPreviewEditor: React.FC<PDFPreviewEditorProps> = ({
 
       const equipment = await getOfferEquipment(offerId);
       
+      // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
       const totalMonthlyPayment = equipment.reduce(
-        (sum, item) => sum + (item.monthly_payment || 0) * (item.quantity || 1),
+        (sum, item) => sum + (item.monthly_payment || 0),
         0
       );
 
