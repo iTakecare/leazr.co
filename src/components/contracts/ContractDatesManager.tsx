@@ -29,7 +29,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   const [selectedDeliveryDate, setSelectedDeliveryDate] = useState<Date | undefined>(
     deliveryDate ? new Date(deliveryDate) : undefined
   );
-  const [calculatedStartDate, setCalculatedStartDate] = useState<Date | undefined>(
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(
     contractStartDate ? new Date(contractStartDate) : undefined
   );
   const [leaserRule, setLeaserRule] = useState<string>('');
@@ -54,10 +54,10 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
     fetchLeaserSettings();
   }, [leaserName]);
 
-  // Mettre à jour calculatedStartDate quand contractStartDate change
+  // Mettre à jour selectedStartDate quand contractStartDate change
   useEffect(() => {
     if (contractStartDate) {
-      setCalculatedStartDate(new Date(contractStartDate));
+      setSelectedStartDate(new Date(contractStartDate));
     }
   }, [contractStartDate]);
 
@@ -79,7 +79,6 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
 
     setIsUpdating(true);
     try {
-      // Mettre à jour la delivery_date
       const { error } = await supabase
         .from('contracts')
         .update({ 
@@ -98,6 +97,33 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
       setTimeout(() => {
         onUpdate?.();
       }, 500);
+      
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour:', error);
+      toast.error('Erreur lors de la mise à jour de la date');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleContractStartDateChange = async (date: Date | undefined) => {
+    if (!date) return;
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('contracts')
+        .update({ 
+          contract_start_date: format(date, 'yyyy-MM-dd'),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contractId);
+
+      if (error) throw error;
+
+      setSelectedStartDate(date);
+      toast.success('Date de début de contrat mise à jour');
+      onUpdate?.();
       
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour:', error);
@@ -140,32 +166,54 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={selectedDeliveryDate}
                 onSelect={handleDeliveryDateChange}
                 locale={fr}
                 initialFocus
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
         </div>
 
-        {/* Date de début calculée */}
+        {/* Date de début de contrat - ÉDITABLE */}
         <div className="space-y-2">
-          <Label>Date de début de contrat (calculée automatiquement)</Label>
-          <div className="rounded-md border bg-muted/50 p-3">
-            {calculatedStartDate ? (
-              <p className="font-medium">
-                {format(calculatedStartDate, "PPP", { locale: fr })}
-              </p>
-            ) : (
-              <p className="text-muted-foreground">
-                Sera calculée après la saisie de la date de livraison
-              </p>
-            )}
-          </div>
+          <Label>Date de début de contrat</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !selectedStartDate && "text-muted-foreground"
+                )}
+                disabled={isUpdating}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedStartDate ? (
+                  format(selectedStartDate, "PPP", { locale: fr })
+                ) : (
+                  <span>Sélectionner une date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedStartDate}
+                onSelect={handleContractStartDateChange}
+                locale={fr}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-muted-foreground">
+            Par défaut calculée selon la règle du leaser, mais modifiable manuellement
+          </p>
         </div>
 
         {/* Informations sur la règle du leaser */}
