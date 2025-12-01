@@ -464,8 +464,6 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         offers!inner(dossier_number),
         contract_equipment(id, monthly_payment, quantity)
       `)
-      .order('created_at', { ascending: false });
-      
     if (!includeCompleted) {
       query = query.neq('status', contractStatuses.COMPLETED);
     }
@@ -489,6 +487,13 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : contract.monthly_payment
       };
     }) || [];
+
+    // Trier par contract_start_date (ou created_at si non définie) - les plus récents en premier
+    contracts.sort((a, b) => {
+      const dateA = new Date(a.contract_start_date || a.created_at).getTime();
+      const dateB = new Date(b.contract_start_date || b.created_at).getTime();
+      return dateB - dateA;
+    });
 
     return contracts;
   } catch (error) {
