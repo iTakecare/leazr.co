@@ -230,7 +230,7 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
                 <TableCell className="font-medium whitespace-nowrap">
                   <div className="flex items-center">
                     <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {formatDate(contract.created_at)}
+                    {formatDate(contract.contract_start_date || contract.created_at)}
                   </div>
                 </TableCell>
                 <TableCell>{contract.client_name}</TableCell>
