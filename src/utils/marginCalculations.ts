@@ -38,7 +38,8 @@ export const calculateEquipmentTotals = (offer: OfferFinancialData, equipmentIte
       
       return {
         totalPurchasePrice: acc.totalPurchasePrice + purchasePrice * quantity,
-        totalMonthlyPayment: acc.totalMonthlyPayment + (monthlyPayment * quantity),
+        // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
+        totalMonthlyPayment: acc.totalMonthlyPayment + monthlyPayment,
         totalSellingPrice: acc.totalSellingPrice + sellingPrice * quantity
       };
     }, {
