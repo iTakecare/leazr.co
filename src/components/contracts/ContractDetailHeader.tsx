@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Calendar, User, Building2, Euro, FileText, Receipt } from "lucide-react";
+import { ChevronLeft, Calendar as CalendarIcon, User, Building2, Euro, FileText, Receipt, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ContractReferenceEditor } from "./ContractReferenceEditor";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -13,6 +13,11 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
@@ -29,6 +34,10 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   const [canGenerateInvoice, setCanGenerateInvoice] = useState(false);
   const [existingInvoice, setExistingInvoice] = useState<any>(null);
   const [hasMissingSerials, setHasMissingSerials] = useState(false);
+  const [contractStartDate, setContractStartDate] = useState<Date | undefined>(
+    contract.contract_start_date ? new Date(contract.contract_start_date) : undefined
+  );
+  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
 
   useEffect(() => {
     const checkBillitIntegration = async () => {
@@ -100,6 +109,32 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
     }
   };
 
+  const handleContractDateChange = async (date: Date | undefined) => {
+    if (!date) return;
+
+    setIsUpdatingDate(true);
+    try {
+      const { error } = await supabase
+        .from('contracts')
+        .update({ 
+          contract_start_date: format(date, 'yyyy-MM-dd'),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contract.id);
+
+      if (error) throw error;
+
+      setContractStartDate(date);
+      toast.success('Date du contrat mise à jour');
+      onRefresh?.();
+    } catch (error: any) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setIsUpdatingDate(false);
+    }
+  };
+
   return (
     <div className="bg-gradient-to-r from-primary/5 to-accent/5 border-b">
       <div className="container mx-auto p-6">
@@ -125,12 +160,32 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
                 />
               </div>
               <div className="flex items-center gap-4 mt-1">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">
-                    Créé le {formatDate(contract.created_at)}
-                  </span>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button 
+                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
+                      disabled={isUpdatingDate}
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      <span>
+                        Contrat du {contractStartDate 
+                          ? format(contractStartDate, "dd MMMM yyyy", { locale: fr })
+                          : formatDate(contract.created_at)}
+                      </span>
+                      <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={contractStartDate}
+                      onSelect={handleContractDateChange}
+                      locale={fr}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
                 {contract.offer_id && contract.offer_dossier_number && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span className="text-muted-foreground">•</span>
