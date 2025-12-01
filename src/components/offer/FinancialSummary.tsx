@@ -29,6 +29,8 @@ interface FinancialSummaryProps {
   offerData?: OfferFinancialData;
   fileFee?: number;
   annualInsurance?: number;
+  // Mode achat direct (pas de financement)
+  isPurchase?: boolean;
 }
 
 const FinancialSummary = ({ 
@@ -39,8 +41,96 @@ const FinancialSummary = ({
   showCommission = false,
   offerData,
   fileFee,
-  annualInsurance
+  annualInsurance,
+  isPurchase = false
 }: FinancialSummaryProps) => {
+  
+  // MODE ACHAT: Affichage simplifié sans financement
+  if (isPurchase) {
+    const totalPurchasePrice = offerData?.totalPurchasePrice || calculations?.totalPurchasePrice || 0;
+    const totalMargin = offerData?.totalMargin || calculations?.normalMarginAmount || 0;
+    const totalSalePrice = totalPurchasePrice + totalMargin;
+    const marginPercentage = totalPurchasePrice > 0 ? (totalMargin / totalPurchasePrice) * 100 : 0;
+
+    return (
+      <Card className="border border-gray-200 shadow-sm">
+        <CardHeader className="pb-2 border-b">
+          <CardTitle className="flex items-center gap-2">
+            <span>Récapitulatif - Vente directe</span>
+            <span className="text-xs font-normal bg-orange-100 text-orange-800 px-2 py-1 rounded">Achat</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="space-y-3">
+            {/* Prix d'achat total */}
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                Prix d'achat total :
+              </span>
+              <span className="text-sm font-semibold text-gray-900">
+                {formatCurrency(totalPurchasePrice)}
+              </span>
+            </div>
+
+            {/* Marge totale générée */}
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">
+                Marge totale générée :
+              </span>
+              <span className="text-sm font-semibold text-gray-900">
+                {formatCurrency(totalMargin)} ({marginPercentage.toFixed(2)}%)
+              </span>
+            </div>
+
+            {/* Prix de vente total - mise en avant */}
+            <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-green-800">
+                  Prix de vente total :
+                </span>
+                <span className="text-lg font-bold text-green-900">
+                  {formatCurrency(totalSalePrice)}
+                </span>
+              </div>
+            </div>
+
+            {/* Commission (si affichée) */}
+            {showCommission && commissionData && commissionData.amount > 0 && (
+              <div className="pt-3 border-t border-gray-200">
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-blue-800">
+                      Commission ambassadeur :
+                    </span>
+                    <span className="text-lg font-bold text-blue-900">
+                      {formatCurrency(commissionData.amount)}
+                    </span>
+                  </div>
+                  {commissionData.levelName && (
+                    <div className="text-xs text-blue-700">
+                      Niveau : {commissionData.levelName} ({commissionData.rate.toFixed(2)}%)
+                    </div>
+                  )}
+                </div>
+                
+                {/* Marge nette après commission */}
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-amber-800">
+                      Marge nette après commission :
+                    </span>
+                    <span className="text-lg font-bold text-amber-900">
+                      {formatCurrency(totalMargin - commissionData.amount)} ({((totalMargin - commissionData.amount) / totalPurchasePrice * 100).toFixed(2)}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   // If offerData is provided, use it instead of calculations
   if (offerData) {
