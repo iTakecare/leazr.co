@@ -79,6 +79,7 @@ const CreateOffer = () => {
   const [fileFeeAmount, setFileFeeAmount] = useState(75);
   const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
   const [estimatedBudget, setEstimatedBudget] = useState<number>(0);
+  const [isPurchase, setIsPurchase] = useState(false); // Mode achat direct
   const [selectedPacks, setSelectedPacks] = useState<Array<{
     pack_id: string;
     pack: ProductPack;
@@ -585,6 +586,12 @@ const CreateOffer = () => {
         calculatedCommission,
         isInternalOffer
       });
+      // Calculer le montant total pour l'achat direct (prix d'achat + marge)
+      const totalSaleAmount = equipmentList.reduce((sum, eq) => {
+        const financedAmountForEq = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
+        return sum + financedAmountForEq;
+      }, 0);
+
       const offerData: OfferData = {
         user_id: user.id,
         company_id: userCompanyId,
@@ -592,18 +599,32 @@ const CreateOffer = () => {
         client_email: clientEmail || null,
         client_id: clientId,
         
+        // Mode achat direct
+        is_purchase: isPurchase,
+        
         // Gestion "produits à déterminer"
         products_to_be_determined: productsToBeDetermined,
         estimated_budget: productsToBeDetermined ? estimatedBudget : null,
         equipment_description: productsToBeDetermined ? '[]' : JSON.stringify(equipmentData),
         
-        amount: productsToBeDetermined ? (estimatedBudget || 0) : (totalAmount || 0),
-        coefficient: productsToBeDetermined ? getMaxCoefficientFromLeaser(selectedLeaser) : (globalMarginAdjustment.newCoef || 3.55),
-        monthly_payment: productsToBeDetermined 
-          ? ((estimatedBudget || 0) * getMaxCoefficientFromLeaser(selectedLeaser)) / 100
-          : (totalMonthlyPayment || 0),
+        // Montants adaptés selon le mode (achat vs leasing)
+        amount: productsToBeDetermined 
+          ? (estimatedBudget || 0) 
+          : isPurchase 
+            ? totalSaleAmount 
+            : (totalAmount || 0),
+        coefficient: isPurchase ? 0 : (productsToBeDetermined ? getMaxCoefficientFromLeaser(selectedLeaser) : (globalMarginAdjustment.newCoef || 3.55)),
+        monthly_payment: isPurchase 
+          ? 0 
+          : productsToBeDetermined 
+            ? ((estimatedBudget || 0) * getMaxCoefficientFromLeaser(selectedLeaser)) / 100
+            : (totalMonthlyPayment || 0),
         commission: calculatedCommission || 0,
-        financed_amount: productsToBeDetermined ? (estimatedBudget || 0) : (financedAmount || 0),
+        financed_amount: isPurchase 
+          ? totalSaleAmount 
+          : productsToBeDetermined 
+            ? (estimatedBudget || 0) 
+            : (financedAmount || 0),
         remarks: remarks,
         type: offerType,
         workflow_status: 'draft',
@@ -611,10 +632,11 @@ const CreateOffer = () => {
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: productsToBeDetermined ? 0 : (totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)),
         ambassador_id: ambassadorId,
-        leaser_id: selectedLeaser?.id,
-        duration: selectedDuration,
-        file_fee: fileFeeEnabled ? fileFeeAmount : 0,
-        annual_insurance: productsToBeDetermined ? 0 : annualInsurance
+        // En mode achat, pas de leaser ni durée
+        leaser_id: isPurchase ? null : selectedLeaser?.id,
+        duration: isPurchase ? null : selectedDuration,
+        file_fee: isPurchase ? 0 : (fileFeeEnabled ? fileFeeAmount : 0),
+        annual_insurance: isPurchase ? 0 : (productsToBeDetermined ? 0 : annualInsurance)
       };
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
@@ -705,7 +727,22 @@ const CreateOffer = () => {
                     <span className="ml-2">Chargement...</span>
                   </div> : <div className="space-y-4">
                     {/* Configuration de l'offre */}
-                    <OfferConfiguration isInternalOffer={isInternalOffer} setIsInternalOffer={handleInternalOfferChange} selectedAmbassador={selectedAmbassador} onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} selectedLeaser={selectedLeaser} onOpenLeaserSelector={handleOpenLeaserSelector} selectedDuration={selectedDuration} onDurationChange={handleDurationChange} fileFeeEnabled={fileFeeEnabled} fileFeeAmount={fileFeeAmount} onFileFeeEnabledChange={setFileFeeEnabled} onFileFeeAmountChange={setFileFeeAmount} />
+                    <OfferConfiguration 
+                      isInternalOffer={isInternalOffer} 
+                      setIsInternalOffer={handleInternalOfferChange} 
+                      selectedAmbassador={selectedAmbassador} 
+                      onOpenAmbassadorSelector={() => setIsAmbassadorSelectorOpen(true)} 
+                      selectedLeaser={selectedLeaser} 
+                      onOpenLeaserSelector={handleOpenLeaserSelector} 
+                      selectedDuration={selectedDuration} 
+                      onDurationChange={handleDurationChange} 
+                      fileFeeEnabled={fileFeeEnabled} 
+                      fileFeeAmount={fileFeeAmount} 
+                      onFileFeeEnabledChange={setFileFeeEnabled} 
+                      onFileFeeAmountChange={setFileFeeAmount}
+                      isPurchase={isPurchase}
+                      setIsPurchase={setIsPurchase}
+                    />
 
                     {/* Option Produits à déterminer */}
                     <Card className="p-4">

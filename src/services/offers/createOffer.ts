@@ -73,6 +73,9 @@ export const createOffer = async (offerData: OfferData) => {
       console.log("⚙️ OFFRE ADMINISTRATIVE par défaut:", offerType);
     }
     
+    // Déterminer si c'est un achat direct
+    const isPurchase = offerData.is_purchase || false;
+    
     // Préparer les données pour la base de données (SANS le champ equipment)
     const dbOfferData = {
       user_id: offerData.user_id,
@@ -82,10 +85,12 @@ export const createOffer = async (offerData: OfferData) => {
       client_email: offerData.client_email,
       equipment_description: offerData.equipment_description,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
-      coefficient: typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient,
-      monthly_payment: typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment,
-      leaser_id: offerData.leaser_id,
-      duration: offerData.duration,
+      // En mode achat, pas de coefficient ni mensualité
+      coefficient: isPurchase ? 0 : (typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient),
+      monthly_payment: isPurchase ? 0 : (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment),
+      leaser_id: isPurchase ? null : offerData.leaser_id,
+      duration: isPurchase ? null : offerData.duration,
+      is_purchase: isPurchase,
       commission: offerData.commission !== undefined && offerData.commission !== null ?
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         undefined,

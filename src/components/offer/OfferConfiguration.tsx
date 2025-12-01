@@ -7,6 +7,7 @@ import AmbassadorButton from "./AmbassadorButton";
 import LeaserButton from "./LeaserButton";
 import DurationButton from "./DurationButton";
 import { FileFeeConfiguration } from "./FileFeeConfiguration";
+import PurchaseToggle from "./PurchaseToggle";
 import { Leaser } from "@/types/equipment";
 import { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
 
@@ -23,6 +24,9 @@ interface OfferConfigurationProps {
   fileFeeAmount?: number;
   onFileFeeEnabledChange?: (enabled: boolean) => void;
   onFileFeeAmountChange?: (amount: number) => void;
+  // Nouvelles props pour le mode achat
+  isPurchase?: boolean;
+  setIsPurchase?: (value: boolean) => void;
 }
 
 const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
@@ -37,12 +41,25 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
   fileFeeEnabled,
   fileFeeAmount,
   onFileFeeEnabledChange,
-  onFileFeeAmountChange
+  onFileFeeAmountChange,
+  isPurchase = false,
+  setIsPurchase
 }) => {
   const showFileFeeConfig = fileFeeEnabled !== undefined && 
                             fileFeeAmount !== undefined && 
                             onFileFeeEnabledChange && 
                             onFileFeeAmountChange;
+
+  const showPurchaseToggle = setIsPurchase !== undefined;
+
+  // Calculer le nombre de colonnes dynamiquement
+  const getGridCols = () => {
+    let cols = 2; // Type d'offre + au moins un autre
+    if (!isInternalOffer) cols++; // Ambassadeur
+    if (!isPurchase) cols += 2; // Prestataire + Durée (seulement en mode leasing)
+    if (showFileFeeConfig && !isPurchase) cols++; // Frais de dossier (seulement en mode leasing)
+    return Math.min(cols, 6);
+  };
 
   return (
     <Card className="mb-4">
@@ -53,7 +70,20 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${showFileFeeConfig ? '5' : '4'} gap-3`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${getGridCols()} gap-3`}>
+          {/* Mode Achat/Leasing */}
+          {showPurchaseToggle && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">
+                Mode de vente
+              </label>
+              <PurchaseToggle
+                isPurchase={isPurchase}
+                setIsPurchase={setIsPurchase}
+              />
+            </div>
+          )}
+
           {/* Type d'offre */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-700">
@@ -88,36 +118,40 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
             </div>
           )}
 
-          {/* Prestataire de leasing */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">
-              Prestataire de leasing
-            </label>
-            <LeaserButton 
-              selectedLeaser={selectedLeaser} 
-              onOpen={onOpenLeaserSelector}
-            />
-          </div>
+          {/* Prestataire de leasing (seulement en mode leasing) */}
+          {!isPurchase && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">
+                Prestataire de leasing
+              </label>
+              <LeaserButton 
+                selectedLeaser={selectedLeaser} 
+                onOpen={onOpenLeaserSelector}
+              />
+            </div>
+          )}
 
-          {/* Durée de financement */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">
-              Durée de financement
-            </label>
-            <DurationButton
-              selectedDuration={selectedDuration}
-              onDurationChange={onDurationChange}
-              leaser={selectedLeaser}
-            />
-            {!selectedLeaser && (
-              <p className="text-xs text-muted-foreground">
-                Sélectionnez d'abord un prestataire
-              </p>
-            )}
-          </div>
+          {/* Durée de financement (seulement en mode leasing) */}
+          {!isPurchase && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">
+                Durée de financement
+              </label>
+              <DurationButton
+                selectedDuration={selectedDuration}
+                onDurationChange={onDurationChange}
+                leaser={selectedLeaser}
+              />
+              {!selectedLeaser && (
+                <p className="text-xs text-muted-foreground">
+                  Sélectionnez d'abord un prestataire
+                </p>
+              )}
+            </div>
+          )}
 
-          {/* Frais de dossier (optionnel) */}
-          {showFileFeeConfig && (
+          {/* Frais de dossier (optionnel, seulement en mode leasing) */}
+          {showFileFeeConfig && !isPurchase && (
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-700">
                 Montant frais de dossier (HTVA)
@@ -131,6 +165,18 @@ const OfferConfiguration: React.FC<OfferConfigurationProps> = ({
             </div>
           )}
         </div>
+
+        {/* Message informatif pour le mode achat */}
+        {isPurchase && (
+          <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <p className="text-sm text-primary font-medium">
+              Mode Achat Direct
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cette offre sera une vente directe sans financement. Le client paiera le montant total en une fois.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
