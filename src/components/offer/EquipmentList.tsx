@@ -44,6 +44,8 @@ interface EquipmentListProps {
   offerData?: OfferFinancialData;
   fileFee?: number;
   annualInsurance?: number;
+  // Mode achat direct (pas de financement)
+  isPurchase?: boolean;
 }
 
 const EquipmentList = ({
@@ -62,7 +64,8 @@ const EquipmentList = ({
   hidePriceColumn = false,
   offerData,
   fileFee,
-  annualInsurance
+  annualInsurance,
+  isPurchase = false
 }: EquipmentListProps) => {
   const { user } = useAuth();
   const handleQuantityChange = (id: string, newQuantity: number) => {
@@ -241,7 +244,7 @@ const EquipmentList = ({
                       </th>
                     )}
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[100px]">
-                      Mensualité
+                      {isPurchase ? 'Prix de vente' : 'Mensualité'}
                     </th>
                     <th className="px-2 py-2 text-left text-sm font-medium text-gray-700 min-w-[120px]">
                       Livraison
@@ -310,7 +313,10 @@ const EquipmentList = ({
                         </td>
                       )}
                       <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
-                        {formatCurrency(item.monthlyPayment || 0)}
+                        {isPurchase 
+                          ? formatCurrency((item.purchasePrice * item.quantity) * (1 + (item.margin || 0) / 100))
+                          : formatCurrency(item.monthlyPayment || 0)
+                        }
                       </td>
                       <td className="px-2 py-3 text-sm text-gray-900">
                         {renderDeliveryInfo(item)}
@@ -345,7 +351,7 @@ const EquipmentList = ({
       </Card>
       
       {/* Show appropriate financial summary based on mode */}
-      {equipmentList.length > 0 && totalMonthlyPayment > 0 && !hideFinancialDetails && calculations && (
+      {equipmentList.length > 0 && (isPurchase || totalMonthlyPayment > 0) && !hideFinancialDetails && calculations && (
         <>
           {isAdminCreatingAmbassadorOffer ? (
             // Admin creating ambassador offer: show full admin summary + commission
@@ -362,6 +368,7 @@ const EquipmentList = ({
               offerData={offerData}
               fileFee={fileFee}
               annualInsurance={annualInsurance}
+              isPurchase={isPurchase}
             />
           ) : isAmbassadorMode ? (
             // Ambassador creating their own offer: show simplified summary
@@ -381,6 +388,7 @@ const EquipmentList = ({
               offerData={offerData}
               fileFee={fileFee}
               annualInsurance={annualInsurance}
+              isPurchase={isPurchase}
             />
           )}
         </>

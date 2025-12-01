@@ -613,7 +613,7 @@ const CreateOffer = () => {
           : isPurchase 
             ? totalSaleAmount 
             : (totalAmount || 0),
-        coefficient: isPurchase ? 0 : (productsToBeDetermined ? getMaxCoefficientFromLeaser(selectedLeaser) : (globalMarginAdjustment.newCoef || 3.55)),
+        coefficient: isPurchase ? 0 : (productsToBeDetermined ? (getMaxCoefficientFromLeaser(selectedLeaser) || 3.55) : (Number(globalMarginAdjustment.newCoef) || 3.55)),
         monthly_payment: isPurchase 
           ? 0 
           : productsToBeDetermined 
@@ -829,7 +829,7 @@ const CreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
                     // Transmettre les infos commission pour l'affichage
-                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} />
+                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} isPurchase={isPurchase} />
                         
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} productsToBeDetermined={productsToBeDetermined} />
                       </div>
