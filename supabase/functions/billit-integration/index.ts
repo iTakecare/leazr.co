@@ -79,9 +79,9 @@ async function handleBillitTest(companyId: string) {
           message: "Credentials présentes"
         };
 
-        // Test 3: Test de connexion API
+        // Test 3: Test de connexion API - utiliser /v1/orders au lieu de /v1/users/current
         try {
-          const testUrl = `${credentials.baseUrl}/v1/users/current`;
+          const testUrl = `${credentials.baseUrl}/v1/orders?$top=1`;
           const testResponse = await fetch(testUrl, {
             method: 'GET',
             headers: {
@@ -91,11 +91,9 @@ async function handleBillitTest(companyId: string) {
           });
 
           if (testResponse.ok) {
-            const userData = await testResponse.json();
             testResults.api_connection = {
               success: true,
-              message: "Connexion API réussie",
-              user: userData.name || userData.email || "Utilisateur Billit"
+              message: "Connexion API réussie"
             };
           } else {
             const errorText = await testResponse.text();
