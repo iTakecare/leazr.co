@@ -67,9 +67,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!session) return;
     
     try {
+      // Rafraîchir la session pour s'assurer d'avoir un token valide
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.warn('Session refresh failed:', refreshError.message);
+        // Utiliser le token actuel en dernier recours
+      }
+      
+      const currentToken = refreshData?.session?.access_token || session.access_token;
+      
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${currentToken}`,
         },
       });
 
