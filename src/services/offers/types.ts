@@ -40,6 +40,7 @@ export interface OfferData {
   business_sector?: string; // Secteur d'activité de l'offre
   file_fee?: number; // Frais de dossier
   annual_insurance?: number; // Assurance annuelle
+  is_purchase?: boolean; // true = achat direct (sans financement), false = leasing (défaut)
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;

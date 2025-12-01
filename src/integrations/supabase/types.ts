@@ -4201,6 +4201,7 @@ export type Database = {
           financed_amount: number | null
           id: string
           internal_score: string | null
+          is_purchase: boolean | null
           leaser_id: string | null
           leaser_score: string | null
           margin: number | null
@@ -4248,6 +4249,7 @@ export type Database = {
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
+          is_purchase?: boolean | null
           leaser_id?: string | null
           leaser_score?: string | null
           margin?: number | null
@@ -4295,6 +4297,7 @@ export type Database = {
           financed_amount?: number | null
           id?: string
           internal_score?: string | null
+          is_purchase?: boolean | null
           leaser_id?: string | null
           leaser_score?: string | null
           margin?: number | null
@@ -6689,6 +6692,7 @@ export type Database = {
           financed_amount: number | null
           id: string
           internal_score: string | null
+          is_purchase: boolean | null
           leaser_id: string | null
           leaser_score: string | null
           margin: number | null
