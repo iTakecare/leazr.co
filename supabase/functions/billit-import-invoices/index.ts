@@ -120,6 +120,7 @@ serve(async (req) => {
       method: 'GET',
       headers: {
         'ApiKey': credentials.apiKey,
+        'ContextPartyID': credentials.companyId,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
