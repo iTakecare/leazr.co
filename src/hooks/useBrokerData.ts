@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Broker } from '@/types/broker';
@@ -8,10 +8,23 @@ export const useBrokerData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  
+  // Référence pour éviter les re-fetches inutiles
+  const hasFetchedRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
-  const fetchBrokerData = useCallback(async () => {
+  const fetchBrokerData = useCallback(async (force = false) => {
     if (!user) {
       setBroker(null);
+      setLoading(false);
+      hasFetchedRef.current = false;
+      lastUserIdRef.current = null;
+      return;
+    }
+
+    // Ne pas re-fetcher si on a déjà les données pour cet utilisateur
+    // sauf si c'est un refresh forcé
+    if (!force && hasFetchedRef.current && lastUserIdRef.current === user.id) {
       setLoading(false);
       return;
     }
@@ -31,6 +44,8 @@ export const useBrokerData = () => {
       if (!profile?.company_id) {
         setBroker(null);
         setLoading(false);
+        hasFetchedRef.current = true;
+        lastUserIdRef.current = user.id;
         return;
       }
 
@@ -45,22 +60,30 @@ export const useBrokerData = () => {
       if (brokerError) throw brokerError;
 
       setBroker(brokerData as Broker);
+      hasFetchedRef.current = true;
+      lastUserIdRef.current = user.id;
     } catch (err) {
       console.error('Error fetching broker data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setBroker(null);
+      hasFetchedRef.current = true;
+      lastUserIdRef.current = user.id;
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   const refresh = useCallback(() => {
-    fetchBrokerData();
+    // Force refresh explicite
+    fetchBrokerData(true);
   }, [fetchBrokerData]);
 
   useEffect(() => {
-    fetchBrokerData();
-  }, [fetchBrokerData]);
+    // Ne refetcher que si l'utilisateur change réellement (ID différent)
+    if (user?.id !== lastUserIdRef.current) {
+      fetchBrokerData();
+    }
+  }, [user?.id, fetchBrokerData]);
 
   return {
     broker,
