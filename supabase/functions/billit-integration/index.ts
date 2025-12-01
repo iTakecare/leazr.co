@@ -93,9 +93,25 @@ async function handleBillitTest(companyId: string) {
     console.log("✅ Credentials présentes");
 
     // Test 4: Test de connexion API
-    console.log("🔗 Test connexion API Billit:", credentials.baseUrl);
+    // Corriger l'URL de base si nécessaire (my.billit.be -> api.billit.be)
+    let apiBaseUrl = credentials.baseUrl;
+    if (apiBaseUrl.includes('my.billit.be')) {
+      apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
+      results.warnings.push("URL corrigée automatiquement: my.billit.be → api.billit.be");
+    }
+    if (apiBaseUrl.includes('my.sandbox.billit.be')) {
+      apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
+      results.warnings.push("URL corrigée automatiquement: my.sandbox.billit.be → api.sandbox.billit.be");
+    }
+    // Supprimer le trailing slash si présent
+    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
+    
+    console.log("🔗 Test connexion API Billit:", apiBaseUrl);
+    console.log("🔗 URL originale:", credentials.baseUrl);
+    
     try {
-      const testUrl = `${credentials.baseUrl}/v1/orders?$top=1`;
+      // Utiliser /v1/account/accountInformation pour tester la connexion (selon la doc Billit)
+      const testUrl = `${apiBaseUrl}/v1/account/accountInformation`;
       console.log("📡 Appel API:", testUrl);
       
       const testResponse = await fetch(testUrl, {
@@ -103,24 +119,39 @@ async function handleBillitTest(companyId: string) {
         headers: {
           'ApiKey': credentials.apiKey,
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       });
 
       console.log("📡 Réponse API:", testResponse.status, testResponse.statusText);
 
       if (testResponse.ok) {
+        const accountData = await testResponse.json();
         results.auth_test = true;
         results.company_access = true;
         results.api_test = true;
-        console.log("✅ Connexion API réussie");
+        console.log("✅ Connexion API réussie, compte:", accountData?.Email || 'N/A');
+        
+        // Ajouter les infos du compte dans les résultats
+        if (accountData?.Email) {
+          results.warnings.push(`Connecté en tant que: ${accountData.Email}`);
+        }
+        if (accountData?.Companies && accountData.Companies.length > 0) {
+          results.warnings.push(`${accountData.Companies.length} entreprise(s) associée(s)`);
+        }
       } else {
         const errorText = await testResponse.text();
         console.log("❌ Erreur API:", testResponse.status, errorText);
-        results.errors.push(`Erreur API (${testResponse.status}): ${errorText}`);
         
         // Si c'est une erreur 401/403, c'est un problème d'auth
         if (testResponse.status === 401 || testResponse.status === 403) {
           results.errors.push("Clé API invalide ou expirée");
+        } else if (testResponse.status === 404) {
+          results.errors.push("Endpoint non trouvé - vérifiez l'URL de base");
+        } else if (testResponse.status === 405) {
+          results.errors.push("Méthode non autorisée sur cet endpoint");
+        } else {
+          results.errors.push(`Erreur API (${testResponse.status}): ${errorText.substring(0, 200)}`);
         }
       }
     } catch (apiError) {
