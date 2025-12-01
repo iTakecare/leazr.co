@@ -414,6 +414,26 @@ export const updateInvoiceBillingData = async (invoiceId: string, billingData: a
   return data;
 };
 
+// Mettre à jour la date de paiement d'une facture
+export const updateInvoicePaidDate = async (invoiceId: string, paidAt: string) => {
+  const { data, error } = await supabase
+    .from('invoices')
+    .update({ 
+      paid_at: paidAt,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', invoiceId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour de la date de paiement:', error);
+    throw error;
+  }
+
+  return data;
+};
+
 // Mettre à jour le statut d'une facture
 export const updateInvoiceStatus = async (invoiceId: string, status: string, paidAt?: string) => {
   const updateData: any = { status };
