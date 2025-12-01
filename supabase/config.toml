@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.import-meta-leads]
 verify_jwt = false
+
+[functions.billit-import-invoices]
+verify_jwt = true
