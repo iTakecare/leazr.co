@@ -118,7 +118,7 @@ async function handleBillitTest(companyId: string) {
         method: 'GET',
         headers: {
           'ApiKey': credentials.apiKey,
-          'ContextPartyID': credentials.companyId,
+          // ContextPartyID non nécessaire pour cet endpoint d'authentification
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         }
