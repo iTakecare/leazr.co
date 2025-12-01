@@ -109,7 +109,8 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       .select(`
         *, 
         clients(name, email, company),
-        offers!inner(dossier_number)
+        offers!inner(dossier_number),
+        contract_equipment(id, monthly_payment, quantity)
       `)
       .eq('id', contractId)
       .single();
@@ -124,10 +125,19 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       return null;
     }
 
+    // Calculer la mensualité réelle depuis les équipements
+    // monthly_payment en DB est DÉJÀ le total pour chaque équipement (pas unitaire)
+    const calculatedMonthlyPayment = data.contract_equipment?.reduce(
+      (sum: number, eq: any) => sum + (Number(eq.monthly_payment) || 0),
+      0
+    ) || 0;
+
     // Reformater les données pour extraire le dossier_number
     const contractData = {
       ...data,
-      offer_dossier_number: data.offers?.dossier_number
+      offer_dossier_number: data.offers?.dossier_number,
+      // Utiliser le montant calculé s'il y a des équipements, sinon garder la valeur stockée
+      monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : data.monthly_payment
     };
 
     console.log("✅ Contrat récupéré avec succès:", contractData);
