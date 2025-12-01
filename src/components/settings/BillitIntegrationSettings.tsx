@@ -9,6 +9,7 @@ import { Building2, Key, Globe, TestTube, CheckCircle, XCircle, ExternalLink } f
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { setupBillitIntegration, disableBillitIntegration, getBillitIntegration, testBillitIntegration } from "@/services/invoiceService";
 import { toast } from "sonner";
+import BillitInvoiceImportCard from "./BillitInvoiceImportCard";
 
 const BillitIntegrationSettings = () => {
   const { companyId } = useMultiTenant();
@@ -376,6 +377,12 @@ const BillitIntegrationSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Import des factures Billit */}
+      <BillitInvoiceImportCard 
+        companyId={companyId || ''} 
+        integrationEnabled={integration?.is_enabled || false}
+      />
 
       {/* Guide d'intégration */}
       <Card>
