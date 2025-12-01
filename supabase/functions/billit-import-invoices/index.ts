@@ -173,44 +173,60 @@ serve(async (req) => {
     };
 
     let billitResponse: Response;
+    let usedPartyId: string | null = null;
     
-    // Stratégie: si une seule entreprise, essayer sans PartyID d'abord
-    if (companies.length === 1) {
-      // Essayer sans ContextPartyID
-      billitResponse = await fetchOrders(null);
+    // Stratégie adaptative: essayer plusieurs approches
+    // 1. D'abord sans ContextPartyID (fonctionne souvent pour compte mono-entreprise)
+    console.log("🔄 Stratégie 1: Sans ContextPartyID...");
+    billitResponse = await fetchOrders(null);
+    
+    if (!billitResponse.ok) {
+      const errorText1 = await billitResponse.text();
+      console.log("⚠️ Stratégie 1 échouée:", billitResponse.status, errorText1.substring(0, 100));
       
-      if (!billitResponse.ok) {
-        const errorText = await billitResponse.text();
-        console.log("⚠️ Échec sans PartyID, tentative avec PartyID détecté...");
+      // 2. Essayer avec le PartyID configuré si présent
+      const configuredPartyId = credentials.companyId?.trim();
+      if (configuredPartyId) {
+        console.log("🔄 Stratégie 2: Avec PartyID configuré:", configuredPartyId);
+        billitResponse = await fetchOrders(configuredPartyId);
         
-        // Si ça échoue, essayer avec le PartyID de la seule entreprise
-        const detectedPartyId = companies[0].PartyID || companies[0].ID;
-        if (detectedPartyId) {
-          billitResponse = await fetchOrders(detectedPartyId);
+        if (billitResponse.ok) {
+          usedPartyId = configuredPartyId;
         }
       }
-    } else if (companies.length > 1) {
-      // Plusieurs entreprises: le PartyID est obligatoire
-      const configuredPartyId = credentials.companyId?.trim();
       
-      if (!configuredPartyId) {
-        throw new Error(`Plusieurs entreprises Billit détectées. Veuillez configurer le PartyID correct. Options: ${companies.map((c: any) => `${c.Name}: ${c.PartyID || c.ID}`).join(', ')}`);
+      // 3. Si toujours en échec et qu'on a des entreprises, essayer chaque PartyID
+      if (!billitResponse.ok && companies.length > 0) {
+        console.log("🔄 Stratégie 3: Essai de chaque PartyID disponible...");
+        
+        for (const company of companies) {
+          const partyId = company.PartyID || company.ID;
+          if (partyId && partyId !== configuredPartyId) {
+            console.log(`  → Tentative avec ${company.Name || company.CommercialName}: ${partyId}`);
+            billitResponse = await fetchOrders(partyId);
+            
+            if (billitResponse.ok) {
+              usedPartyId = partyId;
+              console.log(`✅ Succès avec PartyID: ${partyId} (${company.Name || company.CommercialName})`);
+              break;
+            }
+          }
+        }
       }
-      
-      billitResponse = await fetchOrders(configuredPartyId);
-    } else {
-      // Pas d'entreprise dans le compte - essayer sans PartyID
-      billitResponse = await fetchOrders(null);
     }
 
     if (!billitResponse.ok) {
       const errorText = await billitResponse.text();
-      console.error("❌ Erreur API Billit:", billitResponse.status, errorText);
+      console.error("❌ Erreur API Billit après toutes tentatives:", billitResponse.status, errorText);
       
-      if (errorText.includes('ApiKeyNotValid')) {
-        throw new Error(`Erreur API Billit: Clé API invalide ou PartyID incorrect. Vérifiez la configuration.`);
-      }
-      throw new Error(`Erreur API Billit: ${billitResponse.status} - ${errorText}`);
+      const partyIdOptions = companies.map((c: any) => `${c.Name || c.CommercialName}: ${c.PartyID || c.ID}`).join(', ');
+      throw new Error(`Erreur API Billit: Impossible d'accéder aux factures. PartyIDs disponibles: ${partyIdOptions}. Vérifiez les permissions de la clé API.`);
+    }
+    
+    if (usedPartyId) {
+      console.log(`📌 PartyID utilisé avec succès: ${usedPartyId}`);
+    } else {
+      console.log(`📌 Accès réussi sans ContextPartyID`);
     }
 
     const billitData = await billitResponse.json();
