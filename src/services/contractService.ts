@@ -451,7 +451,8 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
       .select(`
         *, 
         clients(name, email, company),
-        offers!inner(dossier_number)
+        offers!inner(dossier_number),
+        contract_equipment(id, monthly_payment, quantity)
       `)
       .order('created_at', { ascending: false });
       
@@ -463,11 +464,21 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
 
     if (error) throw error;
 
-    // Reformater les données
-    const contracts = data?.map(contract => ({
-      ...contract,
-      offer_dossier_number: contract.offers?.dossier_number
-    })) || [];
+    // Reformater les données et calculer la vraie mensualité depuis les équipements
+    const contracts = data?.map(contract => {
+      // monthly_payment en DB est DÉJÀ le total pour chaque équipement (pas unitaire)
+      const calculatedMonthlyPayment = contract.contract_equipment?.reduce(
+        (sum: number, eq: any) => sum + (Number(eq.monthly_payment) || 0),
+        0
+      ) || 0;
+      
+      return {
+        ...contract,
+        offer_dossier_number: contract.offers?.dossier_number,
+        // Utiliser le montant calculé s'il y a des équipements, sinon garder la valeur stockée
+        monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : contract.monthly_payment
+      };
+    }) || [];
 
     return contracts;
   } catch (error) {
