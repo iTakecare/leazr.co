@@ -13,6 +13,7 @@ export interface Invoice {
   sent_at?: string;
   paid_at?: string;
   due_date?: string;
+  invoice_date?: string;
   billing_data: any;
   integration_type: string;
   created_at: string;
@@ -428,6 +429,46 @@ export const updateInvoicePaidDate = async (invoiceId: string, paidAt: string) =
 
   if (error) {
     console.error('Erreur lors de la mise à jour de la date de paiement:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Mettre à jour la date de facture
+export const updateInvoiceDate = async (invoiceId: string, invoiceDate: string) => {
+  const { data, error } = await supabase
+    .from('invoices')
+    .update({ 
+      invoice_date: invoiceDate,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', invoiceId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour de la date de facture:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Mettre à jour la date d'échéance d'une facture
+export const updateInvoiceDueDate = async (invoiceId: string, dueDate: string) => {
+  const { data, error } = await supabase
+    .from('invoices')
+    .update({ 
+      due_date: dueDate,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', invoiceId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour de la date d\'échéance:', error);
     throw error;
   }
 

@@ -109,7 +109,7 @@ const InvoicingPage = () => {
                         <TableHead>Bailleur</TableHead>
                         <TableHead>Montant</TableHead>
                         <TableHead>Statut</TableHead>
-                        <TableHead>Date de création</TableHead>
+                        <TableHead>Date de facture</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -125,7 +125,7 @@ const InvoicingPage = () => {
                           <TableCell>{invoice.leaser_name}</TableCell>
                           <TableCell>{formatCurrency(invoice.amount)}</TableCell>
                           <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                          <TableCell>{formatDate(invoice.created_at)}</TableCell>
+                          <TableCell>{formatDate(invoice.invoice_date || invoice.created_at)}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, type Invoice } from "@/services/invoiceService";
+import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, updateInvoiceDate, updateInvoiceDueDate, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -29,15 +29,27 @@ const InvoiceDetailPage = () => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
   const [isSendingToBillit, setIsSendingToBillit] = useState(false);
+  const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(undefined);
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [paidDate, setPaidDate] = useState<Date | undefined>(undefined);
+  const [isUpdatingInvoiceDate, setIsUpdatingInvoiceDate] = useState(false);
+  const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
   const [isUpdatingPaidDate, setIsUpdatingPaidDate] = useState(false);
 
-  // Synchroniser paidDate avec invoice.paid_at
+  // Synchroniser les dates avec invoice
   useEffect(() => {
+    if (invoice?.invoice_date) {
+      setInvoiceDate(new Date(invoice.invoice_date));
+    } else if (invoice?.created_at) {
+      setInvoiceDate(new Date(invoice.created_at));
+    }
+    if (invoice?.due_date) {
+      setDueDate(new Date(invoice.due_date));
+    }
     if (invoice?.paid_at) {
       setPaidDate(new Date(invoice.paid_at));
     }
-  }, [invoice?.paid_at]);
+  }, [invoice?.invoice_date, invoice?.due_date, invoice?.paid_at, invoice?.created_at]);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -170,6 +182,42 @@ const InvoiceDetailPage = () => {
       toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
     } finally {
       setIsDeletingInvoice(false);
+    }
+  };
+
+  const handleInvoiceDateChange = async (date: Date | undefined) => {
+    if (!date || !invoice) return;
+    
+    setIsUpdatingInvoiceDate(true);
+    try {
+      await updateInvoiceDate(invoice.id, format(date, 'yyyy-MM-dd'));
+      
+      setInvoiceDate(date);
+      setInvoice({ ...invoice, invoice_date: date.toISOString() });
+      toast.success('Date de facture mise à jour');
+    } catch (error: any) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setIsUpdatingInvoiceDate(false);
+    }
+  };
+
+  const handleDueDateChange = async (date: Date | undefined) => {
+    if (!date || !invoice) return;
+    
+    setIsUpdatingDueDate(true);
+    try {
+      await updateInvoiceDueDate(invoice.id, format(date, 'yyyy-MM-dd'));
+      
+      setDueDate(date);
+      setInvoice({ ...invoice, due_date: date.toISOString() });
+      toast.success('Date d\'échéance mise à jour');
+    } catch (error: any) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setIsUpdatingDueDate(false);
     }
   };
 
@@ -310,31 +358,76 @@ const InvoiceDetailPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Montant total */}
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-2xl font-bold text-primary">
                     {formatCurrency(invoice.amount)}
                   </div>
                   <div className="text-sm text-muted-foreground">Montant total</div>
                 </div>
-                
-                {invoice.due_date && (
-                  <div className="text-center p-4 bg-muted rounded-lg">
-                    <div className="text-lg font-semibold">
-                      {formatDate(invoice.due_date)}
+
+                {/* Date de facture - ÉDITABLE */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group">
+                      <div className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center justify-center gap-2">
+                        {invoiceDate 
+                          ? format(invoiceDate, "dd/MM/yyyy", { locale: fr })
+                          : "Non définie"}
+                        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <div className="text-sm text-blue-600 dark:text-blue-500">Date de facture</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">Date d'échéance</div>
-                  </div>
-                )}
-                
-                {invoice.paid_at && (
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <CalendarComponent
+                      mode="single"
+                      selected={invoiceDate}
+                      onSelect={handleInvoiceDateChange}
+                      locale={fr}
+                      initialFocus
+                      className="pointer-events-auto"
+                      disabled={isUpdatingInvoiceDate}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Date d'échéance - ÉDITABLE */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors group">
+                      <div className="text-lg font-semibold text-orange-700 dark:text-orange-400 flex items-center justify-center gap-2">
+                        {dueDate 
+                          ? format(dueDate, "dd/MM/yyyy", { locale: fr })
+                          : "Non définie"}
+                        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <div className="text-sm text-orange-600 dark:text-orange-500">Date d'échéance</div>
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dueDate}
+                      onSelect={handleDueDateChange}
+                      locale={fr}
+                      initialFocus
+                      className="pointer-events-auto"
+                      disabled={isUpdatingDueDate}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Date de paiement - ÉDITABLE (visible uniquement si payée) */}
+                {invoice.status === 'paid' && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group">
                         <div className="text-lg font-semibold text-green-700 dark:text-green-400 flex items-center justify-center gap-2">
                           {paidDate 
                             ? format(paidDate, "dd/MM/yyyy", { locale: fr })
-                            : formatDate(invoice.paid_at)}
+                            : "Non définie"}
                           <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <div className="text-sm text-green-600 dark:text-green-500">Date de paiement</div>
