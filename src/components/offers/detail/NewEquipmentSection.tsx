@@ -185,10 +185,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return acc + (item.purchase_price * item.quantity);
     }, 0);
 
+    // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
     const totalMonthlyPayment = equipment.reduce((acc, item) => {
-      const qty = Number(item.quantity) || 1;
-      const unitMonthly = Number(item.monthly_payment) || 0;
-      return acc + unitMonthly * qty;
+      const itemMonthly = Number(item.monthly_payment) || 0;
+      return acc + itemMonthly;  // Pas de multiplication par qty car déjà inclus
     }, 0);
 
     const totalSellingPrice = equipment.reduce((acc, item) => {
@@ -557,7 +557,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         />
                       ) : (
                         <span className="text-blue-600">
-                          {formatPrice(item.monthly_payment || 0)}
+                          {formatPrice((item.monthly_payment || 0) / (item.quantity || 1))}
                         </span>
                       )}
                     </TableCell>
@@ -568,7 +568,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         </span>
                       ) : (
                         <span className="text-purple-600 font-semibold">
-                          {formatPrice((item.monthly_payment || 0) * item.quantity)}
+                          {formatPrice(item.monthly_payment || 0)}
                         </span>
                       )}
                     </TableCell>

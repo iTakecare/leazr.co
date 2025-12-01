@@ -187,7 +187,8 @@ const EquipmentDetailTable: React.FC<EquipmentDetailTableProps> = ({
           <tbody className="divide-y divide-gray-100">
             {equipment.map((item, index) => {
               const monthlyPayment = item.monthlyPayment || 0;
-              const totalItemMonthly = monthlyPayment * item.quantity;
+              // monthlyPayment est DÉJÀ le total pour cet équipement (pas unitaire)
+              const totalItemMonthly = monthlyPayment;
               const itemId = item.id || `item-${index}`;
               const isExpanded = expandedItems[itemId] || false;
               
