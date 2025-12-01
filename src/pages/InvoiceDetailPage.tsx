@@ -6,10 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, type Invoice } from "@/services/invoiceService";
+import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import EditableBillingDataTable from "@/components/invoices/EditableBillingDataTable";
 
@@ -25,6 +29,15 @@ const InvoiceDetailPage = () => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
   const [isSendingToBillit, setIsSendingToBillit] = useState(false);
+  const [paidDate, setPaidDate] = useState<Date | undefined>(undefined);
+  const [isUpdatingPaidDate, setIsUpdatingPaidDate] = useState(false);
+
+  // Synchroniser paidDate avec invoice.paid_at
+  useEffect(() => {
+    if (invoice?.paid_at) {
+      setPaidDate(new Date(invoice.paid_at));
+    }
+  }, [invoice?.paid_at]);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -157,6 +170,24 @@ const InvoiceDetailPage = () => {
       toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
     } finally {
       setIsDeletingInvoice(false);
+    }
+  };
+
+  const handlePaidDateChange = async (date: Date | undefined) => {
+    if (!date || !invoice) return;
+    
+    setIsUpdatingPaidDate(true);
+    try {
+      await updateInvoicePaidDate(invoice.id, format(date, 'yyyy-MM-dd'));
+      
+      setPaidDate(date);
+      setInvoice({ ...invoice, paid_at: date.toISOString() });
+      toast.success('Date de paiement mise à jour');
+    } catch (error: any) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setIsUpdatingPaidDate(false);
     }
   };
 
@@ -297,12 +328,30 @@ const InvoiceDetailPage = () => {
                 )}
                 
                 {invoice.paid_at && (
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-lg font-semibold text-green-700">
-                      {formatDate(invoice.paid_at)}
-                    </div>
-                    <div className="text-sm text-green-600">Date de paiement</div>
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group">
+                        <div className="text-lg font-semibold text-green-700 dark:text-green-400 flex items-center justify-center gap-2">
+                          {paidDate 
+                            ? format(paidDate, "dd/MM/yyyy", { locale: fr })
+                            : formatDate(invoice.paid_at)}
+                          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <div className="text-sm text-green-600 dark:text-green-500">Date de paiement</div>
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <CalendarComponent
+                        mode="single"
+                        selected={paidDate}
+                        onSelect={handlePaidDateChange}
+                        locale={fr}
+                        initialFocus
+                        className="pointer-events-auto"
+                        disabled={isUpdatingPaidDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
             </CardContent>
