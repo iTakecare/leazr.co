@@ -56,6 +56,16 @@ serve(async (req) => {
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
+    
+    // Corriger l'URL de base si nécessaire (my.billit.be -> api.billit.be)
+    let apiBaseUrl = credentials.baseUrl;
+    if (apiBaseUrl.includes('my.billit.be')) {
+      apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
+    }
+    if (apiBaseUrl.includes('my.sandbox.billit.be')) {
+      apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
+    }
+    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
 
     // Construire la requête pour récupérer les factures à synchroniser
     let invoicesQuery = supabase
@@ -98,11 +108,12 @@ serve(async (req) => {
         console.log(`🔍 Synchronisation facture ${invoice.id} (Billit ID: ${invoice.external_invoice_id})`);
 
         // Récupérer les détails depuis Billit
-        const detailsResponse = await fetch(`${credentials.baseUrl}/v1/orders/${invoice.external_invoice_id}`, {
+        const detailsResponse = await fetch(`${apiBaseUrl}/v1/orders/${invoice.external_invoice_id}`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${credentials.apiKey}`,
+            'ApiKey': credentials.apiKey,
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           }
         });
 
@@ -140,7 +151,7 @@ serve(async (req) => {
 
         // Récupérer l'URL du PDF si disponible
         if (billitDetails.OrderPDF && billitDetails.OrderPDF.FileID) {
-          newPdfUrl = `${credentials.baseUrl}/v1/files/${billitDetails.OrderPDF.FileID}`;
+          newPdfUrl = `${apiBaseUrl}/v1/files/${billitDetails.OrderPDF.FileID}`;
         }
 
         // Mettre à jour la facture si des changements sont détectés

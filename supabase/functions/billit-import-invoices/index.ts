@@ -99,17 +99,29 @@ serve(async (req) => {
     }
 
     const credentials = integration.api_credentials as BillitCredentials;
-    console.log("🔑 Credentials récupérées, baseUrl:", credentials.baseUrl);
+    
+    // Corriger l'URL de base si nécessaire (my.billit.be -> api.billit.be)
+    let apiBaseUrl = credentials.baseUrl;
+    if (apiBaseUrl.includes('my.billit.be')) {
+      apiBaseUrl = apiBaseUrl.replace('my.billit.be', 'api.billit.be');
+    }
+    if (apiBaseUrl.includes('my.sandbox.billit.be')) {
+      apiBaseUrl = apiBaseUrl.replace('my.sandbox.billit.be', 'api.sandbox.billit.be');
+    }
+    apiBaseUrl = apiBaseUrl.replace(/\/$/, '');
+    
+    console.log("🔑 Credentials récupérées, baseUrl:", apiBaseUrl);
 
     // Récupérer les factures Income depuis Billit
-    const billitUrl = `${credentials.baseUrl}/v1/orders?OrderDirection=Income&OrderType=Invoice`;
+    const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Income&OrderType=Invoice`;
     console.log("📡 Appel API Billit:", billitUrl);
 
     const billitResponse = await fetch(billitUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${credentials.apiKey}`,
+        'ApiKey': credentials.apiKey,
         'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
@@ -192,7 +204,7 @@ serve(async (req) => {
         // Construire l'URL du PDF si disponible
         let pdfUrl = null;
         if (billitInvoice.OrderPDF?.FileID) {
-          pdfUrl = `${credentials.baseUrl}/v1/files/${billitInvoice.OrderPDF.FileID}`;
+          pdfUrl = `${apiBaseUrl}/v1/files/${billitInvoice.OrderPDF.FileID}`;
         }
 
         // Créer la facture en base
