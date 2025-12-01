@@ -85,8 +85,12 @@ export const createOffer = async (offerData: OfferData) => {
       client_email: offerData.client_email,
       equipment_description: offerData.equipment_description,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
-      // En mode achat, pas de coefficient ni mensualité
-      coefficient: isPurchase ? 0 : (Number(offerData.coefficient) || 3.55),
+      // En mode achat, coefficient = 0; sinon utiliser la valeur ou fallback 3.55
+      coefficient: isPurchase 
+        ? 0 
+        : (offerData.coefficient !== null && offerData.coefficient !== undefined && !isNaN(Number(offerData.coefficient)) 
+            ? Number(offerData.coefficient) 
+            : 3.55),
       monthly_payment: isPurchase ? 0 : (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment),
       leaser_id: isPurchase ? null : offerData.leaser_id,
       duration: isPurchase ? null : offerData.duration,
