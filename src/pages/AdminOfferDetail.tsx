@@ -142,8 +142,9 @@ const [emailDialogOpen, setEmailDialogOpen] = useState(false);
       return offer.monthly_payment || 0;
     }
     
+    // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
     return offer.equipment_data.reduce((total: number, item: any) => {
-      return total + ((item.monthly_payment || 0) * (item.quantity || 1));
+      return total + (item.monthly_payment || 0);
     }, 0);
   };
 

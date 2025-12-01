@@ -343,7 +343,8 @@ serve(async (req) => {
           yPosition = 750;
         }
 
-        const itemMonthly = (item.monthly_payment || 0) * (item.quantity || 1);
+        // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
+        const itemMonthly = item.monthly_payment || 0;
         totalMonthly += itemMonthly;
 
         // Préfixe textuel au lieu d'emoji

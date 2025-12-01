@@ -40,9 +40,9 @@ export const useFetchOffers = () => {
         0
       ) || 0;
       
-      // Calculate total monthly payment from equipment (with quantities)
+      // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
       const totalMonthlyPayment = (offer.offer_equipment || []).reduce(
-        (sum: number, eq: any) => sum + ((Number(eq.monthly_payment) || 0) * (eq.quantity || 1)), 
+        (sum: number, eq: any) => sum + (Number(eq.monthly_payment) || 0), 
         0
       );
       

@@ -102,9 +102,9 @@ export const EmailOfferDialog = ({
       const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
       const equipmentData = await getOfferEquipment(offerId);
 
-      // Calculer le total mensualité à partir des équipements
+      // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
       const computedTotalMonthly = equipmentData.reduce(
-        (sum, eq) => sum + (Number(eq.monthly_payment) || 0) * (Number(eq.quantity) || 1),
+        (sum, eq) => sum + (Number(eq.monthly_payment) || 0),
         0
       );
       console.log('[EMAIL-OFFER] totalMonthly computed from equipment:', computedTotalMonthly);
