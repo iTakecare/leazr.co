@@ -107,15 +107,22 @@ serve(async (req) => {
       try {
         console.log(`🔍 Synchronisation facture ${invoice.id} (Billit ID: ${invoice.external_invoice_id})`);
 
+        // Construire les headers - ContextPartyID seulement si explicitement configuré
+        const billitHeaders: Record<string, string> = {
+          'ApiKey': credentials.apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        };
+        
+        // Ajouter ContextPartyID seulement si présent et non vide
+        if (credentials.companyId && credentials.companyId.trim() !== '') {
+          billitHeaders['ContextPartyID'] = credentials.companyId;
+        }
+
         // Récupérer les détails depuis Billit
         const detailsResponse = await fetch(`${apiBaseUrl}/v1/orders/${invoice.external_invoice_id}`, {
           method: 'GET',
-          headers: {
-            'ApiKey': credentials.apiKey,
-            'ContextPartyID': credentials.companyId,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
+          headers: billitHeaders
         });
 
         if (!detailsResponse.ok) {
