@@ -219,8 +219,17 @@ serve(async (req) => {
       const errorText = await billitResponse.text();
       console.error("❌ Erreur API Billit après toutes tentatives:", billitResponse.status, errorText);
       
+      // Analyser l'erreur pour donner un message clair
+      if (errorText.includes('InvalidOrExpiredLicense')) {
+        throw new Error(`Erreur Billit: Licence invalide ou expirée. Veuillez vérifier votre abonnement Billit.`);
+      } else if (errorText.includes('ApiKeyNotValid')) {
+        throw new Error(`Erreur Billit: Clé API invalide. Vérifiez que la clé API est correcte.`);
+      } else if (errorText.includes('Unauthorized')) {
+        throw new Error(`Erreur Billit: Accès non autorisé. Vérifiez les permissions de la clé API.`);
+      }
+      
       const partyIdOptions = companies.map((c: any) => `${c.Name || c.CommercialName}: ${c.PartyID || c.ID}`).join(', ');
-      throw new Error(`Erreur API Billit: Impossible d'accéder aux factures. PartyIDs disponibles: ${partyIdOptions}. Vérifiez les permissions de la clé API.`);
+      throw new Error(`Erreur API Billit (${billitResponse.status}): ${errorText.substring(0, 200)}. PartyIDs disponibles: ${partyIdOptions}`);
     }
     
     if (usedPartyId) {
