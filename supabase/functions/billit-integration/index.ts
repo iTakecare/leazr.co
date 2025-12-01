@@ -118,6 +118,7 @@ async function handleBillitTest(companyId: string) {
         method: 'GET',
         headers: {
           'ApiKey': credentials.apiKey,
+          'ContextPartyID': credentials.companyId,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         }
@@ -386,6 +387,7 @@ async function createBillitInvoiceFromData(invoice: any, credentials: BillitCred
     method: 'POST',
     headers: {
       'ApiKey': credentials.apiKey,
+      'ContextPartyID': credentials.companyId,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(billitInvoiceData)
