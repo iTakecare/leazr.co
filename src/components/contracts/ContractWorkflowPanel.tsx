@@ -213,7 +213,7 @@ const ContractWorkflowPanel: React.FC<ContractWorkflowPanelProps> = ({ contract,
                       status === 'completed' 
                         ? 'bg-green-500 border-green-500 text-white' 
                         : status === 'current'
-                        ? 'bg-primary border-primary text-primary-foreground'
+                        ? 'bg-blue-500 border-blue-500 text-white'
                         : 'bg-muted border-muted-foreground/20 text-muted-foreground'
                     }`}>
                       <Icon className="h-5 w-5" />
