@@ -85,12 +85,16 @@ export const createOffer = async (offerData: OfferData) => {
       client_email: offerData.client_email,
       equipment_description: offerData.equipment_description,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
-      // En mode achat, coefficient = 0; sinon utiliser la valeur ou fallback 3.55
-      coefficient: isPurchase 
-        ? 0 
-        : (offerData.coefficient !== null && offerData.coefficient !== undefined && !isNaN(Number(offerData.coefficient)) 
-            ? Number(offerData.coefficient) 
-            : 3.55),
+      // COEFFICIENT SÉCURISÉ - Jamais null
+      coefficient: (() => {
+        const rawCoef = offerData.coefficient;
+        console.log("🔢 COEFFICIENT DEBUG:", { isPurchase, rawCoef, typeOf: typeof rawCoef });
+        if (isPurchase) return 0;
+        const numCoef = Number(rawCoef);
+        const finalCoef = (!isNaN(numCoef) && rawCoef !== null && rawCoef !== undefined) ? numCoef : 3.55;
+        console.log("🔢 COEFFICIENT FINAL:", finalCoef);
+        return finalCoef;
+      })(),
       monthly_payment: isPurchase ? 0 : (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment),
       leaser_id: isPurchase ? null : offerData.leaser_id,
       duration: isPurchase ? null : offerData.duration,
@@ -218,8 +222,15 @@ export const createOffer = async (offerData: OfferData) => {
       ambassador_id: dbOfferData.ambassador_id
     });
     
+    // SÉCURITÉ FINALE: S'assurer que coefficient n'est JAMAIS null avant l'insert
+    if (dbOfferData.coefficient === null || dbOfferData.coefficient === undefined || isNaN(dbOfferData.coefficient)) {
+      console.warn("⚠️ COEFFICIENT NULL DÉTECTÉ AVANT INSERT - Correction avec fallback", dbOfferData.coefficient);
+      dbOfferData.coefficient = dbOfferData.is_purchase ? 0 : 3.55;
+    }
+    
     // Insertion de l'offre (SANS le champ equipment)
     console.log("💾 INSERTION - Tentative d'insertion en base de données...");
+    console.log("💾 COEFFICIENT FINAL AVANT INSERT:", dbOfferData.coefficient);
     const { data, error } = await supabase
       .from('offers')
       .insert([dbOfferData])
