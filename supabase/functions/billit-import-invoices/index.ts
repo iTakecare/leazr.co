@@ -116,14 +116,24 @@ serve(async (req) => {
     const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Income&OrderType=Invoice`;
     console.log("📡 Appel API Billit:", billitUrl);
 
+    // Construire les headers - ContextPartyID seulement si explicitement configuré
+    const billitHeaders: Record<string, string> = {
+      'ApiKey': credentials.apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    // Ajouter ContextPartyID seulement si présent et non vide (nécessaire si plusieurs entreprises)
+    if (credentials.companyId && credentials.companyId.trim() !== '') {
+      billitHeaders['ContextPartyID'] = credentials.companyId;
+      console.log("📌 ContextPartyID ajouté:", credentials.companyId);
+    } else {
+      console.log("📌 ContextPartyID non configuré - Billit utilisera l'entreprise par défaut");
+    }
+
     const billitResponse = await fetch(billitUrl, {
       method: 'GET',
-      headers: {
-        'ApiKey': credentials.apiKey,
-        'ContextPartyID': credentials.companyId,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+      headers: billitHeaders
     });
 
     if (!billitResponse.ok) {

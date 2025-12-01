@@ -137,8 +137,21 @@ async function handleBillitTest(companyId: string) {
         if (accountData?.Email) {
           results.warnings.push(`Connecté en tant que: ${accountData.Email}`);
         }
+        
+        // Afficher les entreprises associées avec leurs PartyIDs
         if (accountData?.Companies && accountData.Companies.length > 0) {
-          results.warnings.push(`${accountData.Companies.length} entreprise(s) associée(s)`);
+          results.warnings.push(`${accountData.Companies.length} entreprise(s) associée(s):`);
+          accountData.Companies.forEach((company: any, index: number) => {
+            const companyName = company.Name || company.CommercialName || 'Sans nom';
+            const partyId = company.PartyID || company.ID || 'N/A';
+            results.warnings.push(`  ${index + 1}. ${companyName} (PartyID: ${partyId})`);
+            console.log(`  📋 Entreprise ${index + 1}: ${companyName} - PartyID: ${partyId}`);
+          });
+          
+          // Si plusieurs entreprises, indiquer que ContextPartyID est nécessaire
+          if (accountData.Companies.length > 1) {
+            results.warnings.push(`⚠️ Plusieurs entreprises détectées - veuillez configurer le PartyID correct`);
+          }
         }
       } else {
         const errorText = await testResponse.text();
