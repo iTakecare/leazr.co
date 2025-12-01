@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +12,52 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useInvoices } from "@/hooks/useInvoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import InvoiceSortFilter, { InvoiceSortBy } from "@/components/invoicing/InvoiceSortFilter";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
   const { invoices, loading } = useInvoices();
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const filteredInvoices = invoices.filter(invoice =>
     invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.leaser_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const sortedInvoices = useMemo(() => {
+    return [...filteredInvoices].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'invoice_date':
+          const dateA = new Date(a.invoice_date || a.created_at).getTime();
+          const dateB = new Date(b.invoice_date || b.created_at).getTime();
+          comparison = dateA - dateB;
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        case 'client':
+          const clientA = a.billing_data?.contract_data?.client_name || '';
+          const clientB = b.billing_data?.contract_data?.client_name || '';
+          comparison = clientA.localeCompare(clientB, 'fr');
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'invoice_number':
+          const numA = a.invoice_number || '';
+          const numB = b.invoice_number || '';
+          comparison = numA.localeCompare(numB, 'fr', { numeric: true });
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredInvoices, sortBy, sortOrder]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -68,6 +103,12 @@ const InvoicingPage = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <InvoiceSortFilter
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={setSortBy}
+              onSortOrderChange={setSortOrder}
+            />
           </div>
 
           <div className="grid gap-6">
@@ -114,7 +155,7 @@ const InvoicingPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInvoices.map((invoice) => (
+                      {sortedInvoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">
                             {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
