@@ -139,48 +139,76 @@ serve(async (req) => {
 
     const accountData = await authResponse.json();
     console.log("✅ Authentification réussie, compte:", accountData?.Email || 'N/A');
-
-    // Récupérer le PartyID automatiquement si une seule entreprise et pas de companyId configuré
-    let contextPartyId = credentials.companyId?.trim() || '';
     
-    if (!contextPartyId && accountData?.Companies && accountData.Companies.length === 1) {
-      contextPartyId = accountData.Companies[0].PartyID || accountData.Companies[0].ID || '';
-      console.log("📌 PartyID détecté automatiquement:", contextPartyId);
-    } else if (!contextPartyId && accountData?.Companies && accountData.Companies.length > 1) {
-      console.error("⚠️ Plusieurs entreprises détectées sans PartyID configuré:");
-      accountData.Companies.forEach((c: any, i: number) => {
-        console.log(`  ${i + 1}. ${c.Name || c.CommercialName} - PartyID: ${c.PartyID || c.ID}`);
-      });
-      throw new Error("Plusieurs entreprises Billit détectées. Veuillez configurer le PartyID correct dans les paramètres.");
-    }
+    // Analyser les entreprises disponibles
+    const companies = accountData?.Companies || [];
+    console.log(`📋 ${companies.length} entreprise(s) trouvée(s)`);
+    companies.forEach((c: any, i: number) => {
+      console.log(`  ${i + 1}. ${c.Name || c.CommercialName} - PartyID: ${c.PartyID || c.ID}`);
+    });
 
-    // ÉTAPE 2: Récupérer les factures avec le bon PartyID
+    // ÉTAPE 2: Récupérer les factures - stratégie adaptative
     const billitUrl = `${apiBaseUrl}/v1/orders?OrderDirection=Income&OrderType=Invoice`;
     console.log("📡 Appel API Billit:", billitUrl);
 
-    const billitHeaders: Record<string, string> = {
-      'ApiKey': credentials.apiKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+    // Fonction helper pour faire l'appel API
+    const fetchOrders = async (usePartyId: string | null) => {
+      const headers: Record<string, string> = {
+        'ApiKey': credentials.apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      if (usePartyId) {
+        headers['ContextPartyID'] = usePartyId;
+        console.log("📌 Tentative avec ContextPartyID:", usePartyId);
+      } else {
+        console.log("📌 Tentative SANS ContextPartyID");
+      }
+      
+      return await fetch(billitUrl, {
+        method: 'GET',
+        headers
+      });
     };
-    
-    if (contextPartyId) {
-      billitHeaders['ContextPartyID'] = contextPartyId;
-      console.log("📌 ContextPartyID utilisé:", contextPartyId);
-    }
 
-    const billitResponse = await fetch(billitUrl, {
-      method: 'GET',
-      headers: billitHeaders
-    });
+    let billitResponse: Response;
+    
+    // Stratégie: si une seule entreprise, essayer sans PartyID d'abord
+    if (companies.length === 1) {
+      // Essayer sans ContextPartyID
+      billitResponse = await fetchOrders(null);
+      
+      if (!billitResponse.ok) {
+        const errorText = await billitResponse.text();
+        console.log("⚠️ Échec sans PartyID, tentative avec PartyID détecté...");
+        
+        // Si ça échoue, essayer avec le PartyID de la seule entreprise
+        const detectedPartyId = companies[0].PartyID || companies[0].ID;
+        if (detectedPartyId) {
+          billitResponse = await fetchOrders(detectedPartyId);
+        }
+      }
+    } else if (companies.length > 1) {
+      // Plusieurs entreprises: le PartyID est obligatoire
+      const configuredPartyId = credentials.companyId?.trim();
+      
+      if (!configuredPartyId) {
+        throw new Error(`Plusieurs entreprises Billit détectées. Veuillez configurer le PartyID correct. Options: ${companies.map((c: any) => `${c.Name}: ${c.PartyID || c.ID}`).join(', ')}`);
+      }
+      
+      billitResponse = await fetchOrders(configuredPartyId);
+    } else {
+      // Pas d'entreprise dans le compte - essayer sans PartyID
+      billitResponse = await fetchOrders(null);
+    }
 
     if (!billitResponse.ok) {
       const errorText = await billitResponse.text();
       console.error("❌ Erreur API Billit:", billitResponse.status, errorText);
       
-      // Si erreur avec PartyID, donner plus d'infos
-      if (errorText.includes('ApiKeyNotValid') && contextPartyId) {
-        throw new Error(`Erreur API Billit: Le PartyID "${contextPartyId}" semble incorrect. Vérifiez la configuration.`);
+      if (errorText.includes('ApiKeyNotValid')) {
+        throw new Error(`Erreur API Billit: Clé API invalide ou PartyID incorrect. Vérifiez la configuration.`);
       }
       throw new Error(`Erreur API Billit: ${billitResponse.status} - ${errorText}`);
     }
