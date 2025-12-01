@@ -3280,6 +3280,7 @@ export type Database = {
           generated_at: string | null
           id: string
           integration_type: string
+          invoice_date: string | null
           invoice_number: string | null
           leaser_name: string
           paid_at: string | null
@@ -3299,6 +3300,7 @@ export type Database = {
           generated_at?: string | null
           id?: string
           integration_type?: string
+          invoice_date?: string | null
           invoice_number?: string | null
           leaser_name: string
           paid_at?: string | null
@@ -3318,6 +3320,7 @@ export type Database = {
           generated_at?: string | null
           id?: string
           integration_type?: string
+          invoice_date?: string | null
           invoice_number?: string | null
           leaser_name?: string
           paid_at?: string | null

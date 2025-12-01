@@ -12,6 +12,8 @@ export interface Invoice {
   status: string;
   integration_type: string;
   due_date?: string;
+  invoice_date?: string;
+  paid_at?: string;
   created_at: string;
   updated_at: string;
   billing_data: any;
