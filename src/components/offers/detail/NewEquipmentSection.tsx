@@ -55,6 +55,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const [editedTotalMonthly, setEditedTotalMonthly] = useState(0);
   const [leaser, setLeaser] = useState<Leaser | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
   // Load leaser data
@@ -493,11 +494,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         <Input
                           type="text"
                           inputMode="decimal"
-                          value={values.purchase_price}
+                          value={inputValues[`${item.id}_purchase_price`] ?? values.purchase_price}
                           onChange={(e) => {
+                            setInputValues(prev => ({
+                              ...prev,
+                              [`${item.id}_purchase_price`]: e.target.value
+                            }));
+                          }}
+                          onBlur={(e) => {
                             const value = e.target.value.replace(',', '.');
                             const numValue = parseFloat(value);
                             handleFieldChange('purchase_price', isNaN(numValue) ? 0 : numValue);
+                            setInputValues(prev => {
+                              const copy = {...prev};
+                              delete copy[`${item.id}_purchase_price`];
+                              return copy;
+                            });
                           }}
                           className="w-32 text-right"
                         />
@@ -513,11 +525,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         <Input
                           type="text"
                           inputMode="decimal"
-                          value={values.selling_price || 0}
+                          value={inputValues[`${item.id}_selling_price`] ?? (values.selling_price || 0)}
                           onChange={(e) => {
+                            setInputValues(prev => ({
+                              ...prev,
+                              [`${item.id}_selling_price`]: e.target.value
+                            }));
+                          }}
+                          onBlur={(e) => {
                             const value = e.target.value.replace(',', '.');
                             const numValue = parseFloat(value);
                             handleFieldChange('selling_price', isNaN(numValue) ? 0 : numValue);
+                            setInputValues(prev => {
+                              const copy = {...prev};
+                              delete copy[`${item.id}_selling_price`];
+                              return copy;
+                            });
                           }}
                           className="w-28 text-right"
                         />
@@ -537,11 +560,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         <Input
                           type="text"
                           inputMode="decimal"
-                          value={values.margin || 0}
+                          value={inputValues[`${item.id}_margin`] ?? (values.margin || 0)}
                           onChange={(e) => {
+                            setInputValues(prev => ({
+                              ...prev,
+                              [`${item.id}_margin`]: e.target.value
+                            }));
+                          }}
+                          onBlur={(e) => {
                             const value = e.target.value.replace(',', '.');
                             const numValue = parseFloat(value);
                             handleFieldChange('margin', isNaN(numValue) ? 0 : numValue);
+                            setInputValues(prev => {
+                              const copy = {...prev};
+                              delete copy[`${item.id}_margin`];
+                              return copy;
+                            });
                           }}
                           className="w-20 text-right"
                         />
@@ -559,11 +593,22 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         <Input
                           type="text"
                           inputMode="decimal"
-                          value={values.monthly_payment || 0}
+                          value={inputValues[`${item.id}_monthly_payment`] ?? (values.monthly_payment || 0)}
                           onChange={(e) => {
+                            setInputValues(prev => ({
+                              ...prev,
+                              [`${item.id}_monthly_payment`]: e.target.value
+                            }));
+                          }}
+                          onBlur={(e) => {
                             const value = e.target.value.replace(',', '.');
                             const numValue = parseFloat(value);
                             handleFieldChange('monthly_payment', isNaN(numValue) ? 0 : numValue);
+                            setInputValues(prev => {
+                              const copy = {...prev};
+                              delete copy[`${item.id}_monthly_payment`];
+                              return copy;
+                            });
                           }}
                           className="w-32 text-right"
                         />
