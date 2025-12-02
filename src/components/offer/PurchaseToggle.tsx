@@ -23,13 +23,15 @@ const PurchaseToggle: React.FC<PurchaseToggleProps> = ({
           if (value) setIsPurchase(value === "purchase");
         }}
         disabled={disabled}
-        className="justify-start"
+        className="justify-start border rounded-lg p-1 bg-muted/50"
       >
         <ToggleGroupItem 
           value="leasing" 
           className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm",
-            !isPurchase && "bg-primary text-primary-foreground"
+            "flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all",
+            !isPurchase 
+              ? "!bg-blue-600 !text-white shadow-md" 
+              : "bg-transparent text-muted-foreground hover:text-foreground"
           )}
         >
           <CreditCard className="h-4 w-4" />
@@ -38,8 +40,10 @@ const PurchaseToggle: React.FC<PurchaseToggleProps> = ({
         <ToggleGroupItem 
           value="purchase" 
           className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm",
-            isPurchase && "bg-primary text-primary-foreground"
+            "flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all",
+            isPurchase 
+              ? "!bg-green-600 !text-white shadow-md" 
+              : "bg-transparent text-muted-foreground hover:text-foreground"
           )}
         >
           <ShoppingCart className="h-4 w-4" />
