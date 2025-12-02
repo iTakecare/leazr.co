@@ -68,7 +68,18 @@ const ActionsSidebar: React.FC<ActionsSidebarProps> = ({
   };
 
   const canSendEmail = offer.workflow_status === 'draft' || offer.workflow_status === 'sent';
-  const canEdit = offer.workflow_status === 'draft';
+  // Liste des statuts permettant la modification de l'offre (jusqu'à "introduit leaser")
+  const editableStatuses = [
+    'draft',
+    'sent',
+    'offer_send',
+    'internal_review',
+    'internal_approved',
+    'internal_docs_requested',
+    'leaser_review',
+    'leaser_introduced'
+  ];
+  const canEdit = editableStatuses.includes(offer.workflow_status);
   const canRequestInfo = ['sent', 'viewed'].includes(offer.workflow_status);
 
   return (
