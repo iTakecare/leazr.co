@@ -491,12 +491,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <TableCell className="text-right">
                       {isEditing ? (
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={values.purchase_price}
-                          onChange={(e) => handleFieldChange('purchase_price', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const numValue = parseFloat(value);
+                            handleFieldChange('purchase_price', isNaN(numValue) ? 0 : numValue);
+                          }}
                           className="w-32 text-right"
-                          step="0.01"
-                          min="0"
                         />
                       ) : (
                         <span>{formatPrice(item.purchase_price)}</span>
@@ -508,12 +511,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <TableCell className="text-right">
                       {isEditing ? (
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={values.selling_price || 0}
-                          onChange={(e) => handleFieldChange('selling_price', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const numValue = parseFloat(value);
+                            handleFieldChange('selling_price', isNaN(numValue) ? 0 : numValue);
+                          }}
                           className="w-28 text-right"
-                          step="0.01"
-                          min="0"
                         />
                       ) : (
                         <span className="text-green-600">
@@ -529,12 +535,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <TableCell className="text-right">
                       {isEditing ? (
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={values.margin || 0}
-                          onChange={(e) => handleFieldChange('margin', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const numValue = parseFloat(value);
+                            handleFieldChange('margin', isNaN(numValue) ? 0 : numValue);
+                          }}
                           className="w-20 text-right"
-                          step="0.1"
-                          min="0"
                         />
                       ) : (
                         <span>{(item.margin || 0).toFixed(1)}%</span>
@@ -548,12 +557,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                     <TableCell className="text-right">
                       {isEditing ? (
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={values.monthly_payment || 0}
-                          onChange={(e) => handleFieldChange('monthly_payment', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            const numValue = parseFloat(value);
+                            handleFieldChange('monthly_payment', isNaN(numValue) ? 0 : numValue);
+                          }}
                           className="w-32 text-right"
-                          step="0.01"
-                          min="0"
                         />
                       ) : (
                         <span className="text-blue-600">
