@@ -85,16 +85,8 @@ export const createOffer = async (offerData: OfferData) => {
       client_email: offerData.client_email,
       equipment_description: offerData.equipment_description,
       amount: typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount,
-      // COEFFICIENT SÉCURISÉ - Jamais null
-      coefficient: (() => {
-        const rawCoef = offerData.coefficient;
-        console.log("🔢 COEFFICIENT DEBUG:", { isPurchase, rawCoef, typeOf: typeof rawCoef });
-        if (isPurchase) return 0;
-        const numCoef = Number(rawCoef);
-        const finalCoef = (!isNaN(numCoef) && rawCoef !== null && rawCoef !== undefined) ? numCoef : 3.55;
-        console.log("🔢 COEFFICIENT FINAL:", finalCoef);
-        return finalCoef;
-      })(),
+      // COEFFICIENT - Sera traité après la création de l'objet
+      coefficient: offerData.coefficient,
       monthly_payment: isPurchase ? 0 : (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment),
       leaser_id: isPurchase ? null : offerData.leaser_id,
       duration: isPurchase ? null : offerData.duration,
@@ -135,6 +127,32 @@ export const createOffer = async (offerData: OfferData) => {
       file_fee: typeof offerData.file_fee === 'number' ? offerData.file_fee : 0,
       annual_insurance: typeof offerData.annual_insurance === 'number' ? offerData.annual_insurance : 0
     };
+
+    // ==================== SÉCURITÉ COEFFICIENT - TRAITEMENT POST-CRÉATION ====================
+    console.log("🔢 COEFFICIENT AVANT TRAITEMENT:", {
+      value: dbOfferData.coefficient,
+      type: typeof dbOfferData.coefficient,
+      isPurchase,
+      isNull: dbOfferData.coefficient === null,
+      isUndefined: dbOfferData.coefficient === undefined
+    });
+
+    // Forcer le coefficient à une valeur valide en fonction du mode
+    if (isPurchase) {
+      dbOfferData.coefficient = 0;
+      console.log("🔢 MODE ACHAT - Coefficient forcé à 0");
+    } else {
+      const rawCoef = Number(offerData.coefficient);
+      if (isNaN(rawCoef) || offerData.coefficient === null || offerData.coefficient === undefined) {
+        dbOfferData.coefficient = 3.55; // Fallback par défaut pour le leasing
+        console.log("🔢 MODE LEASING - Coefficient fallback appliqué: 3.55");
+      } else {
+        dbOfferData.coefficient = rawCoef;
+        console.log("🔢 MODE LEASING - Coefficient utilisé:", rawCoef);
+      }
+    }
+
+    console.log("🔢 COEFFICIENT APRÈS TRAITEMENT:", dbOfferData.coefficient, "Type:", typeof dbOfferData.coefficient);
 
     console.log("💾 DONNÉES FINALES à sauvegarder:", {
       user_id: dbOfferData.user_id,
@@ -222,15 +240,33 @@ export const createOffer = async (offerData: OfferData) => {
       ambassador_id: dbOfferData.ambassador_id
     });
     
-    // SÉCURITÉ FINALE: S'assurer que coefficient n'est JAMAIS null avant l'insert
-    if (dbOfferData.coefficient === null || dbOfferData.coefficient === undefined || isNaN(dbOfferData.coefficient)) {
-      console.warn("⚠️ COEFFICIENT NULL DÉTECTÉ AVANT INSERT - Correction avec fallback", dbOfferData.coefficient);
+    // ==================== TRIPLE SÉCURITÉ AVANT INSERT ====================
+    // Vérification 1: Détection de null/undefined
+    if (dbOfferData.coefficient === null || dbOfferData.coefficient === undefined) {
+      console.error("❌ ALERTE CRITIQUE: Coefficient null/undefined détecté avant insert!");
+      console.error("❌ Données:", { coefficient: dbOfferData.coefficient, is_purchase: dbOfferData.is_purchase });
       dbOfferData.coefficient = dbOfferData.is_purchase ? 0 : 3.55;
+      console.warn("⚠️ Coefficient corrigé à:", dbOfferData.coefficient);
+    }
+
+    // Vérification 2: S'assurer que c'est un nombre
+    dbOfferData.coefficient = Number(dbOfferData.coefficient);
+    
+    // Vérification 3: Vérifier NaN après conversion
+    if (isNaN(dbOfferData.coefficient)) {
+      console.error("❌ ALERTE: Coefficient NaN après conversion Number()!");
+      dbOfferData.coefficient = dbOfferData.is_purchase ? 0 : 3.55;
+      console.warn("⚠️ Coefficient corrigé à:", dbOfferData.coefficient);
     }
     
-    // Insertion de l'offre (SANS le champ equipment)
+    // Log final obligatoire
     console.log("💾 INSERTION - Tentative d'insertion en base de données...");
-    console.log("💾 COEFFICIENT FINAL AVANT INSERT:", dbOfferData.coefficient);
+    console.log("💾 COEFFICIENT FINAL AVANT INSERT:", {
+      value: dbOfferData.coefficient,
+      type: typeof dbOfferData.coefficient,
+      isNumber: typeof dbOfferData.coefficient === 'number',
+      isNaN: isNaN(dbOfferData.coefficient)
+    });
     const { data, error } = await supabase
       .from('offers')
       .insert([dbOfferData])
