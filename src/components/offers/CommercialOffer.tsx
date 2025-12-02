@@ -450,19 +450,19 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         color: '#6B7280',
                         fontWeight: '400',
                       }}>
-                        {formatCurrency(item.monthlyPayment)} HTVA/mois
+                        {formatCurrency(item.monthlyPayment / Math.max(1, item.quantity || 1))} HTVA/mois
                         <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
                           • unitaire
                         </span>
                       </div>
                       
-                      {/* Prix total HTVA/mois */}
+                      {/* Prix total HTVA/mois - monthlyPayment EST déjà le total (unitaire × quantité) */}
                       <div style={{
                         fontSize: styles.fontSize.lg,
                         fontWeight: '600',
                         color: '#1E40AF',
                       }}>
-                        {formatCurrency(item.monthlyPayment * Math.max(1, item.quantity || 1))}
+                        {formatCurrency(item.monthlyPayment)}
                         <span style={{
                           fontSize: styles.fontSize.xs,
                           color: '#6B7280',
