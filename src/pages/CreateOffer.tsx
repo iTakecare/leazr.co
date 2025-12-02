@@ -519,14 +519,20 @@ const CreateOffer = () => {
       }
 
       // Préparer les données d'équipement avec les attributs et spécifications
-      // IMPORTANT: Recalculer les mensualités avec la durée actuelle pour chaque équipement
+      // IMPORTANT: Préserver les mensualités catalogue si elles existent, sinon recalculer
       const equipmentData = equipmentList.map(eq => {
-        // Calculer le montant financé pour cet équipement
-        const financedAmountForEquipment = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
-        // Trouver le coefficient pour ce montant et la durée actuelle
-        const coeff = findCoefficientForAmount(financedAmountForEquipment, selectedLeaser, selectedDuration);
-        // Calculer la mensualité avec le coefficient actuel
-        const recalculatedMonthlyPayment = (financedAmountForEquipment * coeff) / 100;
+        // CORRECTION : Préserver le monthlyPayment s'il existe (venant du catalogue)
+        // Sinon, calculer à partir du prix d'achat + marge + coefficient
+        let finalMonthlyPayment = eq.monthlyPayment;
+        
+        // Seulement recalculer si pas de monthlyPayment existant ou si c'est 0
+        if (!eq.monthlyPayment || eq.monthlyPayment <= 0) {
+          const financedAmountForEquipment = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
+          const coeff = findCoefficientForAmount(financedAmountForEquipment, selectedLeaser, selectedDuration);
+          finalMonthlyPayment = (financedAmountForEquipment * coeff) / 100;
+        }
+        
+        console.log(`💾 SAVE - ${eq.title}: stored=${eq.monthlyPayment}, final=${finalMonthlyPayment}`);
         
         return {
           id: eq.id,
@@ -534,7 +540,7 @@ const CreateOffer = () => {
           purchasePrice: eq.purchasePrice,
           quantity: eq.quantity,
           margin: eq.margin,
-          monthlyPayment: recalculatedMonthlyPayment,
+          monthlyPayment: finalMonthlyPayment,
           // S'assurer que les attributs et spécifications sont inclus avec des valeurs par défaut
           attributes: eq.attributes || {},
           specifications: eq.specifications || {}
