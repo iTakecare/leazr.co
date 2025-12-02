@@ -89,12 +89,22 @@ export const calculateEquipmentResults = (
     return sum + calculateFinancedAmountForEquipment(equipment);
   }, 0);
 
-  // 4. Calculer la mensualité normale (TOUJOURS recalculer avec la durée actuelle)
-  // Ne pas utiliser equipment.monthlyPayment car elle est figée à l'ancienne durée
+  // 4. Calculer la mensualité normale
+  // CORRECTION : Utiliser le monthlyPayment stocké s'il existe (venant du catalogue)
+  // Sinon recalculer à partir du prix d'achat + marge + coefficient
   const normalMonthlyPayment = equipmentList.reduce((sum, equipment) => {
+    // Si l'équipement a un monthlyPayment défini (provenant du catalogue), l'utiliser directement
+    // Ce monthlyPayment est déjà le TOTAL pour la ligne (unitaire × quantité)
+    if (equipment.monthlyPayment && equipment.monthlyPayment > 0) {
+      console.log(`📊 CALC - Using stored monthlyPayment for ${equipment.title}: ${equipment.monthlyPayment}`);
+      return sum + equipment.monthlyPayment;
+    }
+    
+    // Sinon, calculer à partir du prix d'achat + marge + coefficient
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
     const coeff = findCoefficientForAmount(financedAmount, leaser, duration);
     const monthlyForOne = (financedAmount * coeff) / 100;
+    console.log(`📊 CALC - Calculated monthlyPayment for ${equipment.title}: ${monthlyForOne}`);
     return sum + monthlyForOne;
   }, 0);
 

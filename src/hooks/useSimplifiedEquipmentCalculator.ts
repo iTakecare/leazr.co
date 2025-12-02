@@ -211,7 +211,11 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   // Gestion de la liste des équipements
   const addToList = () => {
     if (equipment.title && equipment.purchasePrice > 0) {
-      const currentMonthlyPayment = targetMonthlyPayment > 0 ? targetMonthlyPayment : monthlyPayment;
+      // CORRECTION : Si targetMonthlyPayment vient du catalogue (prix unitaire), le multiplier par la quantité
+      // pour obtenir le total de la ligne. Sinon utiliser monthlyPayment qui est déjà calculé.
+      const currentMonthlyPayment = targetMonthlyPayment > 0 
+        ? targetMonthlyPayment * equipment.quantity  // Prix catalogue unitaire × quantité = total ligne
+        : monthlyPayment;
       const marginToUse = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
       
       const equipmentToAdd = {
@@ -226,7 +230,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
         quantity: equipmentToAdd.quantity,
         margin: equipmentToAdd.margin,
         marginAmount: (equipmentToAdd.purchasePrice * equipmentToAdd.quantity * equipmentToAdd.margin) / 100,
-        monthlyPayment: equipmentToAdd.monthlyPayment
+        monthlyPayment: equipmentToAdd.monthlyPayment,
+        targetMonthlyPayment,
+        isFromCatalogue: targetMonthlyPayment > 0
       });
       
       if (editingId) {
@@ -296,9 +302,23 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   const updateQuantity = (id: string, newQuantity: number) => {
     console.log(`📊 UPDATING QUANTITY for item ${id} to ${newQuantity}`);
     setEquipmentList(prevList => 
-      prevList.map(eq => 
-        eq.id === id ? { ...eq, quantity: newQuantity } : eq
-      )
+      prevList.map(eq => {
+        if (eq.id !== id) return eq;
+        
+        // Recalculer le monthlyPayment proportionnellement si basé sur un prix catalogue
+        // monthlyPayment stocké = total ligne, donc on calcule le prix unitaire puis on remultiplie
+        const oldQuantity = eq.quantity || 1;
+        const unitMonthlyPrice = eq.monthlyPayment ? eq.monthlyPayment / oldQuantity : 0;
+        const newMonthlyPayment = unitMonthlyPrice * newQuantity;
+        
+        console.log(`📊 QUANTITY UPDATE - Unit price: ${unitMonthlyPrice}, New total: ${newMonthlyPayment}`);
+        
+        return { 
+          ...eq, 
+          quantity: newQuantity,
+          monthlyPayment: newMonthlyPayment
+        };
+      })
     );
   };
 
