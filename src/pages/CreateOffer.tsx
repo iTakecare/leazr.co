@@ -627,10 +627,8 @@ const CreateOffer = () => {
             : (financedAmount || 0),
         remarks: remarks,
         type: offerType,
-        // En mode édition, conserver le workflow_status actuel ; en création, mettre 'draft'
-        workflow_status: isEditMode && loadedOfferData?.workflow_status 
-          ? loadedOfferData.workflow_status 
-          : 'draft',
+        // En mode édition, ne jamais toucher au workflow_status ; en création, mettre 'draft'
+        ...(isEditMode ? {} : { workflow_status: 'draft' }),
         margin: productsToBeDetermined ? 0 : totalEquipmentMargin,
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: productsToBeDetermined ? 0 : (totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)),
