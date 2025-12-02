@@ -13,7 +13,8 @@ import {
   Mail,
   ExternalLink,
   Trash2,
-  Eye
+  Eye,
+  Upload
 } from "lucide-react";
 import {
   AlertDialog,
@@ -36,6 +37,8 @@ interface CompactActionsSidebarProps {
   isGeneratingPDF?: boolean;
   onEditRequestDate?: () => void;
   onEditCreatedDate?: () => void;
+  uploadLinks?: any[];
+  onOpenUploadLink?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -47,7 +50,9 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onDelete,
   isGeneratingPDF = false,
   onEditRequestDate,
-  onEditCreatedDate
+  onEditCreatedDate,
+  uploadLinks,
+  onOpenUploadLink
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const getStatusColor = (status: string) => {
@@ -238,6 +243,18 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             <ExternalLink className="w-4 h-4 mr-2" />
             <span>Ouvrir le lien public</span>
           </Button>
+          
+          {(offer.internal_score === 'B' || offer.leaser_score === 'B') && onOpenUploadLink && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start text-sm h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200" 
+              onClick={onOpenUploadLink}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              <span>Accéder à l'upload docs</span>
+            </Button>
+          )}
           
           <Button 
             variant="outline" 

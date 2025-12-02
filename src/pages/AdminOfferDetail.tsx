@@ -5,6 +5,7 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { getOfferById, updateOfferStatus, deleteOffer, generateSignatureLink } from "@/services/offerService";
 import { supabase } from "@/integrations/supabase/client";
+import { useOfferDocuments } from "@/hooks/useOfferDocuments";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -71,9 +72,12 @@ const [rejectionReason, setRejectionReason] = useState("");
 const [offerNotes, setOfferNotes] = useState<any[]>([]);
 const [notesLoading, setNotesLoading] = useState(false);
 
-// États pour les nouvelles actions
-const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  // États pour les nouvelles actions
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+
+  // Hook pour gérer les documents et upload links
+  const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
 
   const handleStatusChange = (newStatus: string) => {
     setOffer({ ...offer, workflow_status: newStatus });
@@ -553,6 +557,36 @@ const [emailDialogOpen, setEmailDialogOpen] = useState(false);
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
+  // Ouvrir le lien d'upload de documents
+  const handleOpenUploadLink = async () => {
+    if (!offer) return;
+    
+    // Vérifier s'il existe déjà un lien d'upload valide
+    if (uploadLinks && uploadLinks.length > 0) {
+      const validLink = uploadLinks[0]; // Le plus récent
+      window.open(`/offer/documents/upload/${validLink.token}`, '_blank');
+      return;
+    }
+    
+    // Sinon, créer un nouveau lien d'upload
+    try {
+      const token = await generateUploadLink(
+        ['balance_sheet', 'id_card_front', 'id_card_back'], 
+        'Lien généré par l\'administrateur'
+      );
+      
+      if (token) {
+        window.open(`/offer/documents/upload/${token}`, '_blank');
+        toast.success("Lien d'upload généré avec succès");
+      } else {
+        toast.error("Impossible de générer le lien d'upload");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du lien:", error);
+      toast.error("Erreur lors de la génération du lien");
+    }
+  };
+
   // Supprimer l'offre
   const handleDeleteOffer = async () => {
     if (!offer) return;
@@ -869,6 +903,8 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                     setDateEditorType('created');
                     setIsDateEditorOpen(true);
                   }}
+                  uploadLinks={uploadLinks}
+                  onOpenUploadLink={handleOpenUploadLink}
                 />
                 
                 {/* Configuration de l'offre */}

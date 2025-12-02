@@ -36,7 +36,8 @@ import {
   Eye, 
   FileText, 
   ExternalLink,
-  Mail
+  Mail,
+  Upload
 } from "lucide-react";
 import {
   Tooltip,
@@ -51,6 +52,7 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { EmailOfferDialog } from "./EmailOfferDialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 
@@ -138,6 +140,53 @@ const OffersTable: React.FC<OffersTableProps> = ({
   const openOnlineOffer = (offerId: string) => {
     const link = generateSignatureLink(offerId);
     window.open(link, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleOpenUploadLink = async (offerId: string) => {
+    try {
+      // Importer les services nécessaires
+      const { useOfferDocuments } = await import("@/hooks/useOfferDocuments");
+      
+      // Récupérer les upload links pour cette offre
+      const { data: uploadLinks, error } = await supabase
+        .from('offer_upload_links')
+        .select('*')
+        .eq('offer_id', offerId)
+        .gt('expires_at', new Date().toISOString())
+        .is('used_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error("Erreur lors de la récupération des liens d'upload:", error);
+        toast.error("Impossible de récupérer le lien d'upload");
+        return;
+      }
+
+      // Si un lien existe, l'ouvrir
+      if (uploadLinks && uploadLinks.length > 0) {
+        window.open(`/offer/documents/upload/${uploadLinks[0].token}`, '_blank');
+        return;
+      }
+
+      // Sinon créer un nouveau lien
+      const { createUploadLink } = await import("@/services/offers/offerDocuments");
+      const token = await createUploadLink(
+        offerId,
+        ['balance_sheet', 'id_card_front', 'id_card_back'],
+        'Lien généré par l\'administrateur'
+      );
+
+      if (token) {
+        window.open(`/offer/documents/upload/${token}`, '_blank');
+        toast.success("Lien d'upload généré avec succès");
+      } else {
+        toast.error("Impossible de générer le lien d'upload");
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Erreur lors de l'accès au lien d'upload");
+    }
   };
 
   // Memoize computed data for all offers to avoid recalculating on every render
@@ -388,6 +437,13 @@ const OffersTable: React.FC<OffersTableProps> = ({
                           <DropdownMenuItem onClick={() => openOnlineOffer(offer.id)}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Ouvrir le lien public
+                          </DropdownMenuItem>
+                        )}
+
+                        {!isAmbassador() && (offer.internal_score === 'B' || offer.leaser_score === 'B') && (
+                          <DropdownMenuItem onClick={() => handleOpenUploadLink(offer.id)}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Accéder à l'upload docs
                           </DropdownMenuItem>
                         )}
                         
