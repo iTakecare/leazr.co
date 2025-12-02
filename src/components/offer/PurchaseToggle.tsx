@@ -1,6 +1,5 @@
 import React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ShoppingCart, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,36 +16,39 @@ const PurchaseToggle: React.FC<PurchaseToggleProps> = ({
 }) => {
   return (
     <div className="flex flex-col space-y-2">
-      <div className="flex items-center space-x-3">
-        <Checkbox
-          id="isPurchase"
-          checked={isPurchase}
-          onCheckedChange={(checked) => setIsPurchase(!!checked)}
-          disabled={disabled}
-          className="h-5 w-5"
-        />
-        <Label 
-          htmlFor="isPurchase" 
+      <ToggleGroup 
+        type="single" 
+        value={isPurchase ? "purchase" : "leasing"}
+        onValueChange={(value) => {
+          if (value) setIsPurchase(value === "purchase");
+        }}
+        disabled={disabled}
+        className="justify-start"
+      >
+        <ToggleGroupItem 
+          value="leasing" 
           className={cn(
-            "cursor-pointer flex items-center gap-2 text-sm font-medium",
-            disabled && "opacity-50 cursor-not-allowed"
+            "flex items-center gap-2 px-4 py-2 text-sm",
+            !isPurchase && "bg-primary text-primary-foreground"
           )}
         >
-          {isPurchase ? (
-            <>
-              <ShoppingCart className="h-4 w-4 text-primary" />
-              Achat direct
-            </>
-          ) : (
-            <>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              Leasing
-            </>
+          <CreditCard className="h-4 w-4" />
+          Leasing
+        </ToggleGroupItem>
+        <ToggleGroupItem 
+          value="purchase" 
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm",
+            isPurchase && "bg-primary text-primary-foreground"
           )}
-        </Label>
-      </div>
+        >
+          <ShoppingCart className="h-4 w-4" />
+          Achat
+        </ToggleGroupItem>
+      </ToggleGroup>
+      
       {isPurchase && (
-        <p className="text-xs text-muted-foreground ml-8">
+        <p className="text-xs text-muted-foreground">
           Vente directe sans financement
         </p>
       )}
