@@ -309,7 +309,9 @@ const CreateOffer = () => {
                     margin: parseFloat(item.margin) || 20,
                     monthlyPayment: parseFloat(item.monthlyPayment) || 0,
                     attributes: item.attributes || {},
-                    specifications: item.specifications || {}
+                    specifications: item.specifications || {},
+                    productId: item.productId,
+                    categoryId: item.categoryId
                   }));
                   console.log("✅ STEP 3a: Equipment formatted:", formattedEquipment);
 
