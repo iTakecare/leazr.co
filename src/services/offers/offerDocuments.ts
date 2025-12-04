@@ -373,6 +373,27 @@ export const getOfferDocuments = async (offerId: string): Promise<OfferDocument[
   }
 };
 
+// Marquer les documents d'une offre comme consultés par l'admin
+export const markDocumentsAsViewed = async (offerId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('offers')
+      .update({ documents_last_viewed_at: new Date().toISOString() })
+      .eq('id', offerId);
+
+    if (error) {
+      console.error('Erreur lors du marquage des documents comme vus:', error);
+      return false;
+    }
+
+    console.log('✓ Documents marqués comme consultés pour l\'offre:', offerId);
+    return true;
+  } catch (error) {
+    console.error('Erreur lors du marquage des documents comme vus:', error);
+    return false;
+  }
+};
+
 export const deleteDocument = async (documentId: string): Promise<boolean> => {
   try {
     console.log('=== SUPPRESSION DOCUMENT ===');
