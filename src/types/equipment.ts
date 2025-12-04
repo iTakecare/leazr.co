@@ -7,6 +7,7 @@ export interface Equipment {
   margin: number;
   monthlyPayment?: number;
   productId?: string;
+  categoryId?: string;
   imageUrl?: string;
   image_url?: string;
   image_urls?: string[];
