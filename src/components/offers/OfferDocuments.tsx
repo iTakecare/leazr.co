@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Check, X, Download, Trash2, MessageSquare, Mail, FileText } from 'lucide-react';
-import { getOfferDocuments, updateDocumentStatus, deleteDocument, downloadDocument, rejectDocumentWithEmail, DOCUMENT_TYPES, type OfferDocument } from '@/services/offers/offerDocuments';
+import { getOfferDocuments, updateDocumentStatus, deleteDocument, downloadDocument, rejectDocumentWithEmail, markDocumentsAsViewed, DOCUMENT_TYPES, type OfferDocument } from '@/services/offers/offerDocuments';
 import { toast } from 'sonner';
 
 interface OfferDocumentsProps {
@@ -23,6 +23,8 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
 
   useEffect(() => {
     loadDocuments();
+    // Marquer les documents comme consultés quand l'admin ouvre cet onglet
+    markDocumentsAsViewed(offerId);
   }, [offerId]);
 
   const loadDocuments = async () => {

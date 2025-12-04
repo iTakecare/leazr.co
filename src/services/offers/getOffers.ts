@@ -88,26 +88,31 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
     
     console.log(`✅ ${data.length} offres récupérées pour votre entreprise`);
     
-    // Récupérer les documents uploadés dans les dernières 24h
+    // Récupérer tous les documents récents (dernières 24h) avec leur timestamp
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: recentDocuments, error: docsError } = await supabase
       .from('offer_documents')
-      .select('offer_id')
+      .select('offer_id, uploaded_at')
       .gt('uploaded_at', twentyFourHoursAgo);
     
     if (docsError) {
       console.warn("⚠️ Erreur lors de la récupération des documents récents:", docsError);
     }
     
-    // Créer un Set des offer_ids avec des documents récents
-    const offerIdsWithRecentDocs = new Set(recentDocuments?.map(d => d.offer_id) || []);
-    console.log(`📄 ${offerIdsWithRecentDocs.size} offres ont des documents uploadés dans les dernières 24h`);
-    
     // Enrichir chaque offre avec l'info has_recent_documents
-    return data.map(offer => ({
-      ...offer,
-      has_recent_documents: offerIdsWithRecentDocs.has(offer.id)
-    }));
+    // Un document est "non vu" s'il a été uploadé APRÈS la dernière consultation
+    return data.map(offer => {
+      const lastViewed = offer.documents_last_viewed_at;
+      const hasUnviewedDocs = recentDocuments?.some(doc => 
+        doc.offer_id === offer.id && 
+        (!lastViewed || new Date(doc.uploaded_at) > new Date(lastViewed))
+      ) || false;
+      
+      return {
+        ...offer,
+        has_recent_documents: hasUnviewedDocs
+      };
+    });
   } catch (error) {
     console.error("❌ ERREUR complète lors de la récupération des offres:", error);
     toast.error("Erreur lors du chargement des offres.");
