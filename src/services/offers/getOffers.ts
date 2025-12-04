@@ -83,14 +83,31 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
         console.log(`📊 Nombre total d'offres pour votre entreprise: ${count}`);
       }
       
-    } else {
-      console.log(`✅ ${data.length} offres récupérées pour votre entreprise:`);
-      data.forEach((offer, index) => {
-        console.log(`  ${index + 1}. ID: ${offer.id} | Type: ${offer.type} | Client: ${offer.client_name} | Créée: ${offer.created_at}`);
-      });
+      return [];
     }
     
-    return data || [];
+    console.log(`✅ ${data.length} offres récupérées pour votre entreprise`);
+    
+    // Récupérer les documents uploadés dans les dernières 24h
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentDocuments, error: docsError } = await supabase
+      .from('offer_documents')
+      .select('offer_id')
+      .gt('uploaded_at', twentyFourHoursAgo);
+    
+    if (docsError) {
+      console.warn("⚠️ Erreur lors de la récupération des documents récents:", docsError);
+    }
+    
+    // Créer un Set des offer_ids avec des documents récents
+    const offerIdsWithRecentDocs = new Set(recentDocuments?.map(d => d.offer_id) || []);
+    console.log(`📄 ${offerIdsWithRecentDocs.size} offres ont des documents uploadés dans les dernières 24h`);
+    
+    // Enrichir chaque offre avec l'info has_recent_documents
+    return data.map(offer => ({
+      ...offer,
+      has_recent_documents: offerIdsWithRecentDocs.has(offer.id)
+    }));
   } catch (error) {
     console.error("❌ ERREUR complète lors de la récupération des offres:", error);
     toast.error("Erreur lors du chargement des offres.");

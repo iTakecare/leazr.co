@@ -18,6 +18,7 @@ export interface Offer extends OfferData {
   margin_percentage?: number;
   internal_score?: string | null;
   leaser_score?: string | null;
+  has_recent_documents?: boolean;
   offer_custom_packs?: Array<{
     id: string;
     pack_name: string;
