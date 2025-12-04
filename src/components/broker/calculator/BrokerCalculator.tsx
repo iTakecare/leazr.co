@@ -110,7 +110,7 @@ const BrokerCalculator: React.FC = () => {
     selectedAmbassadorId: offerType === 'ambassador' ? selectedAmbassadorId : undefined,
     commissionLevelId: commissionLevelId,
     totalMargin,
-    equipmentListLength: equipmentList.length,
+    equipmentList: equipmentList.map(e => ({ title: e.objectType || '', quantity: e.quantity })),
     totalMonthlyPayment: totalMonthlyPayment,
     totalPurchaseAmount: totalBudget
   });

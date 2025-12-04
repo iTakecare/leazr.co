@@ -4,28 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
+import { EquipmentItem } from "@/services/ambassadorCommissionService";
 
 interface CommissionDisplayProps {
   totalMonthlyPayment: number;
   ambassadorId?: string;
   commissionLevelId?: string;
-  equipmentListLength: number;
+  equipmentList?: EquipmentItem[];
 }
 
 const CommissionDisplay = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentListLength
+  equipmentList = []
 }: CommissionDisplayProps) => {
   const commission = useCommissionCalculator(
     totalMonthlyPayment,
     ambassadorId,
     commissionLevelId,
-    equipmentListLength
+    equipmentList
   );
 
-  if (totalMonthlyPayment <= 0 || equipmentListLength === 0) {
+  if (totalMonthlyPayment <= 0 || equipmentList.length === 0) {
     return null;
   }
 

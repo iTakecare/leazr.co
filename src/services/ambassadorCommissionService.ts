@@ -7,6 +7,14 @@ export interface AmbassadorCommissionData {
   rate: number;
   levelName: string;
   marginAmount: number;
+  pcCount?: number;
+}
+
+export interface EquipmentItem {
+  product_id?: string;
+  title?: string;
+  quantity?: number;
+  category_id?: string;
 }
 
 export interface AmbassadorCommission {
@@ -19,6 +27,58 @@ export interface AmbassadorCommission {
   description?: string;
 }
 
+// IDs des catégories PC (Laptop et Desktop)
+const PC_CATEGORY_IDS = [
+  'a8d1d79b-b220-49c2-ad37-f5791ca1513a', // Laptop
+  '4afd176a-7da0-49ea-accb-97bee044845e'  // Desktop
+];
+
+// Mots-clés pour identifier les PC par titre (fallback)
+const PC_KEYWORDS = ['laptop', 'ordinateur', 'pc', 'elitebook', 'probook', 'thinkpad', 'macbook', 'notebook', 'desktop'];
+
+/**
+ * Compte le nombre de PC dans la liste d'équipements
+ */
+const countPCsInEquipment = async (equipmentList: EquipmentItem[]): Promise<number> => {
+  if (!equipmentList || equipmentList.length === 0) return 0;
+  
+  let pcCount = 0;
+  
+  for (const equipment of equipmentList) {
+    const qty = equipment.quantity || 1;
+    
+    // Méthode 1: Vérifier via category_id direct
+    if (equipment.category_id && PC_CATEGORY_IDS.includes(equipment.category_id)) {
+      pcCount += qty;
+      continue;
+    }
+    
+    // Méthode 2: Si product_id, récupérer la catégorie
+    if (equipment.product_id) {
+      const { data } = await supabase
+        .from('products')
+        .select('category_id')
+        .eq('id', equipment.product_id)
+        .single();
+      
+      if (data?.category_id && PC_CATEGORY_IDS.includes(data.category_id)) {
+        pcCount += qty;
+        continue;
+      }
+    }
+    
+    // Méthode 3: Fallback sur mots-clés dans le titre
+    if (equipment.title) {
+      const titleLower = equipment.title.toLowerCase();
+      if (PC_KEYWORDS.some(keyword => titleLower.includes(keyword))) {
+        pcCount += qty;
+      }
+    }
+  }
+  
+  return pcCount;
+};
+
 /**
  * Calcule la commission d'un ambassadeur selon son barème attribué
  * La commission est calculée sur la marge totale générée, pas sur le montant financé
@@ -27,7 +87,8 @@ export const calculateAmbassadorCommission = async (
   ambassadorId: string,
   marginAmount: number,
   purchaseAmount?: number,
-  totalMonthlyPayment?: number
+  totalMonthlyPayment?: number,
+  equipmentList?: EquipmentItem[]
 ): Promise<AmbassadorCommissionData> => {
   try {
     console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}, purchase: ${purchaseAmount}, monthly: ${totalMonthlyPayment}`);
@@ -101,6 +162,39 @@ export const calculateAmbassadorCommission = async (
         rate: 100,
         levelName: `${commissionLevel.name} (1 mensualité)`,
         marginAmount
+      };
+    }
+
+    // Mode "Forfait par PC"
+    if (calculationMode === 'fixed_per_pc') {
+      console.log(`[calculateAmbassadorCommission] Using fixed_per_pc mode with fixed amount: ${commissionLevel.fixed_rate}€/PC`);
+      
+      const fixedAmountPerPC = commissionLevel.fixed_rate || 0;
+      const pcCount = await countPCsInEquipment(equipmentList || []);
+      
+      console.log(`[calculateAmbassadorCommission] Found ${pcCount} PC(s) in equipment list`);
+      
+      if (pcCount === 0) {
+        console.log("[calculateAmbassadorCommission] No PCs found in equipment");
+        return {
+          amount: 0,
+          rate: fixedAmountPerPC,
+          levelName: `${commissionLevel.name} (Forfait: ${fixedAmountPerPC}€/PC)`,
+          marginAmount,
+          pcCount: 0
+        };
+      }
+      
+      const commissionAmount = Math.round(pcCount * fixedAmountPerPC);
+      
+      console.log(`[calculateAmbassadorCommission] Commission: ${commissionAmount}€ (${pcCount} PC × ${fixedAmountPerPC}€)`);
+      
+      return {
+        amount: commissionAmount,
+        rate: fixedAmountPerPC,
+        levelName: `${commissionLevel.name} (${pcCount} PC × ${fixedAmountPerPC}€)`,
+        marginAmount,
+        pcCount
       };
     }
 

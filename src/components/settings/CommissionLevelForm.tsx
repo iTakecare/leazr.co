@@ -27,7 +27,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
 }) => {
   const [name, setName] = useState(level?.name || '');
   const [isDefault, setIsDefault] = useState(level?.is_default || false);
-  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up'>(level?.calculation_mode || 'margin');
+  const [calculationMode, setCalculationMode] = useState<'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc'>(level?.calculation_mode || 'margin');
   const [fixedRate, setFixedRate] = useState<number>(level?.fixed_rate || 100);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,9 +55,11 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
       return;
     }
 
-    // Validation pour le mode monthly_payment
-    if (calculationMode === 'monthly_payment' && (!fixedRate || fixedRate <= 0)) {
-      toast.error("Le taux de commission est requis pour le mode mensualité");
+    // Validation pour le mode monthly_payment et fixed_per_pc
+    if ((calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc') && (!fixedRate || fixedRate <= 0)) {
+      toast.error(calculationMode === 'fixed_per_pc' 
+        ? "Le montant par PC est requis pour le mode forfait" 
+        : "Le taux de commission est requis pour le mode mensualité");
       return;
     }
     
@@ -73,7 +75,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           name,
           is_default: isDefault,
           calculation_mode: calculationMode,
-          fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined
+          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc') ? fixedRate : undefined
         });
         console.log("[CommissionLevelForm] Update result:", result);
         toast.success("Barème mis à jour avec succès");
@@ -83,7 +85,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           type,
           is_default: isDefault,
           calculation_mode: calculationMode,
-          fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined
+          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc') ? fixedRate : undefined
         });
         console.log("[CommissionLevelForm] Create result:", result);
         toast.success("Barème créé avec succès");
@@ -95,7 +97,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
           name, 
           is_default: isDefault,
           calculation_mode: calculationMode,
-          fixed_rate: calculationMode === 'monthly_payment' ? fixedRate : undefined,
+          fixed_rate: (calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc') ? fixedRate : undefined,
           type
         });
       } else {
@@ -136,7 +138,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="calculationMode">Mode de calcul</Label>
-              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up') => setCalculationMode(value)}>
+              <Select value={calculationMode} onValueChange={(value: 'margin' | 'purchase_price' | 'monthly_payment' | 'one_monthly_rounded_up' | 'fixed_per_pc') => setCalculationMode(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner le mode de calcul" />
                 </SelectTrigger>
@@ -145,6 +147,7 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                   <SelectItem value="purchase_price">% sur prix d'achat</SelectItem>
                   <SelectItem value="monthly_payment">% sur mensualité client</SelectItem>
                   <SelectItem value="one_monthly_rounded_up">1 mensualité (arrondi à l'euro supérieur)</SelectItem>
+                  <SelectItem value="fixed_per_pc">Forfait par PC</SelectItem>
                 </SelectContent>
               </Select>
               <div className="text-sm text-muted-foreground">
@@ -154,25 +157,32 @@ const CommissionLevelForm: React.FC<CommissionLevelFormProps> = ({
                   ? 'Commission calculée en pourcentage du prix d\'achat total HTVA'
                   : calculationMode === 'monthly_payment'
                   ? 'Commission calculée en pourcentage de la mensualité totale du client'
-                  : 'L\'ambassadeur touche 1 mensualité complète, arrondie à l\'euro supérieur. Ex: 92,30€ → 93€'
+                  : calculationMode === 'one_monthly_rounded_up'
+                  ? 'L\'ambassadeur touche 1 mensualité complète, arrondie à l\'euro supérieur. Ex: 92,30€ → 93€'
+                  : 'Montant fixe par PC (catégories Laptop et Desktop)'
                 }
               </div>
             </div>
-            {calculationMode === 'monthly_payment' && (
+            {(calculationMode === 'monthly_payment' || calculationMode === 'fixed_per_pc') && (
               <div className="grid gap-2">
-                <Label htmlFor="fixedRate">Taux de commission (%)</Label>
+                <Label htmlFor="fixedRate">
+                  {calculationMode === 'fixed_per_pc' ? 'Montant par PC (€)' : 'Taux de commission (%)'}
+                </Label>
                 <Input
                   id="fixedRate"
                   type="number"
                   value={fixedRate}
                   onChange={(e) => setFixedRate(Number(e.target.value))}
-                  placeholder="Ex: 100 pour 100%"
+                  placeholder={calculationMode === 'fixed_per_pc' ? 'Ex: 50' : 'Ex: 100 pour 100%'}
                   min="0"
-                  step="0.01"
+                  step={calculationMode === 'fixed_per_pc' ? '1' : '0.01'}
                   required
                 />
                 <div className="text-sm text-muted-foreground">
-                  Exemple : Si vous saisissez 100%, l'ambassadeur recevra 100% de la mensualité en commission
+                  {calculationMode === 'fixed_per_pc' 
+                    ? 'Commission = Nombre de PC × Montant fixe. Les catégories "Laptop" et "Desktop" sont comptabilisées.'
+                    : 'Exemple : Si vous saisissez 100%, l\'ambassadeur recevra 100% de la mensualité en commission'
+                  }
                 </div>
               </div>
             )}
