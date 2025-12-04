@@ -181,16 +181,21 @@ export interface OfferStatusBadgeProps {
   showIcon?: boolean;
   className?: string;
   isConverted?: boolean;
+  hasRecentDocuments?: boolean;
 }
 
 const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({ 
   status, 
   showIcon = true,
   className = "",
-  isConverted = false
+  isConverted = false,
+  hasRecentDocuments = false
 }) => {
   // Normaliser le statut - si null/undefined, utiliser 'draft' par défaut
   const normalizedStatus = status || 'draft';
+  
+  // Statuts concernés par l'indicateur de documents récents
+  const isDocumentRequestStatus = ['info_requested', 'internal_docs_requested', 'leaser_docs_requested'].includes(normalizedStatus);
   
   // Fonction pour déterminer le style du badge en fonction du statut
   const getBadgeStyle = () => {
@@ -228,6 +233,12 @@ const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
       {isConverted ? "Convertie" : statusObj.label}
       {isPubliclyAccessible() && (
         <span className="ml-1 text-xs" title="Accessible publiquement">🔗</span>
+      )}
+      {hasRecentDocuments && isDocumentRequestStatus && (
+        <span className="relative flex h-2 w-2 ml-1.5" title="Documents uploadés dans les dernières 24h">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+        </span>
       )}
     </Badge>
   );

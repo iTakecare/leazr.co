@@ -394,7 +394,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     {formatCurrency(offer.monthly_payment)}
                   </TableCell>
                   <TableCell className="text-[11px] py-2">
-                    <OfferStatusBadge status={offer.workflow_status} />
+                    <OfferStatusBadge 
+                      status={offer.workflow_status} 
+                      hasRecentDocuments={offer.has_recent_documents}
+                    />
                   </TableCell>
                   <TableCell className="text-right sticky right-0 bg-background py-2">
                     <DropdownMenu>
