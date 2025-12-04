@@ -37,6 +37,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// Helper pour les labels de mode de calcul
+const getCalculationModeLabel = (mode: string): string => {
+  switch (mode) {
+    case 'margin': return '% sur marge';
+    case 'purchase_price': return '% sur prix d\'achat';
+    case 'monthly_payment': return '% sur mensualité';
+    case 'one_monthly_rounded_up': return '1 mensualité arrondie';
+    case 'fixed_per_pc': return 'Forfait par PC';
+    default: return mode;
+  }
+};
+
+// Modes qui n'utilisent pas de table de taux
+const modesWithoutRateTable = ['fixed_per_pc', 'one_monthly_rounded_up', 'monthly_payment'];
+
 const CommissionManager: React.FC = () => {
   // States pour les ambassadeurs
   const [ambassadorLevels, setAmbassadorLevels] = useState<CommissionLevel[]>([]);
@@ -322,7 +337,7 @@ const CommissionManager: React.FC = () => {
                             </Badge>
                           )}
                           <Badge variant="outline">
-                            {level.calculation_mode === 'margin' ? '% sur marge' : '% sur prix d\'achat'}
+                            {getCalculationModeLabel(level.calculation_mode)}
                           </Badge>
                         </div>
                         <div className="flex gap-2">
@@ -371,80 +386,113 @@ const CommissionManager: React.FC = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <h4 className="font-medium">
-                              {level.calculation_mode === 'margin' ? 'Taux de Commission (% sur marge)' : 'Pourcentage sur prix d\'achat'}
-                            </h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCreateAmbassadorRate(level.id)}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Ajouter un taux
-                            </Button>
+                      <div className="space-y-4">
+                        {modesWithoutRateTable.includes(level.calculation_mode) ? (
+                          // Affichage pour les modes sans table de taux
+                          <div className="bg-muted rounded-lg p-4">
+                            {level.calculation_mode === 'fixed_per_pc' && (
+                              <>
+                                <p className="text-lg font-semibold">{level.fixed_rate || 0}€ par PC</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission = Nombre de PC (Laptop/Desktop) × {level.fixed_rate || 0}€
+                                </p>
+                              </>
+                            )}
+                            {level.calculation_mode === 'one_monthly_rounded_up' && (
+                              <>
+                                <p className="text-lg font-semibold">1 mensualité arrondie au supérieur</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission = Mensualité totale client arrondie à l'euro supérieur
+                                </p>
+                              </>
+                            )}
+                            {level.calculation_mode === 'monthly_payment' && (
+                              <>
+                                <p className="text-lg font-semibold">{level.fixed_rate || 0}%</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission = {level.fixed_rate || 0}% de la mensualité totale client
+                                </p>
+                              </>
+                            )}
                           </div>
-                        
-                        {ambassadorRates[level.id] && ambassadorRates[level.id].length > 0 ? (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Montant Min</TableHead>
-                                <TableHead>Montant Max</TableHead>
-                                <TableHead>Taux (%)</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {ambassadorRates[level.id].map((rate) => (
-                                <TableRow key={rate.id}>
-                                  <TableCell>{rate.min_amount.toLocaleString()}€</TableCell>
-                                  <TableCell>{rate.max_amount.toLocaleString()}€</TableCell>
-                                  <TableCell>{rate.rate}%</TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleEditAmbassadorRate(rate)}
-                                      >
-                                        <Pencil className="h-3 w-3" />
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="outline" size="sm">
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Supprimer le taux</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Êtes-vous sûr de vouloir supprimer ce taux de commission ?
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => handleDeleteAmbassadorRate(rate.id)}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Supprimer
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
                         ) : (
-                          <div className="text-center text-muted-foreground py-4">
-                            Aucun taux de commission configuré
-                          </div>
+                          // Affichage pour les modes avec table de taux (margin, purchase_price)
+                          <>
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium">
+                                {level.calculation_mode === 'margin' ? 'Taux de Commission (% sur marge)' : 'Pourcentage sur prix d\'achat'}
+                              </h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCreateAmbassadorRate(level.id)}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Ajouter un taux
+                              </Button>
+                            </div>
+                          
+                            {ambassadorRates[level.id] && ambassadorRates[level.id].length > 0 ? (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Montant Min</TableHead>
+                                    <TableHead>Montant Max</TableHead>
+                                    <TableHead>Taux (%)</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {ambassadorRates[level.id].map((rate) => (
+                                    <TableRow key={rate.id}>
+                                      <TableCell>{rate.min_amount.toLocaleString()}€</TableCell>
+                                      <TableCell>{rate.max_amount.toLocaleString()}€</TableCell>
+                                      <TableCell>{rate.rate}%</TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleEditAmbassadorRate(rate)}
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="outline" size="sm">
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Supprimer le taux</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Êtes-vous sûr de vouloir supprimer ce taux de commission ?
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => handleDeleteAmbassadorRate(rate.id)}
+                                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                  Supprimer
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            ) : (
+                              <div className="text-center text-muted-foreground py-4">
+                                Aucun taux de commission configuré
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </CardContent>
@@ -482,7 +530,7 @@ const CommissionManager: React.FC = () => {
                             </Badge>
                           )}
                           <Badge variant="outline">
-                            {level.calculation_mode === 'margin' ? '% sur marge' : '% sur prix d\'achat'}
+                            {getCalculationModeLabel(level.calculation_mode)}
                           </Badge>
                         </div>
                         <div className="flex gap-2">
@@ -531,80 +579,113 @@ const CommissionManager: React.FC = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <h4 className="font-medium">
-                              {level.calculation_mode === 'margin' ? 'Taux de Commission (% sur marge)' : 'Pourcentage sur prix d\'achat'}
-                            </h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCreatePartnerRate(level.id)}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Ajouter un taux
-                            </Button>
+                      <div className="space-y-4">
+                        {modesWithoutRateTable.includes(level.calculation_mode) ? (
+                          // Affichage pour les modes sans table de taux
+                          <div className="bg-muted rounded-lg p-4">
+                            {level.calculation_mode === 'fixed_per_pc' && (
+                              <>
+                                <p className="text-lg font-semibold">{level.fixed_rate || 0}€ par PC</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission = Nombre de PC (Laptop/Desktop) × {level.fixed_rate || 0}€
+                                </p>
+                              </>
+                            )}
+                            {level.calculation_mode === 'one_monthly_rounded_up' && (
+                              <>
+                                <p className="text-lg font-semibold">1 mensualité arrondie au supérieur</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission = Mensualité totale client arrondie à l'euro supérieur
+                                </p>
+                              </>
+                            )}
+                            {level.calculation_mode === 'monthly_payment' && (
+                              <>
+                                <p className="text-lg font-semibold">{level.fixed_rate || 0}%</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Commission = {level.fixed_rate || 0}% de la mensualité totale client
+                                </p>
+                              </>
+                            )}
                           </div>
-                        
-                        {partnerRates[level.id] && partnerRates[level.id].length > 0 ? (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Montant Min</TableHead>
-                                <TableHead>Montant Max</TableHead>
-                                <TableHead>Taux (%)</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {partnerRates[level.id].map((rate) => (
-                                <TableRow key={rate.id}>
-                                  <TableCell>{rate.min_amount.toLocaleString()}€</TableCell>
-                                  <TableCell>{rate.max_amount.toLocaleString()}€</TableCell>
-                                  <TableCell>{rate.rate}%</TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleEditPartnerRate(rate)}
-                                      >
-                                        <Pencil className="h-3 w-3" />
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="outline" size="sm">
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Supprimer le taux</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Êtes-vous sûr de vouloir supprimer ce taux de commission ?
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => handleDeletePartnerRate(rate.id)}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Supprimer
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
                         ) : (
-                          <div className="text-center text-muted-foreground py-4">
-                            Aucun taux de commission configuré
-                          </div>
+                          // Affichage pour les modes avec table de taux (margin, purchase_price)
+                          <>
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium">
+                                {level.calculation_mode === 'margin' ? 'Taux de Commission (% sur marge)' : 'Pourcentage sur prix d\'achat'}
+                              </h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCreatePartnerRate(level.id)}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Ajouter un taux
+                              </Button>
+                            </div>
+                          
+                            {partnerRates[level.id] && partnerRates[level.id].length > 0 ? (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Montant Min</TableHead>
+                                    <TableHead>Montant Max</TableHead>
+                                    <TableHead>Taux (%)</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {partnerRates[level.id].map((rate) => (
+                                    <TableRow key={rate.id}>
+                                      <TableCell>{rate.min_amount.toLocaleString()}€</TableCell>
+                                      <TableCell>{rate.max_amount.toLocaleString()}€</TableCell>
+                                      <TableCell>{rate.rate}%</TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleEditPartnerRate(rate)}
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="outline" size="sm">
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Supprimer le taux</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Êtes-vous sûr de vouloir supprimer ce taux de commission ?
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => handleDeletePartnerRate(rate.id)}
+                                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                  Supprimer
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            ) : (
+                              <div className="text-center text-muted-foreground py-4">
+                                Aucun taux de commission configuré
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </CardContent>
