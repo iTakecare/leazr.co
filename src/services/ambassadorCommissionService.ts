@@ -34,7 +34,7 @@ const PC_CATEGORY_IDS = [
 ];
 
 // Mots-clés pour identifier les PC par titre (fallback)
-const PC_KEYWORDS = ['laptop', 'ordinateur', 'pc', 'elitebook', 'probook', 'thinkpad', 'thinkbook', 'macbook', 'notebook', 'desktop', 'lenovo', 'ideapad'];
+const PC_KEYWORDS = ['laptop', 'ordinateur portable', 'elitebook', 'probook', 'thinkpad', 'thinkbook', 'macbook', 'notebook', 'desktop', 'latitude', 'precision', 'inspiron', 'xps', 'pavilion', 'spectre', 'envy', 'zbook', 'omen'];
 
 /**
  * Compte le nombre de PC dans la liste d'équipements
