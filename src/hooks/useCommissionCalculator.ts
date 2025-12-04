@@ -1,6 +1,5 @@
 
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { calculateAmbassadorCommission, EquipmentItem } from "@/services/ambassadorCommissionService";
 
 interface CommissionResult {
@@ -26,41 +25,48 @@ export const useCommissionCalculator = (
     isCalculating: false
   });
 
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  // Stabiliser equipmentList par sérialisation pour éviter les recalculs inutiles
+  const equipmentKey = useMemo(() => 
+    JSON.stringify(equipmentList.map(e => ({
+      product_id: e.product_id,
+      category_id: e.category_id,
+      title: e.title,
+      quantity: e.quantity
+    }))), 
+    [equipmentList]
+  );
+
   useEffect(() => {
-    const fetchCommission = async () => {
-      console.log("useCommissionCalculator - Starting calculation with:", {
-        totalMonthlyPayment,
-        ambassadorId,
-        commissionLevelId,
-        equipmentListLength: equipmentList.length,
-        totalMargin
+    // Annuler le timeout précédent
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Validation rapide - pas de debounce nécessaire
+    if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentList.length === 0 || (!totalMargin || totalMargin <= 0)) {
+      setCommission({
+        amount: 0,
+        rate: 0,
+        levelName: "",
+        isCalculating: false
       });
+      return;
+    }
 
-      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentList.length === 0 || (!totalMargin || totalMargin <= 0)) {
-        console.log("useCommissionCalculator - Missing required data, resetting to zero");
-        setCommission({
-          amount: 0,
-          rate: 0,
-          levelName: "",
-          isCalculating: false
-        });
-        return;
-      }
+    setCommission(prev => ({ ...prev, isCalculating: true }));
 
-      setCommission(prev => ({ ...prev, isCalculating: true }));
-
+    // Debounce de 500ms avant d'appeler l'API
+    timeoutRef.current = setTimeout(async () => {
       try {
-        console.log("useCommissionCalculator - Calling calculateAmbassadorCommission with:", {
-          ambassadorId,
-          totalMargin,
-          totalPurchaseAmount,
-          totalMonthlyPayment,
-          equipmentListLength: equipmentList.length
-        });
-
-        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin, totalPurchaseAmount, totalMonthlyPayment, equipmentList);
-
-        console.log("useCommissionCalculator - Commission result:", result);
+        const result = await calculateAmbassadorCommission(
+          ambassadorId, 
+          totalMargin, 
+          totalPurchaseAmount, 
+          totalMonthlyPayment, 
+          equipmentList
+        );
 
         if (result) {
           setCommission({
@@ -71,7 +77,6 @@ export const useCommissionCalculator = (
             pcCount: result.pcCount
           });
         } else {
-          console.log("useCommissionCalculator - No result returned");
           setCommission({
             amount: 0,
             rate: 0,
@@ -88,10 +93,14 @@ export const useCommissionCalculator = (
           isCalculating: false
         });
       }
-    };
+    }, 500);
 
-    fetchCommission();
-  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentList, totalMargin, totalPurchaseAmount]);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentKey, totalMargin, totalPurchaseAmount]);
 
   return commission;
 };

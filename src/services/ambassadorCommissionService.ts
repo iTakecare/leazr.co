@@ -33,16 +33,17 @@ const PC_CATEGORY_IDS = [
   '4afd176a-7da0-49ea-accb-97bee044845e'  // Desktop
 ];
 
-// Mots-clés pour identifier les PC par titre (fallback)
+// Mots-clés pour identifier les PC par titre (fallback) - spécifiques aux modèles
 const PC_KEYWORDS = ['laptop', 'ordinateur portable', 'elitebook', 'probook', 'thinkpad', 'thinkbook', 'macbook', 'notebook', 'desktop', 'latitude', 'precision', 'inspiron', 'xps', 'pavilion', 'spectre', 'envy', 'zbook', 'omen'];
 
 /**
- * Compte le nombre de PC dans la liste d'équipements
+ * Compte le nombre de PC dans la liste d'équipements - Version optimisée avec requête batch
  */
 const countPCsInEquipment = async (equipmentList: EquipmentItem[]): Promise<number> => {
   if (!equipmentList || equipmentList.length === 0) return 0;
   
   let pcCount = 0;
+  const productIdsToCheck: { id: string; qty: number }[] = [];
   
   for (const equipment of equipmentList) {
     const qty = equipment.quantity || 1;
@@ -53,18 +54,10 @@ const countPCsInEquipment = async (equipmentList: EquipmentItem[]): Promise<numb
       continue;
     }
     
-    // Méthode 2: Si product_id, récupérer la catégorie
+    // Méthode 2: Si product_id sans category_id, ajouter à la liste pour requête batch
     if (equipment.product_id) {
-      const { data } = await supabase
-        .from('products')
-        .select('category_id')
-        .eq('id', equipment.product_id)
-        .single();
-      
-      if (data?.category_id && PC_CATEGORY_IDS.includes(data.category_id)) {
-        pcCount += qty;
-        continue;
-      }
+      productIdsToCheck.push({ id: equipment.product_id, qty });
+      continue;
     }
     
     // Méthode 3: Fallback sur mots-clés dans le titre
@@ -72,6 +65,23 @@ const countPCsInEquipment = async (equipmentList: EquipmentItem[]): Promise<numb
       const titleLower = equipment.title.toLowerCase();
       if (PC_KEYWORDS.some(keyword => titleLower.includes(keyword))) {
         pcCount += qty;
+      }
+    }
+  }
+  
+  // Une seule requête batch pour tous les product_ids
+  if (productIdsToCheck.length > 0) {
+    const { data } = await supabase
+      .from('products')
+      .select('id, category_id')
+      .in('id', productIdsToCheck.map(p => p.id));
+    
+    if (data) {
+      for (const product of data) {
+        if (product.category_id && PC_CATEGORY_IDS.includes(product.category_id)) {
+          const item = productIdsToCheck.find(p => p.id === product.id);
+          pcCount += item?.qty || 1;
+        }
       }
     }
   }
@@ -91,44 +101,28 @@ export const calculateAmbassadorCommission = async (
   equipmentList?: EquipmentItem[]
 ): Promise<AmbassadorCommissionData> => {
   try {
-    console.log(`[calculateAmbassadorCommission] Calculating for ambassador ${ambassadorId}, margin: ${marginAmount}, purchase: ${purchaseAmount}, monthly: ${totalMonthlyPayment}`);
-    
     // Récupérer le niveau de commission de l'ambassadeur
     const commissionLevel = await getAmbassadorCommissionLevel(ambassadorId);
     
     if (!commissionLevel) {
-      console.log("[calculateAmbassadorCommission] No commission level found, using default");
       return {
-        amount: Math.round(marginAmount * 0.05), // 5% par défaut
+        amount: Math.round(marginAmount * 0.05),
         rate: 5,
         levelName: "Aucun barème attribué",
         marginAmount
       };
     }
 
-    console.log("[calculateAmbassadorCommission] Found commission level:", commissionLevel.name);
-
-    // Déterminer le mode de calcul
     const calculationMode = commissionLevel.calculation_mode || 'margin';
     
-    // Mode mensualité : utilise le taux fixe sur la mensualité totale
+    // Mode mensualité
     if (calculationMode === 'monthly_payment') {
-      console.log(`[calculateAmbassadorCommission] Using monthly_payment mode with fixed rate: ${commissionLevel.fixed_rate}%`);
-      
       if (!totalMonthlyPayment || totalMonthlyPayment <= 0) {
-        console.log("[calculateAmbassadorCommission] Monthly payment mode requires valid monthly payment amount");
-        return {
-          amount: 0,
-          rate: 0,
-          levelName: commissionLevel.name,
-          marginAmount
-        };
+        return { amount: 0, rate: 0, levelName: commissionLevel.name, marginAmount };
       }
       
       const fixedRate = commissionLevel.fixed_rate || 0;
       const commissionAmount = Math.round(totalMonthlyPayment * (fixedRate / 100));
-      
-      console.log(`[calculateAmbassadorCommission] Monthly payment commission: ${commissionAmount} (${fixedRate}% of ${totalMonthlyPayment})`);
       
       return {
         amount: commissionAmount,
@@ -140,22 +134,11 @@ export const calculateAmbassadorCommission = async (
 
     // Mode "1 mensualité arrondie à l'euro supérieur"
     if (calculationMode === 'one_monthly_rounded_up') {
-      console.log(`[calculateAmbassadorCommission] Using one_monthly_rounded_up mode`);
-      
       if (!totalMonthlyPayment || totalMonthlyPayment <= 0) {
-        console.log("[calculateAmbassadorCommission] one_monthly_rounded_up mode requires valid monthly payment amount");
-        return {
-          amount: 0,
-          rate: 100,
-          levelName: commissionLevel.name,
-          marginAmount
-        };
+        return { amount: 0, rate: 100, levelName: commissionLevel.name, marginAmount };
       }
       
-      // Arrondi à l'euro supérieur avec Math.ceil()
       const commissionAmount = Math.ceil(totalMonthlyPayment);
-      
-      console.log(`[calculateAmbassadorCommission] Commission: ${commissionAmount}€ (mensualité ${totalMonthlyPayment}€ arrondie à l'euro supérieur)`);
       
       return {
         amount: commissionAmount,
@@ -167,15 +150,10 @@ export const calculateAmbassadorCommission = async (
 
     // Mode "Forfait par PC"
     if (calculationMode === 'fixed_per_pc') {
-      console.log(`[calculateAmbassadorCommission] Using fixed_per_pc mode with fixed amount: ${commissionLevel.fixed_rate}€/PC`);
-      
       const fixedAmountPerPC = commissionLevel.fixed_rate || 0;
       const pcCount = await countPCsInEquipment(equipmentList || []);
       
-      console.log(`[calculateAmbassadorCommission] Found ${pcCount} PC(s) in equipment list`);
-      
       if (pcCount === 0) {
-        console.log("[calculateAmbassadorCommission] No PCs found in equipment");
         return {
           amount: 0,
           rate: fixedAmountPerPC,
@@ -186,8 +164,6 @@ export const calculateAmbassadorCommission = async (
       }
       
       const commissionAmount = Math.round(pcCount * fixedAmountPerPC);
-      
-      console.log(`[calculateAmbassadorCommission] Commission: ${commissionAmount}€ (${pcCount} PC × ${fixedAmountPerPC}€)`);
       
       return {
         amount: commissionAmount,
@@ -202,7 +178,6 @@ export const calculateAmbassadorCommission = async (
     const rates = await getCommissionRates(commissionLevel.id);
     
     if (!rates || rates.length === 0) {
-      console.log("[calculateAmbassadorCommission] No rates found, using default");
       return {
         amount: Math.round(marginAmount * 0.05),
         rate: 5,
@@ -211,32 +186,18 @@ export const calculateAmbassadorCommission = async (
       };
     }
 
-    console.log("[calculateAmbassadorCommission] Found rates:", rates);
-
-    // Déterminer le montant de base pour le calcul selon le mode de calcul
     const baseAmount = calculationMode === 'purchase_price' ? (purchaseAmount || 0) : marginAmount;
     
-    console.log(`[calculateAmbassadorCommission] Using calculation mode: ${calculationMode}, base amount: ${baseAmount}`);
-    
-    // Validation pour le mode purchase_price
     if (calculationMode === 'purchase_price' && (!purchaseAmount || purchaseAmount <= 0)) {
-      console.log("[calculateAmbassadorCommission] Purchase price mode requires valid purchase amount");
-      return {
-        amount: 0,
-        rate: 0,
-        levelName: commissionLevel.name,
-        marginAmount
-      };
+      return { amount: 0, rate: 0, levelName: commissionLevel.name, marginAmount };
     }
     
-    // Rechercher le taux applicable basé sur le montant de base
     const applicableRate = rates.find(rate => 
       baseAmount >= rate.min_amount && baseAmount <= rate.max_amount
-    ) || rates[0]; // Fallback sur le premier taux si aucun ne correspond
+    ) || rates[0];
 
     if (applicableRate) {
       const commissionAmount = Math.round(baseAmount * (applicableRate.rate / 100));
-      console.log(`[calculateAmbassadorCommission] Applied rate found: ${applicableRate.rate}%, Commission: ${commissionAmount}, on ${calculationMode}: ${baseAmount}`);
       
       return {
         amount: commissionAmount,
@@ -246,11 +207,8 @@ export const calculateAmbassadorCommission = async (
       };
     }
 
-    // Si aucun taux ne correspond, utiliser le taux par défaut
     const defaultRate = 5;
     const commissionAmount = Math.round(marginAmount * (defaultRate / 100));
-    
-    console.log("[calculateAmbassadorCommission] No rate found, using default:", defaultRate);
     
     return {
       amount: commissionAmount,
@@ -262,7 +220,6 @@ export const calculateAmbassadorCommission = async (
   } catch (error) {
     console.error("[calculateAmbassadorCommission] Error:", error);
     
-    // Fallback en cas d'erreur
     return {
       amount: Math.round(marginAmount * 0.05),
       rate: 5,
