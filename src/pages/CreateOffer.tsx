@@ -132,7 +132,12 @@ const CreateOffer = () => {
     selectedAmbassadorId: selectedAmbassador?.id,
     commissionLevelId: commissionLevelId,
     totalMargin: totalEquipmentMargin,
-    equipmentList: equipmentList.map(e => ({ product_id: e.id, title: e.title, quantity: e.quantity })),
+    equipmentList: equipmentList.map(e => ({ 
+      product_id: e.productId, 
+      title: e.title, 
+      quantity: e.quantity,
+      category_id: e.categoryId
+    })),
     totalMonthlyPayment,
     totalPurchaseAmount
   });
@@ -380,7 +385,9 @@ const CreateOffer = () => {
       title: product.name,
       purchasePrice: purchasePrice,
       quantity: 1,
-      margin: Number(margin)
+      margin: Number(margin),
+      productId: product.id,
+      categoryId: product.category_id
     });
     if (monthlyPrice > 0) {
       console.log("Setting target monthly payment:", monthlyPrice);

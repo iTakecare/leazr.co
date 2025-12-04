@@ -67,32 +67,32 @@ export const getClientsByAmbassadorId = async (ambassadorId: string) => {
   try {
     console.log("🔍 getClientsByAmbassadorId - Récupération pour ID ambassadeur:", ambassadorId);
     
-    // D'abord, récupérer l'user_id de l'ambassadeur
+    // Récupérer le nom de l'ambassadeur
     const { data: ambassadorData, error: ambassadorError } = await supabase
       .from('ambassadors')
-      .select('user_id, name')
+      .select('name')
       .eq('id', ambassadorId)
       .single();
 
-    if (ambassadorError || !ambassadorData) {
+    if (ambassadorError) {
       console.error("❌ Erreur lors de la récupération de l'ambassadeur:", ambassadorError);
-      return [];
     }
 
-    if (!ambassadorData.user_id) {
-      console.log("⚠️ Ambassadeur sans user_id associé");
-      return [];
-    }
-
-    console.log("🔍 User ID trouvé pour l'ambassadeur:", ambassadorData.user_id);
-
-    // Utiliser la fonction sécurisée avec l'user_id
-    const { data, error } = await supabase.rpc('get_ambassador_clients_secure', {
-      p_user_id: ambassadorData.user_id
-    });
+    // Requêter directement ambassador_clients avec l'ambassador_id
+    const { data, error } = await supabase
+      .from('ambassador_clients')
+      .select(`
+        client_id,
+        clients (
+          id, name, email, company, phone, address, city, 
+          postal_code, country, vat_number, notes, status,
+          created_at, updated_at, user_id, has_user_account, company_id
+        )
+      `)
+      .eq('ambassador_id', ambassadorId);
 
     if (error) {
-      console.error("❌ Erreur RPC get_ambassador_clients_secure:", error);
+      console.error("❌ Erreur lors de la récupération des clients:", error);
       return [];
     }
 
@@ -102,30 +102,32 @@ export const getClientsByAmbassadorId = async (ambassadorId: string) => {
     }
 
     // Formatter les données avec les informations de l'ambassadeur
-    const formattedClients = data.map(client => ({
-      id: client.client_id,
-      name: client.client_name,
-      email: client.client_email || '',
-      company: client.client_company || '',
-      companyName: client.client_company || '',
-      phone: client.client_phone,
-      address: client.client_address,
-      city: client.client_city,
-      postal_code: client.client_postal_code,
-      country: client.client_country,
-      vat_number: client.client_vat_number,
-      notes: client.client_notes,
-      status: client.client_status,
-      created_at: new Date(client.client_created_at),
-      updated_at: new Date(client.client_updated_at),
-      user_id: client.client_user_id,
-      has_user_account: client.client_has_user_account,
-      company_id: client.client_company_id,
-      ambassador: {
-        id: ambassadorId,
-        name: ambassadorData.name || 'Ambassadeur'
-      }
-    }));
+    const formattedClients = data
+      .filter(item => item.clients) // Filtrer les entrées sans client
+      .map(item => ({
+        id: item.clients.id,
+        name: item.clients.name,
+        email: item.clients.email || '',
+        company: item.clients.company || '',
+        companyName: item.clients.company || '',
+        phone: item.clients.phone,
+        address: item.clients.address,
+        city: item.clients.city,
+        postal_code: item.clients.postal_code,
+        country: item.clients.country,
+        vat_number: item.clients.vat_number,
+        notes: item.clients.notes,
+        status: item.clients.status,
+        created_at: new Date(item.clients.created_at),
+        updated_at: new Date(item.clients.updated_at),
+        user_id: item.clients.user_id,
+        has_user_account: item.clients.has_user_account,
+        company_id: item.clients.company_id,
+        ambassador: {
+          id: ambassadorId,
+          name: ambassadorData?.name || 'Ambassadeur'
+        }
+      }));
 
     console.log("✅ Clients d'ambassadeur formatés via ID:", formattedClients);
     return formattedClients;
