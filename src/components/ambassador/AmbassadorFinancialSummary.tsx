@@ -3,12 +3,13 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/formatters";
 import { useCommissionCalculator } from "@/hooks/useCommissionCalculator";
+import { EquipmentItem } from "@/services/ambassadorCommissionService";
 
 interface AmbassadorFinancialSummaryProps {
   totalMonthlyPayment: number;
   ambassadorId?: string;
   commissionLevelId?: string;
-  equipmentListLength: number;
+  equipmentList?: EquipmentItem[];
   totalMargin?: number;
 }
 
@@ -16,14 +17,14 @@ const AmbassadorFinancialSummary = ({
   totalMonthlyPayment,
   ambassadorId,
   commissionLevelId,
-  equipmentListLength,
+  equipmentList = [],
   totalMargin
 }: AmbassadorFinancialSummaryProps) => {
   console.log("AmbassadorFinancialSummary - Props received:", {
     totalMonthlyPayment,
     ambassadorId,
     commissionLevelId,
-    equipmentListLength,
+    equipmentListLength: equipmentList.length,
     totalMargin
   });
 
@@ -31,13 +32,13 @@ const AmbassadorFinancialSummary = ({
     totalMonthlyPayment,
     ambassadorId,
     commissionLevelId,
-    equipmentListLength,
+    equipmentList,
     totalMargin
   );
 
   console.log("AmbassadorFinancialSummary - Commission calculated:", commission);
 
-  if (totalMonthlyPayment <= 0 || equipmentListLength === 0) {
+  if (totalMonthlyPayment <= 0 || equipmentList.length === 0) {
     console.log("AmbassadorFinancialSummary - Not showing: insufficient data");
     return null;
   }

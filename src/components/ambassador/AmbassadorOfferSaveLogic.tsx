@@ -52,7 +52,7 @@ export const useAmbassadorOfferSave = ({
     selectedAmbassadorId: ambassadorId,
     commissionLevelId: ambassador?.commission_level_id,
     totalMargin,
-    equipmentListLength: equipmentList.length,
+    equipmentList: equipmentList.map(e => ({ product_id: e.id, title: e.title, quantity: e.quantity })),
     totalMonthlyPayment,
     totalPurchaseAmount
   });

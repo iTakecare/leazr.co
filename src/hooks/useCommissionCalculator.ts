@@ -1,19 +1,21 @@
 
+
 import { useState, useEffect } from "react";
-import { calculateAmbassadorCommission } from "@/services/ambassadorCommissionService";
+import { calculateAmbassadorCommission, EquipmentItem } from "@/services/ambassadorCommissionService";
 
 interface CommissionResult {
   amount: number;
   rate: number;
   levelName: string;
   isCalculating: boolean;
+  pcCount?: number;
 }
 
 export const useCommissionCalculator = (
   totalMonthlyPayment: number,
   ambassadorId?: string,
   commissionLevelId?: string,
-  equipmentListLength: number = 0,
+  equipmentList: EquipmentItem[] = [],
   totalMargin?: number,
   totalPurchaseAmount?: number
 ): CommissionResult => {
@@ -30,11 +32,11 @@ export const useCommissionCalculator = (
         totalMonthlyPayment,
         ambassadorId,
         commissionLevelId,
-        equipmentListLength,
+        equipmentListLength: equipmentList.length,
         totalMargin
       });
 
-      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentListLength === 0 || (!totalMargin || totalMargin <= 0)) {
+      if (!ambassadorId || totalMonthlyPayment <= 0 || equipmentList.length === 0 || (!totalMargin || totalMargin <= 0)) {
         console.log("useCommissionCalculator - Missing required data, resetting to zero");
         setCommission({
           amount: 0,
@@ -52,10 +54,11 @@ export const useCommissionCalculator = (
           ambassadorId,
           totalMargin,
           totalPurchaseAmount,
-          totalMonthlyPayment
+          totalMonthlyPayment,
+          equipmentListLength: equipmentList.length
         });
 
-        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin, totalPurchaseAmount, totalMonthlyPayment);
+        const result = await calculateAmbassadorCommission(ambassadorId, totalMargin, totalPurchaseAmount, totalMonthlyPayment, equipmentList);
 
         console.log("useCommissionCalculator - Commission result:", result);
 
@@ -64,7 +67,8 @@ export const useCommissionCalculator = (
             amount: result.amount || 0,
             rate: result.rate || 0,
             levelName: result.levelName || "",
-            isCalculating: false
+            isCalculating: false,
+            pcCount: result.pcCount
           });
         } else {
           console.log("useCommissionCalculator - No result returned");
@@ -87,7 +91,7 @@ export const useCommissionCalculator = (
     };
 
     fetchCommission();
-  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentListLength, totalMargin, totalPurchaseAmount]);
+  }, [totalMonthlyPayment, ambassadorId, commissionLevelId, equipmentList, totalMargin, totalPurchaseAmount]);
 
   return commission;
 };

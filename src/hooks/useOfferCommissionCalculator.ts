@@ -1,13 +1,14 @@
 
 import { useMemo } from "react";
 import { useCommissionCalculator } from "./useCommissionCalculator";
+import { EquipmentItem } from "@/services/ambassadorCommissionService";
 
 interface OfferCommissionCalculatorProps {
   isInternalOffer: boolean;
   selectedAmbassadorId?: string;
   commissionLevelId?: string;
   totalMargin: number;
-  equipmentListLength: number;
+  equipmentList?: EquipmentItem[];
   totalMonthlyPayment: number;
   totalPurchaseAmount?: number;
 }
@@ -17,7 +18,7 @@ export const useOfferCommissionCalculator = ({
   selectedAmbassadorId,
   commissionLevelId,
   totalMargin,
-  equipmentListLength,
+  equipmentList = [],
   totalMonthlyPayment,
   totalPurchaseAmount
 }: OfferCommissionCalculatorProps) => {
@@ -29,7 +30,7 @@ export const useOfferCommissionCalculator = ({
     totalMonthlyPayment,
     shouldCalculateCommission ? selectedAmbassadorId : undefined,
     shouldCalculateCommission ? commissionLevelId : undefined,
-    equipmentListLength,
+    equipmentList,
     shouldCalculateCommission ? totalMargin : 0,
     shouldCalculateCommission ? totalPurchaseAmount : undefined
   );

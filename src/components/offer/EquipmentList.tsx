@@ -93,7 +93,7 @@ const EquipmentList = ({
     selectedAmbassadorId: ambassadorId,
     commissionLevelId: commissionLevelId,
     totalMargin: totalMargin,
-    equipmentListLength: equipmentList.length,
+    equipmentList: equipmentList.map(e => ({ product_id: e.id, title: e.title, quantity: e.quantity })),
     totalMonthlyPayment: totalMonthlyPayment,
     totalPurchaseAmount
   });
@@ -376,7 +376,7 @@ const EquipmentList = ({
               totalMonthlyPayment={totalMonthlyPayment}
               ambassadorId={ambassadorId}
               commissionLevelId={commissionLevelId}
-              equipmentListLength={equipmentList.length}
+              equipmentList={equipmentList.map(e => ({ product_id: e.id, title: e.title, quantity: e.quantity }))}
               totalMargin={totalMargin}
             />
           ) : (

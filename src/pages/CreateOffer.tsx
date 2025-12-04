@@ -132,7 +132,7 @@ const CreateOffer = () => {
     selectedAmbassadorId: selectedAmbassador?.id,
     commissionLevelId: commissionLevelId,
     totalMargin: totalEquipmentMargin,
-    equipmentListLength: equipmentList.length,
+    equipmentList: equipmentList.map(e => ({ product_id: e.id, title: e.title, quantity: e.quantity })),
     totalMonthlyPayment,
     totalPurchaseAmount
   });
