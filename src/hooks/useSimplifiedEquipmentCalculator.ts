@@ -196,15 +196,12 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       // Réinitialiser targetMonthlyPayment pour éviter les conflits d'affichage
       setTargetMonthlyPayment(0);
       
-      // Réinitialiser tous les refs pour forcer le recalcul
+      // Réinitialiser tous les refs pour permettre un futur recalcul si l'utilisateur change les valeurs
       lastEquipmentPriceRef.current = 0;
       lastLeaserIdRef.current = "";
       lastEquipmentMarginRef.current = -1;
       
-      // Déclencher un recalcul pour mettre à jour l'affichage
-      setTimeout(() => {
-        calculateMonthlyPayment();
-      }, 0);
+      // NE PAS appeler calculateMonthlyPayment() ici car cela écraserait la mensualité qu'on vient d'appliquer
     }
   };
 
