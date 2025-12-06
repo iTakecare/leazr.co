@@ -6469,9 +6469,11 @@ export type Database = {
           country: string
           created_at: string
           email: string
+          first_name: string
           has_user_account: boolean
           id: string
           last_commission: number
+          last_name: string
           name: string
           notes: string
           pdf_template_id: string
