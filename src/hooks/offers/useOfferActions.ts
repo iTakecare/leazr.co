@@ -349,7 +349,10 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         contentBlocks: {
           cover: {
             greeting: contentBlocksMap['cover']?.['greeting'] || '<p>Madame, Monsieur,</p>',
-            introduction: contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>',
+            // Introduction adaptée selon le mode achat ou leasing
+            introduction: isPurchase 
+              ? (contentBlocksMap['cover']?.['introduction_purchase'] || '<p>Nous avons le plaisir de vous présenter notre offre d\'achat sur mesure, conçue pour accompagner la croissance de votre entreprise.</p>')
+              : (contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre de leasing tech premium, conçue pour accompagner la croissance de votre entreprise.</p>'),
             validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
           },
           equipment: {
