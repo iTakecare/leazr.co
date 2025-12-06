@@ -188,6 +188,14 @@ export const EmailOfferDialog = ({
       document.body.appendChild(container);
 
       // Préparer les données pour CommercialOffer
+      const isPurchase = (offerData as any)?.is_purchase === true;
+      
+      // Calculer le total prix de vente pour le mode achat
+      const totalSellingPrice = equipmentData.reduce(
+        (sum, eq) => sum + (Number((eq as any).selling_price) || 0),
+        0
+      );
+      
       const commercialOfferData = {
         offerNumber: offerData.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
         offerDate: offerData.created_at ? new Date(offerData.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
@@ -200,11 +208,13 @@ export const EmailOfferDialog = ({
         companyName: offerData.companies?.name || 'iTakecare',
         showPrintButton: false,
         isPDFMode: true,
+        isPurchase: isPurchase,
         equipment: equipmentData.map((eq: any) => ({
           id: eq.id,
           title: eq.title,
           quantity: eq.quantity || 1,
           monthlyPayment: eq.monthly_payment || 0,
+          sellingPrice: eq.selling_price || 0,
           imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
           attributes: eq.attributes?.reduce((acc: any, attr: any) => {
             acc[attr.key] = attr.value;
@@ -215,10 +225,11 @@ export const EmailOfferDialog = ({
             return acc;
           }, {}) || {}
         })),
-        totalMonthly: computedTotalMonthly,
+        totalMonthly: isPurchase ? 0 : computedTotalMonthly,
+        totalSellingPrice: totalSellingPrice,
         contractDuration: Number(offerData.duration) || 36,
-        fileFee: Number(offerData.file_fee) || 0,
-        insuranceCost: Number(offerData.annual_insurance) || 0,
+        fileFee: isPurchase ? 0 : Number(offerData.file_fee) || 0,
+        insuranceCost: isPurchase ? 0 : Number(offerData.annual_insurance) || 0,
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
         companyValues: companyValuesData?.map(v => ({
           title: v.title,
@@ -242,6 +253,7 @@ export const EmailOfferDialog = ({
           },
           conditions: {
             general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
+            sale_general_conditions: contentBlocksMap['conditions']?.['sale_general_conditions'] || '<h3>Conditions de vente</h3>',
             additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
             contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
           },

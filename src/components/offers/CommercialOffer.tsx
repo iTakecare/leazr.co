@@ -21,6 +21,7 @@ interface CommercialOfferProps {
     title: string;
     quantity: number;
     monthlyPayment: number;
+    sellingPrice?: number; // Prix de vente pour mode achat
     imageUrl?: string;
     attributes?: Record<string, string>;
     specifications?: Record<string, string>;
@@ -28,6 +29,7 @@ interface CommercialOfferProps {
   
   // Totaux
   totalMonthly?: number;
+  totalSellingPrice?: number; // Total prix de vente pour mode achat
   contractDuration?: number;
   fileFee?: number;
   insuranceCost?: number;
@@ -62,6 +64,7 @@ interface CommercialOfferProps {
     };
     conditions?: {
       general_conditions?: string;
+      sale_general_conditions?: string; // CGV de vente pour mode achat
       additional_info?: string;
       contact_info?: string;
     };
@@ -69,7 +72,8 @@ interface CommercialOfferProps {
   
   // Contrôle d'affichage
   showPrintButton?: boolean;
-  isPDFMode?: boolean; // 🆕 Permet de basculer entre écran et PDF
+  isPDFMode?: boolean; // Permet de basculer entre écran et PDF
+  isPurchase?: boolean; // Mode achat (vs leasing)
 }
 
 // Helper functions
@@ -167,6 +171,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   validityDays = 10,
   equipment = [],
   totalMonthly = 0,
+  totalSellingPrice = 0,
   contractDuration = 36,
   fileFee = 0,
   insuranceCost = 0,
@@ -185,12 +190,14 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
     },
     conditions: {
       general_conditions: '<h3>Conditions générales</h3>',
+      sale_general_conditions: '<h3>Conditions de vente</h3>',
       additional_info: '',
       contact_info: 'Contactez-nous pour plus d\'informations.',
     },
   },
   showPrintButton = true,
-  isPDFMode = false // 🆕 Par défaut, mode écran
+  isPDFMode = false, // Par défaut, mode écran
+  isPurchase = false // Par défaut, mode leasing
 }) => {
   const styles = getResponsiveStyle(isPDFMode);
   
@@ -444,34 +451,65 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                       flexDirection: 'column',
                       gap: '2px',
                     }}>
-                      {/* Prix unitaire HTVA/mois */}
-                      <div style={{
-                        fontSize: styles.fontSize.xs,
-                        color: '#6B7280',
-                        fontWeight: '400',
-                      }}>
-                        {formatCurrency(item.monthlyPayment / Math.max(1, item.quantity || 1))} HTVA/mois
-                        <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
-                          • unitaire
-                        </span>
-                      </div>
-                      
-                      {/* Prix total HTVA/mois - monthlyPayment EST déjà le total (unitaire × quantité) */}
-                      <div style={{
-                        fontSize: styles.fontSize.lg,
-                        fontWeight: '600',
-                        color: '#1E40AF',
-                      }}>
-                        {formatCurrency(item.monthlyPayment)}
-                        <span style={{
-                          fontSize: styles.fontSize.xs,
-                          color: '#6B7280',
-                          fontWeight: '400',
-                          marginLeft: styles.spacing.xs,
-                        }}>
-                          HTVA/mois
-                        </span>
-                      </div>
+                      {isPurchase ? (
+                        /* Mode Achat : afficher prix de vente */
+                        <>
+                          <div style={{
+                            fontSize: styles.fontSize.xs,
+                            color: '#6B7280',
+                            fontWeight: '400',
+                          }}>
+                            {formatCurrency((item.sellingPrice || 0) / Math.max(1, item.quantity || 1))} HTVA
+                            <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
+                              • unitaire
+                            </span>
+                          </div>
+                          <div style={{
+                            fontSize: styles.fontSize.lg,
+                            fontWeight: '600',
+                            color: '#1E40AF',
+                          }}>
+                            {formatCurrency(item.sellingPrice || 0)}
+                            <span style={{
+                              fontSize: styles.fontSize.xs,
+                              color: '#6B7280',
+                              fontWeight: '400',
+                              marginLeft: styles.spacing.xs,
+                            }}>
+                              HTVA
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        /* Mode Leasing : afficher mensualité */
+                        <>
+                          <div style={{
+                            fontSize: styles.fontSize.xs,
+                            color: '#6B7280',
+                            fontWeight: '400',
+                          }}>
+                            {formatCurrency(item.monthlyPayment / Math.max(1, item.quantity || 1))} HTVA/mois
+                            <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
+                              • unitaire
+                            </span>
+                          </div>
+                          <div style={{
+                            fontSize: styles.fontSize.lg,
+                            fontWeight: '600',
+                            color: '#1E40AF',
+                          }}>
+                            {formatCurrency(item.monthlyPayment)}
+                            <span style={{
+                              fontSize: styles.fontSize.xs,
+                              color: '#6B7280',
+                              fontWeight: '400',
+                              marginLeft: styles.spacing.xs,
+                            }}>
+                              HTVA/mois
+                            </span>
+                          </div>
+                        </>
+                      )}
                       
                       {/* Légende pour la clarté */}
                       <div style={{
@@ -501,40 +539,42 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     marginBottom: styles.spacing.lg,
                   }}>
                     <div>
-              <p style={{
-                fontSize: styles.fontSize.sm,
-                color: '#1E40AF',
-                marginBottom: styles.spacing.xs,
-              }}>
-                Mensualité HTVA
-              </p>
+                      <p style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        marginBottom: styles.spacing.xs,
+                      }}>
+                        {isPurchase ? 'Total HTVA' : 'Mensualité HTVA'}
+                      </p>
                       <p style={{
                         fontSize: isPDFMode ? '40px' : '2.5rem',
                         fontWeight: '700',
                         color: '#1E40AF',
                         lineHeight: '1',
                       }}>
-                        {formatCurrency(totalMonthly)}
+                        {formatCurrency(isPurchase ? totalSellingPrice : totalMonthly)}
                       </p>
                     </div>
                     
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{
-                        fontSize: styles.fontSize.sm,
-                        color: '#1E40AF',
-                        marginBottom: styles.spacing.xs,
-                      }}>
-                        Durée du contrat
-                      </p>
-                      <p style={{
-                        fontSize: isPDFMode ? '32px' : '2rem',
-                        fontWeight: '600',
-                        color: '#1E40AF',
-                        lineHeight: '1',
-                      }}>
-                        {contractDuration} mois
-                      </p>
-                    </div>
+                    {!isPurchase && (
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{
+                          fontSize: styles.fontSize.sm,
+                          color: '#1E40AF',
+                          marginBottom: styles.spacing.xs,
+                        }}>
+                          Durée du contrat
+                        </p>
+                        <p style={{
+                          fontSize: isPDFMode ? '32px' : '2rem',
+                          fontWeight: '600',
+                          color: '#1E40AF',
+                          lineHeight: '1',
+                        }}>
+                          {contractDuration} mois
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div style={{
@@ -823,125 +863,207 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
       <div className="page page-4">
         <div className="section-header">
           <div className="section-badge blue">📋 Les détails qui comptent</div>
-          <h2 className="section-title">Conditions Générales</h2>
+          <h2 className="section-title">{isPurchase ? 'Conditions de Vente' : 'Conditions Générales'}</h2>
           <p className="section-subtitle">Simples, claires et transparentes</p>
         </div>
 
-        <div className="conditions-list">
-          {/* Prélèvement */}
-          <div className="condition-card blue-card">
-            <div className="condition-icon blue-bg">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-              </svg>
-            </div>
-            <div className="condition-content">
-              <h3 className="condition-title">💳 Prélèvement des mensualités</h3>
-              <ul className="condition-list">
-                <li><strong>Mode de paiement :</strong> DOMICILIATION SEPA (obligatoire)</li>
-                <li><strong>Fréquence :</strong> 1x par trimestre de manière anticipée</li>
-              </ul>
-              <div className="example-box">
-                <p className="example-title">📊 Exemple concret :</p>
-                <p className="example-text">
-                  Contrat démarrant le 15 octobre → Prélèvement début janvier pour :<br/>
-                  ✓ Utilisation du 15/10 au 31/12 + ✓ Paiement anticipé du 01/01 au 31/03
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Frais de dossier */}
-          <div className="condition-card purple-card">
-            <div className="condition-icon purple-bg">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-            </div>
-            <div className="condition-content">
-              <h3 className="condition-title">📄 Frais de dossier</h3>
-              <p className="condition-text"><strong>Montant :</strong> 75€ HTVA (frais uniques)</p>
-              <p className="condition-text"><strong>Prélèvement :</strong> En même temps que la/les première(s) mensualité(s)</p>
-            </div>
-          </div>
-
-          {/* Assurance */}
-          <div className="condition-card green-card">
-            <div className="condition-icon green-bg">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-              </svg>
-            </div>
-            <div className="condition-content">
-              <h3 className="condition-title">🛡️ Assurance du matériel</h3>
-              <ul className="condition-list">
-                <li><strong>Obligation légale :</strong> Le matériel doit être assuré</li>
-                <li><strong>Options :</strong> Via votre assurance OU celle du leaser</li>
-                <li><strong>Délai :</strong> 6 semaines pour fournir votre attestation</li>
-                <li><strong>Tarif leaser :</strong> Environ 3,5% du montant total/an</li>
-              </ul>
-              <div className="example-box green-example">
-                <p className="example-title">💰 Exemple de calcul :</p>
-                <p className="example-text">
-                  100€ HT/mois = 3 600€ → Assurance = 3,5% = <strong>126€ HT/an</strong> (10,50€/mois)<br/>
-                  <span className="example-note">Prime minimum : 110€</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Factures */}
-          <div className="condition-card amber-card">
-            <div className="condition-icon amber-bg">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-            </div>
-            <div className="condition-content">
-              <h3 className="condition-title">📨 Accès aux factures</h3>
-              <ul className="condition-list">
-                <li><strong>Espace membre :</strong> Disponibles en ligne chez le leaser</li>
-                <li><strong>Connexion :</strong> Code reçu par courrier postal</li>
-                <li>❌ Pas d'envoi par courrier ni par email</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Fin de contrat */}
-          <div className="condition-card indigo-card contract-end-card">
-            {/* Section gauche : Header avec icône + titre */}
-            <div className="contract-end-header">
-              <div className="condition-icon indigo-bg">
+        {isPurchase ? (
+          /* MODE ACHAT : Conditions de vente simplifiées */
+          <div className="conditions-list">
+            {/* CGV de vente personnalisées */}
+            <div className="condition-card blue-card" style={{ marginBottom: '1.5rem' }}>
+              <div className="condition-icon blue-bg">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
               </div>
-              <div className="contract-end-text">
-                <h3 className="condition-title">⏱️ Fin de contrat ({contractDuration} mois)</h3>
-                <p className="contract-subtitle">À l'issue des {contractDuration} mois, vous avez <strong>3 options</strong> :</p>
+              <div className="condition-content">
+                {contentBlocks?.conditions?.sale_general_conditions ? (
+                  <div dangerouslySetInnerHTML={{ __html: contentBlocks.conditions.sale_general_conditions }} />
+                ) : (
+                  <>
+                    <h3 className="condition-title">📄 Conditions Générales de Vente</h3>
+                    <ul className="condition-list">
+                      <li><strong>Paiement :</strong> À réception de facture sous 30 jours</li>
+                      <li><strong>Garantie :</strong> Garantie constructeur incluse</li>
+                      <li><strong>Livraison :</strong> Sous 10-15 jours ouvrés</li>
+                      <li><strong>SAV :</strong> Service après-vente inclus</li>
+                      <li><strong>Assistance :</strong> Assistance technique disponible</li>
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
-            
-            {/* Section droite : Les 3 options */}
-            <div className="options-grid-horizontal">
-              <div className="option-box">
-                <div className="option-emoji">🔄</div>
-                <h4 className="option-title">Option 1</h4>
-                <p className="option-text">Restituer le matériel et déduire la valeur résiduelle (5%) du nouveau contrat</p>
+
+            {/* Livraison */}
+            <div className="condition-card green-card" style={{ marginBottom: '1.5rem' }}>
+              <div className="condition-icon green-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                </svg>
               </div>
-              <div className="option-box">
-                <div className="option-emoji">💰</div>
-                <h4 className="option-title">Option 2</h4>
-                <p className="option-text">Payer la valeur résiduelle (5%) et garder le matériel</p>
+              <div className="condition-content">
+                <h3 className="condition-title">📦 Livraison</h3>
+                <ul className="condition-list">
+                  <li><strong>Délai :</strong> 10 à 15 jours ouvrés après confirmation</li>
+                  <li><strong>Mode :</strong> Livraison à l'adresse de votre choix</li>
+                  <li><strong>Frais :</strong> Livraison incluse dans le prix</li>
+                </ul>
               </div>
-              <div className="option-box">
-                <div className="option-emoji">💚</div>
-                <h4 className="option-title">Option 3</h4>
-                <p className="option-text">Don du matériel à des associations ou écoles</p>
+            </div>
+
+            {/* Garantie */}
+            <div className="condition-card purple-card" style={{ marginBottom: '1.5rem' }}>
+              <div className="condition-icon purple-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+              </div>
+              <div className="condition-content">
+                <h3 className="condition-title">🛡️ Garantie</h3>
+                <ul className="condition-list">
+                  <li><strong>Durée :</strong> Garantie constructeur standard</li>
+                  <li><strong>Couverture :</strong> Défauts de fabrication et pannes matérielles</li>
+                  <li><strong>Support :</strong> Assistance technique par téléphone et email</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Paiement */}
+            <div className="condition-card amber-card">
+              <div className="condition-icon amber-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                </svg>
+              </div>
+              <div className="condition-content">
+                <h3 className="condition-title">💳 Modalités de paiement</h3>
+                <ul className="condition-list">
+                  <li><strong>Délai :</strong> Paiement à 30 jours après réception de la facture</li>
+                  <li><strong>Modes acceptés :</strong> Virement bancaire</li>
+                  <li><strong>Facture :</strong> Envoyée par email après livraison</li>
+                </ul>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          /* MODE LEASING : Conditions de leasing complètes (existantes) */
+          <div className="conditions-list">
+            {/* Prélèvement */}
+            <div className="condition-card blue-card">
+              <div className="condition-icon blue-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                </svg>
+              </div>
+              <div className="condition-content">
+                <h3 className="condition-title">💳 Prélèvement des mensualités</h3>
+                <ul className="condition-list">
+                  <li><strong>Mode de paiement :</strong> DOMICILIATION SEPA (obligatoire)</li>
+                  <li><strong>Fréquence :</strong> 1x par trimestre de manière anticipée</li>
+                </ul>
+                <div className="example-box">
+                  <p className="example-title">📊 Exemple concret :</p>
+                  <p className="example-text">
+                    Contrat démarrant le 15 octobre → Prélèvement début janvier pour :<br/>
+                    ✓ Utilisation du 15/10 au 31/12 + ✓ Paiement anticipé du 01/01 au 31/03
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Frais de dossier */}
+            <div className="condition-card purple-card">
+              <div className="condition-icon purple-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <div className="condition-content">
+                <h3 className="condition-title">📄 Frais de dossier</h3>
+                <p className="condition-text"><strong>Montant :</strong> 75€ HTVA (frais uniques)</p>
+                <p className="condition-text"><strong>Prélèvement :</strong> En même temps que la/les première(s) mensualité(s)</p>
+              </div>
+            </div>
+
+            {/* Assurance */}
+            <div className="condition-card green-card">
+              <div className="condition-icon green-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+              </div>
+              <div className="condition-content">
+                <h3 className="condition-title">🛡️ Assurance du matériel</h3>
+                <ul className="condition-list">
+                  <li><strong>Obligation légale :</strong> Le matériel doit être assuré</li>
+                  <li><strong>Options :</strong> Via votre assurance OU celle du leaser</li>
+                  <li><strong>Délai :</strong> 6 semaines pour fournir votre attestation</li>
+                  <li><strong>Tarif leaser :</strong> Environ 3,5% du montant total/an</li>
+                </ul>
+                <div className="example-box green-example">
+                  <p className="example-title">💰 Exemple de calcul :</p>
+                  <p className="example-text">
+                    100€ HT/mois = 3 600€ → Assurance = 3,5% = <strong>126€ HT/an</strong> (10,50€/mois)<br/>
+                    <span className="example-note">Prime minimum : 110€</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Factures */}
+            <div className="condition-card amber-card">
+              <div className="condition-icon amber-bg">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <div className="condition-content">
+                <h3 className="condition-title">📨 Accès aux factures</h3>
+                <ul className="condition-list">
+                  <li><strong>Espace membre :</strong> Disponibles en ligne chez le leaser</li>
+                  <li><strong>Connexion :</strong> Code reçu par courrier postal</li>
+                  <li>❌ Pas d'envoi par courrier ni par email</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Fin de contrat */}
+            <div className="condition-card indigo-card contract-end-card">
+              {/* Section gauche : Header avec icône + titre */}
+              <div className="contract-end-header">
+                <div className="condition-icon indigo-bg">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                  </svg>
+                </div>
+                <div className="contract-end-text">
+                  <h3 className="condition-title">⏱️ Fin de contrat ({contractDuration} mois)</h3>
+                  <p className="contract-subtitle">À l'issue des {contractDuration} mois, vous avez <strong>3 options</strong> :</p>
+                </div>
+              </div>
+              
+              {/* Section droite : Les 3 options */}
+              <div className="options-grid-horizontal">
+                <div className="option-box">
+                  <div className="option-emoji">🔄</div>
+                  <h4 className="option-title">Option 1</h4>
+                  <p className="option-text">Restituer le matériel et déduire la valeur résiduelle (5%) du nouveau contrat</p>
+                </div>
+                <div className="option-box">
+                  <div className="option-emoji">💰</div>
+                  <h4 className="option-title">Option 2</h4>
+                  <p className="option-text">Payer la valeur résiduelle (5%) et garder le matériel</p>
+                </div>
+                <div className="option-box">
+                  <div className="option-emoji">💚</div>
+                  <h4 className="option-title">Option 3</h4>
+                  <p className="option-text">Don du matériel à des associations ou écoles</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* PAGE 5: Contact */}
