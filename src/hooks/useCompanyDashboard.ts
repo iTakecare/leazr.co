@@ -71,7 +71,8 @@ export const useCompanyDashboard = () => {
   // Récupérer les données financières mensuelles
   const { 
     data: monthlyData = [], 
-    isLoading: monthlyLoading 
+    isLoading: monthlyLoading,
+    refetch: refetchMonthly
   } = useQuery({
     queryKey: ['company-monthly-data', companyId],
     queryFn: async () => {
@@ -87,7 +88,8 @@ export const useCompanyDashboard = () => {
   // Récupérer les statistiques par statut
   const { 
     data: contractStats = [], 
-    isLoading: statsLoading 
+    isLoading: statsLoading,
+    refetch: refetchStats
   } = useQuery({
     queryKey: ['company-contract-stats', companyId],
     queryFn: async () => {
@@ -103,7 +105,8 @@ export const useCompanyDashboard = () => {
   // Récupérer l'activité récente
   const { 
     data: recentActivity = [], 
-    isLoading: activityLoading 
+    isLoading: activityLoading,
+    refetch: refetchActivity
   } = useQuery({
     queryKey: ['company-recent-activity', companyId],
     queryFn: async () => {
@@ -115,6 +118,16 @@ export const useCompanyDashboard = () => {
     enabled: !companyLoading && !!companyId,
     refetchInterval: 60000, // Actualisation toutes les minutes
   });
+
+  // Fonction pour rafraîchir toutes les données
+  const refetchAll = async () => {
+    await Promise.all([
+      refetchMetrics(),
+      refetchMonthly(),
+      refetchStats(),
+      refetchActivity()
+    ]);
+  };
 
   // Écouter les changements en temps réel
   useEffect(() => {
@@ -169,7 +182,7 @@ export const useCompanyDashboard = () => {
     metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
     isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading,
-    refetch: refetchMetrics
+    refetch: refetchAll
   };
 };
 

@@ -20,8 +20,10 @@ import {
   DollarSign,
   Target,
   Clock,
-  CheckCircle
+  CheckCircle,
+  RefreshCw
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import { motion } from "framer-motion";
@@ -29,9 +31,16 @@ import { useNavigate } from "react-router-dom";
 
 const CompanyDashboard = () => {
   const [timeFilter, setTimeFilter] = useState('month');
-  const { metrics, recentActivity, isLoading } = useCompanyDashboard();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { metrics, recentActivity, isLoading, refetch } = useCompanyDashboard();
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
 
   // Traitement des données mensuelles réelles
   const monthlyData = metrics?.monthly_data?.map(month => ({
@@ -134,6 +143,15 @@ const CompanyDashboard = () => {
                   <SelectItem value="all">Tout</SelectItem>
                 </SelectContent>
               </Select>
+              <Button 
+                variant="outline" 
+                className="border-primary/20 hover:bg-primary/10"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
+                Rafraîchir
+              </Button>
               <Button variant="outline" className="border-primary/20 hover:bg-primary/10">
                 <Download className="w-4 h-4 mr-2" />
                 Exporter PDF
