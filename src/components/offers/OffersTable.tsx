@@ -391,7 +391,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium text-[11px] py-2">
-                    {formatCurrency(offer.monthly_payment)}
+                    {formatCurrency(offer.is_purchase ? 0 : offer.monthly_payment)}
                   </TableCell>
                   <TableCell className="text-[11px] py-2">
                     <OfferStatusBadge 

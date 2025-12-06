@@ -19,6 +19,7 @@ export interface Offer extends OfferData {
   internal_score?: string | null;
   leaser_score?: string | null;
   has_recent_documents?: boolean;
+  is_purchase?: boolean;
   offer_custom_packs?: Array<{
     id: string;
     pack_name: string;
@@ -41,17 +42,25 @@ export const useFetchOffers = () => {
         0
       ) || 0;
       
+      // Si c'est un achat, la mensualité est TOUJOURS 0
+      const isPurchase = offer.is_purchase === true;
+      
       // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
-      const totalMonthlyPayment = (offer.offer_equipment || []).reduce(
+      const totalMonthlyPayment = isPurchase ? 0 : (offer.offer_equipment || []).reduce(
         (sum: number, eq: any) => sum + (Number(eq.monthly_payment) || 0), 
         0
       );
       
       // Calculate margin percentage using centralized utility
       const computedMarginPct = calculateOfferMargin(offer as any, offer.offer_equipment) || 0;
+      
+      // Mensualité finale : 0 pour les achats, sinon calcul normal
+      const finalMonthlyPayment = isPurchase 
+        ? 0 
+        : (totalMonthlyPayment > 0 ? totalMonthlyPayment : Number(offer.monthly_payment) || 0);
         
       // If financed_amount is missing or zero but we have monthly_payment
-      if ((!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
+      if (!isPurchase && (!offer.financed_amount || offer.financed_amount === 0) && offer.monthly_payment) {
         const coefficient = offer.coefficient || 3.27;
         const calculatedAmount = calculateFinancedAmount(
           Number(offer.monthly_payment), 
@@ -66,7 +75,8 @@ export const useFetchOffers = () => {
           total_purchase_price: totalPurchasePrice,
           margin_percentage: computedMarginPct,
           created_at: offer.created_at || new Date().toISOString(),
-          monthly_payment: totalMonthlyPayment > 0 ? totalMonthlyPayment : Number(offer.monthly_payment) || 0
+          monthly_payment: finalMonthlyPayment,
+          is_purchase: isPurchase
         } as Offer;
       }
       
@@ -77,7 +87,8 @@ export const useFetchOffers = () => {
         total_purchase_price: totalPurchasePrice,
         margin_percentage: computedMarginPct,
         created_at: offer.created_at || new Date().toISOString(),
-        monthly_payment: totalMonthlyPayment > 0 ? totalMonthlyPayment : Number(offer.monthly_payment) || 0
+        monthly_payment: finalMonthlyPayment,
+        is_purchase: isPurchase
       } as Offer;
     });
   }, [rawOffers]);
