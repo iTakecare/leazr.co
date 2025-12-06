@@ -273,8 +273,12 @@ const CreateOffer = () => {
               }
             }
 
-            // Identifier le leaser utilisé basé sur le coefficient
-            if (offer.coefficient) {
+            // Charger le mode achat direct
+            setIsPurchase(offer.is_purchase || false);
+            console.log("💰 STEP 3: Mode achat:", offer.is_purchase);
+
+            // Identifier le leaser utilisé basé sur le coefficient (seulement en mode leasing)
+            if (!offer.is_purchase && offer.coefficient) {
               console.log("🔧 STEP 3: Finding leaser for coefficient:", offer.coefficient);
               try {
                 const fetchedLeasers = await getLeasers();
@@ -834,6 +838,7 @@ const CreateOffer = () => {
                           calculatedFromSalePrice={calculatedFromSalePrice} 
                           applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
                           clientId={clientId}
+                          isPurchase={isPurchase}
                         />
                       </div>
 

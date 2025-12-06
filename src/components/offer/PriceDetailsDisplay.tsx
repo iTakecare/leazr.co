@@ -9,6 +9,7 @@ interface PriceDetailsDisplayProps {
   displayMonthlyPayment: number;
   hideFinancialDetails?: boolean;
   calculatedMargin?: { percentage: number; amount: number };
+  isPurchase?: boolean; // Mode achat direct
 }
 
 const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
@@ -17,8 +18,34 @@ const PriceDetailsDisplay: React.FC<PriceDetailsDisplayProps> = ({
   coefficient,
   displayMonthlyPayment,
   hideFinancialDetails = false,
-  calculatedMargin
+  calculatedMargin,
+  isPurchase = false
 }) => {
+  // Mode achat : affichage simplifié sans coefficient ni mensualité
+  if (isPurchase) {
+    const displayMarginAmount = calculatedMargin ? calculatedMargin.amount : marginAmount;
+    const displayPercentage = calculatedMargin ? calculatedMargin.percentage : (marginAmount / priceWithMargin) * 100;
+
+    return (
+      <div className="p-4 border rounded-lg bg-gray-50">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-700">Marge:</span>
+            <span className="text-gray-900">
+              {formatCurrency(displayMarginAmount)} ({displayPercentage.toFixed(2)}%)
+            </span>
+          </div>
+          <div className="flex justify-between items-center border-t pt-2 mt-2">
+            <span className="text-gray-700 font-medium">Prix de vente:</span>
+            <span className="text-gray-900 font-bold">
+              {formatCurrency(priceWithMargin)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (hideFinancialDetails) {
     return (
       <div className="p-4 border rounded-lg bg-gray-50">
