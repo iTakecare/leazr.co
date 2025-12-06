@@ -149,13 +149,21 @@ export const DEFAULT_PDF_CONTENT_BLOCKS = {
     footer_note: '<p>Tous les prix sont exprimés en euros hors taxes (€ HT). La TVA en vigueur sera appliquée sur la facture finale.</p>',
   },
   conditions: {
-    general_conditions: `<h3>Conditions Générales</h3>
+    general_conditions: `<h3>Conditions Générales de Leasing</h3>
 <ul>
 <li>Paiement mensuel par prélèvement automatique</li>
 <li>Engagement sur la durée du contrat</li>
 <li>Maintenance et support inclus</li>
 <li>Garantie constructeur incluse</li>
 <li>Possibilité de renouvellement à l'échéance du contrat</li>
+</ul>`,
+    sale_general_conditions: `<h3>Conditions Générales de Vente</h3>
+<ul>
+<li>Paiement à réception de facture sous 30 jours</li>
+<li>Garantie constructeur incluse</li>
+<li>Livraison sous 10-15 jours ouvrés</li>
+<li>Service après-vente inclus</li>
+<li>Assistance technique disponible</li>
 </ul>`,
     additional_info: '<p>Pour toute information complémentaire, n\'hésitez pas à nous contacter. Notre équipe reste à votre disposition pour répondre à toutes vos questions.</p>',
     contact_info: `<p><strong>Contact</strong></p>

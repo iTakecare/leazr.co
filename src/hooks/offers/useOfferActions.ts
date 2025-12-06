@@ -279,8 +279,16 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       container.style.zIndex = '9999';
       document.body.appendChild(container);
 
-      // 3. Préparer les données COMPLÈTES pour CommercialOffer
-      const offerData = {
+      // Préparer les données COMPLÈTES pour CommercialOffer
+      const isPurchase = (offer as any)?.is_purchase === true;
+      
+      // Calculer le total prix de vente pour le mode achat
+      const totalSellingPrice = equipmentData.reduce(
+        (sum: number, eq: any) => sum + (Number(eq.selling_price) || 0),
+        0
+      );
+      
+      const offerDataForPDF = {
         // Données de base
         offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
         offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
@@ -292,7 +300,8 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         companyLogo: companyLogoBase64,
         companyName: companyData?.name || 'iTakecare',
         showPrintButton: false,
-        isPDFMode: true, // 🆕 Active le mode PDF avec styles en pixels
+        isPDFMode: true,
+        isPurchase: isPurchase,
         
         // Équipements - Convertir le format DB vers le format CommercialOffer
         equipment: equipmentData.map((eq: any) => ({
@@ -300,6 +309,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
           title: eq.title,
           quantity: eq.quantity || 1,
           monthlyPayment: eq.monthly_payment || 0,
+          sellingPrice: eq.selling_price || 0,
           imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
           attributes: eq.attributes?.reduce((acc: any, attr: any) => {
             acc[attr.key] = attr.value;
@@ -312,10 +322,11 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         })),
         
         // Totaux et informations financières
-        totalMonthly: Number(offer.monthly_payment) || 0,
+        totalMonthly: isPurchase ? 0 : Number(offer.monthly_payment) || 0,
+        totalSellingPrice: totalSellingPrice,
         contractDuration: Number(offer.duration) || 36,
-        fileFee: Number(offer.file_fee) || 0,
-        insuranceCost: Number(offer.annual_insurance) || 0,
+        fileFee: isPurchase ? 0 : Number(offer.file_fee) || 0,
+        insuranceCost: isPurchase ? 0 : Number(offer.annual_insurance) || 0,
         
         // Logos partenaires
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
@@ -347,6 +358,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
           },
           conditions: {
             general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
+            sale_general_conditions: contentBlocksMap['conditions']?.['sale_general_conditions'] || '<h3>Conditions de vente</h3>',
             additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
             contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
           },
@@ -375,7 +387,7 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
               fontFamily: 'Inter, sans-serif' 
             } 
           },
-          React.createElement(CommercialOffer, offerData)
+          React.createElement(CommercialOffer, offerDataForPDF)
         )
       );
 
@@ -436,11 +448,11 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
 
       // 9. Télécharger le PDF
       const date = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
-      const clientName = (offer.client_company || offer.client_name || offerData.clientName || 'Client')
+      const clientNameForFile = (offer.client_company || offer.client_name || offerDataForPDF.clientName || 'Client')
         .replace(/[^a-zA-Z0-9\s]/g, '')  // Enlève les caractères spéciaux
         .replace(/\s+/g, '_')             // Remplace espaces par underscore
         .substring(0, 30);                // Limite à 30 caractères
-      const filename = `Offre_${offerData.offerNumber}_${clientName}_${date}.pdf`;
+      const filename = `Offre_${offerDataForPDF.offerNumber}_${clientNameForFile}_${date}.pdf`;
       pdf.save(filename);
 
       // 9b. Retirer le mode PDF
