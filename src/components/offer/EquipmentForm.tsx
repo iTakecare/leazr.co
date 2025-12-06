@@ -30,7 +30,8 @@ interface EquipmentFormProps {
   setTargetSalePrice?: (value: number) => void;
   calculatedFromSalePrice?: { margin: number; monthlyPayment: number };
   applyCalculatedFromSalePrice?: () => void;
-  clientId?: string; // Pour la gestion des sites de livraison
+  clientId?: string;
+  isPurchase?: boolean; // Mode achat direct
 }
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({
@@ -53,7 +54,8 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   setTargetSalePrice = () => {},
   calculatedFromSalePrice = { margin: 0, monthlyPayment: 0 },
   applyCalculatedFromSalePrice = () => {},
-  clientId
+  clientId,
+  isPurchase = false
 }) => {
   const [errors, setErrors] = useState({
     title: false,
@@ -151,14 +153,20 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
   };
 
   // Calcul de la mensualité à afficher (priorité à targetMonthlyPayment, puis equipment.monthlyPayment, puis monthlyPayment)
-  const displayMonthlyPayment = targetMonthlyPayment > 0 
-    ? targetMonthlyPayment 
-    : (equipment.monthlyPayment || monthlyPayment);
+  // En mode achat, la mensualité est toujours 0
+  const displayMonthlyPayment = isPurchase 
+    ? 0 
+    : (targetMonthlyPayment > 0 
+        ? targetMonthlyPayment 
+        : (equipment.monthlyPayment || monthlyPayment));
+
+  // Titre de la carte selon le mode
+  const cardTitle = isPurchase ? "Calculateur de prix" : "Calculateur de mensualité";
 
   return (
     <Card className="shadow-sm border-gray-200 rounded-lg">
       <CardHeader className="pb-3 border-b">
-        <CardTitle className="text-lg font-medium">Calculateur de mensualité</CardTitle>
+        <CardTitle className="text-lg font-medium">{cardTitle}</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-6">
@@ -179,6 +187,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
             displayMonthlyPayment={displayMonthlyPayment}
             hideFinancialDetails={hideFinancialDetails}
             calculatedMargin={calculatedMargin.percentage > 0 ? calculatedMargin : undefined}
+            isPurchase={isPurchase}
           />
 
           <FormActionButtons
@@ -209,6 +218,7 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({
               setTargetSalePrice={setTargetSalePrice}
               calculatedFromSalePrice={calculatedFromSalePrice}
               applyCalculatedFromSalePrice={applyCalculatedFromSalePrice}
+              isPurchase={isPurchase}
             />
           </div>
         </div>
