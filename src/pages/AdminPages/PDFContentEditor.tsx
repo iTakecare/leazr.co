@@ -352,11 +352,20 @@ const PDFContentEditor: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="conditions-general">Conditions générales</Label>
+                <Label htmlFor="conditions-general">Conditions générales de leasing</Label>
                 <RichTextEditor
                   value={blocks.conditions_general_conditions || ''}
                   onChange={(val) => updateBlock('conditions', 'general_conditions', val)}
-                  placeholder="Ex: Conditions générales du contrat..."
+                  placeholder="Ex: Conditions générales du contrat de leasing..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="conditions-sale">Conditions générales de vente (Offres d'achat)</Label>
+                <RichTextEditor
+                  value={blocks.conditions_sale_general_conditions || ''}
+                  onChange={(val) => updateBlock('conditions', 'sale_general_conditions', val)}
+                  placeholder="Ex: Conditions générales de vente directe..."
                 />
               </div>
 
