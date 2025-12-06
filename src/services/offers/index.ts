@@ -43,15 +43,17 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       }
     }
 
+    // Déterminer si c'est un achat direct
+    const isPurchase = offerData.is_purchase === true;
+    console.log("Mode achat:", isPurchase);
+
     // Convertir les valeurs numériques si nécessaire
-    const dataToSave = {
+    const dataToSave: any = {
       ...offerData,
       equipment_description: equipmentDescription,
+      is_purchase: isPurchase,
       amount: offerData.amount ? 
         (typeof offerData.amount === 'string' ? parseFloat(offerData.amount) : offerData.amount) : 
-        null,
-      coefficient: offerData.coefficient ? 
-        (typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient) : 
         null,
       monthly_payment: offerData.monthly_payment ? 
         (typeof offerData.monthly_payment === 'string' ? parseFloat(offerData.monthly_payment) : offerData.monthly_payment) : 
@@ -60,6 +62,36 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
         (typeof offerData.commission === 'string' ? parseFloat(offerData.commission) : offerData.commission) : 
         null
     };
+
+    // Gérer le coefficient selon le mode (ACHAT vs LEASING)
+    if (isPurchase) {
+      // Mode Achat : pas de financement
+      dataToSave.coefficient = 0;
+      dataToSave.monthly_payment = 0;
+      dataToSave.leaser_id = null;
+      dataToSave.duration = null;
+      console.log("Mode Achat: coefficient=0, monthly_payment=0, leaser_id=null");
+    } else {
+      // Mode Leasing : coefficient requis
+      dataToSave.coefficient = offerData.coefficient ? 
+        (typeof offerData.coefficient === 'string' ? parseFloat(offerData.coefficient) : offerData.coefficient) : 
+        3.55; // Fallback par défaut
+      
+      if (dataToSave.coefficient === null || dataToSave.coefficient === undefined || isNaN(Number(dataToSave.coefficient))) {
+        dataToSave.coefficient = 3.55;
+        console.log("Coefficient invalide détecté, utilisation du fallback 3.55");
+      }
+    }
+
+    // TRIPLE SÉCURITÉ : S'assurer que coefficient est TOUJOURS un nombre valide
+    if (dataToSave.coefficient === null || dataToSave.coefficient === undefined) {
+      dataToSave.coefficient = isPurchase ? 0 : 3.55;
+    }
+    dataToSave.coefficient = Number(dataToSave.coefficient);
+    if (isNaN(dataToSave.coefficient)) {
+      dataToSave.coefficient = isPurchase ? 0 : 3.55;
+    }
+    console.log(`Coefficient final: ${dataToSave.coefficient}`);
 
     // Log the commission value being saved
     console.log(`Commission value being saved: ${dataToSave.commission}€ (type: ${typeof dataToSave.commission})`);
@@ -86,17 +118,17 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       dataToSave.commission = 0;
     }
 
-    // Calculer et ajouter le montant financé
-    if (dataToSave.monthly_payment && dataToSave.coefficient) {
+    // Calculer et ajouter le montant financé (seulement en mode Leasing)
+    if (!isPurchase && dataToSave.monthly_payment && dataToSave.coefficient) {
       const financedAmount = calculateFinancedAmount(
         Number(dataToSave.monthly_payment),
-        Number(dataToSave.coefficient || 3.27)
+        Number(dataToSave.coefficient)
       );
       console.log(`Calcul du montant financé pour la création: ${financedAmount}€`);
       dataToSave.financed_amount = financedAmount;
-    } else if (dataToSave.monthly_payment) {
-      // Si nous avons seulement la mensualité mais pas le coefficient, utiliser la valeur par défaut 3.27
-      const defaultCoefficient = 3.27;
+    } else if (!isPurchase && dataToSave.monthly_payment) {
+      // Si nous avons seulement la mensualité mais pas le coefficient, utiliser la valeur par défaut 3.55
+      const defaultCoefficient = 3.55;
       console.log(`Aucun coefficient fourni, utilisation de la valeur par défaut: ${defaultCoefficient}`);
       
       const financedAmount = calculateFinancedAmount(
@@ -106,11 +138,10 @@ export const createOffer = async (offerData: Partial<OfferData>): Promise<{ data
       
       console.log(`Calcul du montant financé avec coefficient par défaut: ${financedAmount}€`);
       dataToSave.financed_amount = financedAmount;
-      
-      // Définir également le coefficient par défaut dans les données à sauvegarder
-      if (!dataToSave.coefficient) {
-        dataToSave.coefficient = defaultCoefficient;
-      }
+      dataToSave.coefficient = defaultCoefficient;
+    } else if (isPurchase) {
+      // Mode Achat : pas de montant financé
+      dataToSave.financed_amount = 0;
     }
 
     console.log("Création d'une nouvelle offre avec les données:", dataToSave);
