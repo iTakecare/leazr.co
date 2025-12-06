@@ -577,94 +577,158 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     )}
                   </div>
                   
-                  <div style={{
-                    marginTop: styles.spacing.lg,
-                    paddingTop: styles.spacing.lg,
-                    borderTop: '1px solid #93C5FD',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: styles.spacing.md,
-                  }}>
+                  {/* Badges conditionnels selon mode achat/leasing */}
+                  {isPurchase ? (
+                    /* MODE ACHAT : Seulement Livraison + Garantie constructeur */
                     <div style={{
-                      fontSize: styles.fontSize.sm,
-                      color: '#1E40AF',
+                      marginTop: styles.spacing.lg,
+                      paddingTop: styles.spacing.lg,
+                      borderTop: '1px solid #93C5FD',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: styles.spacing.xs,
+                      justifyContent: 'center',
+                      gap: styles.spacing['3xl'],
                     }}>
-                      <span style={{
-                        width: styles.spacing.lg,
-                        height: styles.spacing.lg,
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                        color: 'white',
-                        display: 'inline-flex',
+                      <div style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        gap: styles.spacing.xs,
                       }}>
-                        <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </span>
-                      Livraison incluse
+                        <span style={{
+                          width: styles.spacing.lg,
+                          height: styles.spacing.lg,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          color: 'white',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        Livraison incluse
+                      </div>
+                      <div style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: styles.spacing.xs,
+                      }}>
+                        <span style={{
+                          width: styles.spacing.lg,
+                          height: styles.spacing.lg,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          color: 'white',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        Garantie constructeur
+                      </div>
                     </div>
+                  ) : (
+                    /* MODE LEASING : Livraison + Maintenance + Garantie échange */
                     <div style={{
-                      fontSize: styles.fontSize.sm,
-                      color: '#1E40AF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: styles.spacing.xs,
+                      marginTop: styles.spacing.lg,
+                      paddingTop: styles.spacing.lg,
+                      borderTop: '1px solid #93C5FD',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: styles.spacing.md,
                     }}>
-                      <span style={{
-                        width: styles.spacing.lg,
-                        height: styles.spacing.lg,
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                        color: 'white',
-                        display: 'inline-flex',
+                      <div style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        gap: styles.spacing.xs,
                       }}>
-                        <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </span>
-                      Maintenance incluse
-                    </div>
-                    <div style={{
-                      fontSize: styles.fontSize.sm,
-                      color: '#1E40AF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: styles.spacing.xs,
-                    }}>
-                      <span style={{
-                        width: styles.spacing.lg,
-                        height: styles.spacing.lg,
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                        color: 'white',
-                        display: 'inline-flex',
+                        <span style={{
+                          width: styles.spacing.lg,
+                          height: styles.spacing.lg,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          color: 'white',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        Livraison incluse
+                      </div>
+                      <div style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        gap: styles.spacing.xs,
                       }}>
-                        <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </span>
-                      Garantie échange direct
+                        <span style={{
+                          width: styles.spacing.lg,
+                          height: styles.spacing.lg,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          color: 'white',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        Maintenance incluse
+                      </div>
+                      <div style={{
+                        fontSize: styles.fontSize.sm,
+                        color: '#1E40AF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: styles.spacing.xs,
+                      }}>
+                        <span style={{
+                          width: styles.spacing.lg,
+                          height: styles.spacing.lg,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          color: 'white',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <svg width={isPDFMode ? 12 : 12} height={isPDFMode ? 12 : 12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        Garantie échange direct
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div style={{
-                    marginTop: styles.spacing.lg,
-                    fontSize: styles.fontSize.xs,
-                    color: '#1E40AF',
-                    textAlign: 'center',
-                  }}>
-                    💼 Frais de dossier unique : <strong>{formatCurrency(fileFee)}</strong> • 
-                    🛡️ Montant de l'assurance annuelle : <strong>{formatCurrency(insuranceCost)}</strong>
-                  </div>
+                  {/* Frais de dossier et assurance : UNIQUEMENT en mode leasing */}
+                  {!isPurchase && (
+                    <div style={{
+                      marginTop: styles.spacing.lg,
+                      fontSize: styles.fontSize.xs,
+                      color: '#1E40AF',
+                      textAlign: 'center',
+                    }}>
+                      💼 Frais de dossier unique : <strong>{formatCurrency(fileFee)}</strong> • 
+                      🛡️ Montant de l'assurance annuelle : <strong>{formatCurrency(insuranceCost)}</strong>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
