@@ -317,13 +317,17 @@ export const createOffer = async (offerData: OfferData) => {
           const specifications = equipment.specifications || {};
           
           // Créer l'équipement de base
+          // En mode achat: monthly_payment = 0, selling_price est le prix de vente
           const newEquipment = {
             offer_id: data.id,
             title: equipment.title,
             purchase_price: equipment.purchasePrice || equipment.purchase_price || 0,
             quantity: equipment.quantity || 1,
             margin: equipment.margin || 0,
-            monthly_payment: equipment.monthlyPayment || equipment.monthly_payment || 0,
+            // En mode achat : monthly_payment doit être 0
+            monthly_payment: isPurchase ? 0 : (equipment.monthlyPayment || equipment.monthly_payment || 0),
+            // En mode achat : selling_price est le prix de vente total
+            selling_price: equipment.sellingPrice || equipment.selling_price || null,
             serial_number: equipment.serialNumber || equipment.serial_number,
             product_id: equipment.productId || equipment.product_id || null,
             image_url: equipment.imageUrl || equipment.image_url || 

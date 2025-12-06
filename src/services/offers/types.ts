@@ -51,6 +51,8 @@ export interface OfferData {
     margin: number;
     monthlyPayment?: number;
     monthly_payment?: number;
+    sellingPrice?: number;
+    selling_price?: number;
     serialNumber?: string;
     serial_number?: string;
     productId?: string;
