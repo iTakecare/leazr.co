@@ -138,7 +138,7 @@ export const useWorkflows = (companyId?: string) => {
   };
 };
 
-export const useWorkflowForOfferType = (companyId?: string, offerType?: OfferType) => {
+export const useWorkflowForOfferType = (companyId?: string, offerType?: OfferType, isPurchase: boolean = false) => {
   const [steps, setSteps] = useState<WorkflowStepConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,21 +147,21 @@ export const useWorkflowForOfferType = (companyId?: string, offerType?: OfferTyp
     if (companyId && offerType) {
       loadWorkflowSteps();
     }
-  }, [companyId, offerType]);
+  }, [companyId, offerType, isPurchase]);
 
   const loadWorkflowSteps = async () => {
     if (!companyId || !offerType) return;
     
     try {
       setLoading(true);
-      const data = await workflowService.getWorkflowForOfferType(companyId, offerType);
+      const data = await workflowService.getWorkflowForOfferType(companyId, offerType, isPurchase);
       setSteps(data);
       setError(null);
     } catch (err) {
       console.error('Error loading workflow steps:', err);
       setError('Erreur lors du chargement du workflow');
       // Fallback to default steps if database fails
-      setSteps(getDefaultStepsForOfferType(offerType));
+      setSteps(getDefaultStepsForOfferType(offerType, isPurchase));
     } finally {
       setLoading(false);
     }
@@ -267,14 +267,24 @@ const getDefaultStepsForContractType = (): WorkflowStepConfig[] => {
 };
 
 // Fallback default steps if database is not available
-const getDefaultStepsForOfferType = (offerType: OfferType): WorkflowStepConfig[] => {
+const getDefaultStepsForOfferType = (offerType: OfferType, isPurchase: boolean = false): WorkflowStepConfig[] => {
   const baseSteps = {
     draft: { step_key: 'draft', step_label: 'Brouillon', step_order: 1, icon_name: 'Circle', color_class: 'bg-gray-100' },
     sent: { step_key: 'sent', step_label: 'Offre envoyée', step_order: 2, icon_name: 'Clock', color_class: 'bg-blue-500' },
     internal_review: { step_key: 'internal_review', step_label: 'Analyse interne', step_order: 3, icon_name: 'Clock', color_class: 'bg-orange-500' },
     leaser_review: { step_key: 'leaser_review', step_label: 'Analyse Leaser', step_order: 4, icon_name: 'Clock', color_class: 'bg-purple-500' },
-    validated: { step_key: 'validated', step_label: 'Offre validée', step_order: 5, icon_name: 'CheckCircle', color_class: 'bg-green-500' }
+    validated: { step_key: 'validated', step_label: 'Offre validée', step_order: 5, icon_name: 'CheckCircle', color_class: 'bg-green-500' },
+    invoicing: { step_key: 'invoicing', step_label: 'Facturation', step_order: 5, icon_name: 'CheckCircle', color_class: 'bg-green-500' }
   };
+
+  // Workflow spécifique pour les achats
+  if (isPurchase || offerType === 'purchase_request') {
+    return [
+      { ...baseSteps.draft, template_id: '', template_name: 'Default', is_required: true, is_visible: true },
+      { ...baseSteps.internal_review, step_order: 2, template_id: '', template_name: 'Default', is_required: true, is_visible: true },
+      { ...baseSteps.invoicing, step_order: 3, step_label: 'Facturation directe', template_id: '', template_name: 'Default', is_required: true, is_visible: true }
+    ];
+  }
 
   switch (offerType) {
     case 'client_request':

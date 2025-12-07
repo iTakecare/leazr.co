@@ -51,10 +51,12 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
 
   const offerType = (offer?.type || 'client_request') as OfferType;
   const companyId = offer?.company_id || user?.company;
+  const isPurchase = offer?.is_purchase === true;
   
   const { steps: workflowSteps, loading: workflowLoading } = useWorkflowForOfferType(
     companyId, 
-    offerType
+    offerType,
+    isPurchase
   );
 
   const steps = workflowSteps.map(step => ({

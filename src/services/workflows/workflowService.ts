@@ -12,11 +12,12 @@ import type {
 
 export const workflowService = {
   // Get workflow for specific offer type
-  async getWorkflowForOfferType(companyId: string, offerType: OfferType): Promise<WorkflowStepConfig[]> {
+  async getWorkflowForOfferType(companyId: string, offerType: OfferType, isPurchase: boolean = false): Promise<WorkflowStepConfig[]> {
     const { data, error } = await supabase
       .rpc('get_workflow_for_offer_type', {
         p_company_id: companyId,
-        p_offer_type: offerType
+        p_offer_type: offerType,
+        p_is_purchase: isPurchase
       });
 
     if (error) {
