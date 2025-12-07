@@ -932,25 +932,32 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
         </div>
 
         {isPurchase ? (
-          /* MODE ACHAT : Uniquement les CGV de vente en texte simple, sans cartes colorées */
-          <div style={{
-            padding: '2rem',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '12px',
-          }}>
+          /* MODE ACHAT : CGV de vente en 2 colonnes, police réduite pour tenir sur 1 page */
+          <div style={{ padding: '0.5rem', backgroundColor: '#FFFFFF' }}>
+            <style dangerouslySetInnerHTML={{ __html: `
+              .cgv-sale-content h1 { font-size: 10px; font-weight: bold; margin: 0 0 4px 0; }
+              .cgv-sale-content h2 { font-size: 9px; font-weight: bold; margin: 6px 0 2px 0; }
+              .cgv-sale-content h3 { font-size: 8px; font-weight: bold; margin: 4px 0 2px 0; }
+              .cgv-sale-content p { font-size: 7.5px; line-height: 1.2; margin: 0 0 2px 0; }
+              .cgv-sale-content ul { padding-left: 10px; margin: 0 0 2px 0; }
+              .cgv-sale-content li { font-size: 7.5px; line-height: 1.2; margin: 0 0 1px 0; }
+              .cgv-sale-content br { display: none; }
+            `}} />
             {contentBlocks?.conditions?.sale_general_conditions ? (
               <div 
+                className="cgv-sale-content"
                 style={{ 
-                  fontSize: '12px', 
-                  lineHeight: '1.5',
-                  color: '#374151' 
+                  fontSize: '7.5px', 
+                  lineHeight: '1.2',
+                  color: '#374151',
+                  columnCount: 2,
+                  columnGap: '1rem',
                 }}
                 dangerouslySetInnerHTML={{ __html: contentBlocks.conditions.sale_general_conditions }} 
               />
             ) : (
-              <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '1rem' }}>Conditions Générales de Vente</h3>
+              <div style={{ fontSize: '7.5px', lineHeight: '1.2', color: '#374151', columnCount: 2, columnGap: '1rem' }}>
+                <h3 style={{ marginBottom: '4px', fontSize: '10px', fontWeight: 'bold' }}>Conditions Générales de Vente</h3>
                 <p><strong>Paiement :</strong> À réception de facture sous 30 jours</p>
                 <p><strong>Garantie :</strong> Garantie constructeur incluse</p>
                 <p><strong>Livraison :</strong> Sous 10-15 jours ouvrés, frais inclus</p>
