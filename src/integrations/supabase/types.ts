@@ -6998,45 +6998,30 @@ export type Database = {
           template_name: string
         }[]
       }
-      get_workflow_for_offer_type:
-        | {
-            Args: { p_company_id: string; p_offer_type: string }
-            Returns: {
-              color_class: string
-              enables_scoring: boolean
-              icon_name: string
-              is_required: boolean
-              is_visible: boolean
-              scoring_type: string
-              step_description: string
-              step_key: string
-              step_label: string
-              step_order: number
-              template_id: string
-              template_name: string
-            }[]
-          }
-        | {
-            Args: {
-              p_company_id: string
-              p_is_purchase?: boolean
-              p_offer_type: string
-            }
-            Returns: {
-              color_class: string
-              enables_scoring: boolean
-              icon_name: string
-              is_required: boolean
-              is_visible: boolean
-              scoring_type: string
-              step_description: string
-              step_key: string
-              step_label: string
-              step_order: number
-              template_id: string
-              template_name: string
-            }[]
-          }
+      get_workflow_for_offer_type: {
+        Args: {
+          p_company_id: string
+          p_is_purchase?: boolean
+          p_offer_type: string
+        }
+        Returns: {
+          color_class: string
+          enables_scoring: boolean
+          icon_name: string
+          is_required: boolean
+          is_visible: boolean
+          next_step_on_approval: string
+          next_step_on_docs_requested: string
+          next_step_on_rejection: string
+          scoring_type: string
+          step_description: string
+          step_key: string
+          step_label: string
+          step_order: number
+          template_id: string
+          template_name: string
+        }[]
+      }
       group_products_by_sku: {
         Args: never
         Returns: {
