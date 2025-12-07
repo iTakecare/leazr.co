@@ -680,7 +680,21 @@ const [notesLoading, setNotesLoading] = useState(false);
       
       if (success) {
         setOffer({ ...offer, workflow_status: newStatus });
-        toast.success(`Score ${score} attribué avec succès`);
+        
+        // Si le nouveau statut est 'invoicing' et c'est une offre d'achat, créer une facture brouillon
+        if (newStatus === 'invoicing' && offer.is_purchase) {
+          try {
+            const { generateInvoiceFromPurchaseOffer } = await import('@/services/invoiceService');
+            const invoice = await generateInvoiceFromPurchaseOffer(offer.id, offer.company_id);
+            toast.success(`Score ${score} attribué - Facture brouillon créée avec succès`);
+            console.log("📄 Facture brouillon créée:", invoice);
+          } catch (invoiceError) {
+            console.error("⚠️ Erreur création facture:", invoiceError);
+            toast.warning(`Score ${score} attribué mais erreur lors de la création de la facture brouillon`);
+          }
+        } else {
+          toast.success(`Score ${score} attribué avec succès`);
+        }
       } else {
         toast.error("Erreur lors de l'attribution du score");
       }

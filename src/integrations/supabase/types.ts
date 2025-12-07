@@ -3283,6 +3283,7 @@ export type Database = {
           invoice_date: string | null
           invoice_number: string | null
           leaser_name: string
+          offer_id: string | null
           paid_at: string | null
           pdf_url: string | null
           sent_at: string | null
@@ -3303,6 +3304,7 @@ export type Database = {
           invoice_date?: string | null
           invoice_number?: string | null
           leaser_name: string
+          offer_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
           sent_at?: string | null
@@ -3323,6 +3325,7 @@ export type Database = {
           invoice_date?: string | null
           invoice_number?: string | null
           leaser_name?: string
+          offer_id?: string | null
           paid_at?: string | null
           pdf_url?: string | null
           sent_at?: string | null
@@ -3342,6 +3345,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: true
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]
