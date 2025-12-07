@@ -59,7 +59,148 @@ export const areAllSerialNumbersComplete = (equipment: any[]): boolean => {
   );
 };
 
-// Générer une facture en local (brouillon)
+// Générer une facture brouillon à partir d'une offre d'achat (purchase mode)
+export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyId: string) => {
+  try {
+    console.log('📝 Génération facture depuis offre d\'achat - offerId:', offerId, 'companyId:', companyId);
+    
+    // Vérifier si une facture existe déjà pour cette offre
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('offer_id', offerId)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (existingInvoice) {
+      console.log('✅ Facture existante trouvée pour offre:', existingInvoice.id);
+      return existingInvoice;
+    }
+    
+    // Récupérer l'offre avec les données client
+    const { data: offer, error: offerError } = await supabase
+      .from('offers')
+      .select(`
+        *,
+        clients:client_id (
+          id,
+          name,
+          company,
+          email,
+          phone,
+          address,
+          city,
+          postal_code,
+          country,
+          vat_number,
+          billing_address,
+          billing_city,
+          billing_postal_code,
+          billing_country
+        )
+      `)
+      .eq('id', offerId)
+      .single();
+
+    if (offerError || !offer) {
+      throw new Error('Offre non trouvée');
+    }
+
+    if (!offer.is_purchase) {
+      throw new Error('Cette offre n\'est pas une offre d\'achat');
+    }
+
+    // Récupérer les équipements de l'offre
+    const { data: equipment, error: equipmentError } = await supabase
+      .from('offer_equipment')
+      .select('*')
+      .eq('offer_id', offerId);
+
+    if (equipmentError) {
+      throw new Error('Erreur lors de la récupération des équipements');
+    }
+
+    // Calculer le prix total de vente
+    const totalSellingPrice = (equipment || []).reduce((total, item) => {
+      const sellingPrice = item.selling_price || (item.purchase_price * (1 + (item.margin || 0) / 100));
+      return total + sellingPrice;
+    }, 0);
+
+    console.log('💰 Prix de vente total calculé:', totalSellingPrice);
+
+    // Préparer les données client pour la facturation
+    const client = offer.clients;
+    const clientData = client ? {
+      id: client.id,
+      name: client.name || offer.client_name,
+      company: client.company,
+      email: client.email || offer.client_email,
+      phone: client.phone,
+      address: client.billing_address || client.address,
+      city: client.billing_city || client.city,
+      postal_code: client.billing_postal_code || client.postal_code,
+      country: client.billing_country || client.country || 'Belgique',
+      vat_number: client.vat_number
+    } : {
+      name: offer.client_name,
+      email: offer.client_email
+    };
+
+    // Préparer les équipements enrichis
+    const enrichedEquipment = (equipment || []).map(item => {
+      const sellingPrice = item.selling_price || (item.purchase_price * (1 + (item.margin || 0) / 100));
+      return {
+        ...item,
+        selling_price_excl_vat: parseFloat(sellingPrice.toFixed(2)),
+        unit_selling_price: parseFloat((sellingPrice / (item.quantity || 1)).toFixed(2))
+      };
+    });
+
+    // Créer la facture en brouillon
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert({
+        offer_id: offerId,
+        company_id: companyId,
+        leaser_name: clientData.name || 'Client',
+        amount: totalSellingPrice,
+        status: 'draft',
+        integration_type: 'local',
+        invoice_date: new Date().toISOString().split('T')[0],
+        billing_data: {
+          offer_data: {
+            id: offer.id,
+            reference: offer.offer_reference,
+            created_at: offer.created_at,
+            is_purchase: true
+          },
+          client_data: clientData,
+          equipment_data: enrichedEquipment,
+          invoice_totals: {
+            total_excl_vat: totalSellingPrice,
+            vat_amount: totalSellingPrice * 0.21,
+            total_incl_vat: totalSellingPrice * 1.21
+          },
+          generated_from_purchase_offer: true,
+          created_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (invoiceError) {
+      console.error('❌ Erreur création facture:', invoiceError);
+      throw new Error('Erreur lors de la création de la facture');
+    }
+
+    console.log('✅ Facture brouillon générée avec succès:', invoice);
+    return invoice;
+  } catch (error) {
+    console.error('❌ Erreur lors de la génération de la facture depuis offre d\'achat:', error);
+    throw error;
+  }
+};
+
 export const generateLocalInvoice = async (contractId: string, companyId: string) => {
   try {
     console.log('📝 Génération facture locale - contractId:', contractId, 'companyId:', companyId);

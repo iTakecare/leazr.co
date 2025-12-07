@@ -648,13 +648,14 @@ const [notesLoading, setNotesLoading] = useState(false);
       if (user?.company) {
         const offerType = (offer.type || 'client_request') as OfferType;
         const isPurchase = offer.is_purchase === true;
+      const currentStep = offer.workflow_status || 'internal_review';
         transitions = await workflowService.getStepTransitions(
           user.company,
           offerType,
-          'internal_review',
+          currentStep,
           isPurchase
         );
-        console.log("🔍 Workflow transitions for internal_review:", transitions);
+        console.log("🔍 Workflow transitions for", currentStep, ":", transitions);
       }
 
       let newStatus = '';
@@ -707,13 +708,14 @@ const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
     if (user?.company) {
       const offerType = (offer.type || 'client_request') as OfferType;
       const isPurchase = offer.is_purchase === true;
-      transitions = await workflowService.getStepTransitions(
-        user.company,
-        offerType,
-        'leaser_review',
-        isPurchase
-      );
-      console.log("🔍 Workflow transitions for leaser_review:", transitions);
+      const currentStep = offer.workflow_status || 'leaser_review';
+        transitions = await workflowService.getStepTransitions(
+          user.company,
+          offerType,
+          currentStep,
+          isPurchase
+        );
+        console.log("🔍 Workflow transitions for", currentStep, ":", transitions);
     }
 
     let newStatus = '';
