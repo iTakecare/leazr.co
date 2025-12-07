@@ -376,6 +376,14 @@ const [notesLoading, setNotesLoading] = useState(false);
       document.body.appendChild(container);
 
       // 3. Préparer les données COMPLÈTES pour CommercialOffer
+      const isPurchase = offer?.is_purchase === true;
+      
+      // Calculer le totalSellingPrice pour les offres d'achat
+      const totalSellingPrice = equipmentData.reduce(
+        (sum: number, eq: any) => sum + (Number(eq.selling_price) || 0),
+        0
+      );
+      
       const offerData = {
         // Données de base
         offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
@@ -390,12 +398,17 @@ const [notesLoading, setNotesLoading] = useState(false);
         showPrintButton: false,
         isPDFMode: true,
         
+        // Mode achat
+        isPurchase: isPurchase,
+        totalSellingPrice: totalSellingPrice,
+        
         // Équipements - Convertir le format DB vers le format CommercialOffer
         equipment: equipmentData.map((eq: any) => ({
           id: eq.id,
           title: eq.title,
           quantity: eq.quantity || 1,
-          monthlyPayment: eq.monthly_payment || 0,
+          monthlyPayment: isPurchase ? 0 : (eq.monthly_payment || 0),
+          sellingPrice: eq.selling_price || 0,
           imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
           attributes: eq.attributes?.reduce((acc: any, attr: any) => {
             acc[attr.key] = attr.value;
@@ -407,11 +420,11 @@ const [notesLoading, setNotesLoading] = useState(false);
           }, {}) || {}
         })),
         
-        // Totaux et informations financières
-        totalMonthly: Number(offer.monthly_payment) || 0,
+        // Totaux et informations financières - adaptés selon le mode
+        totalMonthly: isPurchase ? 0 : (Number(offer.monthly_payment) || 0),
         contractDuration: Number(offer.duration) || 36,
-        fileFee: Number(offer.file_fee) || 0,
-        insuranceCost: Number(offer.annual_insurance) || 0,
+        fileFee: isPurchase ? 0 : (Number(offer.file_fee) || 0),
+        insuranceCost: isPurchase ? 0 : (Number(offer.annual_insurance) || 0),
         
         // Logos partenaires
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
@@ -434,7 +447,9 @@ const [notesLoading, setNotesLoading] = useState(false);
         contentBlocks: {
           cover: {
             greeting: contentBlocksMap['cover']?.['greeting'] || '<p>Madame, Monsieur,</p>',
-            introduction: contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>',
+            introduction: isPurchase 
+              ? (contentBlocksMap['cover']?.['introduction_purchase'] || '<p>Nous avons le plaisir de vous présenter notre offre d\'achat.</p>')
+              : (contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>'),
             validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
           },
           equipment: {
@@ -443,6 +458,7 @@ const [notesLoading, setNotesLoading] = useState(false);
           },
           conditions: {
             general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
+            sale_general_conditions: contentBlocksMap['conditions']?.['sale_general_conditions'] || '',
             additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
             contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
           },
