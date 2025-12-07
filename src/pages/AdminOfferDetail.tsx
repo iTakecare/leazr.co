@@ -4,6 +4,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
 import { getOfferById, updateOfferStatus, deleteOffer, generateSignatureLink } from "@/services/offerService";
+import { workflowService } from "@/services/workflows/workflowService";
+import type { OfferType } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useOfferDocuments } from "@/hooks/useOfferDocuments";
 import { sendOfferReadyEmail } from "@/services/emailService";
@@ -641,11 +643,32 @@ const [notesLoading, setNotesLoading] = useState(false);
 
     setScoringLoading(true);
     try {
+      // Récupérer les transitions configurées du workflow
+      let transitions = null;
+      if (user?.company) {
+        const offerType = (offer.type || 'client_request') as OfferType;
+        const isPurchase = offer.is_purchase === true;
+        transitions = await workflowService.getStepTransitions(
+          user.company,
+          offerType,
+          'internal_review',
+          isPurchase
+        );
+        console.log("🔍 Workflow transitions for internal_review:", transitions);
+      }
+
       let newStatus = '';
       switch (score) {
-        case 'A': newStatus = 'internal_approved'; break;
-        case 'B': newStatus = 'internal_docs_requested'; break;
+        case 'A': 
+          // Utiliser la transition configurée, sinon fallback
+          newStatus = transitions?.next_step_on_approval || 'internal_approved'; 
+          break;
+        case 'B': 
+          newStatus = transitions?.next_step_on_docs_requested || 'internal_docs_requested'; 
+          break;
       }
+      
+      console.log("🎯 Score A - transition vers:", newStatus);
       
       const success = await updateOfferStatus(
         offer.id,
@@ -679,11 +702,31 @@ const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
 
   setScoringLoading(true);
   try {
+    // Récupérer les transitions configurées du workflow
+    let transitions = null;
+    if (user?.company) {
+      const offerType = (offer.type || 'client_request') as OfferType;
+      const isPurchase = offer.is_purchase === true;
+      transitions = await workflowService.getStepTransitions(
+        user.company,
+        offerType,
+        'leaser_review',
+        isPurchase
+      );
+      console.log("🔍 Workflow transitions for leaser_review:", transitions);
+    }
+
     let newStatus = '';
     switch (score) {
-      case 'A': newStatus = 'leaser_approved'; break;
-      case 'B': newStatus = 'leaser_docs_requested'; break;
+      case 'A': 
+        newStatus = transitions?.next_step_on_approval || 'leaser_approved'; 
+        break;
+      case 'B': 
+        newStatus = transitions?.next_step_on_docs_requested || 'leaser_docs_requested'; 
+        break;
     }
+    
+    console.log("🎯 Leaser Score - transition vers:", newStatus);
     
     const success = await updateOfferStatus(
       offer.id,
