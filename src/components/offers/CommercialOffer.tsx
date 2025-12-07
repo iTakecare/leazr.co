@@ -805,9 +805,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   {value.title}
                 </h3>
                 <p style={{
-                  fontSize: styles.fontSize.xxs,
+                  fontSize: isPDFMode ? '9px' : styles.fontSize.xxs,
                   color: '#6B7280',
-                  lineHeight: '1.5',
+                  lineHeight: '1.3',
                 }}>
                   {value.description}
                 </p>
@@ -932,83 +932,31 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
         </div>
 
         {isPurchase ? (
-          /* MODE ACHAT : Conditions de vente simplifiées */
-          <div className="conditions-list">
-            {/* CGV de vente personnalisées */}
-            <div className="condition-card blue-card" style={{ marginBottom: '1.5rem' }}>
-              <div className="condition-icon blue-bg">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
+          /* MODE ACHAT : Uniquement les CGV de vente en texte simple, sans cartes colorées */
+          <div style={{
+            padding: '2rem',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E5E7EB',
+            borderRadius: '12px',
+          }}>
+            {contentBlocks?.conditions?.sale_general_conditions ? (
+              <div 
+                style={{ 
+                  fontSize: '12px', 
+                  lineHeight: '1.5',
+                  color: '#374151' 
+                }}
+                dangerouslySetInnerHTML={{ __html: contentBlocks.conditions.sale_general_conditions }} 
+              />
+            ) : (
+              <div style={{ fontSize: '12px', lineHeight: '1.5', color: '#374151' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '1rem' }}>Conditions Générales de Vente</h3>
+                <p><strong>Paiement :</strong> À réception de facture sous 30 jours</p>
+                <p><strong>Garantie :</strong> Garantie constructeur incluse</p>
+                <p><strong>Livraison :</strong> Sous 10-15 jours ouvrés, frais inclus</p>
+                <p><strong>SAV :</strong> Service après-vente disponible</p>
               </div>
-              <div className="condition-content">
-                {contentBlocks?.conditions?.sale_general_conditions ? (
-                  <div dangerouslySetInnerHTML={{ __html: contentBlocks.conditions.sale_general_conditions }} />
-                ) : (
-                  <>
-                    <h3 className="condition-title">📄 Conditions Générales de Vente</h3>
-                    <ul className="condition-list">
-                      <li><strong>Paiement :</strong> À réception de facture sous 30 jours</li>
-                      <li><strong>Garantie :</strong> Garantie constructeur incluse</li>
-                      <li><strong>Livraison :</strong> Sous 10-15 jours ouvrés</li>
-                      <li><strong>SAV :</strong> Service après-vente inclus</li>
-                      <li><strong>Assistance :</strong> Assistance technique disponible</li>
-                    </ul>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Livraison */}
-            <div className="condition-card green-card" style={{ marginBottom: '1.5rem' }}>
-              <div className="condition-icon green-bg">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                </svg>
-              </div>
-              <div className="condition-content">
-                <h3 className="condition-title">📦 Livraison</h3>
-                <ul className="condition-list">
-                  <li><strong>Délai :</strong> 10 à 15 jours ouvrés après confirmation</li>
-                  <li><strong>Mode :</strong> Livraison à l'adresse de votre choix</li>
-                  <li><strong>Frais :</strong> Livraison incluse dans le prix</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Garantie */}
-            <div className="condition-card purple-card" style={{ marginBottom: '1.5rem' }}>
-              <div className="condition-icon purple-bg">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                </svg>
-              </div>
-              <div className="condition-content">
-                <h3 className="condition-title">🛡️ Garantie</h3>
-                <ul className="condition-list">
-                  <li><strong>Durée :</strong> Garantie constructeur standard</li>
-                  <li><strong>Couverture :</strong> Défauts de fabrication et pannes matérielles</li>
-                  <li><strong>Support :</strong> Assistance technique par téléphone et email</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Paiement */}
-            <div className="condition-card amber-card">
-              <div className="condition-icon amber-bg">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                </svg>
-              </div>
-              <div className="condition-content">
-                <h3 className="condition-title">💳 Modalités de paiement</h3>
-                <ul className="condition-list">
-                  <li><strong>Délai :</strong> Paiement à 30 jours après réception de la facture</li>
-                  <li><strong>Modes acceptés :</strong> Virement bancaire</li>
-                  <li><strong>Facture :</strong> Envoyée par email après livraison</li>
-                </ul>
-              </div>
-            </div>
+            )}
           </div>
         ) : (
           /* MODE LEASING : Conditions de leasing complètes (existantes) */
