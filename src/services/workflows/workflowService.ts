@@ -268,5 +268,39 @@ export const workflowService = {
     }
 
     return newTemplate;
+  },
+
+  // Get step transitions for current workflow status
+  async getStepTransitions(
+    companyId: string, 
+    offerType: OfferType, 
+    currentStatus: string,
+    isPurchase: boolean = false
+  ): Promise<{
+    next_step_on_approval: string | null;
+    next_step_on_rejection: string | null;
+    next_step_on_docs_requested: string | null;
+  } | null> {
+    try {
+      // Get workflow steps for this offer type
+      const steps = await this.getWorkflowForOfferType(companyId, offerType, isPurchase);
+      
+      // Find the step matching current status
+      const currentStep = steps.find(step => step.step_key === currentStatus);
+      
+      if (!currentStep) {
+        console.warn(`No workflow step found for status: ${currentStatus}`);
+        return null;
+      }
+
+      return {
+        next_step_on_approval: currentStep.next_step_on_approval || null,
+        next_step_on_rejection: currentStep.next_step_on_rejection || null,
+        next_step_on_docs_requested: currentStep.next_step_on_docs_requested || null
+      };
+    } catch (error) {
+      console.error('Error getting step transitions:', error);
+      return null;
+    }
   }
 };
