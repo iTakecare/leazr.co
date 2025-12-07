@@ -66,7 +66,8 @@ export type OfferType =
   | 'client_request' 
   | 'web_request'
   | 'custom_pack_request'
-  | 'ambassador_offer';
+  | 'ambassador_offer'
+  | 'purchase_request';
 
 export interface CreateWorkflowTemplate {
   name: string;

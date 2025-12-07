@@ -53,6 +53,11 @@ export const WorkflowTemplateForm: React.FC<WorkflowTemplateFormProps> = ({
       value: 'ambassador_offer',
       label: 'Demande Ambassadeur',
       description: 'Workflow avec commission pour ambassadeur'
+    },
+    {
+      value: 'purchase_request',
+      label: 'Demande Achat',
+      description: 'Processus pour les achats directs (sans leasing)'
     }
   ];
 

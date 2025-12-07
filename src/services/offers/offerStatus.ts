@@ -115,14 +115,14 @@ export const updateOfferStatus = async (
     // when transitioning from leaser_approved to offer_validation
     console.log("ℹ️ Transition de statut détectée:", safePreviousStatus, "->", newStatus);
 
-    // Si le statut est un statut final (validated, offer_validation, financed), créer automatiquement un contrat
+    // Si le statut est un statut final (validated, offer_validation, financed), créer automatiquement un contrat ou une facture
     if (isFinalStatus(newStatus)) {
-      console.log("🔄 DÉBUT: Conversion automatique vers contrat pour l'offre:", offerId);
+      console.log("🔄 DÉBUT: Conversion automatique pour l'offre:", offerId);
       console.log("🔄 Statut final détecté:", newStatus);
       console.log("🔄 Statut précédent:", safePreviousStatus, "-> Nouveau statut:", newStatus);
       
       try {
-        // Récupérer les infos nécessaires pour créer le contrat
+        // Récupérer les infos nécessaires pour créer le contrat ou la facture
         console.log("📋 ÉTAPE 1: Récupération des données de l'offre...");
         const { data: offerData, error: offerDataError } = await supabase
           .from('offers')
@@ -133,6 +133,14 @@ export const updateOfferStatus = async (
         if (offerDataError || !offerData) {
           console.error("❌ ERREUR ÉTAPE 1: Impossible de récupérer l'offre:", offerDataError);
           throw new Error("Impossible de récupérer les détails de l'offre");
+        }
+
+        // Vérifier si c'est une offre d'achat (pas de contrat, facturation directe)
+        if (offerData.is_purchase === true) {
+          console.log("🧾 Offre d'achat détectée - Passage à la facturation directe (pas de contrat)");
+          toast.success("Offre d'achat finalisée ! Prêt pour la facturation directe.");
+          // Note: La facturation sera créée manuellement par l'utilisateur depuis la page de l'offre
+          return true;
         }
 
         // Vérifier et corriger l'user_id si nécessaire
@@ -162,7 +170,8 @@ export const updateOfferStatus = async (
           monthly_payment: offerData.monthly_payment,
           client_id: offerData.client_id,
           company_id: offerData.company_id,
-          user_id: offerData.user_id
+          user_id: offerData.user_id,
+          is_purchase: offerData.is_purchase
         });
         
         // Récupérer le leaser sélectionné dans l'offre

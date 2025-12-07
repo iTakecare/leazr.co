@@ -15,6 +15,8 @@ export const translateOfferType = (type: string | undefined | null): string => {
       return "Dem. web - pack perso";
     case 'ambassador_offer':
       return "Offre ambassadeur";
+    case 'purchase_request':
+      return "Demande Achat";
     case 'partner_offer':
       return "Offre partenaire";
     default:

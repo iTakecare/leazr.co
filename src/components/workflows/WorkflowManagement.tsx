@@ -74,6 +74,7 @@ const WorkflowManagement: React.FC = () => {
       'web_request': 'Dem. web - standard',
       'custom_pack_request': 'Dem. web - pack perso',
       'ambassador_offer': 'Dem. ambassadeur',
+      'purchase_request': 'Demande Achat',
       'internal_offer': 'Offre Interne',
       'standard': 'Standard'
     };
@@ -86,6 +87,7 @@ const WorkflowManagement: React.FC = () => {
       'web_request': 'bg-cyan-100 text-cyan-800 border-cyan-200',
       'custom_pack_request': 'bg-teal-100 text-teal-800 border-teal-200',
       'ambassador_offer': 'bg-green-100 text-green-800 border-green-200',
+      'purchase_request': 'bg-amber-100 text-amber-800 border-amber-200',
       'internal_offer': 'bg-purple-100 text-purple-800 border-purple-200',
       'standard': 'bg-gray-100 text-gray-800 border-gray-200'
     };
