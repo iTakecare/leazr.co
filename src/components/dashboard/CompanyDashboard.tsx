@@ -58,10 +58,10 @@ const CompanyDashboard = () => {
   };
 
   const moyennes = {
-    ca: monthlyData.length ? Math.round(totals.ca / monthlyData.length) : 0,
-    achats: monthlyData.length ? Math.round(totals.achats / monthlyData.length) : 0,
-    marge: monthlyData.length ? Math.round(totals.marge / monthlyData.length) : 0,
-    margePercent: totals.ca > 0 ? Math.round((totals.marge / totals.ca) * 1000) / 10 : 0
+    ca: monthlyData.length ? totals.ca / monthlyData.length : 0,
+    achats: monthlyData.length ? totals.achats / monthlyData.length : 0,
+    marge: monthlyData.length ? totals.marge / monthlyData.length : 0,
+    margePercent: totals.ca > 0 ? (totals.marge / totals.ca) * 100 : 0
   };
 
   // Traitement des statistiques par statut
@@ -74,8 +74,8 @@ const CompanyDashboard = () => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
@@ -209,7 +209,7 @@ const CompanyDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Taux de Marge</p>
-                  <p className="text-xl font-bold text-purple-600">{moyennes.margePercent}%</p>
+                  <p className="text-xl font-bold text-purple-600">{moyennes.margePercent.toFixed(2)}%</p>
                 </div>
                 <div className="p-2 rounded-full bg-purple-500/20">
                   <Target className="w-5 h-5 text-purple-600" />
@@ -250,7 +250,7 @@ const CompanyDashboard = () => {
                             <TableCell className="text-right font-medium">{formatCurrency(month.ca)}</TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(month.achats)}</TableCell>
                             <TableCell className="text-right font-bold text-green-600">{formatCurrency(month.marge)}</TableCell>
-                            <TableCell className="text-right font-bold text-green-600">{month.margePercent}%</TableCell>
+                            <TableCell className="text-right font-bold text-green-600">{Number(month.margePercent).toFixed(2)}%</TableCell>
                           </TableRow>
                         ))
                       ) : (
@@ -268,14 +268,14 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.ca)}</TableCell>
                         <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.achats)}</TableCell>
                         <TableCell className="text-right font-bold text-lg text-green-600">{formatCurrency(totals.marge)}</TableCell>
-                        <TableCell className="text-right font-bold text-lg text-green-600">{moyennes.margePercent}%</TableCell>
+                        <TableCell className="text-right font-bold text-lg text-green-600">{moyennes.margePercent.toFixed(2)}%</TableCell>
                       </TableRow>
                       <TableRow className="bg-blue-50 dark:bg-blue-900/10 border-b-2 border-blue-200">
                         <TableCell className="font-bold">MOYENNE</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(moyennes.ca)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-semibold text-blue-600">{formatCurrency(moyennes.marge)}</TableCell>
-                        <TableCell className="text-right font-semibold text-blue-600">{moyennes.margePercent}%</TableCell>
+                        <TableCell className="text-right font-semibold text-blue-600">{moyennes.margePercent.toFixed(2)}%</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
