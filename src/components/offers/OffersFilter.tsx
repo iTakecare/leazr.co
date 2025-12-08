@@ -28,6 +28,7 @@ const OffersFilter = ({
           <TabsList>
             <TabsTrigger value="in_progress">À traiter</TabsTrigger>
             <TabsTrigger value="accepted">Acceptées</TabsTrigger>
+            <TabsTrigger value="invoiced">Facturé</TabsTrigger>
             <TabsTrigger value="rejected">Refusées</TabsTrigger>
           </TabsList>
         </Tabs>

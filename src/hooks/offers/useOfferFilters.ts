@@ -28,8 +28,12 @@ export const useOfferFilters = (offers: Offer[]) => {
       'validated',       // Contrat prêt
       'financed',        // Financé
       'contract_sent',   // Contrat envoyé
-      'signed',          // Signé
-      'invoicing'        // Facturation (offres d'achat)
+      'signed'           // Signé
+    ]);
+    
+    // Statuts "Facturé" = Offres d'achat en facturation
+    const invoicedStatuses = new Set([
+      'invoicing'        // En facturation (offres d'achat)
     ]);
     
     // Statuts "Refusées" = Tous les types de rejets
@@ -46,11 +50,13 @@ export const useOfferFilters = (offers: Offer[]) => {
       
       if (activeTab === "accepted") {
         return acceptedStatuses.has(status);
+      } else if (activeTab === "invoiced") {
+        return invoicedStatuses.has(status);
       } else if (activeTab === "rejected") {
         return rejectedStatuses.has(status);
       } else {
-        // in_progress: inclut les brouillons et tous les statuts intermédiaires
-        return !acceptedStatuses.has(status) && !rejectedStatuses.has(status);
+        // in_progress: exclut les acceptés, facturés et refusés
+        return !acceptedStatuses.has(status) && !invoicedStatuses.has(status) && !rejectedStatuses.has(status);
       }
     });
     
