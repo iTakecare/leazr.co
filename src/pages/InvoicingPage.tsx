@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,20 +12,43 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useInvoices } from "@/hooks/useInvoices";
 import { useCreditNotes } from "@/hooks/useCreditNotes";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import InvoiceSortFilter, { InvoiceSortBy } from "@/components/invoicing/InvoiceSortFilter";
 import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { invoices, loading, fetchInvoices } = useInvoices();
   const { creditNotes, loading: creditNotesLoading, fetchCreditNotes } = useCreditNotes();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_number');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("invoices");
+  
+  // Gérer l'onglet actif via URL
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'credit-notes' ? 'credit-notes' : 'invoices');
+
+  // Synchroniser l'onglet avec l'URL
+  useEffect(() => {
+    if (tabFromUrl === 'credit-notes' && activeTab !== 'credit-notes') {
+      setActiveTab('credit-notes');
+      // Rafraîchir les notes de crédit quand on arrive sur l'onglet
+      fetchCreditNotes();
+    }
+  }, [tabFromUrl]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'credit-notes') {
+      setSearchParams({ tab: 'credit-notes' });
+      fetchCreditNotes();
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const filteredInvoices = invoices.filter(invoice => {
     const searchLower = searchTerm.toLowerCase();
@@ -141,7 +164,7 @@ const InvoicingPage = () => {
             </Button>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList>
               <TabsTrigger value="invoices" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />

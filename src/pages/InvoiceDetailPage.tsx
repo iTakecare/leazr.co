@@ -699,9 +699,22 @@ const InvoiceDetailPage = () => {
         invoiceId={invoice.id}
         invoiceNumber={invoice.invoice_number}
         invoiceAmount={invoice.amount}
-        onSuccess={() => {
-          // Recharger la facture
-          window.location.reload();
+        onSuccess={async () => {
+          setCreditNoteDialogOpen(false);
+          
+          // Recharger les données de la facture localement
+          try {
+            const invoices = await getCompanyInvoices(companyId);
+            const foundInvoice = invoices.find(inv => inv.id === id);
+            if (foundInvoice) {
+              setInvoice(foundInvoice);
+            }
+          } catch (error) {
+            console.error("Erreur lors du rechargement de la facture:", error);
+          }
+          
+          // Naviguer vers l'onglet Notes de crédit
+          navigateToAdmin("invoicing?tab=credit-notes");
         }}
       />
     </div>

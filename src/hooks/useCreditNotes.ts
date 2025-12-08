@@ -10,6 +10,7 @@ export const useCreditNotes = () => {
 
   const fetchCreditNotes = async () => {
     if (!companyId) {
+      console.log('🧾 CREDIT NOTES - Pas de companyId, skip fetch');
       setLoading(false);
       return;
     }
@@ -17,10 +18,12 @@ export const useCreditNotes = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🧾 CREDIT NOTES - Fetch pour companyId:', companyId);
       const data = await getCreditNotes(companyId);
+      console.log('🧾 CREDIT NOTES - Data reçue:', data.length, 'notes de crédit');
       setCreditNotes(data);
     } catch (err: any) {
-      console.error('Erreur lors de la récupération des notes de crédit:', err);
+      console.error('🧾 CREDIT NOTES - Erreur:', err);
       setError(err.message);
     } finally {
       setLoading(false);
