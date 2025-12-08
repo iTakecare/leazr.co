@@ -18,7 +18,7 @@ const InvoicingPage = () => {
   const navigate = useNavigate();
   const { invoices, loading } = useInvoices();
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_date');
+  const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_number');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const filteredInvoices = invoices.filter(invoice =>
