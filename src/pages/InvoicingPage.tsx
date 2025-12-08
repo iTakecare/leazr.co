@@ -59,7 +59,30 @@ const InvoicingPage = () => {
     });
   }, [filteredInvoices, sortBy, sortOrder]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (invoice: typeof invoices[0]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Vérifier si la facture est en retard de paiement
+    if (invoice.due_date && !invoice.paid_at) {
+      const dueDate = new Date(invoice.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      if (dueDate < today) {
+        const diffTime = today.getTime() - dueDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return (
+          <div className="flex flex-col items-start gap-0.5">
+            <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800">
+              Attente paiement
+            </Badge>
+            <span className="text-xs font-medium text-red-600 dark:text-red-400">J-{diffDays}</span>
+          </div>
+        );
+      }
+    }
+    
     const statusConfig = {
       draft: { label: "Brouillon", variant: "secondary" as const },
       sent: { label: "Envoyée", variant: "default" as const },
@@ -67,8 +90,8 @@ const InvoicingPage = () => {
       overdue: { label: "En retard", variant: "destructive" as const }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: "default" as const };
-    return <Badge variant={config.variant} className={status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : ''}>{config.label}</Badge>;
+    const config = statusConfig[invoice.status as keyof typeof statusConfig] || { label: invoice.status, variant: "default" as const };
+    return <Badge variant={config.variant} className={invoice.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : ''}>{config.label}</Badge>;
   };
 
   const handleViewInvoice = (invoiceId: string) => {
@@ -176,7 +199,7 @@ const InvoicingPage = () => {
                             <TableCell>{clientName}</TableCell>
                             <TableCell>{recipientName}</TableCell>
                             <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-                            <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                            <TableCell>{getStatusBadge(invoice)}</TableCell>
                             <TableCell>{formatDate(invoice.invoice_date || invoice.created_at)}</TableCell>
                             <TableCell>
                               <DropdownMenu>
