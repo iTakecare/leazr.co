@@ -195,7 +195,8 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     }
 
     const finalStatuses = ['validated', 'offer_validation', 'financed'];
-    const isFinalStatus = finalStatuses.includes(targetStatus);
+    const isInvoicingPurchase = targetStatus === 'invoicing' && isPurchase;
+    const isFinalStatus = finalStatuses.includes(targetStatus) || isInvoicingPurchase;
     
     const confirmMessage = isFinalStatus
       ? isPurchase 
@@ -228,7 +229,18 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
           onStatusChange(targetStatus);
         }
 
-        if (isFinalStatus) {
+        // Si c'est une offre d'achat passant en facturation, créer la facture brouillon
+        if (targetStatus === 'invoicing' && isPurchase && offer?.company_id) {
+          try {
+            const { generateInvoiceFromPurchaseOffer } = await import('@/services/invoiceService');
+            const invoice = await generateInvoiceFromPurchaseOffer(offerId, offer.company_id);
+            toast.success('Facture brouillon créée avec succès');
+            console.log("📄 Facture brouillon créée depuis stepper:", invoice);
+          } catch (invoiceError) {
+            console.error("⚠️ Erreur création facture depuis stepper:", invoiceError);
+            toast.warning('Statut mis à jour mais erreur lors de la création de la facture brouillon');
+          }
+        } else if (isFinalStatus) {
           toast.success(isPurchase 
             ? `Offre finalisée ! Une facture va être créée automatiquement.`
             : `Offre finalisée ! Un contrat va être créé automatiquement.`
