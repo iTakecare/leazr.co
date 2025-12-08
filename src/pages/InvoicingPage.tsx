@@ -146,8 +146,9 @@ const InvoicingPage = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Numéro</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Client</TableHead>
-                        <TableHead>Bailleur</TableHead>
+                        <TableHead>Bailleur / Destinataire</TableHead>
                         <TableHead>Montant</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead>Date de facture</TableHead>
@@ -155,35 +156,48 @@ const InvoicingPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sortedInvoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className="font-medium">
-                            {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
-                          </TableCell>
-                          <TableCell>
-                            {invoice.billing_data?.contract_data?.client_name || "N/A"}
-                          </TableCell>
-                          <TableCell>{invoice.leaser_name}</TableCell>
-                          <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-                          <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                          <TableCell>{formatDate(invoice.invoice_date || invoice.created_at)}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewInvoice(invoice.id)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Voir le détail
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {sortedInvoices.map((invoice) => {
+                        const isPurchase = invoice.invoice_type === 'purchase' || invoice.billing_data?.offer_data?.is_purchase;
+                        const clientName = isPurchase 
+                          ? (invoice.billing_data?.client_data?.name || invoice.billing_data?.contract_data?.client_name || "N/A")
+                          : (invoice.billing_data?.contract_data?.client_name || "N/A");
+                        const recipientName = isPurchase 
+                          ? (invoice.billing_data?.client_data?.name || "Client direct")
+                          : invoice.leaser_name;
+                        
+                        return (
+                          <TableRow key={invoice.id}>
+                            <TableCell className="font-medium">
+                              {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={isPurchase ? "outline" : "secondary"} className={isPurchase ? "border-emerald-500 text-emerald-600" : ""}>
+                                {isPurchase ? "Achat" : "Leasing"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{clientName}</TableCell>
+                            <TableCell>{recipientName}</TableCell>
+                            <TableCell>{formatCurrency(invoice.amount)}</TableCell>
+                            <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                            <TableCell>{formatDate(invoice.invoice_date || invoice.created_at)}</TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleViewInvoice(invoice.id)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Voir le détail
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}

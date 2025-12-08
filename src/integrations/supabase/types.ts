@@ -3282,6 +3282,7 @@ export type Database = {
           integration_type: string
           invoice_date: string | null
           invoice_number: string | null
+          invoice_type: string | null
           leaser_name: string
           offer_id: string | null
           paid_at: string | null
@@ -3303,6 +3304,7 @@ export type Database = {
           integration_type?: string
           invoice_date?: string | null
           invoice_number?: string | null
+          invoice_type?: string | null
           leaser_name: string
           offer_id?: string | null
           paid_at?: string | null
@@ -3324,6 +3326,7 @@ export type Database = {
           integration_type?: string
           invoice_date?: string | null
           invoice_number?: string | null
+          invoice_type?: string | null
           leaser_name?: string
           offer_id?: string | null
           paid_at?: string | null

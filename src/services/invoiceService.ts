@@ -2,9 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface Invoice {
   id: string;
-  contract_id: string;
+  contract_id: string | null;
+  offer_id?: string | null;
   company_id: string;
   leaser_name: string;
+  invoice_type?: 'leasing' | 'purchase';
   external_invoice_id?: string;
   invoice_number?: string;
   amount: number;
@@ -156,13 +158,14 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
       };
     });
 
-    // Créer la facture en brouillon
+    // Créer la facture en brouillon - Facture d'achat (pas de bailleur)
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
         offer_id: offerId,
         company_id: companyId,
-        leaser_name: clientData.name || 'Client',
+        leaser_name: '(Vente directe)', // Pas de bailleur pour les factures d'achat
+        invoice_type: 'purchase', // Type facture achat
         amount: totalSellingPrice,
         status: 'draft',
         integration_type: 'local',

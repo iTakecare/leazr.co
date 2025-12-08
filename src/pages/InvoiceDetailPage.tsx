@@ -305,49 +305,108 @@ const InvoiceDetailPage = () => {
         {/* Informations principales */}
         <div className="lg:col-span-2 space-y-6">
           {/* Informations de base */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Informations de facturation
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Bailleur</label>
-                  <p className="font-medium">{invoice.leaser_name}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">ID externe</label>
-                  <p className="font-mono text-sm">{invoice.external_invoice_id || "N/A"}</p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Type d'intégration</label>
-                  <p className="capitalize">{invoice.integration_type}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Contrat</label>
-                  <Link 
-                    to={(() => {
-                      const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
-                      return companySlug 
-                        ? `/${companySlug}/admin/contracts/${invoice.contract_id}`
-                        : `/contracts/${invoice.contract_id}`;
-                    })()}
-                    className="text-primary hover:underline"
-                  >
-                    Voir le contrat
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {(() => {
+            const isPurchase = (invoice as any).invoice_type === 'purchase' || invoice.billing_data?.offer_data?.is_purchase;
+            const clientData = invoice.billing_data?.client_data;
+            
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Informations de facturation
+                    {isPurchase && (
+                      <Badge variant="outline" className="ml-2 border-emerald-500 text-emerald-600">
+                        Achat direct
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        {isPurchase ? "Client facturé" : "Bailleur"}
+                      </label>
+                      <p className="font-medium">
+                        {isPurchase ? (clientData?.name || "Client") : invoice.leaser_name}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">ID externe</label>
+                      <p className="font-mono text-sm">{invoice.external_invoice_id || "N/A"}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Afficher les coordonnées client pour les factures d'achat */}
+                  {isPurchase && clientData && (
+                    <>
+                      <Separator />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Adresse</label>
+                          <p className="text-sm">{clientData.address || "Non renseignée"}</p>
+                          <p className="text-sm">{clientData.postal_code} {clientData.city}</p>
+                          <p className="text-sm">{clientData.country || "Belgique"}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Contact</label>
+                          <p className="text-sm">{clientData.email || "Non renseigné"}</p>
+                          <p className="text-sm">{clientData.phone || "Non renseigné"}</p>
+                          {clientData.vat_number && (
+                            <p className="text-sm font-medium mt-1">TVA: {clientData.vat_number}</p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  <Separator />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Type d'intégration</label>
+                      <p className="capitalize">{invoice.integration_type}</p>
+                    </div>
+                    {/* Afficher le lien vers le contrat uniquement pour les factures de leasing */}
+                    {!isPurchase && invoice.contract_id && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Contrat</label>
+                        <Link 
+                          to={(() => {
+                            const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+                            return companySlug 
+                              ? `/${companySlug}/admin/contracts/${invoice.contract_id}`
+                              : `/contracts/${invoice.contract_id}`;
+                          })()}
+                          className="text-primary hover:underline"
+                        >
+                          Voir le contrat
+                        </Link>
+                      </div>
+                    )}
+                    {/* Afficher le lien vers l'offre pour les factures d'achat */}
+                    {isPurchase && invoice.billing_data?.offer_data?.id && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Offre d'achat</label>
+                        <Link 
+                          to={(() => {
+                            const companySlug = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/)?.[1];
+                            return companySlug 
+                              ? `/${companySlug}/admin/offers/${invoice.billing_data.offer_data.id}`
+                              : `/offers/${invoice.billing_data.offer_data.id}`;
+                          })()}
+                          className="text-primary hover:underline"
+                        >
+                          Voir l'offre
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Détails financiers */}
           <Card>
