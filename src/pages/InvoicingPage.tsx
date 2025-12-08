@@ -16,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import InvoiceSortFilter, { InvoiceSortBy } from "@/components/invoicing/InvoiceSortFilter";
 import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
+import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const InvoicingPage = () => {
   const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_number');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   
   // Gérer l'onglet actif via URL
   const tabFromUrl = searchParams.get('tab');
@@ -55,10 +58,30 @@ const InvoicingPage = () => {
     const clientCompany = invoice.billing_data?.client_data?.company 
       || invoice.billing_data?.contract_data?.client_company || "";
     
-    return invoice.invoice_number?.toLowerCase().includes(searchLower) ||
+    const matchesSearch = invoice.invoice_number?.toLowerCase().includes(searchLower) ||
       invoice.leaser_name.toLowerCase().includes(searchLower) ||
       invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchLower) ||
       clientCompany.toLowerCase().includes(searchLower);
+
+    // Filtre par plage de dates
+    if (startDate || endDate) {
+      const invoiceDate = new Date(invoice.invoice_date || invoice.created_at);
+      invoiceDate.setHours(0, 0, 0, 0);
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (invoiceDate < start) return false;
+      }
+      
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (invoiceDate > end) return false;
+      }
+    }
+
+    return matchesSearch;
   });
 
   const sortedInvoices = useMemo(() => {
@@ -193,6 +216,12 @@ const InvoicingPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                <InvoiceDateRangeFilter
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                />
                 <InvoiceSortFilter
                   sortBy={sortBy}
                   sortOrder={sortOrder}
