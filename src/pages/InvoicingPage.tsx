@@ -161,9 +161,7 @@ const InvoicingPage = () => {
                         const clientName = isPurchase 
                           ? (invoice.billing_data?.client_data?.name || invoice.billing_data?.contract_data?.client_name || "N/A")
                           : (invoice.billing_data?.contract_data?.client_name || "N/A");
-                        const recipientName = isPurchase 
-                          ? (invoice.billing_data?.client_data?.name || "Client direct")
-                          : invoice.leaser_name;
+                        const recipientName = isPurchase ? '' : invoice.leaser_name;
                         
                         return (
                           <TableRow key={invoice.id}>
