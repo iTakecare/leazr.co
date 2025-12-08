@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -51,11 +51,15 @@ import {
   Truck,
   Calendar,
   CheckCheck,
-  X,
   Clock,
-  Share2,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react";
 import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
+
+type SortColumn = 'date' | 'client' | 'leaser' | 'monthly_payment' | 'start_date' | 'end_date' | 'status';
+type SortDirection = 'asc' | 'desc';
 
 interface ContractsTableProps {
   contracts: Contract[];
@@ -70,6 +74,46 @@ interface ContractsTableProps {
   isUpdatingStatus: boolean;
   isDeleting: boolean;
 }
+
+interface SortableTableHeadProps {
+  column: SortColumn;
+  label: string;
+  currentSort: SortColumn;
+  direction: SortDirection;
+  onSort: (column: SortColumn) => void;
+  className?: string;
+}
+
+const SortableTableHead: React.FC<SortableTableHeadProps> = ({
+  column,
+  label,
+  currentSort,
+  direction,
+  onSort,
+  className = "",
+}) => {
+  const isActive = currentSort === column;
+  
+  return (
+    <TableHead 
+      className={`cursor-pointer hover:bg-muted/50 transition-colors select-none ${className}`}
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          direction === 'asc' ? (
+            <ChevronUp className="h-4 w-4 text-primary" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-primary" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  );
+};
 
 const ContractsTable: React.FC<ContractsTableProps> = ({
   contracts,
@@ -89,6 +133,59 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
     carrier: "",
   });
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  
+  // État de tri
+  const [sortColumn, setSortColumn] = useState<SortColumn>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  // Contrats triés
+  const sortedContracts = useMemo(() => {
+    return [...contracts].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortColumn) {
+        case 'date':
+          comparison = new Date(a.contract_start_date || a.created_at).getTime() - 
+                       new Date(b.contract_start_date || b.created_at).getTime();
+          break;
+        case 'client':
+          comparison = (a.client_name || '').localeCompare(b.client_name || '', 'fr');
+          break;
+        case 'leaser':
+          comparison = (a.leaser_name || '').localeCompare(b.leaser_name || '', 'fr');
+          break;
+        case 'monthly_payment':
+          comparison = (a.monthly_payment || 0) - (b.monthly_payment || 0);
+          break;
+        case 'start_date':
+          const aStart = a.contract_start_date ? new Date(a.contract_start_date).getTime() : 0;
+          const bStart = b.contract_start_date ? new Date(b.contract_start_date).getTime() : 0;
+          comparison = aStart - bStart;
+          break;
+        case 'end_date':
+          const aEnd = a.contract_end_date ? new Date(a.contract_end_date).getTime() : 0;
+          const bEnd = b.contract_end_date ? new Date(b.contract_end_date).getTime() : 0;
+          comparison = aEnd - bEnd;
+          break;
+        case 'status':
+          comparison = (a.status || '').localeCompare(b.status || '', 'fr');
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [contracts, sortColumn, sortDirection]);
 
   if (!contracts.length) {
     return (
@@ -213,19 +310,62 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Client</TableHead>
+              <SortableTableHead
+                column="date"
+                label="Date"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                column="client"
+                label="Client"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
               <TableHead>Matériel</TableHead>
-              <TableHead>Bailleur</TableHead>
-              <TableHead className="text-right">Mensualité</TableHead>
-              <TableHead>Date début</TableHead>
-              <TableHead>Date fin</TableHead>
-              <TableHead>Statut</TableHead>
+              <SortableTableHead
+                column="leaser"
+                label="Bailleur"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                column="monthly_payment"
+                label="Mensualité"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+                className="text-right"
+              />
+              <SortableTableHead
+                column="start_date"
+                label="Date début"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                column="end_date"
+                label="Date fin"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                column="status"
+                label="Statut"
+                currentSort={sortColumn}
+                direction={sortDirection}
+                onSort={handleSort}
+              />
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contracts.map((contract) => (
+            {sortedContracts.map((contract) => (
               <TableRow key={contract.id}>
                 <TableCell className="font-medium whitespace-nowrap">
                   <div className="flex items-center">
