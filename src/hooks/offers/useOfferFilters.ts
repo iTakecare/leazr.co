@@ -28,7 +28,8 @@ export const useOfferFilters = (offers: Offer[]) => {
       'validated',       // Contrat prêt
       'financed',        // Financé
       'contract_sent',   // Contrat envoyé
-      'signed'           // Signé
+      'signed',          // Signé
+      'invoicing'        // Facturation (offres d'achat)
     ]);
     
     // Statuts "Refusées" = Tous les types de rejets

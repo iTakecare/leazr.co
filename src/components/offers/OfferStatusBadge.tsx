@@ -143,6 +143,14 @@ export const OFFER_STATUSES = {
     color: "bg-cyan-100 text-cyan-700 border-cyan-200"
   },
   
+  // Facturation (offres d'achat)
+  INVOICING: { 
+    id: "invoicing", 
+    label: "Facturé", 
+    icon: FileCheck,
+    color: "bg-green-100 text-green-700 border-green-200"
+  },
+  
   // Anciens statuts pour compatibilité
   APPROVED: { 
     id: "approved", 
