@@ -24,7 +24,7 @@ export const getCreditNotes = async (companyId: string): Promise<CreditNote[]> =
     .from('credit_notes')
     .select(`
       *,
-      invoice:invoices(invoice_number, leaser_name, amount)
+      invoice:invoices!credit_notes_invoice_id_fkey(invoice_number, leaser_name, amount)
     `)
     .eq('company_id', companyId)
     .order('created_at', { ascending: false });
@@ -42,7 +42,7 @@ export const getCreditNoteById = async (id: string): Promise<CreditNote | null> 
     .from('credit_notes')
     .select(`
       *,
-      invoice:invoices(invoice_number, leaser_name, amount, billing_data)
+      invoice:invoices!credit_notes_invoice_id_fkey(invoice_number, leaser_name, amount, billing_data)
     `)
     .eq('id', id)
     .single();
