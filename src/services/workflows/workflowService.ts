@@ -285,13 +285,61 @@ export const workflowService = {
       // Get workflow steps for this offer type
       const steps = await this.getWorkflowForOfferType(companyId, offerType, isPurchase);
       
-      // Find the step matching current status
-      const currentStep = steps.find(step => step.step_key === currentStatus);
+      console.log("🔄 getStepTransitions - Looking for step:", currentStatus);
+      console.log("🔄 Available steps:", steps.map(s => ({ key: s.step_key, label: s.step_label, scoring: s.enables_scoring })));
+      
+      // Mapping des statuts intermédiaires vers les step_key du workflow
+      const statusMapping: { [key: string]: string } = {
+        'internal_approved': 'internal_review',
+        'internal_docs_requested': 'internal_review',
+        'internal_rejected': 'internal_review',
+        'internal_scoring': 'internal_review',
+        'leaser_approved': 'leaser_review',
+        'leaser_docs_requested': 'leaser_review',
+        'leaser_rejected': 'leaser_review',
+        'leaser_scoring': 'leaser_review',
+        'Scoring_review': 'leaser_review',
+        'leaser_sent': 'leaser_review',
+        'leaser_introduced': 'leaser_review'
+      };
+      
+      const mappedStatus = statusMapping[currentStatus] || currentStatus;
+      
+      // Essayer de trouver l'étape exacte d'abord
+      let currentStep = steps.find(step => step.step_key === currentStatus);
+      
+      // Si pas trouvé, essayer avec le statut mappé
+      if (!currentStep) {
+        currentStep = steps.find(step => step.step_key === mappedStatus);
+      }
+      
+      // Si toujours pas trouvé, chercher par correspondance partielle
+      if (!currentStep) {
+        currentStep = steps.find(step => 
+          step.step_key.includes(currentStatus) || currentStatus.includes(step.step_key)
+        );
+      }
+      
+      // En dernier recours, chercher par scoring_type si c'est un statut de scoring
+      if (!currentStep) {
+        if (currentStatus.includes('internal')) {
+          currentStep = steps.find(step => step.enables_scoring && step.scoring_type === 'internal');
+        } else if (currentStatus.includes('leaser')) {
+          currentStep = steps.find(step => step.enables_scoring && step.scoring_type === 'leaser');
+        }
+      }
       
       if (!currentStep) {
-        console.warn(`No workflow step found for status: ${currentStatus}`);
+        console.warn(`❌ No workflow step found for status: ${currentStatus} (mapped: ${mappedStatus})`);
+        console.warn(`Available step_keys: ${steps.map(s => s.step_key).join(', ')}`);
         return null;
       }
+
+      console.log("✅ Found step:", currentStep.step_key, "-> transitions:", {
+        approval: currentStep.next_step_on_approval,
+        rejection: currentStep.next_step_on_rejection,
+        docs: currentStep.next_step_on_docs_requested
+      });
 
       return {
         next_step_on_approval: currentStep.next_step_on_approval || null,
@@ -300,6 +348,45 @@ export const workflowService = {
       };
     } catch (error) {
       console.error('Error getting step transitions:', error);
+      return null;
+    }
+  },
+
+  // Find the scoring step in a workflow for a given scoring type
+  async findScoringStep(
+    companyId: string,
+    offerType: OfferType,
+    scoringType: 'internal' | 'leaser',
+    isPurchase: boolean = false
+  ): Promise<{
+    step_key: string;
+    next_step_on_approval: string | null;
+    next_step_on_rejection: string | null;
+    next_step_on_docs_requested: string | null;
+  } | null> {
+    try {
+      const steps = await this.getWorkflowForOfferType(companyId, offerType, isPurchase);
+      
+      // Trouver l'étape de scoring pour ce type
+      const scoringStep = steps.find(step => 
+        step.enables_scoring && step.scoring_type === scoringType
+      );
+      
+      if (!scoringStep) {
+        console.warn(`No ${scoringType} scoring step found in workflow for ${offerType}`);
+        return null;
+      }
+
+      console.log("🎯 Found scoring step:", scoringStep.step_key, "for type:", scoringType);
+
+      return {
+        step_key: scoringStep.step_key,
+        next_step_on_approval: scoringStep.next_step_on_approval || null,
+        next_step_on_rejection: scoringStep.next_step_on_rejection || null,
+        next_step_on_docs_requested: scoringStep.next_step_on_docs_requested || null
+      };
+    } catch (error) {
+      console.error('Error finding scoring step:', error);
       return null;
     }
   }
