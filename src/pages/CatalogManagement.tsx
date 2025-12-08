@@ -2,11 +2,12 @@
 import React from "react";
 import Container from "@/components/layout/Container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Folder, Download, Package, Users, Settings, Leaf } from "lucide-react";
+import { Award, Folder, Download, Package, Users, Settings, Leaf, Star } from "lucide-react";
 import BrandManager from "@/components/catalog/BrandManager";
 import SimplifiedCategoryManager from "@/components/catalog/SimplifiedCategoryManager";
 import { PackManager } from "@/components/packs/PackManager";
 import { ClientCatalogManager } from "@/components/catalog/client-management/ClientCatalogManager";
+import { AmbassadorCatalogManager } from "@/components/catalog/ambassador-management/AmbassadorCatalogManager";
 import EnvironmentalDataManager from "@/components/admin/environmental/EnvironmentalDataManager";
 
 // Import refactored components
@@ -68,6 +69,10 @@ const CatalogManagement = () => {
             <TabsTrigger value="client-catalogs">
               <Users className={isMobile ? "" : "mr-2 h-4 w-4"} />
               {isMobile ? "Clients" : <span>Catalogues Clients</span>}
+            </TabsTrigger>
+            <TabsTrigger value="ambassador-catalogs">
+              <Star className={isMobile ? "" : "mr-2 h-4 w-4"} />
+              {isMobile ? "Ambassadeurs" : <span>Catalogues Ambassadeurs</span>}
             </TabsTrigger>
             <TabsTrigger value="environmental">
               <Leaf className={isMobile ? "" : "mr-2 h-4 w-4"} />
@@ -134,6 +139,10 @@ const CatalogManagement = () => {
 
         <TabsContent value="client-catalogs">
           <ClientCatalogManager />
+        </TabsContent>
+
+        <TabsContent value="ambassador-catalogs">
+          <AmbassadorCatalogManager />
         </TabsContent>
 
         <TabsContent value="environmental">

@@ -206,6 +206,140 @@ export type Database = {
           },
         ]
       }
+      ambassador_custom_prices: {
+        Row: {
+          ambassador_id: string
+          company_id: string
+          created_at: string | null
+          custom_monthly_price: number | null
+          custom_purchase_price: number | null
+          id: string
+          is_active: boolean | null
+          margin_rate: number | null
+          notes: string | null
+          product_id: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          ambassador_id: string
+          company_id: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          notes?: string | null
+          product_id: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          ambassador_id?: string
+          company_id?: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          notes?: string | null
+          product_id?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_custom_prices_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_custom_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_custom_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_custom_variant_prices: {
+        Row: {
+          ambassador_id: string
+          company_id: string
+          created_at: string | null
+          custom_monthly_price: number | null
+          custom_purchase_price: number | null
+          id: string
+          is_active: boolean | null
+          margin_rate: number | null
+          notes: string | null
+          updated_at: string | null
+          variant_price_id: string
+        }
+        Insert: {
+          ambassador_id: string
+          company_id: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          notes?: string | null
+          updated_at?: string | null
+          variant_price_id: string
+        }
+        Update: {
+          ambassador_id?: string
+          company_id?: string
+          created_at?: string | null
+          custom_monthly_price?: number | null
+          custom_purchase_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          margin_rate?: number | null
+          notes?: string | null
+          updated_at?: string | null
+          variant_price_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_custom_variant_prices_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassadors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_custom_variant_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassador_custom_variant_prices_variant_price_id_fkey"
+            columns: ["variant_price_id"]
+            isOneToOne: false
+            referencedRelation: "product_variant_prices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ambassadors: {
         Row: {
           address: string | null
@@ -219,6 +353,7 @@ export type Database = {
           created_at: string | null
           email: string
           first_name: string | null
+          has_custom_catalog: boolean | null
           has_user_account: boolean | null
           id: string
           last_commission: number | null
@@ -247,6 +382,7 @@ export type Database = {
           created_at?: string | null
           email: string
           first_name?: string | null
+          has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
           id?: string
           last_commission?: number | null
@@ -275,6 +411,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           first_name?: string | null
+          has_custom_catalog?: boolean | null
           has_user_account?: boolean | null
           id?: string
           last_commission?: number | null
