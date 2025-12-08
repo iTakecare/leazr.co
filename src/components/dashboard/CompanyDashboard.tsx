@@ -21,7 +21,8 @@ import {
   Target,
   Clock,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
@@ -69,6 +70,7 @@ const CompanyDashboard = () => {
   const realizedStats = contractStats.find(stat => stat.status === 'realized');
   const pendingStats = contractStats.find(stat => stat.status === 'pending');
   const refusedStats = contractStats.find(stat => stat.status === 'refused');
+  const directSalesStats = contractStats.find(stat => stat.status === 'direct_sales');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -374,6 +376,38 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
+            {/* Ventes Directes */}
+            <Card className="bg-gradient-to-br from-cyan-50 to-teal-100 dark:from-cyan-900/20 dark:to-teal-800/20 border-cyan-200/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-cyan-600" />
+                  Ventes Directes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-cyan-500/10">
+                    <p className="text-xs text-muted-foreground">Factures</p>
+                    <p className="text-xl font-bold text-cyan-600">{directSalesStats?.count || 0}</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-cyan-500/10">
+                    <p className="text-xs text-muted-foreground">Marge</p>
+                    <p className="text-lg font-bold text-cyan-600">{formatCurrency(Number(directSalesStats?.total_margin || 0))}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>CA total</span>
+                    <span className="font-semibold">{formatCurrency(Number(directSalesStats?.total_revenue || 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Achats</span>
+                    <span className="font-semibold">{formatCurrency(Number(directSalesStats?.total_purchases || 0))}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Prévisionnel */}
             <Card className="bg-gradient-to-br from-indigo-50 to-violet-100 dark:from-indigo-900/20 dark:to-violet-800/20 border-indigo-200/50">
               <CardHeader className="pb-3">
@@ -387,13 +421,13 @@ const CompanyDashboard = () => {
                   <div className="text-center p-3 rounded-lg bg-indigo-500/10">
                     <p className="text-xs text-muted-foreground">Nombre total</p>
                     <p className="text-xl font-bold text-indigo-600">
-                      {(realizedStats?.count || 0) + (pendingStats?.count || 0)}
+                      {(realizedStats?.count || 0) + (pendingStats?.count || 0) + (directSalesStats?.count || 0)}
                     </p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-indigo-500/10">
                     <p className="text-xs text-muted-foreground">Marge prévue</p>
                     <p className="text-lg font-bold text-indigo-600">
-                      {formatCurrency(Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0))}
+                      {formatCurrency(Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0))}
                     </p>
                   </div>
                 </div>
@@ -401,13 +435,13 @@ const CompanyDashboard = () => {
                   <div className="flex justify-between">
                     <span>CA prévisionnel</span>
                     <span className="font-semibold">
-                      {formatCurrency(Number(realizedStats?.total_revenue || 0) + Number(pendingStats?.total_revenue || 0))}
+                      {formatCurrency(Number(realizedStats?.total_revenue || 0) + Number(pendingStats?.total_revenue || 0) + Number(directSalesStats?.total_revenue || 0))}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Achats prévus</span>
                     <span className="font-semibold">
-                      {formatCurrency(Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0))}
+                      {formatCurrency(Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0) + Number(directSalesStats?.total_purchases || 0))}
                     </span>
                   </div>
                 </div>
