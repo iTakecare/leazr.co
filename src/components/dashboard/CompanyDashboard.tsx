@@ -374,6 +374,46 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
+            {/* Prévisionnel */}
+            <Card className="bg-gradient-to-br from-indigo-50 to-violet-100 dark:from-indigo-900/20 dark:to-violet-800/20 border-indigo-200/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-indigo-600" />
+                  Prévisionnel
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-indigo-500/10">
+                    <p className="text-xs text-muted-foreground">Nombre total</p>
+                    <p className="text-xl font-bold text-indigo-600">
+                      {(realizedStats?.count || 0) + (pendingStats?.count || 0)}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-indigo-500/10">
+                    <p className="text-xs text-muted-foreground">Marge prévue</p>
+                    <p className="text-lg font-bold text-indigo-600">
+                      {formatCurrency(Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0))}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>CA prévisionnel</span>
+                    <span className="font-semibold">
+                      {formatCurrency(Number(realizedStats?.total_revenue || 0) + Number(pendingStats?.total_revenue || 0))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Achats prévus</span>
+                    <span className="font-semibold">
+                      {formatCurrency(Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0))}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Actions rapides */}
             <Card className="bg-gradient-to-br from-primary/5 to-accent/5">
               <CardHeader className="pb-3">
