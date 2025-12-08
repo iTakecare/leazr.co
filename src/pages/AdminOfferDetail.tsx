@@ -643,19 +643,20 @@ const [notesLoading, setNotesLoading] = useState(false);
 
     setScoringLoading(true);
     try {
-      // Récupérer les transitions configurées du workflow
+      // Utiliser findScoringStep pour trouver l'étape de scoring interne et ses transitions
       let transitions = null;
       if (user?.company) {
         const offerType = (offer.type || 'client_request') as OfferType;
         const isPurchase = offer.is_purchase === true;
-      const currentStep = offer.workflow_status || 'internal_review';
-        transitions = await workflowService.getStepTransitions(
+        
+        // Utiliser la nouvelle fonction qui trouve l'étape de scoring par type
+        transitions = await workflowService.findScoringStep(
           user.company,
           offerType,
-          currentStep,
+          'internal',
           isPurchase
         );
-        console.log("🔍 Workflow transitions for", currentStep, ":", transitions);
+        console.log("🔍 Internal scoring step found:", transitions);
       }
 
       let newStatus = '';
@@ -679,7 +680,7 @@ const [notesLoading, setNotesLoading] = useState(false);
       );
       
       if (success) {
-        setOffer({ ...offer, workflow_status: newStatus });
+        setOffer({ ...offer, workflow_status: newStatus, internal_score: score });
         
         // Si le nouveau statut est 'invoicing' et c'est une offre d'achat, créer une facture brouillon
         if (newStatus === 'invoicing' && offer.is_purchase) {
@@ -695,6 +696,8 @@ const [notesLoading, setNotesLoading] = useState(false);
         } else {
           toast.success(`Score ${score} attribué avec succès`);
         }
+        
+        setScoringModalOpen(false);
       } else {
         toast.error("Erreur lors de l'attribution du score");
       }
@@ -717,19 +720,20 @@ const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
 
   setScoringLoading(true);
   try {
-    // Récupérer les transitions configurées du workflow
+    // Utiliser findScoringStep pour trouver l'étape de scoring leaser et ses transitions
     let transitions = null;
     if (user?.company) {
       const offerType = (offer.type || 'client_request') as OfferType;
       const isPurchase = offer.is_purchase === true;
-      const currentStep = offer.workflow_status || 'leaser_review';
-        transitions = await workflowService.getStepTransitions(
-          user.company,
-          offerType,
-          currentStep,
-          isPurchase
-        );
-        console.log("🔍 Workflow transitions for", currentStep, ":", transitions);
+      
+      // Utiliser la nouvelle fonction qui trouve l'étape de scoring par type
+      transitions = await workflowService.findScoringStep(
+        user.company,
+        offerType,
+        'leaser',
+        isPurchase
+      );
+      console.log("🔍 Leaser scoring step found:", transitions);
     }
 
     let newStatus = '';
@@ -752,13 +756,15 @@ const handleLeaserScoring = async (score: 'A' | 'B' | 'C', reason?: string) => {
     );
     
     if (success) {
-      setOffer({ ...offer, workflow_status: newStatus });
+      setOffer({ ...offer, workflow_status: newStatus, leaser_score: score });
       if (score === 'A') {
         toast.success("Score A attribué. Préparation de l'email de validation…");
         setEmailModalReason("Validation de l'offre après approbation du leaser");
+        setScoringModalOpen(false);
         setShowEmailModal(true);
       } else {
         toast.success(`Score ${score} attribué avec succès`);
+        setScoringModalOpen(false);
       }
     } else {
       toast.error("Erreur lors de l'attribution du score");

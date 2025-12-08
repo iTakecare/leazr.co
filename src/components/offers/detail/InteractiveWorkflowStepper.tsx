@@ -96,23 +96,60 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   }, [showEmailModal, offerId]);
 
   const getCurrentStepIndex = () => {
+    // Mapping étendu pour mapper les statuts intermédiaires vers les étapes du workflow
     const statusMapping: { [key: string]: string } = {
+      // Internal scoring statuses
       'internal_approved': 'internal_review',
-      'leaser_approved': 'leaser_review',
       'internal_docs_requested': 'internal_review',
-      'leaser_docs_requested': 'leaser_review',
       'internal_rejected': 'internal_review',
+      'internal_scoring': 'internal_review',
+      // Leaser scoring statuses
+      'leaser_approved': 'leaser_review',
+      'leaser_docs_requested': 'leaser_review',
       'leaser_rejected': 'leaser_review',
+      'leaser_scoring': 'leaser_review',
+      'leaser_sent': 'leaser_review',
+      'leaser_accepted': 'validated',
+      'Scoring_review': 'leaser_review',
+      // Offer/client statuses
+      'offer_send': 'sent',
+      'offer_sent': 'sent',
       'client_approved': 'client_approved',
+      'offer_accepted': 'validated',
       'offer_validation': 'validated',
       'validated': 'validated',
       'financed': 'validated',
+      'invoicing': 'invoicing',
+      // Base statuses
       'draft': 'draft',
-      'sent': 'sent'
+      'sent': 'sent',
+      'leaser_introduced': 'leaser_review'
     };
     
     const mappedStatus = statusMapping[currentStatus] || currentStatus;
-    return activeSteps.findIndex(step => step.key === mappedStatus);
+    
+    // D'abord chercher une correspondance exacte
+    let index = activeSteps.findIndex(step => step.key === mappedStatus);
+    
+    // Si pas trouvé, chercher une correspondance partielle
+    if (index === -1) {
+      index = activeSteps.findIndex(step => 
+        step.key.includes(mappedStatus) || mappedStatus.includes(step.key)
+      );
+    }
+    
+    // Si toujours pas trouvé, chercher par scoring_type si c'est un statut de scoring
+    if (index === -1) {
+      if (currentStatus.includes('internal')) {
+        index = activeSteps.findIndex(step => step.scoring_type === 'internal');
+      } else if (currentStatus.includes('leaser')) {
+        index = activeSteps.findIndex(step => step.scoring_type === 'leaser');
+      }
+    }
+    
+    console.log("📍 Workflow stepper - currentStatus:", currentStatus, "-> mappedStatus:", mappedStatus, "-> index:", index);
+    
+    return index >= 0 ? index : 0; // Fallback sur le premier step si rien trouvé
   };
 
   const handleStepClick = async (targetStatus: string, targetIndex: number) => {
