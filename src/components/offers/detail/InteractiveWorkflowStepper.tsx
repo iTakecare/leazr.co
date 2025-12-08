@@ -198,7 +198,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
     const isFinalStatus = finalStatuses.includes(targetStatus);
     
     const confirmMessage = isFinalStatus
-      ? `Confirmer la finalisation de l'offre ? Cela créera automatiquement un contrat.`
+      ? isPurchase 
+        ? `Confirmer la finalisation de l'offre ? Cela créera automatiquement une facture.`
+        : `Confirmer la finalisation de l'offre ? Cela créera automatiquement un contrat.`
       : targetIndex > currentIndex 
         ? `Confirmer le passage à l'étape "${activeSteps[targetIndex].label}" ?`
         : `Confirmer le retour à l'étape "${activeSteps[targetIndex].label}" ?`;
@@ -215,7 +217,9 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         targetStatus,
         currentStatus,
         isFinalStatus
-          ? `Finalisation manuelle - Conversion en contrat`
+          ? isPurchase 
+            ? `Finalisation manuelle - Conversion en facture`
+            : `Finalisation manuelle - Conversion en contrat`
           : `Changement manuel depuis le stepper`
       );
 
@@ -225,7 +229,10 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
         }
 
         if (isFinalStatus) {
-          toast.success(`Offre finalisée ! Un contrat va être créé automatiquement.`);
+          toast.success(isPurchase 
+            ? `Offre finalisée ! Une facture va être créée automatiquement.`
+            : `Offre finalisée ! Un contrat va être créé automatiquement.`
+          );
         } else {
           toast.success(`Statut mis à jour vers "${activeSteps[targetIndex].label}"`);
         }
@@ -411,7 +418,10 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
           Cliquez sur une étape pour modifier le statut
           {currentIndex === activeSteps.length - 2 && (
             <div className="mt-2 text-orange-600 font-medium">
-              ⚠️ L'étape "Contrat prêt" convertira automatiquement l'offre en contrat
+              {isPurchase 
+                ? "⚠️ L'étape finale convertira automatiquement l'offre en facture"
+                : "⚠️ L'étape \"Contrat prêt\" convertira automatiquement l'offre en contrat"
+              }
             </div>
           )}
         </div>
