@@ -21,11 +21,16 @@ const InvoicingPage = () => {
   const [sortBy, setSortBy] = useState<InvoiceSortBy>('invoice_number');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.leaser_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInvoices = invoices.filter(invoice => {
+    const searchLower = searchTerm.toLowerCase();
+    const clientCompany = invoice.billing_data?.client_data?.company 
+      || invoice.billing_data?.contract_data?.client_company || "";
+    
+    return invoice.invoice_number?.toLowerCase().includes(searchLower) ||
+      invoice.leaser_name.toLowerCase().includes(searchLower) ||
+      invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchLower) ||
+      clientCompany.toLowerCase().includes(searchLower);
+  });
 
   const sortedInvoices = useMemo(() => {
     return [...filteredInvoices].sort((a, b) => {
@@ -171,6 +176,7 @@ const InvoicingPage = () => {
                         <TableHead>Numéro</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Client</TableHead>
+                        <TableHead>Société</TableHead>
                         <TableHead>Bailleur / Destinataire</TableHead>
                         <TableHead>Montant</TableHead>
                         <TableHead>Statut</TableHead>
@@ -184,6 +190,8 @@ const InvoicingPage = () => {
                         const clientName = isPurchase 
                           ? (invoice.billing_data?.client_data?.name || invoice.billing_data?.contract_data?.client_name || "N/A")
                           : (invoice.billing_data?.contract_data?.client_name || "N/A");
+                        const clientCompany = invoice.billing_data?.client_data?.company 
+                          || invoice.billing_data?.contract_data?.client_company || "";
                         const recipientName = isPurchase ? '' : invoice.leaser_name;
                         
                         return (
@@ -197,6 +205,7 @@ const InvoicingPage = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>{clientName}</TableCell>
+                            <TableCell className="text-muted-foreground">{clientCompany || "-"}</TableCell>
                             <TableCell>{recipientName}</TableCell>
                             <TableCell>{formatCurrency(invoice.amount)}</TableCell>
                             <TableCell>{getStatusBadge(invoice)}</TableCell>
