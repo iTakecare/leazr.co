@@ -123,11 +123,12 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
     }
 
     // Calculer le prix total de vente (multiplié par la quantité)
+    // IMPORTANT: selling_price est le prix UNITAIRE de vente, pas le total de la ligne
     const totalSellingPrice = (equipment || []).reduce((total, item) => {
       const quantity = item.quantity || 1;
+      // selling_price est déjà le prix unitaire - ne PAS diviser par quantity
       const unitSellingPrice = item.selling_price 
-        ? item.selling_price / quantity // selling_price peut être déjà total, diviser pour avoir unitaire
-        : item.purchase_price * (1 + (item.margin || 0) / 100);
+        || (item.purchase_price * (1 + (item.margin || 0) / 100));
       return total + (unitSellingPrice * quantity);
     }, 0);
 
@@ -152,16 +153,18 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
     };
 
     // Préparer les équipements enrichis
+    // IMPORTANT: selling_price est le prix UNITAIRE de vente
     const enrichedEquipment = (equipment || []).map(item => {
       const quantity = item.quantity || 1;
+      // selling_price est déjà le prix unitaire - ne PAS diviser par quantity
       const unitSellingPrice = item.selling_price 
-        ? item.selling_price / quantity 
-        : item.purchase_price * (1 + (item.margin || 0) / 100);
+        || (item.purchase_price * (1 + (item.margin || 0) / 100));
       const totalLinePrice = unitSellingPrice * quantity;
       return {
         ...item,
-        selling_price_excl_vat: parseFloat(totalLinePrice.toFixed(2)),
-        unit_selling_price: parseFloat(unitSellingPrice.toFixed(2))
+        selling_price_excl_vat: parseFloat(unitSellingPrice.toFixed(2)), // Prix unitaire HT
+        unit_selling_price: parseFloat(unitSellingPrice.toFixed(2)),
+        total_line_price: parseFloat(totalLinePrice.toFixed(2)) // Total de la ligne
       };
     });
 
