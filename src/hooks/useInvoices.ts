@@ -39,7 +39,15 @@ export const useInvoices = () => {
 
       const { data, error: fetchError } = await supabase
         .from('invoices')
-        .select('*')
+        .select(`
+          *,
+          contracts:contract_id (
+            client_id,
+            clients:client_id (
+              company
+            )
+          )
+        `)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 

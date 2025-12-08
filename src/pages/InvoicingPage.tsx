@@ -229,7 +229,9 @@ const InvoicingPage = () => {
                             ? (invoice.billing_data?.client_data?.name || invoice.billing_data?.contract_data?.client_name || "N/A")
                             : (invoice.billing_data?.contract_data?.client_name || "N/A");
                           const clientCompany = invoice.billing_data?.client_data?.company 
-                            || invoice.billing_data?.contract_data?.client_company || "";
+                            || invoice.billing_data?.contract_data?.client_company 
+                            || (invoice as any).contracts?.clients?.company
+                            || "";
                           const recipientName = isPurchase ? '' : invoice.leaser_name;
                           const isCredited = invoice.status === 'credited' || (invoice as any).credited_amount > 0;
                           
