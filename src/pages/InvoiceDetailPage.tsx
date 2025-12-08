@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil, Receipt, AlertTriangle } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, updateInvoiceDate, updateInvoiceDueDate, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import EditableBillingDataTable from "@/components/invoices/EditableBillingDataTable";
+import { CreateCreditNoteDialog } from "@/components/invoicing/CreateCreditNoteDialog";
 
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +36,7 @@ const InvoiceDetailPage = () => {
   const [isUpdatingInvoiceDate, setIsUpdatingInvoiceDate] = useState(false);
   const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
   const [isUpdatingPaidDate, setIsUpdatingPaidDate] = useState(false);
+  const [creditNoteDialogOpen, setCreditNoteDialogOpen] = useState(false);
 
   // Synchroniser les dates avec invoice
   useEffect(() => {
@@ -281,6 +283,18 @@ const InvoiceDetailPage = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Bouton Établir note de crédit - visible si la facture n'est pas déjà créditée */}
+          {(invoice as any).status !== 'credited' && !(invoice as any).credited_amount && (
+            <Button 
+              variant="outline" 
+              className="text-amber-600 border-amber-300 hover:bg-amber-50"
+              onClick={() => setCreditNoteDialogOpen(true)}
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              Établir note de crédit
+            </Button>
+          )}
+          
           <Button 
             variant="outline" 
             onClick={handleGeneratePdf}
@@ -677,6 +691,19 @@ const InvoiceDetailPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Dialog de création de note de crédit */}
+      <CreateCreditNoteDialog
+        open={creditNoteDialogOpen}
+        onOpenChange={setCreditNoteDialogOpen}
+        invoiceId={invoice.id}
+        invoiceNumber={invoice.invoice_number}
+        invoiceAmount={invoice.amount}
+        onSuccess={() => {
+          // Recharger la facture
+          window.location.reload();
+        }}
+      />
     </div>
   );
 };

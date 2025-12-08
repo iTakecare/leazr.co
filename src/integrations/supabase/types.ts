@@ -2614,6 +2614,63 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_notes: {
+        Row: {
+          amount: number
+          billing_data: Json
+          company_id: string
+          created_at: string | null
+          credit_note_number: string | null
+          id: string
+          invoice_id: string
+          issued_at: string | null
+          reason: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          billing_data?: Json
+          company_id: string
+          created_at?: string | null
+          credit_note_number?: string | null
+          id?: string
+          invoice_id: string
+          issued_at?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_data?: Json
+          company_id?: string
+          created_at?: string | null
+          credit_note_number?: string | null
+          id?: string
+          invoice_id?: string
+          issued_at?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_auth_tokens: {
         Row: {
           company_id: string
@@ -3412,6 +3469,8 @@ export type Database = {
           company_id: string
           contract_id: string | null
           created_at: string
+          credit_note_id: string | null
+          credited_amount: number | null
           due_date: string | null
           external_invoice_id: string | null
           generated_at: string | null
@@ -3434,6 +3493,8 @@ export type Database = {
           company_id: string
           contract_id?: string | null
           created_at?: string
+          credit_note_id?: string | null
+          credited_amount?: number | null
           due_date?: string | null
           external_invoice_id?: string | null
           generated_at?: string | null
@@ -3456,6 +3517,8 @@ export type Database = {
           company_id?: string
           contract_id?: string | null
           created_at?: string
+          credit_note_id?: string | null
+          credited_amount?: number | null
           due_date?: string | null
           external_invoice_id?: string | null
           generated_at?: string | null
@@ -3485,6 +3548,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: true
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_credit_note_id_fkey"
+            columns: ["credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
             referencedColumns: ["id"]
           },
           {
@@ -6424,6 +6494,10 @@ export type Database = {
       generate_company_slug: { Args: { company_name: string }; Returns: string }
       generate_company_subdomain: {
         Args: { company_name: string }
+        Returns: string
+      }
+      generate_credit_note_number: {
+        Args: { p_company_id: string }
         Returns: string
       }
       generate_offer_id: { Args: never; Returns: string }
