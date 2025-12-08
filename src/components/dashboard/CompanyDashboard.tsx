@@ -74,8 +74,8 @@ const CompanyDashboard = () => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
     }).format(value);
   };
 
@@ -250,7 +250,7 @@ const CompanyDashboard = () => {
                             <TableCell className="text-right font-medium">{formatCurrency(month.ca)}</TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(month.achats)}</TableCell>
                             <TableCell className="text-right font-bold text-green-600">{formatCurrency(month.marge)}</TableCell>
-                            <TableCell className="text-right font-bold text-green-600">{Number(month.margePercent).toFixed(2)}%</TableCell>
+                            <TableCell className="text-right font-bold text-green-600">{Number(month.margePercent).toFixed(1)}%</TableCell>
                           </TableRow>
                         ))
                       ) : (
@@ -268,14 +268,14 @@ const CompanyDashboard = () => {
                         <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.ca)}</TableCell>
                         <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.achats)}</TableCell>
                         <TableCell className="text-right font-bold text-lg text-green-600">{formatCurrency(totals.marge)}</TableCell>
-                        <TableCell className="text-right font-bold text-lg text-green-600">{moyennes.margePercent.toFixed(2)}%</TableCell>
+                        <TableCell className="text-right font-bold text-lg text-green-600">{moyennes.margePercent.toFixed(1)}%</TableCell>
                       </TableRow>
                       <TableRow className="bg-blue-50 dark:bg-blue-900/10 border-b-2 border-blue-200">
                         <TableCell className="font-bold">MOYENNE</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(moyennes.ca)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-semibold text-blue-600">{formatCurrency(moyennes.marge)}</TableCell>
-                        <TableCell className="text-right font-semibold text-blue-600">{moyennes.margePercent.toFixed(2)}%</TableCell>
+                        <TableCell className="text-right font-semibold text-blue-600">{moyennes.margePercent.toFixed(1)}%</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
