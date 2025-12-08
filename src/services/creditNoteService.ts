@@ -122,6 +122,29 @@ export const createCreditNote = async (
   return creditNote;
 };
 
+export const updateCreditNote = async (
+  id: string,
+  updates: {
+    credit_note_number?: string;
+    issued_at?: string;
+    reason?: string;
+  }
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('credit_notes')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour de la note de crédit:', error);
+    throw error;
+  }
+  return true;
+};
+
 export const deleteCreditNote = async (id: string): Promise<boolean> => {
   // Récupérer la note de crédit pour obtenir l'invoice_id
   const { data: creditNote, error: fetchError } = await supabase
