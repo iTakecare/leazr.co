@@ -1,11 +1,11 @@
+import { useState } from "react";
 import { CreditNote } from "@/services/creditNoteService";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Eye, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { CreditNoteDetailDialog } from "./CreditNoteDetailDialog";
 
 interface CreditNotesListProps {
   creditNotes: CreditNote[];
@@ -13,7 +13,7 @@ interface CreditNotesListProps {
 }
 
 export const CreditNotesList = ({ creditNotes, loading }: CreditNotesListProps) => {
-  const navigate = useNavigate();
+  const [selectedCreditNote, setSelectedCreditNote] = useState<CreditNote | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -54,53 +54,55 @@ export const CreditNotesList = ({ creditNotes, loading }: CreditNotesListProps) 
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Numéro</TableHead>
-          <TableHead>Facture liée</TableHead>
-          <TableHead>Montant crédité</TableHead>
-          <TableHead>Raison</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead>Date d'émission</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {creditNotes.map((creditNote) => (
-          <TableRow key={creditNote.id}>
-            <TableCell className="font-medium">
-              {creditNote.credit_note_number || '-'}
-            </TableCell>
-            <TableCell>
-              {creditNote.invoice?.invoice_number || creditNote.invoice_id.substring(0, 8)}
-            </TableCell>
-            <TableCell className="text-red-600 font-medium">
-              -{formatAmount(creditNote.amount)}
-            </TableCell>
-            <TableCell className="max-w-[200px] truncate">
-              {creditNote.reason || '-'}
-            </TableCell>
-            <TableCell>
-              {getStatusBadge(creditNote.status)}
-            </TableCell>
-            <TableCell>
-              {creditNote.issued_at 
-                ? format(new Date(creditNote.issued_at), 'dd/MM/yyyy', { locale: fr })
-                : '-'}
-            </TableCell>
-            <TableCell className="text-right">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/admin/invoicing/${creditNote.invoice_id}`)}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            </TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Numéro</TableHead>
+            <TableHead>Facture liée</TableHead>
+            <TableHead>Montant crédité</TableHead>
+            <TableHead>Raison</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead>Date d'émission</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {creditNotes.map((creditNote) => (
+            <TableRow 
+              key={creditNote.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => setSelectedCreditNote(creditNote)}
+            >
+              <TableCell className="font-medium">
+                {creditNote.credit_note_number || '-'}
+              </TableCell>
+              <TableCell>
+                {creditNote.invoice?.invoice_number || creditNote.invoice_id.substring(0, 8)}
+              </TableCell>
+              <TableCell className="text-red-600 font-medium">
+                -{formatAmount(creditNote.amount)}
+              </TableCell>
+              <TableCell className="max-w-[200px] truncate">
+                {creditNote.reason || '-'}
+              </TableCell>
+              <TableCell>
+                {getStatusBadge(creditNote.status)}
+              </TableCell>
+              <TableCell>
+                {creditNote.issued_at 
+                  ? format(new Date(creditNote.issued_at), 'dd/MM/yyyy', { locale: fr })
+                  : '-'}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <CreditNoteDetailDialog
+        creditNote={selectedCreditNote}
+        open={!!selectedCreditNote}
+        onOpenChange={(open) => !open && setSelectedCreditNote(null)}
+      />
+    </>
   );
 };
