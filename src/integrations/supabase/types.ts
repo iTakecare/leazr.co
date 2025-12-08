@@ -3273,7 +3273,7 @@ export type Database = {
           amount: number
           billing_data: Json
           company_id: string
-          contract_id: string
+          contract_id: string | null
           created_at: string
           due_date: string | null
           external_invoice_id: string | null
@@ -3294,7 +3294,7 @@ export type Database = {
           amount?: number
           billing_data?: Json
           company_id: string
-          contract_id: string
+          contract_id?: string | null
           created_at?: string
           due_date?: string | null
           external_invoice_id?: string | null
@@ -3315,7 +3315,7 @@ export type Database = {
           amount?: number
           billing_data?: Json
           company_id?: string
-          contract_id?: string
+          contract_id?: string | null
           created_at?: string
           due_date?: string | null
           external_invoice_id?: string | null
