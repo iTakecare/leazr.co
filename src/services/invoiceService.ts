@@ -122,10 +122,13 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
       throw new Error('Erreur lors de la récupération des équipements');
     }
 
-    // Calculer le prix total de vente
+    // Calculer le prix total de vente (multiplié par la quantité)
     const totalSellingPrice = (equipment || []).reduce((total, item) => {
-      const sellingPrice = item.selling_price || (item.purchase_price * (1 + (item.margin || 0) / 100));
-      return total + sellingPrice;
+      const quantity = item.quantity || 1;
+      const unitSellingPrice = item.selling_price 
+        ? item.selling_price / quantity // selling_price peut être déjà total, diviser pour avoir unitaire
+        : item.purchase_price * (1 + (item.margin || 0) / 100);
+      return total + (unitSellingPrice * quantity);
     }, 0);
 
     console.log('💰 Prix de vente total calculé:', totalSellingPrice);
@@ -150,11 +153,15 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
 
     // Préparer les équipements enrichis
     const enrichedEquipment = (equipment || []).map(item => {
-      const sellingPrice = item.selling_price || (item.purchase_price * (1 + (item.margin || 0) / 100));
+      const quantity = item.quantity || 1;
+      const unitSellingPrice = item.selling_price 
+        ? item.selling_price / quantity 
+        : item.purchase_price * (1 + (item.margin || 0) / 100);
+      const totalLinePrice = unitSellingPrice * quantity;
       return {
         ...item,
-        selling_price_excl_vat: parseFloat(sellingPrice.toFixed(2)),
-        unit_selling_price: parseFloat((sellingPrice / (item.quantity || 1)).toFixed(2))
+        selling_price_excl_vat: parseFloat(totalLinePrice.toFixed(2)),
+        unit_selling_price: parseFloat(unitSellingPrice.toFixed(2))
       };
     });
 
