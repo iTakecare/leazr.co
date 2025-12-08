@@ -4,10 +4,12 @@ import { useMultiTenant } from "./useMultiTenant";
 
 export interface Invoice {
   id: string;
-  contract_id: string;
+  contract_id: string | null;
+  offer_id?: string | null;
   company_id: string;
   invoice_number?: string;
   leaser_name: string;
+  invoice_type?: 'leasing' | 'purchase';
   amount: number;
   status: string;
   integration_type: string;

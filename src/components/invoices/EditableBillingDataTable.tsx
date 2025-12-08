@@ -234,22 +234,43 @@ const EditableBillingDataTable: React.FC<EditableBillingDataTableProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Informations du bailleur */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Informations du bailleur</h3>
-            <Table>
-              <TableBody>
-                {renderEditableField('Nom du bailleur', 'leaser_data.name')}
-                {renderEditableField('Adresse', 'leaser_data.address')}
-                {renderEditableField('Ville', 'leaser_data.city')}
-                {renderEditableField('Code postal', 'leaser_data.postal_code')}
-                {renderEditableField('Pays', 'leaser_data.country')}
-                {renderEditableField('Email', 'leaser_data.email', 'email')}
-                {renderEditableField('Téléphone', 'leaser_data.phone')}
-                {renderEditableField('Numéro TVA', 'leaser_data.vat_number')}
-              </TableBody>
-            </Table>
-          </div>
+          {/* Informations du bailleur OU du client selon le type */}
+          {billingData?.offer_data?.is_purchase || billingData?.generated_from_purchase_offer ? (
+            // Facture d'achat - Afficher les informations du client
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Informations du client facturé</h3>
+              <Table>
+                <TableBody>
+                  {renderEditableField('Nom du client', 'client_data.name')}
+                  {renderEditableField('Entreprise', 'client_data.company')}
+                  {renderEditableField('Adresse', 'client_data.address')}
+                  {renderEditableField('Ville', 'client_data.city')}
+                  {renderEditableField('Code postal', 'client_data.postal_code')}
+                  {renderEditableField('Pays', 'client_data.country')}
+                  {renderEditableField('Email', 'client_data.email', 'email')}
+                  {renderEditableField('Téléphone', 'client_data.phone')}
+                  {renderEditableField('Numéro TVA', 'client_data.vat_number')}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            // Facture de leasing - Afficher les informations du bailleur
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Informations du bailleur</h3>
+              <Table>
+                <TableBody>
+                  {renderEditableField('Nom du bailleur', 'leaser_data.name')}
+                  {renderEditableField('Adresse', 'leaser_data.address')}
+                  {renderEditableField('Ville', 'leaser_data.city')}
+                  {renderEditableField('Code postal', 'leaser_data.postal_code')}
+                  {renderEditableField('Pays', 'leaser_data.country')}
+                  {renderEditableField('Email', 'leaser_data.email', 'email')}
+                  {renderEditableField('Téléphone', 'leaser_data.phone')}
+                  {renderEditableField('Numéro TVA', 'leaser_data.vat_number')}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {/* Informations du contrat et de l'offre */}
           <div>
