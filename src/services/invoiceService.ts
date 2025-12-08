@@ -164,7 +164,7 @@ export const generateInvoiceFromPurchaseOffer = async (offerId: string, companyI
       .insert({
         offer_id: offerId,
         company_id: companyId,
-        leaser_name: '(Vente directe)', // Pas de bailleur pour les factures d'achat
+        leaser_name: '', // Pas de bailleur pour les factures d'achat
         invoice_type: 'purchase', // Type facture achat
         amount: totalSellingPrice,
         status: 'draft',
