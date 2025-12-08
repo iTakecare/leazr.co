@@ -298,7 +298,7 @@ const CompanyDashboard = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center p-3 rounded-lg bg-green-500/10">
                     <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-green-600">{metrics?.total_contracts || 0}</p>
+                    <p className="text-xl font-bold text-green-600">{realizedStats?.count || 0}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-green-500/10">
                     <p className="text-xs text-muted-foreground">Marge</p>
@@ -330,7 +330,7 @@ const CompanyDashboard = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center p-3 rounded-lg bg-orange-500/10">
                     <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-orange-600">{metrics?.pending_offers || 0}</p>
+                    <p className="text-xl font-bold text-orange-600">{pendingStats?.count || 0}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-orange-500/10">
                     <p className="text-xs text-muted-foreground">Potentiel</p>
