@@ -315,7 +315,8 @@ const InvoicingPage = () => {
                 <CardContent>
                   <CreditNotesList 
                     creditNotes={creditNotes} 
-                    loading={creditNotesLoading} 
+                    loading={creditNotesLoading}
+                    onRefresh={fetchCreditNotes}
                   />
                 </CardContent>
               </Card>
