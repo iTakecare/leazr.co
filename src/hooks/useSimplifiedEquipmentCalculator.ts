@@ -5,7 +5,8 @@ import { defaultLeasers } from '@/data/leasers';
 import { 
   calculateEquipmentResults, 
   findCoefficientForAmount, 
-  calculateFinancedAmountForEquipment 
+  calculateFinancedAmountForEquipment,
+  roundToTwoDecimals
 } from '@/utils/equipmentCalculations';
 
 export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
@@ -56,7 +57,8 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
     const coef = findCoefficientForAmount(financedAmount, leaser, duration);
     setCoefficient(coef);
-    const calculated = (financedAmount * coef) / 100;
+    // Arrondir la mensualité à 2 décimales
+    const calculated = roundToTwoDecimals((financedAmount * coef) / 100);
     
     setMonthlyPayment(calculated);
     
@@ -119,12 +121,13 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       }
     }
     
-    const requiredTotal = (targetMonthlyPayment * 100) / coef;
-    const marginAmount = requiredTotal - equipment.purchasePrice;
+    // Calculer le montant financé requis avec précision
+    const requiredTotal = roundToTwoDecimals((targetMonthlyPayment * 100) / coef);
+    const marginAmount = roundToTwoDecimals(requiredTotal - equipment.purchasePrice);
     const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
     
     setCalculatedMargin({
-      percentage: Number(marginPercentage.toFixed(2)),
+      percentage: roundToTwoDecimals(marginPercentage),
       amount: marginAmount
     });
     
@@ -138,16 +141,16 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       return;
     }
     
-    const marginAmount = targetSalePrice - equipment.purchasePrice;
+    const marginAmount = roundToTwoDecimals(targetSalePrice - equipment.purchasePrice);
     const marginPercentage = (marginAmount / equipment.purchasePrice) * 100;
     
-    // Calculer la mensualité à partir du prix de vente et du coefficient
+    // Calculer la mensualité à partir du prix de vente et du coefficient avec précision
     const coef = coefficient > 0 ? coefficient : findCoefficientForAmount(targetSalePrice, leaser, duration);
-    const monthlyPayment = (targetSalePrice * coef) / 100;
+    const monthlyPaymentCalc = roundToTwoDecimals((targetSalePrice * coef) / 100);
     
     setCalculatedFromSalePrice({
-      margin: Number(marginPercentage.toFixed(2)),
-      monthlyPayment: monthlyPayment
+      margin: roundToTwoDecimals(marginPercentage),
+      monthlyPayment: monthlyPaymentCalc
     });
   };
 

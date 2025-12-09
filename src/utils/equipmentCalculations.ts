@@ -14,8 +14,17 @@ export interface CalculationResult {
   totalFinancedAmount: number;
 }
 
+// Arrondi précis à 2 décimales (méthode bancaire)
+export const roundToTwoDecimals = (value: number): number => {
+  return Math.round(value * 100) / 100;
+};
+
 export const calculateFinancedAmountForEquipment = (equipment: Equipment): number => {
-  return equipment.purchasePrice * equipment.quantity * (1 + equipment.margin / 100);
+  // Calculer avec précision complète puis arrondir à 2 décimales
+  const purchaseTotal = equipment.purchasePrice * equipment.quantity;
+  const marginAmount = purchaseTotal * (equipment.margin / 100);
+  const financedAmount = purchaseTotal + marginAmount;
+  return roundToTwoDecimals(financedAmount);
 };
 
 // Valeurs de fallback statiques pour éviter les erreurs
@@ -100,17 +109,18 @@ export const calculateEquipmentResults = (
       return sum + equipment.monthlyPayment;
     }
     
-    // Sinon, calculer à partir du prix d'achat + marge + coefficient
+    // Sinon, calculer à partir du prix d'achat + marge + coefficient avec précision
     const financedAmount = calculateFinancedAmountForEquipment(equipment);
     const coeff = findCoefficientForAmount(financedAmount, leaser, duration);
-    const monthlyForOne = (financedAmount * coeff) / 100;
+    // Arrondir la mensualité à 2 décimales
+    const monthlyForOne = roundToTwoDecimals((financedAmount * coeff) / 100);
     console.log(`📊 CALC - Calculated monthlyPayment for ${equipment.title}: ${monthlyForOne}`);
     return sum + monthlyForOne;
   }, 0);
 
   // 5. Calculer avec le coefficient global sur le montant financé total
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser, duration);
-  const adjustedMonthlyPayment = (totalFinancedAmountIndividual * globalCoefficient) / 100;
+  const adjustedMonthlyPayment = roundToTwoDecimals((totalFinancedAmountIndividual * globalCoefficient) / 100);
 
   // 6. Calculer la marge ajustée réelle avec la mensualité globale
   // Ratio de réduction de la mensualité appliqué à la marge
