@@ -84,22 +84,8 @@ export const calculateEquipmentResults = (
     return sum + (equipment.purchasePrice * equipment.quantity);
   }, 0);
 
-  // 2. Calculer la marge normale (somme des marges individuelles avec quantités)
-  const normalMarginAmount = equipmentList.reduce((sum, equipment) => {
-    return sum + (equipment.purchasePrice * equipment.quantity * equipment.margin / 100);
-  }, 0);
-
-  const normalMarginPercentage = totalPurchasePrice > 0 
-    ? (normalMarginAmount / totalPurchasePrice) * 100 
-    : 0;
-
-  // 3. Calculer le montant financé total (somme des montants financés individuels)
-  const totalFinancedAmountIndividual = equipmentList.reduce((sum, equipment) => {
-    return sum + calculateFinancedAmountForEquipment(equipment);
-  }, 0);
-
-  // 4. Calculer la mensualité normale
-  // CORRECTION : Utiliser le monthlyPayment stocké s'il existe (venant du catalogue)
+  // 2. Calculer la mensualité normale
+  // Utiliser le monthlyPayment stocké s'il existe (venant du catalogue)
   // Sinon recalculer à partir du prix d'achat + marge + coefficient
   const normalMonthlyPayment = equipmentList.reduce((sum, equipment) => {
     // Si l'équipement a un monthlyPayment défini (provenant du catalogue), l'utiliser directement
@@ -118,29 +104,38 @@ export const calculateEquipmentResults = (
     return sum + monthlyForOne;
   }, 0);
 
-// 5. Calculer avec le coefficient global sur le montant financé total
+  // 3. Calculer le montant financé total individuel (pour référence)
+  const totalFinancedAmountIndividual = equipmentList.reduce((sum, equipment) => {
+    return sum + calculateFinancedAmountForEquipment(equipment);
+  }, 0);
+
+  // 4. Calculer le coefficient global
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser, duration);
   const adjustedMonthlyPayment = roundToTwoDecimals((totalFinancedAmountIndividual * globalCoefficient) / 100);
 
-  // 6. CALCUL INVERSÉ DU MONTANT FINANCÉ (méthode Grenke)
+  // 5. CALCUL INVERSÉ DU MONTANT FINANCÉ (méthode Grenke)
   // Grenke calcule : montant_financé = mensualité × 100 / coefficient
   // On utilise normalMonthlyPayment (mensualité affichée) pour correspondre exactement à Grenke
   const totalFinancedAmountDisplay = globalCoefficient > 0 
     ? roundToTwoDecimals((normalMonthlyPayment * 100) / globalCoefficient)
     : totalFinancedAmountIndividual;
 
-  // 7. Calculer la marge ajustée réelle avec la mensualité globale
-  // Ratio de réduction de la mensualité appliqué à la marge
+  // 6. CALCUL DE LA MARGE À PARTIR DU MONTANT FINANCÉ
+  // Marge = Montant financé (inverse) - Prix d'achat total
+  // C'est la vraie marge générée, cohérente avec le montant financé affiché
+  const normalMarginAmount = roundToTwoDecimals(totalFinancedAmountDisplay - totalPurchasePrice);
+  const normalMarginPercentage = totalPurchasePrice > 0 
+    ? (normalMarginAmount / totalPurchasePrice) * 100 
+    : 0;
+
+  // 7. Calculer la marge ajustée avec le coefficient global
   const monthlyPaymentRatio = normalMonthlyPayment > 0 ? (adjustedMonthlyPayment / normalMonthlyPayment) : 1;
   const adjustedMarginAmount = normalMarginAmount * monthlyPaymentRatio;
   const adjustedMarginPercentage = totalPurchasePrice > 0 
     ? (adjustedMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 8. Calculer la différence de marge réelle
-  // Différence = Marge normale - Marge ajustée (avec coefficient global)
-  // Si positif : on perd de la marge avec le coefficient global
-  // Si négatif : on gagne de la marge avec le coefficient global
+  // 8. Calculer la différence de marge
   const marginDifference = normalMarginAmount - adjustedMarginAmount;
 
   console.log("🔢 CALCUL - Détail des calculs:", {
