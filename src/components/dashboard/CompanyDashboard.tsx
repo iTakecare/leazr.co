@@ -428,6 +428,12 @@ const CompanyDashboard = () => {
                     <p className="text-xs text-muted-foreground">Marge prévue</p>
                     <p className="text-lg font-bold text-indigo-600">
                       {formatCurrency(Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0))}
+                      {(() => {
+                        const totalPurchases = Number(realizedStats?.total_purchases || 0) + Number(pendingStats?.total_purchases || 0) + Number(directSalesStats?.total_purchases || 0);
+                        const totalMargin = Number(realizedStats?.total_margin || 0) + Number(pendingStats?.total_margin || 0) + Number(directSalesStats?.total_margin || 0);
+                        const marginPercent = totalPurchases > 0 ? (totalMargin / totalPurchases) * 100 : 0;
+                        return <span className="text-xs ml-1 opacity-75">({marginPercent.toFixed(1)}%)</span>;
+                      })()}
                     </p>
                   </div>
                 </div>
