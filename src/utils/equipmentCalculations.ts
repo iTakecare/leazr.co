@@ -118,11 +118,18 @@ export const calculateEquipmentResults = (
     return sum + monthlyForOne;
   }, 0);
 
-  // 5. Calculer avec le coefficient global sur le montant financé total
+// 5. Calculer avec le coefficient global sur le montant financé total
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser, duration);
   const adjustedMonthlyPayment = roundToTwoDecimals((totalFinancedAmountIndividual * globalCoefficient) / 100);
 
-  // 6. Calculer la marge ajustée réelle avec la mensualité globale
+  // 6. CALCUL INVERSÉ DU MONTANT FINANCÉ (méthode Grenke)
+  // Grenke calcule : montant_financé = mensualité × 100 / coefficient
+  // Cela garantit que le montant affiché correspond exactement à ce que Grenke afficherait
+  const totalFinancedAmountDisplay = globalCoefficient > 0 
+    ? roundToTwoDecimals((adjustedMonthlyPayment * 100) / globalCoefficient)
+    : totalFinancedAmountIndividual;
+
+  // 7. Calculer la marge ajustée réelle avec la mensualité globale
   // Ratio de réduction de la mensualité appliqué à la marge
   const monthlyPaymentRatio = normalMonthlyPayment > 0 ? (adjustedMonthlyPayment / normalMonthlyPayment) : 1;
   const adjustedMarginAmount = normalMarginAmount * monthlyPaymentRatio;
@@ -130,7 +137,7 @@ export const calculateEquipmentResults = (
     ? (adjustedMarginAmount / totalPurchasePrice) * 100 
     : 0;
 
-  // 7. Calculer la différence de marge réelle
+  // 8. Calculer la différence de marge réelle
   // Différence = Marge normale - Marge ajustée (avec coefficient global)
   // Si positif : on perd de la marge avec le coefficient global
   // Si négatif : on gagne de la marge avec le coefficient global
@@ -141,6 +148,7 @@ export const calculateEquipmentResults = (
     normalMarginAmount,
     normalMarginPercentage,
     totalFinancedAmountIndividual,
+    totalFinancedAmountDisplay,
     normalMonthlyPayment,
     globalCoefficient,
     adjustedMonthlyPayment,
@@ -161,7 +169,8 @@ export const calculateEquipmentResults = (
     adjustedMonthlyPayment,
     marginDifference,
     globalCoefficient,
-    totalFinancedAmount: totalFinancedAmountIndividual
+    // Utiliser le montant financé calculé inversement (méthode Grenke)
+    totalFinancedAmount: totalFinancedAmountDisplay
   };
 
   console.log("🔢 CALCUL - Résultats finaux:", result);
