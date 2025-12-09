@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { getLeaserById } from "@/services/leaserService";
 import { Leaser } from "@/types/equipment";
 import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
+import { calculateEquipmentResults, findCoefficientForAmount } from "@/utils/equipmentCalculations";
 import {
   Table,
   TableBody,
@@ -182,29 +183,30 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   };
 
   const calculateTotals = () => {
-    const totalPrice = equipment.reduce((acc, item) => {
-      return acc + (item.purchase_price * item.quantity);
-    }, 0);
+    // Convertir les équipements au format attendu par calculateEquipmentResults
+    const equipmentForCalc = equipment.map(item => ({
+      id: item.id,
+      title: item.title,
+      purchasePrice: item.purchase_price,
+      quantity: item.quantity,
+      margin: item.margin || 0,
+      monthlyPayment: Number(item.monthly_payment) || 0,
+    }));
 
-    // monthly_payment en DB est DÉJÀ le total pour cet équipement (pas unitaire)
-    const totalMonthlyPayment = equipment.reduce((acc, item) => {
-      const itemMonthly = Number(item.monthly_payment) || 0;
-      return acc + itemMonthly;  // Pas de multiplication par qty car déjà inclus
-    }, 0);
+    // Utiliser la fonction centralisée de calcul avec formule inverse
+    const results = calculateEquipmentResults(equipmentForCalc, leaser, offer.duration || 36);
 
-    const totalSellingPrice = equipment.reduce((acc, item) => {
-      const sellingPrice = item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0);
-      return acc + (sellingPrice * item.quantity);
-    }, 0);
-
-    // Calculer la marge totale correctement : Prix de vente total - Prix d'achat total
-    const totalMargin = totalSellingPrice - totalPrice;
+    const totalPrice = results.totalPurchasePrice;
+    const totalMonthlyPayment = results.normalMonthlyPayment;
     
-    // Calculer le pourcentage de marge : (marge / prix d'achat) * 100
-    const marginPercentage = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
-
-    // Calculer le coefficient global (total mensualité * 36 / total prix achat)
-    const globalCoefficient = totalPrice > 0 ? (totalMonthlyPayment * 36) / totalPrice : 0;
+    // IMPORTANT: Utiliser le montant financé calculé par formule inverse (mensualité × 100 / coefficient)
+    // C'est cette valeur qui correspond au portail Grenke
+    const totalSellingPrice = results.totalFinancedAmount;
+    
+    // Marge = Montant financé (inverse) - Prix d'achat
+    const totalMargin = totalSellingPrice - totalPrice;
+    const marginPercentage = results.normalMarginPercentage;
+    const globalCoefficient = results.globalCoefficient;
 
     return { 
       totalPrice, 
