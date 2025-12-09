@@ -124,9 +124,9 @@ export const calculateEquipmentResults = (
 
   // 6. CALCUL INVERSÉ DU MONTANT FINANCÉ (méthode Grenke)
   // Grenke calcule : montant_financé = mensualité × 100 / coefficient
-  // Cela garantit que le montant affiché correspond exactement à ce que Grenke afficherait
+  // On utilise normalMonthlyPayment (mensualité affichée) pour correspondre exactement à Grenke
   const totalFinancedAmountDisplay = globalCoefficient > 0 
-    ? roundToTwoDecimals((adjustedMonthlyPayment * 100) / globalCoefficient)
+    ? roundToTwoDecimals((normalMonthlyPayment * 100) / globalCoefficient)
     : totalFinancedAmountIndividual;
 
   // 7. Calculer la marge ajustée réelle avec la mensualité globale
