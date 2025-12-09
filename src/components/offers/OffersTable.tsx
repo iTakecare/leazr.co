@@ -236,10 +236,9 @@ const OffersTable: React.FC<OffersTableProps> = ({
             <TableHeader>
               <TableRow className="h-9">
                 <TableHead className="font-mono text-[10px] w-[110px]">N° Demande</TableHead>
-                <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date dem.</TableHead>
                 <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date offre</TableHead>
                 <TableHead className="w-[60px] text-[10px]">Client</TableHead>
-                <TableHead className="text-[10px] w-[80px] hidden xl:table-cell">Secteur</TableHead>
+                <TableHead className="text-[10px] w-[100px] hidden lg:table-cell">Entreprise</TableHead>
                 <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
                 <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
                 <TableHead className="text-[10px] w-[70px] hidden xl:table-cell">Source</TableHead>
@@ -262,11 +261,6 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     {offer.dossier_number || '-'}
                   </TableCell>
                   
-                  {/* Date demande */}
-                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">
-                    {offer.request_date ? formatDate(offer.request_date) : '-'}
-                  </TableCell>
-                  
                   {/* Date de l'offre */}
                   <TableCell className="text-[11px] py-2 hidden lg:table-cell">{formatDate(offer.created_at)}</TableCell>
                   
@@ -279,23 +273,16 @@ const OffersTable: React.FC<OffersTableProps> = ({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-md z-50 bg-popover">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium">
-                            {offer.clientDisplayName}
-                          </div>
-                          {offer.clientCompanyName && (
-                            <div className="text-xs text-muted-foreground">
-                              {offer.clientCompanyName}
-                            </div>
-                          )}
+                        <div className="text-sm font-medium">
+                          {offer.clientDisplayName}
                         </div>
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
                   
-                  {/* Secteur */}
-                  <TableCell className="text-[11px] py-2 hidden xl:table-cell">
-                    {offer.businessSectorLabel}
+                  {/* Entreprise */}
+                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">
+                    {offer.clientCompanyName || '-'}
                   </TableCell>
                   
                   {/* Type */}
