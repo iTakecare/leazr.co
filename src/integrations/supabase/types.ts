@@ -6811,8 +6811,8 @@ export type Database = {
       }
       get_current_user_role: { Args: never; Returns: string }
       get_default_country_for_company:
-        | { Args: { p_company_id: string }; Returns: string }
         | { Args: never; Returns: string }
+        | { Args: { p_company_id: string }; Returns: string }
       get_featured_blog_posts: {
         Args: never
         Returns: {
@@ -7282,12 +7282,12 @@ export type Database = {
       }
       insert_offer_equipment_attributes_secure:
         | {
-            Args: { p_equipment_id: string; p_key: string; p_value: string }
-            Returns: string
-          }
-        | {
             Args: { p_attributes: Json; p_equipment_id: string }
             Returns: undefined
+          }
+        | {
+            Args: { p_equipment_id: string; p_key: string; p_value: string }
+            Returns: string
           }
       insert_offer_equipment_secure:
         | {
@@ -7303,11 +7303,9 @@ export type Database = {
               p_delivery_postal_code?: string
               p_delivery_site_id?: string
               p_delivery_type?: string
-              p_image_url?: string
               p_margin: number
               p_monthly_payment?: number
               p_offer_id: string
-              p_product_id?: string
               p_purchase_price: number
               p_quantity: number
               p_selling_price?: number
@@ -7329,9 +7327,11 @@ export type Database = {
               p_delivery_postal_code?: string
               p_delivery_site_id?: string
               p_delivery_type?: string
+              p_image_url?: string
               p_margin: number
               p_monthly_payment?: number
               p_offer_id: string
+              p_product_id?: string
               p_purchase_price: number
               p_quantity: number
               p_selling_price?: number
@@ -7508,6 +7508,20 @@ export type Database = {
         | {
             Args: {
               p_coefficient?: number
+              p_equipment_id: string
+              p_margin?: number
+              p_monthly_payment?: number
+              p_purchase_price?: number
+              p_quantity?: number
+              p_selling_price?: number
+              p_serial_number?: string
+              p_title?: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_coefficient?: number
               p_collaborator_id?: string
               p_delivery_address?: string
               p_delivery_city?: string
@@ -7530,20 +7544,6 @@ export type Database = {
               p_title?: string
             }
             Returns: undefined
-          }
-        | {
-            Args: {
-              p_coefficient?: number
-              p_equipment_id: string
-              p_margin?: number
-              p_monthly_payment?: number
-              p_purchase_price?: number
-              p_quantity?: number
-              p_selling_price?: number
-              p_serial_number?: string
-              p_title?: string
-            }
-            Returns: boolean
           }
       update_offer_leaser: {
         Args: { p_leaser_id: string; p_offer_id: string }
