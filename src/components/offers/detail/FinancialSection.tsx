@@ -5,6 +5,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
 import { calculateOfferMargin, getEffectiveFinancedAmount } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import { calculateEquipmentResults } from "@/utils/equipmentCalculations";
 import { useUpdateOfferMutation } from "@/hooks/offers/useOffersQuery";
 import { getLeaserById } from "@/services/leaserService";
 import { Leaser } from "@/types/equipment";
@@ -185,10 +186,29 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     updateOfferFinancials();
   }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated]);
   
-  // Calculate effective financed amount (prioritize totalSellingPrice)
-  const effectiveFinancedAmount = totals.totalSellingPrice > 0 
-    ? totals.totalSellingPrice 
-    : (offer.financed_amount || (totals.totalMonthlyPayment * (offer.coefficient || 3.27)));
+  // Utiliser la formule inverse (mensualité × 100 / coefficient) pour le montant financé
+  const calculateFinancedAmountInverse = () => {
+    if (offerEquipment && offerEquipment.length > 0) {
+      const equipmentForCalc = offerEquipment.map(item => ({
+        id: item.id,
+        title: item.title,
+        purchasePrice: Number(item.purchase_price) || 0,
+        quantity: Number(item.quantity) || 1,
+        margin: Number(item.margin) || 0,
+        monthlyPayment: Number(item.monthly_payment) || 0,
+      }));
+      
+      const results = calculateEquipmentResults(equipmentForCalc, leaser, offer.duration || 36);
+      return results.totalFinancedAmount;
+    }
+    
+    // Fallback: utiliser le coefficient de l'offre
+    return totals.totalMonthlyPayment > 0 && offer.coefficient > 0
+      ? (totals.totalMonthlyPayment * 100) / offer.coefficient
+      : totals.totalSellingPrice;
+  };
+
+  const effectiveFinancedAmount = calculateFinancedAmountInverse();
 
   // Calculer la marge directement : montant financé effectif - prix d'achat total
   const displayMargin = totals.totalPurchasePrice > 0 ? effectiveFinancedAmount - totals.totalPurchasePrice : 0;
