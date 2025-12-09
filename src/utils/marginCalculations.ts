@@ -66,20 +66,22 @@ export const getFinancedAmount = (offer: OfferFinancialData): number => {
 };
 
 /**
- * Get effective financed amount - prioritizes equipment selling price
+ * Get effective financed amount - uses inverse Grenke formula
+ * Formula: financed_amount = monthly_payment × 100 / coefficient
  */
 export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
   const totals = calculateEquipmentTotals(offer, equipmentItems);
   
-  // Priorité 1: totalSellingPrice depuis les équipements (prix de vente calculé)
-  if (totals.totalSellingPrice > 0) {
-    return totals.totalSellingPrice;
+  // Priorité 1: CALCUL INVERSE GRENKE (mensualité × 100 / coefficient)
+  // C'est la méthode utilisée par Grenke pour calculer le montant financé
+  if ((offer.coefficient || 0) > 0 && totals.totalMonthlyPayment > 0) {
+    const computed = (totals.totalMonthlyPayment * 100) / (offer.coefficient as number);
+    return Math.round(computed * 100) / 100; // Arrondi 2 décimales
   }
   
-  // Priorité 2: si on a un coefficient global et une mensualité totale, calculer à partir de là
-  if ((offer.coefficient || 0) > 0 && totals.totalMonthlyPayment > 0) {
-    const computed = totals.totalMonthlyPayment * (offer.coefficient as number);
-    return computed;
+  // Priorité 2: totalSellingPrice depuis les équipements (prix de vente calculé)
+  if (totals.totalSellingPrice > 0) {
+    return totals.totalSellingPrice;
   }
   
   // Priorité 3: financed_amount depuis l'offre (si mis à jour en base)
@@ -87,7 +89,7 @@ export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentI
     return offer.financed_amount;
   }
   
-  // Priorité 3: Fallback sur offer.amount
+  // Priorité 4: Fallback sur offer.amount
   return offer.amount || 0;
 };
 
