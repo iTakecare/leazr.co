@@ -9,6 +9,7 @@ import ContractEquipmentSection from "@/components/contracts/ContractEquipmentSe
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractEquipmentSerialManager from "@/components/contracts/ContractEquipmentSerialManager";
 import ContractDatesManager from "@/components/contracts/ContractDatesManager";
+import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,6 +135,12 @@ const ContractDetail = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Carte contrat self-leasing */}
+              <ContractSelfLeasingCard 
+                contract={contract}
+                onContractUpdated={refetch}
+              />
+
               {/* Historique */}
               <ContractHistoryPanel logs={logs} />
             </div>

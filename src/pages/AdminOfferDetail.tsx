@@ -983,7 +983,6 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               <div className="lg:col-span-1 space-y-4">
               <CompactActionsSidebar
                   offer={offer}
-                  leaser={leaser}
                   onEdit={handleEditOffer}
                   onGeneratePDF={handleGeneratePDF}
                   onSendEmail={() => setEmailDialogOpen(true)}
@@ -1000,7 +999,6 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   }}
                   uploadLinks={uploadLinks}
                   onOpenUploadLink={handleOpenUploadLink}
-                  onContractCreated={fetchOfferDetails}
                 />
                 
                 {/* Configuration de l'offre */}

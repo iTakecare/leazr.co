@@ -24,11 +24,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import SelfLeasingContractCard from "./SelfLeasingContractCard";
+
 
 interface CompactActionsSidebarProps {
   offer: any;
-  leaser?: any;
   onEdit: () => void;
   onGeneratePDF: () => void;
   onSendEmail: () => void;
@@ -39,12 +38,10 @@ interface CompactActionsSidebarProps {
   onEditCreatedDate?: () => void;
   uploadLinks?: any[];
   onOpenUploadLink?: () => void;
-  onContractCreated?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   offer,
-  leaser,
   onEdit,
   onGeneratePDF,
   onSendEmail,
@@ -54,8 +51,7 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onEditRequestDate,
   onEditCreatedDate,
   uploadLinks,
-  onOpenUploadLink,
-  onContractCreated
+  onOpenUploadLink
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const getStatusColor = (status: string) => {
@@ -323,12 +319,6 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
         </Card>
       )}
 
-      {/* Carte contrat self-leasing */}
-      <SelfLeasingContractCard 
-        offer={offer}
-        leaser={leaser}
-        onContractCreated={onContractCreated}
-      />
     </div>
   );
 };
