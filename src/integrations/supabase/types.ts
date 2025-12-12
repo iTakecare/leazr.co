@@ -2512,10 +2512,12 @@ export type Database = {
       contracts: {
         Row: {
           client_bic: string | null
+          client_email: string | null
           client_iban: string | null
           client_id: string | null
           client_name: string
           company_id: string
+          contract_duration: number | null
           contract_end_date: string | null
           contract_number: string | null
           contract_signature_data: string | null
@@ -2536,6 +2538,7 @@ export type Database = {
           invoice_generated: boolean
           invoice_id: string | null
           is_self_leasing: boolean | null
+          leaser_id: string | null
           leaser_logo: string | null
           leaser_name: string
           monthly_payment: number
@@ -2550,10 +2553,12 @@ export type Database = {
         }
         Insert: {
           client_bic?: string | null
+          client_email?: string | null
           client_iban?: string | null
           client_id?: string | null
           client_name: string
           company_id: string
+          contract_duration?: number | null
           contract_end_date?: string | null
           contract_number?: string | null
           contract_signature_data?: string | null
@@ -2574,6 +2579,7 @@ export type Database = {
           invoice_generated?: boolean
           invoice_id?: string | null
           is_self_leasing?: boolean | null
+          leaser_id?: string | null
           leaser_logo?: string | null
           leaser_name: string
           monthly_payment?: number
@@ -2588,10 +2594,12 @@ export type Database = {
         }
         Update: {
           client_bic?: string | null
+          client_email?: string | null
           client_iban?: string | null
           client_id?: string | null
           client_name?: string
           company_id?: string
+          contract_duration?: number | null
           contract_end_date?: string | null
           contract_number?: string | null
           contract_signature_data?: string | null
@@ -2612,6 +2620,7 @@ export type Database = {
           invoice_generated?: boolean
           invoice_id?: string | null
           is_self_leasing?: boolean | null
+          leaser_id?: string | null
           leaser_logo?: string | null
           leaser_name?: string
           monthly_payment?: number
@@ -2644,6 +2653,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_leaser_id_fkey"
+            columns: ["leaser_id"]
+            isOneToOne: false
+            referencedRelation: "leasers"
             referencedColumns: ["id"]
           },
           {
