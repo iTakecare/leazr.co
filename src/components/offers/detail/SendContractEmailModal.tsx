@@ -91,75 +91,34 @@ L'équipe ${leaser?.name || 'commerciale'}`);
         return;
       }
 
-      let contractId = existingContract?.id;
-      let signatureToken = existingContract?.contract_signature_token;
-
-      // Create or update contract
-      if (!contractId) {
-        // Create new contract for self-leasing
-        const { data: newContract, error: createError } = await supabase
-          .from('contracts')
-          .insert({
-            offer_id: offer.id,
-            company_id: offer.company_id,
-            client_id: offer.client_id,
-            user_id: user.id,
-            client_name: offer.client_name || offer.clients?.name,
-            client_email: recipientEmail,
-            leaser_name: leaser?.name,
-            leaser_id: leaser?.id,
-            monthly_payment: offer.monthly_payment,
-            contract_duration: offer.duration || 36,
-            status: 'pending',
-            signature_status: 'pending_signature',
-            is_self_leasing: true,
-            tracking_number: `CTR-${Date.now().toString(36).toUpperCase()}`
-          })
-          .select('id, contract_signature_token')
-          .single();
-
-        if (createError) throw createError;
-
-        contractId = newContract.id;
-        signatureToken = newContract.contract_signature_token;
-
-        // Copy equipment from offer to contract
-        const { data: offerEquipment } = await supabase
-          .from('offer_equipment')
-          .select('*')
-          .eq('offer_id', offer.id);
-
-        if (offerEquipment && offerEquipment.length > 0) {
-          const contractEquipment = offerEquipment.map(eq => ({
-            contract_id: contractId,
-            title: eq.title,
-            quantity: eq.quantity,
-            purchase_price: eq.purchase_price,
-            margin: eq.margin,
-            monthly_payment: eq.monthly_payment
-          }));
-
-          await supabase.from('contract_equipment').insert(contractEquipment);
-        }
-
-        // Update offer workflow status
-        await supabase
-          .from('offers')
-          .update({
-            workflow_status: 'contract_sent',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', offer.id);
-      } else {
-        // Update existing contract
-        await supabase
-          .from('contracts')
-          .update({
-            signature_status: 'pending_signature',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', contractId);
+      // Contract must already exist (created via "Générer le contrat")
+      if (!existingContract?.id || !existingContract?.contract_signature_token) {
+        toast.error("Le contrat doit d'abord être généré");
+        setIsSending(false);
+        return;
       }
+
+      const contractId = existingContract.id;
+      const signatureToken = existingContract.contract_signature_token;
+
+      // Update contract status to pending_signature and update client email
+      await supabase
+        .from('contracts')
+        .update({
+          signature_status: 'pending_signature',
+          client_email: recipientEmail,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contractId);
+
+      // Update offer workflow status
+      await supabase
+        .from('offers')
+        .update({
+          workflow_status: 'contract_sent',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', offer.id);
 
       // Build signature link
       const signatureLink = `${window.location.origin}/contract/${signatureToken}/sign`;
