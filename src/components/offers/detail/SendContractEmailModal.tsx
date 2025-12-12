@@ -83,6 +83,14 @@ L'équipe ${leaser?.name || 'commerciale'}`);
     setIsSending(true);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Vous devez être connecté pour envoyer un contrat");
+        setIsSending(false);
+        return;
+      }
+
       let contractId = existingContract?.id;
       let signatureToken = existingContract?.contract_signature_token;
 
@@ -95,6 +103,7 @@ L'équipe ${leaser?.name || 'commerciale'}`);
             offer_id: offer.id,
             company_id: offer.company_id,
             client_id: offer.client_id,
+            user_id: user.id,
             client_name: offer.client_name || offer.clients?.name,
             client_email: recipientEmail,
             leaser_name: leaser?.name,
