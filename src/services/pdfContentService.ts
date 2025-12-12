@@ -298,3 +298,42 @@ export async function initializeDefaultPDFContent(companyId: string): Promise<vo
   await upsertMultiplePDFContentBlocks(blocks);
   console.log('[PDF-CONTENT] Default content blocks initialized for company:', companyId);
 }
+
+/**
+ * Réinitialise les blocs de contrat avec les valeurs par défaut
+ * (supprime les blocs existants puis les recrée)
+ */
+export async function resetContractContentToDefaults(companyId: string): Promise<void> {
+  // Supprimer tous les blocs de contrat existants
+  const { error: deleteError } = await supabase
+    .from('pdf_content_blocks')
+    .delete()
+    .eq('company_id', companyId)
+    .eq('page_name', 'contract');
+
+  if (deleteError) {
+    console.error('[PDF-CONTENT] Error deleting contract blocks:', deleteError);
+    throw deleteError;
+  }
+
+  // Recréer les blocs avec les valeurs par défaut
+  const contractBlocks = DEFAULT_PDF_CONTENT_BLOCKS.contract;
+  const blocks: Array<{
+    company_id: string;
+    page_name: PDFPageName;
+    block_key: string;
+    content: string;
+  }> = [];
+
+  Object.entries(contractBlocks).forEach(([key, content]) => {
+    blocks.push({
+      company_id: companyId,
+      page_name: 'contract',
+      block_key: key,
+      content,
+    });
+  });
+
+  await upsertMultiplePDFContentBlocks(blocks);
+  console.log('[PDF-CONTENT] Contract content blocks reset to defaults for company:', companyId);
+}

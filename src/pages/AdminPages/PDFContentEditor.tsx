@@ -13,9 +13,21 @@ import { getCurrentUserCompanyId } from '@/services/multiTenantService';
 import { 
   getPDFContentBlocks, 
   upsertMultiplePDFContentBlocks, 
-  initializeDefaultPDFContent 
+  initializeDefaultPDFContent,
+  resetContractContentToDefaults
 } from '@/services/pdfContentService';
-import { ScrollText, ShoppingBag } from 'lucide-react';
+import { ScrollText, ShoppingBag, RotateCcw } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { FileText, Save, Info, Sparkles, BarChart3, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +40,7 @@ const PDFContentEditor: React.FC = () => {
   const [companySlug, setCompanySlug] = useState<string>('');
   const [blocks, setBlocks] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState('offers');
   const [activeOfferSubTab, setActiveOfferSubTab] = useState('cover');
@@ -135,6 +148,33 @@ const PDFContentEditor: React.FC = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Réinitialisation du contrat avec les valeurs par défaut
+  const handleResetContractToDefaults = async () => {
+    if (!companyId) return;
+    
+    setIsResetting(true);
+    try {
+      await resetContractContentToDefaults(companyId);
+      
+      toast({
+        title: "Contrat réinitialisé",
+        description: "Le contrat a été réinitialisé avec le texte complet et tous les placeholders."
+      });
+      
+      setHasChanges(false);
+      refetch();
+    } catch (error: any) {
+      console.error('Error resetting contract:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de réinitialiser le contrat",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -472,14 +512,44 @@ const PDFContentEditor: React.FC = () => {
 
         {/* Onglet Contrat */}
         <TabsContent value="contract" className="space-y-6 mt-4">
-          <Alert>
-            <ScrollText className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Contrat de location :</strong> Ce template est utilisé pour les contrats 
-              de location en propre (self-leasing). Utilisez les placeholders ci-dessous pour insérer 
-              automatiquement les données du contrat.
-            </AlertDescription>
-          </Alert>
+          <div className="flex items-center justify-between gap-4">
+            <Alert className="flex-1">
+              <ScrollText className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Contrat de location :</strong> Ce template est utilisé pour les contrats 
+                de location en propre (self-leasing). Utilisez les placeholders ci-dessous pour insérer 
+                automatiquement les données du contrat.
+              </AlertDescription>
+            </Alert>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="shrink-0">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Réinitialiser avec le texte par défaut
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Réinitialiser le contrat ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action va remplacer tout le contenu du contrat par le texte par défaut avec tous les placeholders.
+                    <br /><br />
+                    <strong>Attention :</strong> Toutes vos modifications personnalisées seront perdues.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleResetContractToDefaults}
+                    disabled={isResetting}
+                  >
+                    {isResetting ? "Réinitialisation..." : "Réinitialiser"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
 
           {/* Placeholders disponibles */}
           <Card>
