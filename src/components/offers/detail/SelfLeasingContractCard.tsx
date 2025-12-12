@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2 } from "lucide-react";
+import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Plus } from "lucide-react";
 import SendContractEmailModal from "./SendContractEmailModal";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SelfLeasingContractCardProps {
   offer: any;
@@ -27,6 +28,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [contractStatus, setContractStatus] = useState<ContractStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
 
   // Check if leaser is own company
@@ -127,7 +129,71 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
     }
   };
 
-  const handleContractCreated = () => {
+  const handleGenerateContract = async () => {
+    setIsGenerating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Vous devez être connecté");
+        return;
+      }
+
+      // Create the contract
+      const { data: newContract, error: createError } = await supabase
+        .from('contracts')
+        .insert({
+          offer_id: offer.id,
+          company_id: offer.company_id,
+          client_id: offer.client_id,
+          user_id: user.id,
+          client_name: offer.client_name || offer.clients?.name,
+          client_email: offer.client_email || offer.clients?.email,
+          leaser_name: leaser?.name,
+          leaser_id: leaser?.id,
+          monthly_payment: offer.monthly_payment,
+          contract_duration: offer.duration || 36,
+          status: 'pending',
+          signature_status: 'draft',
+          is_self_leasing: true,
+          tracking_number: `CTR-${Date.now().toString(36).toUpperCase()}`
+        })
+        .select('id, contract_signature_token, signature_status, signed_contract_pdf_url')
+        .single();
+
+      if (createError) throw createError;
+
+      // Copy equipment from offer to contract
+      const { data: offerEquipment } = await supabase
+        .from('offer_equipment')
+        .select('*')
+        .eq('offer_id', offer.id);
+
+      if (offerEquipment && offerEquipment.length > 0) {
+        const contractEquipment = offerEquipment.map(eq => ({
+          contract_id: newContract.id,
+          title: eq.title,
+          quantity: eq.quantity,
+          purchase_price: eq.purchase_price,
+          margin: eq.margin,
+          monthly_payment: eq.monthly_payment
+        }));
+
+        await supabase.from('contract_equipment').insert(contractEquipment);
+      }
+
+      setContractStatus(newContract);
+      toast.success("Contrat généré avec succès !");
+      onContractCreated?.();
+
+    } catch (error: any) {
+      console.error('Error generating contract:', error);
+      toast.error(`Erreur: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleContractSent = () => {
     fetchContractStatus();
     onContractCreated?.();
   };
@@ -159,7 +225,27 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
             Leasing en propre via {companyName}
           </p>
 
-          {contractStatus?.signature_status === 'signed' && contractStatus.signed_contract_pdf_url ? (
+          {!contractStatus ? (
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full"
+              onClick={handleGenerateContract}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Générer le contrat
+                </>
+              )}
+            </Button>
+          ) : contractStatus.signature_status === 'signed' && contractStatus.signed_contract_pdf_url ? (
             <Button
               variant="default"
               size="sm"
@@ -171,26 +257,23 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
             </Button>
           ) : (
             <>
-              {contractStatus?.contract_signature_token && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={handleOpenContractLink}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Voir le contrat en ligne
-                </Button>
-              )}
-
               <Button
-                variant={contractStatus ? "outline" : "default"}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleOpenContractLink}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Voir le contrat en ligne
+              </Button>
+              <Button
+                variant="default"
                 size="sm"
                 className="w-full"
                 onClick={() => setShowEmailModal(true)}
               >
                 <Send className="w-4 h-4 mr-2" />
-                {contractStatus ? "Renvoyer le contrat" : "Envoyer le contrat"}
+                Envoyer au client
               </Button>
             </>
           )}
@@ -203,7 +286,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
         offer={offer}
         leaser={leaser}
         existingContract={contractStatus}
-        onContractSent={handleContractCreated}
+        onContractSent={handleContractSent}
       />
     </>
   );
