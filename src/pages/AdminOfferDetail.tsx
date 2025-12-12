@@ -8,6 +8,8 @@ import { workflowService } from "@/services/workflows/workflowService";
 import type { OfferType } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useOfferDocuments } from "@/hooks/useOfferDocuments";
+import { getLeaserById } from "@/services/leaserService";
+import type { Leaser } from "@/types/equipment";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
@@ -49,6 +51,7 @@ const AdminOfferDetail = () => {
   const { navigateToAdmin } = useRoleNavigation();
 
   const [offer, setOffer] = useState<any>(null);
+  const [leaser, setLeaser] = useState<Leaser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -115,6 +118,16 @@ const [notesLoading, setNotesLoading] = useState(false);
       }
 
       setOffer(offerData);
+      
+      // Récupérer les informations du leaser si présent
+      if (offerData.leaser_id) {
+        try {
+          const leaserData = await getLeaserById(offerData.leaser_id);
+          setLeaser(leaserData);
+        } catch (leaserErr) {
+          console.error("Erreur lors du chargement du leaser:", leaserErr);
+        }
+      }
     } catch (err) {
       console.error("Erreur lors du chargement de l'offre:", err);
       setError("Impossible de charger les détails de l'offre");
@@ -970,6 +983,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
               <div className="lg:col-span-1 space-y-4">
               <CompactActionsSidebar
                   offer={offer}
+                  leaser={leaser}
                   onEdit={handleEditOffer}
                   onGeneratePDF={handleGeneratePDF}
                   onSendEmail={() => setEmailDialogOpen(true)}
@@ -986,6 +1000,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   }}
                   uploadLinks={uploadLinks}
                   onOpenUploadLink={handleOpenUploadLink}
+                  onContractCreated={fetchOfferDetails}
                 />
                 
                 {/* Configuration de l'offre */}

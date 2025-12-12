@@ -15,6 +15,7 @@ import {
   upsertMultiplePDFContentBlocks, 
   initializeDefaultPDFContent 
 } from '@/services/pdfContentService';
+import { ScrollText, ShoppingBag } from 'lucide-react';
 import { FileText, Save, Info, Sparkles, BarChart3, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -246,10 +247,18 @@ const PDFContentEditor: React.FC = () => {
 
       {/* Onglets */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="cover">Page de couverture</TabsTrigger>
           <TabsTrigger value="equipment">Page équipements</TabsTrigger>
           <TabsTrigger value="conditions">Conditions générales</TabsTrigger>
+          <TabsTrigger value="offers" className="flex items-center gap-1">
+            <ShoppingBag className="h-3 w-3" />
+            Offres
+          </TabsTrigger>
+          <TabsTrigger value="contract" className="flex items-center gap-1">
+            <ScrollText className="h-3 w-3" />
+            Contrat
+          </TabsTrigger>
         </TabsList>
 
         {/* Onglet Page de couverture */}
@@ -394,6 +403,164 @@ const PDFContentEditor: React.FC = () => {
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isSaving ? "Enregistrement..." : "Enregistrer les conditions générales"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Offres */}
+        <TabsContent value="offers" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" />
+                Templates d'offres
+              </CardTitle>
+              <CardDescription>
+                Personnalisez les templates utilisés pour les offres de leasing et d'achat
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="offers-leasing-intro">Introduction offre de leasing</Label>
+                <RichTextEditor
+                  value={blocks.offers_leasing_introduction || ''}
+                  onChange={(val) => updateBlock('offers', 'leasing_introduction', val)}
+                  placeholder="Texte d'introduction spécifique aux offres de leasing..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="offers-purchase-intro">Introduction offre d'achat</Label>
+                <RichTextEditor
+                  value={blocks.offers_purchase_introduction || ''}
+                  onChange={(val) => updateBlock('offers', 'purchase_introduction', val)}
+                  placeholder="Texte d'introduction spécifique aux offres d'achat..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="offers-footer">Pied de page des offres</Label>
+                <RichTextEditor
+                  value={blocks.offers_footer || ''}
+                  onChange={(val) => updateBlock('offers', 'footer', val)}
+                  placeholder="Texte apparaissant en bas de toutes les offres..."
+                />
+              </div>
+
+              <Button 
+                onClick={saveBlocks} 
+                disabled={isSaving || !hasChanges}
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? "Enregistrement..." : "Enregistrer les templates d'offres"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Contrat */}
+        <TabsContent value="contract" className="space-y-6">
+          <Alert>
+            <ScrollText className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Template de contrat de location :</strong> Ce template est utilisé pour les contrats 
+              de location en propre (self-leasing). Utilisez les placeholders ci-dessous pour insérer 
+              automatiquement les données du contrat.
+            </AlertDescription>
+          </Alert>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScrollText className="h-5 w-5" />
+                Contrat de location
+              </CardTitle>
+              <CardDescription>
+                Template du contrat de location pour les offres en propre (self-leasing)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Placeholders disponibles :</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm font-mono">
+                  <Badge variant="outline">{"{{client_name}}"}</Badge>
+                  <Badge variant="outline">{"{{client_company}}"}</Badge>
+                  <Badge variant="outline">{"{{client_address}}"}</Badge>
+                  <Badge variant="outline">{"{{client_email}}"}</Badge>
+                  <Badge variant="outline">{"{{client_iban}}"}</Badge>
+                  <Badge variant="outline">{"{{client_bic}}"}</Badge>
+                  <Badge variant="outline">{"{{monthly_payment}}"}</Badge>
+                  <Badge variant="outline">{"{{duration}}"}</Badge>
+                  <Badge variant="outline">{"{{contract_number}}"}</Badge>
+                  <Badge variant="outline">{"{{start_date}}"}</Badge>
+                  <Badge variant="outline">{"{{end_date}}"}</Badge>
+                  <Badge variant="outline">{"{{equipment_list}}"}</Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contract-header">En-tête du contrat</Label>
+                <RichTextEditor
+                  value={blocks.contract_header || ''}
+                  onChange={(val) => updateBlock('contract', 'header', val)}
+                  placeholder="Ex: CONTRAT DE LOCATION LONGUE DURÉE - Entre les soussignés..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contract-parties">Identification des parties</Label>
+                <RichTextEditor
+                  value={blocks.contract_parties || ''}
+                  onChange={(val) => updateBlock('contract', 'parties', val)}
+                  placeholder="Ex: Le Bailleur : {{company_name}} / Le Locataire : {{client_name}}..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contract-object">Objet du contrat</Label>
+                <RichTextEditor
+                  value={blocks.contract_object || ''}
+                  onChange={(val) => updateBlock('contract', 'object', val)}
+                  placeholder="Ex: Le présent contrat a pour objet la location des équipements suivants : {{equipment_list}}..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contract-terms">Conditions financières</Label>
+                <RichTextEditor
+                  value={blocks.contract_terms || ''}
+                  onChange={(val) => updateBlock('contract', 'terms', val)}
+                  placeholder="Ex: Mensualité : {{monthly_payment}}€ / Durée : {{duration}} mois..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contract-clauses">Clauses générales</Label>
+                <RichTextEditor
+                  value={blocks.contract_clauses || ''}
+                  onChange={(val) => updateBlock('contract', 'clauses', val)}
+                  placeholder="Ex: Article 1 - Obligations du locataire..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contract-signature">Bloc de signature</Label>
+                <RichTextEditor
+                  value={blocks.contract_signature || ''}
+                  onChange={(val) => updateBlock('contract', 'signature', val)}
+                  placeholder="Ex: Fait à __________, le __________..."
+                />
+              </div>
+
+              <Button 
+                onClick={saveBlocks} 
+                disabled={isSaving || !hasChanges}
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? "Enregistrement..." : "Enregistrer le template de contrat"}
               </Button>
             </CardContent>
           </Card>
