@@ -57,6 +57,7 @@ export interface Leaser {
     | 'next_year_first' 
     | 'delivery_date' 
     | 'delivery_date_plus_15';
+  is_own_company?: boolean;
 }
 
 export interface LeasingRange {

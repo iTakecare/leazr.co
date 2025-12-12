@@ -1,5 +1,3 @@
-
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,9 +24,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import SelfLeasingContractCard from "./SelfLeasingContractCard";
 
 interface CompactActionsSidebarProps {
   offer: any;
+  leaser?: any;
   onEdit: () => void;
   onGeneratePDF: () => void;
   onSendEmail: () => void;
@@ -39,10 +39,12 @@ interface CompactActionsSidebarProps {
   onEditCreatedDate?: () => void;
   uploadLinks?: any[];
   onOpenUploadLink?: () => void;
+  onContractCreated?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   offer,
+  leaser,
   onEdit,
   onGeneratePDF,
   onSendEmail,
@@ -52,7 +54,8 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onEditRequestDate,
   onEditCreatedDate,
   uploadLinks,
-  onOpenUploadLink
+  onOpenUploadLink,
+  onContractCreated
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const getStatusColor = (status: string) => {
@@ -319,6 +322,13 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Carte contrat self-leasing */}
+      <SelfLeasingContractCard 
+        offer={offer}
+        leaser={leaser}
+        onContractCreated={onContractCreated}
+      />
     </div>
   );
 };
