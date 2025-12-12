@@ -113,12 +113,27 @@ const PublicContractSignature: React.FC = () => {
     ? `Bon pour accord pour ${formatCurrency(contract.monthly_payment)}/mois pendant ${contract.contract_duration} mois`
     : "";
 
-  // Normaliser les espaces (normaux et insécables) pour une comparaison tolérante
-  const normalizeSpaces = (str: string) => {
-    return str.replace(/[\s\u00A0]+/g, ' ').trim().toLowerCase();
+  // Normaliser les espaces et caractères spéciaux pour une comparaison tolérante
+  const normalizeText = (str: string) => {
+    return str
+      .replace(/[\s\u00A0\u202F\u2009]+/g, ' ') // Tous types d'espaces → espace normal
+      .replace(/€/g, '€') // Normaliser le symbole euro
+      .trim()
+      .toLowerCase();
   };
 
-  const isConfirmationValid = normalizeSpaces(confirmation) === normalizeSpaces(expectedConfirmation);
+  const normalizedConfirmation = normalizeText(confirmation);
+  const normalizedExpected = normalizeText(expectedConfirmation);
+  
+  // Debug - à supprimer après résolution
+  console.log('=== CONFIRMATION DEBUG ===');
+  console.log('User input:', JSON.stringify(confirmation));
+  console.log('Expected:', JSON.stringify(expectedConfirmation));
+  console.log('Normalized user:', JSON.stringify(normalizedConfirmation));
+  console.log('Normalized expected:', JSON.stringify(normalizedExpected));
+  console.log('Are equal:', normalizedConfirmation === normalizedExpected);
+  
+  const isConfirmationValid = normalizedConfirmation === normalizedExpected;
   
   const canSign = 
     signerName.trim() !== "" &&
