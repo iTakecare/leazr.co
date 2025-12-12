@@ -31,6 +31,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
         email,
         available_durations,
         use_duration_coefficients,
+        is_own_company,
         ranges:leaser_ranges(
           id,
           min,
@@ -59,7 +60,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
     // Vérification d'isolation déjà effectuée par le filtre .eq('company_id', userCompanyId)
     
     // Transformer les données de la base de données au format attendu par l'application
-    const formattedLeasers: (Leaser & { use_duration_coefficients?: boolean })[] = data.map((leaser) => ({
+    const formattedLeasers: (Leaser & { use_duration_coefficients?: boolean; is_own_company?: boolean })[] = data.map((leaser) => ({
       id: leaser.id,
       name: leaser.name,
       company_name: leaser.company_name,
@@ -73,6 +74,7 @@ export const getLeasers = async (): Promise<Leaser[]> => {
       email: leaser.email,
       available_durations: leaser.available_durations || [12,18,24,36,48,60,72],
       use_duration_coefficients: leaser.use_duration_coefficients || false,
+      is_own_company: leaser.is_own_company || false,
       ranges: (leaser.ranges || []).sort((a: any, b: any) => a.min - b.min)
     }));
     
@@ -112,6 +114,7 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
         email,
         available_durations,
         use_duration_coefficients,
+        is_own_company,
         ranges:leaser_ranges(
           id,
           min,
@@ -150,8 +153,9 @@ export const getLeaserById = async (id: string): Promise<Leaser | null> => {
       email: data.email,
       available_durations: data.available_durations || [12,18,24,36,48,60,72],
       use_duration_coefficients: data.use_duration_coefficients || false,
+      is_own_company: data.is_own_company || false,
       ranges: data.ranges.sort((a: any, b: any) => a.min - b.min)
-    } as Leaser & { use_duration_coefficients?: boolean };
+    } as Leaser & { use_duration_coefficients?: boolean; is_own_company?: boolean };
   } catch (error) {
     console.error('Exception during leaser loading:', error);
     return null;
@@ -189,6 +193,7 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
         email: leaser.email || null,
         available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
         use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
+        is_own_company: (leaser as any).is_own_company || false,
         company_id: companyId
       })
       .select()
@@ -277,8 +282,9 @@ export const createLeaser = async (leaser: Omit<Leaser, 'id'>): Promise<Leaser |
       email: data.email ?? undefined,
       available_durations: data.available_durations ?? [12,18,24,36,48,60,72],
       use_duration_coefficients: (data as any).use_duration_coefficients ?? false,
+      is_own_company: (data as any).is_own_company ?? false,
       ranges: []
-    } as Leaser & { use_duration_coefficients?: boolean };
+    } as Leaser & { use_duration_coefficients?: boolean; is_own_company?: boolean };
   } catch (error) {
     console.error('Exception during leaser creation:', error);
     toast.error("Erreur lors de la création du leaser");
@@ -315,7 +321,8 @@ export const updateLeaser = async (id: string, leaser: Omit<Leaser, 'id'>): Prom
         phone: leaser.phone || null,
         email: leaser.email || null,
         available_durations: leaser.available_durations || [12, 18, 24, 36, 48, 60, 72],
-        use_duration_coefficients: (leaser as any).use_duration_coefficients || false
+        use_duration_coefficients: (leaser as any).use_duration_coefficients || false,
+        is_own_company: (leaser as any).is_own_company || false
       })
       .eq('id', id);
     
@@ -472,9 +479,12 @@ export const duplicateLeaser = async (id: string): Promise<Leaser | null> => {
       }))
     };
     
-    // Ajouter use_duration_coefficients si présent
+    // Ajouter use_duration_coefficients et is_own_company si présents
     if ((sourceLeaser as any).use_duration_coefficients !== undefined) {
       (duplicatedLeaserData as any).use_duration_coefficients = (sourceLeaser as any).use_duration_coefficients;
+    }
+    if ((sourceLeaser as any).is_own_company !== undefined) {
+      (duplicatedLeaserData as any).is_own_company = (sourceLeaser as any).is_own_company;
     }
     
     // Utiliser createLeaser qui gère déjà les ranges et duration_coefficients
