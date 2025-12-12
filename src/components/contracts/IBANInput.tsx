@@ -34,21 +34,28 @@ const IBANInput: React.FC<IBANInputProps> = ({
     error?: string;
   } | null>(null);
   const [isTouched, setIsTouched] = useState(false);
+  const [isInternalChange, setIsInternalChange] = useState(false);
 
   useEffect(() => {
+    // Ne synchroniser displayValue que si le changement vient de l'extérieur (pas de l'input)
+    if (!isInternalChange && value) {
+      setDisplayValue(formatIBAN(value));
+    }
+    setIsInternalChange(false);
+    
+    // Mettre à jour la validation
     if (value) {
       const result = validateIBAN(value);
       setValidationResult(result);
-      setDisplayValue(result.formattedIBAN);
     } else {
       setValidationResult(null);
-      setDisplayValue("");
     }
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\s/g, '').toUpperCase();
     setDisplayValue(formatIBAN(rawValue));
+    setIsInternalChange(true);
     
     if (rawValue.length >= 5) {
       const result = validateIBAN(rawValue);
