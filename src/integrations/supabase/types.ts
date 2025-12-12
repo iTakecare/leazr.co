@@ -7515,29 +7515,17 @@ export type Database = {
           region: string
         }[]
       }
-      sign_contract_public:
-        | {
-            Args: {
-              p_client_bic?: string
-              p_client_iban?: string
-              p_signature_data: string
-              p_signature_token: string
-              p_signer_ip?: string
-              p_signer_name: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_client_bic?: string
-              p_client_iban: string
-              p_signature_data: string
-              p_signature_token: string
-              p_signer_ip: string
-              p_signer_name: string
-            }
-            Returns: Json
-          }
+      sign_contract_public: {
+        Args: {
+          p_client_bic?: string
+          p_client_iban?: string
+          p_signature_data: string
+          p_signature_token: string
+          p_signer_ip?: string
+          p_signer_name: string
+        }
+        Returns: Json
+      }
       sign_offer_public: {
         Args: {
           p_offer_id: string
