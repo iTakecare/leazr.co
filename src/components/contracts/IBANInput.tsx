@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -34,14 +34,17 @@ const IBANInput: React.FC<IBANInputProps> = ({
     error?: string;
   } | null>(null);
   const [isTouched, setIsTouched] = useState(false);
-  const [isInternalChange, setIsInternalChange] = useState(false);
+  
+  // Utiliser useRef au lieu de useState - synchrone et immédiat
+  const isInternalChangeRef = useRef(false);
 
   useEffect(() => {
-    // Ne synchroniser displayValue que si le changement vient de l'extérieur (pas de l'input)
-    if (!isInternalChange && value) {
+    // Ne synchroniser displayValue que si le changement vient de l'extérieur
+    if (!isInternalChangeRef.current && value) {
       setDisplayValue(formatIBAN(value));
     }
-    setIsInternalChange(false);
+    // Réinitialiser le flag
+    isInternalChangeRef.current = false;
     
     // Mettre à jour la validation
     if (value) {
@@ -54,8 +57,11 @@ const IBANInput: React.FC<IBANInputProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\s/g, '').toUpperCase();
+    
+    // Marquer AVANT d'appeler onChange - synchrone immédiatement
+    isInternalChangeRef.current = true;
+    
     setDisplayValue(formatIBAN(rawValue));
-    setIsInternalChange(true);
     
     if (rawValue.length >= 5) {
       const result = validateIBAN(rawValue);
