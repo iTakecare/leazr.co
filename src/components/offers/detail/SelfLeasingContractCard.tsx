@@ -27,6 +27,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [contractStatus, setContractStatus] = useState<ContractStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [companyName, setCompanyName] = useState<string>("");
 
   // Check if leaser is own company
   const isOwnCompany = leaser?.is_own_company === true;
@@ -34,10 +35,25 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
   useEffect(() => {
     if (isOwnCompany && offer?.id) {
       fetchContractStatus();
+      fetchCompanyName();
     } else {
       setIsLoading(false);
     }
   }, [offer?.id, isOwnCompany]);
+
+  const fetchCompanyName = async () => {
+    if (!offer?.company_id) return;
+    try {
+      const { data } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', offer.company_id)
+        .maybeSingle();
+      setCompanyName(data?.name || 'iTakecare');
+    } catch (error) {
+      console.error('Error fetching company name:', error);
+    }
+  };
 
   const fetchContractStatus = async () => {
     try {
@@ -140,7 +156,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Leasing en propre via {leaser?.name}
+            Leasing en propre via {companyName}
           </p>
 
           {contractStatus?.signature_status === 'signed' && contractStatus.signed_contract_pdf_url ? (
@@ -155,7 +171,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
             </Button>
           ) : (
             <>
-              {contractStatus?.signature_status === 'pending_signature' && (
+              {contractStatus?.contract_signature_token && (
                 <Button
                   variant="outline"
                   size="sm"
