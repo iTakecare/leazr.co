@@ -42,6 +42,9 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [useDurationBasedCoefficients, setUseDurationBasedCoefficients] = useState(
     (currentLeaser as any)?.use_duration_coefficients || false
   );
+  const [isOwnCompany, setIsOwnCompany] = useState(
+    (currentLeaser as any)?.is_own_company || false
+  );
   const [availableDurations, setAvailableDurations] = useState<number[]>(
     currentLeaser?.available_durations || [12, 18, 24, 36, 48, 60, 72]
   );
@@ -305,7 +308,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         useDurationBasedCoefficients
       });
       
-      const leaserData: Omit<Leaser, "id"> & { use_duration_coefficients: boolean } = {
+      const leaserData: Omit<Leaser, "id"> & { use_duration_coefficients: boolean; is_own_company: boolean } = {
         name: formData.get("name") as string,
         company_name: formData.get("company_name") as string || undefined,
         logo_url: previewUrl,
@@ -318,7 +321,8 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         email: formData.get("email") as string || undefined,
         available_durations: availableDurations,
         ranges: tempRanges,
-        use_duration_coefficients: useDurationBasedCoefficients
+        use_duration_coefficients: useDurationBasedCoefficients,
+        is_own_company: isOwnCompany
       };
       
       await onSave(leaserData);
@@ -358,6 +362,23 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
             <p className="text-xs text-muted-foreground">
               Nom utilisé pour la correspondance avec les contrats
             </p>
+          </div>
+          
+          <div className="flex items-center space-x-3 p-4 border rounded-lg bg-primary/5">
+            <Checkbox
+              id="is_own_company"
+              checked={isOwnCompany}
+              onCheckedChange={(checked) => setIsOwnCompany(checked === true)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="is_own_company" className="font-medium cursor-pointer">
+                C'est ma propre société (leasing en propre)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Cochez cette case si ce leaser représente votre propre entreprise. 
+                Cela activera la génération de contrats de location signables en ligne.
+              </p>
+            </div>
           </div>
           
           <div className="space-y-2">

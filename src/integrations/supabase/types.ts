@@ -2424,6 +2424,50 @@ export type Database = {
           },
         ]
       }
+      contract_templates: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parsed_content: string
+          placeholders: Json
+          raw_content: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parsed_content?: string
+          placeholders?: Json
+          raw_content?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parsed_content?: string
+          placeholders?: Json
+          raw_content?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_workflow_logs: {
         Row: {
           contract_id: string
@@ -2467,11 +2511,18 @@ export type Database = {
       }
       contracts: {
         Row: {
+          client_bic: string | null
+          client_iban: string | null
           client_id: string | null
           client_name: string
           company_id: string
           contract_end_date: string | null
           contract_number: string | null
+          contract_signature_data: string | null
+          contract_signature_token: string | null
+          contract_signed_at: string | null
+          contract_signer_ip: string | null
+          contract_signer_name: string | null
           contract_start_date: string | null
           created_at: string
           delivery_carrier: string | null
@@ -2484,22 +2535,32 @@ export type Database = {
           invoice_date: string | null
           invoice_generated: boolean
           invoice_id: string | null
+          is_self_leasing: boolean | null
           leaser_logo: string | null
           leaser_name: string
           monthly_payment: number
           offer_id: string
           payment_date: string | null
+          signature_status: string | null
+          signed_contract_pdf_url: string | null
           status: string
           tracking_number: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          client_bic?: string | null
+          client_iban?: string | null
           client_id?: string | null
           client_name: string
           company_id: string
           contract_end_date?: string | null
           contract_number?: string | null
+          contract_signature_data?: string | null
+          contract_signature_token?: string | null
+          contract_signed_at?: string | null
+          contract_signer_ip?: string | null
+          contract_signer_name?: string | null
           contract_start_date?: string | null
           created_at?: string
           delivery_carrier?: string | null
@@ -2512,22 +2573,32 @@ export type Database = {
           invoice_date?: string | null
           invoice_generated?: boolean
           invoice_id?: string | null
+          is_self_leasing?: boolean | null
           leaser_logo?: string | null
           leaser_name: string
           monthly_payment?: number
           offer_id: string
           payment_date?: string | null
+          signature_status?: string | null
+          signed_contract_pdf_url?: string | null
           status?: string
           tracking_number?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          client_bic?: string | null
+          client_iban?: string | null
           client_id?: string | null
           client_name?: string
           company_id?: string
           contract_end_date?: string | null
           contract_number?: string | null
+          contract_signature_data?: string | null
+          contract_signature_token?: string | null
+          contract_signed_at?: string | null
+          contract_signer_ip?: string | null
+          contract_signer_name?: string | null
           contract_start_date?: string | null
           created_at?: string
           delivery_carrier?: string | null
@@ -2540,11 +2611,14 @@ export type Database = {
           invoice_date?: string | null
           invoice_generated?: boolean
           invoice_id?: string | null
+          is_self_leasing?: boolean | null
           leaser_logo?: string | null
           leaser_name?: string
           monthly_payment?: number
           offer_id?: string
           payment_date?: string | null
+          signature_status?: string | null
+          signed_contract_pdf_url?: string | null
           status?: string
           tracking_number?: string | null
           updated_at?: string
@@ -3655,6 +3729,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          is_own_company: boolean | null
           logo_url: string | null
           name: string
           phone: string | null
@@ -3675,6 +3750,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_own_company?: boolean | null
           logo_url?: string | null
           name: string
           phone?: string | null
@@ -3695,6 +3771,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_own_company?: boolean | null
           logo_url?: string | null
           name?: string
           phone?: string | null
@@ -6775,6 +6852,10 @@ export type Database = {
               user_id: string
             }[]
           }
+      get_contract_for_signature: {
+        Args: { p_signature_token: string }
+        Returns: Json
+      }
       get_contract_statistics_by_status: {
         Args: never
         Returns: {
@@ -7417,6 +7498,17 @@ export type Database = {
           postal_code: string
           region: string
         }[]
+      }
+      sign_contract_public: {
+        Args: {
+          p_client_bic?: string
+          p_client_iban: string
+          p_signature_data: string
+          p_signature_token: string
+          p_signer_ip: string
+          p_signer_name: string
+        }
+        Returns: Json
       }
       sign_offer_public: {
         Args: {
