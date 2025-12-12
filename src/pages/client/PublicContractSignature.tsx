@@ -113,7 +113,12 @@ const PublicContractSignature: React.FC = () => {
     ? `Bon pour accord pour ${formatCurrency(contract.monthly_payment)}/mois pendant ${contract.contract_duration} mois`
     : "";
 
-  const isConfirmationValid = confirmation.toLowerCase().trim() === expectedConfirmation.toLowerCase().trim();
+  // Normaliser les espaces (normaux et insécables) pour une comparaison tolérante
+  const normalizeSpaces = (str: string) => {
+    return str.replace(/[\s\u00A0]+/g, ' ').trim().toLowerCase();
+  };
+
+  const isConfirmationValid = normalizeSpaces(confirmation) === normalizeSpaces(expectedConfirmation);
   
   const canSign = 
     signerName.trim() !== "" &&
