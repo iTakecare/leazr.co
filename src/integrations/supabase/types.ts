@@ -6868,19 +6868,10 @@ export type Database = {
               user_id: string
             }[]
           }
-      get_contract_for_signature:
-        | {
-            Args: { p_signature_token: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.get_contract_for_signature(p_signature_token => text), public.get_contract_for_signature(p_signature_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-        | {
-            Args: { p_signature_token: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.get_contract_for_signature(p_signature_token => text), public.get_contract_for_signature(p_signature_token => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
+      get_contract_for_signature: {
+        Args: { p_signature_token: string }
+        Returns: Json
+      }
       get_contract_statistics_by_status: {
         Args: never
         Returns: {
