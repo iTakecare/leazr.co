@@ -20,17 +20,64 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
   const [companyName, setCompanyName] = useState<string>("");
   const [leaser, setLeaser] = useState<any>(null);
   const [offer, setOffer] = useState<any>(null);
-
-  // Check if contract is self-leasing
-  const isSelfLeasing = contract?.is_self_leasing === true;
+  const [isSelfLeasing, setIsSelfLeasing] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isSelfLeasing && contract?.id) {
-      fetchData();
+    if (contract?.id) {
+      checkSelfLeasingAndFetchData();
     } else {
       setIsLoading(false);
     }
-  }, [contract?.id, isSelfLeasing]);
+  }, [contract?.id]);
+
+  const checkSelfLeasingAndFetchData = async () => {
+    try {
+      // Check if self-leasing via is_self_leasing flag
+      if (contract?.is_self_leasing === true) {
+        setIsSelfLeasing(true);
+        await fetchData();
+        return;
+      }
+
+      // Check if self-leasing via leaser_id
+      if (contract?.leaser_id) {
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('is_own_company')
+          .eq('id', contract.leaser_id)
+          .maybeSingle();
+        
+        if (leaserData?.is_own_company === true) {
+          setIsSelfLeasing(true);
+          await fetchData();
+          return;
+        }
+      }
+
+      // Check if self-leasing via leaser_name
+      if (contract?.leaser_name) {
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('id, is_own_company')
+          .eq('name', contract.leaser_name)
+          .maybeSingle();
+        
+        if (leaserData?.is_own_company === true) {
+          setIsSelfLeasing(true);
+          setLeaser(leaserData);
+          await fetchData();
+          return;
+        }
+      }
+
+      // Not self-leasing
+      setIsSelfLeasing(false);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error checking self-leasing status:', error);
+      setIsLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
