@@ -176,6 +176,24 @@ const PublicContractSignature: React.FC = () => {
       if (error) throw error;
 
       if (data?.success) {
+        // Send confirmation email to client and admins
+        try {
+          console.log('Sending signed contract email for contract:', data.contract_id);
+          const emailResponse = await supabase.functions.invoke('send-signed-contract-email', {
+            body: { contractId: data.contract_id }
+          });
+          
+          if (emailResponse.error) {
+            console.error('Email sending error:', emailResponse.error);
+            // Don't fail the signing process if email fails
+          } else {
+            console.log('Signed contract email sent successfully');
+          }
+        } catch (emailErr) {
+          console.error('Failed to send signed contract email:', emailErr);
+          // Continue - signing was successful even if email failed
+        }
+
         setIsSigned(true);
         toast.success("Contrat signé avec succès !");
       } else {
