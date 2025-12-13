@@ -7521,7 +7521,7 @@ export type Database = {
           p_client_iban?: string
           p_signature_data: string
           p_signature_token: string
-          p_signer_ip?: string
+          p_signer_ip: string
           p_signer_name: string
         }
         Returns: Json
