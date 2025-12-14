@@ -96,7 +96,162 @@ const handler = async (req: Request): Promise<Response> => {
       </tr>
     `).join('') || '';
 
-    // Build the email HTML
+    // Generate the full signed contract HTML document
+    const signedContractHtml = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrat signé - ${contract.tracking_number}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+    .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid ${primaryColor}; padding-bottom: 20px; }
+    .logo { max-height: 60px; margin-bottom: 15px; }
+    h1 { color: ${primaryColor}; margin: 0; }
+    .contract-info { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+    .info-label { font-weight: bold; width: 200px; color: #6b7280; }
+    .info-value { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #f3f4f6; padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 10px; border-bottom: 1px solid #e5e7eb; }
+    .total-row { background: #f9fafb; font-weight: bold; }
+    .signature-section { margin-top: 40px; padding: 20px; background: #ecfdf5; border: 2px solid #10b981; border-radius: 8px; }
+    .signature-title { color: #059669; font-weight: bold; margin-bottom: 15px; font-size: 18px; }
+    .signature-image { max-width: 300px; max-height: 100px; margin: 10px 0; }
+    .footer { margin-top: 40px; text-align: center; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
+    <h1>CONTRAT DE LOCATION SIGNÉ</h1>
+    <p style="color: #6b7280;">Référence : ${contract.tracking_number}</p>
+  </div>
+
+  <div class="contract-info">
+    <h2 style="margin-top: 0; color: ${primaryColor};">Informations du contrat</h2>
+    <div class="info-row">
+      <span class="info-label">Client :</span>
+      <span class="info-value">${contract.client_name || 'Non spécifié'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Email :</span>
+      <span class="info-value">${contract.client_email || 'Non spécifié'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Durée du contrat :</span>
+      <span class="info-value">${contract.contract_duration || 36} mois</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Mensualité HT :</span>
+      <span class="info-value" style="color: ${primaryColor}; font-weight: bold; font-size: 18px;">${totalMonthly.toFixed(2)} €</span>
+    </div>
+    ${contract.client_iban ? `
+    <div class="info-row">
+      <span class="info-label">IBAN :</span>
+      <span class="info-value">${contract.client_iban}</span>
+    </div>
+    ` : ''}
+  </div>
+
+  <h2 style="color: ${primaryColor};">Équipements</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Équipement</th>
+        <th style="text-align: center;">Quantité</th>
+        <th style="text-align: right;">Mensualité HT</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${equipmentListHtml}
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="2" style="text-align: right; padding: 12px;">Total mensuel HT :</td>
+        <td style="text-align: right; color: ${primaryColor}; padding: 12px;">${totalMonthly.toFixed(2)} €</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="signature-section">
+    <div class="signature-title">✓ Signature électronique</div>
+    <div class="info-row">
+      <span class="info-label">Signataire :</span>
+      <span class="info-value">${contract.contract_signer_name || contract.client_name || 'Non spécifié'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Date de signature :</span>
+      <span class="info-value">${signedAt}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Adresse IP :</span>
+      <span class="info-value">${contract.contract_signer_ip || 'Non disponible'}</span>
+    </div>
+    ${contract.signature_data ? `
+    <div style="margin-top: 15px;">
+      <span class="info-label">Signature :</span>
+      <div><img src="${contract.signature_data}" class="signature-image" alt="Signature" /></div>
+    </div>
+    ` : ''}
+  </div>
+
+  <div class="footer">
+    <p>Document généré automatiquement le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+    <p>© ${new Date().getFullYear()} ${companyName}. Tous droits réservés.</p>
+  </div>
+</body>
+</html>
+    `;
+
+    // Store the signed contract HTML in Supabase Storage
+    const fileName = `${contract.tracking_number}-signed.html`;
+    const filePath = `${contract.company_id}/${fileName}`;
+
+    console.log("Uploading signed contract to storage:", filePath);
+
+    const { error: uploadError } = await supabase.storage
+      .from('signed-contracts')
+      .upload(filePath, signedContractHtml, {
+        contentType: 'text/html',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      // Continue even if upload fails - we'll still send the email
+    } else {
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('signed-contracts')
+        .getPublicUrl(filePath);
+
+      const signedContractUrl = urlData?.publicUrl;
+      console.log("Signed contract URL:", signedContractUrl);
+
+      // Update contract with the PDF URL
+      if (signedContractUrl) {
+        await supabase
+          .from("contracts")
+          .update({
+            signed_contract_pdf_url: signedContractUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", contractId);
+        
+        console.log("Contract updated with signed_contract_pdf_url");
+      }
+    }
+
+    // Build the email HTML with download link
+    const { data: urlData } = supabase.storage
+      .from('signed-contracts')
+      .getPublicUrl(filePath);
+    
+    const downloadUrl = urlData?.publicUrl || '';
+
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="fr">
@@ -121,7 +276,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Success Icon -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center;">
-              <div style="width: 80px; height: 80px; background-color: #10b981; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 80px; height: 80px; background-color: #10b981; border-radius: 50%; margin: 0 auto; line-height: 80px;">
                 <span style="font-size: 40px; color: white;">✓</span>
               </div>
             </td>
@@ -139,6 +294,15 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="color: #374151; font-size: 15px; line-height: 1.6;">
                 Nous vous confirmons que votre contrat de location a été signé électroniquement avec succès.
               </p>
+              
+              <!-- Download Button -->
+              ${downloadUrl ? `
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${downloadUrl}" style="display: inline-block; background-color: ${primaryColor}; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                  📄 Télécharger le contrat signé
+                </a>
+              </div>
+              ` : ''}
               
               <!-- Contract Details -->
               <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0;">
@@ -229,10 +393,11 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const resend = new Resend(resendApiKey);
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "contrats@resend.dev";
+    // Use verified email address - hello@itakecare.be is verified on Resend
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "hello@itakecare.be";
 
     // Send email to client
-    console.log("Sending email to client:", clientEmail);
+    console.log("Sending email to client:", clientEmail, "from:", fromEmail);
     const clientEmailResponse = await resend.emails.send({
       from: `${companyName} <${fromEmail}>`,
       to: [clientEmail],
@@ -278,7 +443,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         message: "Emails envoyés avec succès",
-        clientEmail: clientEmail
+        clientEmail: clientEmail,
+        downloadUrl: downloadUrl
       }),
       {
         status: 200,
