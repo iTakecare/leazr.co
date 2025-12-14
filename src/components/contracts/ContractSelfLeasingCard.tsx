@@ -258,17 +258,20 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
 
           {contract.signature_status === 'signed' ? (
             <div className="space-y-2">
-              {contract.signed_contract_pdf_url && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full"
-                  onClick={handleOpenSignedPDF}
-                >
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full"
+                onClick={contract.signed_contract_pdf_url ? handleOpenSignedPDF : handleResendSignedContract}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
                   <Download className="w-4 h-4 mr-2" />
-                  Télécharger le contrat signé
-                </Button>
-              )}
+                )}
+                {contract.signed_contract_pdf_url ? 'Télécharger le contrat signé' : 'Générer le contrat signé'}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
