@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2 } from "lucide-react";
+import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Download, User, Globe, Calendar } from "lucide-react";
 import SendContractEmailModal from "@/components/offers/detail/SendContractEmailModal";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface ContractSelfLeasingCardProps {
   contract: any;
@@ -171,6 +173,14 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
     onContractUpdated?.();
   };
 
+  const formatSignatureDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd MMMM yyyy 'à' HH:mm", { locale: fr });
+    } catch {
+      return dateString;
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -198,6 +208,34 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
             Leasing en propre via {companyName}
           </p>
 
+          {/* Signature Information */}
+          {contract.signature_status === 'signed' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+              <p className="text-sm font-medium text-green-800">Informations de signature</p>
+              
+              {contract.contract_signer_name && (
+                <div className="flex items-center gap-2 text-sm text-green-700">
+                  <User className="w-3.5 h-3.5" />
+                  <span>Signataire : {contract.contract_signer_name}</span>
+                </div>
+              )}
+              
+              {contract.contract_signed_at && (
+                <div className="flex items-center gap-2 text-sm text-green-700">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Date : {formatSignatureDate(contract.contract_signed_at)}</span>
+                </div>
+              )}
+              
+              {contract.contract_signer_ip && (
+                <div className="flex items-center gap-2 text-sm text-green-700">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>IP : {contract.contract_signer_ip}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {contract.signature_status === 'signed' && contract.signed_contract_pdf_url ? (
             <Button
               variant="default"
@@ -205,8 +243,8 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
               className="w-full"
               onClick={handleOpenSignedPDF}
             >
-              <FileText className="w-4 h-4 mr-2" />
-              Voir le contrat signé
+              <Download className="w-4 h-4 mr-2" />
+              Télécharger le contrat signé
             </Button>
           ) : (
             <>
