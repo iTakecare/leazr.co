@@ -64,6 +64,12 @@ const ContractWorkflowPanel: React.FC<ContractWorkflowPanelProps> = ({ contract,
   ];
 
   const getCurrentStepIndex = () => {
+    // Check signature_status for signed contracts (using any to access dynamic properties)
+    const contractAny = contract as any;
+    if (contractAny.signature_status === 'signed' || contract.status === 'signed') {
+      const signedIndex = workflowSteps.findIndex(step => step.id === contractStatuses.CONTRACT_SIGNED);
+      if (signedIndex >= 0) return signedIndex;
+    }
     return workflowSteps.findIndex(step => step.id === contract.status);
   };
 
