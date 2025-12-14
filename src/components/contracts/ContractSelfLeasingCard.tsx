@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Download, User, Globe, Calendar } from "lucide-react";
+import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Download, User, Globe, Calendar, RefreshCw } from "lucide-react";
 import SendContractEmailModal from "@/components/offers/detail/SendContractEmailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface ContractSelfLeasingCardProps {
   contract: any;
@@ -173,6 +174,25 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
     onContractUpdated?.();
   };
 
+  const handleResendSignedContract = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke('send-signed-contract-email', {
+        body: { contractId: contract.id }
+      });
+
+      if (error) throw error;
+
+      toast.success("Email envoyé avec succès");
+      onContractUpdated?.();
+    } catch (error: any) {
+      console.error("Error sending signed contract email:", error);
+      toast.error("Erreur lors de l'envoi de l'email");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatSignatureDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "dd MMMM yyyy 'à' HH:mm", { locale: fr });
@@ -236,16 +256,34 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
             </div>
           )}
 
-          {contract.signature_status === 'signed' && contract.signed_contract_pdf_url ? (
-            <Button
-              variant="default"
-              size="sm"
-              className="w-full"
-              onClick={handleOpenSignedPDF}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Télécharger le contrat signé
-            </Button>
+          {contract.signature_status === 'signed' ? (
+            <div className="space-y-2">
+              {contract.signed_contract_pdf_url && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleOpenSignedPDF}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Télécharger le contrat signé
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleResendSignedContract}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Renvoyer le contrat signé
+              </Button>
+            </div>
           ) : (
             <>
               <Button
