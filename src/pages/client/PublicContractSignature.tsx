@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
 import IBANInput from "@/components/contracts/IBANInput";
+import { generateAndUploadSignedContractPDF } from "@/services/signedContractPdfService";
 
 interface ContractData {
   id: string;
@@ -176,7 +177,17 @@ const PublicContractSignature: React.FC = () => {
       if (error) throw error;
 
       if (data?.success) {
-        // Send confirmation email to client and admins
+        // Generate and upload the signed contract PDF
+        try {
+          console.log('Generating signed contract PDF for contract:', data.contract_id);
+          const pdfUrl = await generateAndUploadSignedContractPDF(data.contract_id);
+          console.log('Signed contract PDF generated and uploaded:', pdfUrl);
+        } catch (pdfErr) {
+          console.error('Failed to generate signed contract PDF:', pdfErr);
+          // Continue - signing was successful even if PDF generation failed
+        }
+
+        // Send confirmation email with the PDF
         try {
           console.log('Sending signed contract email for contract:', data.contract_id);
           const emailResponse = await supabase.functions.invoke('send-signed-contract-email', {
@@ -185,13 +196,11 @@ const PublicContractSignature: React.FC = () => {
           
           if (emailResponse.error) {
             console.error('Email sending error:', emailResponse.error);
-            // Don't fail the signing process if email fails
           } else {
             console.log('Signed contract email sent successfully');
           }
         } catch (emailErr) {
           console.error('Failed to send signed contract email:', emailErr);
-          // Continue - signing was successful even if email failed
         }
 
         setIsSigned(true);
