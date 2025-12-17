@@ -468,7 +468,7 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
   };
 
   /**
-   * Render article content with proper line breaks for (i), (ii), (iii) formatting and bold support
+   * Render article content with proper line breaks for (i), (ii), (iii) formatting, bold support, and article titles
    */
   const renderArticleContent = (articleHtml: string) => {
     const processed = replacePlaceholders(articleHtml, contract);
@@ -483,6 +483,20 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           const trimmed = paragraph.trim();
           const isListItem = trimmed.match(/^\((i|ii|iii|iv|v)\)/);
           const hasBold = trimmed.includes('**');
+          
+          // Détecter les titres d'articles numérotés (1. Objet, 2. Durée, etc.)
+          const isArticleTitle = trimmed.match(/^(\d+\.)\s+[A-ZÀ-Ü]/);
+          
+          if (isArticleTitle) {
+            return (
+              <Text 
+                key={idx} 
+                style={styles.articleTitle}
+              >
+                {trimmed}
+              </Text>
+            );
+          }
           
           if (hasBold) {
             return (
@@ -514,6 +528,83 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
     );
   };
 
+  /**
+   * Render the parties section with proper formatting for key terms in bold
+   */
+  const renderPartiesSection = (partiesHtml: string) => {
+    const processed = replacePlaceholders(partiesHtml, contract);
+    const plainText = stripHtml(processed);
+    
+    // Split into paragraphs
+    const paragraphs = plainText.split('\n').filter(p => p.trim());
+    
+    return (
+      <View>
+        {paragraphs.map((paragraph, idx) => {
+          const trimmed = paragraph.trim();
+          
+          // Termes à mettre en gras
+          const keyTerms = ['Entre :', 'Et :', 'le Bailleur', 'le Locataire', 'les Parties', 'Ensemble les Parties'];
+          let hasKeyTerm = false;
+          let termFound = '';
+          
+          for (const term of keyTerms) {
+            if (trimmed.includes(term) || trimmed.startsWith(term.replace(' :', ''))) {
+              hasKeyTerm = true;
+              termFound = term;
+              break;
+            }
+          }
+          
+          // Si c'est "Entre :" ou "Et :" seul sur une ligne
+          if (trimmed === 'Entre :' || trimmed === 'Et :') {
+            return (
+              <Text 
+                key={idx} 
+                style={[styles.articleContent, { fontFamily: 'Helvetica-Bold', marginTop: 8, marginBottom: 4 }]}
+              >
+                {trimmed}
+              </Text>
+            );
+          }
+          
+          // Si contient "ci-après le Bailleur" ou "ci-après le Locataire"
+          if (trimmed.includes('ci-après le Bailleur') || trimmed.includes('ci-après le Locataire')) {
+            const parts = trimmed.split(/(ci-après le (?:Bailleur|Locataire)\s*;?)/);
+            return (
+              <Text key={idx} style={styles.articleContent}>
+                {parts.map((part, i) => {
+                  if (part.includes('ci-après le Bailleur') || part.includes('ci-après le Locataire')) {
+                    return <Text key={i} style={{ fontFamily: 'Helvetica-Bold' }}>{part}</Text>;
+                  }
+                  return <Text key={i}>{part}</Text>;
+                })}
+              </Text>
+            );
+          }
+          
+          // Si c'est "Ensemble les Parties"
+          if (trimmed.includes('Ensemble les Parties') || trimmed === 'les Parties.') {
+            return (
+              <Text 
+                key={idx} 
+                style={[styles.articleContent, { fontFamily: 'Helvetica-Bold', marginTop: 8 }]}
+              >
+                {trimmed}
+              </Text>
+            );
+          }
+          
+          return (
+            <Text key={idx} style={styles.articleContent}>
+              {trimmed}
+            </Text>
+          );
+        })}
+      </View>
+    );
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View>
@@ -525,12 +616,12 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </Text>
         )}
       </View>
-      <View>
+      <View style={{ alignItems: 'flex-end' }}>
         <Text style={styles.companyInfo}>{contract.company_address}</Text>
         {contract.company_vat_number && (
-          <Text style={styles.companyInfo}>TVA: {contract.company_vat_number}</Text>
+          <Text style={styles.companyInfo}>N° BCE : {contract.company_vat_number}</Text>
         )}
-        <Text style={styles.companyInfo}>Réf: {contract.tracking_number}</Text>
+        <Text style={[styles.companyInfo, { fontFamily: 'Helvetica-Bold' }]}>Réf: {contract.tracking_number}</Text>
       </View>
     </View>
   );
@@ -548,28 +639,10 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           {content.title ? stripHtml(replacePlaceholders(content.title, contract)) : 'CONTRAT DE LOCATION DE MATÉRIEL INFORMATIQUE'}
         </Text>
 
-        {/* Parties */}
+        {/* Parties - avec mise en forme des termes clés en gras */}
         {content.parties && (
           <View style={{ marginBottom: 15 }}>
-            <Text style={styles.articleContent}>
-              {stripHtml(replacePlaceholders(content.parties, contract))}
-            </Text>
-          </View>
-        )}
-
-        {/* Client IBAN */}
-        {contract.client_iban && (
-          <View style={[styles.infoBox, { marginBottom: 10 }]}>
-            <View style={styles.row}>
-              <Text style={styles.label}>IBAN du locataire :</Text>
-              <Text style={[styles.value, { fontFamily: 'Helvetica-Bold' }]}>{contract.client_iban}</Text>
-            </View>
-            {contract.client_bic && (
-              <View style={styles.row}>
-                <Text style={styles.label}>BIC :</Text>
-                <Text style={styles.value}>{contract.client_bic}</Text>
-              </View>
-            )}
+            {renderPartiesSection(content.parties)}
           </View>
         )}
 
@@ -594,8 +667,11 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </View>
         </View>
 
-        {/* Financial Summary with fees and insurance */}
+        {/* Financial Summary with fees and insurance - avec titre */}
         <View style={styles.infoBox}>
+          <Text style={[styles.label, { fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 6, color: '#1e293b' }]}>
+            Conditions du contrat
+          </Text>
           <View style={styles.row}>
             <Text style={styles.label}>Durée du contrat :</Text>
             <Text style={styles.value}>{contract.contract_duration} mois</Text>
@@ -617,6 +693,25 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
             </View>
           )}
         </View>
+
+        {/* Client IBAN - carte séparée avec titre */}
+        {contract.client_iban && (
+          <View style={styles.infoBox}>
+            <Text style={[styles.label, { fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 6, color: '#1e293b' }]}>
+              Coordonnées bancaires du Locataire
+            </Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>IBAN :</Text>
+              <Text style={[styles.value, { fontFamily: 'Helvetica-Bold' }]}>{contract.client_iban}</Text>
+            </View>
+            {contract.client_bic && (
+              <View style={styles.row}>
+                <Text style={styles.label}>BIC :</Text>
+                <Text style={styles.value}>{contract.client_bic}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>{contract.company_name}</Text>
