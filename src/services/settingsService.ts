@@ -8,8 +8,14 @@ export interface SiteSettings {
   company_id?: string;
   company_name: string;
   company_address?: string;
+  company_postal_code?: string;
+  company_city?: string;
+  company_country?: string;
   company_phone?: string;
   company_email?: string;
+  company_bce?: string;
+  company_vat_number?: string;
+  company_legal_form?: string;
   logo_url?: string;
   primary_color?: string;
   secondary_color?: string;
@@ -115,8 +121,14 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
         company_id: userProfile.company_id,
         company_name: settings.company_name,
         company_address: settings.company_address,
+        company_postal_code: settings.company_postal_code,
+        company_city: settings.company_city,
+        company_country: settings.company_country,
         company_phone: settings.company_phone,
         company_email: settings.company_email,
+        company_bce: settings.company_bce,
+        company_vat_number: settings.company_vat_number,
+        company_legal_form: settings.company_legal_form,
         logo_url: settings.logo_url,
         primary_color: settings.primary_color,
         secondary_color: settings.secondary_color,
