@@ -185,42 +185,56 @@ const createStyles = (primaryColor: string = '#33638e') => StyleSheet.create({
     color: '#ffffff',
     textAlign: 'right',
   },
-  signatureSection: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: '#f0fdf4',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#22c55e',
+  signatureBlock: {
+    marginTop: 25,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
-  signatureTitle: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#15803d',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  signatureImage: {
-    width: 180,
-    height: 70,
-    objectFit: 'contain',
-    alignSelf: 'center',
-    marginBottom: 8,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  signatureInfo: {
+  signatureColumns: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 8,
+    gap: 40,
+    marginTop: 15,
+  },
+  signatureColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  signatureLabel: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  signerName: {
+    fontSize: 9,
+    color: '#374151',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  signatureLine: {
+    width: '80%',
+    height: 1,
+    backgroundColor: '#64748b',
+    marginTop: 50,
+  },
+  clientSignatureImage: {
+    width: 150,
+    height: 60,
+    objectFit: 'contain',
+  },
+  signatureMetadata: {
+    marginTop: 20,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#dcfce7',
+    borderTopColor: '#e2e8f0',
+    alignItems: 'center',
   },
   signatureDetail: {
     fontSize: 7,
-    color: '#166534',
+    color: '#64748b',
   },
   footer: {
     position: 'absolute',
@@ -658,45 +672,53 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </View>
         )}
 
-        {/* Electronic Signature Section */}
-        {contract.signature_data && (
-          <View style={styles.signatureSection}>
-            <Text style={styles.signatureTitle}>✓ CONTRAT SIGNÉ ÉLECTRONIQUEMENT</Text>
-            
-            <Image src={contract.signature_data} style={styles.signatureImage} />
-            
-            <View style={styles.signatureInfo}>
-              <View>
-                <Text style={styles.signatureDetail}>Signataire : {contract.signer_name || contract.client_name}</Text>
-                <Text style={styles.signatureDetail}>Date : {formatDate(contract.signed_at)}</Text>
-              </View>
-              <View>
-                {contract.signer_ip && (
-                  <Text style={styles.signatureDetail}>Adresse IP : {contract.signer_ip}</Text>
-                )}
-                <Text style={styles.signatureDetail}>Référence : {contract.tracking_number}</Text>
-              </View>
-            </View>
-
-            {(contract.client_iban || contract.client_bic) && (
-              <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#dcfce7' }}>
-                {contract.client_iban && (
-                  <Text style={styles.signatureDetail}>IBAN confirmé : {contract.client_iban}</Text>
-                )}
-                {contract.client_bic && (
-                  <Text style={styles.signatureDetail}>BIC : {contract.client_bic}</Text>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Legal Notice */}
-        <View style={{ marginTop: 15, padding: 8, backgroundColor: '#fef3c7', borderRadius: 4 }}>
-          <Text style={{ fontSize: 6, color: '#92400e', lineHeight: 1.4 }}>
-            Ce document a valeur de contrat. La signature électronique a la même valeur juridique qu'une signature manuscrite 
-            conformément au règlement eIDAS (UE) n° 910/2014. Ce contrat engage les deux parties selon les termes convenus.
+        {/* Signature Section - 2 columns side by side */}
+        <View style={styles.signatureBlock}>
+          <Text style={{ fontSize: 8, color: '#64748b', marginBottom: 5, textAlign: 'center' }}>
+            Fait à Belgique, le {formatDate(contract.signed_at || contract.created_at)}, en deux exemplaires originaux.
           </Text>
+          
+          <View style={styles.signatureColumns}>
+            {/* LEFT: Le Bailleur */}
+            <View style={styles.signatureColumn}>
+              <Text style={styles.signatureLabel}>Le Bailleur</Text>
+              <Text style={styles.signerName}>{contract.company_name}</Text>
+              <Text style={{ fontSize: 7, color: '#64748b', marginBottom: 5 }}>
+                Nom, qualité, signature
+              </Text>
+              <View style={styles.signatureLine} />
+            </View>
+            
+            {/* RIGHT: Le Locataire */}
+            <View style={styles.signatureColumn}>
+              <Text style={styles.signatureLabel}>Le Locataire</Text>
+              <Text style={styles.signerName}>{contract.signer_name || contract.client_name}</Text>
+              {contract.signature_data ? (
+                <Image src={contract.signature_data} style={styles.clientSignatureImage} />
+              ) : (
+                <View>
+                  <Text style={{ fontSize: 7, color: '#64748b', marginBottom: 5 }}>
+                    Nom, qualité, signature
+                  </Text>
+                  <View style={styles.signatureLine} />
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Signature metadata */}
+          {contract.signature_data && (
+            <View style={styles.signatureMetadata}>
+              <Text style={styles.signatureDetail}>
+                ✓ Signé électroniquement le {formatDate(contract.signed_at)}
+                {contract.signer_ip && ` • IP: ${contract.signer_ip}`}
+                {contract.client_iban && ` • IBAN: ${contract.client_iban}`}
+              </Text>
+              <Text style={{ fontSize: 6, color: '#92400e', marginTop: 5 }}>
+                Ce document a valeur de contrat conformément au règlement eIDAS (UE) n° 910/2014.
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.footer}>
