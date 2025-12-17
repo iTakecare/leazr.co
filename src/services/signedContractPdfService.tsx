@@ -92,7 +92,7 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
 
     const pdfData: SignedContractPDFData = {
       id: contract.id,
-      tracking_number: contract.tracking_number || `CTR-${contract.id.slice(0, 8).toUpperCase()}`,
+      tracking_number: contract.contract_number || contract.tracking_number || `CON-${contract.id.slice(0, 8)}`,
       created_at: contract.created_at,
       // Contract dates
       contract_start_date: contract.contract_start_date || undefined,
