@@ -38,6 +38,7 @@ export interface SignedContractPDFData {
   monthly_payment: number;
   contract_duration: number;
   file_fee?: number;
+  annual_insurance?: number;
   // Equipment
   equipment: Array<{
     title: string;
@@ -557,32 +558,44 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </View>
         )}
 
-        {/* Equipment Table - Annexe 1 with complete details */}
-        <Text style={styles.sectionTitle}>Annexe 1 - Équipements loués</Text>
+        {/* Client IBAN */}
+        {contract.client_iban && (
+          <View style={[styles.infoBox, { marginBottom: 10 }]}>
+            <View style={styles.row}>
+              <Text style={styles.label}>IBAN du locataire :</Text>
+              <Text style={[styles.value, { fontFamily: 'Helvetica-Bold' }]}>{contract.client_iban}</Text>
+            </View>
+            {contract.client_bic && (
+              <View style={styles.row}>
+                <Text style={styles.label}>BIC :</Text>
+                <Text style={styles.value}>{contract.client_bic}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Equipment Table - Simplified */}
+        <Text style={styles.sectionTitle}>Description des équipements</Text>
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Description</Text>
+            <Text style={[styles.tableHeaderCell, { flex: 5 }]}>Description</Text>
             <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Qté</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Numéros de série</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'right' }]}>P.A. HT</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'right' }]}>Mensualité</Text>
+            <Text style={[styles.tableHeaderCell, { flex: 2, textAlign: 'right' }]}>Mensualité HT</Text>
           </View>
           {contract.equipment?.map((eq, idx) => (
             <View key={idx} style={idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
-              <Text style={[styles.tableCell, { flex: 3 }]}>{eq.title}</Text>
+              <Text style={[styles.tableCell, { flex: 5 }]}>{eq.title}</Text>
               <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{eq.quantity}</Text>
-              <Text style={[styles.tableCell, { flex: 2, fontSize: 7 }]}>{eq.serial_number || '-'}</Text>
-              <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'right' }]}>{formatCurrency(eq.purchase_price || 0)}</Text>
-              <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'right' }]}>{formatCurrency(eq.monthly_payment)}</Text>
+              <Text style={[styles.tableCell, { flex: 2, textAlign: 'right' }]}>{formatCurrency(eq.monthly_payment)}</Text>
             </View>
           ))}
           <View style={styles.totalRow}>
-            <Text style={[styles.totalLabel, { flex: 7 }]}>Total mensuel HT</Text>
+            <Text style={[styles.totalLabel, { flex: 6 }]}>Total mensuel HT</Text>
             <Text style={[styles.totalValue, { flex: 2 }]}>{formatCurrency(contract.monthly_payment)}</Text>
           </View>
         </View>
 
-        {/* Financial Summary - Simplified */}
+        {/* Financial Summary with fees and insurance */}
         <View style={styles.infoBox}>
           <View style={styles.row}>
             <Text style={styles.label}>Durée du contrat :</Text>
@@ -594,8 +607,14 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </View>
           {contract.file_fee && contract.file_fee > 0 && (
             <View style={styles.row}>
-              <Text style={styles.label}>Frais de dossier :</Text>
+              <Text style={styles.label}>Frais de dossier (unique) :</Text>
               <Text style={styles.value}>{formatCurrency(contract.file_fee)}</Text>
+            </View>
+          )}
+          {contract.annual_insurance && contract.annual_insurance > 0 && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Assurance annuelle :</Text>
+              <Text style={styles.value}>{formatCurrency(contract.annual_insurance)}</Text>
             </View>
           )}
         </View>
@@ -667,10 +686,6 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
 
         {/* Signature Section - 2 columns side by side */}
         <View style={styles.signatureBlock}>
-          <Text style={{ fontSize: 8, color: '#64748b', marginBottom: 5, textAlign: 'center' }}>
-            Fait à Belgique, le {formatDate(contract.signed_at || contract.created_at)}, en deux exemplaires originaux.
-          </Text>
-          
           <View style={styles.signatureColumns}>
             {/* LEFT: Le Bailleur */}
             <View style={styles.signatureColumn}>
@@ -703,12 +718,11 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           {contract.signature_data && (
             <View style={styles.signatureMetadata}>
               <Text style={styles.signatureDetail}>
-                ✓ Signé électroniquement le {formatDate(contract.signed_at)}
+                Contrat signé électroniquement le {formatDate(contract.signed_at)}
                 {contract.signer_ip && ` • IP: ${contract.signer_ip}`}
-                {contract.client_iban && ` • IBAN: ${contract.client_iban}`}
               </Text>
               <Text style={{ fontSize: 6, color: '#92400e', marginTop: 5 }}>
-                Ce document a valeur de contrat conformément au règlement eIDAS (UE) n° 910/2014.
+                Conformément au règlement eIDAS (UE) n° 910/2014
               </Text>
             </View>
           )}
