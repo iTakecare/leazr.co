@@ -16,7 +16,9 @@ export interface SignedContractPDFData {
   client_address?: string;
   client_city?: string;
   client_postal_code?: string;
+  client_country?: string;
   client_vat_number?: string;
+  client_phone?: string;
   client_email?: string;
   client_iban?: string;
   client_bic?: string;
@@ -342,7 +344,8 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
   const clientFullAddress = [
     contract.client_address,
     contract.client_postal_code,
-    contract.client_city
+    contract.client_city,
+    contract.client_country
   ].filter(Boolean).join(', ');
 
   // Calculate end date if not provided
@@ -362,7 +365,13 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{client_name}}': contract.client_name || '',
     '{{client_company}}': contract.client_company || contract.client_name || '',
     '{{client_bce}}': contract.client_vat_number || '',
+    '{{client_vat_number}}': contract.client_vat_number || '',
     '{{client_address}}': clientFullAddress || '',
+    '{{client_street}}': contract.client_address || '',
+    '{{client_city}}': contract.client_city || '',
+    '{{client_postal_code}}': contract.client_postal_code || '',
+    '{{client_country}}': contract.client_country || 'Belgique',
+    '{{client_phone}}': contract.client_phone || '',
     '{{client_representative}}': contract.signer_name || contract.client_name || '',
     '{{client_iban}}': contract.client_iban || '',
     '{{client_bic}}': contract.client_bic || '',
