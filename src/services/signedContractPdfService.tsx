@@ -11,7 +11,7 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
   try {
     console.log('[SIGNED-CONTRACT-PDF] Fetching contract data for:', contractId);
 
-    // Fetch contract with related data
+    // Fetch contract with related data including client details
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
       .select(`
@@ -20,6 +20,16 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
           name,
           logo_url,
           primary_color
+        ),
+        clients(
+          company,
+          address,
+          city,
+          postal_code,
+          country,
+          vat_number,
+          phone,
+          email
         )
       `)
       .eq('id', contractId)
@@ -84,14 +94,16 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       // Contract dates
       contract_start_date: contract.contract_start_date || undefined,
       contract_end_date: contract.contract_end_date || undefined,
-      // Client
+      // Client - use data from clients table via relationship
       client_name: contract.client_name || 'Client',
-      client_company: contract.client_company || undefined,
-      client_address: contract.client_address || undefined,
-      client_city: contract.client_city || undefined,
-      client_postal_code: contract.client_postal_code || undefined,
-      client_vat_number: contract.client_vat_number || undefined,
-      client_email: contract.client_email || undefined,
+      client_company: (contract.clients as any)?.company || undefined,
+      client_address: (contract.clients as any)?.address || undefined,
+      client_city: (contract.clients as any)?.city || undefined,
+      client_postal_code: (contract.clients as any)?.postal_code || undefined,
+      client_country: (contract.clients as any)?.country || 'Belgique',
+      client_vat_number: (contract.clients as any)?.vat_number || undefined,
+      client_phone: (contract.clients as any)?.phone || undefined,
+      client_email: contract.client_email || (contract.clients as any)?.email || undefined,
       client_iban: contract.client_iban || undefined,
       client_bic: contract.client_bic || undefined,
       // Leaser
