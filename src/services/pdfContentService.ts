@@ -181,9 +181,9 @@ Tél: +32 XX XX XX XX</p>`,
   contract: {
     title: '<h1>CONTRAT DE LOCATION DE MATÉRIEL INFORMATIQUE AVEC OPTION D\'ACHAT</h1>',
     parties: `<p><strong>Entre :</strong></p>
-<p>{{company_name}}, société {{company_legal_form}} au capital de {{company_capital}} EUR, dont le siège social est sis {{company_address}}, immatriculée à la BCE sous le n° {{company_bce}}, représentée par {{company_representative}}, ci-après <strong>le Bailleur</strong> ;</p>
+<p>{{company_name}}, société {{company_legal_form}}, dont le siège social est sis {{company_address}}, immatriculée à la BCE sous le n° {{company_bce}}, représentée par {{company_representative}}, ci-après <strong>le Bailleur</strong> ;</p>
 <p><strong>Et :</strong></p>
-<p>{{client_company}}, N° BCE / n° RN : {{client_bce}}, demeurant / ayant son siège social {{client_address}}, représenté(e) par {{client_representative}}, ci-après <strong>le Locataire</strong> ;</p>
+<p>{{client_company}}, N° BCE : {{client_bce}}, demeurant / ayant son siège social {{client_address}}, représenté(e) par {{client_representative}}, ci-après <strong>le Locataire</strong> ;</p>
 <p>Ensemble <strong>les Parties</strong>.</p>`,
     article_1: `<h3>1. Objet</h3>
 <p>1.1. Le présent contrat (le <strong>Contrat</strong>) a pour objet la location de matériel informatique et/ou de téléphonie mobile (le <strong>Matériel</strong>) décrit en Annexe 1 (références, numéros de série, valeur à neuf et valeur de référence).</p>

@@ -373,11 +373,10 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
 
   const placeholders: Record<string, string> = {
     '{{company_name}}': contract.company_name || '',
-    '{{company_legal_form}}': 'SA', // Default, should be in customization
-    '{{company_capital}}': '100.000', // Default
+    '{{company_legal_form}}': 'à responsabilité limitée', // SRL
     '{{company_address}}': contract.company_address || '',
     '{{company_bce}}': contract.company_vat_number || '',
-    '{{company_representative}}': '', // Could be added
+    '{{company_representative}}': 'Gianni Sergi', // Représentant légal iTakecare
     '{{company_iban}}': `**${contract.company_iban || ''}**`,
     '{{company_bic}}': contract.company_bic || '',
     '{{client_name}}': contract.client_name || '',
