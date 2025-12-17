@@ -665,13 +665,6 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </View>
         )}
 
-        {/* Template signature block */}
-        {content.signature && (
-          <View style={{ marginTop: 15 }}>
-            <Text style={styles.articleContent}>{stripHtml(replacePlaceholders(content.signature, contract))}</Text>
-          </View>
-        )}
-
         {/* Signature Section - 2 columns side by side */}
         <View style={styles.signatureBlock}>
           <Text style={{ fontSize: 8, color: '#64748b', marginBottom: 5, textAlign: 'center' }}>
