@@ -1,0 +1,228 @@
+import React from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { SignedContractPDFDocument, SignedContractPDFData } from '@/components/pdf/templates/SignedContractPDFDocument';
+import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * Fetch contract data from Supabase for PDF generation
+ */
+export async function fetchContractDataForPDF(contractId: string): Promise<SignedContractPDFData | null> {
+  try {
+    console.log('[SIGNED-CONTRACT-PDF] Fetching contract data for:', contractId);
+
+    // Fetch contract with related data
+    const { data: contract, error: contractError } = await supabase
+      .from('contracts')
+      .select(`
+        *,
+        companies!inner(
+          name,
+          logo_url,
+          primary_color
+        )
+      `)
+      .eq('id', contractId)
+      .single();
+
+    if (contractError || !contract) {
+      console.error('[SIGNED-CONTRACT-PDF] Error fetching contract:', contractError);
+      return null;
+    }
+
+    // Fetch company customizations
+    const { data: customization } = await supabase
+      .from('company_customizations')
+      .select('company_email, company_phone, company_address, company_vat_number')
+      .eq('company_id', contract.company_id)
+      .single();
+
+    // Fetch equipment
+    const { data: equipment } = await supabase
+      .from('contract_equipment')
+      .select('id, title, quantity, monthly_payment')
+      .eq('contract_id', contractId);
+
+    // Try to get leaser company name
+    let leaserDisplayName = contract.leaser_name || 'Non spécifié';
+    if (contract.leaser_id) {
+      const { data: leaser } = await supabase
+        .from('leasers')
+        .select('name, company_name, is_own_company')
+        .eq('id', contract.leaser_id)
+        .single();
+      
+      if (leaser) {
+        leaserDisplayName = leaser.company_name || leaser.name;
+        if (leaser.is_own_company) {
+          contract.is_self_leasing = true;
+        }
+      }
+    }
+
+    const pdfData: SignedContractPDFData = {
+      id: contract.id,
+      tracking_number: contract.tracking_number || `CTR-${contract.id.slice(0, 8).toUpperCase()}`,
+      created_at: contract.created_at,
+      signed_at: contract.signed_at,
+      // Client
+      client_name: contract.client_name || 'Client',
+      client_company: contract.client_company || undefined,
+      client_address: contract.client_address || undefined,
+      client_city: contract.client_city || undefined,
+      client_postal_code: contract.client_postal_code || undefined,
+      client_vat_number: contract.client_vat_number || undefined,
+      client_email: contract.client_email || undefined,
+      client_iban: contract.client_iban || undefined,
+      client_bic: contract.client_bic || undefined,
+      // Leaser
+      leaser_name: leaserDisplayName,
+      is_self_leasing: contract.is_self_leasing || false,
+      // Company
+      company_name: contract.companies?.name || '',
+      company_address: customization?.company_address || undefined,
+      company_email: customization?.company_email || undefined,
+      company_phone: customization?.company_phone || undefined,
+      company_vat_number: customization?.company_vat_number || undefined,
+      company_logo_url: contract.companies?.logo_url || undefined,
+      // Financial
+      monthly_payment: contract.monthly_payment || 0,
+      contract_duration: contract.contract_duration || 36,
+      file_fee: contract.file_fee || 0,
+      // Equipment
+      equipment: equipment?.map(eq => ({
+        title: eq.title,
+        quantity: eq.quantity || 1,
+        monthly_payment: eq.monthly_payment || 0,
+      })) || [],
+      // Signature
+      signature_data: contract.signature_data || undefined,
+      signer_name: contract.signer_name || contract.client_name,
+      signer_ip: contract.signer_ip || undefined,
+      // Brand
+      primary_color: contract.companies?.primary_color || '#33638e',
+    };
+
+    console.log('[SIGNED-CONTRACT-PDF] PDF data prepared:', {
+      trackingNumber: pdfData.tracking_number,
+      clientName: pdfData.client_name,
+      equipmentCount: pdfData.equipment.length,
+      hasSig: !!pdfData.signature_data,
+    });
+
+    return pdfData;
+  } catch (e) {
+    console.error('[SIGNED-CONTRACT-PDF] fetchContractDataForPDF error:', e);
+    return null;
+  }
+}
+
+/**
+ * Generate PDF blob for a signed contract
+ */
+export async function generateSignedContractPDF(contractId: string): Promise<Blob> {
+  console.log('[SIGNED-CONTRACT-PDF] Generating PDF for contract:', contractId);
+
+  const contractData = await fetchContractDataForPDF(contractId);
+  if (!contractData) {
+    throw new Error('Impossible de récupérer les données du contrat');
+  }
+
+  const blob = await pdf(
+    <SignedContractPDFDocument contract={contractData} />
+  ).toBlob();
+
+  console.log(`[SIGNED-CONTRACT-PDF] Generated PDF (${blob.size} bytes)`);
+  return blob;
+}
+
+/**
+ * Upload signed contract PDF to Supabase Storage
+ */
+export async function uploadSignedContractPDF(contractId: string, blob: Blob): Promise<string> {
+  console.log('[SIGNED-CONTRACT-PDF] Uploading PDF to storage for contract:', contractId);
+
+  // Fetch tracking number for filename
+  const { data: contract } = await supabase
+    .from('contracts')
+    .select('tracking_number')
+    .eq('id', contractId)
+    .single();
+
+  const trackingNumber = contract?.tracking_number || contractId;
+  const fileName = `${trackingNumber}-signed.pdf`;
+
+  // Upload to signed-contracts bucket
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('signed-contracts')
+    .upload(fileName, blob, {
+      contentType: 'application/pdf',
+      upsert: true, // Overwrite if exists
+    });
+
+  if (uploadError) {
+    console.error('[SIGNED-CONTRACT-PDF] Upload error:', uploadError);
+    throw new Error(`Erreur upload: ${uploadError.message}`);
+  }
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('signed-contracts')
+    .getPublicUrl(fileName);
+
+  const publicUrl = urlData?.publicUrl;
+  console.log('[SIGNED-CONTRACT-PDF] Uploaded to:', publicUrl);
+
+  // Update contract with PDF URL
+  const { error: updateError } = await supabase
+    .from('contracts')
+    .update({ signed_contract_pdf_url: publicUrl })
+    .eq('id', contractId);
+
+  if (updateError) {
+    console.error('[SIGNED-CONTRACT-PDF] Error updating contract:', updateError);
+  }
+
+  return publicUrl;
+}
+
+/**
+ * Generate and upload signed contract PDF in one call
+ */
+export async function generateAndUploadSignedContractPDF(contractId: string): Promise<string> {
+  const blob = await generateSignedContractPDF(contractId);
+  const url = await uploadSignedContractPDF(contractId, blob);
+  return url;
+}
+
+/**
+ * Download signed contract PDF
+ */
+export async function downloadSignedContractPDF(contractId: string): Promise<void> {
+  try {
+    const contractData = await fetchContractDataForPDF(contractId);
+    if (!contractData) {
+      throw new Error('Impossible de récupérer les données du contrat');
+    }
+
+    const blob = await generateSignedContractPDF(contractId);
+
+    // Create filename
+    const filename = `Contrat ${contractData.tracking_number} - ${contractData.client_name}.pdf`
+      .replace(/[/\\:*?"<>|]/g, '');
+
+    // Download
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('[SIGNED-CONTRACT-PDF] Downloaded:', filename);
+  } catch (error) {
+    console.error('[SIGNED-CONTRACT-PDF] Download error:', error);
+    throw error;
+  }
+}

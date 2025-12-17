@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { generateAndUploadSignedContractPDF, downloadSignedContractPDF } from "@/services/signedContractPdfService";
 
 interface ContractSelfLeasingCardProps {
   contract: any;
@@ -164,9 +165,35 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
     }
   };
 
-  const handleOpenSignedPDF = () => {
-    if (contract?.signed_contract_pdf_url) {
-      window.open(contract.signed_contract_pdf_url, '_blank');
+  const handleDownloadSignedPDF = async () => {
+    try {
+      setIsLoading(true);
+      if (contract?.signed_contract_pdf_url) {
+        window.open(contract.signed_contract_pdf_url, '_blank');
+      } else {
+        // Generate and download locally using @react-pdf/renderer
+        await downloadSignedContractPDF(contract.id);
+        toast.success("PDF téléchargé avec succès");
+      }
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast.error("Erreur lors du téléchargement du PDF");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateAndUploadPDF = async () => {
+    try {
+      setIsLoading(true);
+      await generateAndUploadSignedContractPDF(contract.id);
+      toast.success("PDF généré et uploadé avec succès");
+      onContractUpdated?.();
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -262,7 +289,7 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
                 variant="default"
                 size="sm"
                 className="w-full"
-                onClick={contract.signed_contract_pdf_url ? handleOpenSignedPDF : handleResendSignedContract}
+                onClick={handleDownloadSignedPDF}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -270,7 +297,7 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
                 ) : (
                   <Download className="w-4 h-4 mr-2" />
                 )}
-                {contract.signed_contract_pdf_url ? 'Télécharger le contrat signé' : 'Générer le contrat signé'}
+                Télécharger le contrat signé
               </Button>
               <Button
                 variant="outline"
