@@ -1655,10 +1655,15 @@ export type Database = {
         Row: {
           accent_color: string | null
           company_address: string | null
+          company_bce: string | null
+          company_city: string | null
+          company_country: string | null
           company_email: string | null
           company_id: string
+          company_legal_form: string | null
           company_name: string | null
           company_phone: string | null
+          company_postal_code: string | null
           company_vat_number: string | null
           created_at: string
           custom_domain: string | null
@@ -1680,10 +1685,15 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           company_address?: string | null
+          company_bce?: string | null
+          company_city?: string | null
+          company_country?: string | null
           company_email?: string | null
           company_id: string
+          company_legal_form?: string | null
           company_name?: string | null
           company_phone?: string | null
+          company_postal_code?: string | null
           company_vat_number?: string | null
           created_at?: string
           custom_domain?: string | null
@@ -1705,10 +1715,15 @@ export type Database = {
         Update: {
           accent_color?: string | null
           company_address?: string | null
+          company_bce?: string | null
+          company_city?: string | null
+          company_country?: string | null
           company_email?: string | null
           company_id?: string
+          company_legal_form?: string | null
           company_name?: string | null
           company_phone?: string | null
+          company_postal_code?: string | null
           company_vat_number?: string | null
           created_at?: string
           custom_domain?: string | null

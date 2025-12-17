@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Building2, MapPin } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
 import LogoUploader from './LogoUploader';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const GeneralSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -32,8 +33,14 @@ const GeneralSettings = () => {
           setSettings({
             company_name: '',
             company_address: '',
+            company_postal_code: '',
+            company_city: '',
+            company_country: 'Belgique',
             company_phone: '',
-            company_email: ''
+            company_email: '',
+            company_bce: '',
+            company_vat_number: '',
+            company_legal_form: ''
           });
         }
       } catch (err) {
@@ -77,8 +84,14 @@ const GeneralSettings = () => {
         company_id: settings.company_id,
         company_name: settings.company_name || '',
         company_address: settings.company_address || '',
+        company_postal_code: settings.company_postal_code || '',
+        company_city: settings.company_city || '',
+        company_country: settings.company_country || 'Belgique',
         company_phone: settings.company_phone || '',
         company_email: settings.company_email || '',
+        company_bce: settings.company_bce || '',
+        company_vat_number: settings.company_vat_number || '',
+        company_legal_form: settings.company_legal_form || '',
         logo_url: settings.logo_url || '',
         primary_color: settings.primary_color,
         secondary_color: settings.secondary_color,
@@ -132,37 +145,135 @@ const GeneralSettings = () => {
           </Alert>
         </CardContent>}
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* Logo */}
+        <div className="space-y-2">
+          <Label>Logo de l'entreprise</Label>
+          <LogoUploader 
+            initialLogoUrl={settings?.logo_url || ''}
+            onLogoUploaded={handleLogoUploaded}
+          />
+        </div>
+        
+        <Separator />
+        
+        {/* Informations légales */}
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Logo de l'entreprise</Label>
-            <LogoUploader 
-              initialLogoUrl={settings?.logo_url || ''}
-              onLogoUploaded={handleLogoUploaded}
-            />
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Building2 className="h-4 w-4" />
+            <span className="text-sm font-medium">Informations légales</span>
           </div>
           
-          <Separator className="my-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_name">Nom de l'entreprise</Label>
+              <Input id="company_name" name="company_name" value={settings?.company_name || ''} onChange={handleInputChange} />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="company_legal_form">Forme juridique</Label>
+              <Select
+                value={settings?.company_legal_form || ''}
+                onValueChange={(value) => setSettings(prev => prev ? {...prev, company_legal_form: value} : null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SRL">SRL (Société à responsabilité limitée)</SelectItem>
+                  <SelectItem value="SA">SA (Société anonyme)</SelectItem>
+                  <SelectItem value="SC">SC (Société coopérative)</SelectItem>
+                  <SelectItem value="SNC">SNC (Société en nom collectif)</SelectItem>
+                  <SelectItem value="SCS">SCS (Société en commandite simple)</SelectItem>
+                  <SelectItem value="ASBL">ASBL (Association sans but lucratif)</SelectItem>
+                  <SelectItem value="Indépendant">Indépendant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="company_name">Nom de l'entreprise</Label>
-            <Input id="company_name" name="company_name" value={settings?.company_name || ''} onChange={handleInputChange} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_bce">Numéro BCE</Label>
+              <Input 
+                id="company_bce" 
+                name="company_bce" 
+                value={settings?.company_bce || ''} 
+                onChange={handleInputChange} 
+                placeholder="0XXX.XXX.XXX"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="company_vat_number">Numéro de TVA</Label>
+              <Input 
+                id="company_vat_number" 
+                name="company_vat_number" 
+                value={settings?.company_vat_number || ''} 
+                onChange={handleInputChange} 
+                placeholder="BE0XXX.XXX.XXX"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        {/* Coordonnées */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span className="text-sm font-medium">Coordonnées</span>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="company_address">Adresse</Label>
-            <Textarea id="company_address" name="company_address" value={settings?.company_address || ''} onChange={handleInputChange} rows={2} />
+            <Label htmlFor="company_address">Adresse (rue et numéro)</Label>
+            <Input id="company_address" name="company_address" value={settings?.company_address || ''} onChange={handleInputChange} placeholder="Rue Example 123" />
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_postal_code">Code postal</Label>
+              <Input 
+                id="company_postal_code" 
+                name="company_postal_code" 
+                value={settings?.company_postal_code || ''} 
+                onChange={handleInputChange} 
+                placeholder="1000"
+              />
+            </div>
+            
+            <div className="space-y-2 col-span-1 md:col-span-2">
+              <Label htmlFor="company_city">Localité</Label>
+              <Input 
+                id="company_city" 
+                name="company_city" 
+                value={settings?.company_city || ''} 
+                onChange={handleInputChange} 
+                placeholder="Bruxelles"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="company_country">Pays</Label>
+              <Input 
+                id="company_country" 
+                name="company_country" 
+                value={settings?.company_country || 'Belgique'} 
+                onChange={handleInputChange} 
+              />
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company_phone">Téléphone</Label>
-              <Input id="company_phone" name="company_phone" value={settings?.company_phone || ''} onChange={handleInputChange} />
+              <Input id="company_phone" name="company_phone" value={settings?.company_phone || ''} onChange={handleInputChange} placeholder="+32 X XXX XX XX" />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="company_email">Email</Label>
-              <Input id="company_email" name="company_email" type="email" value={settings?.company_email || ''} onChange={handleInputChange} />
+              <Input id="company_email" name="company_email" type="email" value={settings?.company_email || ''} onChange={handleInputChange} placeholder="contact@example.be" />
             </div>
           </div>
         </div>
