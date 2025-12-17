@@ -11,6 +11,7 @@ import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/cli
 import { toast } from "sonner";
 import { verifyVatNumber } from "@/services/clientService";
 import LeaserDurationMatrix from "@/components/leasers/LeaserDurationMatrix";
+import LeaserBillingSettings from "@/components/leasers/LeaserBillingSettings";
 
 interface ExtendedRange {
   id: string;
@@ -53,6 +54,12 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logo_url || null);
   const [isVerifyingVies, setIsVerifyingVies] = useState(false);
   const [viesData, setViesData] = useState<any>(null);
+  const [billingFrequency, setBillingFrequency] = useState<string>(
+    (currentLeaser as any)?.billing_frequency || 'monthly'
+  );
+  const [contractStartRule, setContractStartRule] = useState<string>(
+    (currentLeaser as any)?.contract_start_rule || 'next_month_first'
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -308,7 +315,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         useDurationBasedCoefficients
       });
       
-      const leaserData: Omit<Leaser, "id"> & { use_duration_coefficients: boolean; is_own_company: boolean } = {
+      const leaserData = {
         name: formData.get("name") as string,
         company_name: formData.get("company_name") as string || undefined,
         logo_url: previewUrl,
@@ -322,7 +329,9 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         available_durations: availableDurations,
         ranges: tempRanges,
         use_duration_coefficients: useDurationBasedCoefficients,
-        is_own_company: isOwnCompany
+        is_own_company: isOwnCompany,
+        billing_frequency: billingFrequency as 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
+        contract_start_rule: contractStartRule as 'next_month_first' | 'next_quarter_first' | 'next_semester_first' | 'next_year_first' | 'delivery_date' | 'delivery_date_plus_15'
       };
       
       await onSave(leaserData);
@@ -647,6 +656,14 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
             </div>
           )}
         </div>
+
+        {/* Paramètres de facturation */}
+        <LeaserBillingSettings
+          billingFrequency={billingFrequency}
+          contractStartRule={contractStartRule}
+          onBillingFrequencyChange={setBillingFrequency}
+          onContractStartRuleChange={setContractStartRule}
+        />
       </div>
       
       <div className="flex justify-end gap-2 pt-4">
