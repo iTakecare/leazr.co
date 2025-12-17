@@ -168,13 +168,10 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
   const handleDownloadSignedPDF = async () => {
     try {
       setIsLoading(true);
-      if (contract?.signed_contract_pdf_url) {
-        window.open(contract.signed_contract_pdf_url, '_blank');
-      } else {
-        // Generate and download locally using @react-pdf/renderer
-        await downloadSignedContractPDF(contract.id);
-        toast.success("PDF téléchargé avec succès");
-      }
+      // Toujours générer et télécharger le PDF avec @react-pdf/renderer
+      // Ignore signed_contract_pdf_url qui peut contenir un ancien fichier HTML
+      await downloadSignedContractPDF(contract.id);
+      toast.success("PDF téléchargé avec succès");
     } catch (error) {
       console.error("Error downloading PDF:", error);
       toast.error("Erreur lors du téléchargement du PDF");
