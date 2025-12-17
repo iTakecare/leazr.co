@@ -7,6 +7,9 @@ export interface SignedContractPDFData {
   tracking_number: string;
   created_at: string;
   signed_at?: string;
+  // Contract dates
+  contract_start_date?: string;
+  contract_end_date?: string;
   // Client info
   client_name: string;
   client_company?: string;
@@ -267,10 +270,12 @@ const formatDateShort = (dateString?: string) => {
 
 /**
  * Strip HTML tags and convert to plain text for PDF
+ * Handles (i), (ii), (iii) enumerations by placing them on separate lines
  */
 const stripHtml = (html: string): string => {
   if (!html) return '';
-  return html
+  
+  let text = html
     .replace(/<h[1-6][^>]*>/gi, '')
     .replace(/<\/h[1-6]>/gi, '\n')
     .replace(/<p[^>]*>/gi, '')
@@ -292,9 +297,40 @@ const stripHtml = (html: string): string => {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(/&#39;/g, "'");
+  
+  // Handle (i), (ii), (iii) enumerations - put on separate lines
+  text = text
+    .replace(/\s*;\s*\(i\)/gi, '\n    (i)')
+    .replace(/\s*;\s*\(ii\)/gi, '\n    (ii)')
+    .replace(/\s*;\s*\(iii\)/gi, '\n    (iii)')
+    .replace(/\s*;\s*\(iv\)/gi, '\n    (iv)')
+    .replace(/\s*;\s*\(v\)/gi, '\n    (v)')
+    // Also handle when it starts with colon or at beginning
+    .replace(/:\s*\(i\)/gi, ':\n    (i)')
+    .replace(/\s+\(i\)\s+/gi, '\n    (i) ')
+    .replace(/\s+\(ii\)\s+/gi, '\n    (ii) ')
+    .replace(/\s+\(iii\)\s+/gi, '\n    (iii) ')
+    .replace(/\s+\(iv\)\s+/gi, '\n    (iv) ')
+    .replace(/\s+\(v\)\s+/gi, '\n    (v) ');
+  
+  // Clean up multiple newlines and spaces
+  text = text
     .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+/g, ' ')
     .trim();
+  
+  return text;
+};
+
+/**
+ * Calculate end date from start date and duration
+ */
+const calculateEndDate = (startDate?: string, durationMonths?: number): string => {
+  if (!startDate || !durationMonths) return '';
+  const start = new Date(startDate);
+  start.setMonth(start.getMonth() + durationMonths);
+  return formatDateShort(start.toISOString());
 };
 
 /**
@@ -308,6 +344,11 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     contract.client_postal_code,
     contract.client_city
   ].filter(Boolean).join(', ');
+
+  // Calculate end date if not provided
+  const endDate = contract.contract_end_date 
+    ? formatDateShort(contract.contract_end_date)
+    : calculateEndDate(contract.contract_start_date, contract.contract_duration);
 
   const placeholders: Record<string, string> = {
     '{{company_name}}': contract.company_name || '',
@@ -323,6 +364,8 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{client_bce}}': contract.client_vat_number || '',
     '{{client_address}}': clientFullAddress || '',
     '{{client_representative}}': contract.signer_name || contract.client_name || '',
+    '{{client_iban}}': contract.client_iban || '',
+    '{{client_bic}}': contract.client_bic || '',
     '{{duration}}': String(contract.contract_duration || 36),
     '{{monthly_payment}}': formatCurrency(contract.monthly_payment).replace('€', '').trim(),
     '{{payment_day}}': '1er',
@@ -334,6 +377,11 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{penalty_percentage}}': '50',
     '{{contract_location}}': 'Belgique',
     '{{contract_date}}': formatDateShort(contract.signed_at || contract.created_at),
+    // Contract dates
+    '{{contract_start_date}}': contract.contract_start_date ? formatDateShort(contract.contract_start_date) : formatDateShort(contract.created_at),
+    '{{start_date}}': contract.contract_start_date ? formatDateShort(contract.contract_start_date) : formatDateShort(contract.created_at),
+    '{{contract_end_date}}': endDate,
+    '{{end_date}}': endDate,
   };
 
   let result = text;
@@ -379,10 +427,36 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
   const articlesPage3 = articles.slice(8, 12);
   const articlesPage4 = articles.slice(12, 17);
 
-  const renderArticle = (articleHtml: string) => {
+  /**
+   * Render article content with proper line breaks for (i), (ii), (iii) formatting
+   */
+  const renderArticleContent = (articleHtml: string) => {
     const processed = replacePlaceholders(articleHtml, contract);
     const plainText = stripHtml(processed);
-    return plainText;
+    
+    // Split by newlines and render each paragraph separately
+    const paragraphs = plainText.split('\n').filter(p => p.trim());
+    
+    return (
+      <View>
+        {paragraphs.map((paragraph, idx) => {
+          const trimmed = paragraph.trim();
+          const isListItem = trimmed.match(/^\((i|ii|iii|iv|v)\)/);
+          
+          return (
+            <Text 
+              key={idx} 
+              style={[
+                styles.articleContent,
+                isListItem && { marginLeft: 15, marginBottom: 2 }
+              ]}
+            >
+              {trimmed}
+            </Text>
+          );
+        })}
+      </View>
+    );
   };
 
   const renderHeader = () => (
@@ -504,7 +578,7 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
         <Text style={styles.sectionTitle}>Conditions Générales du Contrat</Text>
         {articlesPage1.map((article, idx) => (
           <View key={article.key} style={{ marginBottom: 8 }}>
-            <Text style={styles.articleContent}>{renderArticle(article.content)}</Text>
+            {renderArticleContent(article.content)}
           </View>
         ))}
         <View style={styles.footer}>
@@ -518,7 +592,7 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
         {renderHeader()}
         {articlesPage2.map((article, idx) => (
           <View key={article.key} style={{ marginBottom: 8 }}>
-            <Text style={styles.articleContent}>{renderArticle(article.content)}</Text>
+            {renderArticleContent(article.content)}
           </View>
         ))}
         <View style={styles.footer}>
@@ -532,7 +606,7 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
         {renderHeader()}
         {articlesPage3.map((article, idx) => (
           <View key={article.key} style={{ marginBottom: 8 }}>
-            <Text style={styles.articleContent}>{renderArticle(article.content)}</Text>
+            {renderArticleContent(article.content)}
           </View>
         ))}
         <View style={styles.footer}>
@@ -546,7 +620,7 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
         {renderHeader()}
         {articlesPage4.map((article, idx) => (
           <View key={article.key} style={{ marginBottom: 8 }}>
-            <Text style={styles.articleContent}>{renderArticle(article.content)}</Text>
+            {renderArticleContent(article.content)}
           </View>
         ))}
 
