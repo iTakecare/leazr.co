@@ -11,7 +11,7 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
   try {
     console.log('[SIGNED-CONTRACT-PDF] Fetching contract data for:', contractId);
 
-    // Fetch contract with related data including client details
+    // Fetch contract with related data including client details and offer fees
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
       .select(`
@@ -30,6 +30,10 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
           vat_number,
           phone,
           email
+        ),
+        offers(
+          file_fee,
+          annual_insurance
         )
       `)
       .eq('id', contractId)
@@ -118,7 +122,8 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       // Financial
       monthly_payment: contract.monthly_payment || 0,
       contract_duration: contract.contract_duration || 36,
-      file_fee: contract.file_fee || 0,
+      file_fee: (contract.offers as any)?.file_fee || contract.file_fee || 0,
+      annual_insurance: (contract.offers as any)?.annual_insurance || 0,
       // Equipment with complete details
       equipment: equipment?.map(eq => ({
         title: eq.title,
