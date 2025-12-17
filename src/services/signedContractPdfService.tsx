@@ -47,10 +47,10 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       .eq('company_id', contract.company_id)
       .single();
 
-    // Fetch equipment
+    // Fetch equipment with complete details
     const { data: equipment } = await supabase
       .from('contract_equipment')
-      .select('id, title, quantity, monthly_payment')
+      .select('id, title, quantity, monthly_payment, purchase_price, margin, serial_number')
       .eq('contract_id', contractId);
 
     // Try to get leaser company name
@@ -90,7 +90,6 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       id: contract.id,
       tracking_number: contract.tracking_number || `CTR-${contract.id.slice(0, 8).toUpperCase()}`,
       created_at: contract.created_at,
-      signed_at: contract.signed_at,
       // Contract dates
       contract_start_date: contract.contract_start_date || undefined,
       contract_end_date: contract.contract_end_date || undefined,
@@ -120,16 +119,20 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       monthly_payment: contract.monthly_payment || 0,
       contract_duration: contract.contract_duration || 36,
       file_fee: contract.file_fee || 0,
-      // Equipment
+      // Equipment with complete details
       equipment: equipment?.map(eq => ({
         title: eq.title,
         quantity: eq.quantity || 1,
         monthly_payment: eq.monthly_payment || 0,
+        purchase_price: eq.purchase_price || 0,
+        margin: eq.margin || 0,
+        serial_number: eq.serial_number || undefined,
       })) || [],
-      // Signature
-      signature_data: contract.signature_data || undefined,
-      signer_name: contract.signer_name || contract.client_name,
-      signer_ip: contract.signer_ip || undefined,
+      // Signature - use correct column names from contracts table
+      signature_data: contract.contract_signature_data || contract.signature_data || undefined,
+      signer_name: contract.contract_signer_name || contract.signer_name || contract.client_name,
+      signer_ip: contract.contract_signer_ip || contract.signer_ip || undefined,
+      signed_at: contract.contract_signed_at || contract.signed_at || undefined,
       // Contract template content
       contract_content: contractContent,
       // Brand

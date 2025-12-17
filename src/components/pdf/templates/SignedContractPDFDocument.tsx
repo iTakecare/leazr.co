@@ -43,6 +43,9 @@ export interface SignedContractPDFData {
     title: string;
     quantity: number;
     monthly_payment: number;
+    purchase_price?: number;
+    margin?: number;
+    serial_number?: string;
   }>;
   // Signature
   signature_data?: string;
@@ -360,7 +363,7 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{company_address}}': contract.company_address || '',
     '{{company_bce}}': contract.company_vat_number || '',
     '{{company_representative}}': '', // Could be added
-    '{{company_iban}}': contract.company_iban || '',
+    '{{company_iban}}': `**${contract.company_iban || ''}**`,
     '{{company_bic}}': contract.company_bic || '',
     '{{client_name}}': contract.client_name || '',
     '{{client_company}}': contract.client_company || contract.client_name || '',
@@ -373,7 +376,7 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{client_country}}': contract.client_country || 'Belgique',
     '{{client_phone}}': contract.client_phone || '',
     '{{client_representative}}': contract.signer_name || contract.client_name || '',
-    '{{client_iban}}': contract.client_iban || '',
+    '{{client_iban}}': `**${contract.client_iban || ''}**`,
     '{{client_bic}}': contract.client_bic || '',
     '{{duration}}': String(contract.contract_duration || 36),
     '{{monthly_payment}}': formatCurrency(contract.monthly_payment).replace('€', '').trim(),
@@ -437,7 +440,21 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
   const articlesPage4 = articles.slice(12, 17);
 
   /**
-   * Render article content with proper line breaks for (i), (ii), (iii) formatting
+   * Render text with bold markers (**text**)
+   */
+  const renderTextWithBold = (text: string, baseStyle: any) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2);
+        return <Text key={i} style={[baseStyle, { fontFamily: 'Helvetica-Bold' }]}>{boldText}</Text>;
+      }
+      return <Text key={i} style={baseStyle}>{part}</Text>;
+    });
+  };
+
+  /**
+   * Render article content with proper line breaks for (i), (ii), (iii) formatting and bold support
    */
   const renderArticleContent = (articleHtml: string) => {
     const processed = replacePlaceholders(articleHtml, contract);
@@ -451,6 +468,21 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
         {paragraphs.map((paragraph, idx) => {
           const trimmed = paragraph.trim();
           const isListItem = trimmed.match(/^\((i|ii|iii|iv|v)\)/);
+          const hasBold = trimmed.includes('**');
+          
+          if (hasBold) {
+            return (
+              <Text 
+                key={idx} 
+                style={[
+                  styles.articleContent,
+                  isListItem && { marginLeft: 15, marginBottom: 2 }
+                ]}
+              >
+                {renderTextWithBold(trimmed, {})}
+              </Text>
+            );
+          }
           
           return (
             <Text 
@@ -511,28 +543,32 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
           </View>
         )}
 
-        {/* Equipment Table */}
+        {/* Equipment Table - Annexe 1 with complete details */}
         <Text style={styles.sectionTitle}>Annexe 1 - Équipements loués</Text>
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, { flex: 4 }]}>Description</Text>
+            <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Description</Text>
             <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Qté</Text>
-            <Text style={[styles.tableHeaderCell, { flex: 2, textAlign: 'right' }]}>Mensualité HT</Text>
+            <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Numéros de série</Text>
+            <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'right' }]}>P.A. HT</Text>
+            <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'right' }]}>Mensualité</Text>
           </View>
           {contract.equipment?.map((eq, idx) => (
             <View key={idx} style={idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
-              <Text style={[styles.tableCell, { flex: 4 }]}>{eq.title}</Text>
+              <Text style={[styles.tableCell, { flex: 3 }]}>{eq.title}</Text>
               <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{eq.quantity}</Text>
-              <Text style={[styles.tableCell, { flex: 2, textAlign: 'right' }]}>{formatCurrency(eq.monthly_payment)}</Text>
+              <Text style={[styles.tableCell, { flex: 2, fontSize: 7 }]}>{eq.serial_number || '-'}</Text>
+              <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'right' }]}>{formatCurrency(eq.purchase_price || 0)}</Text>
+              <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'right' }]}>{formatCurrency(eq.monthly_payment)}</Text>
             </View>
           ))}
           <View style={styles.totalRow}>
-            <Text style={[styles.totalLabel, { flex: 5 }]}>Total mensuel HT</Text>
+            <Text style={[styles.totalLabel, { flex: 7 }]}>Total mensuel HT</Text>
             <Text style={[styles.totalValue, { flex: 2 }]}>{formatCurrency(contract.monthly_payment)}</Text>
           </View>
         </View>
 
-        {/* Financial Summary */}
+        {/* Financial Summary - Simplified */}
         <View style={styles.infoBox}>
           <View style={styles.row}>
             <Text style={styles.label}>Durée du contrat :</Text>
@@ -542,10 +578,6 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
             <Text style={styles.label}>Mensualité HT :</Text>
             <Text style={styles.value}>{formatCurrency(contract.monthly_payment)}</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Total engagement :</Text>
-            <Text style={styles.value}>{formatCurrency(contract.monthly_payment * contract.contract_duration)}</Text>
-          </View>
           {contract.file_fee && contract.file_fee > 0 && (
             <View style={styles.row}>
               <Text style={styles.label}>Frais de dossier :</Text>
@@ -553,27 +585,6 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
             </View>
           )}
         </View>
-
-        {/* SEPA */}
-        {(contract.client_iban || contract.client_bic) && (
-          <>
-            <Text style={styles.sectionTitle}>Domiciliation SEPA</Text>
-            <View style={styles.infoBox}>
-              {contract.client_iban && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>IBAN :</Text>
-                  <Text style={styles.value}>{contract.client_iban}</Text>
-                </View>
-              )}
-              {contract.client_bic && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>BIC :</Text>
-                  <Text style={styles.value}>{contract.client_bic}</Text>
-                </View>
-              )}
-            </View>
-          </>
-        )}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>{contract.company_name}</Text>
