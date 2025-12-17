@@ -2,6 +2,7 @@ import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { SignedContractPDFDocument, SignedContractPDFData } from '@/components/pdf/templates/SignedContractPDFDocument';
 import { supabase } from '@/integrations/supabase/client';
+import { getPDFContentBlocksByPage, DEFAULT_PDF_CONTENT_BLOCKS } from './pdfContentService';
 
 /**
  * Fetch contract data from Supabase for PDF generation
@@ -59,6 +60,22 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       }
     }
 
+    // Fetch contract template content from pdf_content_blocks
+    let contractContent: Record<string, string> = {};
+    try {
+      contractContent = await getPDFContentBlocksByPage(contract.company_id, 'contract');
+      console.log('[SIGNED-CONTRACT-PDF] Contract template blocks loaded:', Object.keys(contractContent).length);
+    } catch (e) {
+      console.warn('[SIGNED-CONTRACT-PDF] Failed to load contract template, using defaults');
+      contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
+    }
+
+    // If no template blocks found, use defaults
+    if (Object.keys(contractContent).length === 0) {
+      console.log('[SIGNED-CONTRACT-PDF] No contract template found, using defaults');
+      contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
+    }
+
     const pdfData: SignedContractPDFData = {
       id: contract.id,
       tracking_number: contract.tracking_number || `CTR-${contract.id.slice(0, 8).toUpperCase()}`,
@@ -98,6 +115,8 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       signature_data: contract.signature_data || undefined,
       signer_name: contract.signer_name || contract.client_name,
       signer_ip: contract.signer_ip || undefined,
+      // Contract template content
+      contract_content: contractContent,
       // Brand
       primary_color: contract.companies?.primary_color || '#33638e',
     };
@@ -107,6 +126,7 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       clientName: pdfData.client_name,
       equipmentCount: pdfData.equipment.length,
       hasSig: !!pdfData.signature_data,
+      templateBlocks: Object.keys(contractContent).length,
     });
 
     return pdfData;
