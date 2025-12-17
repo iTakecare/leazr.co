@@ -16,6 +16,7 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       .from('contracts')
       .select(`
         *,
+        special_provisions,
         companies!inner(
           name,
           logo_url,
@@ -142,6 +143,8 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       contract_content: contractContent,
       // Brand
       primary_color: contract.companies?.primary_color || '#33638e',
+      // Special provisions (self-leasing only)
+      special_provisions: contract.special_provisions || undefined,
     };
 
     console.log('[SIGNED-CONTRACT-PDF] PDF data prepared:', {
