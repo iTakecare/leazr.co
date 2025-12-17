@@ -16,6 +16,7 @@ interface ContractDatesManagerProps {
   deliveryDate?: string;
   contractStartDate?: string;
   leaserName: string;
+  leaserId?: string;
   onUpdate?: () => void;
 }
 
@@ -24,6 +25,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   deliveryDate,
   contractStartDate,
   leaserName,
+  leaserId,
   onUpdate
 }) => {
   const [selectedDeliveryDate, setSelectedDeliveryDate] = useState<Date | undefined>(
@@ -39,11 +41,20 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   // Récupérer les paramètres du leaser
   useEffect(() => {
     const fetchLeaserSettings = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leasers')
-        .select('contract_start_rule, billing_frequency')
-        .eq('name', leaserName)
-        .maybeSingle();
+        .select('contract_start_rule, billing_frequency');
+      
+      // Chercher par ID si disponible (plus fiable), sinon par nom
+      if (leaserId) {
+        query = query.eq('id', leaserId);
+      } else if (leaserName) {
+        query = query.eq('name', leaserName);
+      } else {
+        return;
+      }
+      
+      const { data, error } = await query.maybeSingle();
 
       if (data) {
         setLeaserRule(data.contract_start_rule || 'next_month_first');
@@ -51,8 +62,10 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
       }
     };
 
-    fetchLeaserSettings();
-  }, [leaserName]);
+    if (leaserId || leaserName) {
+      fetchLeaserSettings();
+    }
+  }, [leaserId, leaserName]);
 
   // Mettre à jour selectedStartDate quand contractStartDate change
   useEffect(() => {
@@ -72,6 +85,17 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
       'delivery_date_plus_15': 'Date de livraison + 15 jours'
     };
     return rules[rule] || rule;
+  };
+
+  // Fonction pour formater la fréquence de facturation
+  const getBillingFrequencyLabel = (frequency: string): string => {
+    const labels: Record<string, string> = {
+      'monthly': 'mensuelle',
+      'quarterly': 'trimestrielle',
+      'semi-annual': 'semestrielle',
+      'annual': 'annuelle'
+    };
+    return labels[frequency] || frequency;
   };
 
   const handleDeliveryDateChange = async (date: Date | undefined) => {
@@ -225,7 +249,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
                 Règle {leaserName}
               </p>
               <p className="text-blue-700">
-                Facturation <strong>{billingFrequency === 'monthly' ? 'mensuelle' : 'trimestrielle'}</strong>
+                Facturation <strong>{getBillingFrequencyLabel(billingFrequency)}</strong>
               </p>
               <p className="text-blue-700">
                 Début de contrat : <strong>{getRuleDescription(leaserRule)}</strong>

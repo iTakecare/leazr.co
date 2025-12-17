@@ -120,6 +120,7 @@ const ContractDetail = () => {
                 deliveryDate={contract.delivery_date}
                 contractStartDate={contract.contract_start_date}
                 leaserName={contract.leaser_name}
+                leaserId={contract.leaser_id}
                 onUpdate={refetch}
               />
 
