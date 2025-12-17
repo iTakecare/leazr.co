@@ -30,6 +30,7 @@ export interface Contract {
   equipment_description?: string;
   status: string;
   leaser_name: string;
+  leaser_id?: string;
   leaser_logo?: string;
   created_at: string;
   updated_at?: string;
