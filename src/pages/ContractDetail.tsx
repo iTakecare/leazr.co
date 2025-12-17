@@ -10,6 +10,7 @@ import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSe
 import ContractEquipmentSerialManager from "@/components/contracts/ContractEquipmentSerialManager";
 import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
+import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,6 +122,14 @@ const ContractDetail = () => {
                 contractStartDate={contract.contract_start_date}
                 leaserName={contract.leaser_name}
                 leaserId={contract.leaser_id}
+                onUpdate={refetch}
+              />
+
+              {/* Dispositions particulières - self-leasing only */}
+              <ContractSpecialProvisionsCard 
+                contractId={contract.id}
+                isSelfLeasing={contract.is_self_leasing || false}
+                initialContent={contract.special_provisions}
                 onUpdate={refetch}
               />
 

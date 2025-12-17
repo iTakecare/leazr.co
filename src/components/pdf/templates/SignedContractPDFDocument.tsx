@@ -56,6 +56,8 @@ export interface SignedContractPDFData {
   contract_content?: Record<string, string>;
   // Brand colors
   primary_color?: string;
+  // Special provisions (self-leasing only)
+  special_provisions?: string;
 }
 
 const createStyles = (primaryColor: string = '#33638e') => StyleSheet.create({
@@ -710,6 +712,18 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
                 <Text style={styles.value}>{contract.client_bic}</Text>
               </View>
             )}
+          </View>
+        )}
+
+        {/* Dispositions particulières - affiché seulement si contenu */}
+        {contract.special_provisions && (
+          <View style={styles.infoBox}>
+            <Text style={[styles.label, { fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 6, color: '#1e293b' }]}>
+              Dispositions particulières
+            </Text>
+            <Text style={[styles.articleContent, { fontSize: 8 }]}>
+              {stripHtml(contract.special_provisions)}
+            </Text>
           </View>
         )}
 

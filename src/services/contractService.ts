@@ -45,6 +45,8 @@ export interface Contract {
   contract_start_date?: string;
   contract_end_date?: string;
   delivery_date?: string;
+  is_self_leasing?: boolean;
+  special_provisions?: string;
 }
 
 export interface ContractEquipment {

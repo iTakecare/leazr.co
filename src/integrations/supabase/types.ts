@@ -2561,6 +2561,7 @@ export type Database = {
           payment_date: string | null
           signature_status: string | null
           signed_contract_pdf_url: string | null
+          special_provisions: string | null
           status: string
           tracking_number: string | null
           updated_at: string
@@ -2602,6 +2603,7 @@ export type Database = {
           payment_date?: string | null
           signature_status?: string | null
           signed_contract_pdf_url?: string | null
+          special_provisions?: string | null
           status?: string
           tracking_number?: string | null
           updated_at?: string
@@ -2643,6 +2645,7 @@ export type Database = {
           payment_date?: string | null
           signature_status?: string | null
           signed_contract_pdf_url?: string | null
+          special_provisions?: string | null
           status?: string
           tracking_number?: string | null
           updated_at?: string
