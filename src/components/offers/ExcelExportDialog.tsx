@@ -43,6 +43,12 @@ export function ExcelExportDialog({ offers, children }: ExcelExportDialogProps) 
   const [selectAll, setSelectAll] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<StatusGroupKey[]>([]);
 
+  // Fonction pour compter les offres d'un groupe de statuts
+  const getCountForGroup = (groupKey: StatusGroupKey) => {
+    const statuses = STATUS_GROUPS[groupKey].statuses as readonly string[];
+    return offers.filter(offer => statuses.includes(offer.workflow_status)).length;
+  };
+
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
@@ -113,7 +119,7 @@ export function ExcelExportDialog({ offers, children }: ExcelExportDialogProps) 
                 onCheckedChange={handleSelectAll}
               />
               <Label htmlFor="all" className="font-medium cursor-pointer">
-                Toutes les demandes
+                Toutes les demandes ({offers.length})
               </Label>
             </div>
 
@@ -126,7 +132,7 @@ export function ExcelExportDialog({ offers, children }: ExcelExportDialogProps) 
                     onCheckedChange={(checked) => handleFilterChange(key, checked as boolean)}
                   />
                   <Label htmlFor={key} className="cursor-pointer">
-                    {STATUS_GROUPS[key].label}
+                    {STATUS_GROUPS[key].label} ({getCountForGroup(key)})
                   </Label>
                 </div>
               ))}
