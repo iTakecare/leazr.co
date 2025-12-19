@@ -47,6 +47,21 @@ const formatEquipmentForExcel = (offer: any): string => {
   return '-';
 };
 
+const calculateFinancedAmountForExcel = (offer: any): number => {
+  // Si c'est un achat, pas de montant financé
+  if (offer.is_purchase === true) {
+    return 0;
+  }
+  
+  // Si on a une mensualité et un coefficient, calculer le montant financé
+  if (offer.monthly_payment && offer.coefficient) {
+    return (offer.monthly_payment * 100) / offer.coefficient;
+  }
+  
+  // Sinon utiliser la valeur en base
+  return offer.financed_amount || 0;
+};
+
 export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
   const excelData = offers.map(offer => ({
     'N° Dossier': offer.dossier_number || '-',
@@ -58,7 +73,7 @@ export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
     'Source': offer.source || '-',
     'Bailleur': offer.leaser_name || '-',
     'Montant achat (€)': offer.total_purchase_price || 0,
-    'Montant financé (€)': offer.financed_amount || 0,
+    'Montant financé (€)': Number(calculateFinancedAmountForExcel(offer)).toFixed(2),
     'Marge (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
     'Mensualité (€)': offer.monthly_payment || 0,
     'Statut': getStatusLabel(offer.workflow_status),
