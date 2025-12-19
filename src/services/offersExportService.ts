@@ -62,6 +62,22 @@ const calculateFinancedAmountForExcel = (offer: any): number => {
   return offer.financed_amount || 0;
 };
 
+const applyCurrencyFormat = (worksheet: XLSX.WorkSheet, columnIndices: number[]) => {
+  const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+  const currencyFormat = '#,##0.00 €';
+  
+  for (let row = range.s.r + 1; row <= range.e.r; row++) {
+    for (const col of columnIndices) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+      const cell = worksheet[cellAddress];
+      if (cell && typeof cell.v === 'number') {
+        cell.z = currencyFormat;
+        cell.t = 'n';
+      }
+    }
+  }
+};
+
 export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
   const excelData = offers.map(offer => ({
     'N° Dossier': offer.dossier_number || '-',
@@ -73,13 +89,16 @@ export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
     'Source': offer.source || '-',
     'Bailleur': offer.leaser_name || '-',
     'Montant achat (€)': offer.total_purchase_price || 0,
-    'Montant financé (€)': Number(calculateFinancedAmountForExcel(offer)).toFixed(2),
+    'Montant financé (€)': calculateFinancedAmountForExcel(offer),
     'Marge (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
     'Mensualité (€)': offer.monthly_payment || 0,
     'Statut': getStatusLabel(offer.workflow_status),
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(excelData);
+  
+  // Appliquer le format devise aux colonnes de montants (indices 8, 9, 11)
+  applyCurrencyFormat(worksheet, [8, 9, 11]);
   
   // Set column widths
   worksheet['!cols'] = [
