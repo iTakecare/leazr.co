@@ -227,6 +227,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     return totalMargin * proportion;
   };
 
+  // Calculer le prix de vente réparti proportionnellement (cohérent avec le total Grenke)
+  const calculateEquipmentSellingPrice = (item: any, totalPurchasePrice: number, totalSellingPrice: number) => {
+    const equipmentTotal = item.purchase_price * item.quantity;
+    const proportion = totalPurchasePrice > 0 ? equipmentTotal / totalPurchasePrice : 0;
+    return totalSellingPrice * proportion;
+  };
+
   const handleEditTotalMonthly = () => {
     const totals = calculateTotals();
     setEditedTotalMonthly(totals.totalMonthlyPayment);
@@ -548,13 +555,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         />
                       ) : (
                         <span className="text-green-600">
-                          {formatPrice(item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0))}
+                          {formatPrice(calculateEquipmentSellingPrice(item, totals.totalPrice, totals.totalSellingPrice) / item.quantity)}
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-green-600">
-                        {formatPrice((item.selling_price || calculateSellingPrice(item.purchase_price, item.margin || 0)) * item.quantity)}
+                        {formatPrice(calculateEquipmentSellingPrice(item, totals.totalPrice, totals.totalSellingPrice))}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
