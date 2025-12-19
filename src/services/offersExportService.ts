@@ -62,6 +62,12 @@ const calculateFinancedAmountForExcel = (offer: any): number => {
   return offer.financed_amount || 0;
 };
 
+const calculateMarginAmountForExcel = (offer: any): number => {
+  const financedAmount = calculateFinancedAmountForExcel(offer);
+  const purchasePrice = offer.total_purchase_price || 0;
+  return financedAmount - purchasePrice;
+};
+
 const applyCurrencyFormat = (worksheet: XLSX.WorkSheet, columnIndices: number[]) => {
   const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
   const currencyFormat = '#,##0.00 €';
@@ -91,14 +97,15 @@ export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
     'Montant achat (€)': offer.total_purchase_price || 0,
     'Montant financé (€)': calculateFinancedAmountForExcel(offer),
     'Marge (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
+    'Marge (€)': calculateMarginAmountForExcel(offer),
     'Mensualité (€)': offer.monthly_payment || 0,
     'Statut': getStatusLabel(offer.workflow_status),
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(excelData);
   
-  // Appliquer le format devise aux colonnes de montants (indices 8, 9, 11)
-  applyCurrencyFormat(worksheet, [8, 9, 11]);
+  // Appliquer le format devise aux colonnes de montants (indices 8, 9, 11, 12)
+  applyCurrencyFormat(worksheet, [8, 9, 11, 12]);
   
   // Set column widths
   worksheet['!cols'] = [
@@ -112,7 +119,8 @@ export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
     { wch: 15 }, // Bailleur
     { wch: 15 }, // Montant achat
     { wch: 15 }, // Montant financé
-    { wch: 10 }, // Marge
+    { wch: 10 }, // Marge %
+    { wch: 12 }, // Marge €
     { wch: 12 }, // Mensualité
     { wch: 15 }, // Statut
   ];
