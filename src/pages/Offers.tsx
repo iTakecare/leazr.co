@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Grid, List, Filter, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { exportOffersToExcel } from "@/services/offersExportService";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "@/components/layout/PageTransition";
 import OffersKanban from "@/components/offers/OffersKanban";
@@ -83,6 +84,13 @@ const Offers = () => {
         <div className="flex justify-between items-center mb-6">
           <OffersHeader />
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => exportOffersToExcel(filteredOffers)}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exporter Excel
+            </Button>
             <ExcelImportDialog onImportComplete={fetchOffers}>
               <Button variant="outline">
                 Importer Excel

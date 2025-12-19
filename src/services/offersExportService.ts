@@ -1,0 +1,91 @@
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+const getTypeLabel = (type: string | undefined): string => {
+  switch (type) {
+    case 'admin_offer': return 'Offre Admin';
+    case 'client_request': return 'Demande Client';
+    case 'ambassador_offer': return 'Offre Ambassadeur';
+    default: return type || '-';
+  }
+};
+
+const getStatusLabel = (status: string | undefined): string => {
+  switch (status) {
+    case 'draft': return 'Brouillon';
+    case 'sent': return 'Envoyée';
+    case 'info_requested': return 'Info demandée';
+    case 'info_received': return 'Info reçue';
+    case 'approved': return 'Approuvée';
+    case 'leaser_review': return 'En révision bailleur';
+    case 'accepted': return 'Acceptée';
+    case 'rejected': return 'Rejetée';
+    case 'invoiced': return 'Facturée';
+    default: return status || '-';
+  }
+};
+
+const formatEquipmentForExcel = (offer: any): string => {
+  // Try to get equipment from offer_equipment_view or equipment_data
+  if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
+    return offer.offer_equipment_view
+      .map((eq: any) => `${eq.title || eq.product_name || 'Équipement'} x${eq.quantity || 1}`)
+      .join(', ');
+  }
+  
+  if (offer.equipment_data && Array.isArray(offer.equipment_data)) {
+    return offer.equipment_data
+      .map((eq: any) => `${eq.title || 'Équipement'} x${eq.quantity || 1}`)
+      .join(', ');
+  }
+  
+  if (offer.equipment_description) {
+    return offer.equipment_description;
+  }
+  
+  return '-';
+};
+
+export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
+  const excelData = offers.map(offer => ({
+    'N° Dossier': offer.dossier_number || '-',
+    'Date': offer.created_at ? format(new Date(offer.created_at), 'dd/MM/yyyy', { locale: fr }) : '-',
+    'Client': offer.client_name?.split(' - ')[0] || '-',
+    'Entreprise': offer.clients?.company || '-',
+    'Type': getTypeLabel(offer.type),
+    'Équipement': formatEquipmentForExcel(offer),
+    'Source': offer.source || '-',
+    'Bailleur': offer.leaser_name || '-',
+    'Montant achat (€)': offer.total_purchase_price || 0,
+    'Montant financé (€)': offer.financed_amount || 0,
+    'Marge (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
+    'Mensualité (€)': offer.monthly_payment || 0,
+    'Statut': getStatusLabel(offer.workflow_status),
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 15 }, // N° Dossier
+    { wch: 12 }, // Date
+    { wch: 20 }, // Client
+    { wch: 20 }, // Entreprise
+    { wch: 18 }, // Type
+    { wch: 40 }, // Équipement
+    { wch: 12 }, // Source
+    { wch: 15 }, // Bailleur
+    { wch: 15 }, // Montant achat
+    { wch: 15 }, // Montant financé
+    { wch: 10 }, // Marge
+    { wch: 12 }, // Mensualité
+    { wch: 15 }, // Statut
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Demandes');
+
+  const dateStr = format(new Date(), 'yyyy-MM-dd');
+  XLSX.writeFile(workbook, `${filename}_${dateStr}.xlsx`);
+};
