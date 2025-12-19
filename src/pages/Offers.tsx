@@ -28,6 +28,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const Offers = () => {
   const {
+    offers,
     filteredOffers,
     loading,
     loadingError,
@@ -84,7 +85,7 @@ const Offers = () => {
         <div className="flex justify-between items-center mb-6">
           <OffersHeader />
           <div className="flex gap-2">
-            <ExcelExportDialog offers={filteredOffers}>
+            <ExcelExportDialog offers={offers}>
               <Button variant="outline">
                 <Download className="mr-2 h-4 w-4" />
                 Exporter Excel
