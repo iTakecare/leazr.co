@@ -15,11 +15,11 @@ import { exportOffersToExcel } from "@/services/offersExportService";
 const STATUS_GROUPS = {
   in_progress: {
     label: "À traiter",
-    statuses: ['draft', 'sent', 'info_requested', 'info_received', 'leaser_review', 'approved']
+    statuses: ['draft', 'sent', 'offer_send', 'info_requested', 'info_received', 'internal_docs_requested', 'internal_approved', 'leaser_review', 'leaser_introduced', 'approved']
   },
   accepted: {
     label: "Acceptées",
-    statuses: ['accepted', 'validated', 'financed', 'contract_sent', 'signed']
+    statuses: ['accepted', 'validated', 'financed', 'contract_sent', 'contract_signed', 'signed']
   },
   invoiced: {
     label: "Facturées",
