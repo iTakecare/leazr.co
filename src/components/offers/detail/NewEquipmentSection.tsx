@@ -114,12 +114,21 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const handleFieldChange = (field: string, value: any) => {
     const newValues = { ...editedValues, [field]: value };
     
-    // Auto-calculate selling price when purchase price or margin changes
+    // Auto-calculate selling price ONLY when purchase price or margin changes
+    // BUT NOT if user is editing selling_price directly
     if (field === 'purchase_price' || field === 'margin') {
       newValues.selling_price = calculateSellingPrice(
         field === 'purchase_price' ? value : newValues.purchase_price,
         field === 'margin' ? value : newValues.margin
       );
+    }
+    
+    // If user edits selling_price directly, recalculate margin to match
+    if (field === 'selling_price') {
+      const purchasePrice = newValues.purchase_price || 0;
+      if (purchasePrice > 0) {
+        newValues.margin = ((value / purchasePrice) - 1) * 100;
+      }
     }
     
     // Auto-calculate coefficient when monthly payment or purchase price changes
@@ -223,19 +232,18 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
     const adjustedPrices: Record<string, number> = {};
     
-    // Étape 1: Identifier les équipements avec un selling_price manuel
+    // Étape 1: Identifier les équipements avec un selling_price stocké en BD
     let totalManualSellingPrice = 0;
     let totalManualPurchasePrice = 0;
     
     equipmentList.forEach(item => {
       const equipmentPurchaseTotal = item.purchase_price * item.quantity;
-      const calculatedPrice = equipmentPurchaseTotal * (1 + (item.margin || 0) / 100);
-      const storedPrice = item.selling_price ? item.selling_price * item.quantity : null;
       
-      // Si le prix stocké existe et diffère de plus de 1€ du calcul par marge, c'est un prix manuel
-      if (storedPrice !== null && Math.abs(storedPrice - calculatedPrice) > 1) {
-        adjustedPrices[item.id] = Math.round(storedPrice * 100) / 100;
-        totalManualSellingPrice += storedPrice;
+      // Si un selling_price est stocké en BD (non null et > 0), l'utiliser directement
+      if (item.selling_price !== null && item.selling_price !== undefined && item.selling_price > 0) {
+        const totalSellingPriceForItem = item.selling_price * item.quantity;
+        adjustedPrices[item.id] = Math.round(totalSellingPriceForItem * 100) / 100;
+        totalManualSellingPrice += totalSellingPriceForItem;
         totalManualPurchasePrice += equipmentPurchaseTotal;
       }
     });
@@ -288,18 +296,17 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
     const adjustedMargins: Record<string, number> = {};
     
-    // Étape 1: Calculer les marges pour les équipements avec prix manuel (marge = P.V. - P.A.)
+    // Étape 1: Calculer les marges pour les équipements avec selling_price stocké en BD
     let totalManualMargin = 0;
     let totalManualPurchasePrice = 0;
     
     equipmentList.forEach(item => {
       const equipmentPurchaseTotal = item.purchase_price * item.quantity;
-      const calculatedPrice = equipmentPurchaseTotal * (1 + (item.margin || 0) / 100);
-      const storedPrice = item.selling_price ? item.selling_price * item.quantity : null;
       
-      // Si prix manuel détecté, calculer la marge réelle
-      if (storedPrice !== null && Math.abs(storedPrice - calculatedPrice) > 1) {
-        const margin = storedPrice - equipmentPurchaseTotal;
+      // Si un selling_price est stocké en BD, calculer la marge réelle
+      if (item.selling_price !== null && item.selling_price !== undefined && item.selling_price > 0) {
+        const totalSellingPriceForItem = item.selling_price * item.quantity;
+        const margin = totalSellingPriceForItem - equipmentPurchaseTotal;
         adjustedMargins[item.id] = Math.round(margin * 100) / 100;
         totalManualMargin += margin;
         totalManualPurchasePrice += equipmentPurchaseTotal;
