@@ -218,20 +218,85 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     };
   };
 
-  const calculateEquipmentMargin = (item: any, totalPurchasePrice: number, totalMargin: number) => {
-    // Calculer la proportion de cet équipement dans le total
-    const equipmentTotal = item.purchase_price * item.quantity;
-    const proportion = totalPurchasePrice > 0 ? equipmentTotal / totalPurchasePrice : 0;
+  // Pré-calculer tous les P.V. répartis avec ajustement pour que la somme soit exacte (méthode Largest Remainder)
+  const calculateAllSellingPrices = (equipmentList: any[], totalPurchasePrice: number, totalSellingPrice: number): Record<string, number> => {
+    if (equipmentList.length === 0 || totalPurchasePrice === 0) {
+      return {};
+    }
+
+    // Étape 1: Calculer les proportions et les P.V. non arrondis
+    const rawPrices = equipmentList.map(item => {
+      const equipmentTotal = item.purchase_price * item.quantity;
+      const proportion = equipmentTotal / totalPurchasePrice;
+      const rawSellingPrice = totalSellingPrice * proportion;
+      const roundedPrice = Math.round(rawSellingPrice * 100) / 100; // Arrondi à 2 décimales
+      return {
+        id: item.id,
+        rawPrice: rawSellingPrice,
+        roundedPrice: roundedPrice,
+        remainder: rawSellingPrice - roundedPrice
+      };
+    });
+
+    // Étape 2: Calculer la différence entre le total et la somme des arrondis
+    const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
+    let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100); // En centimes
+
+    // Étape 3: Répartir la différence sur les lignes avec le plus grand reste
+    const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
     
-    // Répartir la marge totale proportionnellement
-    return totalMargin * proportion;
+    const adjustedPrices: Record<string, number> = {};
+    rawPrices.forEach(p => {
+      adjustedPrices[p.id] = p.roundedPrice;
+    });
+
+    // Ajouter/retirer 1 centime aux lignes avec le plus grand reste
+    for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+      const id = sortedByRemainder[i].id;
+      adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
+      // Arrondir pour éviter les erreurs de virgule flottante
+      adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
+    }
+
+    return adjustedPrices;
   };
 
-  // Calculer le prix de vente réparti proportionnellement (cohérent avec le total Grenke)
-  const calculateEquipmentSellingPrice = (item: any, totalPurchasePrice: number, totalSellingPrice: number) => {
-    const equipmentTotal = item.purchase_price * item.quantity;
-    const proportion = totalPurchasePrice > 0 ? equipmentTotal / totalPurchasePrice : 0;
-    return totalSellingPrice * proportion;
+  // Pré-calculer toutes les marges réparties avec ajustement (méthode Largest Remainder)
+  const calculateAllMargins = (equipmentList: any[], totalPurchasePrice: number, totalMargin: number): Record<string, number> => {
+    if (equipmentList.length === 0 || totalPurchasePrice === 0) {
+      return {};
+    }
+
+    const rawMargins = equipmentList.map(item => {
+      const equipmentTotal = item.purchase_price * item.quantity;
+      const proportion = equipmentTotal / totalPurchasePrice;
+      const rawMargin = totalMargin * proportion;
+      const roundedMargin = Math.round(rawMargin * 100) / 100;
+      return {
+        id: item.id,
+        rawMargin: rawMargin,
+        roundedMargin: roundedMargin,
+        remainder: rawMargin - roundedMargin
+      };
+    });
+
+    const sumRounded = rawMargins.reduce((sum, m) => sum + m.roundedMargin, 0);
+    let differenceInCents = Math.round((totalMargin - sumRounded) * 100);
+
+    const sortedByRemainder = [...rawMargins].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
+    
+    const adjustedMargins: Record<string, number> = {};
+    rawMargins.forEach(m => {
+      adjustedMargins[m.id] = m.roundedMargin;
+    });
+
+    for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+      const id = sortedByRemainder[i].id;
+      adjustedMargins[id] += differenceInCents > 0 ? 0.01 : -0.01;
+      adjustedMargins[id] = Math.round(adjustedMargins[id] * 100) / 100;
+    }
+
+    return adjustedMargins;
   };
 
   const handleEditTotalMonthly = () => {
@@ -373,6 +438,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   }
 
   const totals = calculateTotals();
+  
+  // Pré-calculer les prix de vente et marges ajustés (méthode Largest Remainder)
+  const adjustedSellingPrices = calculateAllSellingPrices(equipment, totals.totalPrice, totals.totalSellingPrice);
+  const adjustedMargins = calculateAllMargins(equipment, totals.totalPrice, totals.totalMargin);
 
   return (
     <Card>
@@ -440,7 +509,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 const isEditing = editingId === item.id;
                 const values = isEditing ? editedValues : item;
                 const totalPrice = values.purchase_price * values.quantity;
-                const equipmentMargin = calculateEquipmentMargin(item, totals.totalPrice, totals.totalMargin);
+                const equipmentSellingPrice = adjustedSellingPrices[item.id] || 0;
+                const equipmentMargin = adjustedMargins[item.id] || 0;
                 const attributes = formatAttributes(item.attributes);
 
                 return (
@@ -555,13 +625,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         />
                       ) : (
                         <span className="text-green-600">
-                          {formatPrice(calculateEquipmentSellingPrice(item, totals.totalPrice, totals.totalSellingPrice) / item.quantity)}
+                          {formatPrice(equipmentSellingPrice / item.quantity)}
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-green-600">
-                        {formatPrice(calculateEquipmentSellingPrice(item, totals.totalPrice, totals.totalSellingPrice))}
+                        {formatPrice(equipmentSellingPrice)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
