@@ -219,81 +219,130 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   };
 
   // Pré-calculer tous les P.V. répartis avec ajustement pour que la somme soit exacte (méthode Largest Remainder)
+  // Respecte les prix de vente manuels s'ils existent
   const calculateAllSellingPrices = (equipmentList: any[], totalPurchasePrice: number, totalSellingPrice: number): Record<string, number> => {
     if (equipmentList.length === 0 || totalPurchasePrice === 0) {
       return {};
     }
 
-    // Étape 1: Calculer les proportions et les P.V. non arrondis
-    const rawPrices = equipmentList.map(item => {
-      const equipmentTotal = item.purchase_price * item.quantity;
-      const proportion = equipmentTotal / totalPurchasePrice;
-      const rawSellingPrice = totalSellingPrice * proportion;
-      const roundedPrice = Math.round(rawSellingPrice * 100) / 100; // Arrondi à 2 décimales
-      return {
-        id: item.id,
-        rawPrice: rawSellingPrice,
-        roundedPrice: roundedPrice,
-        remainder: rawSellingPrice - roundedPrice
-      };
-    });
-
-    // Étape 2: Calculer la différence entre le total et la somme des arrondis
-    const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
-    let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100); // En centimes
-
-    // Étape 3: Répartir la différence sur les lignes avec le plus grand reste
-    const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
-    
     const adjustedPrices: Record<string, number> = {};
-    rawPrices.forEach(p => {
-      adjustedPrices[p.id] = p.roundedPrice;
+    
+    // Étape 1: Identifier les équipements avec un selling_price manuel
+    let totalManualSellingPrice = 0;
+    let totalManualPurchasePrice = 0;
+    
+    equipmentList.forEach(item => {
+      const equipmentPurchaseTotal = item.purchase_price * item.quantity;
+      const calculatedPrice = equipmentPurchaseTotal * (1 + (item.margin || 0) / 100);
+      const storedPrice = item.selling_price ? item.selling_price * item.quantity : null;
+      
+      // Si le prix stocké existe et diffère de plus de 1€ du calcul par marge, c'est un prix manuel
+      if (storedPrice !== null && Math.abs(storedPrice - calculatedPrice) > 1) {
+        adjustedPrices[item.id] = Math.round(storedPrice * 100) / 100;
+        totalManualSellingPrice += storedPrice;
+        totalManualPurchasePrice += equipmentPurchaseTotal;
+      }
     });
 
-    // Ajouter/retirer 1 centime aux lignes avec le plus grand reste
-    for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
-      const id = sortedByRemainder[i].id;
-      adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
-      // Arrondir pour éviter les erreurs de virgule flottante
-      adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
+    // Étape 2: Calculer le reste à répartir pour les équipements sans prix manuel
+    const remainingSellingPrice = totalSellingPrice - totalManualSellingPrice;
+    const remainingPurchasePrice = totalPurchasePrice - totalManualPurchasePrice;
+    
+    // Étape 3: Répartir proportionnellement le reste (méthode Largest Remainder)
+    const itemsToDistribute = equipmentList.filter(item => !adjustedPrices[item.id]);
+    
+    if (itemsToDistribute.length > 0 && remainingPurchasePrice > 0) {
+      const rawPrices = itemsToDistribute.map(item => {
+        const equipmentTotal = item.purchase_price * item.quantity;
+        const proportion = equipmentTotal / remainingPurchasePrice;
+        const rawSellingPrice = remainingSellingPrice * proportion;
+        const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
+        return {
+          id: item.id,
+          rawPrice: rawSellingPrice,
+          roundedPrice: roundedPrice,
+          remainder: rawSellingPrice - roundedPrice
+        };
+      });
+
+      const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
+      let differenceInCents = Math.round((remainingSellingPrice - sumRounded) * 100);
+      const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
+      
+      rawPrices.forEach(p => {
+        adjustedPrices[p.id] = p.roundedPrice;
+      });
+
+      for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+        const id = sortedByRemainder[i].id;
+        adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
+        adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
+      }
     }
 
     return adjustedPrices;
   };
 
   // Pré-calculer toutes les marges réparties avec ajustement (méthode Largest Remainder)
-  const calculateAllMargins = (equipmentList: any[], totalPurchasePrice: number, totalMargin: number): Record<string, number> => {
+  // Respecte les marges issues des prix de vente manuels
+  const calculateAllMargins = (equipmentList: any[], totalPurchasePrice: number, totalMargin: number, adjustedSellingPrices: Record<string, number>): Record<string, number> => {
     if (equipmentList.length === 0 || totalPurchasePrice === 0) {
       return {};
     }
 
-    const rawMargins = equipmentList.map(item => {
-      const equipmentTotal = item.purchase_price * item.quantity;
-      const proportion = equipmentTotal / totalPurchasePrice;
-      const rawMargin = totalMargin * proportion;
-      const roundedMargin = Math.round(rawMargin * 100) / 100;
-      return {
-        id: item.id,
-        rawMargin: rawMargin,
-        roundedMargin: roundedMargin,
-        remainder: rawMargin - roundedMargin
-      };
-    });
-
-    const sumRounded = rawMargins.reduce((sum, m) => sum + m.roundedMargin, 0);
-    let differenceInCents = Math.round((totalMargin - sumRounded) * 100);
-
-    const sortedByRemainder = [...rawMargins].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
-    
     const adjustedMargins: Record<string, number> = {};
-    rawMargins.forEach(m => {
-      adjustedMargins[m.id] = m.roundedMargin;
+    
+    // Étape 1: Calculer les marges pour les équipements avec prix manuel (marge = P.V. - P.A.)
+    let totalManualMargin = 0;
+    let totalManualPurchasePrice = 0;
+    
+    equipmentList.forEach(item => {
+      const equipmentPurchaseTotal = item.purchase_price * item.quantity;
+      const calculatedPrice = equipmentPurchaseTotal * (1 + (item.margin || 0) / 100);
+      const storedPrice = item.selling_price ? item.selling_price * item.quantity : null;
+      
+      // Si prix manuel détecté, calculer la marge réelle
+      if (storedPrice !== null && Math.abs(storedPrice - calculatedPrice) > 1) {
+        const margin = storedPrice - equipmentPurchaseTotal;
+        adjustedMargins[item.id] = Math.round(margin * 100) / 100;
+        totalManualMargin += margin;
+        totalManualPurchasePrice += equipmentPurchaseTotal;
+      }
     });
 
-    for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
-      const id = sortedByRemainder[i].id;
-      adjustedMargins[id] += differenceInCents > 0 ? 0.01 : -0.01;
-      adjustedMargins[id] = Math.round(adjustedMargins[id] * 100) / 100;
+    // Étape 2: Répartir le reste de la marge
+    const remainingMargin = totalMargin - totalManualMargin;
+    const remainingPurchasePrice = totalPurchasePrice - totalManualPurchasePrice;
+    
+    const itemsToDistribute = equipmentList.filter(item => !adjustedMargins[item.id]);
+    
+    if (itemsToDistribute.length > 0 && remainingPurchasePrice > 0) {
+      const rawMargins = itemsToDistribute.map(item => {
+        const equipmentTotal = item.purchase_price * item.quantity;
+        const proportion = equipmentTotal / remainingPurchasePrice;
+        const rawMargin = remainingMargin * proportion;
+        const roundedMargin = Math.round(rawMargin * 100) / 100;
+        return {
+          id: item.id,
+          rawMargin: rawMargin,
+          roundedMargin: roundedMargin,
+          remainder: rawMargin - roundedMargin
+        };
+      });
+
+      const sumRounded = rawMargins.reduce((sum, m) => sum + m.roundedMargin, 0);
+      let differenceInCents = Math.round((remainingMargin - sumRounded) * 100);
+      const sortedByRemainder = [...rawMargins].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
+      
+      rawMargins.forEach(m => {
+        adjustedMargins[m.id] = m.roundedMargin;
+      });
+
+      for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+        const id = sortedByRemainder[i].id;
+        adjustedMargins[id] += differenceInCents > 0 ? 0.01 : -0.01;
+        adjustedMargins[id] = Math.round(adjustedMargins[id] * 100) / 100;
+      }
     }
 
     return adjustedMargins;
@@ -441,7 +490,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   
   // Pré-calculer les prix de vente et marges ajustés (méthode Largest Remainder)
   const adjustedSellingPrices = calculateAllSellingPrices(equipment, totals.totalPrice, totals.totalSellingPrice);
-  const adjustedMargins = calculateAllMargins(equipment, totals.totalPrice, totals.totalMargin);
+  const adjustedMargins = calculateAllMargins(equipment, totals.totalPrice, totals.totalMargin, adjustedSellingPrices);
 
   return (
     <Card>
