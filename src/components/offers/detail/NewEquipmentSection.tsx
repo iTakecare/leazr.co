@@ -54,6 +54,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingTotalMonthly, setIsEditingTotalMonthly] = useState(false);
   const [editedTotalMonthly, setEditedTotalMonthly] = useState(0);
+  const [editedTotalMonthlyInput, setEditedTotalMonthlyInput] = useState("");
   const [leaser, setLeaser] = useState<Leaser | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
@@ -183,30 +184,25 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   };
 
   const calculateTotals = () => {
-    // Convertir les équipements au format attendu par calculateEquipmentResults
-    const equipmentForCalc = equipment.map(item => ({
-      id: item.id,
-      title: item.title,
-      purchasePrice: item.purchase_price,
-      quantity: item.quantity,
-      margin: item.margin || 0,
-      monthlyPayment: Number(item.monthly_payment) || 0,
-    }));
-
-    // Utiliser la fonction centralisée de calcul avec formule inverse
-    const results = calculateEquipmentResults(equipmentForCalc, leaser, offer.duration || 36);
-
-    const totalPrice = results.totalPurchasePrice;
-    const totalMonthlyPayment = results.normalMonthlyPayment;
+    // Calculer les totaux directement à partir des valeurs stockées en BD
+    // pour garantir la cohérence entre les lignes et les totaux
+    const totalPrice = equipment.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+    const totalMonthlyPayment = equipment.reduce((sum, item) => sum + (Number(item.monthly_payment) || 0), 0);
     
-    // IMPORTANT: Utiliser le montant financé calculé par formule inverse (mensualité × 100 / coefficient)
-    // C'est cette valeur qui correspond au portail Grenke
-    const totalSellingPrice = results.totalFinancedAmount;
+    // P.V. total = somme des (selling_price * quantity) si disponible, sinon calcul par marge
+    const totalSellingPrice = equipment.reduce((sum, item) => {
+      if (item.selling_price && item.selling_price > 0) {
+        return sum + (item.selling_price * item.quantity);
+      }
+      // Fallback: calcul par marge
+      const calculatedPrice = item.purchase_price * (1 + (item.margin || 0) / 100);
+      return sum + (calculatedPrice * item.quantity);
+    }, 0);
     
-    // Marge = Montant financé (inverse) - Prix d'achat
+    // Marge = P.V. total - P.A. total
     const totalMargin = totalSellingPrice - totalPrice;
-    const marginPercentage = results.normalMarginPercentage;
-    const globalCoefficient = results.globalCoefficient;
+    const marginPercentage = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
+    const globalCoefficient = totalPrice > 0 ? totalMonthlyPayment / totalPrice : 0;
 
     return { 
       totalPrice, 
@@ -351,6 +347,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const handleEditTotalMonthly = () => {
     const totals = calculateTotals();
     setEditedTotalMonthly(totals.totalMonthlyPayment);
+    setEditedTotalMonthlyInput(totals.totalMonthlyPayment.toFixed(2).replace('.', ','));
     setIsEditingTotalMonthly(true);
   };
 
@@ -371,47 +368,48 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       }
       
       // ÉTAPE 1: Calculer le montant financé total avec le coefficient correct du leaser
-      // Utiliser la logique du leaser pour trouver le montant financé exact
       const calculatedFinancedAmount = calculateSalePriceWithLeaser(editedTotalMonthly, leaser, offer.duration || 36);
-      
-      // Forcer l'arrondi à exactement 2 décimales (comme Excel)
       const totalFinancedAmount = parseFloat(calculatedFinancedAmount.toFixed(2));
       
       // ÉTAPE 2: Calculer le coefficient global de répartition
       const globalCoefficient = totalFinancedAmount / currentTotalPurchasePrice;
       
-      console.log("🔥 TOTAL MONTHLY - Leaser Logic Calculation:", {
-        currentTotalPurchasePrice,
-        editedTotalMonthly,
-        totalFinancedAmount,
-        globalCoefficient,
-        leaserName: leaser?.name,
-        duration: offer.duration || 36
+      // ÉTAPE 3: Répartir la mensualité avec la méthode Largest Remainder pour que la somme soit EXACTE
+      const rawDistributed = equipment.map(item => {
+        const itemWeight = item.purchase_price * item.quantity;
+        const rawMonthlyPayment = editedTotalMonthly * (itemWeight / currentTotalPurchasePrice);
+        const roundedPayment = Math.floor(rawMonthlyPayment * 100) / 100; // Arrondi vers le bas
+        return {
+          item,
+          rawPayment: rawMonthlyPayment,
+          roundedPayment,
+          remainder: (rawMonthlyPayment * 100) - Math.floor(rawMonthlyPayment * 100) // Reste en centimes
+        };
       });
+
+      // Calculer les centimes restants à distribuer
+      const sumRounded = rawDistributed.reduce((sum, d) => sum + d.roundedPayment, 0);
+      let remainingCents = Math.round((editedTotalMonthly - sumRounded) * 100);
+
+      // Distribuer les centimes aux lignes avec le plus grand reste
+      const sortedByRemainder = [...rawDistributed].sort((a, b) => b.remainder - a.remainder);
+      const finalPayments: Record<string, number> = {};
+
+      rawDistributed.forEach(d => {
+        finalPayments[d.item.id] = d.roundedPayment;
+      });
+
+      for (let i = 0; i < remainingCents && i < sortedByRemainder.length; i++) {
+        finalPayments[sortedByRemainder[i].item.id] = Math.round((finalPayments[sortedByRemainder[i].item.id] + 0.01) * 100) / 100;
+      }
       
-      // ÉTAPE 3: Répartir proportionnellement sur chaque équipement
+      // ÉTAPE 4: Mettre à jour chaque équipement avec sa mensualité exacte
       const updatePromises = equipment.map(async (item) => {
-         // Prix de vente unitaire = Prix d'achat × Coefficient global (arrondi à 2 décimales)
-         const newSellingPrice = Math.round(item.purchase_price * globalCoefficient * 100) / 100;
-         
-         // Répartir proportionnellement la mensualité totale saisie par l'utilisateur (arrondi à 2 décimales)
-         const itemWeight = item.purchase_price * item.quantity;
-         const newMonthlyPayment = Math.round(editedTotalMonthly * (itemWeight / currentTotalPurchasePrice) * 100) / 100;
-         const leaserCoefficient = getCoefficientFromLeaser(leaser, newSellingPrice * item.quantity, offer.duration || 36);
-         
-         // Marge = ((Prix de vente - Prix d'achat) / Prix d'achat) × 100 (arrondi à 2 décimales)
-         const newMargin = item.purchase_price > 0 ? 
-           Math.round(((newSellingPrice - item.purchase_price) / item.purchase_price) * 100 * 100) / 100 : 0;
-        
-        console.log(`🔥 TOTAL MONTHLY - Item ${item.id}:`, {
-          purchasePrice: item.purchase_price,
-          quantity: item.quantity,
-          newSellingPrice,
-          itemWeight,
-          newMonthlyPayment,
-          newMargin,
-          globalCoefficient
-        });
+        const newSellingPrice = Math.round(item.purchase_price * globalCoefficient * 100) / 100;
+        const newMonthlyPayment = finalPayments[item.id];
+        const leaserCoefficient = getCoefficientFromLeaser(leaser, newSellingPrice * item.quantity, offer.duration || 36);
+        const newMargin = item.purchase_price > 0 ? 
+          Math.round(((newSellingPrice - item.purchase_price) / item.purchase_price) * 100 * 100) / 100 : 0;
         
         return updateOfferEquipment(item.id, {
           monthly_payment: newMonthlyPayment,
@@ -426,6 +424,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       await refresh();
       queryClient.invalidateQueries({ queryKey: ['offers'] });
       setIsEditingTotalMonthly(false);
+      setEditedTotalMonthlyInput("");
       onOfferUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
@@ -438,6 +437,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const handleCancelTotalMonthly = () => {
     setIsEditingTotalMonthly(false);
     setEditedTotalMonthly(0);
+    setEditedTotalMonthlyInput("");
   };
 
   if (loading) {
@@ -880,12 +880,19 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                   {isEditingTotalMonthly ? (
                     <div className="flex items-center gap-2 justify-end">
                       <Input
-                        type="number"
-                        value={editedTotalMonthly}
-                        onChange={(e) => setEditedTotalMonthly(parseFloat(e.target.value) || 0)}
+                        type="text"
+                        inputMode="decimal"
+                        value={editedTotalMonthlyInput}
+                        onChange={(e) => {
+                          setEditedTotalMonthlyInput(e.target.value);
+                          const value = e.target.value.replace(',', '.');
+                          const numValue = parseFloat(value);
+                          if (!isNaN(numValue)) {
+                            setEditedTotalMonthly(numValue);
+                          }
+                        }}
                         className="w-28 text-right font-mono text-sm"
-                        step="0.01"
-                        min="0"
+                        placeholder="0,00"
                       />
                       <div className="flex flex-col gap-1">
                         <Button
