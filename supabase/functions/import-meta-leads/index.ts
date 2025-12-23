@@ -168,14 +168,12 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
 
         const leaserId = leaser?.id || null;
 
-        // Create offer
+        // Create offer (phone and company are already stored in the linked client)
         const offerData: any = {
           company_id: company.id,
           client_id: client.id,
           client_name: lead.full_name,
           client_email: lead.email,
-          client_phone: lead.phone,
-          client_company: lead.company_name,
           equipment_description: packDisplay,
           type: 'client_request',
           source: 'meta_ads',
