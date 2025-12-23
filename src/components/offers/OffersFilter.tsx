@@ -47,6 +47,7 @@ const OffersFilter = ({
             <Tabs value={activeSource} onValueChange={onSourceChange} className="w-full sm:w-auto">
               <TabsList>
                 <TabsTrigger value="all">Toutes sources</TabsTrigger>
+                <TabsTrigger value="meta">Meta Ads</TabsTrigger>
                 <TabsTrigger value="custom_pack">Packs perso.</TabsTrigger>
                 <TabsTrigger value="web_catalog">Catalogue</TabsTrigger>
               </TabsList>

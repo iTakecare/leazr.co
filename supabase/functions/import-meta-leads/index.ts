@@ -14,13 +14,50 @@ interface MetaLead {
   platform: string;
   pack_interest: string;
   vat_number?: string;
-  email: string;
+  email?: string;  // Can be missing or invalid
   full_name: string;
   phone?: string;
   company_name?: string;
 }
 
 interface PackCharacteristics {
+  model?: string;
+  cpu?: string;
+  memory?: string;
+  storage?: string;
+  color?: string;
+  keyboard?: string;
+}
+
+// Email validation regex
+function isValidEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+// Phone validation - must contain at least some digits
+function isValidPhone(phone: string | undefined): boolean {
+  if (!phone) return false;
+  const cleaned = phone.replace(/\D/g, '');
+  return cleaned.length >= 8;
+}
+
+// Clean and validate phone number
+function cleanPhone(phone: string | undefined): string | null {
+  if (!phone) return null;
+  const cleaned = phone.trim();
+  if (!isValidPhone(cleaned)) return null;
+  return cleaned;
+}
+
+// Clean and validate email
+function cleanEmail(email: string | undefined): string | null {
+  if (!email) return null;
+  const cleaned = email.trim().toLowerCase();
+  if (!isValidEmail(cleaned)) return null;
+  return cleaned;
+}
   model?: string;
   cpu?: string;
   memory?: string;
@@ -89,7 +126,38 @@ Deno.serve(async (req) => {
 
     for (const lead of leads as MetaLead[]) {
       try {
-        console.log(`[META IMPORT] Processing lead: ${lead.email}, meta_lead_id: ${lead.meta_lead_id}`);
+        // Validate and clean email and phone
+        const validEmail = cleanEmail(lead.email);
+        const validPhone = cleanPhone(lead.phone);
+        const fullName = (lead.full_name || '').trim();
+        
+        console.log(`[META IMPORT] Processing lead: email=${validEmail || 'INVALID'}, phone=${validPhone || 'NONE'}, name=${fullName}, meta_lead_id: ${lead.meta_lead_id}`);
+
+        // Must have either valid email OR valid phone to proceed
+        if (!validEmail && !validPhone) {
+          console.warn(`[META IMPORT] Lead rejected: no valid email or phone for meta_lead_id: ${lead.meta_lead_id}`);
+          results.errors++;
+          results.details.push({ 
+            email: lead.email, 
+            meta_lead_id: lead.meta_lead_id,
+            status: 'invalid_data',
+            message: 'Email et téléphone invalides ou manquants'
+          });
+          continue;
+        }
+
+        // Must have a name
+        if (!fullName || fullName.length < 2) {
+          console.warn(`[META IMPORT] Lead rejected: invalid name for meta_lead_id: ${lead.meta_lead_id}`);
+          results.errors++;
+          results.details.push({ 
+            email: lead.email, 
+            meta_lead_id: lead.meta_lead_id,
+            status: 'invalid_data',
+            message: 'Nom invalide ou manquant'
+          });
+          continue;
+        }
 
         // Check if this meta_lead_id has already been imported (idempotence)
         const { data: existingOffer } = await supabase
@@ -103,7 +171,7 @@ Deno.serve(async (req) => {
           console.log(`[META IMPORT] Lead already imported (meta_lead_id: ${lead.meta_lead_id})`);
           results.duplicates++;
           results.details.push({ 
-            email: lead.email, 
+            email: validEmail || lead.email, 
             meta_lead_id: lead.meta_lead_id,
             status: 'duplicate_lead',
             message: 'Ce lead Meta a déjà été importé'
@@ -111,13 +179,28 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Check if client already exists by email
-        const { data: existingClient } = await supabase
-          .from('clients')
-          .select('id, name')
-          .eq('email', lead.email)
-          .eq('company_id', company.id)
-          .single();
+        // Check if client already exists by email OR phone
+        let existingClient = null;
+        
+        if (validEmail) {
+          const { data: clientByEmail } = await supabase
+            .from('clients')
+            .select('id, name')
+            .eq('email', validEmail)
+            .eq('company_id', company.id)
+            .single();
+          existingClient = clientByEmail;
+        }
+        
+        if (!existingClient && validPhone) {
+          const { data: clientByPhone } = await supabase
+            .from('clients')
+            .select('id, name')
+            .eq('phone', validPhone)
+            .eq('company_id', company.id)
+            .single();
+          existingClient = clientByPhone;
+        }
 
         let clientId: string;
         let isNewClient = false;
@@ -167,13 +250,13 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
             .from('clients')
             .insert({
               company_id: company.id,
-              name: lead.full_name,
+              name: fullName,
               first_name: firstName,
               last_name: lastName,
-              email: lead.email,
-              phone: lead.phone,
-              company: lead.company_name,
-              vat_number: lead.vat_number,
+              email: validEmail,  // Use cleaned/validated email
+              phone: validPhone,  // Use cleaned/validated phone
+              company: lead.company_name || null,
+              vat_number: lead.vat_number || null,
               status: 'lead',
               notes: clientNotes
             })
@@ -240,8 +323,8 @@ ${packDisplay}
         const offerData: any = {
           company_id: company.id,
           client_id: clientId,
-          client_name: lead.full_name,
-          client_email: lead.email,
+          client_name: fullName,  // Use validated name
+          client_email: validEmail,  // Use validated email
           equipment_description: packDisplay,
           type: 'client_request',
           source: 'meta', // Changed from 'meta_ads' to match UI
