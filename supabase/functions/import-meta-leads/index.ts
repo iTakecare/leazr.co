@@ -58,14 +58,6 @@ function cleanEmail(email: string | undefined): string | null {
   if (!isValidEmail(cleaned)) return null;
   return cleaned;
 }
-  model?: string;
-  cpu?: string;
-  memory?: string;
-  storage?: string;
-  color?: string;
-  keyboard?: string;
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
