@@ -66,14 +66,22 @@ export const useOfferFilters = (offers: Offer[]) => {
       result = result.filter(offer => offer.type === activeType);
     }
     
-    // Filtre par présence de packs personnalisés
+    // Filtre par source (meta, custom_pack, web_catalog)
     if (activeSource !== "all") {
-      console.log(`Filtering by pack presence: ${activeSource}`);
-      const hasCustomPacks = activeSource === "custom_pack";
-      result = result.filter(offer => {
-        const offerHasPacks = offer.offer_custom_packs && offer.offer_custom_packs.length > 0;
-        return hasCustomPacks ? offerHasPacks : !offerHasPacks;
-      });
+      console.log(`Filtering by source: ${activeSource}`);
+      if (activeSource === "meta") {
+        // Filtrer par source = 'meta'
+        result = result.filter(offer => offer.source === 'meta');
+      } else if (activeSource === "custom_pack") {
+        // Filtrer par présence de packs personnalisés
+        result = result.filter(offer => offer.offer_custom_packs && offer.offer_custom_packs.length > 0);
+      } else if (activeSource === "web_catalog") {
+        // Filtrer par catalogue web (pas de packs et pas meta)
+        result = result.filter(offer => {
+          const offerHasPacks = offer.offer_custom_packs && offer.offer_custom_packs.length > 0;
+          return !offerHasPacks && offer.source !== 'meta';
+        });
+      }
     }
     
     // Filtre par terme de recherche
