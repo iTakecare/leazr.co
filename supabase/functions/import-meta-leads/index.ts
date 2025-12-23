@@ -14,20 +14,68 @@ interface MetaLead {
   platform: string;
   pack_interest: string;
   vat_number?: string;
-  email?: string;  // Can be missing or invalid
+  email?: string;
   full_name: string;
   phone?: string;
   company_name?: string;
 }
 
-interface PackCharacteristics {
-  model?: string;
-  cpu?: string;
-  memory?: string;
-  storage?: string;
-  color?: string;
-  keyboard?: string;
+interface ParsedPack {
+  rawProducts: string[];
+  formattedProducts: string[];
+  displayName: string;
+  equipmentDescription: string;
+  priceFromMeta: number | null;
 }
+
+interface MatchedProduct {
+  product_id: string;
+  name: string;
+  monthly_price: number;
+  purchase_price: number;
+}
+
+interface MultiProductMatch {
+  products: MatchedProduct[];
+  totalMonthly: number;
+  totalPurchase: number;
+  allMatched: boolean;
+}
+
+// Brand capitalization dictionary
+const brandCapitalization: Record<string, string> = {
+  'hp': 'HP',
+  'probook': 'ProBook',
+  'elitebook': 'EliteBook',
+  'zbook': 'ZBook',
+  'iphone': 'iPhone',
+  'ipad': 'iPad',
+  'macbook': 'MacBook',
+  'imac': 'iMac',
+  'dell': 'Dell',
+  'lenovo': 'Lenovo',
+  'thinkpad': 'ThinkPad',
+  'latitude': 'Latitude',
+  'pro': 'Pro',
+  'max': 'Max',
+  'plus': 'Plus',
+  'air': 'Air',
+  'mini': 'Mini',
+  'g10': 'G10',
+  'g9': 'G9',
+  'g8': 'G8',
+  'g7': 'G7',
+  '450': '450',
+  '650': '650',
+  '840': '840',
+  '850': '850',
+  '14s': '14s',
+  '15s': '15s',
+  '16': '16',
+  '15': '15',
+  '14': '14',
+  '13': '13'
+};
 
 // Email validation regex
 function isValidEmail(email: string | undefined): boolean {
@@ -58,6 +106,163 @@ function cleanEmail(email: string | undefined): string | null {
   if (!isValidEmail(cleaned)) return null;
   return cleaned;
 }
+
+// Parse pack interest from Meta format
+function parsePackInterest(packInterest: string): ParsedPack {
+  console.log('[META IMPORT] Parsing pack_interest:', packInterest);
+  
+  // Remove "pack_" prefix if present
+  let cleanedPack = packInterest.toLowerCase().replace(/^pack_/, '');
+  
+  // Extract price from format ":_95,90€_htva/mois" or "_:_95,90€_htva/mois"
+  let priceFromMeta: number | null = null;
+  const priceMatch = cleanedPack.match(/_?:_?(\d+)[,.](\d+)€_htva\/mois$/i);
+  if (priceMatch) {
+    priceFromMeta = parseFloat(`${priceMatch[1]}.${priceMatch[2]}`);
+    // Remove price part from the pack name
+    cleanedPack = cleanedPack.replace(/_?:_?\d+[,.]\d+€_htva\/mois$/i, '');
+    console.log('[META IMPORT] Extracted price from Meta:', priceFromMeta);
+  }
+  
+  // Split products by "_+_"
+  const rawProducts = cleanedPack.split('_+_').map(p => p.trim()).filter(Boolean);
+  console.log('[META IMPORT] Raw products split:', rawProducts);
+  
+  // Format each product name
+  const formattedProducts = rawProducts.map(product => {
+    // Split by underscore
+    const words = product.split('_').filter(Boolean);
+    
+    // Apply brand capitalization
+    const formattedWords = words.map(word => {
+      const lowerWord = word.toLowerCase();
+      if (brandCapitalization[lowerWord]) {
+        return brandCapitalization[lowerWord];
+      }
+      // Capitalize first letter for unknown words
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    });
+    
+    return formattedWords.join(' ');
+  });
+  
+  console.log('[META IMPORT] Formatted products:', formattedProducts);
+  
+  // Create display name: "HP ProBook 450 G10 + iPhone 16 Pro"
+  const displayName = formattedProducts.join(' + ');
+  
+  // Create equipment description: "1 x HP ProBook 450 G10 et 1 x iPhone 16 Pro"
+  const equipmentDescription = formattedProducts.map(p => `1 x ${p}`).join(' et ');
+  
+  return {
+    rawProducts,
+    formattedProducts,
+    displayName,
+    equipmentDescription,
+    priceFromMeta
+  };
+}
+
+// Find multiple products in catalog
+async function findMultipleProducts(
+  supabase: any,
+  productNames: string[],
+  companyId: string
+): Promise<MultiProductMatch> {
+  const result: MultiProductMatch = {
+    products: [],
+    totalMonthly: 0,
+    totalPurchase: 0,
+    allMatched: true
+  };
+  
+  for (const productName of productNames) {
+    console.log('[META IMPORT] Searching catalog for:', productName);
+    
+    // Search by product name (fuzzy match)
+    const searchTerms = productName.split(' ').filter(t => t.length > 2);
+    let searchQuery = searchTerms.join(' & ');
+    
+    // Try to find product
+    const { data: products, error: prodError } = await supabase
+      .from('products')
+      .select('id, name, price, monthly_price')
+      .eq('company_id', companyId)
+      .eq('active', true)
+      .or(searchTerms.map(t => `name.ilike.%${t}%`).join(','))
+      .limit(10);
+    
+    if (prodError) {
+      console.error('[META IMPORT] Product search error:', prodError);
+      result.allMatched = false;
+      continue;
+    }
+    
+    // Score each product by how many search terms match
+    let bestMatch: any = null;
+    let bestScore = 0;
+    
+    for (const product of products || []) {
+      const productNameLower = product.name.toLowerCase();
+      let score = 0;
+      
+      for (const term of searchTerms) {
+        if (productNameLower.includes(term.toLowerCase())) {
+          score++;
+        }
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = product;
+      }
+    }
+    
+    if (!bestMatch || bestScore < 2) {
+      console.log('[META IMPORT] No good match found for:', productName);
+      result.allMatched = false;
+      continue;
+    }
+    
+    console.log('[META IMPORT] Best match:', bestMatch.name, 'with score:', bestScore);
+    
+    // Get minimum variant price
+    const { data: variants, error: varError } = await supabase
+      .from('product_variant_prices')
+      .select('id, monthly_price, purchase_price')
+      .eq('product_id', bestMatch.id)
+      .order('monthly_price', { ascending: true })
+      .limit(1);
+    
+    let monthlyPrice = bestMatch.monthly_price || 0;
+    let purchasePrice = bestMatch.price || 0;
+    
+    if (!varError && variants && variants.length > 0) {
+      monthlyPrice = variants[0].monthly_price || monthlyPrice;
+      purchasePrice = variants[0].purchase_price || purchasePrice;
+      console.log('[META IMPORT] Using minimum variant price:', monthlyPrice, '€/mois');
+    }
+    
+    result.products.push({
+      product_id: bestMatch.id,
+      name: bestMatch.name,
+      monthly_price: monthlyPrice,
+      purchase_price: purchasePrice
+    });
+    
+    result.totalMonthly += monthlyPrice;
+    result.totalPurchase += purchasePrice;
+  }
+  
+  console.log('[META IMPORT] Multi-product match result:', {
+    matchedCount: result.products.length,
+    totalMonthly: result.totalMonthly,
+    allMatched: result.allMatched
+  });
+  
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -171,6 +376,13 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Parse pack interest with intelligent parsing
+        const parsedPack = parsePackInterest(lead.pack_interest);
+        console.log('[META IMPORT] Parsed pack:', parsedPack);
+
+        // Find matching products in catalog
+        const matchedProducts = await findMultipleProducts(supabase, parsedPack.formattedProducts, company.id);
+
         // Check if client already exists by email OR phone
         let existingClient = null;
         
@@ -220,9 +432,6 @@ Deno.serve(async (req) => {
             minute: '2-digit'
           });
 
-          // Parse pack interest for display
-          const packDisplay = parsePackForDisplay(lead.pack_interest);
-
           // Build enriched notes for client
           const clientNotes = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📱 SOURCE: META (Facebook/Instagram)
@@ -233,7 +442,7 @@ Deno.serve(async (req) => {
 🔹 Meta Lead ID: ${lead.meta_lead_id}
 
 📦 PACK INTÉRESSÉ:
-${packDisplay}
+${parsedPack.displayName}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
@@ -245,8 +454,8 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
               name: fullName,
               first_name: firstName,
               last_name: lastName,
-              email: validEmail,  // Use cleaned/validated email
-              phone: validPhone,  // Use cleaned/validated phone
+              email: validEmail,
+              phone: validPhone,
               company: lead.company_name || null,
               vat_number: lead.vat_number || null,
               status: 'lead',
@@ -270,10 +479,6 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           console.log(`[META IMPORT] Client created: ${clientId}`);
         }
 
-        // Parse pack and try to match product
-        const packChars = parsePackCharacteristics(lead.pack_interest);
-        const matchedProduct = await findMatchingProduct(supabase, packChars, company.id);
-
         // Get default leaser (Grenke)
         const { data: leaser } = await supabase
           .from('leasers')
@@ -294,9 +499,6 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           minute: '2-digit'
         });
 
-        // Parse pack interest for display
-        const packDisplay = parsePackForDisplay(lead.pack_interest);
-
         // Build remarks with meta_lead_id for idempotence checking
         const offerRemarks = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📱 SOURCE: META (Facebook/Instagram)
@@ -307,28 +509,45 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
 🔹 Meta Lead ID: ${lead.meta_lead_id}
 
 📦 PACK DEMANDÉ:
-${packDisplay}
+${parsedPack.displayName}
+${parsedPack.priceFromMeta ? `💰 Prix affiché: ${parsedPack.priceFromMeta.toFixed(2)}€ HTVA/mois` : ''}
+
+📋 ÉQUIPEMENTS:
+${parsedPack.equipmentDescription}
+
+${matchedProducts.products.length > 0 ? `✅ CORRESPONDANCE CATALOGUE:
+${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)}€/mois`).join('\n')}
+📊 Total catalogue: ${matchedProducts.totalMonthly.toFixed(2)}€/mois` : '⚠️ Produits non trouvés dans le catalogue'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-        // Create offer with source 'meta' (matching UI)
+        // Calculate monthly payment: use catalog total if found, otherwise Meta price
+        const monthlyPayment = matchedProducts.totalMonthly > 0 
+          ? matchedProducts.totalMonthly 
+          : (parsedPack.priceFromMeta || 0);
+
+        const purchaseAmount = matchedProducts.totalPurchase > 0 
+          ? matchedProducts.totalPurchase 
+          : 0;
+
+        // Create offer with source 'meta'
         const offerData: any = {
           company_id: company.id,
           client_id: clientId,
-          client_name: fullName,  // Use validated name
-          client_email: validEmail,  // Use validated email
-          equipment_description: packDisplay,
+          client_name: fullName,
+          client_email: validEmail,
+          equipment_description: parsedPack.equipmentDescription,
           type: 'client_request',
-          source: 'meta', // Changed from 'meta_ads' to match UI
+          source: 'meta',
           workflow_status: 'draft',
           status: 'pending',
           remarks: offerRemarks,
           leaser_id: leaserId,
           duration: 36,
-          products_to_be_determined: !matchedProduct,
-          amount: matchedProduct?.price || 0,
-          monthly_payment: matchedProduct?.monthly_price || 0,
-          financed_amount: matchedProduct?.monthly_price ? (matchedProduct.monthly_price * 100) / 3.53 : 0,
+          products_to_be_determined: matchedProducts.products.length === 0,
+          amount: purchaseAmount,
+          monthly_payment: monthlyPayment,
+          financed_amount: monthlyPayment ? (monthlyPayment * 100) / 3.53 : 0,
           coefficient: 3.53
         };
 
@@ -352,29 +571,30 @@ ${packDisplay}
 
         console.log(`[META IMPORT] Offer created: ${offer.id}`);
 
-        // Create equipment if product matched
-        if (matchedProduct) {
-          const margin = matchedProduct.monthly_price && matchedProduct.price
-            ? ((matchedProduct.monthly_price - matchedProduct.price) / matchedProduct.price) * 100
-            : 0;
+        // Create equipment entries for each matched product
+        if (matchedProducts.products.length > 0) {
+          for (const product of matchedProducts.products) {
+            const margin = product.monthly_price && product.purchase_price
+              ? ((product.monthly_price - product.purchase_price) / product.purchase_price) * 100
+              : 0;
 
-          const { error: equipError } = await supabase
-            .from('offer_equipment')
-            .insert({
-              offer_id: offer.id,
-              title: matchedProduct.name,
-              product_id: matchedProduct.product_id,
-              variant_id: matchedProduct.variant_id,
-              purchase_price: matchedProduct.price,
-              monthly_payment: matchedProduct.monthly_price,
-              quantity: 1,
-              margin: margin
-            });
+            const { error: equipError } = await supabase
+              .from('offer_equipment')
+              .insert({
+                offer_id: offer.id,
+                title: product.name,
+                product_id: product.product_id,
+                purchase_price: product.purchase_price,
+                monthly_payment: product.monthly_price,
+                quantity: 1,
+                margin: margin
+              });
 
-          if (equipError) {
-            console.error('[META IMPORT] Equipment creation error:', equipError);
-          } else {
-            console.log(`[META IMPORT] Equipment created for offer ${offer.id}`);
+            if (equipError) {
+              console.error('[META IMPORT] Equipment creation error:', equipError);
+            } else {
+              console.log(`[META IMPORT] Equipment created: ${product.name} for offer ${offer.id}`);
+            }
           }
         }
 
@@ -393,7 +613,9 @@ ${packDisplay}
             : '✓ Demande créée (client existant)',
           client_id: clientId,
           offer_id: offer.id,
-          product_matched: !!matchedProduct
+          products_matched: matchedProducts.products.length,
+          total_monthly: monthlyPayment,
+          parsed_pack: parsedPack.displayName
         });
 
       } catch (err: any) {
@@ -420,148 +642,3 @@ ${packDisplay}
     );
   }
 });
-
-// Helper functions
-
-function parsePackCharacteristics(packName: string): PackCharacteristics {
-  const normalized = packName.toLowerCase().replace(/_/g, ' ');
-  
-  const chars: PackCharacteristics = {};
-  
-  // Extract memory (18go, 16go, etc.)
-  const memMatch = normalized.match(/(\d+)go(?!\s*ssd)/i);
-  if (memMatch) chars.memory = memMatch[1] + 'Go';
-  
-  // Extract storage (512go, 1to, etc.)
-  const storageMatch = normalized.match(/(\d+)(go|to)(?=\s|$)/i);
-  if (storageMatch) {
-    chars.storage = storageMatch[1] + (storageMatch[2].toLowerCase() === 'to' ? 'To' : 'Go');
-  }
-  
-  // Extract CPU (m3 pro, m4, etc.)
-  if (normalized.includes('m3 pro')) chars.cpu = 'M3 Pro';
-  else if (normalized.includes('m3')) chars.cpu = 'M3';
-  else if (normalized.includes('m4')) chars.cpu = 'M4';
-  else if (normalized.includes('m2')) chars.cpu = 'M2';
-  
-  // Extract model
-  if (normalized.includes('macbook pro 14')) chars.model = 'MacBook Pro 14';
-  else if (normalized.includes('macbook pro 16')) chars.model = 'MacBook Pro 16';
-  else if (normalized.includes('macbook air')) chars.model = 'MacBook Air';
-  
-  // Extract color
-  if (normalized.includes('space black')) chars.color = 'Noir sidéral';
-  else if (normalized.includes('silver')) chars.color = 'Argent';
-  else if (normalized.includes('space gray')) chars.color = 'Gris sidéral';
-  
-  console.log('[META IMPORT] Parsed characteristics:', chars);
-  return chars;
-}
-
-function parsePackForDisplay(packName: string): string {
-  const chars = parsePackCharacteristics(packName);
-  const parts: string[] = [];
-  
-  if (chars.model) parts.push(chars.model);
-  if (chars.cpu) parts.push(chars.cpu);
-  if (chars.memory || chars.storage) {
-    const specs: string[] = [];
-    if (chars.memory) specs.push(chars.memory + ' RAM');
-    if (chars.storage) specs.push(chars.storage + ' SSD');
-    parts.push(specs.join(', '));
-  }
-  
-  return parts.length > 0 ? parts.join(' - ') : packName;
-}
-
-async function findMatchingProduct(
-  supabase: any,
-  chars: PackCharacteristics,
-  companyId: string
-): Promise<{ product_id: string; variant_id: string; name: string; price: number; monthly_price: number } | null> {
-  try {
-    console.log('[META IMPORT] Searching for product with chars:', chars);
-
-    // Build search query for product name
-    let nameSearch = '';
-    if (chars.model) nameSearch += chars.model;
-    if (chars.cpu) nameSearch += ' ' + chars.cpu;
-    
-    if (!nameSearch) {
-      console.log('[META IMPORT] No model/CPU to search');
-      return null;
-    }
-
-    // Find products matching the model/CPU
-    const { data: products, error: prodError } = await supabase
-      .from('products')
-      .select('id, name')
-      .eq('company_id', companyId)
-      .ilike('name', `%${nameSearch}%`)
-      .limit(10);
-
-    if (prodError || !products || products.length === 0) {
-      console.log('[META IMPORT] No products found for:', nameSearch);
-      return null;
-    }
-
-    console.log(`[META IMPORT] Found ${products.length} candidate products`);
-
-    // Search variants with matching attributes
-    for (const product of products) {
-      const { data: variants, error: varError } = await supabase
-        .from('product_variant_prices')
-        .select('id, variant_name, attributes, purchase_price, monthly_price')
-        .eq('product_id', product.id);
-
-      if (varError || !variants) continue;
-
-      console.log(`[META IMPORT] Checking ${variants.length} variants for product ${product.name}`);
-
-      for (const variant of variants) {
-        const attrs = variant.attributes || {};
-        let match = true;
-
-        // Check memory
-        if (chars.memory) {
-          const varMem = attrs.Mémoire || attrs.RAM || '';
-          if (!varMem.includes(chars.memory)) {
-            match = false;
-          }
-        }
-
-        // Check storage
-        if (chars.storage && match) {
-          const varStorage = attrs.Disque || attrs.Stockage || attrs.Storage || '';
-          if (!varStorage.includes(chars.storage)) {
-            match = false;
-          }
-        }
-
-        if (match) {
-          console.log('[META IMPORT] Match found:', {
-            product: product.name,
-            variant: variant.variant_name,
-            price: variant.purchase_price,
-            monthly: variant.monthly_price
-          });
-
-          return {
-            product_id: product.id,
-            variant_id: variant.id,
-            name: `${product.name} - ${variant.variant_name}`,
-            price: variant.purchase_price || 0,
-            monthly_price: variant.monthly_price || 0
-          };
-        }
-      }
-    }
-
-    console.log('[META IMPORT] No matching variant found');
-    return null;
-
-  } catch (error: any) {
-    console.error('[META IMPORT] Error in product matching:', error);
-    return null;
-  }
-}
