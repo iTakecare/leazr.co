@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leads, api_key } = await req.json();
+    const { leads, api_key, company_id } = await req.json();
 
     // Validate API key
     const expectedKey = Deno.env.get('META_LEADS_API_KEY');
@@ -43,6 +43,14 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Invalid API key' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate company_id is provided
+    if (!company_id) {
+      return new Response(
+        JSON.stringify({ error: 'company_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -54,67 +62,95 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify company exists
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('id', company_id)
+      .eq('is_active', true)
+      .single();
+
+    if (companyError || !company) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or inactive company_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const results = {
       success: true,
       created: 0,
       duplicates: 0,
+      existing_client_new_offer: 0,
       errors: 0,
       details: [] as any[]
     };
 
     for (const lead of leads as MetaLead[]) {
       try {
-        console.log(`[META IMPORT] Processing lead: ${lead.email}`);
+        console.log(`[META IMPORT] Processing lead: ${lead.email}, meta_lead_id: ${lead.meta_lead_id}`);
 
-        // Check if client already exists
-        const { data: existingClient } = await supabase
-          .from('clients')
+        // Check if this meta_lead_id has already been imported (idempotence)
+        const { data: existingOffer } = await supabase
+          .from('offers')
           .select('id')
-          .eq('email', lead.email)
-          .single();
-
-        if (existingClient) {
-          console.log(`[META IMPORT] Duplicate: ${lead.email}`);
-          results.duplicates++;
-          results.details.push({ email: lead.email, status: 'duplicate' });
-          continue;
-        }
-
-        // Get company_id (assuming first active company for now - you may want to make this configurable)
-        const { data: company } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('is_active', true)
+          .ilike('remarks', `%Meta Lead ID: ${lead.meta_lead_id}%`)
           .limit(1)
           .single();
 
-        if (!company) {
-          console.error('[META IMPORT] No active company found');
-          results.errors++;
+        if (existingOffer) {
+          console.log(`[META IMPORT] Lead already imported (meta_lead_id: ${lead.meta_lead_id})`);
+          results.duplicates++;
+          results.details.push({ 
+            email: lead.email, 
+            meta_lead_id: lead.meta_lead_id,
+            status: 'duplicate_lead',
+            message: 'Ce lead Meta a déjà été importé'
+          });
           continue;
         }
 
-        // Parse full name
-        const nameParts = lead.full_name.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
+        // Check if client already exists by email
+        const { data: existingClient } = await supabase
+          .from('clients')
+          .select('id, name')
+          .eq('email', lead.email)
+          .eq('company_id', company.id)
+          .single();
 
-        // Format creation date
-        const leadDate = new Date(lead.created_time);
-        const formattedDate = leadDate.toLocaleDateString('fr-BE', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
+        let clientId: string;
+        let isNewClient = false;
 
-        // Parse pack interest for display
-        const packDisplay = parsePackForDisplay(lead.pack_interest);
+        if (existingClient) {
+          // Reuse existing client
+          clientId = existingClient.id;
+          console.log(`[META IMPORT] Using existing client: ${existingClient.name} (${clientId})`);
+        } else {
+          // Create new client
+          isNewClient = true;
+          
+          // Parse full name
+          const nameParts = lead.full_name.trim().split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
 
-        // Build enriched notes
-        const notes = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📱 SOURCE: META ADS
+          // Format creation date
+          const leadDate = new Date(lead.created_time);
+          const formattedDate = leadDate.toLocaleDateString('fr-BE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          // Parse pack interest for display
+          const packDisplay = parsePackForDisplay(lead.pack_interest);
+
+          // Build enriched notes for client
+          const clientNotes = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 SOURCE: META (Facebook/Instagram)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔹 Plateforme: ${lead.platform === 'fb' ? 'Facebook' : 'Instagram'}
@@ -127,32 +163,37 @@ ${packDisplay}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
 
-        // Create client
-        const { data: client, error: clientError } = await supabase
-          .from('clients')
-          .insert({
-            company_id: company.id,
-            name: lead.full_name,
-            first_name: firstName,
-            last_name: lastName,
-            email: lead.email,
-            phone: lead.phone,
-            company: lead.company_name,
-            vat_number: lead.vat_number,
-            status: 'lead',
-            notes: notes
-          })
-          .select()
-          .single();
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert({
+              company_id: company.id,
+              name: lead.full_name,
+              first_name: firstName,
+              last_name: lastName,
+              email: lead.email,
+              phone: lead.phone,
+              company: lead.company_name,
+              vat_number: lead.vat_number,
+              status: 'lead',
+              notes: clientNotes
+            })
+            .select()
+            .single();
 
-        if (clientError || !client) {
-          console.error('[META IMPORT] Client creation error:', clientError);
-          results.errors++;
-          results.details.push({ email: lead.email, status: 'error', error: clientError?.message });
-          continue;
+          if (clientError || !newClient) {
+            console.error('[META IMPORT] Client creation error:', clientError);
+            results.errors++;
+            results.details.push({ 
+              email: lead.email, 
+              status: 'error', 
+              error: clientError?.message 
+            });
+            continue;
+          }
+
+          clientId = newClient.id;
+          console.log(`[META IMPORT] Client created: ${clientId}`);
         }
-
-        console.log(`[META IMPORT] Client created: ${client.id}`);
 
         // Parse pack and try to match product
         const packChars = parsePackCharacteristics(lead.pack_interest);
@@ -168,18 +209,45 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
 
         const leaserId = leaser?.id || null;
 
-        // Create offer (phone and company are already stored in the linked client)
+        // Format creation date for remarks
+        const leadDate = new Date(lead.created_time);
+        const formattedDate = leadDate.toLocaleDateString('fr-BE', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        // Parse pack interest for display
+        const packDisplay = parsePackForDisplay(lead.pack_interest);
+
+        // Build remarks with meta_lead_id for idempotence checking
+        const offerRemarks = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 SOURCE: META (Facebook/Instagram)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔹 Plateforme: ${lead.platform === 'fb' ? 'Facebook' : 'Instagram'}
+🔹 Date du lead: ${formattedDate}
+🔹 Meta Lead ID: ${lead.meta_lead_id}
+
+📦 PACK DEMANDÉ:
+${packDisplay}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+        // Create offer with source 'meta' (matching UI)
         const offerData: any = {
           company_id: company.id,
-          client_id: client.id,
+          client_id: clientId,
           client_name: lead.full_name,
           client_email: lead.email,
           equipment_description: packDisplay,
           type: 'client_request',
-          source: 'meta_ads',
+          source: 'meta', // Changed from 'meta_ads' to match UI
           workflow_status: 'draft',
           status: 'pending',
-          remarks: `Lead Meta Ads - ${lead.platform === 'fb' ? 'Facebook' : 'Instagram'}\nPack demandé: ${lead.pack_interest}`,
+          remarks: offerRemarks,
           leaser_id: leaserId,
           duration: 36,
           products_to_be_determined: !matchedProduct,
@@ -201,7 +269,7 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           results.details.push({ 
             email: lead.email, 
             status: 'client_created_offer_failed', 
-            client_id: client.id,
+            client_id: clientId,
             error: offerError?.message 
           });
           continue;
@@ -235,11 +303,20 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
           }
         }
 
-        results.created++;
+        if (isNewClient) {
+          results.created++;
+        } else {
+          results.existing_client_new_offer++;
+        }
+
         results.details.push({ 
           email: lead.email, 
-          status: 'success', 
-          client_id: client.id,
+          meta_lead_id: lead.meta_lead_id,
+          status: isNewClient ? 'created' : 'existing_client_new_offer', 
+          message: isNewClient 
+            ? '✓ Client et demande créés' 
+            : '✓ Demande créée (client existant)',
+          client_id: clientId,
           offer_id: offer.id,
           product_matched: !!matchedProduct
         });
@@ -247,7 +324,11 @@ Importé automatiquement le ${new Date().toLocaleDateString('fr-BE')}`;
       } catch (err: any) {
         console.error('[META IMPORT] Error processing lead:', err);
         results.errors++;
-        results.details.push({ email: lead.email, status: 'error', error: err.message });
+        results.details.push({ 
+          email: lead.email, 
+          status: 'error', 
+          error: err.message 
+        });
       }
     }
 
