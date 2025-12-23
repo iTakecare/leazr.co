@@ -163,6 +163,15 @@ function parsePackInterest(packInterest: string): ParsedPack {
   };
 }
 
+// Important short terms that should not be filtered out (model numbers, sizes, chip generations)
+const importantShortTerms = ['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', 'g7', 'g8', 'g9', 'g10', '450', '650', '840', '850', 'se', 'xs', 'xr'];
+
+// Terms that are highly discriminating (sizes, chip generations, model numbers)
+const modelTerms = ['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', 'g7', 'g8', 'g9', 'g10'];
+
+// Screen sizes that must match exactly
+const screenSizes = ['13', '14', '15', '16'];
+
 // Find multiple products in catalog
 async function findMultipleProducts(
   supabase: any,
@@ -179,24 +188,41 @@ async function findMultipleProducts(
   for (const productName of productNames) {
     console.log('[META IMPORT] Searching catalog for:', productName);
     
-    // Search by product name (fuzzy match)
-    const searchTerms = productName.split(' ').filter(t => t.length > 2);
-    let searchQuery = searchTerms.join(' & ');
+    // Keep all terms > 2 chars OR important short terms (M4, 15, etc.)
+    const searchTerms = productName.split(' ').filter(t => 
+      t.length > 2 || importantShortTerms.includes(t.toLowerCase())
+    );
     
-    // Try to find product
+    console.log('[META IMPORT] Search terms (including short important ones):', searchTerms);
+    
+    // Detect if search contains a screen size
+    const searchedSize = screenSizes.find(size => 
+      searchTerms.some(t => t.toLowerCase() === size)
+    );
+    
+    // Detect if search contains a chip generation (M1, M2, M3, M4)
+    const searchedChip = searchTerms.find(t => 
+      ['m1', 'm2', 'm3', 'm4'].includes(t.toLowerCase())
+    );
+    
+    console.log('[META IMPORT] Searched size:', searchedSize, 'Searched chip:', searchedChip);
+    
+    // Try to find product - use broader search
     const { data: products, error: prodError } = await supabase
       .from('products')
       .select('id, name, price, monthly_price')
       .eq('company_id', companyId)
       .eq('active', true)
-      .or(searchTerms.map(t => `name.ilike.%${t}%`).join(','))
-      .limit(10);
+      .or(searchTerms.slice(0, 3).map(t => `name.ilike.%${t}%`).join(','))
+      .limit(20);
     
     if (prodError) {
       console.error('[META IMPORT] Product search error:', prodError);
       result.allMatched = false;
       continue;
     }
+    
+    console.log('[META IMPORT] Found', products?.length || 0, 'potential matches');
     
     // Score each product by how many search terms match
     let bestMatch: any = null;
@@ -205,12 +231,40 @@ async function findMultipleProducts(
     for (const product of products || []) {
       const productNameLower = product.name.toLowerCase();
       let score = 0;
+      let rejected = false;
       
-      for (const term of searchTerms) {
-        if (productNameLower.includes(term.toLowerCase())) {
-          score++;
+      // STRICT CHECK: If searching for a specific screen size, product MUST contain it
+      if (searchedSize) {
+        if (!productNameLower.includes(searchedSize)) {
+          console.log(`[META IMPORT] Rejecting "${product.name}" - missing size ${searchedSize}`);
+          rejected = true;
         }
       }
+      
+      // STRICT CHECK: If searching for a specific chip (M4), product MUST contain it
+      if (searchedChip && !rejected) {
+        if (!productNameLower.includes(searchedChip.toLowerCase())) {
+          console.log(`[META IMPORT] Rejecting "${product.name}" - missing chip ${searchedChip}`);
+          rejected = true;
+        }
+      }
+      
+      if (rejected) continue;
+      
+      // Score based on matching terms
+      for (const term of searchTerms) {
+        const termLower = term.toLowerCase();
+        if (productNameLower.includes(termLower)) {
+          // Model terms (M4, 15, G10) get higher score
+          if (modelTerms.includes(termLower)) {
+            score += 3;
+          } else {
+            score += 1;
+          }
+        }
+      }
+      
+      console.log(`[META IMPORT] Score for "${product.name}": ${score}`);
       
       if (score > bestScore) {
         bestScore = score;
