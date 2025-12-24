@@ -186,32 +186,22 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     updateOfferFinancials();
   }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated]);
   
-  // Calculer le montant financé comme somme des prix de vente (P.A. + marge)
-  // Cette méthode est cohérente avec les données stockées en base
+  // Calculer le montant financé via la formule inverse Grenke
+  // Montant financé = Mensualité × 100 / Coefficient
   const calculateFinancedAmount = () => {
-    // Priorité 1: Utiliser la somme des prix de vente des équipements
-    if (totals.totalSellingPrice > 0) {
-      return totals.totalSellingPrice;
+    // Priorité 1: Formule inverse Grenke (la méthode correcte)
+    if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
+      return (totals.totalMonthlyPayment * 100) / offer.coefficient;
     }
     
-    // Priorité 2: Utiliser financed_amount stocké en base
+    // Priorité 2: financed_amount stocké en base
     if (offer.financed_amount && offer.financed_amount > 0) {
       return offer.financed_amount;
     }
     
-    // Fallback: Calculer à partir des équipements via la fonction utilitaire
-    if (offerEquipment && offerEquipment.length > 0) {
-      const equipmentForCalc = offerEquipment.map(item => ({
-        id: item.id,
-        title: item.title,
-        purchasePrice: Number(item.purchase_price) || 0,
-        quantity: Number(item.quantity) || 1,
-        margin: Number(item.margin) || 0,
-        monthlyPayment: Number(item.monthly_payment) || 0,
-      }));
-      
-      const results = calculateEquipmentResults(equipmentForCalc, leaser, offer.duration || 36);
-      return results.totalFinancedAmount;
+    // Fallback: somme des prix de vente
+    if (totals.totalSellingPrice > 0) {
+      return totals.totalSellingPrice;
     }
     
     return 0;

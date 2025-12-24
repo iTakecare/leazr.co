@@ -113,10 +113,12 @@ export const calculateEquipmentResults = (
   const globalCoefficient = findCoefficientForAmount(totalFinancedAmountIndividual, leaser, duration);
   const adjustedMonthlyPayment = roundToTwoDecimals((totalFinancedAmountIndividual * globalCoefficient) / 100);
 
-  // 5. MONTANT FINANCÉ = somme des prix de vente individuels (P.A. + marge)
-  // C'est la méthode cohérente avec la base de données et l'aperçu de l'offre
-  // On n'utilise PAS la formule inverse Grenke ici car elle crée des incohérences
-  const totalFinancedAmountDisplay = totalFinancedAmountIndividual;
+  // 5. CALCUL INVERSÉ DU MONTANT FINANCÉ (méthode Grenke)
+  // Grenke calcule : montant_financé = mensualité × 100 / coefficient
+  // C'est la formule correcte pour obtenir le montant réellement financé
+  const totalFinancedAmountDisplay = globalCoefficient > 0 
+    ? roundToTwoDecimals((normalMonthlyPayment * 100) / globalCoefficient)
+    : totalFinancedAmountIndividual;
 
   // 6. CALCUL DE LA MARGE À PARTIR DU MONTANT FINANCÉ
   // Marge = Montant financé (somme des P.V.) - Prix d'achat total
