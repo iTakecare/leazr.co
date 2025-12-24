@@ -43,6 +43,7 @@ interface NewEquipmentSectionProps {
     equipment_description?: string;
     leaser_id?: string;
     duration?: number;
+    coefficient?: number;
   };
   onOfferUpdate?: () => void;
 }
@@ -194,7 +195,6 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
   const calculateTotals = () => {
     // Calculer les totaux directement à partir des valeurs stockées en BD
-    // pour garantir la cohérence entre les lignes et les totaux
     const totalPrice = equipment.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
     const totalMonthlyPayment = equipment.reduce((sum, item) => sum + (Number(item.monthly_payment) || 0), 0);
     
@@ -203,13 +203,19 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       if (item.selling_price && item.selling_price > 0) {
         return sum + (item.selling_price * item.quantity);
       }
-      // Fallback: calcul par marge
       const calculatedPrice = item.purchase_price * (1 + (item.margin || 0) / 100);
       return sum + (calculatedPrice * item.quantity);
     }, 0);
     
-    // Marge = P.V. total - P.A. total
-    const totalMargin = totalSellingPrice - totalPrice;
+    // CORRECTION: Utiliser la formule inverse Grenke pour le montant financé
+    // Montant financé = Mensualité × 100 / Coefficient
+    const coefficient = offer.coefficient || 0;
+    const effectiveFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
+      ? (totalMonthlyPayment * 100) / coefficient
+      : totalSellingPrice;
+    
+    // Marge = Montant financé (Grenke) - Prix d'achat total
+    const totalMargin = effectiveFinancedAmount - totalPrice;
     const marginPercentage = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
     const globalCoefficient = totalPrice > 0 ? totalMonthlyPayment / totalPrice : 0;
 
@@ -217,6 +223,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       totalPrice, 
       totalMonthlyPayment, 
       totalSellingPrice,
+      effectiveFinancedAmount,
       totalMargin, 
       marginPercentage,
       globalCoefficient 
