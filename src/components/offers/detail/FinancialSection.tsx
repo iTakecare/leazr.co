@@ -186,8 +186,20 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     updateOfferFinancials();
   }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated]);
   
-  // Utiliser la formule inverse (mensualité × 100 / coefficient) pour le montant financé
-  const calculateFinancedAmountInverse = () => {
+  // Calculer le montant financé comme somme des prix de vente (P.A. + marge)
+  // Cette méthode est cohérente avec les données stockées en base
+  const calculateFinancedAmount = () => {
+    // Priorité 1: Utiliser la somme des prix de vente des équipements
+    if (totals.totalSellingPrice > 0) {
+      return totals.totalSellingPrice;
+    }
+    
+    // Priorité 2: Utiliser financed_amount stocké en base
+    if (offer.financed_amount && offer.financed_amount > 0) {
+      return offer.financed_amount;
+    }
+    
+    // Fallback: Calculer à partir des équipements via la fonction utilitaire
     if (offerEquipment && offerEquipment.length > 0) {
       const equipmentForCalc = offerEquipment.map(item => ({
         id: item.id,
@@ -202,13 +214,10 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
       return results.totalFinancedAmount;
     }
     
-    // Fallback: utiliser le coefficient de l'offre
-    return totals.totalMonthlyPayment > 0 && offer.coefficient > 0
-      ? (totals.totalMonthlyPayment * 100) / offer.coefficient
-      : totals.totalSellingPrice;
+    return 0;
   };
 
-  const effectiveFinancedAmount = calculateFinancedAmountInverse();
+  const effectiveFinancedAmount = calculateFinancedAmount();
 
   // Calculer la marge directement : montant financé effectif - prix d'achat total
   const displayMargin = totals.totalPurchasePrice > 0 ? effectiveFinancedAmount - totals.totalPurchasePrice : 0;
