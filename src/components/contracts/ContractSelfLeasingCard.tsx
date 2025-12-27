@@ -161,11 +161,13 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
     }
   };
 
-  const handleOpenContractLink = () => {
+  const getContractUrl = () => {
     if (contract?.contract_signature_token && companySlug) {
       const url = buildPublicContractSignatureUrl(companySlug, contract.contract_signature_token);
-      window.open(url, '_blank');
+      // Add cache buster to avoid Safari caching issues
+      return `${url}?v=${Date.now()}`;
     }
+    return null;
   };
 
   const handleDownloadSignedPDF = async () => {
@@ -316,16 +318,17 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
             </div>
           ) : (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={handleOpenContractLink}
-                disabled={!contract.contract_signature_token}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Voir le contrat en ligne
-              </Button>
+              {getContractUrl() && (
+                <a
+                  href={getContractUrl()!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full h-9 px-3 text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Voir le contrat en ligne
+                </a>
+              )}
               <Button
                 variant="default"
                 size="sm"
