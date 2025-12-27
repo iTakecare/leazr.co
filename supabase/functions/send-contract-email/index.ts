@@ -158,9 +158,11 @@ ${body.replace(/\n/g, '<br>')}
 </html>
     `;
 
-    // Get FROM address from company settings or use default
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "contrats@resend.dev";
+    // Get FROM address - use verified domain
+    const fromEmail = "hello@itakecare.be";
     const fromName = companyName;
+
+    console.log("Sending email via Resend:", { from: `${fromName} <${fromEmail}>`, to, subject });
 
     const emailResponse = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
@@ -169,14 +171,28 @@ ${body.replace(/\n/g, '<br>')}
       html: htmlContent,
     });
 
+    // Check for Resend errors (returns { data, error } structure)
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     console.log("Contract email sent successfully:", emailResponse);
 
-    // Log the email send in contract history
+    // Update contract timestamp (updated_at only, last_email_sent_at doesn't exist)
     if (contractId) {
       await adminSupabase
         .from("contracts")
         .update({
-          last_email_sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq("id", contractId);
