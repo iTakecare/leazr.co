@@ -8,9 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil, Receipt, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Edit, FileDown, Euro, Calendar, Building2, CheckCircle, Clock, Mail, Trash2, Pencil, Receipt, AlertTriangle, RefreshCw } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, updateInvoiceDate, updateInvoiceDueDate, type Invoice } from "@/services/invoiceService";
+import { getCompanyInvoices, updateInvoiceStatus, deleteInvoice, sendInvoiceToBillit, downloadBillitInvoicePdf, updateInvoicePaidDate, updateInvoiceDate, updateInvoiceDueDate, recalculateInvoiceFromOffer, type Invoice } from "@/services/invoiceService";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -36,6 +36,7 @@ const InvoiceDetailPage = () => {
   const [isUpdatingInvoiceDate, setIsUpdatingInvoiceDate] = useState(false);
   const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
   const [isUpdatingPaidDate, setIsUpdatingPaidDate] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const [creditNoteDialogOpen, setCreditNoteDialogOpen] = useState(false);
 
   // Synchroniser les dates avec invoice
@@ -240,6 +241,29 @@ const InvoiceDetailPage = () => {
       setIsUpdatingPaidDate(false);
     }
   };
+
+  // Recalculer les montants de la facture depuis l'offre (formule inverse Grenke)
+  const handleRecalculateFromOffer = async () => {
+    if (!invoice) return;
+
+    setIsRecalculating(true);
+    try {
+      const updatedInvoice = await recalculateInvoiceFromOffer(invoice.id);
+      setInvoice(updatedInvoice);
+      toast.success('Montants recalculés avec succès depuis l\'offre');
+    } catch (error: any) {
+      console.error('Erreur lors du recalcul:', error);
+      toast.error(error.message || 'Erreur lors du recalcul des montants');
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
+  // Vérifier si la facture peut être recalculée (leasing avec contrat)
+  const canRecalculate = invoice && 
+    (invoice as any).invoice_type !== 'purchase' && 
+    invoice.contract_id && 
+    invoice.status === 'draft';
 
   if (loading) {
     return (
@@ -541,6 +565,23 @@ const InvoiceDetailPage = () => {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Bouton de recalcul pour les factures leasing en brouillon */}
+              {canRecalculate && (
+                <Button 
+                  variant="outline"
+                  className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                  onClick={handleRecalculateFromOffer}
+                  disabled={isRecalculating}
+                >
+                  {isRecalculating ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Recalculer depuis l'offre
+                </Button>
+              )}
+
               {invoice.status === 'draft' && (
                 <>
                   <Button 

@@ -336,18 +336,25 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
     }
 
     // Calculer le prix total de vente avec la formule inverse Grenke
-    // Priorité 1: financed_amount de l'offre
-    // Priorité 2: Formule inverse Grenke (monthly_payment * 100 / coefficient)
+    // Priorité 1: Formule inverse Grenke (monthly_payment * 100 / coefficient) - SOURCE OF TRUTH
+    // Priorité 2: financed_amount de l'offre (si cohérent avec la formule)
     // Priorité 3: Somme des selling_price ou calcul avec marge %
     
-    if (offerData?.financed_amount && offerData.financed_amount > 0) {
-      totalSellingPrice = offerData.financed_amount;
-      console.log('💰 Prix de vente calculé depuis financed_amount:', totalSellingPrice);
-    } else if (offerData?.monthly_payment && offerData?.coefficient && offerData.coefficient > 0) {
-      // Formule inverse Grenke
+    if (offerData?.monthly_payment && offerData?.coefficient && offerData.coefficient > 0) {
+      // Formule inverse Grenke - SOURCE OF TRUTH pour le leasing
       totalSellingPrice = (offerData.monthly_payment * 100) / offerData.coefficient;
       console.log('💰 Prix de vente calculé avec formule inverse Grenke:', totalSellingPrice, 
         '(mensualité:', offerData.monthly_payment, '× 100 /', offerData.coefficient, ')');
+      
+      // Vérifier si financed_amount est incohérent
+      if (offerData.financed_amount && Math.abs(offerData.financed_amount - totalSellingPrice) > 1) {
+        console.warn('⚠️ Incohérence détectée: financed_amount =', offerData.financed_amount, 
+          'vs formule Grenke =', totalSellingPrice, '- Utilisation de la formule Grenke');
+      }
+    } else if (offerData?.financed_amount && offerData.financed_amount > 0) {
+      // Fallback sur financed_amount si pas de coefficient/mensualité
+      totalSellingPrice = offerData.financed_amount;
+      console.log('💰 Prix de vente calculé depuis financed_amount (fallback):', totalSellingPrice);
     } else {
       // Fallback: calcul depuis les équipements
       totalSellingPrice = equipment.reduce((total, item) => {
@@ -1006,6 +1013,121 @@ export const testCompanyWebIntegration = async (companyId: string) => {
     };
   } catch (error) {
     console.error('❌ Erreur lors du test CompanyWeb:', error);
+    throw error;
+  }
+};
+
+// Recalculer les montants d'une facture leasing depuis l'offre originale (formule inverse Grenke)
+export const recalculateInvoiceFromOffer = async (invoiceId: string): Promise<Invoice> => {
+  try {
+    console.log('🔄 Recalcul de la facture depuis l\'offre:', invoiceId);
+
+    // Récupérer la facture
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .single();
+
+    if (invoiceError || !invoice) {
+      throw new Error('Facture non trouvée');
+    }
+
+    // Récupérer le contrat pour avoir l'offer_id
+    let offerId = invoice.offer_id;
+    if (!offerId && invoice.contract_id) {
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('offer_id')
+        .eq('id', invoice.contract_id)
+        .single();
+      offerId = contract?.offer_id;
+    }
+
+    if (!offerId) {
+      throw new Error('Pas d\'offre liée à cette facture');
+    }
+
+    // Récupérer l'offre avec coefficient et mensualité
+    const { data: offer, error: offerError } = await supabase
+      .from('offers')
+      .select('id, coefficient, monthly_payment, financed_amount')
+      .eq('id', offerId)
+      .single();
+
+    if (offerError || !offer) {
+      throw new Error('Offre non trouvée');
+    }
+
+    if (!offer.coefficient || !offer.monthly_payment || offer.coefficient <= 0) {
+      throw new Error('Données insuffisantes pour le calcul (coefficient ou mensualité manquant)');
+    }
+
+    // Calculer le montant financé avec la formule inverse Grenke
+    const totalSellingPrice = (offer.monthly_payment * 100) / offer.coefficient;
+    console.log('💰 Montant recalculé via formule inverse Grenke:', totalSellingPrice,
+      '(', offer.monthly_payment, '× 100 /', offer.coefficient, ')');
+
+    // Récupérer les équipements de l'offre
+    const { data: equipment } = await supabase
+      .from('offer_equipment')
+      .select('*')
+      .eq('offer_id', offerId);
+
+    // Calculer le total des mensualités pour la répartition proportionnelle
+    const totalMonthlyPayment = (equipment || []).reduce(
+      (sum, item) => sum + ((item.monthly_payment || 0) * (item.quantity || 1)), 0
+    );
+
+    // Recalculer les prix de vente des équipements proportionnellement
+    const recalculatedEquipment = (equipment || []).map(item => {
+      let itemSellingPrice;
+      if (totalMonthlyPayment > 0 && item.monthly_payment) {
+        const itemTotalMonthly = (item.monthly_payment || 0) * (item.quantity || 1);
+        const proportion = itemTotalMonthly / totalMonthlyPayment;
+        itemSellingPrice = (totalSellingPrice * proportion) / (item.quantity || 1);
+      } else {
+        itemSellingPrice = item.selling_price || (item.purchase_price * (1 + (item.margin || 0) / 100));
+      }
+      return {
+        ...item,
+        selling_price_excl_vat: parseFloat(itemSellingPrice.toFixed(2))
+      };
+    });
+
+    // Préparer les nouvelles données de facturation
+    const updatedBillingData = {
+      ...invoice.billing_data,
+      equipment_data: recalculatedEquipment,
+      invoice_totals: {
+        total_excl_vat: parseFloat(totalSellingPrice.toFixed(2)),
+        vat_amount: parseFloat((totalSellingPrice * 0.21).toFixed(2)),
+        total_incl_vat: parseFloat((totalSellingPrice * 1.21).toFixed(2))
+      },
+      recalculated_at: new Date().toISOString(),
+      recalculation_source: 'inverse_grenke_formula'
+    };
+
+    // Mettre à jour la facture
+    const { data: updatedInvoice, error: updateError } = await supabase
+      .from('invoices')
+      .update({
+        amount: parseFloat(totalSellingPrice.toFixed(2)),
+        billing_data: updatedBillingData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invoiceId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw new Error('Erreur lors de la mise à jour de la facture');
+    }
+
+    console.log('✅ Facture recalculée avec succès:', updatedInvoice.amount);
+    return updatedInvoice;
+  } catch (error) {
+    console.error('❌ Erreur lors du recalcul de la facture:', error);
     throw error;
   }
 };
