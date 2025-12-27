@@ -71,11 +71,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log("Client email resolved:", clientEmail);
 
-    // Get admin emails for copy
-    const { data: adminEmails } = await supabase.rpc('get_admin_emails_for_company', {
-      p_company_id: contract.company_id
-    });
-
     // Format signature date
     const signedAt = contract.contract_signed_at 
       ? new Date(contract.contract_signed_at).toLocaleDateString('fr-FR', {
@@ -411,29 +406,6 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("Client email sent:", clientEmailResponse);
-
-    // Send copy to admins
-    if (adminEmails && adminEmails.length > 0) {
-      const adminEmailAddresses = adminEmails
-        .filter((admin: any) => admin.email)
-        .map((admin: any) => admin.email);
-
-      if (adminEmailAddresses.length > 0) {
-        console.log("Sending copy to admins:", adminEmailAddresses);
-        
-        const adminEmailResponse = await resend.emails.send({
-          from: `${companyName} <${fromEmail}>`,
-          to: adminEmailAddresses,
-          subject: `[Copie] Contrat signé - ${contract.tracking_number}`,
-          html: htmlContent.replace(
-            'Bonjour ' + (contract.client_name || 'Cher client'),
-            `<strong>[Copie pour l'administration]</strong><br><br>Le contrat de ${contract.client_name || 'votre client'} a été signé`
-          ),
-        });
-
-        console.log("Admin email sent:", adminEmailResponse);
-      }
-    }
 
     // Update contract with email sent timestamp
     await supabase
