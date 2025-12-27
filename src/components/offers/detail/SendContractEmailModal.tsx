@@ -130,6 +130,7 @@ L'équipe ${leaser?.name || 'commerciale'}`);
         : `${window.location.origin}/contract/${signatureToken}/sign`;
 
       // Send email via edge function
+      const contractRef = existingContract?.contract_number || offer.offer_number;
       const { error: emailError } = await supabase.functions.invoke('send-contract-email', {
         body: {
           to: recipientEmail,
@@ -137,6 +138,7 @@ L'équipe ${leaser?.name || 'commerciale'}`);
           body: emailBody,
           signatureLink,
           contractId,
+          contractNumber: existingContract?.contract_number,
           offerNumber: offer.offer_number
         }
       });

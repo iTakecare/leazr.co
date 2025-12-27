@@ -349,7 +349,8 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
           leaser={leaser}
           existingContract={{
             id: contract.id,
-            contract_signature_token: contract.contract_signature_token
+            contract_signature_token: contract.contract_signature_token,
+            contract_number: contract.contract_number
           }}
           onContractSent={handleContractSent}
         />
