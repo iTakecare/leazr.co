@@ -7591,6 +7591,10 @@ export type Database = {
           region: string
         }[]
       }
+      set_signed_contract_pdf_url_public: {
+        Args: { p_pdf_url: string; p_token: string }
+        Returns: Json
+      }
       sign_contract_public:
         | {
             Args: {

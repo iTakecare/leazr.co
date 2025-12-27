@@ -17,12 +17,18 @@ import {
   Euro,
   Calendar,
   Shield,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
 import IBANInput from "@/components/contracts/IBANInput";
-import { generateAndUploadSignedContractPDF } from "@/services/signedContractPdfService";
+import { pdf } from '@react-pdf/renderer';
+import { SignedContractPDFDocument } from '@/components/pdf/templates/SignedContractPDFDocument';
+import { 
+  buildSignedContractPdfDataFromRpc, 
+  getSignedContractStoragePath 
+} from '@/services/signedContractPdfPublicData';
 
 interface ContractData {
   id: string;
@@ -66,7 +72,7 @@ interface ContractData {
 }
 
 // Manual build marker to quickly confirm which frontend bundle is running.
-const BUILD_ID = "public-contract-signature-2025-12-27-01";
+const BUILD_ID = "public-contract-signature-2025-12-27-02";
 
 const PublicContractSignature: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -90,6 +96,11 @@ const PublicContractSignature: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
+  
+  // PDF generation state
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfGenerated, setPdfGenerated] = useState(false);
 
   // Form state
   const [signerName, setSignerName] = useState("");
@@ -277,6 +288,93 @@ const PublicContractSignature: React.FC = () => {
     setSignatureHasContent(true);
   };
 
+  /**
+   * Generate and upload PDF using public RPC data only
+   */
+  const generateAndStorePdf = async (retryCount = 0): Promise<boolean> => {
+    const MAX_RETRIES = 2;
+    
+    try {
+      setPdfGenerating(true);
+      setPdfError(null);
+      
+      console.log('[PublicContractSignature] Generating PDF, attempt:', retryCount + 1);
+
+      // Re-fetch contract data via public RPC to get latest signed state
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_contract_for_signature', {
+        p_token: token
+      });
+
+      if (rpcError) throw rpcError;
+      if (!rpcData) throw new Error('Contract data not found');
+
+      // Build PDF data from RPC response
+      const pdfData = await buildSignedContractPdfDataFromRpc(rpcData);
+      
+      console.log('[PublicContractSignature] PDF data built:', {
+        trackingNumber: pdfData.tracking_number,
+        hasSig: !!pdfData.signature_data,
+        clientName: pdfData.client_name
+      });
+
+      // Generate PDF blob
+      const blob = await pdf(<SignedContractPDFDocument contract={pdfData} />).toBlob();
+      
+      // Upload to storage
+      const storagePath = getSignedContractStoragePath(pdfData.tracking_number);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('signed-contracts')
+        .upload(storagePath, blob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('[PublicContractSignature] Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('signed-contracts')
+        .getPublicUrl(storagePath);
+
+      const publicUrl = urlData?.publicUrl;
+      console.log('[PublicContractSignature] PDF uploaded:', publicUrl);
+
+      // Save URL to database via public RPC
+      const { data: updateResult, error: updateError } = await supabase.rpc('set_signed_contract_pdf_url_public', {
+        p_token: token,
+        p_pdf_url: publicUrl
+      });
+
+      if (updateError) {
+        console.error('[PublicContractSignature] Failed to save PDF URL:', updateError);
+        // Don't throw - upload succeeded, just URL save failed
+      } else {
+        console.log('[PublicContractSignature] PDF URL saved:', updateResult);
+      }
+
+      setPdfGenerated(true);
+      return true;
+
+    } catch (err: any) {
+      console.error('[PublicContractSignature] PDF generation error:', err);
+      
+      if (retryCount < MAX_RETRIES) {
+        console.log('[PublicContractSignature] Retrying PDF generation...');
+        await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
+        return generateAndStorePdf(retryCount + 1);
+      }
+      
+      setPdfError(err.message || 'Erreur lors de la génération du PDF');
+      return false;
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   const handleSign = async () => {
     if (!canSign || !token) return;
 
@@ -307,34 +405,29 @@ const PublicContractSignature: React.FC = () => {
       if (error) throw error;
 
       if (data?.success) {
-        // Generate and upload the signed contract PDF
-        try {
-          console.log('Generating signed contract PDF for contract:', data.contract_id);
-          const pdfUrl = await generateAndUploadSignedContractPDF(data.contract_id);
-          console.log('Signed contract PDF generated and uploaded:', pdfUrl);
-        } catch (pdfErr) {
-          console.error('Failed to generate signed contract PDF:', pdfErr);
-          // Continue - signing was successful even if PDF generation failed
-        }
-
-        // Send confirmation email with the PDF
-        try {
-          console.log('Sending signed contract email for contract:', data.contract_id);
-          const emailResponse = await supabase.functions.invoke('send-signed-contract-email', {
-            body: { contractId: data.contract_id }
-          });
-          
-          if (emailResponse.error) {
-            console.error('Email sending error:', emailResponse.error);
-          } else {
-            console.log('Signed contract email sent successfully');
-          }
-        } catch (emailErr) {
-          console.error('Failed to send signed contract email:', emailErr);
-        }
-
         setIsSigned(true);
         toast.success("Contrat signé avec succès !");
+
+        // Generate and store PDF (non-blocking)
+        generateAndStorePdf().then(success => {
+          if (success) {
+            console.log('[PublicContractSignature] PDF generated and stored successfully');
+            
+            // Send confirmation email
+            supabase.functions.invoke('send-signed-contract-email', {
+              body: { contractId: data.contract_id }
+            }).then(emailResponse => {
+              if (emailResponse.error) {
+                console.error('Email sending error:', emailResponse.error);
+              } else {
+                console.log('Signed contract email sent successfully');
+              }
+            }).catch(emailErr => {
+              console.error('Failed to send signed contract email:', emailErr);
+            });
+          }
+        });
+        
       } else {
         throw new Error(data?.error || "Erreur lors de la signature");
       }
@@ -344,6 +437,10 @@ const PublicContractSignature: React.FC = () => {
     } finally {
       setIsSigning(false);
     }
+  };
+
+  const handleRetryPdfGeneration = () => {
+    generateAndStorePdf();
   };
 
   if (isLoading) {
@@ -389,6 +486,39 @@ const PublicContractSignature: React.FC = () => {
             <p className="text-sm text-muted-foreground">
               Référence : {contract?.contract_number || contract?.tracking_number}
             </p>
+            
+            {/* PDF Generation Status */}
+            {pdfGenerating && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Génération du PDF en cours...</span>
+              </div>
+            )}
+            
+            {pdfError && (
+              <Alert variant="destructive" className="text-left">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Erreur PDF: {pdfError}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRetryPdfGeneration}
+                    className="ml-2"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Réessayer
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {pdfGenerated && !pdfError && (
+              <div className="flex items-center justify-center gap-2 text-sm text-green-600">
+                <Check className="w-4 h-4" />
+                <span>PDF généré avec succès</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
