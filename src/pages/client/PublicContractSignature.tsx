@@ -97,6 +97,7 @@ const PublicContractSignature: React.FC = () => {
   const [clientBIC, setClientBIC] = useState("");
   const [isIBANValid, setIsIBANValid] = useState(false);
   const [confirmation, setConfirmation] = useState("");
+  const [signatureHasContent, setSignatureHasContent] = useState(false);
 
   const signatureRef = useRef<SignatureCanvas>(null);
 
@@ -215,7 +216,9 @@ const PublicContractSignature: React.FC = () => {
     : contract?.monthly_payment || 0;
 
   const expectedConfirmation = contract 
-    ? `Bon pour accord pour ${formatCurrency(effectiveMonthlyPayment)}/mois pendant ${contract.contract_duration} mois`
+    ? hasDownPayment
+      ? `Bon pour accord pour ${formatCurrency(effectiveMonthlyPayment)}/mois pendant ${contract.contract_duration} mois avec acompte de ${formatCurrency(contract.down_payment || 0)}`
+      : `Bon pour accord pour ${formatCurrency(effectiveMonthlyPayment)}/mois pendant ${contract.contract_duration} mois`
     : "";
 
   const client = contract?.client;
@@ -263,11 +266,15 @@ const PublicContractSignature: React.FC = () => {
     signerName.trim() !== "" &&
     isIBANValid &&
     isConfirmationValid &&
-    signatureRef.current &&
-    !signatureRef.current.isEmpty();
+    signatureHasContent;
 
   const handleClearSignature = () => {
     signatureRef.current?.clear();
+    setSignatureHasContent(false);
+  };
+
+  const handleSignatureBegin = () => {
+    setSignatureHasContent(true);
   };
 
   const handleSign = async () => {
@@ -642,6 +649,7 @@ const PublicContractSignature: React.FC = () => {
                     style: { width: '100%', height: '160px' }
                   }}
                   backgroundColor="white"
+                  onBegin={handleSignatureBegin}
                 />
               </div>
               <p className="text-xs text-muted-foreground text-center">
