@@ -44,6 +44,7 @@ interface NewEquipmentSectionProps {
     leaser_id?: string;
     duration?: number;
     coefficient?: number;
+    down_payment?: number;
   };
   onOfferUpdate?: () => void;
 }
@@ -219,6 +220,13 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     const marginPercentage = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
     const globalCoefficient = totalPrice > 0 ? totalMonthlyPayment / totalPrice : 0;
 
+    // Calculs avec acompte
+    const downPayment = offer.down_payment || 0;
+    const financedAfterDownPayment = Math.max(0, effectiveFinancedAmount - downPayment);
+    const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
+      ? (financedAfterDownPayment * coefficient) / 100
+      : totalMonthlyPayment;
+
     return { 
       totalPrice, 
       totalMonthlyPayment, 
@@ -226,7 +234,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       effectiveFinancedAmount,
       totalMargin, 
       marginPercentage,
-      globalCoefficient 
+      globalCoefficient,
+      downPayment,
+      financedAfterDownPayment,
+      adjustedMonthlyPayment
     };
   };
 
@@ -952,6 +963,27 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
           </Table>
         </div>
         
+        {/* Section Acompte si présent */}
+        {totals.downPayment > 0 && (
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-amber-800 mb-3">Acompte versé</h4>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-amber-700">Acompte : </span>
+                <span className="font-bold text-amber-600">{formatPrice(totals.downPayment)}</span>
+              </div>
+              <div>
+                <span className="text-amber-700">Montant financé après acompte : </span>
+                <span className="font-bold text-amber-600">{formatPrice(totals.financedAfterDownPayment)}</span>
+              </div>
+              <div>
+                <span className="text-amber-700">Mensualité après acompte : </span>
+                <span className="font-bold text-amber-600">{formatPrice(totals.adjustedMonthlyPayment)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Global Margin Editor */}
         <div className="mt-6 pt-4 border-t">
           <GlobalMarginEditor
