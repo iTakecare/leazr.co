@@ -4529,6 +4529,7 @@ export type Database = {
           created_at: string | null
           documents_last_viewed_at: string | null
           dossier_number: string | null
+          down_payment: number | null
           duration: number | null
           equipment_description: string | null
           estimated_budget: number | null
@@ -4578,6 +4579,7 @@ export type Database = {
           created_at?: string | null
           documents_last_viewed_at?: string | null
           dossier_number?: string | null
+          down_payment?: number | null
           duration?: number | null
           equipment_description?: string | null
           estimated_budget?: number | null
@@ -4627,6 +4629,7 @@ export type Database = {
           created_at?: string | null
           documents_last_viewed_at?: string | null
           dossier_number?: string | null
+          down_payment?: number | null
           duration?: number | null
           equipment_description?: string | null
           estimated_budget?: number | null
@@ -7072,6 +7075,7 @@ export type Database = {
           created_at: string | null
           documents_last_viewed_at: string | null
           dossier_number: string | null
+          down_payment: number | null
           duration: number | null
           equipment_description: string | null
           estimated_budget: number | null
