@@ -5,6 +5,7 @@ import { Package, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Button } from "@/components/ui/button";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
+import { calculateEquipmentTotals, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 
 interface CompactEquipmentSectionProps {
   offer: any;
@@ -85,14 +86,11 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
     return Math.round(total * 100) / 100; // Arrondir correctement
   };
 
-  // Calculer la marge totale : somme des marges individuelles
+  // Calculer la marge totale via la formule inverse Grenke
   const calculateTotalMargin = () => {
-    return equipmentItems.reduce((total: number, item: any) => {
-      const purchasePrice = parseFloat(item.purchasePrice) || 0;
-      const quantity = parseInt(item.quantity) || 1;
-      const margin = parseFloat(item.margin) || 0;
-      return total + (purchasePrice * quantity * margin / 100);
-    }, 0);
+    // Utiliser les fonctions centralisées qui appliquent la formule inverse Grenke
+    const margin = calculateOfferMarginAmount(offer, equipmentItems);
+    return margin || 0;
   };
 
   return (
