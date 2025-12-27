@@ -194,12 +194,21 @@ const OffersTable: React.FC<OffersTableProps> = ({
     return offers.map(offer => {
       const { displayName, companyName } = parseClientName(offer.client_name, offer.clients);
       
+      const baseFinancedAmount = getEffectiveFinancedAmount(offer, offer.offer_equipment);
+      const downPayment = offer.down_payment || 0;
+      const effectiveFinancedAmount = downPayment > 0 ? baseFinancedAmount - downPayment : baseFinancedAmount;
+      const coefficient = offer.coefficient || 0;
+      
+      // Recalculer la mensualité si acompte présent
+      const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
+        ? (effectiveFinancedAmount * coefficient) / 100
+        : offer.monthly_payment;
+
       return {
         ...offer,
-        effectiveFinancedAmount: (offer.down_payment || 0) > 0 
-          ? getEffectiveFinancedAmount(offer, offer.offer_equipment) - (offer.down_payment || 0)
-          : getEffectiveFinancedAmount(offer, offer.offer_equipment),
-        hasDownPayment: (offer.down_payment || 0) > 0,
+        effectiveFinancedAmount,
+        hasDownPayment: downPayment > 0,
+        adjustedMonthlyPayment,
         marginInEuros: calculateOfferMarginAmount(offer, offer.offer_equipment),
         equipmentForCell: formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment),
         equipmentWithQuantities: formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment),
@@ -384,7 +393,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium text-[11px] py-2">
-                    {formatCurrency(offer.is_purchase ? 0 : offer.monthly_payment)}
+                    <div className="flex items-center justify-end gap-1">
+                      {formatCurrency(offer.is_purchase ? 0 : offer.adjustedMonthlyPayment)}
+                      {offer.hasDownPayment && (
+                        <span className="text-amber-500 text-[9px]" title="Mensualité après acompte">●</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-[11px] py-2">
                     <OfferStatusBadge 
