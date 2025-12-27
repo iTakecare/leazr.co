@@ -33,7 +33,8 @@ const TYPE_OPTIONS = [
   { value: 'web_request', label: 'Dem. web - standard' },
   { value: 'custom_pack_request', label: 'Dem. web - pack perso' },
   { value: 'ambassador_offer', label: 'Demande ambassadeur' },
-  { value: 'purchase_request', label: 'Demande Achat' }
+  { value: 'purchase_request', label: 'Demande Achat' },
+  { value: 'self_leasing', label: 'Location propre' }
 ];
 
 const SECTOR_OPTIONS = BUSINESS_SECTORS.map(sector => ({

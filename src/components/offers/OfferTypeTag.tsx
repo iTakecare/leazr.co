@@ -6,7 +6,7 @@ import { translateOfferSource, getSourceStyle } from "@/utils/offerSourceTransla
 import { 
   User, Briefcase, Flag, UserCog, Phone, Building, Globe, Package, 
   Users, UserCheck, Handshake, FileText, Search, Facebook, Linkedin, 
-  Calendar, HelpCircle 
+  Calendar, HelpCircle, Home 
 } from "lucide-react";
 
 interface OfferTypeTagProps {
@@ -79,6 +79,10 @@ const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: Off
     case "admin_offer":
       color = "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50";
       icon = <UserCog className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
+      break;
+    case "self_leasing":
+      color = "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-50";
+      icon = <Home className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     default:
       color = "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-50";

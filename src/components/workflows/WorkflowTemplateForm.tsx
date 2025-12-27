@@ -58,6 +58,11 @@ export const WorkflowTemplateForm: React.FC<WorkflowTemplateFormProps> = ({
       value: 'purchase_request',
       label: 'Demande Achat',
       description: 'Processus pour les achats directs (sans leasing)'
+    },
+    {
+      value: 'self_leasing',
+      label: 'Location propre',
+      description: 'Processus pour le leasing réalisé en interne'
     }
   ];
 
