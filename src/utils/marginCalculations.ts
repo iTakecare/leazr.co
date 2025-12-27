@@ -10,6 +10,7 @@ export interface OfferFinancialData {
   coefficient?: number | null;
   equipment_description?: string | null;
   type?: string | null; // Added to identify client requests
+  down_payment?: number | null; // Acompte
 }
 
 /**
@@ -91,6 +92,29 @@ export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentI
   
   // Priorité 4: Fallback sur offer.amount
   return offer.amount || 0;
+};
+
+/**
+ * Get effective financed amount after down payment
+ * Subtracts down_payment from the base financed amount
+ */
+export const getEffectiveFinancedAmountAfterDownPayment = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
+  const baseAmount = getEffectiveFinancedAmount(offer, equipmentItems);
+  const downPayment = offer.down_payment || 0;
+  return Math.max(0, baseAmount - downPayment);
+};
+
+/**
+ * Calculate adjusted monthly payment after down payment
+ * Uses the coefficient to recalculate monthly payment based on reduced financed amount
+ */
+export const calculateAdjustedMonthlyPayment = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
+  const effectiveAmount = getEffectiveFinancedAmountAfterDownPayment(offer, equipmentItems);
+  const coefficient = offer.coefficient || 0;
+  if (coefficient > 0) {
+    return Math.round((effectiveAmount * coefficient) / 100 * 100) / 100;
+  }
+  return offer.monthly_payment || 0;
 };
 
 /**

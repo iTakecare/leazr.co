@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
-import { calculateEquipmentTotals, calculateOfferMargin, formatMarginDisplay } from "@/utils/marginCalculations";
+import { calculateEquipmentTotals, calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmountAfterDownPayment, calculateAdjustedMonthlyPayment } from "@/utils/marginCalculations";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
 import EditableEquipmentCard from "./EditableEquipmentCard";
 
@@ -113,6 +113,10 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer, onOfferUpdat
         {equipmentItems.length > 0 && (() => {
           const totals = calculateEquipmentTotals(offer, equipmentItems);
           const calculatedMargin = calculateOfferMargin(offer, equipmentItems);
+          const downPayment = offer.down_payment || 0;
+          const hasDownPayment = downPayment > 0;
+          const financedAfterDownPayment = hasDownPayment ? getEffectiveFinancedAmountAfterDownPayment(offer, equipmentItems) : null;
+          const adjustedMonthly = hasDownPayment ? calculateAdjustedMonthlyPayment(offer, equipmentItems) : null;
           
           return (
             <div className="mt-6 pt-4 border-t bg-gray-50 rounded-lg p-4">
@@ -140,6 +144,32 @@ const EquipmentSection: React.FC<EquipmentSectionProps> = ({ offer, onOfferUpdat
                   </p>
                 </div>
               </div>
+              
+              {/* Section acompte si présent */}
+              {hasDownPayment && (
+                <div className="mt-4 pt-4 border-t border-amber-200 bg-amber-50 rounded-lg p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="font-medium">
+                      <p className="text-amber-700 mb-1">Acompte</p>
+                      <p className="text-lg font-bold text-amber-600">
+                        {formatCurrency(downPayment)}
+                      </p>
+                    </div>
+                    <div className="font-medium">
+                      <p className="text-amber-700 mb-1">Montant financé après acompte</p>
+                      <p className="text-lg font-bold text-amber-600">
+                        {formatCurrency(financedAfterDownPayment || 0)}
+                      </p>
+                    </div>
+                    <div className="font-medium">
+                      <p className="text-amber-700 mb-1">Mensualité après acompte</p>
+                      <p className="text-lg font-bold text-amber-600">
+                        {formatCurrency(adjustedMonthly || 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}

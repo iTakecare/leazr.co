@@ -5,7 +5,7 @@ import { Package, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Button } from "@/components/ui/button";
 import { useOfferEquipment } from "@/hooks/useOfferEquipment";
-import { calculateEquipmentTotals, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
+import { calculateEquipmentTotals, getEffectiveFinancedAmount, calculateOfferMarginAmount, getEffectiveFinancedAmountAfterDownPayment, calculateAdjustedMonthlyPayment } from "@/utils/marginCalculations";
 
 interface CompactEquipmentSectionProps {
   offer: any;
@@ -204,6 +204,26 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
                   </div>
                 )}
                 <div className="col-span-1"></div>
+              </div>
+            )}
+            
+            {/* Section acompte si présent */}
+            {(offer.down_payment || 0) > 0 && (
+              <div className="bg-amber-50 border-t-2 border-amber-200 px-4 py-3">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-amber-700 font-medium">Acompte: </span>
+                    <span className="font-bold text-amber-600">{formatCurrency(offer.down_payment)}</span>
+                  </div>
+                  <div>
+                    <span className="text-amber-700 font-medium">Montant financé après acompte: </span>
+                    <span className="font-bold text-amber-600">{formatCurrency(getEffectiveFinancedAmountAfterDownPayment(offer, equipmentItems))}</span>
+                  </div>
+                  <div>
+                    <span className="text-amber-700 font-medium">Mensualité après acompte: </span>
+                    <span className="font-bold text-amber-600">{formatCurrency(calculateAdjustedMonthlyPayment(offer, equipmentItems))}</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
