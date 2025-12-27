@@ -5,12 +5,45 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { History, User, Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import ContractStatusBadge from "./ContractStatusBadge";
+import SignatureProgressTimeline from "./SignatureProgressTimeline";
 
 interface ContractHistoryPanelProps {
   logs: any[];
+  contract?: {
+    status?: string;
+    signature_status?: string;
+    client_iban?: string;
+    signed_contract_pdf_url?: string;
+    created_at?: string;
+    contract_signed_at?: string;
+  };
 }
 
-const ContractHistoryPanel: React.FC<ContractHistoryPanelProps> = ({ logs }) => {
+const ContractHistoryPanel: React.FC<ContractHistoryPanelProps> = ({ logs, contract }) => {
+  // Si pas de logs mais on a un contrat, afficher la timeline de progression
+  if (logs.length === 0 && contract) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Statut de signature
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignatureProgressTimeline 
+            contractStatus={contract.status || 'draft'}
+            signatureStatus={contract.signature_status}
+            hasIBAN={!!contract.client_iban}
+            hasPDF={!!contract.signed_contract_pdf_url}
+            contractCreatedAt={contract.created_at || new Date().toISOString()}
+            signedAt={contract.contract_signed_at}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+  // Si pas de logs ET pas de contrat, afficher le message vide
   if (logs.length === 0) {
     return (
       <Card>
