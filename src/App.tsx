@@ -128,6 +128,7 @@ import OfferPrintView from "@/pages/offers/OfferPrintView";
 // Client offer signing
 import SignOffer from "@/pages/client/SignOffer";
 import PublicContractSignature from "@/pages/client/PublicContractSignature";
+import PublicSignedContractDownload from "@/pages/client/PublicSignedContractDownload";
 import PublicContractErrorBoundary from "@/components/contracts/PublicContractErrorBoundary";
 import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
 import RedirectToUpload from "@/components/RedirectToUpload";
@@ -192,6 +193,10 @@ const AppRoutes = () => (
     {/* Public contract signature routes for self-leasing - wrapped with error boundary */}
     <Route path="/contract/:token/sign" element={<PublicContractErrorBoundary><PublicContractSignature /></PublicContractErrorBoundary>} />
     <Route path="/:companySlug/contract/:token/sign" element={<PublicContractErrorBoundary><PublicContractSignature /></PublicContractErrorBoundary>} />
+    
+    {/* Public signed contract PDF download routes */}
+    <Route path="/contract/:token/signed.pdf" element={<PublicSignedContractDownload />} />
+    <Route path="/:companySlug/contract/:token/signed.pdf" element={<PublicSignedContractDownload />} />
     
     {/* Company-specific login route - must be before generic company slug routes */}
     <Route path="/:companySlug/login" element={<Login />} />

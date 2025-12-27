@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
         *,
         contract_equipment (*),
         clients (id, name, email, company, phone, address, city, postal_code, vat_number),
-        offers!offer_id (down_payment, coefficient, monthly_payment)
+        offers!offer_id (down_payment, coefficient, monthly_payment, financed_amount, amount)
       `)
       .eq("id", contractId)
       .single();
@@ -53,16 +53,17 @@ const handler = async (req: Request): Promise<Response> => {
     const contractReference = contract.tracking_number || contract.contract_number || `CONTRAT-${contractId.substring(0, 8).toUpperCase()}`;
     console.log("Contract reference resolved:", contractReference, "(tracking_number:", contract.tracking_number, "contract_number:", contract.contract_number, ")");
 
-    // Fetch company data
+    // Fetch company data with slug for PDF download URL
     const { data: company } = await supabase
       .from("companies")
-      .select("name, logo_url, primary_color")
+      .select("name, logo_url, primary_color, slug")
       .eq("id", contract.company_id)
       .single();
 
     const companyName = company?.name || "Notre équipe";
     const primaryColor = company?.primary_color || "#3b82f6";
     const logoUrl = company?.logo_url || "";
+    const companySlug = company?.slug || "";
 
     // Get client email - fallback to clients table if not on contract directly
     const clientEmail = contract.client_email || contract.clients?.email;
@@ -91,15 +92,19 @@ const handler = async (req: Request): Promise<Response> => {
     // Get down payment info from linked offer
     const downPayment = contract.offers?.down_payment || 0;
     const coefficient = contract.offers?.coefficient || 0;
-    const duration = contract.contract_duration || 36;
-    const hasDownPayment = downPayment > 0 && coefficient > 0;
+    const financedAmount = contract.offers?.financed_amount || contract.offers?.amount || 0;
+    const isSelfLeasing = contract.is_self_leasing || false;
     
-    // Calculate adjusted monthly payment if there's a down payment
+    // Only show down payment info for self-leasing contracts with actual down payment
+    const hasDownPayment = downPayment > 0 && coefficient > 0 && isSelfLeasing;
+    
+    // Calculate adjusted monthly payment using the correct formula from SQL:
+    // adjusted = round(((financed_amount - down_payment) * coefficient) / 100, 2)
     const adjustedMonthlyPayment = hasDownPayment 
-      ? totalMonthly - (downPayment * coefficient / duration)
+      ? Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100
       : totalMonthly;
 
-    console.log("Down payment info:", { downPayment, coefficient, hasDownPayment, totalMonthly, adjustedMonthlyPayment });
+    console.log("Down payment info:", { downPayment, coefficient, financedAmount, isSelfLeasing, hasDownPayment, totalMonthly, adjustedMonthlyPayment });
 
     // Build equipment list HTML
     const equipmentListHtml = contract.contract_equipment?.map((eq: any) => `
@@ -231,52 +236,21 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
     `;
 
-    // Check if we already have a PDF URL - use it instead of generating HTML
+    // Build PDF download URL using the public route
+    // Uses the contract_signature_token to allow public PDF generation
     let downloadUrl = '';
     
-    if (contract.signed_contract_pdf_url && contract.signed_contract_pdf_url.endsWith('.pdf')) {
-      // Use existing PDF URL
-      downloadUrl = contract.signed_contract_pdf_url;
-      console.log("Using existing PDF URL:", downloadUrl);
-    } else {
-      // Fallback: Store the signed contract HTML in Supabase Storage
-      const fileName = `${contractReference}-signed.html`;
-      const filePath = `${contract.company_id}/${fileName}`;
-
-      console.log("No PDF found, uploading signed contract HTML to storage:", filePath);
-
-      const { error: uploadError } = await supabase.storage
-        .from('signed-contracts')
-        .upload(filePath, signedContractHtml, {
-          contentType: 'text/html',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        // Continue even if upload fails - we'll still send the email
+    if (contract.contract_signature_token) {
+      // Use the new public PDF download route
+      const baseUrl = 'https://leazr.co';
+      if (companySlug) {
+        downloadUrl = `${baseUrl}/${companySlug}/contract/${contract.contract_signature_token}/signed.pdf`;
       } else {
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('signed-contracts')
-          .getPublicUrl(filePath);
-
-        downloadUrl = urlData?.publicUrl || '';
-        console.log("HTML signed contract URL:", downloadUrl);
-
-        // Only update if no PDF URL exists (don't overwrite PDF with HTML)
-        if (!contract.signed_contract_pdf_url && downloadUrl) {
-          await supabase
-            .from("contracts")
-            .update({
-              signed_contract_pdf_url: downloadUrl,
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", contractId);
-          
-          console.log("Contract updated with signed_contract_pdf_url (HTML fallback)");
-        }
+        downloadUrl = `${baseUrl}/contract/${contract.contract_signature_token}/signed.pdf`;
       }
+      console.log("Using public PDF download URL:", downloadUrl);
+    } else {
+      console.warn("No contract_signature_token found, email will have no download button");
     }
 
     const htmlContent = `
