@@ -32,6 +32,7 @@ import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import OfferConfiguration from "@/components/offer/OfferConfiguration";
+import DownPaymentCard from "@/components/offer/DownPaymentCard";
 import { useSimplifiedEquipmentCalculator } from "@/hooks/useSimplifiedEquipmentCalculator";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 import AmbassadorSelector, { AmbassadorSelectorAmbassador } from "@/components/ui/AmbassadorSelector";
@@ -81,6 +82,7 @@ const CreateOffer = () => {
   const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
   const [estimatedBudget, setEstimatedBudget] = useState<number>(0);
   const [isPurchase, setIsPurchase] = useState(false); // Mode achat direct
+  const [downPayment, setDownPayment] = useState(0); // Acompte
   const [selectedPacks, setSelectedPacks] = useState<Array<{
     pack_id: string;
     pack: ProductPack;
@@ -378,6 +380,13 @@ const CreateOffer = () => {
                 }
               }
             }
+            
+            // Charger l'acompte si présent
+            if (offer.down_payment !== undefined && offer.down_payment !== null) {
+              console.log("💰 STEP 3: Loading down payment:", offer.down_payment);
+              setDownPayment(parseFloat(offer.down_payment) || 0);
+            }
+            
             console.log("🏁 STEP 3: Offer loading completed successfully");
             toast.success("Offre chargée avec succès");
           } else {
@@ -686,7 +695,8 @@ const CreateOffer = () => {
         leaser_id: isPurchase ? null : selectedLeaser?.id,
         duration: isPurchase ? null : selectedDuration,
         file_fee: isPurchase ? 0 : (fileFeeEnabled ? fileFeeAmount : 0),
-        annual_insurance: isPurchase ? 0 : (productsToBeDetermined ? 0 : annualInsurance)
+        annual_insurance: isPurchase ? 0 : (productsToBeDetermined ? 0 : annualInsurance),
+        down_payment: isPurchase ? 0 : downPayment
       };
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
@@ -881,6 +891,17 @@ const CreateOffer = () => {
                     }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
                     // Transmettre les infos commission pour l'affichage
                     ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} isPurchase={isPurchase} />
+                        
+                        {/* Carte Acompte - entre équipements et client */}
+                        {!isPurchase && equipmentList.length > 0 && (
+                          <DownPaymentCard
+                            downPayment={downPayment}
+                            onDownPaymentChange={setDownPayment}
+                            totalSellingPrice={calculations?.totalFinancedAmount || 0}
+                            coefficient={globalMarginAdjustment.newCoef || coefficient || 3.27}
+                            disabled={productsToBeDetermined}
+                          />
+                        )}
                         
                         <ClientInfo clientId={clientId} clientName={clientName} clientEmail={clientEmail} clientCompany={clientCompany} remarks={remarks} setRemarks={setRemarks} onOpenClientSelector={() => setIsClientSelectorOpen(true)} handleSaveOffer={handleSaveOffer} isSubmitting={isSubmitting} selectedLeaser={selectedLeaser} equipmentList={equipmentList} productsToBeDetermined={productsToBeDetermined} />
                       </div>

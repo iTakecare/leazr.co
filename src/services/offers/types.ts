@@ -41,6 +41,7 @@ export interface OfferData {
   file_fee?: number; // Frais de dossier
   annual_insurance?: number; // Assurance annuelle
   is_purchase?: boolean; // true = achat direct (sans financement), false = leasing (défaut)
+  down_payment?: number; // Acompte versé par le client, diminue le montant financé
   // Equipment is used for processing but not sent to DB directly
   equipment?: Array<{
     id?: string;

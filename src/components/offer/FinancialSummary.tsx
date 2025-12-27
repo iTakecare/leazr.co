@@ -31,6 +31,8 @@ interface FinancialSummaryProps {
   annualInsurance?: number;
   // Mode achat direct (pas de financement)
   isPurchase?: boolean;
+  // Acompte
+  downPayment?: number;
 }
 
 const FinancialSummary = ({ 
@@ -42,7 +44,8 @@ const FinancialSummary = ({
   offerData,
   fileFee,
   annualInsurance,
-  isPurchase = false
+  isPurchase = false,
+  downPayment = 0
 }: FinancialSummaryProps) => {
   
   // MODE ACHAT: Affichage simplifié sans financement
@@ -171,6 +174,30 @@ const FinancialSummary = ({
                 {formatCurrency(totalFinancedAmount)}
               </span>
             </div>
+
+            {/* Acompte (si présent) */}
+            {downPayment > 0 && (
+              <div className="flex justify-between items-center bg-amber-50 rounded-lg p-2 border border-amber-200">
+                <span className="text-sm font-medium text-amber-700">
+                  Acompte :
+                </span>
+                <span className="text-sm font-semibold text-amber-900">
+                  - {formatCurrency(downPayment)}
+                </span>
+              </div>
+            )}
+
+            {/* Montant financé après acompte (si acompte présent) */}
+            {downPayment > 0 && (
+              <div className="flex justify-between items-center bg-blue-50 rounded-lg p-2 border border-blue-200">
+                <span className="text-sm font-medium text-blue-700">
+                  Montant financé après acompte :
+                </span>
+                <span className="text-sm font-semibold text-blue-900">
+                  {formatCurrency(totalFinancedAmount - downPayment)}
+                </span>
+              </div>
+            )}
 
             {/* Marge totale générée */}
             <div className="flex justify-between items-center">
@@ -332,6 +359,30 @@ const FinancialSummary = ({
               {formatCurrency(totalFinancedAmount)}
             </span>
           </div>
+
+          {/* Acompte (si présent) */}
+          {downPayment > 0 && (
+            <div className="flex justify-between items-center bg-amber-50 rounded-lg p-2 border border-amber-200">
+              <span className="text-sm font-medium text-amber-700">
+                Acompte :
+              </span>
+              <span className="text-sm font-semibold text-amber-900">
+                - {formatCurrency(downPayment)}
+              </span>
+            </div>
+          )}
+
+          {/* Montant financé après acompte (si acompte présent) */}
+          {downPayment > 0 && (
+            <div className="flex justify-between items-center bg-blue-50 rounded-lg p-2 border border-blue-200">
+              <span className="text-sm font-medium text-blue-700">
+                Montant financé après acompte :
+              </span>
+              <span className="text-sm font-semibold text-blue-900">
+                {formatCurrency(totalFinancedAmount - downPayment)}
+              </span>
+            </div>
+          )}
 
           {/* Marge totale générée */}
           <div className="flex justify-between items-center">

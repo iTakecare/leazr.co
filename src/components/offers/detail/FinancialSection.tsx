@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Calculator, Euro, Percent } from "lucide-react";
+import { DollarSign, TrendingUp, Calculator, Euro, Percent, Wallet } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { hasCommission } from "@/utils/offerTypeTranslator";
 import { calculateOfferMargin, getEffectiveFinancedAmount } from "@/utils/marginCalculations";
@@ -304,8 +304,35 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         {/* Informations complémentaires */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
           
-          {/* Montant financé */}
-          {effectiveFinancedAmount > 0 && effectiveFinancedAmount !== totals.totalPurchasePrice && <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+          {/* Acompte - affiché si > 0 */}
+          {offer.down_payment !== undefined && offer.down_payment > 0 && (
+            <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-700">Acompte versé</span>
+              </div>
+              <span className="text-lg font-bold text-amber-900">
+                {formatCurrency(offer.down_payment)}
+              </span>
+            </div>
+          )}
+          
+          {/* Montant financé après acompte - si acompte > 0 */}
+          {offer.down_payment !== undefined && offer.down_payment > 0 && effectiveFinancedAmount > 0 && (
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2">
+                <Euro className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">Montant financé après acompte</span>
+              </div>
+              <span className="text-lg font-bold text-blue-900">
+                {formatCurrency(effectiveFinancedAmount - offer.down_payment)}
+              </span>
+            </div>
+          )}
+
+          {/* Montant financé - quand pas d'acompte */}
+          {effectiveFinancedAmount > 0 && effectiveFinancedAmount !== totals.totalPurchasePrice && (!offer.down_payment || offer.down_payment <= 0) && (
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center gap-2">
                 <Euro className="w-4 h-4 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Montant financé</span>
@@ -313,7 +340,8 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
               <span className="text-lg font-bold text-gray-900">
                 {formatCurrency(effectiveFinancedAmount)}
               </span>
-            </div>}
+            </div>
+          )}
 
 
           {/* Commission - Conditionnelle selon le type d'offre */}

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, Calendar, Wallet } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 
 interface FinancialSummaryCardProps {
@@ -14,6 +14,7 @@ interface FinancialSummaryCardProps {
   coefficient?: number;
   fileFee?: number;
   annualInsurance?: number;
+  downPayment?: number;
 }
 
 const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
@@ -25,7 +26,8 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
   margin,
   coefficient,
   fileFee,
-  annualInsurance
+  annualInsurance,
+  downPayment
 }) => {
   console.log("🔍 FinancialSummaryCard - Props received:", {
     monthlyPayment,
@@ -81,6 +83,26 @@ const FinancialSummaryCard: React.FC<FinancialSummaryCardProps> = ({
             </div>
           )}
         </div>
+
+        {/* Acompte */}
+        {downPayment !== undefined && downPayment > 0 && (
+          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+            <div className="flex items-center gap-3">
+              <Wallet className="h-5 w-5 text-amber-600" />
+              <div>
+                <div className="text-xl font-bold text-amber-900">
+                  {formatCurrency(downPayment)}
+                </div>
+                <div className="text-sm text-amber-700">Acompte versé</div>
+              </div>
+            </div>
+            {financedAmount && (
+              <div className="mt-2 text-sm text-amber-700">
+                Montant financé après acompte : <span className="font-semibold">{formatCurrency(financedAmount - downPayment)}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Frais et assurance */}
         {(fileFee !== undefined || annualInsurance !== undefined) && (
