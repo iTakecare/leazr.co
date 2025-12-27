@@ -185,12 +185,12 @@ export const updateOfferStatus = async (
           // Utiliser le leaser sélectionné dans l'offre
           const { data: selectedLeaser } = await supabase
             .from('leasers')
-            .select('name, logo_url')
+            .select('name, company_name, logo_url')
             .eq('id', offerData.leaser_id)
             .single();
           
           if (selectedLeaser) {
-            leaserName = selectedLeaser.name;
+            leaserName = selectedLeaser.company_name || selectedLeaser.name;
             leaserLogo = selectedLeaser.logo_url;
             console.log("✅ Bailleur trouvé depuis l'offre:", leaserName);
           } else {
@@ -201,12 +201,12 @@ export const updateOfferStatus = async (
           console.warn("⚠️ Aucun leaser_id dans l'offre, utilisation du premier disponible");
           const { data: availableLeasers } = await supabase
             .from('leasers')
-            .select('name, logo_url')
+            .select('name, company_name, logo_url')
             .eq('company_id', offerData.company_id)
             .limit(1);
           
           if (availableLeasers?.[0]) {
-            leaserName = availableLeasers[0].name;
+            leaserName = availableLeasers[0].company_name || availableLeasers[0].name;
             leaserLogo = availableLeasers[0].logo_url;
             console.log("✅ Bailleur fallback utilisé:", leaserName);
           }

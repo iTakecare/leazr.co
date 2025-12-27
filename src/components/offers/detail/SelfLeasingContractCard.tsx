@@ -168,7 +168,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
           user_id: user.id,
           client_name: offer.client_name || offer.clients?.name,
           client_email: offer.client_email || offer.clients?.email,
-          leaser_name: leaser?.name,
+          leaser_name: leaser?.company_name || leaser?.name,
           leaser_id: leaser?.id,
           monthly_payment: offer.monthly_payment,
           lease_duration: offer.duration || 36,
