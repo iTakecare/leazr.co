@@ -61,13 +61,24 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
         }
       }
 
-      // Check if self-leasing via leaser_name
+      // Check if self-leasing via leaser_name (try company_name first, then name)
       if (contract?.leaser_name) {
-        const { data: leaserData } = await supabase
+        // Try to find by company_name first
+        let { data: leaserData } = await supabase
           .from('leasers')
           .select('*')
-          .eq('name', contract.leaser_name)
+          .eq('company_name', contract.leaser_name)
           .maybeSingle();
+        
+        // If not found, try by name
+        if (!leaserData) {
+          const { data: leaserByName } = await supabase
+            .from('leasers')
+            .select('*')
+            .eq('name', contract.leaser_name)
+            .maybeSingle();
+          leaserData = leaserByName;
+        }
         
         if (leaserData?.is_own_company === true) {
           setIsSelfLeasing(true);
@@ -107,12 +118,22 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
           .maybeSingle();
         setLeaser(leaserData);
       } else if (contract?.leaser_name && !leaser) {
-        // If no leaser_id but leaser_name exists, load by name
-        const { data: leaserData } = await supabase
+        // If no leaser_id but leaser_name exists, try company_name first, then name
+        let { data: leaserData } = await supabase
           .from('leasers')
           .select('*')
-          .eq('name', contract.leaser_name)
+          .eq('company_name', contract.leaser_name)
           .maybeSingle();
+        
+        if (!leaserData) {
+          const { data: leaserByName } = await supabase
+            .from('leasers')
+            .select('*')
+            .eq('name', contract.leaser_name)
+            .maybeSingle();
+          leaserData = leaserByName;
+        }
+        
         setLeaser(leaserData);
       }
 
