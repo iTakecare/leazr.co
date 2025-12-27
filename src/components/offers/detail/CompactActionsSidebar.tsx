@@ -125,7 +125,7 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
     'leaser_review',
     'leaser_introduced'
   ];
-  const canEdit = editableStatuses.includes(offer.workflow_status);
+  const canEdit = editableStatuses.includes(offer.workflow_status?.toLowerCase());
 
   return (
     <div className="space-y-4">
