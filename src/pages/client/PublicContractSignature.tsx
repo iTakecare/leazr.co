@@ -27,12 +27,17 @@ interface ContractData {
   id: string;
   offer_id: string;
   client_name: string;
-  client_company: string;
-  client_email: string;
-  client_address: string;
-  client_city: string;
-  client_postal_code: string;
-  client_vat_number: string;
+  client: {
+    id: string;
+    name: string;
+    company: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    vat_number: string;
+  };
   leaser_name: string;
   monthly_payment: number;
   contract_duration: number;
@@ -91,7 +96,7 @@ const PublicContractSignature: React.FC = () => {
       }
 
       setContract(data);
-      setSignerName(data.client_name || "");
+      setSignerName(data.client?.name || data.client_name || "");
 
       if (data.signature_status === 'signed') {
         setIsSigned(true);
@@ -292,23 +297,23 @@ const PublicContractSignature: React.FC = () => {
           <CardContent className="grid md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Société</p>
-              <p className="font-medium">{contract?.client_company || contract?.client_name}</p>
+              <p className="font-medium">{contract?.client?.company || contract?.client?.name || contract?.client_name}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Contact</p>
-              <p className="font-medium">{contract?.client_name}</p>
+              <p className="font-medium">{contract?.client?.name || contract?.client_name}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Adresse</p>
               <p className="font-medium">
-                {contract?.client_address}<br />
-                {contract?.client_postal_code} {contract?.client_city}
+                {contract?.client?.address}<br />
+                {contract?.client?.postal_code} {contract?.client?.city}
               </p>
             </div>
-            {contract?.client_vat_number && (
+            {contract?.client?.vat_number && (
               <div>
                 <p className="text-sm text-muted-foreground">N° TVA</p>
-                <p className="font-medium">{contract.client_vat_number}</p>
+                <p className="font-medium">{contract.client.vat_number}</p>
               </div>
             )}
           </CardContent>
