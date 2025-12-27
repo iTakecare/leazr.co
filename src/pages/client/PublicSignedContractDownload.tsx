@@ -83,18 +83,21 @@ const PublicSignedContractDownload: React.FC = () => {
       }
 
       // Transform RPC data to SignedContractPDFData format
+      // This now includes ALL data from the updated RPC function
       const pdfData: SignedContractPDFData = {
         id: data.id,
         tracking_number: data.contract_number || data.tracking_number || `CON-${data.id?.slice(0, 8) || 'UNKNOWN'}`,
         created_at: data.created_at,
-        signed_at: data.contract_signed_at,
+        // Contract dates
+        contract_start_date: data.contract_start_date || undefined,
+        contract_end_date: data.contract_end_date || undefined,
         // Client
         client_name: data.client?.name || 'Client',
         client_company: data.client?.company,
         client_address: data.client?.address,
         client_city: data.client?.city,
         client_postal_code: data.client?.postal_code,
-        client_country: 'Belgique',
+        client_country: data.client?.country || 'Belgique',
         client_vat_number: data.client?.vat_number,
         client_phone: data.client?.phone,
         client_email: data.client?.email,
@@ -106,13 +109,19 @@ const PublicSignedContractDownload: React.FC = () => {
         company_address: data.company?.address,
         company_email: data.company?.email,
         company_phone: data.company?.phone,
+        company_vat_number: data.company?.vat_number,
         company_logo_url: data.company?.logo_url,
-        // Financial - use adjusted_monthly_payment from RPC
+        // Financial - use adjusted_monthly_payment from RPC for self-leasing with down payment
         monthly_payment: data.is_self_leasing && data.down_payment > 0 
           ? data.adjusted_monthly_payment 
           : data.monthly_payment,
         contract_duration: data.contract_duration || 36,
         down_payment: data.down_payment || 0,
+        coefficient: data.coefficient || 0,
+        financed_amount: data.financed_amount || 0,
+        amount: data.amount || 0,
+        file_fee: data.file_fee || 0,
+        annual_insurance: data.annual_insurance || 0,
         // Equipment
         equipment: (data.equipment || []).map((eq: any) => ({
           title: eq.title,
@@ -122,12 +131,17 @@ const PublicSignedContractDownload: React.FC = () => {
           margin: eq.margin || 0,
           serial_number: eq.serial_number,
         })),
-        // Signature
+        // Signature - now includes signature image and IP
+        signature_data: data.contract_signature_data || undefined,
         signer_name: data.contract_signer_name || data.client?.name,
+        signer_ip: data.contract_signer_ip || undefined,
+        signed_at: data.contract_signed_at || undefined,
         // Contract template content
         contract_content: contractContent,
         // Brand
-        primary_color: '#33638e',
+        primary_color: data.company?.primary_color || '#33638e',
+        // Special provisions
+        special_provisions: data.special_provisions || undefined,
       };
 
       console.log('[PUBLIC-PDF] Generating PDF with data:', pdfData);
