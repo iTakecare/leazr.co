@@ -293,7 +293,8 @@ const createContractEquipmentFromOffer = async (contractId: string, offerId: str
 export const createContractFromOffer = async (
   offerId: string,
   leaserName: string,
-  leaserLogo?: string
+  leaserLogo?: string,
+  isSelfLeasing: boolean = false
 ): Promise<string | null> => {
   try {
     const { data: offerData, error: offerError } = await supabase
@@ -313,8 +314,25 @@ export const createContractFromOffer = async (
       client_name: offerData.client_name,
       monthly_payment: offerData.monthly_payment,
       company_id: offerData.company_id,
-      user_id: offerData.user_id
+      user_id: offerData.user_id,
+      isSelfLeasing
     });
+
+    // Generate contract number for self-leasing contracts
+    let contractNumber: string | null = null;
+    if (isSelfLeasing && offerData.company_id) {
+      const { data: generatedNumber, error: numberError } = await supabase.rpc(
+        'generate_self_leasing_contract_number',
+        { p_company_id: offerData.company_id }
+      );
+      
+      if (numberError) {
+        console.error("Erreur lors de la génération du numéro de contrat:", numberError);
+      } else {
+        contractNumber = generatedNumber;
+        console.log("✅ Numéro de contrat généré:", contractNumber);
+      }
+    }
 
     const contractData = {
       offer_id: offerId,
@@ -326,7 +344,9 @@ export const createContractFromOffer = async (
       leaser_logo: leaserLogo || null,
       status: contractStatuses.CONTRACT_SENT,
       user_id: offerData.user_id,
-      company_id: offerData.company_id
+      company_id: offerData.company_id,
+      is_self_leasing: isSelfLeasing,
+      contract_number: contractNumber
     };
 
     console.log("💾 Données du contrat à créer:", contractData);
