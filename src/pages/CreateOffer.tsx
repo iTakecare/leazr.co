@@ -65,6 +65,7 @@ const CreateOffer = () => {
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const [isInternalOffer, setIsInternalOffer] = useState(true);
+  const [isSelfLeasing, setIsSelfLeasing] = useState(false);
   const [selectedAmbassador, setSelectedAmbassador] = useState<AmbassadorSelectorAmbassador | null>(null);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isClientSelectorOpen, setIsClientSelectorOpen] = useState(false);
@@ -225,17 +226,25 @@ const CreateOffer = () => {
             setRemarks(offer.additional_info || '');
 
             // Déterminer le type d'offre et charger l'ambassadeur si nécessaire
-            if (offer.type === 'client_request' && !offer.ambassador_id) {
+            if (offer.type === 'self_leasing') {
+              console.log("🏢 STEP 3: Self-leasing offer detected");
+              setIsSelfLeasing(true);
+              setIsInternalOffer(true);
+              setSelectedAmbassador(null);
+            } else if (offer.type === 'client_request' && !offer.ambassador_id) {
               console.log("🏠 STEP 3: Internal/Client request offer detected");
+              setIsSelfLeasing(false);
               setIsInternalOffer(true);
               setSelectedAmbassador(null);
             } else if (offer.type === 'internal_offer') {
               // Rétrocompatibilité avec anciennes offres internes
               console.log("🏠 STEP 3: Legacy internal offer detected");
+              setIsSelfLeasing(false);
               setIsInternalOffer(true);
               setSelectedAmbassador(null);
             } else if (offer.ambassador_id) {
               console.log("👨‍💼 STEP 3: Ambassador offer detected, ID:", offer.ambassador_id);
+              setIsSelfLeasing(false);
               setIsInternalOffer(false);
 
               // Charger les données de l'ambassadeur
@@ -291,6 +300,12 @@ const CreateOffer = () => {
                 if (matchingLeaser) {
                   console.log("✅ STEP 3: Matching leaser found:", matchingLeaser.name);
                   setSelectedLeaser(matchingLeaser);
+                  
+                  // Vérifier si c'est du self-leasing basé sur le leaser
+                  if ((matchingLeaser as any).is_own_company === true && offer.type !== 'self_leasing') {
+                    console.log("🏢 STEP 3: Leaser is own company, activating self-leasing");
+                    setIsSelfLeasing(true);
+                  }
                 } else {
                   console.log("⚠️ STEP 3: No matching leaser found for coefficient");
                 }
@@ -410,6 +425,15 @@ const CreateOffer = () => {
   const handleLeaserSelect = (leaser: Leaser) => {
     setSelectedLeaser(leaser);
     setIsLeaserSelectorOpen(false);
+    
+    // Si le leaser est un bailleur de leasing en propre, définir automatiquement le type self_leasing
+    if ((leaser as any).is_own_company === true) {
+      setIsSelfLeasing(true);
+      toast.info("Leasing en propre détecté - Type d'offre défini sur 'Location propre'");
+      console.log("🏢 Self-leasing activé pour le leaser:", leaser.name);
+    } else {
+      setIsSelfLeasing(false);
+    }
   };
 
   const handleDurationChange = (duration: number) => {
@@ -580,7 +604,13 @@ const CreateOffer = () => {
       // CORRECTION: Déterminer le type d'offre et l'ambassadeur correctement
       let offerType: string;
       let ambassadorId: string | undefined;
-      if (isInternalOffer) {
+      
+      // Priorité 1: Self-leasing (leasing en propre)
+      if (isSelfLeasing) {
+        offerType = 'self_leasing';
+        ambassadorId = undefined;
+        console.log("🏢 LOCATION PROPRE détectée");
+      } else if (isInternalOffer) {
         offerType = 'client_request';
         ambassadorId = undefined;
         console.log("🏠 DEMANDE CLIENT (interne) détectée");
