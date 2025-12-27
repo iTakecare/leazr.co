@@ -24,6 +24,7 @@ interface SendContractEmailModalProps {
   existingContract?: {
     id: string;
     contract_signature_token: string | null;
+    contract_number?: string | null;
   } | null;
   onContractSent?: () => void;
 }
@@ -46,7 +47,8 @@ const SendContractEmailModal: React.FC<SendContractEmailModalProps> = ({
     if (open && offer) {
       // Pre-fill form with offer data
       setRecipientEmail(offer.client_email || offer.clients?.email || "");
-      setEmailSubject(`Contrat de location - ${offer.offer_number || 'Votre offre'}`);
+      const contractRef = existingContract?.contract_number || offer.offer_number || 'Votre offre';
+      setEmailSubject(`Contrat de location - ${contractRef}`);
       
       const clientName = offer.client_name || offer.clients?.name || "Client";
       const monthlyPayment = offer.monthly_payment?.toLocaleString('fr-BE', {

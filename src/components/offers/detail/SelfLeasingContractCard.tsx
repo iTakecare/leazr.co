@@ -20,6 +20,7 @@ interface ContractStatus {
   signature_status: string | null;
   contract_signature_token: string | null;
   signed_contract_pdf_url: string | null;
+  contract_number?: string | null;
 }
 
 const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
@@ -141,6 +142,22 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
         return;
       }
 
+      // Generate contract number for self-leasing
+      let contractNumber: string | null = null;
+      if (offer.company_id) {
+        const { data: generatedNumber, error: numberError } = await supabase.rpc(
+          'generate_self_leasing_contract_number',
+          { p_company_id: offer.company_id }
+        );
+        
+        if (numberError) {
+          console.error("Erreur lors de la génération du numéro de contrat:", numberError);
+        } else {
+          contractNumber = generatedNumber;
+          console.log("✅ Numéro de contrat généré:", contractNumber);
+        }
+      }
+
       // Create the contract
       const { data: newContract, error: createError } = await supabase
         .from('contracts')
@@ -154,13 +171,14 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
           leaser_name: leaser?.name,
           leaser_id: leaser?.id,
           monthly_payment: offer.monthly_payment,
-          contract_duration: offer.duration || 36,
+          lease_duration: offer.duration || 36,
           status: 'pending',
           signature_status: 'draft',
           is_self_leasing: true,
-          tracking_number: `CTR-${Date.now().toString(36).toUpperCase()}`
+          contract_number: contractNumber,
+          tracking_number: contractNumber || `CTR-${Date.now().toString(36).toUpperCase()}`
         })
-        .select('id, contract_signature_token, signature_status, signed_contract_pdf_url')
+        .select('id, contract_signature_token, signature_status, signed_contract_pdf_url, contract_number')
         .single();
 
       if (createError) throw createError;
@@ -185,7 +203,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
       }
 
       setContractStatus(newContract);
-      toast.success("Contrat généré avec succès !");
+      toast.success(`Contrat ${contractNumber || ''} généré avec succès !`);
       onContractCreated?.();
 
     } catch (error: any) {

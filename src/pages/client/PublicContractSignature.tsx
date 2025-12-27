@@ -37,6 +37,7 @@ interface ContractData {
   monthly_payment: number;
   contract_duration: number;
   tracking_number: string;
+  contract_number?: string;
   signature_status: string;
   is_self_leasing: boolean;
   company: {
@@ -254,7 +255,7 @@ const PublicContractSignature: React.FC = () => {
               Votre contrat a été signé avec succès. Vous recevrez une copie par email.
             </p>
             <p className="text-sm text-muted-foreground">
-              Référence : {contract?.tracking_number}
+              Référence : {contract?.contract_number || contract?.tracking_number}
             </p>
           </CardContent>
         </Card>
@@ -276,7 +277,7 @@ const PublicContractSignature: React.FC = () => {
           )}
           <h1 className="text-2xl font-bold">Contrat de Location</h1>
           <p className="text-muted-foreground">
-            Référence : {contract?.tracking_number}
+            Référence : {contract?.contract_number || contract?.tracking_number}
           </p>
         </div>
 
