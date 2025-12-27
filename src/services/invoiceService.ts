@@ -297,9 +297,26 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
     // Sinon, fallback sur les équipements du contrat
     let equipment = [];
     let totalSellingPrice = 0;
+    let offerData = null;
 
     if (offerId) {
-      console.log('🔍 Récupération des équipements depuis l\'offre originale');
+      console.log('🔍 Récupération des équipements et données depuis l\'offre originale');
+      
+      // Récupérer l'offre pour avoir le coefficient et la mensualité totale
+      const { data: offerInfo, error: offerInfoError } = await supabase
+        .from('offers')
+        .select('coefficient, monthly_payment, financed_amount')
+        .eq('id', offerId)
+        .single();
+      
+      if (!offerInfoError && offerInfo) {
+        offerData = offerInfo;
+        console.log('✅ Données de l\'offre récupérées:', {
+          coefficient: offerData.coefficient,
+          monthly_payment: offerData.monthly_payment,
+          financed_amount: offerData.financed_amount
+        });
+      }
       
       const { data: offerEquipment, error: offerEquipmentError } = await supabase
         .from('offer_equipment')
@@ -318,27 +335,54 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       equipment = contractEquipment || [];
     }
 
-    // Calculer le prix total de vente
-    // Priorité : selling_price > calcul avec marge
-    totalSellingPrice = equipment.reduce((total, item) => {
-      const sellingPrice = item.selling_price || (item.purchase_price * (1 + item.margin / 100));
-      return total + (sellingPrice * item.quantity);
-    }, 0);
+    // Calculer le prix total de vente avec la formule inverse Grenke
+    // Priorité 1: financed_amount de l'offre
+    // Priorité 2: Formule inverse Grenke (monthly_payment * 100 / coefficient)
+    // Priorité 3: Somme des selling_price ou calcul avec marge %
+    
+    if (offerData?.financed_amount && offerData.financed_amount > 0) {
+      totalSellingPrice = offerData.financed_amount;
+      console.log('💰 Prix de vente calculé depuis financed_amount:', totalSellingPrice);
+    } else if (offerData?.monthly_payment && offerData?.coefficient && offerData.coefficient > 0) {
+      // Formule inverse Grenke
+      totalSellingPrice = (offerData.monthly_payment * 100) / offerData.coefficient;
+      console.log('💰 Prix de vente calculé avec formule inverse Grenke:', totalSellingPrice, 
+        '(mensualité:', offerData.monthly_payment, '× 100 /', offerData.coefficient, ')');
+    } else {
+      // Fallback: calcul depuis les équipements
+      totalSellingPrice = equipment.reduce((total, item) => {
+        const sellingPrice = item.selling_price || (item.purchase_price * (1 + (item.margin || 0) / 100));
+        return total + (sellingPrice * (item.quantity || 1));
+      }, 0);
+      console.log('💰 Prix de vente total calculé depuis équipements (fallback):', totalSellingPrice);
+    }
 
-    console.log('💰 Prix de vente total calculé:', totalSellingPrice);
+    // Calculer le total des mensualités pour la répartition proportionnelle
+    const totalMonthlyPayment = equipment.reduce((sum, item) => sum + ((item.monthly_payment || 0) * (item.quantity || 1)), 0);
 
     // Mapper les numéros de série du contrat sur les équipements
+    // et calculer le selling_price proportionnellement au montant financé total
     const enrichedEquipment = equipment.map(offerItem => {
       const contractItem = (contractEquipment || []).find(
         ce => ce.title === offerItem.title && ce.purchase_price === offerItem.purchase_price
       );
       
-      const sellingPrice = offerItem.selling_price || (offerItem.purchase_price * (1 + offerItem.margin / 100));
+      // Calculer le selling_price proportionnellement au montant financé total (via mensualité)
+      let itemSellingPrice;
+      if (totalMonthlyPayment > 0 && totalSellingPrice > 0 && offerItem.monthly_payment) {
+        // Répartition proportionnelle basée sur la mensualité
+        const itemTotalMonthly = (offerItem.monthly_payment || 0) * (offerItem.quantity || 1);
+        const proportion = itemTotalMonthly / totalMonthlyPayment;
+        itemSellingPrice = (totalSellingPrice * proportion) / (offerItem.quantity || 1);
+      } else {
+        // Fallback: calcul avec marge %
+        itemSellingPrice = offerItem.selling_price || (offerItem.purchase_price * (1 + (offerItem.margin || 0) / 100));
+      }
       
       return {
         ...offerItem,
         serial_number: contractItem?.serial_number || offerItem.serial_number,
-        selling_price_excl_vat: parseFloat(sellingPrice.toFixed(2))
+        selling_price_excl_vat: parseFloat(itemSellingPrice.toFixed(2))
       };
     });
 
