@@ -870,7 +870,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 
                 <TableCell className="text-right py-4">
                   <div className="font-bold text-base text-green-600">
-                    {formatPrice(totals.totalSellingPrice)}
+                    {formatPrice(totals.effectiveFinancedAmount)}
                   </div>
                 </TableCell>
                 
