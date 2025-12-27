@@ -64,7 +64,7 @@ Suite à notre échange, vous trouverez ci-dessous le lien pour signer électron
 Récapitulatif de votre contrat :
 - Mensualité : ${monthlyPayment} HT/mois
 - Durée : ${duration} mois
-- Bailleur : ${leaser?.name || 'Notre société'}
+- Bailleur : ${leaser?.company_name || leaser?.name || 'Notre société'}
 
 Pour procéder à la signature, veuillez cliquer sur le bouton ci-dessous. Vous devrez :
 1. Vérifier les informations de votre contrat
@@ -74,7 +74,7 @@ Pour procéder à la signature, veuillez cliquer sur le bouton ci-dessous. Vous 
 Une fois signé, vous recevrez une copie de votre contrat par email.
 
 Cordialement,
-L'équipe ${leaser?.name || 'commerciale'}`);
+L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`);
     }
   }, [open, offer, leaser]);
 
