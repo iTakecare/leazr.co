@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
+import { buildPublicContractSignatureUrl } from "@/utils/contractUrls";
 interface SendContractEmailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,6 +36,7 @@ const SendContractEmailModal: React.FC<SendContractEmailModalProps> = ({
   existingContract,
   onContractSent
 }) => {
+  const { companySlug } = useParams<{ companySlug: string }>();
   const [isSending, setIsSending] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
@@ -120,8 +122,10 @@ L'équipe ${leaser?.name || 'commerciale'}`);
         })
         .eq('id', offer.id);
 
-      // Build signature link
-      const signatureLink = `${window.location.origin}/contract/${signatureToken}/sign`;
+      // Build signature link using public URL format
+      const signatureLink = companySlug 
+        ? buildPublicContractSignatureUrl(companySlug, signatureToken)
+        : `${window.location.origin}/contract/${signatureToken}/sign`;
 
       // Send email via edge function
       const { error: emailError } = await supabase.functions.invoke('send-contract-email', {

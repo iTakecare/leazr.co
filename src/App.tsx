@@ -188,8 +188,9 @@ const AppRoutes = () => (
     {/* Client offer signing route - needs access to providers */}
     <Route path="/client/offer/:id/sign" element={<SignOffer />} />
     
-    {/* Public contract signature route for self-leasing */}
+    {/* Public contract signature routes for self-leasing */}
     <Route path="/contract/:token/sign" element={<PublicContractSignature />} />
+    <Route path="/:companySlug/contract/:token/sign" element={<PublicContractSignature />} />
     
     {/* Company-specific login route - must be before generic company slug routes */}
     <Route path="/:companySlug/login" element={<Login />} />
