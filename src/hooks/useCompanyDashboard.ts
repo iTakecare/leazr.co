@@ -44,6 +44,11 @@ export interface RecentActivity {
   user_name: string;
 }
 
+export interface OverdueInvoicesData {
+  overdue_count: number;
+  overdue_amount: number;
+}
+
 /**
  * Hook pour les métriques du dashboard multi-tenant
  */
@@ -119,13 +124,44 @@ export const useCompanyDashboard = () => {
     refetchInterval: 60000, // Actualisation toutes les minutes
   });
 
+  // Récupérer les factures en retard de paiement
+  const { 
+    data: overdueInvoices, 
+    isLoading: overdueLoading,
+    refetch: refetchOverdue
+  } = useQuery({
+    queryKey: ['company-overdue-invoices', companyId],
+    queryFn: async () => {
+      if (!companyId) return { overdue_count: 0, overdue_amount: 0 };
+      
+      const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+      
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('id, amount')
+        .eq('company_id', companyId)
+        .neq('status', 'paid')
+        .lte('due_date', today);
+      
+      if (error) throw error;
+      
+      const count = data?.length || 0;
+      const total = data?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+      
+      return { overdue_count: count, overdue_amount: total };
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000,
+  });
+
   // Fonction pour rafraîchir toutes les données
   const refetchAll = async () => {
     await Promise.all([
       refetchMetrics(),
       refetchMonthly(),
       refetchStats(),
-      refetchActivity()
+      refetchActivity(),
+      refetchOverdue()
     ]);
   };
 
@@ -181,7 +217,8 @@ export const useCompanyDashboard = () => {
   return {
     metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
-    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading,
+    overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
+    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading,
     refetch: refetchAll
   };
 };
