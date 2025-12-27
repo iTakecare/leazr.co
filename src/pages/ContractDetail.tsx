@@ -151,8 +151,8 @@ const ContractDetail = () => {
                 onContractUpdated={refetch}
               />
 
-              {/* Historique */}
-              <ContractHistoryPanel logs={logs} />
+              {/* Historique / Timeline de signature */}
+              <ContractHistoryPanel logs={logs} contract={contract} />
             </div>
           </div>
         </div>
