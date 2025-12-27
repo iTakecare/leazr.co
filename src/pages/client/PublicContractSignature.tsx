@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,15 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { 
-  FileText, 
-  Check, 
-  Loader2, 
+import {
+  FileText,
+  Check,
+  Loader2,
   AlertCircle,
   Building2,
   Euro,
   Calendar,
-  Shield
+  Shield,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -62,22 +63,44 @@ interface ContractData {
   }>;
 }
 
+// Manual build marker to quickly confirm which frontend bundle is running.
+const BUILD_ID = "public-contract-signature-2025-12-27-01";
+
 const PublicContractSignature: React.FC = () => {
   const { token } = useParams<{ token: string }>();
+  const isDebug = new URLSearchParams(window.location.search).get("debug") === "1";
+  const canonicalUrl = window.location.href.split("?")[0];
+
+  const Seo = (
+    <Helmet>
+      <title>Signature contrat de location</title>
+      <meta
+        name="description"
+        content="Signature électronique de votre contrat de location."
+      />
+      <link rel="canonical" href={canonicalUrl} />
+      <meta name="robots" content="noindex, nofollow" />
+    </Helmet>
+  );
+
   const [contract, setContract] = useState<ContractData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
-  
+
   // Form state
   const [signerName, setSignerName] = useState("");
   const [clientIBAN, setClientIBAN] = useState("");
   const [clientBIC, setClientBIC] = useState("");
   const [isIBANValid, setIsIBANValid] = useState(false);
   const [confirmation, setConfirmation] = useState("");
-  
+
   const signatureRef = useRef<SignatureCanvas>(null);
+
+  useEffect(() => {
+    console.log("[PublicContractSignature] BUILD_ID:", BUILD_ID);
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -195,6 +218,25 @@ const PublicContractSignature: React.FC = () => {
   const tenantCity = client?.city ?? client?.billing_city ?? "";
   const hasTenantAddress = Boolean(tenantAddressLine || tenantPostalCode || tenantCity);
 
+  const debugData = isDebug
+    ? {
+        buildId: BUILD_ID,
+        url: window.location.href,
+        token,
+        hasContract: !!contract,
+        contractKeys: contract ? Object.keys(contract) : [],
+        hasClient: !!client,
+        clientType: typeof client,
+        clientKeys: client ? Object.keys(client as any) : [],
+        tenantCompany,
+        tenantContact,
+        tenantAddressLine,
+        tenantPostalCode,
+        tenantCity,
+        vat: client?.vat_number ?? null,
+      }
+    : null;
+
   // Normaliser les espaces et caractères spéciaux pour une comparaison tolérante
   const normalizeText = (str: string) => {
     return str
@@ -292,6 +334,7 @@ const PublicContractSignature: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
+        {Seo}
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Chargement du contrat...</p>
@@ -303,6 +346,7 @@ const PublicContractSignature: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        {Seo}
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
@@ -317,6 +361,7 @@ const PublicContractSignature: React.FC = () => {
   if (isSigned) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        {Seo}
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
@@ -337,6 +382,7 @@ const PublicContractSignature: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
+      {Seo}
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header with company branding */}
         <div className="text-center space-y-4">
@@ -364,23 +410,20 @@ const PublicContractSignature: React.FC = () => {
           <CardContent className="grid md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Société</p>
-              <p className="font-medium">
-                {tenantCompany || "Non renseigné"}
-              </p>
+              <p className="font-medium">{tenantCompany || "Non renseigné"}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Contact</p>
-              <p className="font-medium">
-                {tenantContact || "Non renseigné"}
-              </p>
+              <p className="font-medium">{tenantContact || "Non renseigné"}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Adresse</p>
               <p className="font-medium">
                 {hasTenantAddress ? (
                   <>
-                    {tenantAddressLine || ""}{tenantAddressLine ? <br /> : null}
-                    {[tenantPostalCode, tenantCity].filter(Boolean).join(' ')}
+                    {tenantAddressLine || ""}
+                    {tenantAddressLine ? <br /> : null}
+                    {[tenantPostalCode, tenantCity].filter(Boolean).join(" ")}
                   </>
                 ) : (
                   "Non renseigné"
@@ -389,10 +432,22 @@ const PublicContractSignature: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">N° TVA</p>
-              <p className="font-medium">
-                {client?.vat_number || "Non renseigné"}
-              </p>
+              <p className="font-medium">{client?.vat_number || "Non renseigné"}</p>
             </div>
+
+            {isDebug && (
+              <div className="md:col-span-2">
+                <Separator className="my-2" />
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Debug (build {BUILD_ID})
+                  </p>
+                  <pre className="text-xs font-mono whitespace-pre-wrap break-words">
+                    {JSON.stringify(debugData, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -590,6 +645,10 @@ const PublicContractSignature: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <p className="pt-2 text-center text-xs text-muted-foreground">
+          Build: {BUILD_ID}
+        </p>
       </div>
     </div>
   );
