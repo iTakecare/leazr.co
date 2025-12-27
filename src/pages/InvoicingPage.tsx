@@ -134,7 +134,7 @@ const InvoicingPage = () => {
       const dueDate = new Date(invoice.due_date);
       dueDate.setHours(0, 0, 0, 0);
       
-      if (dueDate < today) {
+      if (dueDate <= today) {
         const diffTime = today.getTime() - dueDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
