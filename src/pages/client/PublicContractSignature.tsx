@@ -37,6 +37,9 @@ interface ContractData {
     city: string;
     postal_code: string;
     vat_number: string;
+    billing_address?: string;
+    billing_city?: string;
+    billing_postal_code?: string;
   };
   leaser_name: string;
   monthly_payment: number;
@@ -95,19 +98,43 @@ const PublicContractSignature: React.FC = () => {
         return;
       }
 
-      // Debug log to check client data structure
-      console.log('[PublicContractSignature] Contract data received:', {
-        hasClient: !!data.client,
-        clientCompany: data.client?.company,
-        clientName: data.client?.name,
-        clientAddress: data.client?.address,
-        fullData: data
+      // Normalize response - handle array, wrapped object, or direct object
+      let normalized = data;
+      if (Array.isArray(data)) {
+        normalized = data[0];
+      }
+      
+      // Parse client if it's a JSON string
+      if (normalized && typeof normalized.client === 'string') {
+        try {
+          normalized.client = JSON.parse(normalized.client);
+        } catch (e) {
+          console.warn('[PublicContractSignature] Failed to parse client JSON string:', e);
+        }
+      }
+      
+      // Parse company if it's a JSON string
+      if (normalized && typeof normalized.company === 'string') {
+        try {
+          normalized.company = JSON.parse(normalized.company);
+        } catch (e) {
+          console.warn('[PublicContractSignature] Failed to parse company JSON string:', e);
+        }
+      }
+
+      // Debug log
+      console.log('[PublicContractSignature] Normalized contract data:', {
+        hasClient: !!normalized?.client,
+        clientType: typeof normalized?.client,
+        clientCompany: normalized?.client?.company,
+        clientName: normalized?.client?.name,
+        clientAddress: normalized?.client?.address
       });
 
-      setContract(data);
-      setSignerName(data.client?.name || data.client_name || "");
+      setContract(normalized);
+      setSignerName(normalized?.client?.name || normalized?.client_name || "");
 
-      if (data.signature_status === 'signed') {
+      if (normalized?.signature_status === 'signed') {
         setIsSigned(true);
       }
     } catch (err: any) {
@@ -140,14 +167,6 @@ const PublicContractSignature: React.FC = () => {
 
   const normalizedConfirmation = normalizeText(confirmation);
   const normalizedExpected = normalizeText(expectedConfirmation);
-  
-  // Debug - à supprimer après résolution
-  console.log('=== CONFIRMATION DEBUG ===');
-  console.log('User input:', JSON.stringify(confirmation));
-  console.log('Expected:', JSON.stringify(expectedConfirmation));
-  console.log('Normalized user:', JSON.stringify(normalizedConfirmation));
-  console.log('Normalized expected:', JSON.stringify(normalizedExpected));
-  console.log('Are equal:', normalizedConfirmation === normalizedExpected);
   
   const isConfirmationValid = normalizedConfirmation === normalizedExpected;
   
@@ -306,25 +325,35 @@ const PublicContractSignature: React.FC = () => {
           <CardContent className="grid md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Société</p>
-              <p className="font-medium">{contract?.client?.company || contract?.client?.name || contract?.client_name}</p>
+              <p className="font-medium">
+                {contract?.client?.company || contract?.client?.name || contract?.client_name || "Non renseigné"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Contact</p>
-              <p className="font-medium">{contract?.client?.name || contract?.client_name}</p>
+              <p className="font-medium">
+                {contract?.client?.name || contract?.client_name || "Non renseigné"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Adresse</p>
               <p className="font-medium">
-                {contract?.client?.address}<br />
-                {contract?.client?.postal_code} {contract?.client?.city}
+                {contract?.client?.address || contract?.client?.billing_address ? (
+                  <>
+                    {contract?.client?.address || contract?.client?.billing_address}<br />
+                    {contract?.client?.postal_code || contract?.client?.billing_postal_code} {contract?.client?.city || contract?.client?.billing_city}
+                  </>
+                ) : (
+                  "Non renseigné"
+                )}
               </p>
             </div>
-            {contract?.client?.vat_number && (
-              <div>
-                <p className="text-sm text-muted-foreground">N° TVA</p>
-                <p className="font-medium">{contract.client.vat_number}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-sm text-muted-foreground">N° TVA</p>
+              <p className="font-medium">
+                {contract?.client?.vat_number || "Non renseigné"}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
