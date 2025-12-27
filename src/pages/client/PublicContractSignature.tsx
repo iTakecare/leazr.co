@@ -95,6 +95,15 @@ const PublicContractSignature: React.FC = () => {
         return;
       }
 
+      // Debug log to check client data structure
+      console.log('[PublicContractSignature] Contract data received:', {
+        hasClient: !!data.client,
+        clientCompany: data.client?.company,
+        clientName: data.client?.name,
+        clientAddress: data.client?.address,
+        fullData: data
+      });
+
       setContract(data);
       setSignerName(data.client?.name || data.client_name || "");
 
