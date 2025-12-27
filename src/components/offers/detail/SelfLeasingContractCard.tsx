@@ -65,7 +65,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
     try {
       const { data, error } = await supabase
         .from('contracts')
-        .select('id, signature_status, contract_signature_token, signed_contract_pdf_url')
+        .select('id, signature_status, contract_signature_token, signed_contract_pdf_url, contract_number')
         .eq('offer_id', offer.id)
         .eq('is_self_leasing', true)
         .order('created_at', { ascending: false })

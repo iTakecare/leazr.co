@@ -16,6 +16,7 @@ interface ContractEmailRequest {
   body: string;
   signatureLink: string;
   contractId: string;
+  contractNumber?: string;
   offerNumber?: string;
 }
 
@@ -26,9 +27,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, body, signatureLink, contractId, offerNumber }: ContractEmailRequest = await req.json();
+    const { to, subject, body, signatureLink, contractId, contractNumber, offerNumber }: ContractEmailRequest = await req.json();
 
-    console.log("Send contract email request:", { to, subject, contractId, offerNumber });
+    // Use contract number if available, fallback to offer number
+    const referenceNumber = contractNumber || offerNumber;
+    console.log("Send contract email request:", { to, subject, contractId, contractNumber, offerNumber, referenceNumber });
 
     if (!to || !subject || !signatureLink) {
       throw new Error("Missing required fields: to, subject, signatureLink");
@@ -143,7 +146,7 @@ ${body.replace(/\n/g, '<br>')}
           <tr>
             <td style="background-color: #f9fafb; padding: 20px 40px; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                ${offerNumber ? `Référence : ${offerNumber}<br>` : ''}
+                ${referenceNumber ? `Référence : ${referenceNumber}<br>` : ''}
                 Cet email a été envoyé par ${companyName}.<br>
                 © ${new Date().getFullYear()} ${companyName}. Tous droits réservés.
               </p>

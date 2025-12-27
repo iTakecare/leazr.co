@@ -1562,6 +1562,7 @@ export type Database = {
           clients_count: number | null
           co2_saved: number | null
           company_type: string | null
+          contract_prefix: string | null
           created_at: string
           custom_domain: string | null
           default_html_template_slug: string | null
@@ -1593,6 +1594,7 @@ export type Database = {
           clients_count?: number | null
           co2_saved?: number | null
           company_type?: string | null
+          contract_prefix?: string | null
           created_at?: string
           custom_domain?: string | null
           default_html_template_slug?: string | null
@@ -1624,6 +1626,7 @@ export type Database = {
           clients_count?: number | null
           co2_saved?: number | null
           company_type?: string | null
+          contract_prefix?: string | null
           created_at?: string
           custom_domain?: string | null
           default_html_template_slug?: string | null
@@ -5922,6 +5925,44 @@ export type Database = {
         }
         Relationships: []
       }
+      self_leasing_contract_sequence: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          last_number: number
+          month: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          last_number?: number
+          month: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          last_number?: number
+          month?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_leasing_contract_sequence_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_settings: {
         Row: {
           company_address: string | null
@@ -6612,6 +6653,10 @@ export type Database = {
         Returns: string
       }
       generate_offer_id: { Args: never; Returns: string }
+      generate_self_leasing_contract_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
       get_admin_emails_for_company: {
         Args: { p_company_id: string }
         Returns: {
@@ -6886,10 +6931,7 @@ export type Database = {
               user_id: string
             }[]
           }
-      get_contract_for_signature: {
-        Args: { p_signature_token: string }
-        Returns: Json
-      }
+      get_contract_for_signature: { Args: { p_token: string }; Returns: Json }
       get_contract_statistics_by_status: {
         Args: never
         Returns: {

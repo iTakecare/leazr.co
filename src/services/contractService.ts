@@ -318,9 +318,23 @@ export const createContractFromOffer = async (
       isSelfLeasing
     });
 
+    // For self-leasing, also check if leaser is_own_company
+    let actualIsSelfLeasing = isSelfLeasing;
+    if (!actualIsSelfLeasing && offerData.leaser_id) {
+      const { data: leaserData } = await supabase
+        .from('leasers')
+        .select('is_own_company')
+        .eq('id', offerData.leaser_id)
+        .single();
+      if (leaserData?.is_own_company) {
+        actualIsSelfLeasing = true;
+        console.log("Detected self-leasing based on leaser.is_own_company");
+      }
+    }
+
     // Generate contract number for self-leasing contracts
     let contractNumber: string | null = null;
-    if (isSelfLeasing && offerData.company_id) {
+    if (actualIsSelfLeasing && offerData.company_id) {
       const { data: generatedNumber, error: numberError } = await supabase.rpc(
         'generate_self_leasing_contract_number',
         { p_company_id: offerData.company_id }
@@ -345,7 +359,7 @@ export const createContractFromOffer = async (
       status: contractStatuses.CONTRACT_SENT,
       user_id: offerData.user_id,
       company_id: offerData.company_id,
-      is_self_leasing: isSelfLeasing,
+      is_self_leasing: actualIsSelfLeasing,
       contract_number: contractNumber
     };
 
