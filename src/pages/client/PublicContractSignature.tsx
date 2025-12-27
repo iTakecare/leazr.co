@@ -98,37 +98,68 @@ const PublicContractSignature: React.FC = () => {
         return;
       }
 
-      // Normalize response - handle array, wrapped object, or direct object
-      let normalized = data;
-      if (Array.isArray(data)) {
-        normalized = data[0];
-      }
-      
-      // Parse client if it's a JSON string
-      if (normalized && typeof normalized.client === 'string') {
+      // Normalize response - handle array or direct object
+      let normalized: any = Array.isArray(data) ? data[0] : data;
+
+      const parseJsonIfString = (value: any) => {
+        if (typeof value !== 'string') return value;
         try {
-          normalized.client = JSON.parse(normalized.client);
-        } catch (e) {
-          console.warn('[PublicContractSignature] Failed to parse client JSON string:', e);
+          return JSON.parse(value);
+        } catch {
+          return value;
         }
-      }
-      
-      // Parse company if it's a JSON string
-      if (normalized && typeof normalized.company === 'string') {
-        try {
-          normalized.company = JSON.parse(normalized.company);
-        } catch (e) {
-          console.warn('[PublicContractSignature] Failed to parse company JSON string:', e);
+      };
+
+      // Normalize nested objects (RPC responses sometimes return JSON as strings)
+      normalized = parseJsonIfString(normalized);
+      normalized.company = parseJsonIfString(normalized?.company ?? normalized?.companies);
+
+      // Client can arrive under different keys depending on SQL/RPC implementation
+      let client: any = normalized?.client ?? normalized?.clients;
+      client = parseJsonIfString(client);
+
+      // Fallback: rebuild client object from flat fields if needed
+      if (!client) {
+        const hasAnyFlatClientField = Boolean(
+          normalized?.client_name ||
+            normalized?.client_company ||
+            normalized?.client_email ||
+            normalized?.client_phone ||
+            normalized?.client_address ||
+            normalized?.client_city ||
+            normalized?.client_postal_code ||
+            normalized?.client_vat_number
+        );
+
+        if (hasAnyFlatClientField) {
+          client = {
+            id: normalized?.client_id,
+            name: normalized?.client_name,
+            company: normalized?.client_company,
+            email: normalized?.client_email,
+            phone: normalized?.client_phone,
+            address: normalized?.client_address,
+            city: normalized?.client_city,
+            postal_code: normalized?.client_postal_code,
+            vat_number: normalized?.client_vat_number,
+            billing_address: normalized?.client_billing_address,
+            billing_city: normalized?.client_billing_city,
+            billing_postal_code: normalized?.client_billing_postal_code
+          };
         }
       }
 
-      // Debug log
+      normalized.client = client ?? null;
+
+      // Debug log (minimal + useful)
       console.log('[PublicContractSignature] Normalized contract data:', {
+        keys: normalized ? Object.keys(normalized) : [],
         hasClient: !!normalized?.client,
         clientType: typeof normalized?.client,
         clientCompany: normalized?.client?.company,
         clientName: normalized?.client?.name,
-        clientAddress: normalized?.client?.address
+        clientAddress: normalized?.client?.address,
+        hasFlatClientName: !!normalized?.client_name
       });
 
       setContract(normalized);
@@ -155,6 +186,14 @@ const PublicContractSignature: React.FC = () => {
   const expectedConfirmation = contract 
     ? `Bon pour accord pour ${formatCurrency(contract.monthly_payment)}/mois pendant ${contract.contract_duration} mois`
     : "";
+
+  const client = contract?.client;
+  const tenantCompany = client?.company ?? client?.name ?? contract?.client_name ?? "";
+  const tenantContact = client?.name ?? contract?.client_name ?? "";
+  const tenantAddressLine = client?.address ?? client?.billing_address ?? "";
+  const tenantPostalCode = client?.postal_code ?? client?.billing_postal_code ?? "";
+  const tenantCity = client?.city ?? client?.billing_city ?? "";
+  const hasTenantAddress = Boolean(tenantAddressLine || tenantPostalCode || tenantCity);
 
   // Normaliser les espaces et caractères spéciaux pour une comparaison tolérante
   const normalizeText = (str: string) => {
@@ -326,22 +365,22 @@ const PublicContractSignature: React.FC = () => {
             <div>
               <p className="text-sm text-muted-foreground">Société</p>
               <p className="font-medium">
-                {contract?.client?.company || contract?.client?.name || contract?.client_name || "Non renseigné"}
+                {tenantCompany || "Non renseigné"}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Contact</p>
               <p className="font-medium">
-                {contract?.client?.name || contract?.client_name || "Non renseigné"}
+                {tenantContact || "Non renseigné"}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Adresse</p>
               <p className="font-medium">
-                {contract?.client?.address || contract?.client?.billing_address ? (
+                {hasTenantAddress ? (
                   <>
-                    {contract?.client?.address || contract?.client?.billing_address}<br />
-                    {contract?.client?.postal_code || contract?.client?.billing_postal_code} {contract?.client?.city || contract?.client?.billing_city}
+                    {tenantAddressLine || ""}{tenantAddressLine ? <br /> : null}
+                    {[tenantPostalCode, tenantCity].filter(Boolean).join(' ')}
                   </>
                 ) : (
                   "Non renseigné"
@@ -351,7 +390,7 @@ const PublicContractSignature: React.FC = () => {
             <div>
               <p className="text-sm text-muted-foreground">N° TVA</p>
               <p className="font-medium">
-                {contract?.client?.vat_number || "Non renseigné"}
+                {client?.vat_number || "Non renseigné"}
               </p>
             </div>
           </CardContent>

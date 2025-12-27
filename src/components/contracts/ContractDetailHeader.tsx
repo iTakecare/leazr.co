@@ -250,6 +250,9 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <span className="text-sm font-medium text-muted-foreground">Client</span>
             </div>
             <p className="font-semibold">{contract.client_name}</p>
+            {contract.clients?.company && (
+              <p className="text-sm text-muted-foreground">{contract.clients.company}</p>
+            )}
             {(contract.client_email || contract.clients?.email) && (
               <p className="text-sm text-muted-foreground">
                 {contract.client_email || contract.clients?.email}
