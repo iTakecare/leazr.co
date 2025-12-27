@@ -23,6 +23,14 @@ export interface Contract {
     name: string;
     email: string;
     company: string;
+    phone?: string | null;
+    address?: string | null;
+    city?: string | null;
+    postal_code?: string | null;
+    vat_number?: string | null;
+    billing_address?: string | null;
+    billing_city?: string | null;
+    billing_postal_code?: string | null;
   } | null;
   monthly_payment: number;
   amount?: number;
@@ -111,7 +119,7 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       .from('contracts')
       .select(`
         *, 
-        clients(name, email, company),
+        clients(name, email, company, phone, address, city, postal_code, vat_number, billing_address, billing_city, billing_postal_code),
         offers!inner(dossier_number),
         contract_equipment(id, monthly_payment, quantity)
       `)
