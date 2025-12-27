@@ -196,7 +196,10 @@ const OffersTable: React.FC<OffersTableProps> = ({
       
       return {
         ...offer,
-        effectiveFinancedAmount: getEffectiveFinancedAmount(offer, offer.offer_equipment),
+        effectiveFinancedAmount: (offer.down_payment || 0) > 0 
+          ? getEffectiveFinancedAmount(offer, offer.offer_equipment) - (offer.down_payment || 0)
+          : getEffectiveFinancedAmount(offer, offer.offer_equipment),
+        hasDownPayment: (offer.down_payment || 0) > 0,
         marginInEuros: calculateOfferMarginAmount(offer, offer.offer_equipment),
         equipmentForCell: formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment),
         equipmentWithQuantities: formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment),
@@ -343,8 +346,11 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   
                    {/* Montant financé */}
                   <TableCell className="text-right text-[11px] py-2">
-                    <div className="font-medium text-blue-600">
+                    <div className="font-medium text-blue-600 flex items-center justify-end gap-1">
                       {formatCurrency(offer.effectiveFinancedAmount)}
+                      {offer.hasDownPayment && (
+                        <span className="text-amber-500 text-[9px]" title="Acompte déduit">●</span>
+                      )}
                     </div>
                   </TableCell>
                   
