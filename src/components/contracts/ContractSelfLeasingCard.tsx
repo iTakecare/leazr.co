@@ -65,7 +65,7 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
       if (contract?.leaser_name) {
         const { data: leaserData } = await supabase
           .from('leasers')
-          .select('id, is_own_company')
+          .select('*')
           .eq('name', contract.leaser_name)
           .maybeSingle();
         
@@ -98,12 +98,20 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
         setCompanyName(companyData?.name || 'iTakecare');
       }
 
-      // Fetch leaser
+      // Fetch leaser - use leaser_id if available, otherwise use leaser_name
       if (contract?.leaser_id) {
         const { data: leaserData } = await supabase
           .from('leasers')
           .select('*')
           .eq('id', contract.leaser_id)
+          .maybeSingle();
+        setLeaser(leaserData);
+      } else if (contract?.leaser_name && !leaser) {
+        // If no leaser_id but leaser_name exists, load by name
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('*')
+          .eq('name', contract.leaser_name)
           .maybeSingle();
         setLeaser(leaserData);
       }
