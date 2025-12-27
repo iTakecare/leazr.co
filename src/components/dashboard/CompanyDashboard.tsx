@@ -224,8 +224,8 @@ const CompanyDashboard = () => {
 
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Monthly Table */}
-          <div className="lg:col-span-2">
+          {/* Monthly Table + Factures en retard + Actions Rapides */}
+          <div className="lg:col-span-2 space-y-6">
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="text-xl font-bold">Tableau Mensuel 2025</CardTitle>
@@ -283,6 +283,81 @@ const CompanyDashboard = () => {
                     </TableBody>
                   </Table>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Factures en retard */}
+            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  Factures en retard
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
+                    <p className="text-xs text-muted-foreground">Nombre</p>
+                    <p className="text-xl font-bold text-amber-600">{overdueInvoices.overdue_count}</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
+                    <p className="text-xs text-muted-foreground">Montant dû</p>
+                    <p className="text-lg font-bold text-amber-600">{formatCurrency(overdueInvoices.overdue_amount)}</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-amber-600 hover:bg-amber-500/10"
+                  onClick={() => navigate('/itakecare/admin/invoices')}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Voir les factures
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Actions rapides */}
+            <Card className="bg-gradient-to-br from-primary/5 to-accent/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold">Actions Rapides</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start hover:bg-primary/10"
+                  onClick={() => navigate('/itakecare/admin/clients')}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Nouveau Client
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start hover:bg-primary/10"
+                  onClick={() => navigate('/itakecare/admin/offers')}
+                >
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Créer une Offre
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start hover:bg-primary/10"
+                  onClick={() => navigate('/itakecare/admin/contracts')}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Voir les Contrats
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start hover:bg-primary/10"
+                  onClick={() => navigate('/itakecare/admin/reports')}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Rapports Détaillés
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -409,36 +484,6 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Factures en retard */}
-            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                  Factures en retard
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
-                    <p className="text-xs text-muted-foreground">Nombre</p>
-                    <p className="text-xl font-bold text-amber-600">{overdueInvoices.overdue_count}</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
-                    <p className="text-xs text-muted-foreground">Montant dû</p>
-                    <p className="text-lg font-bold text-amber-600">{formatCurrency(overdueInvoices.overdue_amount)}</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  className="w-full text-amber-600 hover:bg-amber-500/10"
-                  onClick={() => navigate('/itakecare/admin/invoices')}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Voir les factures
-                </Button>
-              </CardContent>
-            </Card>
-
             {/* Prévisionnel */}
             <Card className="bg-gradient-to-br from-indigo-50 to-violet-100 dark:from-indigo-900/20 dark:to-violet-800/20 border-indigo-200/50">
               <CardHeader className="pb-3">
@@ -485,50 +530,6 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Actions rapides */}
-            <Card className="bg-gradient-to-br from-primary/5 to-accent/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-bold">Actions Rapides</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/clients')}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Nouveau Client
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/offers')}
-                >
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Créer une Offre
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/contracts')}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Voir les Contrats
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/reports')}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Rapports Détaillés
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
