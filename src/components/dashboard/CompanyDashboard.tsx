@@ -308,7 +308,7 @@ const CompanyDashboard = () => {
                 <Button 
                   variant="ghost" 
                   className="w-full text-amber-600 hover:bg-amber-500/10"
-                  onClick={() => navigate('/itakecare/admin/invoices')}
+                  onClick={() => navigate('/itakecare/admin/invoicing')}
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Voir les factures
