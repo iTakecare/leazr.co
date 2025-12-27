@@ -458,12 +458,22 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
     ? (contract.adjusted_monthly_payment || Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100)
     : contract.monthly_payment;
 
+  // Modify article 4 to include down payment reference if applicable
+  let modifiedArticle4 = content.article_4;
+  if (hasDownPayment && content.article_4) {
+    // Replace the standard monthly payment text with adjusted version including down payment mention
+    modifiedArticle4 = content.article_4.replace(
+      /un loyer mensuel hors TVA de \{\{monthly_payment\}\} EUR/gi,
+      `un loyer mensuel **ajusté** hors TVA de {{adjusted_monthly_payment}} EUR, après déduction de l'acompte de {{down_payment}} EUR versé à la signature,`
+    );
+  }
+
   // Prepare articles for rendering
   const articles = [
     { key: 'article_1', content: content.article_1 },
     { key: 'article_2', content: content.article_2 },
     { key: 'article_3', content: content.article_3 },
-    { key: 'article_4', content: content.article_4 },
+    { key: 'article_4', content: modifiedArticle4 },
     { key: 'article_5', content: content.article_5 },
     { key: 'article_6', content: content.article_6 },
     { key: 'article_7', content: content.article_7 },
