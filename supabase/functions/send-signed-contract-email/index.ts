@@ -32,22 +32,23 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch contract with all related data
+    // Fetch contract with all related data including client
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
       .select(`
         *,
-        contract_equipment (*)
+        contract_equipment (*),
+        clients (id, name, email, company, phone, address, city, postal_code, vat_number)
       `)
       .eq("id", contractId)
       .single();
+
+    console.log("Contract fetched:", contract ? contract.tracking_number : null);
 
     if (contractError || !contract) {
       console.error("Contract fetch error:", contractError);
       throw new Error("Contrat non trouvé");
     }
-
-    console.log("Contract fetched:", contract.tracking_number);
 
     // Fetch company data
     const { data: company } = await supabase
@@ -60,11 +61,13 @@ const handler = async (req: Request): Promise<Response> => {
     const primaryColor = company?.primary_color || "#3b82f6";
     const logoUrl = company?.logo_url || "";
 
-    // Get client email from contract
-    const clientEmail = contract.client_email;
+    // Get client email - fallback to clients table if not on contract directly
+    const clientEmail = contract.client_email || contract.clients?.email;
     if (!clientEmail) {
+      console.error("No client email found. contract.client_email:", contract.client_email, "clients.email:", contract.clients?.email);
       throw new Error("Email client non trouvé sur le contrat");
     }
+    console.log("Client email resolved:", clientEmail);
 
     // Get admin emails for copy
     const { data: adminEmails } = await supabase.rpc('get_admin_emails_for_company', {
