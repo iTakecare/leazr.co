@@ -41,6 +41,9 @@ export interface SignedContractPDFData {
   annual_insurance?: number;
   down_payment?: number;
   coefficient?: number;
+  financed_amount?: number;
+  amount?: number;
+  adjusted_monthly_payment?: number;
   // Equipment
   equipment: Array<{
     title: string;
@@ -431,12 +434,18 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
   const content = contract.contract_content || {};
 
   // Calculate down payment and adjusted monthly payment
+  // Formula from SQL: adjusted = round(((financed_amount - down_payment) * coefficient) / 100, 2)
   const downPayment = contract.down_payment || 0;
   const coefficient = contract.coefficient || 0;
-  const duration = contract.contract_duration || 36;
-  const hasDownPayment = downPayment > 0 && coefficient > 0;
+  const financedAmount = contract.financed_amount || contract.amount || 0;
+  const isSelfLeasing = contract.is_self_leasing || false;
+  
+  // Only show down payment info for self-leasing contracts with actual down payment
+  const hasDownPayment = downPayment > 0 && coefficient > 0 && isSelfLeasing;
+  
+  // Use pre-calculated adjusted_monthly_payment if provided, otherwise calculate
   const adjustedMonthlyPayment = hasDownPayment 
-    ? contract.monthly_payment - (downPayment * coefficient / duration)
+    ? (contract.adjusted_monthly_payment || Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100)
     : contract.monthly_payment;
 
   // Prepare articles for rendering
