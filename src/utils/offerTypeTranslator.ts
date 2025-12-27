@@ -19,6 +19,8 @@ export const translateOfferType = (type: string | undefined | null): string => {
       return "Demande Achat";
     case 'partner_offer':
       return "Offre partenaire";
+    case 'self_leasing':
+      return "Location propre";
     default:
       return type;
   }

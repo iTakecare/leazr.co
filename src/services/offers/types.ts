@@ -115,5 +115,6 @@ export enum OfferType {
   INTERNAL = 'internal_offer',
   DIRECT = 'direct_offer',
   WEB_REQUEST = 'web_request',
-  CUSTOM_PACK_REQUEST = 'custom_pack_request'
+  CUSTOM_PACK_REQUEST = 'custom_pack_request',
+  SELF_LEASING = 'self_leasing'
 }
