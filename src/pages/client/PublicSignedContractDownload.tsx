@@ -63,88 +63,119 @@ const PublicSignedContractDownload: React.FC = () => {
     }
   };
 
+  /**
+   * Build SignedContractPDFData from RPC response exactly like signedContractPdfService.fetchContractDataForPDF does for admin.
+   */
+  const buildPdfData = async (rpcData: any): Promise<SignedContractPDFData> => {
+    const contract = rpcData.contract || {};
+    const client = rpcData.client || {};
+    const company = rpcData.company || {};
+    const customization = rpcData.company_customization || {};
+    const leaser = rpcData.leaser || null;
+    const equipment = rpcData.equipment || [];
+
+    // Leaser display name logic matching admin
+    let leaserDisplayName = contract.leaser_name || 'Non spécifié';
+    if (leaser) {
+      leaserDisplayName = leaser.company_name || leaser.name || contract.leaser_name || 'Non spécifié';
+    }
+
+    // is_self_leasing from RPC (already computed in RPC with COALESCE)
+    const isSelfLeasing = contract.is_self_leasing || (leaser?.is_own_company === true);
+
+    // Fetch contract template content from pdf_content_blocks
+    let contractContent: Record<string, string> = {};
+    try {
+      if (company.id) {
+        contractContent = await getPDFContentBlocksByPage(company.id, 'contract');
+      }
+    } catch (e) {
+      console.warn('[PUBLIC-PDF] Failed to load contract template, using defaults');
+      contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
+    }
+    if (Object.keys(contractContent).length === 0) {
+      contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
+    }
+
+    // Build data matching admin exactly
+    const pdfData: SignedContractPDFData = {
+      id: contract.id,
+      tracking_number: contract.contract_number || contract.tracking_number || `CON-${(contract.id || '').slice(0, 8)}`,
+      created_at: contract.created_at,
+      // Contract dates
+      contract_start_date: contract.contract_start_date || undefined,
+      contract_end_date: contract.contract_end_date || undefined,
+      // Client - use data from client object (RPC now returns full client)
+      client_name: contract.client_name || client.name || 'Client',
+      client_company: client.company || undefined,
+      client_address: client.address || undefined,
+      client_city: client.city || undefined,
+      client_postal_code: client.postal_code || undefined,
+      client_country: client.country || 'Belgique',
+      client_vat_number: client.vat_number || undefined,
+      client_phone: client.phone || undefined,
+      client_email: contract.client_email || client.email || undefined,
+      // Leaser
+      leaser_name: leaserDisplayName,
+      is_self_leasing: isSelfLeasing,
+      // Company from company_customizations matching admin flow
+      company_name: company.name || '',
+      company_address: customization.company_address || undefined,
+      company_email: customization.company_email || undefined,
+      company_phone: customization.company_phone || undefined,
+      company_vat_number: customization.company_vat_number || undefined,
+      company_logo_url: customization.logo_url || company.logo_url || undefined,
+      // Financial - NO adjusted_monthly_payment hack, use exactly contract.monthly_payment
+      monthly_payment: contract.monthly_payment || 0,
+      contract_duration: contract.contract_duration || 36,
+      file_fee: contract.file_fee || 0,
+      annual_insurance: contract.annual_insurance || 0,
+      down_payment: contract.down_payment || 0,
+      coefficient: contract.coefficient || 0,
+      financed_amount: contract.financed_amount || 0,
+      amount: contract.amount || 0,
+      // Equipment with complete details (margin now included from RPC)
+      equipment: (equipment || []).map((eq: any) => ({
+        title: eq.title,
+        quantity: eq.quantity || 1,
+        monthly_payment: eq.monthly_payment || 0,
+        purchase_price: eq.purchase_price || 0,
+        margin: eq.margin || 0,
+        serial_number: eq.serial_number || undefined,
+      })),
+      // Signature
+      signature_data: contract.contract_signature_data || undefined,
+      signer_name: contract.contract_signer_name || client.name || contract.client_name,
+      signer_ip: contract.contract_signer_ip || undefined,
+      signed_at: contract.contract_signed_at || undefined,
+      // Contract template content
+      contract_content: contractContent,
+      // Brand
+      primary_color: company.primary_color || '#33638e',
+      // Special provisions (self-leasing only)
+      special_provisions: contract.special_provisions || undefined,
+    };
+
+    return pdfData;
+  };
+
   const downloadPDF = async (data: any) => {
     try {
       setDownloading(true);
 
-      // Fetch contract template content from pdf_content_blocks
-      let contractContent: Record<string, string> = {};
-      try {
-        if (data.company?.id) {
-          contractContent = await getPDFContentBlocksByPage(data.company.id, 'contract');
-        }
-      } catch (e) {
-        console.warn('[PUBLIC-PDF] Failed to load contract template, using defaults');
-        contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
-      }
+      const pdfData = await buildPdfData(data);
 
-      if (Object.keys(contractContent).length === 0) {
-        contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
-      }
-
-      // Transform RPC data to SignedContractPDFData format
-      // This now includes ALL data from the updated RPC function
-      const pdfData: SignedContractPDFData = {
-        id: data.id,
-        tracking_number: data.contract_number || data.tracking_number || `CON-${data.id?.slice(0, 8) || 'UNKNOWN'}`,
-        created_at: data.created_at,
-        // Contract dates
-        contract_start_date: data.contract_start_date || undefined,
-        contract_end_date: data.contract_end_date || undefined,
-        // Client
-        client_name: data.client?.name || 'Client',
-        client_company: data.client?.company,
-        client_address: data.client?.address,
-        client_city: data.client?.city,
-        client_postal_code: data.client?.postal_code,
-        client_country: data.client?.country || 'Belgique',
-        client_vat_number: data.client?.vat_number,
-        client_phone: data.client?.phone,
-        client_email: data.client?.email,
-        // Leaser
-        leaser_name: data.leaser_name || 'Non spécifié',
-        is_self_leasing: data.is_self_leasing || false,
-        // Company
-        company_name: data.company?.name || '',
-        company_address: data.company?.address,
-        company_email: data.company?.email,
-        company_phone: data.company?.phone,
-        company_vat_number: data.company?.vat_number,
-        company_logo_url: data.company?.logo_url,
-        // Financial - use adjusted_monthly_payment from RPC for self-leasing with down payment
-        monthly_payment: data.is_self_leasing && data.down_payment > 0 
-          ? data.adjusted_monthly_payment 
-          : data.monthly_payment,
-        contract_duration: data.contract_duration || 36,
-        down_payment: data.down_payment || 0,
-        coefficient: data.coefficient || 0,
-        financed_amount: data.financed_amount || 0,
-        amount: data.amount || 0,
-        file_fee: data.file_fee || 0,
-        annual_insurance: data.annual_insurance || 0,
-        // Equipment
-        equipment: (data.equipment || []).map((eq: any) => ({
-          title: eq.title,
-          quantity: eq.quantity || 1,
-          monthly_payment: eq.monthly_payment || 0,
-          purchase_price: eq.purchase_price || 0,
-          margin: eq.margin || 0,
-          serial_number: eq.serial_number,
-        })),
-        // Signature - now includes signature image and IP
-        signature_data: data.contract_signature_data || undefined,
-        signer_name: data.contract_signer_name || data.client?.name,
-        signer_ip: data.contract_signer_ip || undefined,
-        signed_at: data.contract_signed_at || undefined,
-        // Contract template content
-        contract_content: contractContent,
-        // Brand
-        primary_color: data.company?.primary_color || '#33638e',
-        // Special provisions
-        special_provisions: data.special_provisions || undefined,
-      };
-
-      console.log('[PUBLIC-PDF] Generating PDF with data:', pdfData);
+      console.log('[PUBLIC-PDF] Generating PDF with data:', {
+        trackingNumber: pdfData.tracking_number,
+        clientName: pdfData.client_name,
+        equipmentCount: pdfData.equipment.length,
+        hasSig: !!pdfData.signature_data,
+        templateBlocks: Object.keys(pdfData.contract_content || {}).length,
+        monthlyPayment: pdfData.monthly_payment,
+        companyAddress: pdfData.company_address,
+        leaserName: pdfData.leaser_name,
+        isSelfLeasing: pdfData.is_self_leasing,
+      });
 
       // Generate PDF blob
       const blob = await pdf(<SignedContractPDFDocument contract={pdfData} />).toBlob();
@@ -209,7 +240,7 @@ const PublicSignedContractDownload: React.FC = () => {
           <FileDown className="h-12 w-12 text-primary" />
           <p className="text-lg font-medium">Contrat signé</p>
           <p className="text-sm text-muted-foreground text-center">
-            {contractData?.contract_number || contractData?.tracking_number || 'Contrat'}
+            {contractData?.contract?.contract_number || contractData?.contract?.tracking_number || 'Contrat'}
           </p>
           <Button 
             onClick={() => contractData && downloadPDF(contractData)} 
