@@ -49,6 +49,8 @@ interface ContractData {
   contract_number?: string;
   signature_status: string;
   is_self_leasing: boolean;
+  down_payment?: number;
+  adjusted_monthly_payment?: number;
   company: {
     name: string;
     logo_url: string;
@@ -206,8 +208,14 @@ const PublicContractSignature: React.FC = () => {
     }).format(amount || 0);
   };
 
+  // Use adjusted monthly payment if down payment exists (for self-leasing)
+  const hasDownPayment = (contract?.down_payment || 0) > 0;
+  const effectiveMonthlyPayment = hasDownPayment && contract?.adjusted_monthly_payment
+    ? contract.adjusted_monthly_payment
+    : contract?.monthly_payment || 0;
+
   const expectedConfirmation = contract 
-    ? `Bon pour accord pour ${formatCurrency(contract.monthly_payment)}/mois pendant ${contract.contract_duration} mois`
+    ? `Bon pour accord pour ${formatCurrency(effectiveMonthlyPayment)}/mois pendant ${contract.contract_duration} mois`
     : "";
 
   const client = contract?.client;
@@ -497,20 +505,45 @@ const PublicContractSignature: React.FC = () => {
               Récapitulatif financier
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">Mensualité HT</p>
-              <p className="text-2xl font-bold text-primary">
-                {formatCurrency(contract?.monthly_payment || 0)}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">Durée</p>
-              <p className="text-2xl font-bold">{contract?.contract_duration} mois</p>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">Bailleur</p>
-              <p className="text-lg font-semibold">{contract?.leaser_name}</p>
+          <CardContent className="space-y-4">
+            {/* Down payment section if present (self-leasing) */}
+            {hasDownPayment && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-amber-700">Acompte versé</p>
+                    <p className="text-xl font-bold text-amber-600">
+                      {formatCurrency(contract?.down_payment || 0)}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-amber-700">Mensualité ajustée HT</p>
+                    <p className="text-xl font-bold text-amber-600">
+                      {formatCurrency(contract?.adjusted_monthly_payment || contract?.monthly_payment || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Main financial grid */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  {hasDownPayment ? 'Mensualité de base HT' : 'Mensualité HT'}
+                </p>
+                <p className={`text-2xl font-bold ${hasDownPayment ? 'text-muted-foreground line-through' : 'text-primary'}`}>
+                  {formatCurrency(contract?.monthly_payment || 0)}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Durée</p>
+                <p className="text-2xl font-bold">{contract?.contract_duration} mois</p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Bailleur</p>
+                <p className="text-lg font-semibold">{contract?.leaser_name}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
