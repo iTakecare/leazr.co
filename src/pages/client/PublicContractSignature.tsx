@@ -80,7 +80,7 @@ const PublicContractSignature: React.FC = () => {
   const fetchContract = async () => {
     try {
       const { data, error } = await supabase.rpc('get_contract_for_signature', {
-        p_signature_token: token
+        p_token: token
       });
 
       if (error) throw error;
