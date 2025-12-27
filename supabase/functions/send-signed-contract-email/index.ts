@@ -43,12 +43,14 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", contractId)
       .single();
 
-    console.log("Contract fetched:", contract ? contract.tracking_number : null);
-
     if (contractError || !contract) {
       console.error("Contract fetch error:", contractError);
       throw new Error("Contrat non trouvé");
     }
+
+    // Resolve contract reference with fallback
+    const contractReference = contract.tracking_number || contract.contract_number || `CONTRAT-${contractId.substring(0, 8).toUpperCase()}`;
+    console.log("Contract reference resolved:", contractReference, "(tracking_number:", contract.tracking_number, "contract_number:", contract.contract_number, ")");
 
     // Fetch company data
     const { data: company } = await supabase
@@ -106,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contrat signé - ${contract.tracking_number}</title>
+  <title>Contrat signé - ${contractReference}</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
     .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid ${primaryColor}; padding-bottom: 20px; }
@@ -130,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
   <div class="header">
     ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" class="logo" />` : ''}
     <h1>CONTRAT DE LOCATION SIGNÉ</h1>
-    <p style="color: #6b7280;">Référence : ${contract.tracking_number}</p>
+    <p style="color: #6b7280;">Référence : ${contractReference}</p>
   </div>
 
   <div class="contract-info">
@@ -210,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     // Store the signed contract HTML in Supabase Storage
-    const fileName = `${contract.tracking_number}-signed.html`;
+    const fileName = `${contractReference}-signed.html`;
     const filePath = `${contract.company_id}/${fileName}`;
 
     console.log("Uploading signed contract to storage:", filePath);
@@ -261,7 +263,7 @@ const handler = async (req: Request): Promise<Response> => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contrat signé - ${contract.tracking_number}</title>
+  <title>Contrat signé - ${contractReference}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -313,7 +315,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <table style="width: 100%; font-size: 14px;">
                   <tr>
                     <td style="padding: 5px 0; color: #6b7280;">Référence :</td>
-                    <td style="padding: 5px 0; color: #111827; font-weight: 600;">${contract.tracking_number}</td>
+                    <td style="padding: 5px 0; color: #111827; font-weight: 600;">${contractReference}</td>
                   </tr>
                   <tr>
                     <td style="padding: 5px 0; color: #6b7280;">Signataire :</td>
@@ -404,7 +406,7 @@ const handler = async (req: Request): Promise<Response> => {
     const clientEmailResponse = await resend.emails.send({
       from: `${companyName} <${fromEmail}>`,
       to: [clientEmail],
-      subject: `Votre contrat ${contract.tracking_number} a été signé`,
+      subject: `Votre contrat ${contractReference} a été signé`,
       html: htmlContent,
     });
 
