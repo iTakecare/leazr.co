@@ -65,9 +65,10 @@ const PublicSignedContractDownload: React.FC = () => {
 
   /**
    * Build SignedContractPDFData from RPC response exactly like signedContractPdfService.fetchContractDataForPDF does for admin.
+   * The RPC now returns a flat JSONB object with all fields at root level.
    */
   const buildPdfData = async (rpcData: any): Promise<SignedContractPDFData> => {
-    const contract = rpcData.contract || {};
+    // RPC returns flat structure - client, company, company_customization, leaser, equipment are nested objects
     const client = rpcData.client || {};
     const company = rpcData.company || {};
     const customization = rpcData.company_customization || {};
@@ -75,13 +76,13 @@ const PublicSignedContractDownload: React.FC = () => {
     const equipment = rpcData.equipment || [];
 
     // Leaser display name logic matching admin
-    let leaserDisplayName = contract.leaser_name || 'Non spécifié';
+    let leaserDisplayName = rpcData.leaser_name || 'Non spécifié';
     if (leaser) {
-      leaserDisplayName = leaser.company_name || leaser.name || contract.leaser_name || 'Non spécifié';
+      leaserDisplayName = leaser.name || rpcData.leaser_name || 'Non spécifié';
     }
 
-    // is_self_leasing from RPC (already computed in RPC with COALESCE)
-    const isSelfLeasing = contract.is_self_leasing || (leaser?.is_own_company === true);
+    // is_self_leasing from leaser object
+    const isSelfLeasing = leaser?.is_own_company === true;
 
     // Fetch contract template content from pdf_content_blocks
     let contractContent: Record<string, string> = {};
@@ -97,16 +98,16 @@ const PublicSignedContractDownload: React.FC = () => {
       contractContent = DEFAULT_PDF_CONTENT_BLOCKS.contract;
     }
 
-    // Build data matching admin exactly
+    // Build data matching admin exactly - use flat rpcData fields
     const pdfData: SignedContractPDFData = {
-      id: contract.id,
-      tracking_number: contract.contract_number || contract.tracking_number || `CON-${(contract.id || '').slice(0, 8)}`,
-      created_at: contract.created_at,
+      id: rpcData.id,
+      tracking_number: rpcData.tracking_number || `CON-${(rpcData.id || '').slice(0, 8)}`,
+      created_at: rpcData.created_at,
       // Contract dates
-      contract_start_date: contract.contract_start_date || undefined,
-      contract_end_date: contract.contract_end_date || undefined,
-      // Client - use data from client object (RPC now returns full client)
-      client_name: contract.client_name || client.name || 'Client',
+      contract_start_date: rpcData.contract_start_date || undefined,
+      contract_end_date: rpcData.contract_end_date || undefined,
+      // Client - use data from nested client object
+      client_name: client.name || 'Client',
       client_company: client.company || undefined,
       client_address: client.address || undefined,
       client_city: client.city || undefined,
@@ -114,26 +115,28 @@ const PublicSignedContractDownload: React.FC = () => {
       client_country: client.country || 'Belgique',
       client_vat_number: client.vat_number || undefined,
       client_phone: client.phone || undefined,
-      client_email: contract.client_email || client.email || undefined,
+      client_email: client.email || undefined,
+      client_iban: rpcData.client_iban || undefined,
+      client_bic: rpcData.client_bic || undefined,
       // Leaser
       leaser_name: leaserDisplayName,
       is_self_leasing: isSelfLeasing,
       // Company from company_customizations matching admin flow
-      company_name: company.name || '',
+      company_name: customization.company_name || company.name || '',
       company_address: customization.company_address || undefined,
       company_email: customization.company_email || undefined,
       company_phone: customization.company_phone || undefined,
       company_vat_number: customization.company_vat_number || undefined,
       company_logo_url: customization.logo_url || company.logo_url || undefined,
-      // Financial - NO adjusted_monthly_payment hack, use exactly contract.monthly_payment
-      monthly_payment: contract.monthly_payment || 0,
-      contract_duration: contract.contract_duration || 36,
-      file_fee: contract.file_fee || 0,
-      annual_insurance: contract.annual_insurance || 0,
-      down_payment: contract.down_payment || 0,
-      coefficient: contract.coefficient || 0,
-      financed_amount: contract.financed_amount || 0,
-      amount: contract.amount || 0,
+      // Financial - use flat rpcData fields from RPC
+      monthly_payment: rpcData.monthly_payment || 0,
+      contract_duration: rpcData.contract_duration || 36,
+      file_fee: rpcData.file_fee || 0,
+      annual_insurance: rpcData.annual_insurance || 0,
+      down_payment: rpcData.down_payment || 0,
+      coefficient: rpcData.coefficient || 0,
+      financed_amount: rpcData.financed_amount || 0,
+      amount: rpcData.financed_amount || 0,
       // Equipment with complete details (margin now included from RPC)
       equipment: (equipment || []).map((eq: any) => ({
         title: eq.title,
@@ -143,17 +146,17 @@ const PublicSignedContractDownload: React.FC = () => {
         margin: eq.margin || 0,
         serial_number: eq.serial_number || undefined,
       })),
-      // Signature
-      signature_data: contract.contract_signature_data || undefined,
-      signer_name: contract.contract_signer_name || client.name || contract.client_name,
-      signer_ip: contract.contract_signer_ip || undefined,
-      signed_at: contract.contract_signed_at || undefined,
+      // Signature - use flat rpcData fields
+      signature_data: rpcData.contract_signature_data || undefined,
+      signer_name: rpcData.contract_signer_name || client.name,
+      signer_ip: rpcData.contract_signer_ip || undefined,
+      signed_at: rpcData.contract_signed_at || undefined,
       // Contract template content
       contract_content: contractContent,
       // Brand
       primary_color: company.primary_color || '#33638e',
-      // Special provisions (self-leasing only)
-      special_provisions: contract.special_provisions || undefined,
+      // Remarks
+      special_provisions: rpcData.remarks || undefined,
     };
 
     return pdfData;
@@ -240,7 +243,7 @@ const PublicSignedContractDownload: React.FC = () => {
           <FileDown className="h-12 w-12 text-primary" />
           <p className="text-lg font-medium">Contrat signé</p>
           <p className="text-sm text-muted-foreground text-center">
-            {contractData?.contract?.contract_number || contractData?.contract?.tracking_number || 'Contrat'}
+            {contractData?.tracking_number || 'Contrat'}
           </p>
           <Button 
             onClick={() => contractData && downloadPDF(contractData)} 
