@@ -288,28 +288,57 @@ const CreateOffer = () => {
             setIsPurchase(offer.is_purchase || false);
             console.log("💰 STEP 3: Mode achat:", offer.is_purchase);
 
-            // Identifier le leaser utilisé basé sur le coefficient (seulement en mode leasing)
-            if (!offer.is_purchase && offer.coefficient) {
-              console.log("🔧 STEP 3: Finding leaser for coefficient:", offer.coefficient);
+            // Charger le leaser sauvegardé dans l'offre (seulement en mode leasing)
+            if (!offer.is_purchase) {
               try {
                 const fetchedLeasers = await getLeasers();
-
-                // Trouver le leaser qui correspond au coefficient
-                const matchingLeaser = fetchedLeasers.find(leaser => {
-                  const ranges = leaser.ranges || [];
-                  return ranges.some(range => Math.abs(range.coefficient - offer.coefficient) < 0.01);
-                });
-                if (matchingLeaser) {
-                  console.log("✅ STEP 3: Matching leaser found:", matchingLeaser.name);
-                  setSelectedLeaser(matchingLeaser);
+                
+                // PRIORITÉ 1: Utiliser le leaser_id stocké dans l'offre
+                if (offer.leaser_id) {
+                  console.log("🔧 STEP 3: Finding leaser by ID:", offer.leaser_id);
+                  const matchingLeaser = fetchedLeasers.find(leaser => leaser.id === offer.leaser_id);
                   
-                  // Vérifier si c'est du self-leasing basé sur le leaser
-                  if ((matchingLeaser as any).is_own_company === true && offer.type !== 'self_leasing') {
-                    console.log("🏢 STEP 3: Leaser is own company, activating self-leasing");
-                    setIsSelfLeasing(true);
+                  if (matchingLeaser) {
+                    console.log("✅ STEP 3: Leaser found by ID:", matchingLeaser.name);
+                    setSelectedLeaser(matchingLeaser);
+                    
+                    // Vérifier si c'est du self-leasing basé sur le leaser
+                    if ((matchingLeaser as any).is_own_company === true) {
+                      console.log("🏢 STEP 3: Leaser is own company, activating self-leasing");
+                      setIsSelfLeasing(true);
+                    }
+                  } else {
+                    console.warn("⚠️ STEP 3: Leaser ID not found in leasers list, falling back to coefficient");
+                    // Fallback: chercher par coefficient si le leaser_id n'est pas trouvé
+                    if (offer.coefficient) {
+                      const coefficientMatch = fetchedLeasers.find(leaser => {
+                        const ranges = leaser.ranges || [];
+                        return ranges.some(range => Math.abs(range.coefficient - offer.coefficient) < 0.01);
+                      });
+                      if (coefficientMatch) {
+                        console.log("✅ STEP 3: Fallback leaser found by coefficient:", coefficientMatch.name);
+                        setSelectedLeaser(coefficientMatch);
+                      }
+                    }
                   }
-                } else {
-                  console.log("⚠️ STEP 3: No matching leaser found for coefficient");
+                } else if (offer.coefficient) {
+                  // FALLBACK: Si pas de leaser_id, utiliser l'ancien comportement par coefficient
+                  console.log("🔧 STEP 3: No leaser_id, falling back to coefficient:", offer.coefficient);
+                  const matchingLeaser = fetchedLeasers.find(leaser => {
+                    const ranges = leaser.ranges || [];
+                    return ranges.some(range => Math.abs(range.coefficient - offer.coefficient) < 0.01);
+                  });
+                  if (matchingLeaser) {
+                    console.log("✅ STEP 3: Matching leaser found by coefficient:", matchingLeaser.name);
+                    setSelectedLeaser(matchingLeaser);
+                    
+                    if ((matchingLeaser as any).is_own_company === true && offer.type !== 'self_leasing') {
+                      console.log("🏢 STEP 3: Leaser is own company, activating self-leasing");
+                      setIsSelfLeasing(true);
+                    }
+                  } else {
+                    console.log("⚠️ STEP 3: No matching leaser found for coefficient");
+                  }
                 }
               } catch (error) {
                 console.error("❌ STEP 3: Error finding leaser:", error);
