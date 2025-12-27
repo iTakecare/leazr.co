@@ -39,6 +39,8 @@ export interface SignedContractPDFData {
   contract_duration: number;
   file_fee?: number;
   annual_insurance?: number;
+  down_payment?: number;
+  coefficient?: number;
   // Equipment
   equipment: Array<{
     title: string;
@@ -428,6 +430,15 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
   const styles = createStyles(contract.primary_color);
   const content = contract.contract_content || {};
 
+  // Calculate down payment and adjusted monthly payment
+  const downPayment = contract.down_payment || 0;
+  const coefficient = contract.coefficient || 0;
+  const duration = contract.contract_duration || 36;
+  const hasDownPayment = downPayment > 0 && coefficient > 0;
+  const adjustedMonthlyPayment = hasDownPayment 
+    ? contract.monthly_payment - (downPayment * coefficient / duration)
+    : contract.monthly_payment;
+
   // Prepare articles for rendering
   const articles = [
     { key: 'article_1', content: content.article_1 },
@@ -664,8 +675,8 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
             </View>
           ))}
           <View style={styles.totalRow}>
-            <Text style={[styles.totalLabel, { flex: 6 }]}>Total mensuel HT</Text>
-            <Text style={[styles.totalValue, { flex: 2 }]}>{formatCurrency(contract.monthly_payment)}</Text>
+            <Text style={[styles.totalLabel, { flex: 6 }]}>{hasDownPayment ? 'Mensualité ajustée HT' : 'Total mensuel HT'}</Text>
+            <Text style={[styles.totalValue, { flex: 2 }]}>{formatCurrency(hasDownPayment ? adjustedMonthlyPayment : contract.monthly_payment)}</Text>
           </View>
         </View>
 
@@ -678,10 +689,23 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
             <Text style={styles.label}>Durée du contrat :</Text>
             <Text style={styles.value}>{contract.contract_duration} mois</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Mensualité HT :</Text>
-            <Text style={styles.value}>{formatCurrency(contract.monthly_payment)}</Text>
-          </View>
+          {hasDownPayment ? (
+            <>
+              <View style={styles.row}>
+                <Text style={styles.label}>Acompte :</Text>
+                <Text style={styles.value}>{formatCurrency(downPayment)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.label}>Mensualité ajustée HT :</Text>
+                <Text style={styles.value}>{formatCurrency(adjustedMonthlyPayment)}</Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.row}>
+              <Text style={styles.label}>Mensualité HT :</Text>
+              <Text style={styles.value}>{formatCurrency(contract.monthly_payment)}</Text>
+            </View>
+          )}
           {contract.file_fee && contract.file_fee > 0 && (
             <View style={styles.row}>
               <Text style={styles.label}>Frais de dossier (unique) :</Text>

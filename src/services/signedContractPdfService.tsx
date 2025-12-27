@@ -34,7 +34,9 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
         ),
         offers(
           file_fee,
-          annual_insurance
+          annual_insurance,
+          down_payment,
+          coefficient
         )
       `)
       .eq('id', contractId)
@@ -125,6 +127,8 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       contract_duration: contract.contract_duration || 36,
       file_fee: (contract.offers as any)?.file_fee || contract.file_fee || 0,
       annual_insurance: (contract.offers as any)?.annual_insurance || 0,
+      down_payment: (contract.offers as any)?.down_payment || 0,
+      coefficient: (contract.offers as any)?.coefficient || 0,
       // Equipment with complete details
       equipment: equipment?.map(eq => ({
         title: eq.title,
