@@ -32,13 +32,14 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch contract with all related data including client
+    // Fetch contract with all related data including client and offer (for down payment)
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
       .select(`
         *,
         contract_equipment (*),
-        clients (id, name, email, company, phone, address, city, postal_code, vat_number)
+        clients (id, name, email, company, phone, address, city, postal_code, vat_number),
+        offers!offer_id (down_payment, coefficient, monthly_payment)
       `)
       .eq("id", contractId)
       .single();
@@ -86,6 +87,19 @@ const handler = async (req: Request): Promise<Response> => {
     const totalMonthly = contract.monthly_payment || 
       (contract.contract_equipment?.reduce((sum: number, eq: any) => 
         sum + (eq.monthly_payment || 0), 0) || 0);
+
+    // Get down payment info from linked offer
+    const downPayment = contract.offers?.down_payment || 0;
+    const coefficient = contract.offers?.coefficient || 0;
+    const duration = contract.contract_duration || 36;
+    const hasDownPayment = downPayment > 0 && coefficient > 0;
+    
+    // Calculate adjusted monthly payment if there's a down payment
+    const adjustedMonthlyPayment = hasDownPayment 
+      ? totalMonthly - (downPayment * coefficient / duration)
+      : totalMonthly;
+
+    console.log("Down payment info:", { downPayment, coefficient, hasDownPayment, totalMonthly, adjustedMonthlyPayment });
 
     // Build equipment list HTML
     const equipmentListHtml = contract.contract_equipment?.map((eq: any) => `
@@ -144,10 +158,21 @@ const handler = async (req: Request): Promise<Response> => {
       <span class="info-label">Durée du contrat :</span>
       <span class="info-value">${contract.contract_duration || 36} mois</span>
     </div>
+    ${hasDownPayment ? `
+    <div class="info-row">
+      <span class="info-label">Acompte :</span>
+      <span class="info-value" style="font-weight: bold;">${downPayment.toFixed(2)} €</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Mensualité ajustée HT :</span>
+      <span class="info-value" style="color: ${primaryColor}; font-weight: bold; font-size: 18px;">${adjustedMonthlyPayment.toFixed(2)} €</span>
+    </div>
+    ` : `
     <div class="info-row">
       <span class="info-label">Mensualité HT :</span>
       <span class="info-value" style="color: ${primaryColor}; font-weight: bold; font-size: 18px;">${totalMonthly.toFixed(2)} €</span>
     </div>
+    `}
     ${contract.client_iban ? `
     <div class="info-row">
       <span class="info-label">IBAN :</span>
@@ -206,51 +231,53 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
     `;
 
-    // Store the signed contract HTML in Supabase Storage
-    const fileName = `${contractReference}-signed.html`;
-    const filePath = `${contract.company_id}/${fileName}`;
-
-    console.log("Uploading signed contract to storage:", filePath);
-
-    const { error: uploadError } = await supabase.storage
-      .from('signed-contracts')
-      .upload(filePath, signedContractHtml, {
-        contentType: 'text/html',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      // Continue even if upload fails - we'll still send the email
+    // Check if we already have a PDF URL - use it instead of generating HTML
+    let downloadUrl = '';
+    
+    if (contract.signed_contract_pdf_url && contract.signed_contract_pdf_url.endsWith('.pdf')) {
+      // Use existing PDF URL
+      downloadUrl = contract.signed_contract_pdf_url;
+      console.log("Using existing PDF URL:", downloadUrl);
     } else {
-      // Get public URL
-      const { data: urlData } = supabase.storage
+      // Fallback: Store the signed contract HTML in Supabase Storage
+      const fileName = `${contractReference}-signed.html`;
+      const filePath = `${contract.company_id}/${fileName}`;
+
+      console.log("No PDF found, uploading signed contract HTML to storage:", filePath);
+
+      const { error: uploadError } = await supabase.storage
         .from('signed-contracts')
-        .getPublicUrl(filePath);
+        .upload(filePath, signedContractHtml, {
+          contentType: 'text/html',
+          upsert: true
+        });
 
-      const signedContractUrl = urlData?.publicUrl;
-      console.log("Signed contract URL:", signedContractUrl);
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        // Continue even if upload fails - we'll still send the email
+      } else {
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('signed-contracts')
+          .getPublicUrl(filePath);
 
-      // Update contract with the PDF URL
-      if (signedContractUrl) {
-        await supabase
-          .from("contracts")
-          .update({
-            signed_contract_pdf_url: signedContractUrl,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", contractId);
-        
-        console.log("Contract updated with signed_contract_pdf_url");
+        downloadUrl = urlData?.publicUrl || '';
+        console.log("HTML signed contract URL:", downloadUrl);
+
+        // Only update if no PDF URL exists (don't overwrite PDF with HTML)
+        if (!contract.signed_contract_pdf_url && downloadUrl) {
+          await supabase
+            .from("contracts")
+            .update({
+              signed_contract_pdf_url: downloadUrl,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", contractId);
+          
+          console.log("Contract updated with signed_contract_pdf_url (HTML fallback)");
+        }
       }
     }
-
-    // Build the email HTML with download link
-    const { data: urlData } = supabase.storage
-      .from('signed-contracts')
-      .getPublicUrl(filePath);
-    
-    const downloadUrl = urlData?.publicUrl || '';
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -324,11 +351,21 @@ const handler = async (req: Request): Promise<Response> => {
                     <td style="padding: 5px 0; color: #6b7280;">Durée :</td>
                     <td style="padding: 5px 0; color: #111827;">${contract.contract_duration || 36} mois</td>
                   </tr>
+                  ${hasDownPayment ? `
+                  <tr>
+                    <td style="padding: 5px 0; color: #6b7280;">Acompte :</td>
+                    <td style="padding: 5px 0; color: #111827; font-weight: 600;">${downPayment.toFixed(2)} €</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 0; color: #6b7280;">Mensualité ajustée HT :</td>
+                    <td style="padding: 5px 0; color: ${primaryColor}; font-weight: 700; font-size: 16px;">${adjustedMonthlyPayment.toFixed(2)} €</td>
+                  </tr>
+                  ` : `
                   <tr>
                     <td style="padding: 5px 0; color: #6b7280;">Mensualité HT :</td>
                     <td style="padding: 5px 0; color: ${primaryColor}; font-weight: 700; font-size: 16px;">${totalMonthly.toFixed(2)} €</td>
                   </tr>
-                </table>
+                  `}
               </div>
               
               <!-- Equipment Table -->
@@ -346,8 +383,8 @@ const handler = async (req: Request): Promise<Response> => {
                 </tbody>
                 <tfoot>
                   <tr style="background-color: #f9fafb; font-weight: 600;">
-                    <td colspan="2" style="padding: 12px 10px; text-align: right;">Total mensuel HT :</td>
-                    <td style="padding: 12px 10px; text-align: right; color: ${primaryColor};">${totalMonthly.toFixed(2)} €</td>
+                    <td colspan="2" style="padding: 12px 10px; text-align: right;">${hasDownPayment ? 'Mensualité ajustée HT :' : 'Total mensuel HT :'}</td>
+                    <td style="padding: 12px 10px; text-align: right; color: ${primaryColor};">${hasDownPayment ? adjustedMonthlyPayment.toFixed(2) : totalMonthly.toFixed(2)} €</td>
                   </tr>
                 </tfoot>
               </table>
