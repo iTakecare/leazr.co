@@ -26,55 +26,73 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Authorization header missing");
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
-
     const { to, subject, body, signatureLink, contractId, offerNumber }: ContractEmailRequest = await req.json();
+
+    console.log("Send contract email request:", { to, subject, contractId, offerNumber });
 
     if (!to || !subject || !signatureLink) {
       throw new Error("Missing required fields: to, subject, signatureLink");
     }
 
-    // Get company branding for email
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_id")
-      .eq("id", user.id)
-      .single();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
     let companyName = "Notre équipe";
     let primaryColor = "#3b82f6";
     let logoUrl = "";
+    let companyId: string | null = null;
 
-    if (profile?.company_id) {
-      const { data: company } = await supabase
+    // Try to get company info from authenticated user first
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("id", user.id)
+          .single();
+        companyId = profile?.company_id || null;
+      }
+    }
+
+    // Fallback: get company_id from contract if not found via auth
+    if (!companyId && contractId) {
+      console.log("Getting company_id from contract:", contractId);
+      const { data: contract, error: contractError } = await adminSupabase
+        .from("contracts")
+        .select("company_id")
+        .eq("id", contractId)
+        .single();
+      
+      if (contractError) {
+        console.error("Error fetching contract:", contractError);
+      } else {
+        companyId = contract?.company_id || null;
+        console.log("Found company_id from contract:", companyId);
+      }
+    }
+
+    // Get company branding
+    if (companyId) {
+      const { data: company } = await adminSupabase
         .from("companies")
         .select("name, logo_url, primary_color")
-        .eq("id", profile.company_id)
+        .eq("id", companyId)
         .single();
 
       if (company) {
         companyName = company.name || companyName;
         primaryColor = company.primary_color || primaryColor;
         logoUrl = company.logo_url || "";
+        console.log("Company branding loaded:", { companyName, primaryColor, hasLogo: !!logoUrl });
       }
     }
 
@@ -154,13 +172,15 @@ ${body.replace(/\n/g, '<br>')}
     console.log("Contract email sent successfully:", emailResponse);
 
     // Log the email send in contract history
-    await supabase
-      .from("contracts")
-      .update({
-        last_email_sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", contractId);
+    if (contractId) {
+      await adminSupabase
+        .from("contracts")
+        .update({
+          last_email_sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", contractId);
+    }
 
     return new Response(
       JSON.stringify({ success: true, data: emailResponse }),
