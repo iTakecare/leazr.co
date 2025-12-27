@@ -316,50 +316,6 @@ const CompanyDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Actions rapides */}
-            <Card className="bg-gradient-to-br from-primary/5 to-accent/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-bold">Actions Rapides</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/clients')}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Nouveau Client
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/offers')}
-                >
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Créer une Offre
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/contracts')}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Voir les Contrats
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start hover:bg-primary/10"
-                  onClick={() => navigate('/itakecare/admin/reports')}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Rapports Détaillés
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Statistics Sidebar */}
