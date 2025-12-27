@@ -22,7 +22,8 @@ import {
   Clock,
   CheckCircle,
   RefreshCw,
-  ShoppingBag
+  ShoppingBag,
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyDashboard } from "@/hooks/useCompanyDashboard";
@@ -33,7 +34,7 @@ import { useNavigate } from "react-router-dom";
 const CompanyDashboard = () => {
   const [timeFilter, setTimeFilter] = useState('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { metrics, recentActivity, isLoading, refetch } = useCompanyDashboard();
+  const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard();
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
 
@@ -405,6 +406,36 @@ const CompanyDashboard = () => {
                     <span className="font-semibold">{formatCurrency(Number(directSalesStats?.total_purchases || 0))}</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Factures en retard */}
+            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  Factures en retard
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
+                    <p className="text-xs text-muted-foreground">Nombre</p>
+                    <p className="text-xl font-bold text-amber-600">{overdueInvoices.overdue_count}</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
+                    <p className="text-xs text-muted-foreground">Montant dû</p>
+                    <p className="text-lg font-bold text-amber-600">{formatCurrency(overdueInvoices.overdue_amount)}</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-amber-600 hover:bg-amber-500/10"
+                  onClick={() => navigate('/itakecare/admin/invoices')}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Voir les factures
+                </Button>
               </CardContent>
             </Card>
 
