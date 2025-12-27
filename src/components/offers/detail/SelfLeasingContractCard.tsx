@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Plus } from 
 import SendContractEmailModal from "./SendContractEmailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { buildPublicContractSignatureUrl } from "@/utils/contractUrls";
 
 interface SelfLeasingContractCardProps {
   offer: any;
@@ -25,6 +27,7 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
   leaser,
   onContractCreated
 }) => {
+  const { companySlug } = useParams<{ companySlug: string }>();
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [contractStatus, setContractStatus] = useState<ContractStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,8 +120,8 @@ const SelfLeasingContractCard: React.FC<SelfLeasingContractCardProps> = ({
   };
 
   const handleOpenContractLink = () => {
-    if (contractStatus?.contract_signature_token) {
-      const url = `${window.location.origin}/contract/${contractStatus.contract_signature_token}/sign`;
+    if (contractStatus?.contract_signature_token && companySlug) {
+      const url = buildPublicContractSignatureUrl(companySlug, contractStatus.contract_signature_token);
       window.open(url, '_blank');
     }
   };
