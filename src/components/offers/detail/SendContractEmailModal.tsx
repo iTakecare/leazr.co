@@ -51,20 +51,60 @@ const SendContractEmailModal: React.FC<SendContractEmailModalProps> = ({
       setEmailSubject(`Contrat de location - ${contractRef}`);
       
       const clientName = offer.client_name || offer.clients?.name || "Client";
-      const monthlyPayment = offer.monthly_payment?.toLocaleString('fr-BE', {
-        style: 'currency',
-        currency: 'EUR'
-      }) || '0,00 €';
       const duration = offer.duration || 36;
       
-      setEmailBody(`Bonjour ${clientName},
+      // Format currency helper
+      const formatCurrency = (value: number) => value.toLocaleString('fr-BE', {
+        style: 'currency',
+        currency: 'EUR'
+      });
+      
+      // Check if self-leasing with down payment
+      const downPayment = offer.down_payment || 0;
+      const hasDownPayment = downPayment > 0 && leaser?.is_own_company === true;
+      
+      // Calculate adjusted monthly payment if down payment exists
+      const coefficient = offer.coefficient || 0;
+      const financedAmount = offer.financed_amount || offer.amount || 0;
+      const baseMonthlyPayment = offer.monthly_payment || 0;
+      let adjustedMonthlyPayment = baseMonthlyPayment;
+      
+      if (hasDownPayment && coefficient > 0) {
+        adjustedMonthlyPayment = Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100;
+      }
+      
+      // Build email content based on whether there's a down payment
+      let emailContent = `Bonjour ${clientName},
 
 Suite à notre échange, vous trouverez ci-dessous le lien pour signer électroniquement votre contrat de location.
 
-Récapitulatif de votre contrat :
-- Mensualité : ${monthlyPayment} HT/mois
+Récapitulatif de votre contrat :`;
+
+      if (hasDownPayment) {
+        emailContent += `
+- Acompte à verser : ${formatCurrency(downPayment)}
+- Mensualité ajustée : ${formatCurrency(adjustedMonthlyPayment)} HT/mois (après déduction de l'acompte)`;
+      } else {
+        emailContent += `
+- Mensualité : ${formatCurrency(baseMonthlyPayment)} HT/mois`;
+      }
+      
+      emailContent += `
 - Durée : ${duration} mois
-- Bailleur : ${leaser?.company_name || leaser?.name || 'Notre société'}
+- Bailleur : ${leaser?.company_name || leaser?.name || 'Notre société'}`;
+
+      if (hasDownPayment) {
+        emailContent += `
+
+⚠️ IMPORTANT - Processus de mise en place :
+1. Vous recevrez une facture d'acompte de ${formatCurrency(downPayment)}
+2. Dès réception de votre paiement, le contrat sera activé
+3. Les prélèvements mensuels de ${formatCurrency(adjustedMonthlyPayment)} HT débuteront ensuite
+
+La signature du contrat ci-dessous vaut acceptation de ces conditions.`;
+      }
+
+      emailContent += `
 
 Pour procéder à la signature, veuillez cliquer sur le bouton ci-dessous. Vous devrez :
 1. Vérifier les informations de votre contrat
@@ -74,9 +114,11 @@ Pour procéder à la signature, veuillez cliquer sur le bouton ci-dessous. Vous 
 Une fois signé, vous recevrez une copie de votre contrat par email.
 
 Cordialement,
-L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`);
+L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`;
+
+      setEmailBody(emailContent);
     }
-  }, [open, offer, leaser]);
+  }, [open, offer, leaser, existingContract]);
 
   const handleSend = async () => {
     if (!recipientEmail) {
