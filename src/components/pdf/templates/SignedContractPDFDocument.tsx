@@ -363,7 +363,11 @@ const calculateEndDate = (startDate?: string, durationMonths?: number): string =
 /**
  * Replace placeholders in text with contract data
  */
-const replacePlaceholders = (text: string, contract: SignedContractPDFData): string => {
+/**
+ * Replace placeholders in text with contract data
+ * @param effectiveMonthlyPayment - The actual monthly payment to use (adjusted if down payment exists)
+ */
+const replacePlaceholders = (text: string, contract: SignedContractPDFData, effectiveMonthlyPayment?: number): string => {
   if (!text) return '';
   
   const clientFullAddress = [
@@ -377,6 +381,9 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
   const endDate = contract.contract_end_date 
     ? formatDateShort(contract.contract_end_date)
     : calculateEndDate(contract.contract_start_date, contract.contract_duration);
+
+  // Use effective monthly payment if provided, otherwise use contract monthly payment
+  const monthlyPaymentToUse = effectiveMonthlyPayment ?? contract.monthly_payment;
 
   const placeholders: Record<string, string> = {
     '{{company_name}}': contract.company_name || '',
@@ -400,12 +407,12 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{client_iban}}': `**${contract.client_iban || ''}**`,
     '{{client_bic}}': contract.client_bic || '',
     '{{duration}}': String(contract.contract_duration || 36),
-    '{{monthly_payment}}': formatCurrency(contract.monthly_payment).replace('€', '').trim(),
+    '{{monthly_payment}}': formatCurrency(monthlyPaymentToUse).replace('€', '').trim(),
     '{{payment_day}}': '1er',
     '{{file_fee}}': formatCurrency(contract.file_fee || 0).replace('€', '').trim(),
     '{{admin_fee}}': formatCurrency(50).replace('€', '').trim(), // Default
     '{{residual_value}}': '1', // Default 1%
-    '{{residual_amount}}': formatCurrency((contract.monthly_payment * contract.contract_duration) * 0.01).replace('€', '').trim(),
+    '{{residual_amount}}': formatCurrency((monthlyPaymentToUse * contract.contract_duration) * 0.01).replace('€', '').trim(),
     '{{repair_threshold}}': '150',
     '{{penalty_percentage}}': '50',
     '{{contract_location}}': 'Belgique',
@@ -415,6 +422,9 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData): str
     '{{start_date}}': contract.contract_start_date ? formatDateShort(contract.contract_start_date) : formatDateShort(contract.created_at),
     '{{contract_end_date}}': endDate,
     '{{end_date}}': endDate,
+    // Down payment specific placeholders
+    '{{down_payment}}': formatCurrency(contract.down_payment || 0).replace('€', '').trim(),
+    '{{adjusted_monthly_payment}}': formatCurrency(monthlyPaymentToUse).replace('€', '').trim(),
   };
 
   let result = text;
@@ -493,7 +503,7 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
    * Render article content with proper line breaks for (i), (ii), (iii) formatting, bold support, and article titles
    */
   const renderArticleContent = (articleHtml: string) => {
-    const processed = replacePlaceholders(articleHtml, contract);
+    const processed = replacePlaceholders(articleHtml, contract, adjustedMonthlyPayment);
     const plainText = stripHtml(processed);
     
     // Split by newlines and render each paragraph separately
