@@ -269,16 +269,19 @@ const createStyles = (primaryColor: string = '#33638e') => StyleSheet.create({
 });
 
 const formatCurrency = (amount: number) => {
-  const formatted = new Intl.NumberFormat('fr-BE', {
-    style: 'currency',
-    currency: 'EUR',
+  // Formater le nombre SANS symbole monétaire pour éviter les caractères bizarres
+  const numberFormatted = new Intl.NumberFormat('fr-BE', {
+    style: 'decimal',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(amount || 0);
   
   // Remplacer les espaces (insécables, étroits) par un point pour le séparateur de milliers
-  // car le rendu PDF peut mal interpréter ces caractères spéciaux
-  return formatted.replace(/[\s\u00A0\u202F]/g, '.');
+  // car le rendu PDF peut mal interpréter ces caractères spéciaux comme "/"
+  const cleanNumber = numberFormatted.replace(/[\s\u00A0\u202F]/g, '.');
+  
+  // Ajouter le symbole EUR manuellement
+  return `${cleanNumber} €`;
 };
 
 const formatDate = (dateString?: string) => {
