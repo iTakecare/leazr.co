@@ -335,6 +335,25 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
 
           {contract.signature_status === 'signed' ? (
             <div className="space-y-2">
+              {/* PDF storage indicator */}
+              <div className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded ${
+                contract.signed_contract_pdf_url 
+                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                {contract.signed_contract_pdf_url ? (
+                  <>
+                    <CheckCircle className="w-3 h-3" />
+                    <span>PDF stocké disponible</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3 h-3" />
+                    <span>PDF non stocké (sera généré)</span>
+                  </>
+                )}
+              </div>
+              
               <Button
                 variant="default"
                 size="sm"
