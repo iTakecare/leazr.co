@@ -12,13 +12,42 @@ import { AlertCircle, Building2, MapPin } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
 import LogoUploader from './LogoUploader';
+import LessorSignatureUploader from './LessorSignatureUploader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 const GeneralSettings = () => {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signatureData, setSignatureData] = useState<{
+    signature_url: string | null;
+    signature_representative_name: string | null;
+    signature_representative_title: string | null;
+  }>({
+    signature_url: null,
+    signature_representative_name: null,
+    signature_representative_title: null
+  });
+
+  const fetchSignatureData = async () => {
+    if (!user?.company) return;
+    const { data } = await supabase
+      .from('companies')
+      .select('signature_url, signature_representative_name, signature_representative_title')
+      .eq('id', user.company)
+      .single();
+    if (data) {
+      setSignatureData({
+        signature_url: data.signature_url,
+        signature_representative_name: data.signature_representative_name,
+        signature_representative_title: data.signature_representative_title
+      });
+    }
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -43,6 +72,7 @@ const GeneralSettings = () => {
             company_legal_form: ''
           });
         }
+        await fetchSignatureData();
       } catch (err) {
         console.error("Erreur lors du chargement des paramètres:", err);
         setError("Impossible de charger les paramètres");
@@ -51,7 +81,7 @@ const GeneralSettings = () => {
       }
     };
     loadSettings();
-  }, []);
+  }, [user?.company]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -129,7 +159,8 @@ const GeneralSettings = () => {
       </Card>;
   }
 
-  return <Card>
+  return <>
+    <Card>
       <CardHeader>
         <CardTitle>Paramètres généraux</CardTitle>
         <CardDescription>
@@ -284,7 +315,17 @@ const GeneralSettings = () => {
           {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </Button>
       </CardFooter>
-    </Card>;
+    </Card>
+
+    <div className="mt-6">
+      <LessorSignatureUploader
+        currentSignatureUrl={signatureData.signature_url}
+        currentRepresentativeName={signatureData.signature_representative_name}
+        currentRepresentativeTitle={signatureData.signature_representative_title}
+        onUpdate={fetchSignatureData}
+      />
+    </div>
+  </>;
 };
 
 export default GeneralSettings;
