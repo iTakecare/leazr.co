@@ -202,8 +202,27 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
   const handleDownloadSignedPDF = async () => {
     try {
       setIsLoading(true);
-      // Toujours générer et télécharger le PDF avec @react-pdf/renderer
-      // Ignore signed_contract_pdf_url qui peut contenir un ancien fichier HTML
+      
+      // Priorité au fichier stocké dans le bucket
+      if (contract.signed_contract_pdf_url) {
+        const response = await fetch(contract.signed_contract_pdf_url);
+        if (response.ok) {
+          const blob = await response.blob();
+          const filename = `Contrat ${contract.tracking_number || contract.id} - ${contract.client_name || 'Client'}.pdf`;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success("PDF téléchargé avec succès");
+          return;
+        }
+      }
+      
+      // Fallback: régénérer pour les anciens contrats sans PDF stocké
       await downloadSignedContractPDF(contract.id);
       toast.success("PDF téléchargé avec succès");
     } catch (error) {
