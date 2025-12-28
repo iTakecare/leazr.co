@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Download, User, Globe, Calendar, RefreshCw } from "lucide-react";
+import { FileText, Send, ExternalLink, Clock, CheckCircle, Loader2, Download, User, Globe, Calendar, RefreshCw, RotateCcw } from "lucide-react";
 import SendContractEmailModal from "@/components/offers/detail/SendContractEmailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -381,6 +381,20 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
                   <RefreshCw className="w-4 h-4 mr-2" />
                 )}
                 Renvoyer le contrat signé
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-foreground"
+                onClick={handleGenerateAndUploadPDF}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                )}
+                Regénérer le PDF
               </Button>
             </div>
           ) : (
