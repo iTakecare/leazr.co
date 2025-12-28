@@ -97,33 +97,23 @@ const PublicSignedContractDownload: React.FC = () => {
   };
 
   const downloadFromUrl = async (url: string, trackingNumber: string, clientName: string) => {
+    // NOTE: Some browsers/blockers can prevent programmatic cross-origin downloads.
+    // Since the PDF is already stored in a *public* Supabase bucket, the most reliable
+    // behavior for a public link is to redirect the user straight to the file URL.
     try {
       setDownloading(true);
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Impossible de télécharger le fichier');
-      }
+      console.log('[PUBLIC-PDF-DOWNLOAD] Redirecting to stored PDF:', {
+        url,
+        trackingNumber,
+        clientName,
+      });
 
-      const blob = await response.blob();
-      const filename = `Contrat ${trackingNumber} - ${clientName}.pdf`.replace(/[/\\:*?"<>|]/g, '');
-
-      // Trigger download
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-
+      window.location.assign(url);
       setDownloadSuccess(true);
-      console.log('[PUBLIC-PDF-DOWNLOAD] PDF downloaded:', filename);
-
     } catch (e: any) {
-      console.error('[PUBLIC-PDF-DOWNLOAD] Download error:', e);
-      throw e;
+      console.error('[PUBLIC-PDF-DOWNLOAD] Redirect error:', e);
+      throw new Error('Impossible d\'ouvrir le PDF');
     } finally {
       setDownloading(false);
     }
