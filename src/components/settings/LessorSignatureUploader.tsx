@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Trash2, PenLine, Check, X } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, Trash2, PenLine, Check, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
+import SignaturePad from '@/components/signature/SignaturePad';
 
 interface LessorSignatureUploaderProps {
   currentSignatureUrl?: string | null;
@@ -27,6 +29,59 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
   const [saving, setSaving] = useState(false);
   const [representativeName, setRepresentativeName] = useState(currentRepresentativeName || '');
   const [representativeTitle, setRepresentativeTitle] = useState(currentRepresentativeTitle || '');
+  const [mode, setMode] = useState<'draw' | 'upload'>('draw');
+
+  const handleSaveDrawnSignature = async (signatureData: string) => {
+    if (!companyId) return;
+
+    try {
+      setUploading(true);
+
+      // Convert base64 to Blob
+      const base64Response = await fetch(signatureData);
+      const blob = await base64Response.blob();
+
+      // Upload to storage
+      const fileName = `${companyId}/lessor-signature.png`;
+      const fileClient = getFileUploadClient();
+
+      const { error: uploadError } = await fileClient.storage
+        .from('company-assets')
+        .upload(fileName, blob, {
+          contentType: 'image/png',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL with cache-busting timestamp
+      const { data: urlData } = fileClient.storage
+        .from('company-assets')
+        .getPublicUrl(fileName);
+
+      const signatureUrl = `${urlData?.publicUrl}?t=${Date.now()}`;
+
+      // Update company record
+      const { error: updateError } = await supabase
+        .from('companies')
+        .update({ signature_url: signatureUrl })
+        .eq('id', companyId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      toast.success('Signature enregistrée avec succès');
+      onUpdate();
+    } catch (error) {
+      console.error('[LESSOR-SIGNATURE] Draw signature error:', error);
+      toast.error('Erreur lors de l\'enregistrement de la signature');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,7 +122,7 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
         .from('company-assets')
         .getPublicUrl(fileName);
 
-      const signatureUrl = urlData?.publicUrl;
+      const signatureUrl = `${urlData?.publicUrl}?t=${Date.now()}`;
 
       // Update company record
       const { error: updateError } = await supabase
@@ -157,68 +212,93 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Signature image */}
-        <div className="space-y-3">
-          <Label>Image de signature</Label>
-          {currentSignatureUrl ? (
-            <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
-              <div className="flex-shrink-0 bg-white p-2 rounded border">
-                <img
-                  src={currentSignatureUrl}
-                  alt="Signature du bailleur"
-                  className="h-16 w-auto max-w-[200px] object-contain"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Signature actuelle</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Cette signature apparaîtra sur les contrats PDF
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeleteSignature}
-                disabled={uploading}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+        {/* Current signature display */}
+        {currentSignatureUrl && (
+          <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+            <div className="flex-shrink-0 bg-white p-2 rounded border">
+              <img
+                src={currentSignatureUrl}
+                alt="Signature du bailleur"
+                className="h-16 w-auto max-w-[200px] object-contain"
+              />
             </div>
-          ) : (
-            <div className="flex items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/20">
-              <div className="text-center">
-                <PenLine className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Aucune signature configurée
-                </p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">Signature actuelle</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Cette signature apparaîtra sur les contrats PDF
+              </p>
             </div>
-          )}
-          
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
             <Button
               variant="outline"
-              onClick={() => fileInputRef.current?.click()}
+              size="sm"
+              onClick={handleDeleteSignature}
               disabled={uploading}
-              className="gap-2"
+              className="text-destructive hover:text-destructive"
             >
-              {uploading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {currentSignatureUrl ? 'Changer la signature' : 'Télécharger une signature'}
+              <Trash2 className="h-4 w-4" />
             </Button>
-            <span className="text-xs text-muted-foreground">PNG, JPG jusqu'à 2 Mo</span>
           </div>
+        )}
+
+        {/* Signature input methods */}
+        <div className="space-y-3">
+          <Label>{currentSignatureUrl ? 'Modifier la signature' : 'Ajouter une signature'}</Label>
+          
+          <Tabs value={mode} onValueChange={(v) => setMode(v as 'draw' | 'upload')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="draw" className="gap-2">
+                <Pencil className="h-4 w-4" />
+                Dessiner
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="gap-2">
+                <Upload className="h-4 w-4" />
+                Uploader
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="draw" className="mt-4">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Dessinez votre signature dans le cadre ci-dessous
+                </p>
+                <SignaturePad
+                  onSave={handleSaveDrawnSignature}
+                  disabled={uploading}
+                  height={150}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="upload" className="mt-4">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Téléchargez une image de votre signature (PNG, JPG jusqu'à 2 Mo)
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="gap-2"
+                  >
+                    {uploading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Sélectionner un fichier
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Representative info */}
