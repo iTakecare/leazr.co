@@ -19,7 +19,7 @@ import {
   Shield,
   RefreshCw,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getFileUploadClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
 import IBANInput from "@/components/contracts/IBANInput";
@@ -323,11 +323,18 @@ const PublicContractSignature: React.FC = () => {
       // Upload to storage
       const storagePath = getSignedContractStoragePath(pdfData.tracking_number);
       
-      const { error: uploadError } = await supabase.storage
+      const fileClient = getFileUploadClient();
+
+      // Force binary upload to avoid multipart/form-data artifacts in stored files
+      const pdfArrayBuffer = await blob.arrayBuffer();
+      const pdfBytes = new Uint8Array(pdfArrayBuffer);
+
+      const { error: uploadError } = await fileClient.storage
         .from('signed-contracts')
-        .upload(storagePath, blob, {
+        .upload(storagePath, pdfBytes, {
           contentType: 'application/pdf',
-          upsert: true
+          cacheControl: '0',
+          upsert: true,
         });
 
       if (uploadError) {
@@ -336,7 +343,7 @@ const PublicContractSignature: React.FC = () => {
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = fileClient.storage
         .from('signed-contracts')
         .getPublicUrl(storagePath);
 

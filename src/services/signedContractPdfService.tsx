@@ -1,7 +1,7 @@
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { SignedContractPDFDocument, SignedContractPDFData } from '@/components/pdf/templates/SignedContractPDFDocument';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
 import { getPDFContentBlocksByPage, DEFAULT_PDF_CONTENT_BLOCKS } from './pdfContentService';
 
 /**
@@ -205,11 +205,18 @@ export async function uploadSignedContractPDF(contractId: string, blob: Blob): P
   const trackingNumber = contract?.tracking_number || contractId;
   const fileName = `${trackingNumber}-signed.pdf`;
 
-  // Upload to signed-contracts bucket
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const fileClient = getFileUploadClient();
+
+  // Force binary upload to avoid multipart/form-data artifacts in stored files
+  const pdfArrayBuffer = await blob.arrayBuffer();
+  const pdfBytes = new Uint8Array(pdfArrayBuffer);
+
+  // Upload to signed-contracts bucket (use dedicated upload client to avoid global JSON headers)
+  const { error: uploadError } = await fileClient.storage
     .from('signed-contracts')
-    .upload(fileName, blob, {
+    .upload(fileName, pdfBytes, {
       contentType: 'application/pdf',
+      cacheControl: '0',
       upsert: true, // Overwrite if exists
     });
 
@@ -219,7 +226,7 @@ export async function uploadSignedContractPDF(contractId: string, blob: Blob): P
   }
 
   // Get public URL
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = fileClient.storage
     .from('signed-contracts')
     .getPublicUrl(fileName);
 
