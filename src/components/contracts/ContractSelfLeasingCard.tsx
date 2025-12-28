@@ -205,7 +205,11 @@ const ContractSelfLeasingCard: React.FC<ContractSelfLeasingCardProps> = ({
       
       // Priorité au fichier stocké dans le bucket
       if (contract.signed_contract_pdf_url) {
-        const response = await fetch(contract.signed_contract_pdf_url);
+        // Add cache buster to force fresh download (avoid CDN/browser cache)
+        const cacheBustedUrl = contract.signed_contract_pdf_url.includes('?') 
+          ? `${contract.signed_contract_pdf_url}&v=${Date.now()}` 
+          : `${contract.signed_contract_pdf_url}?v=${Date.now()}`;
+        const response = await fetch(cacheBustedUrl);
         if (response.ok) {
           const blob = await response.blob();
           const filename = `Contrat ${contract.tracking_number || contract.id} - ${contract.client_name || 'Client'}.pdf`;

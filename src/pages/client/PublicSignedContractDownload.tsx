@@ -103,13 +103,18 @@ const PublicSignedContractDownload: React.FC = () => {
     try {
       setDownloading(true);
 
+      // Add cache buster to force fresh download (avoid CDN/browser cache)
+      const cacheBustedUrl = url.includes('?') 
+        ? `${url}&v=${Date.now()}` 
+        : `${url}?v=${Date.now()}`;
+
       console.log('[PUBLIC-PDF-DOWNLOAD] Redirecting to stored PDF:', {
-        url,
+        url: cacheBustedUrl,
         trackingNumber,
         clientName,
       });
 
-      window.location.assign(url);
+      window.location.assign(cacheBustedUrl);
       setDownloadSuccess(true);
     } catch (e: any) {
       console.error('[PUBLIC-PDF-DOWNLOAD] Redirect error:', e);
