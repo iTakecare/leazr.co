@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Trash2, PenLine, Check, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase, getFileUploadClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
 import SignaturePad from '@/components/signature/SignaturePad';
 
@@ -41,11 +41,10 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
       const base64Response = await fetch(signatureData);
       const blob = await base64Response.blob();
 
-      // Upload to storage
+      // Upload to storage using authenticated supabase client
       const fileName = `${companyId}/lessor-signature.png`;
-      const fileClient = getFileUploadClient();
 
-      const { error: uploadError } = await fileClient.storage
+      const { error: uploadError } = await supabase.storage
         .from('company-assets')
         .upload(fileName, blob, {
           contentType: 'image/png',
@@ -57,7 +56,7 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
       }
 
       // Get public URL with cache-busting timestamp
-      const { data: urlData } = fileClient.storage
+      const { data: urlData } = supabase.storage
         .from('company-assets')
         .getPublicUrl(fileName);
 
@@ -102,11 +101,10 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
     try {
       setUploading(true);
 
-      // Upload to storage
+      // Upload to storage using authenticated supabase client
       const fileName = `${companyId}/lessor-signature.${file.name.split('.').pop()}`;
-      const fileClient = getFileUploadClient();
 
-      const { error: uploadError } = await fileClient.storage
+      const { error: uploadError } = await supabase.storage
         .from('company-assets')
         .upload(fileName, file, {
           contentType: file.type,
@@ -118,7 +116,7 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
       }
 
       // Get public URL
-      const { data: urlData } = fileClient.storage
+      const { data: urlData } = supabase.storage
         .from('company-assets')
         .getPublicUrl(fileName);
 
