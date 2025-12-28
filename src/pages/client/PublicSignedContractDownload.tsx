@@ -51,8 +51,9 @@ const PublicSignedContractDownload: React.FC = () => {
         throw new Error('Contrat non trouvé ou lien invalide');
       }
 
-      const trackingNumber = data.tracking_number || `CON-${(data.id || '').slice(0, 8)}`;
-      const clientName = data.client?.name || 'Client';
+      // Fallback: tracking_number -> contract_number -> ID prefix
+      const trackingNumber = data.tracking_number || data.contract_number || `CON-${(data.id || '').slice(0, 8)}`;
+      const clientName = data.client?.name || data.client_name || 'Client';
       
       setContractInfo({ trackingNumber, clientName });
 
