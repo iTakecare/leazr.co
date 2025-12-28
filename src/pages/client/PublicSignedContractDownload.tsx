@@ -108,6 +108,34 @@ const PublicSignedContractDownload: React.FC = () => {
         ? `${url}&v=${Date.now()}` 
         : `${url}?v=${Date.now()}`;
 
+      // Best-effort validation: if we can fetch the first bytes and it's not a real PDF,
+      // show a clear error instead of redirecting to a corrupted file.
+      try {
+        const res = await fetch(cacheBustedUrl, {
+          method: 'GET',
+          headers: {
+            Range: 'bytes=0-1023',
+          },
+        });
+
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          const magic = String.fromCharCode(...Array.from(bytes.slice(0, 5)));
+
+          if (magic !== '%PDF-') {
+            throw new Error('Le PDF stocké semble corrompu. Veuillez demander la régénération du contrat.');
+          }
+        }
+      } catch (e) {
+        // If validation fails due to CORS/network, don't block the download.
+        // Only block when we are confident the file is corrupted.
+        if (e instanceof Error && e.message.includes('corrompu')) {
+          throw e;
+        }
+        console.warn('[PUBLIC-PDF-DOWNLOAD] PDF validation skipped:', e);
+      }
+
       console.log('[PUBLIC-PDF-DOWNLOAD] Redirecting to stored PDF:', {
         url: cacheBustedUrl,
         trackingNumber,
@@ -118,7 +146,7 @@ const PublicSignedContractDownload: React.FC = () => {
       setDownloadSuccess(true);
     } catch (e: any) {
       console.error('[PUBLIC-PDF-DOWNLOAD] Redirect error:', e);
-      throw new Error('Impossible d\'ouvrir le PDF');
+      throw new Error(e?.message || 'Impossible d\'ouvrir le PDF');
     } finally {
       setDownloading(false);
     }
