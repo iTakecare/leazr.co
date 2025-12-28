@@ -1578,6 +1578,9 @@ export type Database = {
           plan: string
           primary_color: string | null
           secondary_color: string | null
+          signature_representative_name: string | null
+          signature_representative_title: string | null
+          signature_url: string | null
           slug: string | null
           started_year: number | null
           stripe_customer_id: string | null
@@ -1610,6 +1613,9 @@ export type Database = {
           plan?: string
           primary_color?: string | null
           secondary_color?: string | null
+          signature_representative_name?: string | null
+          signature_representative_title?: string | null
+          signature_url?: string | null
           slug?: string | null
           started_year?: number | null
           stripe_customer_id?: string | null
@@ -1642,6 +1648,9 @@ export type Database = {
           plan?: string
           primary_color?: string | null
           secondary_color?: string | null
+          signature_representative_name?: string | null
+          signature_representative_title?: string | null
+          signature_url?: string | null
           slug?: string | null
           started_year?: number | null
           stripe_customer_id?: string | null

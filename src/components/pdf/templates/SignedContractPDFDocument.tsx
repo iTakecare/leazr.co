@@ -34,6 +34,10 @@ export interface SignedContractPDFData {
   company_logo_url?: string;
   company_iban?: string;
   company_bic?: string;
+  // Lessor signature (automatic)
+  lessor_signature_url?: string;
+  lessor_representative_name?: string;
+  lessor_representative_title?: string;
   // Financial
   monthly_payment: number;
   contract_duration: number;
@@ -861,10 +865,26 @@ export const SignedContractPDFDocument: React.FC<SignedContractPDFDocumentProps>
             <View style={styles.signatureColumn}>
               <Text style={styles.signatureLabel}>Le Bailleur</Text>
               <Text style={styles.signerName}>{contract.company_name}</Text>
-              <Text style={{ fontSize: 7, color: '#64748b', marginBottom: 5 }}>
-                Nom, qualité, signature
-              </Text>
-              <View style={styles.signatureLine} />
+              {contract.lessor_representative_name && (
+                <Text style={{ fontSize: 7, color: '#64748b', marginBottom: 2 }}>
+                  {contract.lessor_representative_name}
+                </Text>
+              )}
+              {contract.lessor_representative_title && (
+                <Text style={{ fontSize: 6, color: '#94a3b8', marginBottom: 5 }}>
+                  {contract.lessor_representative_title}
+                </Text>
+              )}
+              {!contract.lessor_representative_name && !contract.lessor_representative_title && (
+                <Text style={{ fontSize: 7, color: '#64748b', marginBottom: 5 }}>
+                  Nom, qualité, signature
+                </Text>
+              )}
+              {contract.lessor_signature_url ? (
+                <Image src={contract.lessor_signature_url} style={styles.clientSignatureImage} />
+              ) : (
+                <View style={styles.signatureLine} />
+              )}
             </View>
             
             {/* RIGHT: Le Locataire */}

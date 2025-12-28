@@ -20,7 +20,10 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
         companies!inner(
           name,
           logo_url,
-          primary_color
+          primary_color,
+          signature_url,
+          signature_representative_name,
+          signature_representative_title
         ),
         clients(
           company,
@@ -124,6 +127,10 @@ export async function fetchContractDataForPDF(contractId: string): Promise<Signe
       company_phone: customization?.company_phone || undefined,
       company_vat_number: customization?.company_vat_number || undefined,
       company_logo_url: contract.companies?.logo_url || undefined,
+      // Lessor signature (automatic)
+      lessor_signature_url: contract.companies?.signature_url || undefined,
+      lessor_representative_name: contract.companies?.signature_representative_name || undefined,
+      lessor_representative_title: contract.companies?.signature_representative_title || undefined,
       // Financial
       monthly_payment: contract.monthly_payment || 0,
       contract_duration: contract.contract_duration || 36,

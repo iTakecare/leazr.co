@@ -66,6 +66,10 @@ export const buildSignedContractPdfDataFromRpc = async (rpcData: any): Promise<S
     company_phone: customization.company_phone || undefined,
     company_vat_number: customization.company_vat_number || undefined,
     company_logo_url: customization.logo_url || company.logo_url || undefined,
+    // Lessor signature (automatic)
+    lessor_signature_url: company.signature_url || undefined,
+    lessor_representative_name: company.signature_representative_name || undefined,
+    lessor_representative_title: company.signature_representative_title || undefined,
     // Financial - use flat rpcData fields from RPC
     monthly_payment: rpcData.monthly_payment || 0,
     contract_duration: rpcData.contract_duration || 36,

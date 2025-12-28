@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useCompanyBranding } from "@/context/CompanyBrandingContext";
 import CompanyCustomizationService from "@/services/companyCustomizationService";
+import LessorSignatureUploader from "./LessorSignatureUploader";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Palette, 
   Upload, 
@@ -20,7 +22,8 @@ import {
   Eye,
   Save,
   Image as ImageIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  PenLine
 } from "lucide-react";
 
 const CompanyCustomizationManager = () => {
@@ -29,6 +32,32 @@ const CompanyCustomizationManager = () => {
   const { branding, updateBranding, loading } = useCompanyBranding();
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  
+  // Lessor signature state
+  const [lessorSignatureData, setLessorSignatureData] = useState<{
+    signature_url?: string | null;
+    signature_representative_name?: string | null;
+    signature_representative_title?: string | null;
+  }>({});
+
+  // Fetch lessor signature data
+  const fetchLessorSignatureData = async () => {
+    if (!companyId) return;
+    
+    const { data } = await supabase
+      .from('companies')
+      .select('signature_url, signature_representative_name, signature_representative_title')
+      .eq('id', companyId)
+      .single();
+    
+    if (data) {
+      setLessorSignatureData(data);
+    }
+  };
+
+  useEffect(() => {
+    fetchLessorSignatureData();
+  }, [companyId]);
 
   // États pour les formulaires
   const [brandingForm, setBrandingForm] = useState({
@@ -166,10 +195,14 @@ const CompanyCustomizationManager = () => {
       </div>
 
       <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="branding" className="gap-2">
             <Palette className="h-4 w-4" />
             Branding
+          </TabsTrigger>
+          <TabsTrigger value="signature" className="gap-2">
+            <PenLine className="h-4 w-4" />
+            Signature
           </TabsTrigger>
           <TabsTrigger value="company" className="gap-2">
             <Settings className="h-4 w-4" />
@@ -348,6 +381,15 @@ const CompanyCustomizationManager = () => {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="signature" className="space-y-6">
+          <LessorSignatureUploader
+            currentSignatureUrl={lessorSignatureData.signature_url}
+            currentRepresentativeName={lessorSignatureData.signature_representative_name}
+            currentRepresentativeTitle={lessorSignatureData.signature_representative_title}
+            onUpdate={fetchLessorSignatureData}
+          />
         </TabsContent>
 
         <TabsContent value="catalog" className="space-y-6">
