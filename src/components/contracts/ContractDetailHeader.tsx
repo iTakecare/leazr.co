@@ -265,7 +265,12 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <Euro className="h-4 w-4 text-green-600" />
               <span className="text-sm font-medium text-muted-foreground">Mensualité</span>
             </div>
-            <p className="font-semibold text-lg">{formatCurrency(contract.monthly_payment)}</p>
+            <p className="font-semibold text-lg">
+              {formatCurrency(contract.adjusted_monthly_payment ?? contract.monthly_payment)}
+              {contract.down_payment && contract.down_payment > 0 && contract.is_self_leasing && (
+                <span className="text-xs text-muted-foreground ml-1">(après acompte)</span>
+              )}
+            </p>
           </div>
 
           <div className="bg-background/60 backdrop-blur rounded-lg p-4 border">
