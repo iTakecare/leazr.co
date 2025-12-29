@@ -441,6 +441,33 @@ const [notesLoading, setNotesLoading] = useState(false);
         fileFee: isPurchase ? 0 : (Number(offer.file_fee) || 0),
         insuranceCost: isPurchase ? 0 : (Number(offer.annual_insurance) || 0),
         
+        // Acompte et mensualité ajustée
+        downPayment: Number(offer.down_payment) || 0,
+        adjustedMonthlyPayment: (() => {
+          const dp = Number(offer.down_payment) || 0;
+          const coef = Number(offer.coefficient) || 0;
+          if (dp > 0 && coef > 0) {
+            const baseFinancedAmount = totalSellingPrice > 0 
+              ? totalSellingPrice 
+              : (coef > 0 && (offer.monthly_payment || 0) > 0 
+                  ? ((Number(offer.monthly_payment) || 0) * 100) / coef 
+                  : Number(offer.financed_amount) || Number(offer.amount) || 0);
+            const financedAfterDp = Math.max(0, baseFinancedAmount - dp);
+            return Math.round((financedAfterDp * coef) / 100 * 100) / 100;
+          }
+          return Number(offer.monthly_payment) || 0;
+        })(),
+        financedAmountAfterDownPayment: (() => {
+          const dp = Number(offer.down_payment) || 0;
+          const coef = Number(offer.coefficient) || 0;
+          const baseFinancedAmount = totalSellingPrice > 0 
+            ? totalSellingPrice 
+            : (coef > 0 && (offer.monthly_payment || 0) > 0 
+                ? ((Number(offer.monthly_payment) || 0) * 100) / coef 
+                : Number(offer.financed_amount) || Number(offer.amount) || 0);
+          return Math.max(0, baseFinancedAmount - dp);
+        })(),
+        
         // Logos partenaires
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
         

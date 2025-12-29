@@ -34,6 +34,11 @@ interface CommercialOfferProps {
   fileFee?: number;
   insuranceCost?: number;
   
+  // Acompte et mensualité ajustée
+  downPayment?: number;
+  adjustedMonthlyPayment?: number;
+  financedAmountAfterDownPayment?: number;
+  
   // Valeurs entreprise
   companyValues?: Array<{
     title: string;
@@ -175,6 +180,9 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
   contractDuration = 36,
   fileFee = 0,
   insuranceCost = 0,
+  downPayment = 0,
+  adjustedMonthlyPayment,
+  financedAmountAfterDownPayment,
   companyValues = [],
   metrics = [],
   partnerLogos = [],
@@ -525,13 +533,58 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               </div>
 
               {/* Total Section - Uniquement sur la dernière page de produits */}
-              {isLastProductPage && (
+              {isLastProductPage && (() => {
+                const hasDownPayment = (downPayment || 0) > 0;
+                const displayMonthlyPayment = hasDownPayment && adjustedMonthlyPayment 
+                  ? adjustedMonthlyPayment 
+                  : totalMonthly;
+                
+                return (
                 <div style={{
                   background: styles.background.totalBox,
                   borderRadius: styles.borderRadius.lg,
                   padding: styles.spacing['2xl'],
                   boxShadow: styles.shadow.lg,
                 }}>
+                  {/* Bloc Acompte - si présent */}
+                  {hasDownPayment && !isPurchase && (
+                    <div style={{
+                      marginBottom: styles.spacing.lg,
+                      padding: styles.spacing.md,
+                      backgroundColor: '#FEF3C7',
+                      borderRadius: styles.borderRadius.md,
+                      borderLeft: '4px solid #F59E0B',
+                    }}>
+                      <p style={{ 
+                        fontWeight: '600', 
+                        color: '#92400E', 
+                        marginBottom: styles.spacing.sm,
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        Acompte
+                      </p>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        marginBottom: styles.spacing.xs,
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        <span style={{ color: '#78350F' }}>Montant de l'acompte :</span>
+                        <span style={{ fontWeight: '600', color: '#78350F' }}>{formatCurrency(downPayment)}</span>
+                      </div>
+                      {financedAmountAfterDownPayment !== undefined && (
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between',
+                          fontSize: styles.fontSize.sm,
+                        }}>
+                          <span style={{ color: '#78350F' }}>Montant financé après acompte :</span>
+                          <span style={{ fontWeight: '600', color: '#78350F' }}>{formatCurrency(financedAmountAfterDownPayment)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -544,7 +597,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         color: '#1E40AF',
                         marginBottom: styles.spacing.xs,
                       }}>
-                        {isPurchase ? 'Total HTVA' : 'Mensualité HTVA'}
+                        {isPurchase 
+                          ? 'Total HTVA' 
+                          : (hasDownPayment ? 'Mensualité HTVA (après acompte)' : 'Mensualité HTVA')
+                        }
                       </p>
                       <p style={{
                         fontSize: isPDFMode ? '40px' : '2.5rem',
@@ -552,7 +608,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         color: '#1E40AF',
                         lineHeight: '1',
                       }}>
-                        {formatCurrency(isPurchase ? totalSellingPrice : totalMonthly)}
+                        {formatCurrency(isPurchase ? totalSellingPrice : displayMonthlyPayment)}
                       </p>
                     </div>
                     
@@ -730,7 +786,8 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                     </div>
                   )}
                 </div>
-              )}
+              );
+              })()}
             </div>
           );
         });
