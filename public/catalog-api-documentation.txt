@@ -2,38 +2,39 @@
    DOCUMENTATION API CATALOG LOVABLE 
 ===========================================
 
-VERSION : 2024.3  
-DATE : 18 août 2025 - Corrections critiques et stabilité
+VERSION : 2024.4  
+DATE : 29 décembre 2025 - Extension API prix d'achat et fournisseurs
 STATUT : Prêt pour production
 
 ===========================================
-   CORRECTIONS VERSION 2024.3
+   NOUVEAUTÉS VERSION 2024.4
 ===========================================
 
-Cette version apporte des corrections critiques qui améliorent la stabilité 
-et la fiabilité de l'API Product Request et du système de gestion des clients.
+Cette version ajoute des fonctionnalités d'écriture pour la mise à jour 
+des prix d'achat et la gestion des fournisseurs.
 
-CORRECTIONS MAJEURES :
+NOUVELLES FONCTIONNALITÉS :
 
-1. **Function create_primary_collaborator_for_client corrigée**
-   - Problème : Erreurs lors de la création de collaborateurs primaires
-   - Solution : Logique de création automatique corrigée
-   - Impact : Création fluide des clients via l'endpoint /product-requests
+1. **Endpoints d'écriture (PATCH)**
+   - PATCH /products/{id}/purchase-price : Mise à jour prix d'achat produit
+   - PATCH /variants/{id}/purchase-price : Mise à jour prix d'achat variant
+   - Authentification par clé API avec permission `products_write`
 
-2. **Function getFreeClients implémentée** 
-   - Problème : "Aucun client disponible" en mode offre interne
-   - Solution : Implémentation complète utilisant get_free_clients_secure() RPC
-   - Impact : Sélection de clients fonctionnelle en mode offre interne
+2. **Gestion des fournisseurs**
+   - GET /suppliers : Liste des fournisseurs
+   - GET /suppliers/{id} : Détails d'un fournisseur
+   - GET /products/{id}/suppliers : Prix par fournisseur pour un produit
+   - Permission requise : `suppliers`
 
-3. **Edge Functions confirmées opérationnelles**
-   - ✅ create-product-request : Déployée et stable
-   - ✅ catalog-api : Configuration CORS optimisée
-   - ✅ Toutes les fonctions edge confirmées en production
+3. **Nouvelles tables de base de données**
+   - `suppliers` : Table des fournisseurs par entreprise
+   - `product_supplier_prices` : Prix d'achat par fournisseur avec SKU
+   - `product_variant_prices.purchase_price` : Nouvelle colonne
 
-4. **Améliorations multi-tenant**
-   - Isolation des données par entreprise renforcée
-   - Sécurité RLS optimisée après corrections
-   - Gestion d'erreurs améliorée dans les RPC calls
+4. **Nouvelles permissions API**
+   - `products_write` : Écriture sur les produits
+   - `suppliers` : Lecture des fournisseurs
+   - `suppliers_write` : Écriture sur les fournisseurs
 
 ===========================================
    SOMMAIRE
@@ -42,23 +43,25 @@ CORRECTIONS MAJEURES :
 1. VUE D'ENSEMBLE
 2. AUTHENTIFICATION
 3. SÉCURITÉ ET FILTRAGE
-4. ENDPOINTS DE L'API
-5. STRUCTURES DE DONNÉES
-6. GESTION DES ERREURS
-7. EXEMPLES D'IMPLÉMENTATION
-8. BASE DE DONNÉES REQUISE
-9. EDGE FUNCTION COMPLÈTE
+4. ENDPOINTS DE LECTURE (GET)
+5. ENDPOINTS D'ÉCRITURE (PATCH) - NOUVEAU
+6. GESTION DES FOURNISSEURS - NOUVEAU
+7. STRUCTURES DE DONNÉES
+8. GESTION DES ERREURS
+9. EXEMPLES D'IMPLÉMENTATION
+10. BASE DE DONNÉES REQUISE
 
 ===========================================
    1. VUE D'ENSEMBLE
 ===========================================
 
-L'API Catalog permet d'accéder aux données de produits, catégories, marques et autres informations du catalogue d'une entreprise via des endpoints REST sécurisés.
+L'API Catalog permet d'accéder et de modifier les données de produits, 
+catégories, marques, fournisseurs et autres informations du catalogue.
 
 URL DE BASE : https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1/{companySlug}
 
 FORMAT DES RÉPONSES : JSON
-MÉTHODES SUPPORTÉES : GET, OPTIONS
+MÉTHODES SUPPORTÉES : GET, PATCH, POST, OPTIONS
 PAGINATION : Supportée
 FILTRES : Disponibles selon l'endpoint
 
@@ -79,20 +82,15 @@ Headers:
   Content-Type: application/json
 ```
 
-NOTE IMPORTANTE :
-- L'API accepte le slug de l'entreprise (ex: "itakecare") dans l'URL
-- Le slug est plus lisible et cohérent que l'UUID de l'entreprise
-- Mapping automatique slug → companyId en interne pour la sécurité
-
 PERMISSIONS PAR CLÉ API :
-- products: Accès aux produits
+- products: Lecture des produits
+- products_write: Écriture sur les produits (NOUVEAU)
 - categories: Accès aux catégories  
 - brands: Accès aux marques
 - packs: Accès aux packs de produits
 - environmental: Données environnementales
-- attributes: Attributs des produits
-- specifications: Spécifications techniques
-- images: Accès aux images
+- suppliers: Lecture des fournisseurs (NOUVEAU)
+- suppliers_write: Écriture sur les fournisseurs (NOUVEAU)
 
 ===========================================
    3. SÉCURITÉ ET FILTRAGE
@@ -101,24 +99,13 @@ PERMISSIONS PAR CLÉ API :
 FILTRAGE AUTOMATIQUE DES PRODUITS ADMIN :
 - L'API publique filtre automatiquement les produits marqués avec `admin_only: true`
 - Seuls les produits avec `admin_only: false` ou `admin_only: null` sont exposés
-- Ce filtrage s'applique à tous les endpoints publics de produits :
-  * GET /products (liste des produits)
-  * GET /products/{id} (produit spécifique) 
-  * GET /products/{id}/related (produits associés)
-  * GET /search (recherche de produits)
 
-SÉCURITÉ :
-- Les produits admin ne génèrent pas d'erreur 404, ils sont simplement exclus
-- Le filtrage est transparent pour les développeurs utilisant l'API
-- Aucune configuration supplémentaire requise côté client
-
-IMPORTANT :
-- Cette mesure de sécurité protège les produits internes/sensibles
-- Les comptes d'entreprises peuvent utiliser `admin_only: true` pour masquer certains produits du catalogue public
-- Le filtrage est appliqué au niveau de la base de données pour une sécurité optimale
+PERMISSIONS D'ÉCRITURE :
+- Les endpoints PATCH requièrent la permission `products_write`
+- Les endpoints fournisseurs requièrent la permission `suppliers`
 
 ===========================================
-   4. ENDPOINTS DE L'API
+   4. ENDPOINTS DE LECTURE (GET)
 ===========================================
 
 ## 4.1 INFORMATIONS ENTREPRISE
@@ -126,119 +113,15 @@ IMPORTANT :
 GET /catalog-api/v1/{companySlug}/company
 ```
 
-DESCRIPTION : Récupère les informations de base de l'entreprise
-PERMISSIONS : Aucune permission spécifique requise
-
-RÉPONSE :
-```json
-{
-  "company": {
-    "id": "uuid",
-    "name": "Nom Entreprise",
-    "slug": "nom-entreprise", 
-    "logo_url": "https://...",
-    "primary_color": "#3b82f6",
-    "secondary_color": "#64748b",
-    "accent_color": "#8b5cf6"
-  },
-  "customizations": {
-    "header_enabled": true,
-    "header_title": "Notre Catalogue",
-    "header_description": "Découvrez nos produits",
-    "logo_url": "https://...",
-    "primary_color": "#3b82f6"
-  }
-}
-```
-
-## 4.2 PRODUITS
+## 4.2 LISTE DES PRODUITS
 ```
 GET /catalog-api/v1/{companySlug}/products
 ```
-
-DESCRIPTION : Liste tous les produits actifs et publics (filtre automatique admin_only)
-PERMISSIONS : products
-SÉCURITÉ : Les produits avec admin_only=true sont automatiquement exclus
-
-PARAMÈTRES DE REQUÊTE :
-- category : Filtrer par nom de catégorie
-- brand : Filtrer par nom de marque  
-- page : Numéro de page (défaut: 1)
-- limit : Nombre d'éléments par page (max: 100, défaut: 50)
-
-EXEMPLE :
-```
-GET /catalog-api/v1/{companySlug}/products?category=Ordinateurs&page=1&limit=20
-```
-
-RÉPONSE :
-```json
-{
-  "products": [
-    {
-      "id": "uuid",
-      "name": "MacBook Pro M3",
-      "description": "Ordinateur portable professionnel",
-      "price": 2499.00,
-      "monthly_price": 124.95,
-      "stock": 15,
-      "image_url": "https://...",
-      "sku": "MBP-M3-14",
-      "active": true,
-      "admin_only": false,
-      "brands": {
-        "name": "Apple",
-        "translation": "Apple"
-      },
-      "categories": {
-        "name": "Laptops", 
-        "translation": "Ordinateurs portables"
-      },
-      "product_variant_prices": [
-        {
-          "id": "uuid",
-          "attributes": {"color": "Space Gray", "storage": "512GB"},
-          "price": 2499.00,
-          "monthly_price": 124.95,
-          "stock": 10
-        }
-      ]
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 15
-  }
-}
-```
+Paramètres : category, brand, page, limit
 
 ## 4.3 PRODUIT SPÉCIFIQUE
 ```
 GET /catalog-api/v1/{companySlug}/products/{productId}
-```
-
-DESCRIPTION : Détails d'un produit spécifique (uniquement produits publics)
-PERMISSIONS : products
-SÉCURITÉ : Retourne 404 si le produit a admin_only=true
-
-RÉPONSE :
-```json
-{
-  "product": {
-    "id": "uuid",
-    "name": "MacBook Pro M3",
-    "description": "Ordinateur portable professionnel avec puce M3",
-    "price": 2499.00,
-    "monthly_price": 124.95,
-    "stock": 15,
-    "image_url": "https://...",
-    "sku": "MBP-M3-14",
-    "brands": {...},
-    "categories": {...},
-    "product_variant_prices": [...]
-  }
-}
 ```
 
 ## 4.4 VARIANTS D'UN PRODUIT
@@ -246,52 +129,9 @@ RÉPONSE :
 GET /catalog-api/v1/{companySlug}/products/{productId}/variants
 ```
 
-DESCRIPTION : Liste les variants de prix/attributs d'un produit
-PERMISSIONS : products
-
-RÉPONSE :
-```json
-{
-  "variants": [
-    {
-      "id": "uuid",
-      "product_id": "uuid",
-      "attributes": {
-        "color": "Space Gray",
-        "storage": "512GB",
-        "ram": "16GB"
-      },
-      "price": 2499.00,
-      "monthly_price": 124.95,
-      "stock": 10
-    }
-  ]
-}
-```
-
 ## 4.5 PRODUITS ASSOCIÉS
 ```
 GET /catalog-api/v1/{companySlug}/products/{productId}/related
-```
-
-DESCRIPTION : Produits de la même catégorie (uniquement produits publics)
-PERMISSIONS : products
-LIMITE : 6 produits maximum
-SÉCURITÉ : Exclut automatiquement les produits admin_only
-
-RÉPONSE :
-```json
-{
-  "products": [
-    {
-      "id": "uuid",
-      "name": "MacBook Air M2",
-      "price": 1299.00,
-      "brands": {...},
-      "categories": {...}
-    }
-  ]
-}
 ```
 
 ## 4.6 IMPACT CO2 PRODUIT
@@ -299,112 +139,25 @@ RÉPONSE :
 GET /catalog-api/v1/{companySlug}/products/{productId}/co2
 ```
 
-DESCRIPTION : Calcul d'impact environnemental
-PERMISSIONS : environmental
-
-RÉPONSE :
-```json
-{
-  "co2_impact": {
-    "value": 2.5,
-    "unit": "kg CO2eq", 
-    "calculation_date": "2025-01-10T10:30:00.000Z"
-  }
-}
+## 4.7 UPSELLS PRODUIT
+```
+GET /catalog-api/v1/{companySlug}/products/{productId}/upsells
 ```
 
-## 4.7 CATÉGORIES
+## 4.8 CATÉGORIES
 ```
 GET /catalog-api/v1/{companySlug}/categories
 ```
 
-DESCRIPTION : Liste toutes les catégories
-PERMISSIONS : categories
-
-RÉPONSE :
-```json
-{
-  "categories": [
-    {
-      "id": "uuid",
-      "name": "Laptops",
-      "translation": "Ordinateurs portables",
-      "company_id": "uuid",
-      "created_at": "2025-01-10T10:30:00.000Z"
-    }
-  ]
-}
+## 4.9 MARQUES
+```
+GET /catalog-api/v1/{companySlug}/brands
 ```
 
-## 4.8 MARQUES
-```
-GET /catalog-api/v1/{companySlug}/brands  
-```
-
-DESCRIPTION : Liste toutes les marques
-PERMISSIONS : brands
-
-RÉPONSE :
-```json
-{
-  "brands": [
-    {
-      "id": "uuid", 
-      "name": "Apple",
-      "translation": "Apple",
-      "website_url": "https://apple.com",
-      "company_id": "uuid"
-    }
-  ]
-}
-```
-
-## 4.9 PACKS DE PRODUITS
+## 4.10 PACKS
 ```
 GET /catalog-api/v1/{companySlug}/packs
-```
-
-DESCRIPTION : Liste les packs actifs
-PERMISSIONS : packs
-
-RÉPONSE :
-```json
-{
-  "packs": [
-    {
-      "id": "uuid",
-      "name": "Pack Bureau Pro", 
-      "description": "Pack complet pour bureau",
-      "price": 3999.00,
-      "monthly_price": 199.95,
-      "is_active": true,
-      "company_id": "uuid"
-    }
-  ]
-}
-```
-
-## 4.10 PACK SPÉCIFIQUE
-```
 GET /catalog-api/v1/{companySlug}/packs/{packId}
-```
-
-DESCRIPTION : Détails d'un pack spécifique
-PERMISSIONS : packs
-
-RÉPONSE :
-```json
-{
-  "pack": {
-    "id": "uuid",
-    "name": "Pack Bureau Pro",
-    "description": "Pack complet pour bureau professionnel", 
-    "price": 3999.00,
-    "monthly_price": 199.95,
-    "products": [...],
-    "is_active": true
-  }
-}
 ```
 
 ## 4.11 RECHERCHE
@@ -412,968 +165,437 @@ RÉPONSE :
 GET /catalog-api/v1/{companySlug}/search?q=macbook
 ```
 
-DESCRIPTION : Recherche dans nom et description (uniquement produits publics)
-PERMISSIONS : products
-LIMITE : 20 résultats maximum  
-SÉCURITÉ : Exclut automatiquement les produits admin_only de la recherche
-
-PARAMÈTRES :
-- q : Terme de recherche (requis)
-
-RÉPONSE :
-```json
-{
-  "products": [
-    {
-      "id": "uuid",
-      "name": "MacBook Pro M3",
-      "description": "...",
-      "brands": {...},
-      "categories": {...}
-    }
-  ]
-}
-```
-
 ## 4.12 DONNÉES ENVIRONNEMENTALES
 ```
 GET /catalog-api/v1/{companySlug}/environmental
+GET /catalog-api/v1/{companySlug}/environmental/categories
 ```
 
-DESCRIPTION : Métriques environnementales de l'entreprise
-PERMISSIONS : environmental
-
-RÉPONSE :
-```json
-{
-  "environmental": {
-    "co2_saved": 1250.75,
-    "devices_count": 450
-  }
-}
-```
-
-## 4.13 PARAMÈTRES CATALOGUE
+## 4.13 PARAMÈTRES ET CUSTOMISATIONS
 ```
 GET /catalog-api/v1/{companySlug}/settings
-```
-
-DESCRIPTION : Configuration d'affichage du catalogue
-PERMISSIONS : Aucune
-
-RÉPONSE :
-```json
-{
-  "settings": {
-    "header_enabled": true,
-    "header_title": "Notre Catalogue",
-    "header_description": "Découvrez notre gamme",
-    "header_background_type": "gradient",
-    "header_background_config": {
-      "colors": ["#3b82f6", "#8b5cf6"]
-    }
-  }
-}
-```
-
-## 4.14 CUSTOMISATIONS
-```
 GET /catalog-api/v1/{companySlug}/customizations
 ```
 
-DESCRIPTION : Toutes les customisations visuelles
-PERMISSIONS : Aucune
+===========================================
+   5. ENDPOINTS D'ÉCRITURE (PATCH) - NOUVEAU
+===========================================
 
-RÉPONSE :
+## 5.1 MISE À JOUR PRIX D'ACHAT PRODUIT
+```
+PATCH /catalog-api/v1/{companySlug}/products/{productId}/purchase-price
+```
+
+PERMISSIONS : products_write
+
+BODY :
 ```json
 {
-  "customizations": {
-    "company_name": "Mon Entreprise",
-    "logo_url": "https://...",
-    "primary_color": "#3b82f6",
-    "secondary_color": "#64748b", 
-    "accent_color": "#8b5cf6",
-    "header_enabled": true,
-    "header_title": "Notre Catalogue",
-    "header_description": "Découvrez nos produits",
-    "quote_request_url": "https://...",
-    "company_email": "contact@entreprise.com",
-    "company_phone": "+33123456789"
-  }
+  "purchase_price": 899.99,
+  "supplier_id": "uuid",
+  "sku": "SKU-FOURNISSEUR",
+  "is_preferred": true,
+  "notes": "Meilleur prix négocié"
 }
 ```
 
-## 4.15 VALIDATION TVA (VIES)
-```
-POST /catalog-api/v1/{companySlug}/vies/validate
-```
-
-DESCRIPTION : Validation d'un numéro TVA européen via le système VIES
-PERMISSIONS : Aucune (endpoint public)
-
-PARAMÈTRES :
-```json
-{
-  "vat_number": "BE0123456789"
-}
-```
-
-RÉPONSE :
-```json
-{
-  "valid": true,
-  "company_name": "EXEMPLE SA",
-  "company_address": "RUE DE L'EXEMPLE 123, 1000 BRUXELLES",
-  "country_code": "BE",
-  "vat_number": "0123456789",
-  "request_date": "2025-01-10"
-}
-```
-
-## 4.16 CRÉATION DE DEMANDE DE DEVIS
-```
-POST /catalog-api/v1/{companySlug}/product-requests
-```
-
-DESCRIPTION : Création d'une nouvelle demande de devis/commande
-PERMISSIONS : Aucune (endpoint public)
-
-PARAMÈTRES :
-```json
-{
-  "company_info": {
-    "company_name": "EXEMPLE SA",
-    "vat_number": "BE0123456789",
-    "address": "RUE DE L'EXEMPLE 123",
-    "postal_code": "1000",
-    "city": "BRUXELLES",
-    "country": "Belgium"
-  },
-  "contact_info": {
-    "first_name": "Jean",
-    "last_name": "Dupont",
-    "email": "jean.dupont@example.com",
-    "phone": "+32123456789"
-  },
-  "delivery_info": {
-    "same_as_company": true,
-    "address": "RUE DE L'EXEMPLE 123",
-    "postal_code": "1000", 
-    "city": "BRUXELLES"
-  },
-  "products": [
-    {
-      "product_id": "uuid",
-      "quantity": 2,
-      "variant_id": "uuid"
-    }
-  ],
-  "packs": [
-    {
-      "pack_id": "uuid", 
-      "quantity": 1
-    }
-  ],
-  "create_client_account": true,
-  "request_type": "quote"
-}
-```
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| purchase_price | number | ✅ | Prix d'achat en euros |
+| supplier_id | uuid | ❌ | ID du fournisseur |
+| sku | string | ❌ | SKU spécifique au fournisseur |
+| is_preferred | boolean | ❌ | Définir comme fournisseur préféré |
+| notes | string | ❌ | Notes additionnelles |
 
 RÉPONSE :
 ```json
 {
   "success": true,
-  "request_id": "uuid",
-  "offer_number": "OFFER-2025-001",
-  "client_account_created": true,
-  "message": "Demande créée avec succès"
+  "product_id": "uuid",
+  "purchase_price": 899.99,
+  "sku": "SKU-FOURNISSEUR",
+  "supplier_id": "uuid",
+  "updated_at": "2025-12-29T10:00:00.000Z"
+}
+```
+
+## 5.2 MISE À JOUR PRIX D'ACHAT VARIANT
+```
+PATCH /catalog-api/v1/{companySlug}/variants/{variantId}/purchase-price
+```
+
+PERMISSIONS : products_write
+
+BODY : Identique à 5.1
+
+RÉPONSE :
+```json
+{
+  "success": true,
+  "variant_id": "uuid",
+  "product_id": "uuid",
+  "purchase_price": 899.99,
+  "sku": "SKU-FOURNISSEUR",
+  "supplier_id": "uuid",
+  "updated_at": "2025-12-29T10:00:00.000Z"
 }
 ```
 
 ===========================================
-   5. STRUCTURES DE DONNÉES
+   6. GESTION DES FOURNISSEURS - NOUVEAU
 ===========================================
 
-## PRODUIT COMPLET
+## 6.1 LISTE DES FOURNISSEURS
+```
+GET /catalog-api/v1/{companySlug}/suppliers
+```
+
+PERMISSIONS : suppliers
+
+PARAMÈTRES :
+- active : Filtrer uniquement les fournisseurs actifs (true/false)
+- search : Recherche par nom ou code
+
+RÉPONSE :
+```json
+{
+  "suppliers": [
+    {
+      "id": "uuid",
+      "name": "AFB France",
+      "code": "AFB",
+      "email": "contact@afb.fr",
+      "phone": "+33123456789",
+      "website": "https://afb.fr",
+      "contact_name": "Jean Dupont",
+      "address": "123 Rue de Commerce",
+      "city": "Paris",
+      "postal_code": "75001",
+      "country": "France",
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+## 6.2 DÉTAILS D'UN FOURNISSEUR
+```
+GET /catalog-api/v1/{companySlug}/suppliers/{supplierId}
+```
+
+PERMISSIONS : suppliers
+
+## 6.3 PRIX PAR FOURNISSEUR POUR UN PRODUIT
+```
+GET /catalog-api/v1/{companySlug}/products/{productId}/suppliers
+```
+
+PERMISSIONS : products ou suppliers
+
+RÉPONSE :
+```json
+{
+  "product": {
+    "id": "uuid",
+    "name": "MacBook Pro M3",
+    "sku": "MBP-M3-14",
+    "purchase_price": 1899.99
+  },
+  "supplier_prices": [
+    {
+      "id": "uuid",
+      "supplier": {
+        "id": "uuid",
+        "name": "AFB France",
+        "code": "AFB",
+        "is_active": true
+      },
+      "sku": "AFB-MBP-M3-14",
+      "purchase_price": 1850.00,
+      "currency": "EUR",
+      "last_price_update": "2025-12-29T10:00:00.000Z",
+      "is_preferred": true,
+      "notes": "Meilleur prix négocié"
+    },
+    {
+      "id": "uuid",
+      "supplier": {
+        "id": "uuid",
+        "name": "INMAC WSTORE",
+        "code": "INMAC",
+        "is_active": true
+      },
+      "sku": "INMAC-APP-MBP14M3",
+      "purchase_price": 1920.00,
+      "currency": "EUR",
+      "last_price_update": "2025-12-28T14:30:00.000Z",
+      "is_preferred": false
+    }
+  ]
+}
+```
+
+===========================================
+   7. STRUCTURES DE DONNÉES
+===========================================
+
+## FOURNISSEUR (NOUVEAU)
+```json
+{
+  "id": "uuid",
+  "company_id": "uuid",
+  "name": "string",
+  "code": "string",
+  "email": "string",
+  "phone": "string",
+  "website": "string",
+  "contact_name": "string",
+  "address": "string",
+  "city": "string",
+  "postal_code": "string",
+  "country": "string",
+  "notes": "string",
+  "is_active": "boolean",
+  "created_at": "timestamp",
+  "updated_at": "timestamp"
+}
+```
+
+## PRIX FOURNISSEUR (NOUVEAU)
+```json
+{
+  "id": "uuid",
+  "product_id": "uuid",
+  "variant_price_id": "uuid | null",
+  "supplier_id": "uuid",
+  "sku": "string",
+  "purchase_price": "number",
+  "currency": "string",
+  "last_price_update": "timestamp",
+  "is_preferred": "boolean",
+  "notes": "string"
+}
+```
+
+## PRODUIT
 ```json
 {
   "id": "uuid",
   "name": "string",
   "description": "string",
   "price": "number",
-  "monthly_price": "number", 
+  "monthly_price": "number",
+  "purchase_price": "number",
   "stock": "integer",
   "image_url": "string",
   "sku": "string",
   "active": "boolean",
-  "admin_only": "boolean",
-  "company_id": "uuid",
-  "brand_id": "uuid",
-  "category_id": "uuid", 
-  "created_at": "timestamp",
-  "updated_at": "timestamp",
-  "brands": {
-    "name": "string",
-    "translation": "string"
-  },
-  "categories": {
-    "name": "string", 
-    "translation": "string"
-  },
-  "product_variant_prices": [
-    {
-      "id": "uuid",
-      "attributes": "object",
-      "price": "number",
-      "monthly_price": "number",
-      "stock": "integer"
-    }
-  ]
-}
-```
-
-## ENTREPRISE
-```json
-{
-  "id": "uuid",
-  "name": "string",
-  "slug": "string",
-  "logo_url": "string",
-  "primary_color": "string",
-  "secondary_color": "string", 
-  "accent_color": "string",
-  "is_active": "boolean"
-}
-```
-
-## CATÉGORIE
-```json
-{
-  "id": "uuid",
-  "name": "string",
-  "translation": "string",
-  "company_id": "uuid",
-  "created_at": "timestamp"
-}
-```
-
-## MARQUE  
-```json
-{
-  "id": "uuid",
-  "name": "string",
-  "translation": "string",
-  "website_url": "string",
-  "company_id": "uuid"
+  "admin_only": "boolean"
 }
 ```
 
 ===========================================
-   6. GESTION DES ERREURS
+   8. GESTION DES ERREURS
 ===========================================
 
 ## CODES D'ERREUR HTTP
 
 - **400 Bad Request** : Requête malformée
 - **401 Unauthorized** : Clé API manquante ou invalide
+- **403 Forbidden** : Permission insuffisante
 - **404 Not Found** : Endpoint ou ressource introuvable
+- **429 Too Many Requests** : Limite de débit atteinte
 - **500 Internal Server Error** : Erreur serveur
-
-## FORMAT DES ERREURS
-```json
-{
-  "error": "Description de l'erreur"
-}
-```
 
 ## EXEMPLES D'ERREURS
 
-### Clé API manquante
+### Permission insuffisante (403)
 ```json
 {
-  "error": "API key required"
+  "error": "Permission denied: products_write required"
 }
 ```
 
-### Clé API invalide
+### Champ requis manquant
 ```json
 {
-  "error": "Invalid API key"
-}
-```
-
-### Version non supportée
-```json
-{
-  "error": "Unsupported API version"
-}
-```
-
-### Endpoint introuvable
-```json
-{
-  "error": "Endpoint not found"
+  "error": "purchase_price is required"
 }
 ```
 
 ===========================================
-   7. EXEMPLES D'IMPLÉMENTATION
+   9. EXEMPLES D'IMPLÉMENTATION
 ===========================================
 
-## JAVASCRIPT/TYPESCRIPT
-
-### Configuration de base
+## MISE À JOUR PRIX D'ACHAT (JavaScript)
 ```javascript
-const API_BASE_URL = 'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1';
-const COMPANY_SLUG = 'votre-company-slug'; // ex: 'itakecare'
-const API_KEY = 'votre-api-key';
+const API_BASE = 'https://cifbetjefyfocafanlhv.supabase.co/functions/v1/catalog-api/v1';
+const COMPANY_SLUG = 'your-company-slug';
+const API_KEY = 'your-api-key';
 
-const headers = {
-  'Content-Type': 'application/json',
-  'x-api-key': API_KEY
-};
-```
-
-### Récupérer tous les produits
-```javascript
-async function getProducts(page = 1, limit = 50) {
+async function updateProductPurchasePrice(productId, purchasePrice, supplierId, sku) {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_SLUG}/products?page=${page}&limit=${limit}`,
-    { headers }
+    `${API_BASE}/${COMPANY_SLUG}/products/${productId}/purchase-price`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY
+      },
+      body: JSON.stringify({
+        purchase_price: purchasePrice,
+        supplier_id: supplierId,
+        sku: sku,
+        is_preferred: true
+      })
+    }
   );
   
   if (!response.ok) {
-    throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    const error = await response.json();
+    throw new Error(error.error);
   }
   
   return await response.json();
 }
 
 // Utilisation
-getProducts().then(data => {
-  console.log('Produits:', data.products);
-  console.log('Pagination:', data.pagination);
+updateProductPurchasePrice(
+  'product-uuid',
+  899.99,
+  'supplier-uuid',
+  'AFB-SKU-123'
+).then(result => {
+  console.log('Prix mis à jour:', result);
 });
 ```
 
-### Rechercher des produits
+## RÉCUPÉRER LES FOURNISSEURS
 ```javascript
-async function searchProducts(query) {
+async function getSuppliers(activeOnly = true) {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_SLUG}/search?q=${encodeURIComponent(query)}`,
-    { headers }
-  );
-  return await response.json();
-}
-
-// Utilisation
-searchProducts('macbook').then(data => {
-  console.log('Résultats:', data.products);
-});
-```
-
-### Récupérer un produit spécifique
-```javascript
-async function getProduct(productId) {
-  const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_SLUG}/products/${productId}`,
-    { headers }
-  );
-  return await response.json();
-}
-```
-
-### Récupérer les catégories
-```javascript
-async function getCategories() {
-  const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_SLUG}/categories`,
-    { headers }
-  );
-  return await response.json();
-}
-```
-
-### Validation TVA via VIES
-```javascript
-async function validateVATNumber(vatNumber) {
-  const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_SLUG}/vies/validate`,
+    `${API_BASE}/${COMPANY_SLUG}/suppliers?active=${activeOnly}`,
     {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ vat_number: vatNumber })
+      headers: { 'x-api-key': API_KEY }
     }
   );
   return await response.json();
 }
-
-// Utilisation
-validateVATNumber('BE0123456789').then(data => {
-  console.log('Validation TVA:', data);
-});
 ```
 
-### Créer une demande de devis
+## RÉCUPÉRER LES PRIX FOURNISSEURS D'UN PRODUIT
 ```javascript
-async function createProductRequest(requestData) {
+async function getProductSupplierPrices(productId) {
   const response = await fetch(
-    `${API_BASE_URL}/${COMPANY_SLUG}/product-requests`,
+    `${API_BASE}/${COMPANY_SLUG}/products/${productId}/suppliers`,
     {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestData)
+      headers: { 'x-api-key': API_KEY }
     }
   );
   return await response.json();
-}
-
-// Utilisation
-const requestData = {
-  company_info: { /* ... */ },
-  contact_info: { /* ... */ },
-  products: [{ product_id: 'uuid', quantity: 2 }],
-  request_type: 'quote'
-};
-createProductRequest(requestData).then(data => {
-  console.log('Demande créée:', data);
-});
-```
-
-### Gestion des erreurs complète
-```javascript
-async function apiCall(endpoint, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/${COMPANY_SLUG}/${endpoint}`, {
-      headers,
-      ...options
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erreur API');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Erreur API:', error.message);
-    throw error;
-  }
-}
-```
-
-## REACT HOOK PERSONNALISÉ
-```javascript
-import { useState, useEffect } from 'react';
-
-export function useCatalogAPI(companySlug, apiKey) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  const apiCall = async (endpoint, options = {}) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/${companySlug}/${endpoint}`;
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
-        ...options
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error);
-      }
-      
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return { apiCall, loading, error };
-}
-
-// Utilisation du hook
-function ProductList() {
-  const { apiCall, loading, error } = useCatalogAPI(COMPANY_SLUG, API_KEY);
-  const [products, setProducts] = useState([]);
-  
-  useEffect(() => {
-    apiCall('products').then(data => {
-      setProducts(data.products);
-    });
-  }, []);
-  
-  if (loading) return <div>Chargement...</div>;
-  if (error) return <div>Erreur: {error}</div>;
-  
-  return (
-    <div>
-      {products.map(product => (
-        <div key={product.id}>
-          <h3>{product.name}</h3>
-          <p>{product.description}</p>
-          <p>Prix: {product.price}€</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Hook spécialisé pour la validation TVA
-function useVATValidation(companySlug, apiKey) {
-  const { apiCall } = useCatalogAPI(companySlug, apiKey);
-  
-  const validateVAT = async (vatNumber) => {
-    return await apiCall('vies/validate', {
-      method: 'POST',
-      body: JSON.stringify({ vat_number: vatNumber })
-    });
-  };
-  
-  return { validateVAT };
-}
-
-// Hook pour création de demandes
-function useProductRequests(companySlug, apiKey) {
-  const { apiCall } = useCatalogAPI(companySlug, apiKey);
-  
-  const createRequest = async (requestData) => {
-    return await apiCall('product-requests', {
-      method: 'POST',
-      body: JSON.stringify(requestData)
-    });
-  };
-  
-  return { createRequest };
 }
 ```
 
 ===========================================
-   8. BASE DE DONNÉES REQUISE
+   10. BASE DE DONNÉES REQUISE
 ===========================================
 
-## TABLES PRINCIPALES
+## NOUVELLES TABLES v2024.4
 
-### companies
+### suppliers
 ```sql
-CREATE TABLE companies (
+CREATE TABLE suppliers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  slug TEXT UNIQUE,
-  logo_url TEXT,
-  primary_color TEXT DEFAULT '#3b82f6',
-  secondary_color TEXT DEFAULT '#64748b', 
-  accent_color TEXT DEFAULT '#8b5cf6',
-  co2_saved NUMERIC DEFAULT 0,
-  devices_count INTEGER DEFAULT 0,
+  code TEXT,
+  email TEXT,
+  phone TEXT,
+  website TEXT,
+  contact_name TEXT,
+  address TEXT,
+  city TEXT,
+  postal_code TEXT,
+  country TEXT DEFAULT 'Belgium',
+  notes TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-### api_keys
+### product_supplier_prices
 ```sql
-CREATE TABLE api_keys (
+CREATE TABLE product_supplier_prices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  name TEXT NOT NULL,
-  api_key TEXT UNIQUE NOT NULL,
-  permissions JSONB DEFAULT '{
-    "products": true,
-    "categories": true, 
-    "brands": true,
-    "packs": true,
-    "environmental": true
-  }'::jsonb,
-  is_active BOOLEAN DEFAULT true,
-  last_used_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### categories
-```sql
-CREATE TABLE categories (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  name TEXT NOT NULL,
-  translation TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### brands  
-```sql
-CREATE TABLE brands (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  name TEXT NOT NULL,
-  translation TEXT NOT NULL,
-  website_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### products
-```sql
-CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  category_id UUID REFERENCES categories(id),
-  brand_id UUID REFERENCES brands(id),
-  name TEXT NOT NULL,
-  description TEXT,
-  price NUMERIC NOT NULL DEFAULT 0,
-  monthly_price NUMERIC,
-  stock INTEGER DEFAULT 0,
-  image_url TEXT,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  variant_price_id UUID REFERENCES product_variant_prices(id) ON DELETE CASCADE,
+  supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
   sku TEXT,
-  active BOOLEAN DEFAULT true,
-  admin_only BOOLEAN DEFAULT false,
+  purchase_price NUMERIC NOT NULL,
+  currency TEXT DEFAULT 'EUR',
+  last_price_update TIMESTAMPTZ DEFAULT now(),
+  is_preferred BOOLEAN DEFAULT false,
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(product_id, supplier_id, variant_price_id)
 );
 ```
 
-### product_variant_prices
+### Modification product_variant_prices
 ```sql
-CREATE TABLE product_variant_prices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID NOT NULL REFERENCES products(id),
-  attributes JSONB DEFAULT '{}'::jsonb,
-  price NUMERIC NOT NULL,
-  monthly_price NUMERIC,
-  stock INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+ALTER TABLE product_variant_prices 
+ADD COLUMN purchase_price NUMERIC;
 ```
 
-### product_packs
-```sql
-CREATE TABLE product_packs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  name TEXT NOT NULL,
-  description TEXT,
-  price NUMERIC NOT NULL,
-  monthly_price NUMERIC,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### company_customizations
-```sql  
-CREATE TABLE company_customizations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  company_name TEXT,
-  logo_url TEXT,
-  primary_color TEXT DEFAULT '#3b82f6',
-  secondary_color TEXT DEFAULT '#64748b',
-  accent_color TEXT DEFAULT '#8b5cf6',
-  header_enabled BOOLEAN DEFAULT true,
-  header_title TEXT,
-  header_description TEXT,
-  header_background_type TEXT DEFAULT 'gradient',
-  header_background_config JSONB DEFAULT '{}'::jsonb,
-  quote_request_url TEXT,
-  company_email TEXT,
-  company_phone TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-## POLITIQUES RLS (ROW LEVEL SECURITY)
-```sql
--- Isolation par entreprise pour tous les endpoints
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
-ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
-ALTER TABLE company_customizations ENABLE ROW LEVEL SECURITY;
-
--- Exemples de politiques
-CREATE POLICY "API access to products" ON products
-FOR SELECT USING (true); -- L'edge function utilise des clés service
-
-CREATE POLICY "API access to categories" ON categories  
-FOR SELECT USING (true);
-```
-
-===========================================
-   9. EDGE FUNCTION COMPLÈTE
-===========================================
-
-```typescript
-// supabase/functions/catalog-api/index.ts
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS'
+## PERMISSIONS API KEYS
+```json
+{
+  "products": true,
+  "products_write": true,
+  "categories": true,
+  "brands": true,
+  "packs": true,
+  "environmental": true,
+  "suppliers": true,
+  "suppliers_write": true
 }
-
-interface ApiKeyRecord {
-  id: string
-  company_id: string
-  permissions: any
-  is_active: boolean
-}
-
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-
-  try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const url = new URL(req.url)
-    const pathParts = url.pathname.split('/').filter(Boolean)
-    
-    // Expected format: /catalog-api/v1/{companySlug}/{endpoint}
-    if (pathParts.length < 3) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid API path' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const [, version, companySlugOrId, endpoint, ...subPaths] = pathParts
-    
-    // Convert slug to company ID if needed
-    let companyId = companySlugOrId;
-    if (!companySlugOrId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
-      // It's a slug, convert to ID
-      const { data: companyData } = await supabaseAdmin
-        .from('companies')
-        .select('id')
-        .eq('slug', companySlugOrId)
-        .single();
-      
-      if (!companyData) {
-        return new Response(
-          JSON.stringify({ error: 'Company not found' }), 
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      companyId = companyData.id;
-    }
-    
-    if (version !== 'v1') {
-      return new Response(
-        JSON.stringify({ error: 'Unsupported API version' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Verify API key
-    const apiKey = req.headers.get('x-api-key')
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'API key required' }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Validate API key and get permissions
-    const { data: keyData, error: keyError } = await supabaseAdmin
-      .from('api_keys')
-      .select('id, company_id, permissions, is_active')
-      .eq('api_key', apiKey)
-      .eq('company_id', companyId)
-      .eq('is_active', true)
-      .single() as { data: ApiKeyRecord | null, error: any }
-
-    if (keyError || !keyData) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid API key' }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Update last_used_at
-    await supabaseAdmin
-      .from('api_keys')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('id', keyData.id)
-
-    // Handle different endpoints
-    let data: any
-    let error: any
-
-    switch (endpoint) {
-      case 'company':
-        data = await getCompanyInfo(supabaseAdmin, companyId, keyData.permissions)
-        break
-      
-      case 'products':
-        if (subPaths.length > 0) {
-          const productId = subPaths[0]
-          if (subPaths[1] === 'variants') {
-            data = await getProductVariants(supabaseAdmin, companyId, productId, keyData.permissions)
-          } else if (subPaths[1] === 'related') {
-            data = await getRelatedProducts(supabaseAdmin, companyId, productId, keyData.permissions)
-          } else if (subPaths[1] === 'co2') {
-            data = await getProductCO2(supabaseAdmin, companyId, productId, keyData.permissions)
-          } else {
-            data = await getProduct(supabaseAdmin, companyId, productId, keyData.permissions)
-          }
-        } else {
-          data = await getProducts(supabaseAdmin, companyId, keyData.permissions, url.searchParams)
-        }
-        break
-
-      case 'categories':
-        data = await getCategories(supabaseAdmin, companyId, keyData.permissions)
-        break
-
-      case 'brands':
-        data = await getBrands(supabaseAdmin, companyId, keyData.permissions)
-        break
-
-      case 'packs':
-        if (subPaths.length > 0) {
-          data = await getPack(supabaseAdmin, companyId, subPaths[0], keyData.permissions)
-        } else {
-          data = await getPacks(supabaseAdmin, companyId, keyData.permissions)
-        }
-        break
-
-      case 'search':
-        data = await searchCatalog(supabaseAdmin, companyId, keyData.permissions, url.searchParams)
-        break
-
-      case 'environmental':
-        data = await getEnvironmentalData(supabaseAdmin, companyId, keyData.permissions)
-        break
-
-      case 'settings':
-        data = await getCatalogSettings(supabaseAdmin, companyId, keyData.permissions)
-        break
-
-      case 'customizations':
-        data = await getCustomizations(supabaseAdmin, companyId, keyData.permissions)
-        break
-
-      default:
-        return new Response(
-          JSON.stringify({ error: 'Endpoint not found' }), 
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-    }
-
-    if (error) {
-      console.error('API Error:', error)
-      return new Response(
-        JSON.stringify({ error: 'Internal server error' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    return new Response(
-      JSON.stringify(data), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    console.error('Catalog API Error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
-
-// Fonctions des endpoints (voir code complet dans l'edge function)
-// ... toutes les fonctions async getProducts, getCategories, etc.
 ```
-
-## CONFIGURATION SUPABASE
-```toml
-# supabase/config.toml
-project_id = "votre-project-id"
-
-[functions.catalog-api]
-verify_jwt = false  # API publique avec authentification par clé
-```
-
-===========================================
-   NOTES IMPORTANTES
-===========================================
-
-1. **Sécurité** : Les clés API doivent être stockées de manière sécurisée
-2. **Rate Limiting** : Implémentez un système de limitation de débit si nécessaire  
-3. **Cache** : Considérez la mise en cache des réponses pour améliorer les performances
-4. **Monitoring** : Surveillez l'utilisation des clés API via last_used_at
-5. **Permissions** : Les permissions sont vérifiées mais pas encore implémentées dans tous les endpoints
-6. **CORS** : L'API est configurée pour accepter toutes les origines (*)
-
-===========================================
-   SUPPORT & MAINTENANCE  
-===========================================
-
-- Version actuelle : v1 (API), 2024.3 (documentation)
-- Edge Function déployée automatiquement
-- Logs disponibles dans le dashboard Supabase
-- Monitoring via les métriques Supabase Functions
 
 ===========================================
    HISTORIQUE DES VERSIONS
 ===========================================
 
+## Version 2024.4 - 29 décembre 2025
+**Extension API prix d'achat et fournisseurs**
+
+NOUVELLES FONCTIONNALITÉS :
+- ✅ PATCH /products/{id}/purchase-price
+- ✅ PATCH /variants/{id}/purchase-price
+- ✅ GET /suppliers
+- ✅ GET /suppliers/{id}
+- ✅ GET /products/{id}/suppliers
+- ✅ Table `suppliers` avec RLS
+- ✅ Table `product_supplier_prices` avec RLS
+- ✅ Colonne `purchase_price` sur `product_variant_prices`
+- ✅ Nouvelles permissions : products_write, suppliers, suppliers_write
+
 ## Version 2024.3 - 18 août 2025
 **Corrections critiques et stabilité**
+- Function create_primary_collaborator_for_client réparée
+- Function getFreeClients implémentée
+- Edge Functions confirmées en production
 
-CORRECTIONS APPORTÉES :
-- ✅ Function `create_primary_collaborator_for_client` réparée
-- ✅ Function `getFreeClients` implémentée et fonctionnelle  
-- ✅ Mode offre interne maintenant opérationnel
-- ✅ Edge Functions toutes confirmées en production
-- ✅ Configuration CORS optimisée
-- ✅ Isolation multi-tenant renforcée
-
-IMPACT UTILISATEUR :
-- Création de demandes de devis maintenant fluide
-- Sélection des clients libres fonctionnelle en mode offre interne
-- Amélioration générale de la stabilité du système
-- Gestion d'erreurs optimisée dans tous les endpoints
-
-## Version 2024.2 - Précédente
+## Version 2024.2
 **Adresses séparées et améliorations structurelles**
 - Séparation des adresses de facturation et livraison
-- Champ `delivery_same_as_billing` pour optimisation
-- API rétro-compatible
 
-## Version 2024.1 - Base initiale  
+## Version 2024.1
 **Première version stable**
 - API Product Request fonctionnelle
 - Système multi-tenant avec RLS
-- Architecture Edge Functions Supabase
 
 ===========================================
    STATUT DE PRODUCTION
@@ -1382,7 +604,7 @@ IMPACT UTILISATEUR :
 ✅ **PRODUCTION** - Tous les systèmes opérationnels
 - Edge Functions : Déployées et stables
 - Base de données : Optimisée et sécurisée  
-- API : Pleinement fonctionnelle après corrections 2024.3
-- Documentation : À jour avec les dernières corrections
+- API : Pleinement fonctionnelle
+- Documentation : À jour version 2024.4
 
-Documentation technique - Version 2024.3 (18 août 2025)
+Documentation technique - Version 2024.4 (29 décembre 2025)
