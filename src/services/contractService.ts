@@ -33,6 +33,10 @@ export interface Contract {
     billing_postal_code?: string | null;
   } | null;
   monthly_payment: number;
+  adjusted_monthly_payment?: number;
+  down_payment?: number;
+  coefficient?: number;
+  financed_amount?: number;
   amount?: number;
   lease_duration?: number;
   equipment_description?: string;
@@ -120,7 +124,7 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       .select(`
         *, 
         clients(name, email, company, phone, address, city, postal_code, vat_number, billing_address, billing_city, billing_postal_code),
-        offers!inner(dossier_number),
+        offers!inner(dossier_number, down_payment, coefficient, financed_amount),
         contract_equipment(id, monthly_payment, quantity)
       `)
       .eq('id', contractId)
@@ -143,12 +147,27 @@ export const getContractById = async (contractId: string): Promise<Contract | nu
       0
     ) || 0;
 
+    // Calculer la mensualité ajustée si acompte et self-leasing
+    const downPayment = Number(data.offers?.down_payment) || 0;
+    const coefficient = Number(data.offers?.coefficient) || 0;
+    const financedAmount = Number(data.offers?.financed_amount) || 0;
+    const isSelfLeasing = data.is_self_leasing === true;
+    
+    let adjustedMonthlyPayment = calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : data.monthly_payment;
+    if (downPayment > 0 && coefficient > 0 && isSelfLeasing) {
+      adjustedMonthlyPayment = Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100;
+    }
+
     // Reformater les données pour extraire le dossier_number
     const contractData = {
       ...data,
       offer_dossier_number: data.offers?.dossier_number,
+      down_payment: downPayment,
+      coefficient: coefficient,
+      financed_amount: financedAmount,
       // Utiliser le montant calculé s'il y a des équipements, sinon garder la valeur stockée
-      monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : data.monthly_payment
+      monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : data.monthly_payment,
+      adjusted_monthly_payment: adjustedMonthlyPayment
     };
 
     console.log("✅ Contrat récupéré avec succès:", contractData);
@@ -506,7 +525,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
       .select(`
         *, 
         clients(name, email, company),
-        offers!inner(dossier_number),
+        offers!inner(dossier_number, down_payment, coefficient, financed_amount),
         contract_equipment(id, monthly_payment, quantity)
       `)
     if (!includeCompleted) {
@@ -525,11 +544,27 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         0
       ) || 0;
       
+      // Calculer la mensualité ajustée si acompte et self-leasing
+      const downPayment = Number(contract.offers?.down_payment) || 0;
+      const coefficient = Number(contract.offers?.coefficient) || 0;
+      const financedAmount = Number(contract.offers?.financed_amount) || 0;
+      const isSelfLeasing = contract.is_self_leasing === true;
+      
+      const baseMonthlyPayment = calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : contract.monthly_payment;
+      let adjustedMonthlyPayment = baseMonthlyPayment;
+      if (downPayment > 0 && coefficient > 0 && isSelfLeasing) {
+        adjustedMonthlyPayment = Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100;
+      }
+      
       return {
         ...contract,
         offer_dossier_number: contract.offers?.dossier_number,
+        down_payment: downPayment,
+        coefficient: coefficient,
+        financed_amount: financedAmount,
         // Utiliser le montant calculé s'il y a des équipements, sinon garder la valeur stockée
-        monthly_payment: calculatedMonthlyPayment > 0 ? calculatedMonthlyPayment : contract.monthly_payment
+        monthly_payment: baseMonthlyPayment,
+        adjusted_monthly_payment: adjustedMonthlyPayment
       };
     }) || [];
 
