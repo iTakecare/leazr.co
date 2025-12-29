@@ -5473,6 +5473,73 @@ export type Database = {
           },
         ]
       }
+      product_supplier_prices: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_preferred: boolean | null
+          last_price_update: string | null
+          notes: string | null
+          product_id: string
+          purchase_price: number
+          sku: string | null
+          supplier_id: string
+          updated_at: string | null
+          variant_price_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_preferred?: boolean | null
+          last_price_update?: string | null
+          notes?: string | null
+          product_id: string
+          purchase_price: number
+          sku?: string | null
+          supplier_id: string
+          updated_at?: string | null
+          variant_price_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_preferred?: boolean | null
+          last_price_update?: string | null
+          notes?: string | null
+          product_id?: string
+          purchase_price?: number
+          sku?: string | null
+          supplier_id?: string
+          updated_at?: string | null
+          variant_price_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_supplier_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_supplier_prices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_supplier_prices_variant_price_id_fkey"
+            columns: ["variant_price_id"]
+            isOneToOne: false
+            referencedRelation: "product_variant_prices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_upsells: {
         Row: {
           created_at: string | null
@@ -5526,6 +5593,7 @@ export type Database = {
           monthly_price: number | null
           price: number
           product_id: string
+          purchase_price: number | null
           stock: number | null
           updated_at: string
         }
@@ -5536,6 +5604,7 @@ export type Database = {
           monthly_price?: number | null
           price?: number
           product_id: string
+          purchase_price?: number | null
           stock?: number | null
           updated_at?: string
         }
@@ -5546,6 +5615,7 @@ export type Database = {
           monthly_price?: number | null
           price?: number
           product_id?: string
+          purchase_price?: number | null
           stock?: number | null
           updated_at?: string
         }
@@ -6144,6 +6214,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string | null
+          company_id: string
+          contact_name: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code?: string | null
+          company_id: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string | null
+          company_id?: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"

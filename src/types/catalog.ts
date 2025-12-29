@@ -1,3 +1,63 @@
+// ============================================
+// SUPPLIER TYPES (NEW v2024.4)
+// ============================================
+
+export interface Supplier {
+  id: string;
+  company_id: string;
+  name: string;
+  code?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  contact_name?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  notes?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductSupplierPrice {
+  id: string;
+  product_id: string;
+  variant_price_id?: string;
+  supplier_id: string;
+  supplier?: Supplier;
+  sku?: string;
+  purchase_price: number;
+  currency: string;
+  last_price_update: string;
+  is_preferred: boolean;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UpdatePurchasePriceRequest {
+  purchase_price: number;
+  supplier_id?: string;
+  sku?: string;
+  is_preferred?: boolean;
+  notes?: string;
+}
+
+export interface UpdatePurchasePriceResponse {
+  success: boolean;
+  product_id?: string;
+  variant_id?: string;
+  purchase_price: number;
+  sku?: string;
+  supplier_id?: string;
+  updated_at: string;
+}
+
+// ============================================
+// PRODUCT TYPES
+// ============================================
 
 // Product type definition
 export interface Product {

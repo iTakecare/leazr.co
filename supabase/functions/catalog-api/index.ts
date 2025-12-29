@@ -5,7 +5,7 @@ import { createErrorResponse } from '../_shared/errorHandler.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS'
+  'Access-Control-Allow-Methods': 'GET, PATCH, POST, OPTIONS'
 }
 
 interface ApiKeyRecord {
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       .eq('id', keyData.id)
 
     // Handle different endpoints
-    console.log('🎯 HANDLING ENDPOINT:', { endpoint, companyId })
+    console.log('🎯 HANDLING ENDPOINT:', { endpoint, companyId, method: req.method })
     let data: any
     let error: any
 
@@ -201,11 +201,67 @@ Deno.serve(async (req) => {
           } else if (subPaths[1] === 'upsells') {
             const limit = parseInt(url.searchParams.get('limit') || '10')
             data = await getProductUpsells(supabaseAdmin, companyId, productId, keyData.permissions, limit)
+          } else if (subPaths[1] === 'suppliers') {
+            // GET /products/{id}/suppliers - Prix par fournisseur
+            if (!keyData.permissions.products && !keyData.permissions.suppliers) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: products or suppliers required' }), 
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            data = await getProductSuppliers(supabaseAdmin, companyId, productId)
+          } else if (subPaths[1] === 'purchase-price' && req.method === 'PATCH') {
+            // PATCH /products/{id}/purchase-price - Mise à jour prix d'achat
+            if (!keyData.permissions.products_write) {
+              return new Response(
+                JSON.stringify({ error: 'Permission denied: products_write required' }), 
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+            const body = await req.json()
+            data = await updateProductPurchasePrice(supabaseAdmin, companyId, productId, body)
           } else {
             data = await getProduct(supabaseAdmin, companyId, productId, keyData.permissions)
           }
         } else {
           data = await getProducts(supabaseAdmin, companyId, keyData.permissions, url.searchParams)
+        }
+        break
+
+      case 'variants':
+        // PATCH /variants/{id}/purchase-price - Mise à jour prix d'achat variant
+        if (subPaths.length > 0 && subPaths[1] === 'purchase-price' && req.method === 'PATCH') {
+          if (!keyData.permissions.products_write) {
+            return new Response(
+              JSON.stringify({ error: 'Permission denied: products_write required' }), 
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+          const variantId = subPaths[0]
+          const body = await req.json()
+          data = await updateVariantPurchasePrice(supabaseAdmin, companyId, variantId, body)
+        } else {
+          return new Response(
+            JSON.stringify({ error: 'Endpoint not found' }), 
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        break
+
+      case 'suppliers':
+        // Vérifier permission suppliers
+        if (!keyData.permissions.suppliers) {
+          return new Response(
+            JSON.stringify({ error: 'Permission denied: suppliers required' }), 
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        if (subPaths.length > 0) {
+          // GET /suppliers/{id}
+          data = await getSupplier(supabaseAdmin, companyId, subPaths[0])
+        } else {
+          // GET /suppliers
+          data = await getSuppliers(supabaseAdmin, companyId, url.searchParams)
         }
         break
 
@@ -274,7 +330,10 @@ Deno.serve(async (req) => {
   }
 })
 
-// API endpoint functions
+// ============================================
+// READ ENDPOINTS
+// ============================================
+
 async function getCompanyInfo(supabase: any, companyId: string, permissions: any) {
   const { data: company } = await supabase
     .from('companies')
@@ -382,7 +441,6 @@ async function getRelatedProducts(supabase: any, companyId: string, productId: s
 async function getProductCO2(supabase: any, companyId: string, productId: string, permissions: any) {
   console.log('🌿 GET PRODUCT CO2 - Starting with productId:', productId, 'companyId:', companyId)
   
-  // Get product with category information
   const { data: product, error: productError } = await supabase
     .from('products')
     .select(`
@@ -445,7 +503,6 @@ async function getProductUpsells(
 ) {
   console.log('🎯 GET PRODUCT UPSELLS - Starting with productId:', productId, 'limit:', limit)
   
-  // 1. Récupérer le produit source pour connaître sa catégorie
   const { data: sourceProduct, error: productError } = await supabase
     .from('products')
     .select(`
@@ -465,7 +522,6 @@ async function getProductUpsells(
 
   console.log('✅ Source product:', sourceProduct.name, 'category:', sourceProduct.categories?.translation || sourceProduct.categories?.name)
 
-  // 2. Récupérer les upsells MANUELS depuis product_upsells
   const { data: manualUpsells, error: manualError } = await supabase
     .from('product_upsells')
     .select(`
@@ -491,7 +547,6 @@ async function getProductUpsells(
 
   console.log('📋 Manual upsells found:', manualUpsells?.length || 0)
 
-  // 3. Transformer les upsells manuels
   const manualProductIds = new Set(
     manualUpsells?.map((u: any) => u.products?.id).filter(Boolean) || []
   )
@@ -513,14 +568,12 @@ async function getProductUpsells(
       upsell_reason: 'Sélectionné manuellement par l\'administrateur'
     }))
 
-  // 4. Si pas d'upsells manuels, ajouter un fallback avec des produits similaires
   let fallbackUpsells: any[] = []
   const remainingSlots = limit - manualUpsellsList.length
 
   if (remainingSlots > 0) {
     console.log('🔄 Adding fallback similar products, remaining slots:', remainingSlots)
     
-    // Récupérer des produits de la même catégorie
     const { data: similarProducts } = await supabase
       .from('products')
       .select(`
@@ -604,7 +657,6 @@ async function getCategories(supabase: any, companyId: string, permissions: any)
     categories: categories?.slice(0, 2)
   })
 
-  // Simplified categories without type system
   const enrichedCategories = categories?.map((category: any) => ({
     id: category.id,
     name: category.name,
@@ -768,7 +820,7 @@ async function getEnvironmentalCategories(supabase: any, companyId: string, perm
 
   console.log('🌿 GET ENVIRONMENTAL CATEGORIES - Found data:', { 
     count: environmentalData?.length,
-    data: environmentalData?.slice(0, 2) // First 2 for debugging
+    data: environmentalData?.slice(0, 2)
   })
 
   const enrichedData = environmentalData?.map((item: any) => ({
@@ -810,4 +862,365 @@ async function getCustomizations(supabase: any, companyId: string, permissions: 
     .single()
 
   return { customizations }
+}
+
+// ============================================
+// SUPPLIERS ENDPOINTS (NEW)
+// ============================================
+
+async function getSuppliers(supabase: any, companyId: string, searchParams: URLSearchParams) {
+  console.log('🏭 GET SUPPLIERS - Starting for company:', companyId)
+  
+  let query = supabase
+    .from('suppliers')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('name', { ascending: true })
+
+  // Filter by active status
+  const activeOnly = searchParams.get('active')
+  if (activeOnly === 'true') {
+    query = query.eq('is_active', true)
+  }
+
+  // Search by name or code
+  const search = searchParams.get('search')
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`)
+  }
+
+  const { data: suppliers, error } = await query
+
+  if (error) {
+    console.error('❌ Error fetching suppliers:', error)
+    throw error
+  }
+
+  console.log('🏭 GET SUPPLIERS - Found:', suppliers?.length || 0)
+  return { suppliers: suppliers || [] }
+}
+
+async function getSupplier(supabase: any, companyId: string, supplierId: string) {
+  console.log('🏭 GET SUPPLIER - Fetching supplier:', supplierId)
+  
+  const { data: supplier, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .eq('id', supplierId)
+    .eq('company_id', companyId)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      throw new Error('Supplier not found')
+    }
+    throw error
+  }
+
+  return { supplier }
+}
+
+async function getProductSuppliers(supabase: any, companyId: string, productId: string) {
+  console.log('🏭 GET PRODUCT SUPPLIERS - Fetching for product:', productId)
+  
+  // Verify product belongs to company
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('id, name, sku, purchase_price')
+    .eq('id', productId)
+    .eq('company_id', companyId)
+    .single()
+
+  if (productError || !product) {
+    throw new Error('Product not found')
+  }
+
+  // Get supplier prices for this product
+  const { data: supplierPrices, error } = await supabase
+    .from('product_supplier_prices')
+    .select(`
+      id,
+      sku,
+      purchase_price,
+      currency,
+      last_price_update,
+      is_preferred,
+      notes,
+      variant_price_id,
+      suppliers (
+        id,
+        name,
+        code,
+        email,
+        phone,
+        website,
+        is_active
+      )
+    `)
+    .eq('product_id', productId)
+    .order('is_preferred', { ascending: false })
+    .order('purchase_price', { ascending: true })
+
+  if (error) {
+    console.error('❌ Error fetching product suppliers:', error)
+    throw error
+  }
+
+  console.log('🏭 GET PRODUCT SUPPLIERS - Found:', supplierPrices?.length || 0)
+
+  return { 
+    product: {
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      purchase_price: product.purchase_price
+    },
+    supplier_prices: (supplierPrices || []).map((sp: any) => ({
+      id: sp.id,
+      supplier: sp.suppliers,
+      sku: sp.sku,
+      purchase_price: sp.purchase_price,
+      currency: sp.currency,
+      last_price_update: sp.last_price_update,
+      is_preferred: sp.is_preferred,
+      notes: sp.notes,
+      variant_price_id: sp.variant_price_id
+    }))
+  }
+}
+
+// ============================================
+// WRITE ENDPOINTS (NEW - PATCH)
+// ============================================
+
+interface UpdatePurchasePriceBody {
+  purchase_price: number
+  supplier_id?: string
+  sku?: string
+  is_preferred?: boolean
+  notes?: string
+}
+
+async function updateProductPurchasePrice(
+  supabase: any, 
+  companyId: string, 
+  productId: string, 
+  body: UpdatePurchasePriceBody
+) {
+  console.log('✏️ UPDATE PRODUCT PURCHASE PRICE - Starting:', { productId, body })
+  
+  const { purchase_price, supplier_id, sku, is_preferred, notes } = body
+
+  // Validate required field
+  if (purchase_price === undefined || purchase_price === null) {
+    throw new Error('purchase_price is required')
+  }
+
+  // Verify product belongs to company
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('id, name, sku, purchase_price')
+    .eq('id', productId)
+    .eq('company_id', companyId)
+    .single()
+
+  if (productError || !product) {
+    console.error('❌ Product not found:', productError)
+    throw new Error('Product not found or access denied')
+  }
+
+  // Update main product purchase_price
+  const updateData: any = {
+    purchase_price,
+    updated_at: new Date().toISOString()
+  }
+  
+  // Update SKU if provided and no supplier (direct product SKU)
+  if (sku && !supplier_id) {
+    updateData.sku = sku
+  }
+
+  const { error: updateError } = await supabase
+    .from('products')
+    .update(updateData)
+    .eq('id', productId)
+
+  if (updateError) {
+    console.error('❌ Error updating product:', updateError)
+    throw updateError
+  }
+
+  console.log('✅ Product purchase_price updated:', purchase_price)
+
+  // If supplier_id is provided, also create/update product_supplier_prices
+  if (supplier_id) {
+    // Verify supplier belongs to company
+    const { data: supplier, error: supplierError } = await supabase
+      .from('suppliers')
+      .select('id, name')
+      .eq('id', supplier_id)
+      .eq('company_id', companyId)
+      .single()
+
+    if (supplierError || !supplier) {
+      throw new Error('Supplier not found or access denied')
+    }
+
+    // If is_preferred is true, unset other preferred suppliers for this product
+    if (is_preferred) {
+      await supabase
+        .from('product_supplier_prices')
+        .update({ is_preferred: false })
+        .eq('product_id', productId)
+        .is('variant_price_id', null)
+    }
+
+    // Upsert supplier price
+    const { error: upsertError } = await supabase
+      .from('product_supplier_prices')
+      .upsert({
+        product_id: productId,
+        supplier_id,
+        variant_price_id: null,
+        sku: sku || null,
+        purchase_price,
+        is_preferred: is_preferred || false,
+        notes: notes || null,
+        last_price_update: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'product_id,supplier_id,variant_price_id'
+      })
+
+    if (upsertError) {
+      console.error('❌ Error upserting supplier price:', upsertError)
+      throw upsertError
+    }
+
+    console.log('✅ Supplier price recorded for supplier:', supplier.name)
+  }
+
+  return {
+    success: true,
+    product_id: productId,
+    purchase_price,
+    sku: sku || product.sku,
+    supplier_id: supplier_id || null,
+    updated_at: new Date().toISOString()
+  }
+}
+
+async function updateVariantPurchasePrice(
+  supabase: any, 
+  companyId: string, 
+  variantId: string, 
+  body: UpdatePurchasePriceBody
+) {
+  console.log('✏️ UPDATE VARIANT PURCHASE PRICE - Starting:', { variantId, body })
+  
+  const { purchase_price, supplier_id, sku, is_preferred, notes } = body
+
+  // Validate required field
+  if (purchase_price === undefined || purchase_price === null) {
+    throw new Error('purchase_price is required')
+  }
+
+  // Verify variant belongs to a product of this company
+  const { data: variant, error: variantError } = await supabase
+    .from('product_variant_prices')
+    .select(`
+      id,
+      product_id,
+      attributes,
+      purchase_price,
+      products!inner (
+        id,
+        company_id
+      )
+    `)
+    .eq('id', variantId)
+    .single()
+
+  if (variantError || !variant) {
+    console.error('❌ Variant not found:', variantError)
+    throw new Error('Variant not found')
+  }
+
+  if (variant.products?.company_id !== companyId) {
+    throw new Error('Access denied: variant belongs to different company')
+  }
+
+  // Update variant purchase_price
+  const { error: updateError } = await supabase
+    .from('product_variant_prices')
+    .update({
+      purchase_price,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', variantId)
+
+  if (updateError) {
+    console.error('❌ Error updating variant:', updateError)
+    throw updateError
+  }
+
+  console.log('✅ Variant purchase_price updated:', purchase_price)
+
+  // If supplier_id is provided, also create/update product_supplier_prices
+  if (supplier_id) {
+    // Verify supplier belongs to company
+    const { data: supplier, error: supplierError } = await supabase
+      .from('suppliers')
+      .select('id, name')
+      .eq('id', supplier_id)
+      .eq('company_id', companyId)
+      .single()
+
+    if (supplierError || !supplier) {
+      throw new Error('Supplier not found or access denied')
+    }
+
+    // If is_preferred is true, unset other preferred suppliers for this variant
+    if (is_preferred) {
+      await supabase
+        .from('product_supplier_prices')
+        .update({ is_preferred: false })
+        .eq('product_id', variant.product_id)
+        .eq('variant_price_id', variantId)
+    }
+
+    // Upsert supplier price
+    const { error: upsertError } = await supabase
+      .from('product_supplier_prices')
+      .upsert({
+        product_id: variant.product_id,
+        supplier_id,
+        variant_price_id: variantId,
+        sku: sku || null,
+        purchase_price,
+        is_preferred: is_preferred || false,
+        notes: notes || null,
+        last_price_update: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'product_id,supplier_id,variant_price_id'
+      })
+
+    if (upsertError) {
+      console.error('❌ Error upserting supplier price:', upsertError)
+      throw upsertError
+    }
+
+    console.log('✅ Supplier price recorded for variant:', variantId)
+  }
+
+  return {
+    success: true,
+    variant_id: variantId,
+    product_id: variant.product_id,
+    purchase_price,
+    sku: sku || null,
+    supplier_id: supplier_id || null,
+    updated_at: new Date().toISOString()
+  }
 }
