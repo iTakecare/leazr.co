@@ -16,6 +16,9 @@ interface OfferEquipmentPageProps {
   annualInsurance?: number;
   contractDuration?: number;
   contractTerms?: string;
+  downPayment?: number;
+  adjustedMonthlyPayment?: number;
+  financedAmountAfterDownPayment?: number;
   contentBlocks?: {
     title?: string;
     footer_note?: string;
@@ -34,6 +37,9 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   annualInsurance = 0,
   contractDuration = 36,
   contractTerms = 'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse',
+  downPayment = 0,
+  adjustedMonthlyPayment,
+  financedAmountAfterDownPayment,
   contentBlocks,
   styles,
 }) => {
@@ -172,9 +178,36 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           </View>
         )}
 
+        {/* Down Payment Section - Only show if there's a down payment */}
+        {downPayment > 0 && (
+          <View style={{ marginTop: 15, padding: 12, backgroundColor: '#FEF3C7', borderRadius: 4, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+            <Text style={{ ...styles.textBold, marginBottom: 6, color: '#92400E' }}>
+              Acompte
+            </Text>
+            <View style={{ ...styles.row, marginBottom: 4 }}>
+              <Text style={styles.text}>Montant de l'acompte :</Text>
+              <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+                {formatCurrency(downPayment)}
+              </Text>
+            </View>
+            {financedAmountAfterDownPayment !== undefined && (
+              <View style={styles.row}>
+                <Text style={styles.text}>Montant financé après acompte :</Text>
+                <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+                  {formatCurrency(financedAmountAfterDownPayment)}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>MENSUALITÉ HTVA</Text>
-          <Text style={styles.totalValue}>{formatCurrency(totalMonthlyPayment)}</Text>
+          <Text style={styles.totalLabel}>
+            {downPayment > 0 ? 'MENSUALITÉ HTVA (après acompte)' : 'MENSUALITÉ HTVA'}
+          </Text>
+          <Text style={styles.totalValue}>
+            {formatCurrency(downPayment > 0 && adjustedMonthlyPayment ? adjustedMonthlyPayment : totalMonthlyPayment)}
+          </Text>
         </View>
         
         {/* Financial Details */}
