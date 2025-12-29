@@ -190,14 +190,18 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                 {formatCurrency(downPayment)}
               </Text>
             </View>
-            {financedAmountAfterDownPayment !== undefined && (
-              <View style={styles.row}>
-                <Text style={styles.text}>Montant financé après acompte :</Text>
-                <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
-                  {formatCurrency(financedAmountAfterDownPayment)}
-                </Text>
-              </View>
-            )}
+            {/* Mensualité d'origine barrée */}
+            <View style={styles.row}>
+              <Text style={styles.text}>Mensualité d'origine :</Text>
+              <Text style={{ 
+                ...styles.text, 
+                fontFamily: 'Helvetica',
+                textDecoration: 'line-through',
+                opacity: 0.7,
+              }}>
+                {formatCurrency(totalMonthlyPayment)}
+              </Text>
+            </View>
           </View>
         )}
 

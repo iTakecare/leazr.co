@@ -572,16 +572,20 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         <span style={{ color: '#78350F' }}>Montant de l'acompte :</span>
                         <span style={{ fontWeight: '600', color: '#78350F' }}>{formatCurrency(downPayment)}</span>
                       </div>
-                      {financedAmountAfterDownPayment !== undefined && (
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between',
-                          fontSize: styles.fontSize.sm,
-                        }}>
-                          <span style={{ color: '#78350F' }}>Montant financé après acompte :</span>
-                          <span style={{ fontWeight: '600', color: '#78350F' }}>{formatCurrency(financedAmountAfterDownPayment)}</span>
-                        </div>
-                      )}
+                      {/* Mensualité d'origine barrée */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        <span style={{ color: '#78350F' }}>Mensualité d'origine :</span>
+                        <span style={{ 
+                          fontWeight: '400', 
+                          color: '#78350F',
+                          textDecoration: 'line-through',
+                          opacity: 0.7,
+                        }}>{formatCurrency(totalMonthly)}</span>
+                      </div>
                     </div>
                   )}
                   
