@@ -32,6 +32,8 @@ const CatalogApiSettings = () => {
   const { apiKeys, loading, createApiKey, deleteApiKey, updateApiKey } = useApiKeys();
   const [showApiKey, setShowApiKey] = React.useState<string | null>(null);
   const [testEndpoint, setTestEndpoint] = React.useState('products');
+  const [testMethod, setTestMethod] = React.useState<'GET' | 'PATCH'>('GET');
+  const [testBody, setTestBody] = React.useState('');
   const [testApiKey, setTestApiKey] = React.useState('');
   const [testResult, setTestResult] = React.useState<any>(null);
   const [testLoading, setTestLoading] = React.useState(false);
@@ -234,12 +236,25 @@ const CatalogApiSettings = () => {
 
     setTestLoading(true);
     try {
-      const response = await fetch(`${baseApiUrl}/${testEndpoint}`, {
+      const fetchOptions: RequestInit = {
+        method: testMethod,
         headers: {
           'x-api-key': testApiKey,
           'Content-Type': 'application/json'
         }
-      });
+      };
+
+      if (testMethod === 'PATCH' && testBody) {
+        try {
+          fetchOptions.body = testBody;
+        } catch (e) {
+          toast.error("Le body JSON est invalide");
+          setTestLoading(false);
+          return;
+        }
+      }
+
+      const response = await fetch(`${baseApiUrl}/${testEndpoint}`, fetchOptions);
 
       const data = await response.json();
       setTestResult({
@@ -256,7 +271,16 @@ const CatalogApiSettings = () => {
     }
   };
 
-  const endpoints = [
+  interface Endpoint {
+    method: 'GET' | 'PATCH' | 'POST' | 'DELETE';
+    path: string;
+    description: string;
+    params?: string;
+    body?: string;
+    example: string;
+  }
+
+  const endpoints: Endpoint[] = [
     {
       method: 'GET',
       path: 'company',
@@ -293,6 +317,19 @@ const CatalogApiSettings = () => {
       path: 'products/{id}/co2',
       description: 'Données CO2 d\'un produit spécifique',
       example: '{ "co2_impact": { "value": 170, "unit": "kg CO2eq", "calculation_date": "2024-01-15T10:30:00Z", "category": { "name": "laptop", "translation": "Ordinateurs portables" }, "carbon_footprint_reduction_percentage": 15, "energy_savings_kwh": 200, "source_url": "https://impactco2.fr" } }'
+    },
+    {
+      method: 'GET',
+      path: 'products/{id}/suppliers',
+      description: 'Prix par fournisseur pour un produit avec SKU et date de mise à jour',
+      example: '{ "supplier_prices": [{ "supplier": { "id": "sup_123", "name": "AFB", "code": "AFB" }, "purchase_price": 899.99, "sku": "AFB-MBP14-M3", "last_price_update": "2025-12-29T10:00:00Z", "is_preferred": true }] }'
+    },
+    {
+      method: 'PATCH',
+      path: 'products/{id}/purchase-price',
+      description: 'Mettre à jour le prix d\'achat d\'un produit (permission: products_write)',
+      body: '{ "purchase_price": 899.99, "supplier_id": "uuid", "sku": "SKU-FOURNISSEUR" }',
+      example: '{ "success": true, "product_id": "uuid", "purchase_price": 899.99, "updated_at": "2025-12-29T10:00:00Z" }'
     },
     {
       method: 'GET',
@@ -348,6 +385,25 @@ const CatalogApiSettings = () => {
       path: 'customizations',
       description: 'Toutes les personnalisations visuelles de l\'entreprise',
       example: '{ "customizations": { "company_name": "Mon Entreprise", "logo_url": "https://...", "primary_color": "#FF0000", "header_enabled": true, "header_title": "Catalogue Public", "iframe_width": "100%", "iframe_height": "600px", "quote_request_url": "https://..." } }'
+    },
+    {
+      method: 'GET',
+      path: 'suppliers',
+      description: 'Liste des fournisseurs de l\'entreprise (permission: suppliers)',
+      example: '{ "suppliers": [{ "id": "sup_123", "name": "AFB", "code": "AFB", "email": "contact@afb.fr", "is_active": true }] }'
+    },
+    {
+      method: 'GET',
+      path: 'suppliers/{id}',
+      description: 'Détails d\'un fournisseur spécifique (permission: suppliers)',
+      example: '{ "supplier": { "id": "sup_123", "name": "AFB", "code": "AFB", "email": "contact@afb.fr", "phone": "+33...", "website": "https://afb.fr", "is_active": true } }'
+    },
+    {
+      method: 'PATCH',
+      path: 'variants/{id}/purchase-price',
+      description: 'Mettre à jour le prix d\'achat d\'une variante (permission: products_write)',
+      body: '{ "purchase_price": 799.99, "supplier_id": "uuid", "sku": "SKU-VARIANT" }',
+      example: '{ "success": true, "variant_id": "uuid", "purchase_price": 799.99, "updated_at": "2025-12-29T10:00:00Z" }'
     }
   ];
 
@@ -544,6 +600,31 @@ const CatalogApiSettings = () => {
                   <li>• Données disponibles : économies eau, énergie, déchets selon la catégorie</li>
                 </ul>
               </div>
+              
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-amber-900 mb-2">✏️ Permissions d'écriture (API v2024.4)</h4>
+                <p className="text-sm text-amber-700 mb-2">
+                  Les endpoints PATCH nécessitent des permissions spécifiques dans votre clé API :
+                </p>
+                <ul className="text-sm text-amber-700 space-y-1">
+                  <li>• <code className="bg-amber-100 px-1 rounded">products_write</code> - Mise à jour des prix d'achat produits/variantes</li>
+                  <li>• <code className="bg-amber-100 px-1 rounded">suppliers</code> - Lecture des fournisseurs</li>
+                  <li>• <code className="bg-amber-100 px-1 rounded">suppliers_write</code> - Gestion des fournisseurs</li>
+                </ul>
+              </div>
+              
+              <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg mt-4">
+                <h4 className="font-medium text-purple-900 mb-2">🏭 Gestion des fournisseurs (Nouveau v2024.4)</h4>
+                <p className="text-sm text-purple-700 mb-2">
+                  L'API permet maintenant de gérer les prix d'achat par fournisseur :
+                </p>
+                <ul className="text-sm text-purple-700 space-y-1">
+                  <li>• <strong>SKU fournisseur</strong> - Identifier précisément le matériel chez chaque fournisseur</li>
+                  <li>• <strong>Prix par fournisseur</strong> - Comparer les prix d'achat entre fournisseurs</li>
+                  <li>• <strong>Fournisseur préféré</strong> - Marquer le fournisseur principal via <code className="bg-purple-100 px-1 rounded">is_preferred</code></li>
+                  <li>• <strong>Historique des mises à jour</strong> - Suivre les changements de prix via <code className="bg-purple-100 px-1 rounded">last_price_update</code></li>
+                </ul>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -551,7 +632,12 @@ const CatalogApiSettings = () => {
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <Badge variant="outline">{endpoint.method}</Badge>
+                        <Badge 
+                          variant="outline"
+                          className={endpoint.method === 'PATCH' ? 'bg-orange-100 text-orange-700 border-orange-300' : endpoint.method === 'POST' ? 'bg-green-100 text-green-700 border-green-300' : endpoint.method === 'DELETE' ? 'bg-red-100 text-red-700 border-red-300' : ''}
+                        >
+                          {endpoint.method}
+                        </Badge>
                         <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
                           {endpoint.path}
                           {endpoint.params && <span className="text-muted-foreground">{endpoint.params}</span>}
@@ -566,6 +652,14 @@ const CatalogApiSettings = () => {
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">{endpoint.description}</p>
+                    
+                    {endpoint.body && (
+                      <div className="bg-amber-50 p-3 rounded-md mb-3">
+                        <p className="text-xs text-amber-700 mb-1">Corps de la requête (Body):</p>
+                        <pre className="text-xs font-mono overflow-x-auto text-amber-900">{endpoint.body}</pre>
+                      </div>
+                    )}
+                    
                     <div className="bg-muted p-3 rounded-md">
                       <p className="text-xs text-muted-foreground mb-1">Exemple de réponse:</p>
                       <pre className="text-xs font-mono overflow-x-auto">
@@ -597,7 +691,19 @@ const CatalogApiSettings = () => {
                   <select 
                     className="w-full p-2 border rounded-md"
                     value={testEndpoint}
-                    onChange={(e) => setTestEndpoint(e.target.value)}
+                    onChange={(e) => {
+                      const selectedPath = e.target.value;
+                      setTestEndpoint(selectedPath);
+                      const selectedEndpoint = endpoints.find(ep => ep.path.replace(/{[^}]+}/g, 'test-id') === selectedPath);
+                      if (selectedEndpoint) {
+                        setTestMethod(selectedEndpoint.method as 'GET' | 'PATCH');
+                        if (selectedEndpoint.body) {
+                          setTestBody(selectedEndpoint.body);
+                        } else {
+                          setTestBody('');
+                        }
+                      }
+                    }}
                   >
                     {endpoints.map((endpoint, index) => (
                       <option key={index} value={endpoint.path.replace(/{[^}]+}/g, 'test-id')}>
@@ -622,6 +728,19 @@ const CatalogApiSettings = () => {
                   </select>
                 </div>
               </div>
+
+              {testMethod === 'PATCH' && (
+                <div className="space-y-2">
+                  <Label>Corps de la requête (JSON)</Label>
+                  <Textarea
+                    value={testBody}
+                    onChange={(e) => setTestBody(e.target.value)}
+                    placeholder='{ "purchase_price": 899.99, "supplier_id": "uuid" }'
+                    className="font-mono text-sm"
+                    rows={4}
+                  />
+                </div>
+              )}
 
               <Button onClick={testApi} disabled={testLoading || !testApiKey} className="w-full">
                 {testLoading ? (
