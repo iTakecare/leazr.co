@@ -49,6 +49,10 @@ export interface OfferPDFData {
   annual_insurance?: number;
   contract_duration?: number;
   contract_terms?: string;
+  down_payment?: number;
+  coefficient?: number;
+  adjusted_monthly_payment?: number;
+  financed_amount_after_down_payment?: number;
   // Editable content blocks
   content_blocks?: {
     cover_greeting?: string;
@@ -112,6 +116,9 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         annualInsurance={offer.annual_insurance}
         contractDuration={offer.contract_duration}
         contractTerms={offer.contract_terms}
+        downPayment={offer.down_payment}
+        adjustedMonthlyPayment={offer.adjusted_monthly_payment}
+        financedAmountAfterDownPayment={offer.financed_amount_after_down_payment}
         contentBlocks={{
           title: offer.content_blocks?.equipment_title,
           footer_note: offer.content_blocks?.equipment_footer_note,

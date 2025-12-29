@@ -86,6 +86,31 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       return sum + (sellingTotal - purchaseTotal);
     }, 0);
 
+    // Calculate down payment and adjusted monthly payment
+    const downPayment = offerData.down_payment || 0;
+    const coefficient = offerData.coefficient || 0;
+
+    // Calculate total selling price for financed amount calculation
+    const totalSellingPrice = equipmentData.reduce(
+      (sum, item) => sum + ((item.selling_price || 0) * (item.quantity || 1)),
+      0
+    );
+
+    // Calculate financed amount (base amount before down payment)
+    const baseFinancedAmount = totalSellingPrice > 0 
+      ? totalSellingPrice 
+      : (coefficient > 0 && totalMonthlyPayment > 0 
+          ? (totalMonthlyPayment * 100) / coefficient 
+          : offerData.financed_amount || offerData.amount || 0);
+
+    // Calculate financed amount after down payment
+    const financedAmountAfterDownPayment = Math.max(0, baseFinancedAmount - downPayment);
+
+    // Calculate adjusted monthly payment if there's a down payment
+    const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
+      ? Math.round((financedAmountAfterDownPayment * coefficient) / 100 * 100) / 100
+      : totalMonthlyPayment;
+
     // Build client address string
     const clientAddressParts = [
       offerData.clients?.billing_address,
@@ -141,6 +166,10 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       annual_insurance: offerData.annual_insurance || 0,
       contract_duration: offerData.contract_duration || 36,
       contract_terms: offerData.contract_terms || 'Livraison incluse - Maintenance incluse - Garantie en échange direct incluse',
+      down_payment: downPayment,
+      coefficient: coefficient,
+      adjusted_monthly_payment: adjustedMonthlyPayment,
+      financed_amount_after_down_payment: financedAmountAfterDownPayment,
       // Content blocks
       content_blocks: {
         cover_greeting: contentBlocks.cover_greeting,
