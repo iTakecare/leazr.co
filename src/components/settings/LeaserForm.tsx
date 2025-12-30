@@ -652,6 +652,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
                 ranges={tempRanges}
                 availableDurations={availableDurations}
                 onCoefficientChange={handleDurationCoefficientChange}
+                isOwnCompany={isOwnCompany}
               />
             </div>
           )}
