@@ -41,6 +41,11 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   const lastEquipmentPriceRef = useRef(0);
   const lastLeaserIdRef = useRef("");
   const lastEquipmentMarginRef = useRef(0);
+  
+  // Refs pour verrouiller le montant financé lors du changement de durée
+  const lastDurationRef = useRef(duration);
+  const lastFinancedAmountRef = useRef<number | null>(null);
+  const lastTotalMonthlyRef = useRef<number | null>(null);
 
   // Calcul de l'équipement individuel
   const calculateMonthlyPayment = () => {
@@ -387,24 +392,73 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     }
   }, [targetSalePrice, equipment.purchasePrice, coefficient]);
 
-  // Recalculer les mensualités UNIQUEMENT quand la durée change
-  // Le montant financé affiché se recalcule automatiquement via calculateEquipmentResults
-  // car il utilise le coefficient du leaser courant
+  // Mettre à jour les refs avant chaque changement de durée
+  // pour capturer le montant financé et mensualité actuels
   useEffect(() => {
-    if (equipmentList.length === 0) return;
+    if (equipmentList.length > 0) {
+      lastFinancedAmountRef.current = calculations.totalFinancedAmount;
+      lastTotalMonthlyRef.current = calculations.normalMonthlyPayment;
+    }
+  }, [equipmentList, calculations.totalFinancedAmount, calculations.normalMonthlyPayment]);
+
+  // Recalculer les mensualités UNIQUEMENT quand la durée change
+  // On verrouille le montant financé affiché et on recalcule les mensualités proportionnellement
+  useEffect(() => {
+    // Ne rien faire si c'est la première exécution ou pas d'équipements
+    if (equipmentList.length === 0 || lastDurationRef.current === duration) {
+      lastDurationRef.current = duration;
+      return;
+    }
     
-    console.log("🔄 Duration changed - Recalculating all equipment monthly payments", {
-      duration,
+    const lockedFinanced = lastFinancedAmountRef.current;
+    const oldTotalMonthly = lastTotalMonthlyRef.current;
+    
+    console.log("🔄 Duration changed - Recalculating with locked financed amount", {
+      oldDuration: lastDurationRef.current,
+      newDuration: duration,
+      lockedFinanced,
+      oldTotalMonthly,
       equipmentCount: equipmentList.length
+    });
+    
+    // Mettre à jour la ref de durée
+    lastDurationRef.current = duration;
+    
+    // Si on n'a pas de montant financé verrouillé, fallback sur le calcul classique
+    if (!lockedFinanced || lockedFinanced <= 0 || !oldTotalMonthly || oldTotalMonthly <= 0) {
+      console.log("⚠️ No locked financed amount, using classic recalculation");
+      setEquipmentList(prevList => 
+        prevList.map(eq => {
+          const financedAmount = calculateFinancedAmountForEquipment(eq);
+          const newCoeff = findCoefficientForAmount(financedAmount, leaser, duration);
+          const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoeff) / 100);
+          return { ...eq, monthlyPayment: newMonthlyPayment };
+        })
+      );
+      return;
+    }
+    
+    // Calculer le nouveau coefficient basé sur le montant financé verrouillé
+    const newCoeff = findCoefficientForAmount(lockedFinanced, leaser, duration);
+    const newTotalMonthly = roundToTwoDecimals((lockedFinanced * newCoeff) / 100);
+    
+    // Calculer le ratio pour redistribuer proportionnellement
+    const ratio = newTotalMonthly / oldTotalMonthly;
+    
+    console.log("📊 Duration change calculation:", {
+      lockedFinanced,
+      oldTotalMonthly,
+      newCoeff,
+      newTotalMonthly,
+      ratio
     });
     
     setEquipmentList(prevList => 
       prevList.map(eq => {
-        const financedAmount = calculateFinancedAmountForEquipment(eq);
-        const newCoeff = findCoefficientForAmount(financedAmount, leaser, duration);
-        const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoeff) / 100);
+        const oldMonthly = eq.monthlyPayment || 0;
+        const newMonthlyPayment = roundToTwoDecimals(oldMonthly * ratio);
         
-        console.log(`📊 Duration change - Recalculated ${eq.title}: old=${eq.monthlyPayment}, new=${newMonthlyPayment}, coeff=${newCoeff}`);
+        console.log(`📊 ${eq.title}: old=${oldMonthly}, new=${newMonthlyPayment} (ratio=${ratio})`);
         
         return {
           ...eq,
@@ -412,6 +466,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
         };
       })
     );
+    
+    // Mettre à jour les refs avec les nouvelles valeurs
+    lastTotalMonthlyRef.current = newTotalMonthly;
   }, [duration]);
 
   console.log("🎯 HOOK - État final:", {
