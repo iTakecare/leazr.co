@@ -387,6 +387,37 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     }
   }, [targetSalePrice, equipment.purchasePrice, coefficient]);
 
+  // Recalculer les mensualités de tous les équipements quand la durée ou le leaser change
+  useEffect(() => {
+    if (equipmentList.length === 0) return;
+    
+    console.log("🔄 Duration/Leaser changed - Recalculating all equipment monthly payments", {
+      duration,
+      leaserId: leaser?.id,
+      equipmentCount: equipmentList.length
+    });
+    
+    setEquipmentList(prevList => 
+      prevList.map(eq => {
+        // Calculer le montant financé pour cet équipement
+        const financedAmount = calculateFinancedAmountForEquipment(eq);
+        
+        // Obtenir le coefficient pour cette durée et ce montant
+        const newCoeff = findCoefficientForAmount(financedAmount, leaser, duration);
+        
+        // Calculer la nouvelle mensualité
+        const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoeff) / 100);
+        
+        console.log(`📊 Recalculated ${eq.title}: old=${eq.monthlyPayment}, new=${newMonthlyPayment}, coeff=${newCoeff}`);
+        
+        return {
+          ...eq,
+          monthlyPayment: newMonthlyPayment
+        };
+      })
+    );
+  }, [duration, leaser?.id]);
+
   console.log("🎯 HOOK - État final:", {
     equipmentCount: equipmentList.length,
     useGlobalAdjustment,
