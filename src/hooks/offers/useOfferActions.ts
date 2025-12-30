@@ -288,6 +288,26 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         0
       );
       
+      // Calculer l'acompte et la mensualité ajustée
+      const downPayment = Number((offer as any).down_payment) || 0;
+      const coefficient = Number(offer.coefficient) || 0;
+      const originalMonthlyPayment = Number(offer.monthly_payment) || 0;
+
+      // Calculer le montant de base financé
+      const baseFinancedAmount = totalSellingPrice > 0 
+        ? totalSellingPrice 
+        : (coefficient > 0 && originalMonthlyPayment > 0 
+            ? (originalMonthlyPayment * 100) / coefficient 
+            : Number(offer.financed_amount) || Number(offer.amount) || 0);
+
+      // Calculer le montant financé après acompte
+      const financedAmountAfterDownPayment = Math.max(0, baseFinancedAmount - downPayment);
+
+      // Calculer la mensualité ajustée
+      const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
+        ? Math.round((financedAmountAfterDownPayment * coefficient) / 100 * 100) / 100
+        : originalMonthlyPayment;
+      
       const offerDataForPDF = {
         // Données de base
         offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
@@ -322,11 +342,16 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
         })),
         
         // Totaux et informations financières
-        totalMonthly: isPurchase ? 0 : Number(offer.monthly_payment) || 0,
+        totalMonthly: isPurchase ? 0 : originalMonthlyPayment,
         totalSellingPrice: totalSellingPrice,
         contractDuration: Number(offer.duration) || 36,
         fileFee: isPurchase ? 0 : Number(offer.file_fee) || 0,
         insuranceCost: isPurchase ? 0 : Number(offer.annual_insurance) || 0,
+        
+        // Acompte et mensualité ajustée
+        downPayment: downPayment,
+        adjustedMonthlyPayment: adjustedMonthlyPayment,
+        financedAmountAfterDownPayment: financedAmountAfterDownPayment,
         
         // Logos partenaires
         partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
