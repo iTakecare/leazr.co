@@ -273,7 +273,11 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       setTargetSalePrice(priceWithMargin);
       
       if (equipmentToEdit.monthlyPayment && equipmentToEdit.monthlyPayment > 0) {
-        setTargetMonthlyPayment(equipmentToEdit.monthlyPayment);
+        // monthlyPayment stocké est le total (unitaire × quantité)
+        // On divise par la quantité pour obtenir la mensualité unitaire
+        const quantity = equipmentToEdit.quantity || 1;
+        const unitMonthlyPayment = equipmentToEdit.monthlyPayment / quantity;
+        setTargetMonthlyPayment(unitMonthlyPayment);
       }
     }
   };
