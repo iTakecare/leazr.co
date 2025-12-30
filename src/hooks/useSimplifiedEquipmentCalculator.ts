@@ -6,7 +6,8 @@ import {
   calculateEquipmentResults, 
   findCoefficientForAmount, 
   calculateFinancedAmountForEquipment,
-  roundToTwoDecimals
+  roundToTwoDecimals,
+  getInternalCoefficientForDuration
 } from '@/utils/equipmentCalculations';
 
 export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
@@ -402,7 +403,8 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   }, [equipmentList, calculations.totalFinancedAmount, calculations.normalMonthlyPayment]);
 
   // Recalculer les mensualités UNIQUEMENT quand la durée change
-  // On verrouille le montant financé affiché et on recalcule les mensualités proportionnellement
+  // Pour le leasing en propre : montant financé fixe, mensualité recalculée
+  // Pour le leasing externe : on verrouille le montant financé et recalcule proportionnellement
   useEffect(() => {
     // Ne rien faire si c'est la première exécution ou pas d'équipements
     if (equipmentList.length === 0 || lastDurationRef.current === duration) {
@@ -410,19 +412,43 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       return;
     }
     
-    const lockedFinanced = lastFinancedAmountRef.current;
-    const oldTotalMonthly = lastTotalMonthlyRef.current;
-    
-    console.log("🔄 Duration changed - Recalculating with locked financed amount", {
+    console.log("🔄 Duration changed", {
       oldDuration: lastDurationRef.current,
       newDuration: duration,
-      lockedFinanced,
-      oldTotalMonthly,
+      isOwnCompany: leaser?.is_own_company,
       equipmentCount: equipmentList.length
     });
     
     // Mettre à jour la ref de durée
     lastDurationRef.current = duration;
+    
+    // Pour le leasing en propre (iTakecare) : le montant financé est fixe (prix + marge)
+    // On recalcule les mensualités avec le coefficient interne
+    if (leaser?.is_own_company === true) {
+      console.log("🏠 Own company leasing - Recalculating with internal coefficients");
+      const newCoeff = getInternalCoefficientForDuration(duration);
+      
+      setEquipmentList(prevList => 
+        prevList.map(eq => {
+          const financedAmount = calculateFinancedAmountForEquipment(eq);
+          const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoeff) / 100);
+          
+          console.log(`📊 ${eq.title}: financed=${financedAmount}, coeff=${newCoeff}%, monthly=${newMonthlyPayment}`);
+          
+          return { ...eq, monthlyPayment: newMonthlyPayment };
+        })
+      );
+      return;
+    }
+    
+    // Pour le leasing externe : logique existante avec verrouillage du montant financé
+    const lockedFinanced = lastFinancedAmountRef.current;
+    const oldTotalMonthly = lastTotalMonthlyRef.current;
+    
+    console.log("🏦 External leasing - Recalculating with locked financed amount", {
+      lockedFinanced,
+      oldTotalMonthly
+    });
     
     // Si on n'a pas de montant financé verrouillé, fallback sur le calcul classique
     if (!lockedFinanced || lockedFinanced <= 0 || !oldTotalMonthly || oldTotalMonthly <= 0) {
@@ -469,7 +495,31 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     
     // Mettre à jour les refs avec les nouvelles valeurs
     lastTotalMonthlyRef.current = newTotalMonthly;
-  }, [duration]);
+  }, [duration, leaser?.is_own_company]);
+
+  // Recalculer les mensualités quand le leaser change
+  // Spécialement important pour le passage vers un leaser "en propre"
+  useEffect(() => {
+    if (equipmentList.length === 0) return;
+    
+    // Si on passe à un leaser "en propre", recalculer les mensualités
+    // basées sur le montant financé fixe (prix + marge) de chaque équipement
+    if (leaser?.is_own_company === true) {
+      console.log("🔄 Leaser changed to own company - Recalculating monthly payments");
+      const newCoeff = getInternalCoefficientForDuration(duration);
+      
+      setEquipmentList(prevList => 
+        prevList.map(eq => {
+          const financedAmount = calculateFinancedAmountForEquipment(eq);
+          const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoeff) / 100);
+          
+          console.log(`📊 ${eq.title}: financed=${financedAmount}, coeff=${newCoeff}%, monthly=${newMonthlyPayment}`);
+          
+          return { ...eq, monthlyPayment: newMonthlyPayment };
+        })
+      );
+    }
+  }, [leaser?.id]);
 
   console.log("🎯 HOOK - État final:", {
     equipmentCount: equipmentList.length,
