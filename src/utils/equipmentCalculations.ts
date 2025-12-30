@@ -1,6 +1,25 @@
 import { Equipment, Leaser, LeaserRange } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
 
+// Coefficients internes iTakecare pour le leasing en propre
+// Basé sur un amortissement linéaire : coefficient = 100 / durée en mois
+const INTERNAL_COEFFICIENTS: Record<number, number> = {
+  18: 5.556,  // 100/18 = 5.5556
+  24: 4.167,  // 100/24 = 4.1667
+  36: 2.778,  // 100/36 = 2.7778
+  48: 2.083,  // 100/48 = 2.0833
+  60: 1.667,  // 100/60 = 1.6667
+};
+
+export const getInternalCoefficientForDuration = (duration: number): number => {
+  // Si la durée est dans notre table, utiliser la valeur pré-calculée
+  if (INTERNAL_COEFFICIENTS[duration]) {
+    return INTERNAL_COEFFICIENTS[duration];
+  }
+  // Sinon calculer dynamiquement (100 / durée, arrondi à 3 décimales)
+  return Math.round((100 / duration) * 1000) / 1000;
+};
+
 export interface CalculationResult {
   totalPurchasePrice: number;
   normalMarginAmount: number;
@@ -41,6 +60,13 @@ export const findCoefficientForAmount = (
   leaser: Leaser | null, 
   duration: number = 36
 ): number => {
+  // Pour le leasing en propre, utiliser les coefficients internes (amortissement linéaire)
+  if (leaser?.is_own_company === true) {
+    const internalCoeff = getInternalCoefficientForDuration(duration);
+    console.log(`📊 Leasing en propre - Coefficient interne pour ${duration} mois: ${internalCoeff}%`);
+    return internalCoeff;
+  }
+
   const ranges = leaser?.ranges || DEFAULT_FALLBACK_RANGES;
   
   if (!ranges || ranges.length === 0) {
