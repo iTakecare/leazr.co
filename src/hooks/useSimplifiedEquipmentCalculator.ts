@@ -44,6 +44,14 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   
   // Ref pour détecter le changement de durée
   const previousDurationRef = useRef(duration);
+  
+  // ========== BASELINE REFS pour le self-leasing (is_own_company) ==========
+  // Ces refs mémorisent l'état "source" pour éviter la dérive lors des changements de durée
+  const baseDurationRef = useRef<number | null>(null);
+  const baseMonthlyByIdRef = useRef<Record<string, number>>({});
+  const baseFinancedRef = useRef<number | null>(null);
+  const baseCoefRef = useRef<number | null>(null);
+  const isApplyingDurationChangeRef = useRef(false);
 
   // Calcul de l'équipement individuel
   const calculateMonthlyPayment = () => {
@@ -372,48 +380,119 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   };
 
   // Fonction pour recalculer les mensualités quand la durée change (leasing en propre)
-  // Le montant financé (prix d'achat + marge) reste constant, seule la mensualité change
-  // On utilise un coefficient GLOBAL basé sur le total financé pour maintenir la cohérence
+  // NOUVELLE LOGIQUE: On utilise une baseline pour éviter la dérive
+  // Le montant financé affiché reste CONSTANT, seule la mensualité change proportionnellement au coefficient
   const recalculateMonthlyPaymentsForDuration = (newDuration: number) => {
     if (equipmentList.length === 0) return;
     
-    console.log("🔄 DURATION CHANGE - Recalculating monthly payments for new duration:", newDuration);
+    // Si pas en leasing en propre, ne rien faire (comportement normal)
+    if (!leaser?.is_own_company) {
+      console.log("🔄 DURATION CHANGE - Not self-leasing, skipping recalculation");
+      return;
+    }
+    
+    // Si mode ajustement global activé, ne pas appliquer cette logique
+    if (useGlobalAdjustment) {
+      console.log("🔄 DURATION CHANGE - Global adjustment mode active, skipping self-leasing recalc");
+      return;
+    }
+    
+    console.log("🔄 SELF-LEASING DURATION CHANGE - Recalculating with baseline scaling");
+    
+    // Vérifier qu'on a une baseline valide
+    if (baseFinancedRef.current === null || baseCoefRef.current === null || baseDurationRef.current === null) {
+      console.log("⚠️ No baseline available, initializing now...");
+      // Initialiser la baseline avec l'état actuel
+      const currentMonthlyById: Record<string, number> = {};
+      let currentTotalMonthly = 0;
+      equipmentList.forEach(eq => {
+        currentMonthlyById[eq.id] = eq.monthlyPayment || 0;
+        currentTotalMonthly += eq.monthlyPayment || 0;
+      });
+      
+      // Calculer le montant financé à partir des mensualités actuelles et du coefficient actuel
+      const currentCoef = findCoefficientForAmount(
+        calculations.totalFinancedAmount || 10000, 
+        leaser, 
+        previousDurationRef.current
+      );
+      const currentFinanced = currentTotalMonthly > 0 && currentCoef > 0 
+        ? roundToTwoDecimals((currentTotalMonthly * 100) / currentCoef)
+        : calculations.totalFinancedAmount;
+      
+      baseDurationRef.current = previousDurationRef.current;
+      baseMonthlyByIdRef.current = currentMonthlyById;
+      baseFinancedRef.current = currentFinanced;
+      baseCoefRef.current = currentCoef;
+      
+      console.log("📌 BASELINE INITIALIZED:", {
+        baseDuration: baseDurationRef.current,
+        baseFinanced: baseFinancedRef.current,
+        baseCoef: baseCoefRef.current,
+        baseMonthlyById: baseMonthlyByIdRef.current
+      });
+    }
+    
+    // Calculer le nouveau coefficient pour la nouvelle durée basé sur le montant financé de référence
+    const newCoef = findCoefficientForAmount(baseFinancedRef.current!, leaser, newDuration);
+    const oldCoef = baseCoefRef.current!;
+    
+    // Le ratio de scaling
+    const scalingFactor = newCoef / oldCoef;
+    
+    console.log(`🎯 SCALING: baseFinanced=${baseFinancedRef.current}€, oldCoef=${oldCoef}%, newCoef=${newCoef}%, factor=${scalingFactor.toFixed(4)}`);
+    
+    // Calculer le nouveau total mensuel attendu
+    const expectedTotalMonthly = roundToTwoDecimals((baseFinancedRef.current! * newCoef) / 100);
+    
+    // Marquer qu'on applique un changement de durée (pour éviter de reset la baseline)
+    isApplyingDurationChangeRef.current = true;
     
     setEquipmentList(prevList => {
-      // 1. Calculer le montant financé TOTAL (somme de toutes les lignes)
-      const totalFinanced = prevList.reduce((sum, eq) => {
-        const purchaseTotal = eq.purchasePrice * eq.quantity;
-        const marginAmount = purchaseTotal * (eq.margin / 100);
-        return sum + roundToTwoDecimals(purchaseTotal + marginAmount);
-      }, 0);
-      
-      // 2. Trouver le coefficient GLOBAL basé sur le total financé et la nouvelle durée
-      const globalCoefficient = findCoefficientForAmount(totalFinanced, leaser, newDuration);
-      
-      console.log(`🎯 GLOBAL RECALC: totalFinanced=${totalFinanced}€, duration=${newDuration}m, globalCoef=${globalCoefficient}%`);
-      
-      // 3. Recalculer chaque mensualité avec le coefficient global
-      return prevList.map(eq => {
-        const purchaseTotal = eq.purchasePrice * eq.quantity;
-        const marginAmount = purchaseTotal * (eq.margin / 100);
-        const financedAmount = roundToTwoDecimals(purchaseTotal + marginAmount);
-        
-        // Utiliser le coefficient GLOBAL pour cette ligne
-        const newMonthlyPayment = roundToTwoDecimals((financedAmount * globalCoefficient) / 100);
-        
-        console.log(`📊 ${eq.title}: financé ${financedAmount}€ × coef ${globalCoefficient}% = mensualité ${newMonthlyPayment}€`);
-        
-        // Ne mettre à jour que si la valeur change significativement
-        if (Math.abs((eq.monthlyPayment || 0) - newMonthlyPayment) < 0.01) {
-          return eq;
+      // Recalculer chaque mensualité à partir de la baseline avec le factor
+      let calculatedTotal = 0;
+      const updatedList = prevList.map(eq => {
+        const baseMonthly = baseMonthlyByIdRef.current[eq.id];
+        if (baseMonthly === undefined) {
+          // Nouvel équipement ajouté après la baseline, calculer normalement
+          const financedAmount = roundToTwoDecimals(eq.purchasePrice * eq.quantity * (1 + eq.margin / 100));
+          const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoef) / 100);
+          calculatedTotal += newMonthlyPayment;
+          return { ...eq, monthlyPayment: newMonthlyPayment };
         }
+        
+        // Appliquer le scaling
+        const newMonthlyPayment = roundToTwoDecimals(baseMonthly * scalingFactor);
+        calculatedTotal += newMonthlyPayment;
+        
+        console.log(`📊 ${eq.title}: base ${baseMonthly}€ × ${scalingFactor.toFixed(4)} = ${newMonthlyPayment}€`);
         
         return {
           ...eq,
           monthlyPayment: newMonthlyPayment
         };
       });
+      
+      // Ajuster les centimes si nécessaire (corriger l'arrondi sur la dernière ligne)
+      const diff = roundToTwoDecimals(expectedTotalMonthly - calculatedTotal);
+      if (Math.abs(diff) > 0.001 && Math.abs(diff) < 1 && updatedList.length > 0) {
+        const lastIdx = updatedList.length - 1;
+        updatedList[lastIdx] = {
+          ...updatedList[lastIdx],
+          monthlyPayment: roundToTwoDecimals((updatedList[lastIdx].monthlyPayment || 0) + diff)
+        };
+        console.log(`🔧 Rounding adjustment: ${diff}€ on last item`);
+      }
+      
+      console.log(`✅ TOTAL MONTHLY: expected=${expectedTotalMonthly}€, calculated=${calculatedTotal}€, after adjustment=${expectedTotalMonthly}€`);
+      
+      return updatedList;
     });
+    
+    // Réinitialiser le flag après un court délai
+    setTimeout(() => {
+      isApplyingDurationChangeRef.current = false;
+    }, 100);
   };
 
   // Effects
@@ -443,6 +522,65 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     }
     previousDurationRef.current = duration;
   }, [duration, leaser]);
+
+  // Effet pour initialiser/mettre à jour la baseline quand la liste change (hors changement de durée)
+  // Cet effet se déclenche UNIQUEMENT pour les actions utilisateur (ajout/suppression/édition)
+  useEffect(() => {
+    // Ne pas mettre à jour la baseline si on est en train d'appliquer un changement de durée
+    if (isApplyingDurationChangeRef.current) {
+      console.log("📌 BASELINE - Skipping update (duration change in progress)");
+      return;
+    }
+    
+    // Ne s'applique qu'au self-leasing
+    if (!leaser?.is_own_company) {
+      return;
+    }
+    
+    // Ne s'applique que si on a des équipements
+    if (equipmentList.length === 0) {
+      // Reset baseline
+      baseDurationRef.current = null;
+      baseMonthlyByIdRef.current = {};
+      baseFinancedRef.current = null;
+      baseCoefRef.current = null;
+      return;
+    }
+    
+    // Calculer les valeurs actuelles
+    const currentMonthlyById: Record<string, number> = {};
+    let currentTotalMonthly = 0;
+    equipmentList.forEach(eq => {
+      currentMonthlyById[eq.id] = eq.monthlyPayment || 0;
+      currentTotalMonthly += eq.monthlyPayment || 0;
+    });
+    
+    // Calculer le coefficient actuel
+    const currentCoef = findCoefficientForAmount(
+      calculations.totalFinancedAmount || 10000,
+      leaser,
+      duration
+    );
+    
+    // Calculer le montant financé à partir des mensualités et du coefficient
+    const currentFinanced = currentTotalMonthly > 0 && currentCoef > 0
+      ? roundToTwoDecimals((currentTotalMonthly * 100) / currentCoef)
+      : calculations.totalFinancedAmount;
+    
+    // Mettre à jour la baseline
+    baseDurationRef.current = duration;
+    baseMonthlyByIdRef.current = currentMonthlyById;
+    baseFinancedRef.current = currentFinanced;
+    baseCoefRef.current = currentCoef;
+    
+    console.log("📌 BASELINE UPDATED:", {
+      baseDuration: duration,
+      baseFinanced: currentFinanced,
+      baseCoef: currentCoef,
+      equipmentCount: equipmentList.length,
+      totalMonthly: currentTotalMonthly
+    });
+  }, [equipmentList.length, leaser?.is_own_company, leaser?.id]);
 
   console.log("🎯 HOOK - État final:", {
     equipmentCount: equipmentList.length,
