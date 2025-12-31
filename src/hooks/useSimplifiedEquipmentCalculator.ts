@@ -41,6 +41,9 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   const lastEquipmentPriceRef = useRef(0);
   const lastLeaserIdRef = useRef("");
   const lastEquipmentMarginRef = useRef(0);
+  
+  // Ref pour détecter le changement de durée
+  const previousDurationRef = useRef(duration);
 
   // Calcul de l'équipement individuel
   const calculateMonthlyPayment = () => {
@@ -368,6 +371,36 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
     setUseGlobalAdjustment(prev => !prev);
   };
 
+  // Fonction pour recalculer les mensualités quand la durée change
+  // Le montant financé (prix d'achat + marge) reste constant, seule la mensualité change
+  const recalculateMonthlyPaymentsForDuration = (newDuration: number) => {
+    if (equipmentList.length === 0) return;
+    
+    console.log("🔄 DURATION CHANGE - Recalculating monthly payments for new duration:", newDuration);
+    
+    setEquipmentList(prevList => 
+      prevList.map(eq => {
+        // Calculer le montant financé (fixe) : prix d'achat × quantité × (1 + marge%)
+        const purchaseTotal = eq.purchasePrice * eq.quantity;
+        const marginAmount = purchaseTotal * (eq.margin / 100);
+        const financedAmount = roundToTwoDecimals(purchaseTotal + marginAmount);
+        
+        // Trouver le coefficient pour cette durée et ce montant
+        const newCoefficient = findCoefficientForAmount(financedAmount, leaser, newDuration);
+        
+        // Calculer la nouvelle mensualité : montant financé × coefficient / 100
+        const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoefficient) / 100);
+        
+        console.log(`📊 ${eq.title}: durée ${newDuration}m, coef ${newCoefficient}%, financé ${financedAmount}€ → mensualité ${newMonthlyPayment}€`);
+        
+        return {
+          ...eq,
+          monthlyPayment: newMonthlyPayment
+        };
+      })
+    );
+  };
+
   // Effects
   useEffect(() => {
     if (equipment.purchasePrice > 0) {
@@ -386,6 +419,15 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
       calculateFromSalePrice();
     }
   }, [targetSalePrice, equipment.purchasePrice, coefficient]);
+
+  // Effet pour détecter le changement de durée et recalculer les mensualités
+  useEffect(() => {
+    if (previousDurationRef.current !== duration && equipmentList.length > 0) {
+      console.log(`🕐 Duration changed from ${previousDurationRef.current} to ${duration} months - recalculating all monthly payments...`);
+      recalculateMonthlyPaymentsForDuration(duration);
+    }
+    previousDurationRef.current = duration;
+  }, [duration, leaser]);
 
   console.log("🎯 HOOK - État final:", {
     equipmentCount: equipmentList.length,
