@@ -251,33 +251,74 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     );
   };
 
-  // Fonction pour recalculer les mensualités quand la durée change
+  // Fonction pour trouver le coefficient avec la durée spécifiée
+  const findCoefficientForDuration = (amount: number, targetDuration: number) => {
+    const currentLeaser = leaser || (defaultLeasers.length > 0 ? defaultLeasers[0] : null);
+    
+    if (!currentLeaser || !currentLeaser.ranges || currentLeaser.ranges.length === 0) {
+      return 3.55;
+    }
+    
+    const range = currentLeaser.ranges.find(
+      (r) => amount >= r.min && amount <= r.max
+    );
+    
+    if (!range) {
+      return currentLeaser.ranges[0].coefficient || 3.55;
+    }
+
+    if (range.duration_coefficients && range.duration_coefficients.length > 0) {
+      const durationCoeff = range.duration_coefficients.find(
+        dc => dc.duration_months === targetDuration
+      );
+      if (durationCoeff) {
+        return durationCoeff.coefficient;
+      }
+    }
+    
+    return range.coefficient || 3.55;
+  };
+
+  // Fonction pour recalculer les mensualités quand la durée change (leasing en propre)
+  // On utilise un coefficient GLOBAL basé sur le total financé pour maintenir la cohérence
   const recalculateMonthlyPaymentsForDuration = (newDuration: number) => {
     if (equipmentList.length === 0) return;
     
     console.log("🔄 DURATION CHANGE - Recalculating monthly payments for new duration:", newDuration);
     
-    setEquipmentList(prevList => 
-      prevList.map(eq => {
-        // Calculer le montant financé (fixe) : prix d'achat × quantité × (1 + marge%)
+    setEquipmentList(prevList => {
+      // 1. Calculer le montant financé TOTAL
+      const totalFinanced = prevList.reduce((sum, eq) => {
+        const purchaseTotal = eq.purchasePrice * eq.quantity;
+        const marginAmount = purchaseTotal * (eq.margin / 100);
+        return sum + roundToTwoDecimals(purchaseTotal + marginAmount);
+      }, 0);
+      
+      // 2. Trouver le coefficient GLOBAL basé sur le total financé et la nouvelle durée
+      const globalCoefficient = findCoefficientForDuration(totalFinanced, newDuration);
+      
+      console.log(`🎯 GLOBAL RECALC: totalFinanced=${totalFinanced}€, duration=${newDuration}m, globalCoef=${globalCoefficient}%`);
+      
+      // 3. Recalculer chaque mensualité avec le coefficient global
+      return prevList.map(eq => {
         const purchaseTotal = eq.purchasePrice * eq.quantity;
         const marginAmount = purchaseTotal * (eq.margin / 100);
         const financedAmount = roundToTwoDecimals(purchaseTotal + marginAmount);
         
-        // Trouver le coefficient pour cette durée et ce montant
-        const newCoefficient = findCoefficient(financedAmount);
+        const newMonthlyPayment = roundToTwoDecimals((financedAmount * globalCoefficient) / 100);
         
-        // Calculer la nouvelle mensualité
-        const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoefficient) / 100);
+        console.log(`📊 ${eq.title}: financé ${financedAmount}€ × coef ${globalCoefficient}% = mensualité ${newMonthlyPayment}€`);
         
-        console.log(`📊 ${eq.title}: durée ${newDuration}m, coef ${newCoefficient}%, financé ${financedAmount}€ → mensualité ${newMonthlyPayment}€`);
+        if (Math.abs((eq.monthlyPayment || 0) - newMonthlyPayment) < 0.01) {
+          return eq;
+        }
         
         return {
           ...eq,
           monthlyPayment: newMonthlyPayment
         };
-      })
-    );
+      });
+    });
   };
 
   useEffect(() => {
