@@ -338,7 +338,34 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
   };
 
   // Calculs globaux basés sur la liste des équipements
-  const calculations = calculateEquipmentResults(equipmentList, leaser, duration);
+  let calculations = calculateEquipmentResults(equipmentList, leaser, duration);
+  
+  // ========== FORÇAGE DU MONTANT FINANCÉ EN SELF-LEASING ==========
+  // En self-leasing (is_own_company), si on a une baseline valide et qu'on n'est pas en mode ajustement global,
+  // on force le montant financé et la marge à rester constants (seule la mensualité change)
+  if (leaser?.is_own_company && baseFinancedRef.current !== null && !useGlobalAdjustment && equipmentList.length > 0) {
+    const forcedFinanced = baseFinancedRef.current;
+    const forcedMargin = roundToTwoDecimals(forcedFinanced - calculations.totalPurchasePrice);
+    const forcedMarginPercentage = calculations.totalPurchasePrice > 0 
+      ? (forcedMargin / calculations.totalPurchasePrice) * 100 
+      : 0;
+    
+    console.log("🔒 SELF-LEASING FORCE:", {
+      originalFinanced: calculations.totalFinancedAmount,
+      forcedFinanced,
+      originalMargin: calculations.normalMarginAmount,
+      forcedMargin,
+      baseCoef: baseCoefRef.current,
+      currentCoef: calculations.globalCoefficient
+    });
+    
+    calculations = {
+      ...calculations,
+      totalFinancedAmount: forcedFinanced,
+      normalMarginAmount: forcedMargin,
+      normalMarginPercentage: forcedMarginPercentage
+    };
+  }
   
   // Log des marges pour debugging
   const totalEquipmentMargin = equipmentList.reduce((sum, eq) => {
