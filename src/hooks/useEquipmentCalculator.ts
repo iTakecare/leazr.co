@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Equipment, Leaser, GlobalMarginAdjustment } from '@/types/equipment';
 import { defaultLeasers } from '@/data/leasers';
+import { roundToTwoDecimals } from '@/utils/equipmentCalculations';
 
 export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: number = 36) => {
   const leaser = selectedLeaser || (defaultLeasers.length > 0 ? defaultLeasers[0] : null);
@@ -36,6 +37,9 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
   const lastEquipmentPriceRef = useRef(0);
   const lastLeaserIdRef = useRef("");
   const lastEquipmentMarginRef = useRef(0);
+  
+  // Ref pour détecter le changement de durée
+  const previousDurationRef = useRef(duration);
 
   // Ajout d'un ref pour suivre les changements de marge
   useEffect(() => {
@@ -247,17 +251,55 @@ export const useEquipmentCalculator = (selectedLeaser: Leaser | null, duration: 
     );
   };
 
+  // Fonction pour recalculer les mensualités quand la durée change
+  const recalculateMonthlyPaymentsForDuration = (newDuration: number) => {
+    if (equipmentList.length === 0) return;
+    
+    console.log("🔄 DURATION CHANGE - Recalculating monthly payments for new duration:", newDuration);
+    
+    setEquipmentList(prevList => 
+      prevList.map(eq => {
+        // Calculer le montant financé (fixe) : prix d'achat × quantité × (1 + marge%)
+        const purchaseTotal = eq.purchasePrice * eq.quantity;
+        const marginAmount = purchaseTotal * (eq.margin / 100);
+        const financedAmount = roundToTwoDecimals(purchaseTotal + marginAmount);
+        
+        // Trouver le coefficient pour cette durée et ce montant
+        const newCoefficient = findCoefficient(financedAmount);
+        
+        // Calculer la nouvelle mensualité
+        const newMonthlyPayment = roundToTwoDecimals((financedAmount * newCoefficient) / 100);
+        
+        console.log(`📊 ${eq.title}: durée ${newDuration}m, coef ${newCoefficient}%, financé ${financedAmount}€ → mensualité ${newMonthlyPayment}€`);
+        
+        return {
+          ...eq,
+          monthlyPayment: newMonthlyPayment
+        };
+      })
+    );
+  };
+
   useEffect(() => {
     if (equipment.purchasePrice > 0) {
       calculateMonthlyPayment();
     }
-  }, [equipment.margin, equipment.purchasePrice, leaser?.id]);
+  }, [equipment.margin, equipment.purchasePrice, leaser?.id, duration]);
 
   useEffect(() => {
     if (targetMonthlyPayment > 0 && equipment.purchasePrice > 0) {
       calculateMarginFromMonthlyPayment();
     }
-  }, [targetMonthlyPayment, equipment.purchasePrice, leaser?.id]);
+  }, [targetMonthlyPayment, equipment.purchasePrice, leaser?.id, duration]);
+
+  // Effet pour détecter le changement de durée et recalculer les mensualités
+  useEffect(() => {
+    if (previousDurationRef.current !== duration && equipmentList.length > 0) {
+      console.log(`🕐 Duration changed from ${previousDurationRef.current} to ${duration} months - recalculating...`);
+      recalculateMonthlyPaymentsForDuration(duration);
+    }
+    previousDurationRef.current = duration;
+  }, [duration, leaser]);
 
   const equipmentListLengthRef = useRef(0);
   const globalMarginToggleRef = useRef(false);
