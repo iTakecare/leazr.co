@@ -162,7 +162,7 @@ serve(async (req) => {
     if (reminderType === 'document_reminder') {
       templateName = `document_reminder_l${reminderLevel}`;
     } else {
-      templateName = `offer_reminder_j${reminderLevel}`;
+      templateName = `offer_reminder_l${reminderLevel}`;
     }
 
     console.log("Looking for template:", templateName);

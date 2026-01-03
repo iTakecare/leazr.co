@@ -3,7 +3,7 @@ import { Offer } from "@/hooks/offers/useFetchOffers";
 
 export interface ReminderStatus {
   type: 'document_reminder' | 'offer_reminder';
-  level: number; // 1, 2, 3 for docs, 1, 3, 5, 9 for offers
+  level: number; // 1, 2, 3 for both docs and offers
   daysElapsed: number;
   isActive: boolean;
   color: 'yellow' | 'orange' | 'red' | 'blink-red';
@@ -32,10 +32,10 @@ export const DOCUMENT_REMINDER_STATUSES = ['info_requested', 'internal_docs_requ
 // Statuses that trigger offer reminders (excluding document statuses to avoid duplicates)
 export const OFFER_REMINDER_STATUSES = ['sent', 'offer_send', 'accepted'];
 
-// All available offer reminder levels
-const OFFER_REMINDER_LEVELS = [1, 3, 5, 9];
+// All available offer reminder levels (3 niveaux - L1, L2, L3)
+const OFFER_REMINDER_LEVELS = [1, 2, 3];
 
-// All available document reminder levels (3 niveaux)
+// All available document reminder levels (3 niveaux - L1, L2, L3)
 const DOCUMENT_REMINDER_LEVELS = [1, 2, 3];
 
 // Calculate days since a date
@@ -47,12 +47,11 @@ const daysSince = (dateStr: string | null | undefined): number => {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };
 
-// Determine offer reminder level based on days elapsed
+// Determine offer reminder level based on days elapsed (same thresholds as documents)
 const getOfferReminderLevel = (daysElapsed: number): number | null => {
-  if (daysElapsed >= 9) return 9;
-  if (daysElapsed >= 5) return 5;
-  if (daysElapsed >= 3) return 3;
-  if (daysElapsed >= 1) return 1;
+  if (daysElapsed >= 9) return 3; // L3 - Urgent
+  if (daysElapsed >= 5) return 2; // L2 - Relance
+  if (daysElapsed >= 2) return 1; // L1 - Premier rappel
   return null;
 };
 
@@ -64,21 +63,12 @@ const getDocumentReminderLevel = (daysElapsed: number): number | null => {
   return null;
 };
 
-// Get color based on reminder level and type
-const getReminderColor = (level: number, type: 'document_reminder' | 'offer_reminder'): 'yellow' | 'orange' | 'red' | 'blink-red' => {
-  if (type === 'document_reminder') {
-    switch (level) {
-      case 1: return 'yellow';
-      case 2: return 'orange';
-      case 3: return 'blink-red';
-      default: return 'yellow';
-    }
-  }
+// Get color based on reminder level (same for both types now)
+const getReminderColor = (level: number, _type: 'document_reminder' | 'offer_reminder'): 'yellow' | 'orange' | 'red' | 'blink-red' => {
   switch (level) {
     case 1: return 'yellow';
-    case 3: return 'orange';
-    case 5: return 'red';
-    case 9: return 'blink-red';
+    case 2: return 'orange';
+    case 3: return 'blink-red';
     default: return 'yellow';
   }
 };
@@ -88,7 +78,7 @@ const getReminderLabel = (type: 'document_reminder' | 'offer_reminder', level: n
   if (type === 'document_reminder') {
     return `Docs L${level}`;
   }
-  return `J+${level}`;
+  return `Offre L${level}`;
 };
 
 // Hook to get ALL reminders for a single offer (both doc + offer reminders, all levels)
