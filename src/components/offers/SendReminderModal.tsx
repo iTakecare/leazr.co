@@ -138,6 +138,16 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         const contactEmail = customization?.company_email || '';
         const contactPhone = customization?.company_phone || '';
 
+        // Get client first name - either from clients table or extract from client_name
+        let clientFirstName = '';
+        if ((offer as any).clients?.first_name) {
+          clientFirstName = (offer as any).clients.first_name;
+        } else if (offer.client_name) {
+          clientFirstName = offer.client_name.split(' ')[0];
+        } else {
+          clientFirstName = 'Client';
+        }
+
         const templateName = selectedReminder.type === 'document_reminder'
           ? 'document_reminder'
           : `offer_reminder_j${selectedReminder.level}`;
@@ -152,11 +162,11 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
 
         if (template) {
           let previewSubject = template.subject
-            .replace(/\{\{\s*client_name\s*\}\}/g, offer.client_name || 'Client')
+            .replace(/\{\{\s*client_name\s*\}\}/g, clientFirstName)
             .replace(/\{\{\s*company_name\s*\}\}/g, companyName);
           
           let previewContent = template.html_content
-            .replace(/\{\{\s*client_name\s*\}\}/g, offer.client_name || 'Client')
+            .replace(/\{\{\s*client_name\s*\}\}/g, clientFirstName)
             .replace(/\{\{\s*company_name\s*\}\}/g, companyName)
             .replace(/\{\{\s*contact_email\s*\}\}/g, contactEmail)
             .replace(/\{\{\s*contact_phone\s*\}\}/g, contactPhone)
@@ -175,7 +185,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     };
 
     fetchTemplate();
-  }, [open, selectedReminder, offer.client_name, offer.financed_amount, offer.amount, offer.monthly_payment]);
+  }, [open, selectedReminder, offer, customMessage]);
 
   // Update preview when custom message changes
   useEffect(() => {
