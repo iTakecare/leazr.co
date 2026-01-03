@@ -7087,6 +7087,7 @@ export type Database = {
               count: number
               status: string
               total_margin: number
+              total_purchases: number
               total_revenue: number
             }[]
           }
