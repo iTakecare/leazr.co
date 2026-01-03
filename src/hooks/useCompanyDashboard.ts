@@ -51,10 +51,15 @@ export interface OverdueInvoicesData {
 
 /**
  * Hook pour les métriques du dashboard multi-tenant
+ * @param selectedYear - Année optionnelle pour filtrer les données (défaut: année courante)
  */
-export const useCompanyDashboard = () => {
+export const useCompanyDashboard = (selectedYear?: number) => {
   const { companyId, loading: companyLoading } = useMultiTenant();
   const [realTimeMetrics, setRealTimeMetrics] = useState<CompanyDashboardMetrics | null>(null);
+  
+  // Utiliser l'année courante par défaut
+  const currentYear = new Date().getFullYear();
+  const year = selectedYear || currentYear;
 
   // Récupérer les métriques principales
   const { 
@@ -73,15 +78,15 @@ export const useCompanyDashboard = () => {
     refetchInterval: 30000, // Actualisation toutes les 30 secondes
   });
 
-  // Récupérer les données financières mensuelles
+  // Récupérer les données financières mensuelles - FILTRÉ PAR ANNÉE
   const { 
     data: monthlyData = [], 
     isLoading: monthlyLoading,
     refetch: refetchMonthly
   } = useQuery({
-    queryKey: ['company-monthly-data', companyId],
+    queryKey: ['company-monthly-data', companyId, year],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_monthly_financial_data');
+      const { data, error } = await supabase.rpc('get_monthly_financial_data', { p_year: year });
 
       if (error) throw error;
       return data as MonthlyFinancialData[] || [];
@@ -90,15 +95,15 @@ export const useCompanyDashboard = () => {
     refetchInterval: 60000, // Actualisation toutes les minutes
   });
 
-  // Récupérer les statistiques par statut
+  // Récupérer les statistiques par statut - FILTRÉ PAR ANNÉE (sauf pending/forecast)
   const { 
     data: contractStats = [], 
     isLoading: statsLoading,
     refetch: refetchStats
   } = useQuery({
-    queryKey: ['company-contract-stats', companyId],
+    queryKey: ['company-contract-stats', companyId, year],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_contract_statistics_by_status');
+      const { data, error } = await supabase.rpc('get_contract_statistics_by_status', { p_year: year });
 
       if (error) throw error;
       return data as ContractStatistics[] || [];
