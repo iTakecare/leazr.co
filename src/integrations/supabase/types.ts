@@ -7091,12 +7091,13 @@ export type Database = {
             }[]
           }
         | {
-            Args: { p_year?: number }
+            Args: { p_year: number }
             Returns: {
               count: number
               status: string
-              total_amount: number
-              total_monthly: number
+              total_margin: number
+              total_purchases: number
+              total_revenue: number
             }[]
           }
       get_contract_workflow_logs: {
