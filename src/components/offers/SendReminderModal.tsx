@@ -140,9 +140,20 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           .eq('company_id', profile.company_id)
           .single();
 
+        // Fetch company data for logo and representative
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('logo_url, signature_representative_name, signature_representative_title')
+          .eq('id', profile.company_id)
+          .single();
+
         const companyName = customization?.company_name || 'Notre équipe';
         const contactEmail = customization?.company_email || '';
         const contactPhone = customization?.company_phone || '';
+        const logoUrl = companyData?.logo_url || '';
+        const representativeName = companyData?.signature_representative_name || 'L\'équipe commerciale';
+        const representativeTitle = companyData?.signature_representative_title || '';
+        const offerLink = `https://www.leazr.co/offre/${offer.id}`;
 
         // Get client first name - either from clients table or extract from client_name
         let clientFirstName = '';
@@ -178,6 +189,10 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
             .replace(/\{\{\s*contact_phone\s*\}\}/g, contactPhone)
             .replace(/\{\{\s*offer_amount\s*\}\}/g, (offer.financed_amount || offer.amount || 0).toLocaleString('fr-FR'))
             .replace(/\{\{\s*monthly_payment\s*\}\}/g, (offer.monthly_payment || 0).toLocaleString('fr-FR'))
+            .replace(/\{\{\s*company_logo\s*\}\}/g, logoUrl)
+            .replace(/\{\{\s*representative_name\s*\}\}/g, representativeName)
+            .replace(/\{\{\s*representative_title\s*\}\}/g, representativeTitle)
+            .replace(/\{\{\s*offer_link\s*\}\}/g, offerLink)
             .replace(/\{\{\s*custom_message\s*\}\}/g, customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '');
 
           setSubject(previewSubject);
