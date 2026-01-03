@@ -7080,16 +7080,7 @@ export type Database = {
           }
       get_contract_for_signature: { Args: { p_token: string }; Returns: Json }
       get_contract_statistics_by_status:
-        | {
-            Args: never
-            Returns: {
-              count: number
-              status: string
-              total_margin: number
-              total_purchases: number
-              total_revenue: number
-            }[]
-          }
+        | { Args: never; Returns: Json }
         | {
             Args: { p_year?: number }
             Returns: {
