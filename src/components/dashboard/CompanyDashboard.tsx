@@ -383,13 +383,13 @@ const CompanyDashboard = () => {
                     <p className="text-xl font-bold text-orange-600">{pendingStats?.count || 0}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-orange-500/10">
-                    <p className="text-xs text-muted-foreground">Potentiel</p>
+                    <p className="text-xs text-muted-foreground">Marge potentielle</p>
                     <p className="text-lg font-bold text-orange-600">{formatCurrency(Number(pendingStats?.total_margin || 0))}</p>
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Montant potentiel</span>
+                    <span>CA potentiel</span>
                     <span className="font-semibold">{formatCurrency(Number(pendingStats?.total_revenue || 0))}</span>
                   </div>
                 </div>
@@ -411,13 +411,13 @@ const CompanyDashboard = () => {
                     <p className="text-xl font-bold text-red-600">{refusedStats?.count || 0}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-red-500/10">
-                    <p className="text-xs text-muted-foreground">Perdu</p>
+                    <p className="text-xs text-muted-foreground">Marge perdue</p>
                     <p className="text-lg font-bold text-red-600">{formatCurrency(Number(refusedStats?.total_margin || 0))}</p>
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Montant perdu</span>
+                    <span>CA perdu</span>
                     <span className="font-semibold">{formatCurrency(Number(refusedStats?.total_revenue || 0))}</span>
                   </div>
                 </div>
