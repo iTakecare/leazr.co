@@ -27,7 +27,13 @@ const getStatusLabel = (status: string | undefined): string => {
 };
 
 const formatEquipmentForExcel = (offer: any): string => {
-  // Try to get equipment from offer_equipment_view or equipment_data
+  // Priorité 1: offer_equipment (depuis useFetchOffers)
+  if (offer.offer_equipment && Array.isArray(offer.offer_equipment)) {
+    return offer.offer_equipment
+      .map((eq: any) => `${eq.title || eq.product_name || 'Équipement'} x${eq.quantity || 1}`)
+      .join(', ');
+  }
+  
   if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
     return offer.offer_equipment_view
       .map((eq: any) => `${eq.title || eq.product_name || 'Équipement'} x${eq.quantity || 1}`)
@@ -47,24 +53,42 @@ const formatEquipmentForExcel = (offer: any): string => {
   return '-';
 };
 
-const calculateSellingPriceFromEquipment = (offer: any): number => {
+// Calcul du prix d'achat total depuis offer_equipment
+const calculatePurchasePriceFromEquipment = (offer: any): number => {
+  if (offer.offer_equipment && Array.isArray(offer.offer_equipment)) {
+    return offer.offer_equipment.reduce((sum: number, eq: any) => {
+      const qty = eq.quantity || 1;
+      return sum + ((eq.purchase_price || 0) * qty);
+    }, 0);
+  }
+  
   if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
     return offer.offer_equipment_view.reduce((sum: number, eq: any) => {
       const qty = eq.quantity || 1;
-      // margin est un pourcentage, pas un montant
+      return sum + ((eq.purchase_price || 0) * qty);
+    }, 0);
+  }
+  
+  return offer.total_purchase_price || 0;
+};
+
+// Calcul du CA potentiel (prix de vente) depuis offer_equipment
+const calculateSellingPriceFromEquipment = (offer: any): number => {
+  if (offer.offer_equipment && Array.isArray(offer.offer_equipment)) {
+    return offer.offer_equipment.reduce((sum: number, eq: any) => {
+      const qty = eq.quantity || 1;
+      // margin est un pourcentage
       const sellingPrice = eq.selling_price || 
         ((eq.purchase_price || 0) * (1 + (eq.margin || 0) / 100));
       return sum + (sellingPrice * qty);
     }, 0);
   }
   
-  if (offer.equipment_data && Array.isArray(offer.equipment_data)) {
-    return offer.equipment_data.reduce((sum: number, eq: any) => {
+  if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
+    return offer.offer_equipment_view.reduce((sum: number, eq: any) => {
       const qty = eq.quantity || 1;
-      const purchasePrice = eq.purchasePrice || eq.purchase_price || 0;
-      // margin est un pourcentage, pas un montant
       const sellingPrice = eq.selling_price || 
-        (purchasePrice * (1 + (eq.margin || 0) / 100));
+        ((eq.purchase_price || 0) * (1 + (eq.margin || 0) / 100));
       return sum + (sellingPrice * qty);
     }, 0);
   }
@@ -72,24 +96,16 @@ const calculateSellingPriceFromEquipment = (offer: any): number => {
   return 0;
 };
 
+// CA potentiel - aligné avec la logique du dashboard RPC
 const calculateFinancedAmountForExcel = (offer: any): number => {
-  // Si c'est un achat, retourner le prix de vente total
-  if (offer.is_purchase === true) {
-    return offer.financed_amount || offer.amount || calculateSellingPriceFromEquipment(offer) || 0;
-  }
-  
-  // Pour le leasing : mensualité * 100 / coefficient
-  if (offer.monthly_payment && offer.coefficient) {
-    return (offer.monthly_payment * 100) / offer.coefficient;
-  }
-  
-  // Sinon utiliser la valeur en base
-  return offer.financed_amount || 0;
+  // Logique identique au dashboard: COALESCE(o.financed_amount, o.amount, 0)
+  return offer.financed_amount || offer.amount || calculateSellingPriceFromEquipment(offer) || 0;
 };
 
+// Marge potentielle = CA potentiel - Prix d'achat
 const calculateMarginAmountForExcel = (offer: any): number => {
   const financedAmount = calculateFinancedAmountForExcel(offer);
-  const purchasePrice = offer.total_purchase_price || 0;
+  const purchasePrice = calculatePurchasePriceFromEquipment(offer);
   return financedAmount - purchasePrice;
 };
 
@@ -119,10 +135,10 @@ export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
     'Équipement': formatEquipmentForExcel(offer),
     'Source': offer.source || '-',
     'Bailleur': offer.leaser_name || '-',
-    'Montant achat (€)': offer.total_purchase_price || 0,
-    'Montant financé (€)': calculateFinancedAmountForExcel(offer),
-    'Marge (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
-    'Marge (€)': calculateMarginAmountForExcel(offer),
+    'Montant achat (€)': calculatePurchasePriceFromEquipment(offer),
+    'CA potentiel (€)': calculateFinancedAmountForExcel(offer),
+    'Marge potentielle (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
+    'Marge potentielle (€)': calculateMarginAmountForExcel(offer),
     'Mensualité (€)': offer.monthly_payment || 0,
     'Statut': getStatusLabel(offer.workflow_status),
   }));
@@ -143,9 +159,9 @@ export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
     { wch: 12 }, // Source
     { wch: 15 }, // Bailleur
     { wch: 15 }, // Montant achat
-    { wch: 15 }, // Montant financé
-    { wch: 10 }, // Marge %
-    { wch: 12 }, // Marge €
+    { wch: 15 }, // CA potentiel
+    { wch: 18 }, // Marge potentielle %
+    { wch: 18 }, // Marge potentielle €
     { wch: 12 }, // Mensualité
     { wch: 15 }, // Statut
   ];
