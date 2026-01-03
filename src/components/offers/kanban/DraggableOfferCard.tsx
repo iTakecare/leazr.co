@@ -11,6 +11,15 @@ interface DraggableOfferCardProps {
   onDelete: () => void;
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   isUpdatingStatus: boolean;
+  sentReminders?: Array<{
+    id: string;
+    offer_id: string;
+    reminder_type: string;
+    reminder_level: number;
+    sent_at: string | null;
+    created_at: string;
+  }>;
+  onReminderSent?: () => void;
 }
 
 export const DraggableOfferCard: React.FC<DraggableOfferCardProps> = ({
@@ -19,6 +28,8 @@ export const DraggableOfferCard: React.FC<DraggableOfferCardProps> = ({
   onDelete,
   onStatusChange,
   isUpdatingStatus,
+  sentReminders,
+  onReminderSent,
 }) => {
   return (
     <Draggable
@@ -42,6 +53,8 @@ export const DraggableOfferCard: React.FC<DraggableOfferCardProps> = ({
             onDelete={onDelete}
             onStatusChange={onStatusChange}
             isUpdatingStatus={isUpdatingStatus}
+            sentReminders={sentReminders}
+            onReminderSent={onReminderSent}
           />
         </div>
       )}

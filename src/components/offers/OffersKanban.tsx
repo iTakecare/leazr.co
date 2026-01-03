@@ -1,9 +1,10 @@
 
-import React, { useRef } from "react";
+import React from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { KANBAN_COLUMNS } from "./kanban/kanbanConfig";
 import KanbanColumn from "./kanban/KanbanColumn";
+import { useFetchOfferReminders } from "@/hooks/useFetchOfferReminders";
 
 interface OffersKanbanProps {
   offers: Offer[];
@@ -20,6 +21,10 @@ const OffersKanban: React.FC<OffersKanbanProps> = ({
   onDeleteOffer,
   includeConverted,
 }) => {
+  // Fetch reminders for all offers
+  const offerIds = offers.map(o => o.id);
+  const { reminders, invalidateReminders } = useFetchOfferReminders(offerIds);
+
   // Répartir les offres par colonne
   const getOffersForColumn = (columnId: string) => {
     return offers.filter(offer => {
@@ -68,6 +73,8 @@ const OffersKanban: React.FC<OffersKanbanProps> = ({
               onDeleteOffer={onDeleteOffer}
               onStatusChange={onStatusChange}
               isUpdatingStatus={isUpdatingStatus}
+              sentReminders={reminders}
+              onReminderSent={invalidateReminders}
             />
           ))}
         </div>

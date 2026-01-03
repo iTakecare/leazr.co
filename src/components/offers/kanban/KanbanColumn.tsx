@@ -17,6 +17,15 @@ interface KanbanColumnProps {
   onDeleteOffer: (id: string) => Promise<void>;
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   isUpdatingStatus: boolean;
+  sentReminders?: Array<{
+    id: string;
+    offer_id: string;
+    reminder_type: string;
+    reminder_level: number;
+    sent_at: string | null;
+    created_at: string;
+  }>;
+  onReminderSent?: () => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -30,6 +39,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onDeleteOffer,
   onStatusChange,
   isUpdatingStatus,
+  sentReminders,
+  onReminderSent,
 }) => {
   return (
     <div className="flex-shrink-0 w-72 md:w-80 snap-start">
@@ -65,6 +76,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 onDelete={() => onDeleteOffer(offer.id)}
                 onStatusChange={onStatusChange}
                 isUpdatingStatus={isUpdatingStatus}
+                sentReminders={sentReminders?.filter(r => r.offer_id === offer.id)}
+                onReminderSent={onReminderSent}
               />
             ))}
             {provided.placeholder}
