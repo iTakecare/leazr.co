@@ -10,6 +10,13 @@ export interface ReminderStatus {
   label: string;
 }
 
+export interface AllReminders {
+  documentReminder: ReminderStatus | null;
+  offerReminder: ReminderStatus | null;
+  suggestedReminder: ReminderStatus | null;
+  allLevels: ReminderStatus[];
+}
+
 interface OfferReminder {
   id: string;
   offer_id: string;
@@ -20,10 +27,13 @@ interface OfferReminder {
 }
 
 // Statuses that trigger document reminders
-const DOCUMENT_REMINDER_STATUSES = ['info_requested', 'internal_docs_requested'];
+export const DOCUMENT_REMINDER_STATUSES = ['info_requested', 'internal_docs_requested'];
 
 // Statuses that trigger offer reminders (excluding document statuses to avoid duplicates)
-const OFFER_REMINDER_STATUSES = ['sent', 'offer_send', 'accepted'];
+export const OFFER_REMINDER_STATUSES = ['sent', 'offer_send', 'accepted'];
+
+// All available offer reminder levels
+const OFFER_REMINDER_LEVELS = [1, 3, 5, 9];
 
 // Calculate days since a date
 const daysSince = (dateStr: string | null | undefined): number => {
@@ -44,10 +54,12 @@ const getOfferReminderLevel = (daysElapsed: number): number | null => {
 };
 
 // Get color based on reminder level
-const getReminderColor = (level: number): 'yellow' | 'orange' | 'red' | 'blink-red' => {
+const getReminderColor = (level: number, type: 'document_reminder' | 'offer_reminder'): 'yellow' | 'orange' | 'red' | 'blink-red' => {
+  if (type === 'document_reminder') {
+    return 'red';
+  }
   switch (level) {
     case 1: return 'yellow';
-    case 2: return 'red'; // Document reminder
     case 3: return 'orange';
     case 5: return 'red';
     case 9: return 'blink-red';
@@ -63,6 +75,98 @@ const getReminderLabel = (type: 'document_reminder' | 'offer_reminder', level: n
   return `J+${level}`;
 };
 
+// Hook to get ALL reminders for a single offer (both doc + offer reminders, all levels)
+export const useOfferAllReminders = (
+  offer: Offer,
+  sentReminders?: OfferReminder[]
+): AllReminders => {
+  return useMemo(() => {
+    const result: AllReminders = {
+      documentReminder: null,
+      offerReminder: null,
+      suggestedReminder: null,
+      allLevels: [],
+    };
+
+    const daysElapsed = daysSince(offer.created_at);
+
+    // Check for document reminder (info_requested or internal_docs_requested status)
+    if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
+      if (daysElapsed >= 2) {
+        const alreadySent = sentReminders?.some(
+          r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
+        );
+        
+        result.documentReminder = {
+          type: 'document_reminder',
+          level: 2,
+          daysElapsed,
+          isActive: !alreadySent,
+          color: 'red',
+          label: 'Docs J+2',
+        };
+      }
+    }
+
+    // Check for offer reminder (applicable statuses)
+    if (OFFER_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
+      const suggestedLevel = getOfferReminderLevel(daysElapsed);
+      
+      if (suggestedLevel) {
+        const alreadySent = sentReminders?.some(
+          r => r.reminder_type === 'offer_reminder' && r.reminder_level === suggestedLevel && r.sent_at
+        );
+
+        result.offerReminder = {
+          type: 'offer_reminder',
+          level: suggestedLevel,
+          daysElapsed,
+          isActive: !alreadySent,
+          color: getReminderColor(suggestedLevel, 'offer_reminder'),
+          label: getReminderLabel('offer_reminder', suggestedLevel),
+        };
+      }
+
+      // Build all available levels for selection
+      result.allLevels = OFFER_REMINDER_LEVELS.map(level => {
+        const alreadySent = sentReminders?.some(
+          r => r.reminder_type === 'offer_reminder' && r.reminder_level === level && r.sent_at
+        );
+        return {
+          type: 'offer_reminder' as const,
+          level,
+          daysElapsed,
+          isActive: !alreadySent,
+          color: getReminderColor(level, 'offer_reminder'),
+          label: getReminderLabel('offer_reminder', level),
+        };
+      });
+    }
+
+    // Add document reminder to allLevels if applicable
+    if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
+      const docAlreadySent = sentReminders?.some(
+        r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
+      );
+      
+      result.allLevels = [{
+        type: 'document_reminder' as const,
+        level: 2,
+        daysElapsed,
+        isActive: !docAlreadySent,
+        color: 'red',
+        label: 'Docs J+2',
+      }];
+    }
+
+    // Determine suggested reminder (document takes priority)
+    result.suggestedReminder = result.documentReminder || result.offerReminder;
+
+    return result;
+  }, [offer, sentReminders]);
+};
+
+// Original hook for backward compatibility (returns single reminder)
 export const useOfferReminders = (
   offer: Offer,
   sentReminders?: OfferReminder[]
@@ -108,7 +212,7 @@ export const useOfferReminders = (
           level: reminderLevel,
           daysElapsed,
           isActive: !alreadySent,
-          color: getReminderColor(reminderLevel),
+          color: getReminderColor(reminderLevel, 'offer_reminder'),
           label: getReminderLabel('offer_reminder', reminderLevel),
         };
       }
@@ -118,28 +222,32 @@ export const useOfferReminders = (
   }, [offer, sentReminders]);
 };
 
-// Hook to calculate all reminders for a list of offers
+// Hook to calculate all reminders (both types) for a list of offers
 export const useOffersReminders = (
   offers: Offer[],
   allReminders?: OfferReminder[]
-): Map<string, ReminderStatus | null> => {
+): Map<string, AllReminders> => {
   return useMemo(() => {
-    const remindersMap = new Map<string, ReminderStatus | null>();
+    const remindersMap = new Map<string, AllReminders>();
     
     offers.forEach(offer => {
       const offerReminders = allReminders?.filter(r => r.offer_id === offer.id);
+      const daysElapsed = daysSince(offer.created_at);
       
-      // Inline reminder calculation
-      let reminder: ReminderStatus | null = null;
-      
+      const result: AllReminders = {
+        documentReminder: null,
+        offerReminder: null,
+        suggestedReminder: null,
+        allLevels: [],
+      };
+
       // Check for document reminder
       if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-        const daysElapsed = daysSince(offer.created_at);
         if (daysElapsed >= 2) {
           const alreadySent = offerReminders?.some(
             r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
           );
-          reminder = {
+          result.documentReminder = {
             type: 'document_reminder',
             level: 2,
             daysElapsed,
@@ -150,28 +258,60 @@ export const useOffersReminders = (
         }
       }
       
-      // Check for offer reminder if no document reminder
-      if (!reminder && OFFER_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-        const referenceDate = offer.created_at;
-        const daysElapsed = daysSince(referenceDate);
-        const reminderLevel = getOfferReminderLevel(daysElapsed);
+      // Check for offer reminder
+      if (OFFER_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
+        const suggestedLevel = getOfferReminderLevel(daysElapsed);
         
-        if (reminderLevel) {
+        if (suggestedLevel) {
           const alreadySent = offerReminders?.some(
-            r => r.reminder_type === 'offer_reminder' && r.reminder_level === reminderLevel && r.sent_at
+            r => r.reminder_type === 'offer_reminder' && r.reminder_level === suggestedLevel && r.sent_at
           );
-          reminder = {
+          result.offerReminder = {
             type: 'offer_reminder',
-            level: reminderLevel,
+            level: suggestedLevel,
             daysElapsed,
             isActive: !alreadySent,
-            color: getReminderColor(reminderLevel),
-            label: getReminderLabel('offer_reminder', reminderLevel),
+            color: getReminderColor(suggestedLevel, 'offer_reminder'),
+            label: getReminderLabel('offer_reminder', suggestedLevel),
           };
         }
+
+        // Build all offer levels
+        result.allLevels = OFFER_REMINDER_LEVELS.map(level => {
+          const alreadySent = offerReminders?.some(
+            r => r.reminder_type === 'offer_reminder' && r.reminder_level === level && r.sent_at
+          );
+          return {
+            type: 'offer_reminder' as const,
+            level,
+            daysElapsed,
+            isActive: !alreadySent,
+            color: getReminderColor(level, 'offer_reminder'),
+            label: getReminderLabel('offer_reminder', level),
+          };
+        });
       }
+
+      // Add document reminder to allLevels if applicable
+      if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
+        const docAlreadySent = offerReminders?.some(
+          r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
+        );
+        
+        result.allLevels = [{
+          type: 'document_reminder' as const,
+          level: 2,
+          daysElapsed,
+          isActive: !docAlreadySent,
+          color: 'red',
+          label: 'Docs J+2',
+        }];
+      }
+
+      // Suggested is document if available, otherwise offer
+      result.suggestedReminder = result.documentReminder || result.offerReminder;
       
-      remindersMap.set(offer.id, reminder);
+      remindersMap.set(offer.id, result);
     });
     
     return remindersMap;

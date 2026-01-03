@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { DraggableOfferCard } from "./DraggableOfferCard";
 import { Offer } from "@/hooks/offers/useFetchOffers";
 import { LucideIcon } from "lucide-react";
+import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
 interface KanbanColumnProps {
   id: string;
@@ -17,14 +18,7 @@ interface KanbanColumnProps {
   onDeleteOffer: (id: string) => Promise<void>;
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   isUpdatingStatus: boolean;
-  sentReminders?: Array<{
-    id: string;
-    offer_id: string;
-    reminder_type: string;
-    reminder_level: number;
-    sent_at: string | null;
-    created_at: string;
-  }>;
+  sentReminders?: OfferReminderRecord[];
   onReminderSent?: () => void;
 }
 
