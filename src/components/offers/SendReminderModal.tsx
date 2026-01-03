@@ -31,7 +31,7 @@ interface SendReminderModalProps {
   onSuccess?: () => void;
 }
 
-const ALL_OFFER_LEVELS = [1, 3, 5, 9];
+const ALL_OFFER_LEVELS = [1, 2, 3];
 const ALL_DOCUMENT_LEVELS = [1, 2, 3];
 
 const SendReminderModal: React.FC<SendReminderModalProps> = ({
@@ -87,8 +87,8 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           level,
           daysElapsed: 0,
           isActive: !sent,
-          color: level === 1 ? 'yellow' : level === 3 ? 'orange' : level === 5 ? 'red' : 'blink-red',
-          label: `J+${level}`,
+          color: level === 1 ? 'yellow' : level === 2 ? 'orange' : 'blink-red',
+          label: `Offre L${level}`,
         });
       });
     }
@@ -154,7 +154,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
 
         const templateName = selectedReminder.type === 'document_reminder'
           ? `document_reminder_l${selectedReminder.level}`
-          : `offer_reminder_j${selectedReminder.level}`;
+          : `offer_reminder_l${selectedReminder.level}`;
 
         const { data: template } = await supabase
           .from('email_templates')
@@ -256,7 +256,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     if (selectedReminder.type === 'document_reminder') {
       return "Rappel de documents";
     }
-    return `Rappel J+${selectedReminder.level}`;
+    return `Rappel Offre L${selectedReminder.level}`;
   };
 
   const getColorClasses = (r: ReminderStatus, isSelected: boolean) => {
@@ -349,7 +349,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
                   <div key={r.id} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-xs">
-                      {r.reminder_type === 'document_reminder' ? `Docs L${r.reminder_level}` : `J+${r.reminder_level}`}
+                      {r.reminder_type === 'document_reminder' ? `Docs L${r.reminder_level}` : `Offre L${r.reminder_level}`}
                     </Badge>
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
