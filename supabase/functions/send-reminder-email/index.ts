@@ -64,6 +64,7 @@ serve(async (req) => {
         id, 
         client_name, 
         client_email, 
+        client_id,
         amount,
         financed_amount,
         monthly_payment,
@@ -74,6 +75,27 @@ serve(async (req) => {
       `)
       .eq('id', offerId)
       .single();
+
+    // Get client first name if client_id exists
+    let clientFirstName = '';
+    if (offer?.client_id) {
+      const { data: client } = await supabase
+        .from('clients')
+        .select('first_name, name')
+        .eq('id', offer.client_id)
+        .single();
+      
+      if (client?.first_name) {
+        clientFirstName = client.first_name;
+      } else if (client?.name) {
+        clientFirstName = client.name.split(' ')[0];
+      }
+    }
+    
+    // Fallback: extract first name from client_name
+    if (!clientFirstName && offer?.client_name) {
+      clientFirstName = offer.client_name.split(' ')[0];
+    }
 
     if (offerError || !offer) {
       console.error("Offer not found:", offerError);
@@ -206,9 +228,9 @@ serve(async (req) => {
       }
     }
 
-    // Prepare template variables
+    // Prepare template variables - use first name only for personalization
     const templateVariables: Record<string, string> = {
-      client_name: offer.client_name || 'Client',
+      client_name: clientFirstName || 'Client',
       company_name: company?.name || smtpSettings.from_name || 'Notre équipe',
       offer_amount: (offer.financed_amount || offer.amount || 0).toLocaleString('fr-FR'),
       monthly_payment: (offer.monthly_payment || 0).toLocaleString('fr-FR'),

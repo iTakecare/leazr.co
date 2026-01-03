@@ -41,7 +41,7 @@ export const getOffers = async (includeConverted: boolean = false): Promise<any[
       .from('offers')
       .select(`
         *, 
-        clients(name, email, company, business_sector),
+        clients(name, email, company, business_sector, first_name, last_name),
         leasers(name),
         offer_equipment(id, title, purchase_price, quantity, margin, monthly_payment, selling_price, coefficient),
         offer_custom_packs(id, pack_name, discount_percentage),
