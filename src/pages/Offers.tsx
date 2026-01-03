@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useOffers } from "@/hooks/useOffers";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useAuth } from "@/context/AuthContext";
+import { useFetchOfferReminders } from "@/hooks/useFetchOfferReminders";
 
 const Offers = () => {
   const {
@@ -55,6 +56,10 @@ const Offers = () => {
   const navigate = useNavigate();
   const { navigateToAdmin } = useRoleNavigation();
   const { isBrokerUser } = useAuth();
+  
+  // Fetch reminders for the table view
+  const offerIds = useMemo(() => filteredOffers.map(o => o.id), [filteredOffers]);
+  const { reminders, invalidateReminders } = useFetchOfferReminders(offerIds);
   
   // Forcer la vue liste pour les broker users
   useEffect(() => {
@@ -208,6 +213,8 @@ const Offers = () => {
             onResendOffer={handleResendOffer}
             onGenerateOffer={handleGenerateOffer}
             isUpdatingStatus={isUpdatingStatus}
+            sentReminders={reminders}
+            onReminderSent={invalidateReminders}
           />
         )}
       </div>

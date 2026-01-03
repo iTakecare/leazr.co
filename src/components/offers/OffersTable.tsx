@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/utils/formatters";
 import { format } from "date-fns";
@@ -47,6 +47,8 @@ import {
 } from "@/components/ui/tooltip";
 import OfferStatusBadge from "./OfferStatusBadge";
 import OfferTypeTag from "./OfferTypeTag";
+import ReminderIndicator from "./ReminderIndicator";
+import SendReminderModal from "./SendReminderModal";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { generateSignatureLink } from "@/services/offers/offerSignature";
@@ -55,6 +57,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
+import { useOffersReminders, ReminderStatus } from "@/hooks/useOfferReminders";
+import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
 // Fonction pour extraire le nom et l'entreprise depuis client_name
 const parseClientName = (clientName: string, clientsData?: any) => {
@@ -89,6 +93,8 @@ interface OffersTableProps {
   onResendOffer?: (offerId: string) => void;
   onGenerateOffer?: (offerId: string) => void;
   isUpdatingStatus: boolean;
+  sentReminders?: OfferReminderRecord[];
+  onReminderSent?: () => void;
 }
 
 const OffersTable: React.FC<OffersTableProps> = ({
@@ -98,18 +104,29 @@ const OffersTable: React.FC<OffersTableProps> = ({
   onResendOffer,
   onGenerateOffer,
   isUpdatingStatus,
+  sentReminders = [],
+  onReminderSent,
 }) => {
   const navigate = useNavigate();
   const { isAdmin, isAmbassador } = useAuth();
   const { navigateToAdmin, navigateToAmbassador } = useRoleNavigation();
-  const [confirmDelete, setConfirmDelete] = React.useState<string | null>(null);
-  const [emailOfferDialog, setEmailOfferDialog] = React.useState<{
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [emailOfferDialog, setEmailOfferDialog] = useState<{
     offerId: string;
     offerNumber: string;
     clientEmail?: string;
     clientName?: string;
     validity?: string;
   } | null>(null);
+  
+  // State for reminder modal
+  const [reminderModalData, setReminderModalData] = useState<{
+    offer: any;
+    reminder: ReminderStatus;
+  } | null>(null);
+  
+  // Calculate reminders for all offers
+  const offersReminders = useOffersReminders(offers, sentReminders);
 
   const formatDate = (dateString: string) => {
     try {
@@ -262,6 +279,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-[10px] w-[85px] hidden xl:table-cell">Comm.</TableHead>}
                 <TableHead className="text-right text-[10px] w-[85px]">Mensualité</TableHead>
                 <TableHead className="text-[10px] w-[90px]">Statut</TableHead>
+                <TableHead className="text-[10px] w-[80px]">Rappel</TableHead>
                 <TableHead className="text-right w-[55px] sticky right-0 bg-background text-[10px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -406,6 +424,22 @@ const OffersTable: React.FC<OffersTableProps> = ({
                       hasRecentDocuments={offer.has_recent_documents}
                     />
                   </TableCell>
+                  
+                  {/* Reminder column */}
+                  <TableCell className="text-[11px] py-2">
+                    {(() => {
+                      const reminder = offersReminders.get(offer.id);
+                      if (!reminder) return <span className="text-muted-foreground">-</span>;
+                      return (
+                        <ReminderIndicator
+                          reminder={reminder}
+                          compact
+                          onClick={() => setReminderModalData({ offer, reminder })}
+                        />
+                      );
+                    })()}
+                  </TableCell>
+                  
                   <TableCell className="text-right sticky right-0 bg-background py-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -506,6 +540,20 @@ const OffersTable: React.FC<OffersTableProps> = ({
           clientEmail={emailOfferDialog.clientEmail}
           clientName={emailOfferDialog.clientName}
           validity={emailOfferDialog.validity}
+        />
+      )}
+      
+      {/* Reminder Modal */}
+      {reminderModalData && (
+        <SendReminderModal
+          open={!!reminderModalData}
+          onClose={() => setReminderModalData(null)}
+          offer={reminderModalData.offer}
+          reminder={reminderModalData.reminder}
+          onSuccess={() => {
+            setReminderModalData(null);
+            onReminderSent?.();
+          }}
         />
       )}
     </TooltipProvider>
