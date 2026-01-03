@@ -115,7 +115,7 @@ serve(async (req) => {
     // Get company info
     const { data: company } = await supabase
       .from('companies')
-      .select('name, slug')
+      .select('name, slug, logo_url, signature_representative_name, signature_representative_title, primary_color')
       .eq('id', offer.company_id)
       .single();
 
@@ -228,6 +228,10 @@ serve(async (req) => {
       }
     }
 
+    // Build offer link for offer reminders
+    const appUrl = Deno.env.get("APP_URL") || 'https://www.leazr.co';
+    const offerLink = `${appUrl}/offre/${offerId}`;
+
     // Prepare template variables - use first name only for personalization
     const templateVariables: Record<string, string> = {
       client_name: clientFirstName || 'Client',
@@ -239,6 +243,11 @@ serve(async (req) => {
       upload_link: uploadLink,
       requested_documents: requestedDocuments,
       custom_message: customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '',
+      // New variables for professional signature
+      offer_link: offerLink,
+      company_logo: company?.logo_url || '',
+      representative_name: company?.signature_representative_name || 'L\'équipe commerciale',
+      representative_title: company?.signature_representative_title || '',
     };
 
     // Render template
