@@ -3,7 +3,7 @@ import { Offer } from "@/hooks/offers/useFetchOffers";
 
 export interface ReminderStatus {
   type: 'document_reminder' | 'offer_reminder';
-  level: number; // 1, 2, 3, 5, 9
+  level: number; // 1, 2, 3 for docs, 1, 3, 5, 9 for offers
   daysElapsed: number;
   isActive: boolean;
   color: 'yellow' | 'orange' | 'red' | 'blink-red';
@@ -35,6 +35,9 @@ export const OFFER_REMINDER_STATUSES = ['sent', 'offer_send', 'accepted'];
 // All available offer reminder levels
 const OFFER_REMINDER_LEVELS = [1, 3, 5, 9];
 
+// All available document reminder levels (3 niveaux)
+const DOCUMENT_REMINDER_LEVELS = [1, 2, 3];
+
 // Calculate days since a date
 const daysSince = (dateStr: string | null | undefined): number => {
   if (!dateStr) return 0;
@@ -53,10 +56,23 @@ const getOfferReminderLevel = (daysElapsed: number): number | null => {
   return null;
 };
 
-// Get color based on reminder level
+// Determine document reminder level based on days elapsed
+const getDocumentReminderLevel = (daysElapsed: number): number | null => {
+  if (daysElapsed >= 9) return 3; // L3 - Urgent
+  if (daysElapsed >= 5) return 2; // L2 - Relance
+  if (daysElapsed >= 2) return 1; // L1 - Premier rappel
+  return null;
+};
+
+// Get color based on reminder level and type
 const getReminderColor = (level: number, type: 'document_reminder' | 'offer_reminder'): 'yellow' | 'orange' | 'red' | 'blink-red' => {
   if (type === 'document_reminder') {
-    return 'red';
+    switch (level) {
+      case 1: return 'yellow';
+      case 2: return 'orange';
+      case 3: return 'blink-red';
+      default: return 'yellow';
+    }
   }
   switch (level) {
     case 1: return 'yellow';
@@ -70,7 +86,7 @@ const getReminderColor = (level: number, type: 'document_reminder' | 'offer_remi
 // Get label based on reminder type and level
 const getReminderLabel = (type: 'document_reminder' | 'offer_reminder', level: number): string => {
   if (type === 'document_reminder') {
-    return 'Docs J+2';
+    return `Docs L${level}`;
   }
   return `J+${level}`;
 };
@@ -92,20 +108,37 @@ export const useOfferAllReminders = (
 
     // Check for document reminder (info_requested or internal_docs_requested status)
     if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-      if (daysElapsed >= 2) {
+      const suggestedDocLevel = getDocumentReminderLevel(daysElapsed);
+      
+      if (suggestedDocLevel) {
         const alreadySent = sentReminders?.some(
-          r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
+          r => r.reminder_type === 'document_reminder' && r.reminder_level === suggestedDocLevel && r.sent_at
         );
         
         result.documentReminder = {
           type: 'document_reminder',
-          level: 2,
+          level: suggestedDocLevel,
           daysElapsed,
           isActive: !alreadySent,
-          color: 'red',
-          label: 'Docs J+2',
+          color: getReminderColor(suggestedDocLevel, 'document_reminder'),
+          label: getReminderLabel('document_reminder', suggestedDocLevel),
         };
       }
+
+      // Build all document levels for selection
+      result.allLevels = DOCUMENT_REMINDER_LEVELS.map(level => {
+        const alreadySent = sentReminders?.some(
+          r => r.reminder_type === 'document_reminder' && r.reminder_level === level && r.sent_at
+        );
+        return {
+          type: 'document_reminder' as const,
+          level,
+          daysElapsed,
+          isActive: !alreadySent,
+          color: getReminderColor(level, 'document_reminder'),
+          label: getReminderLabel('document_reminder', level),
+        };
+      });
     }
 
     // Check for offer reminder (applicable statuses)
@@ -143,22 +176,6 @@ export const useOfferAllReminders = (
       });
     }
 
-    // Add document reminder to allLevels if applicable
-    if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-      const docAlreadySent = sentReminders?.some(
-        r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
-      );
-      
-      result.allLevels = [{
-        type: 'document_reminder' as const,
-        level: 2,
-        daysElapsed,
-        isActive: !docAlreadySent,
-        color: 'red',
-        label: 'Docs J+2',
-      }];
-    }
-
     // Determine suggested reminder (document takes priority)
     result.suggestedReminder = result.documentReminder || result.offerReminder;
 
@@ -172,37 +189,33 @@ export const useOfferReminders = (
   sentReminders?: OfferReminder[]
 ): ReminderStatus | null => {
   return useMemo(() => {
+    const daysElapsed = daysSince(offer.created_at);
+
     // Check for document reminder first (info_requested or internal_docs_requested status)
     if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-      // Use created_at as reference date
-      const daysElapsed = daysSince(offer.created_at);
+      const docLevel = getDocumentReminderLevel(daysElapsed);
       
-      if (daysElapsed >= 2) {
-        // Check if document reminder was already sent
+      if (docLevel) {
         const alreadySent = sentReminders?.some(
-          r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
+          r => r.reminder_type === 'document_reminder' && r.reminder_level === docLevel && r.sent_at
         );
         
         return {
           type: 'document_reminder',
-          level: 2,
+          level: docLevel,
           daysElapsed,
           isActive: !alreadySent,
-          color: 'red',
-          label: 'Docs J+2',
+          color: getReminderColor(docLevel, 'document_reminder'),
+          label: getReminderLabel('document_reminder', docLevel),
         };
       }
     }
 
     // Check for offer reminder (applicable statuses)
     if (OFFER_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-      // Use created_at as reference date
-      const referenceDate = offer.created_at;
-      const daysElapsed = daysSince(referenceDate);
       const reminderLevel = getOfferReminderLevel(daysElapsed);
 
       if (reminderLevel) {
-        // Check if this specific reminder level was already sent
         const alreadySent = sentReminders?.some(
           r => r.reminder_type === 'offer_reminder' && r.reminder_level === reminderLevel && r.sent_at
         );
@@ -243,19 +256,36 @@ export const useOffersReminders = (
 
       // Check for document reminder
       if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-        if (daysElapsed >= 2) {
+        const suggestedDocLevel = getDocumentReminderLevel(daysElapsed);
+        
+        if (suggestedDocLevel) {
           const alreadySent = offerReminders?.some(
-            r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
+            r => r.reminder_type === 'document_reminder' && r.reminder_level === suggestedDocLevel && r.sent_at
           );
           result.documentReminder = {
             type: 'document_reminder',
-            level: 2,
+            level: suggestedDocLevel,
             daysElapsed,
             isActive: !alreadySent,
-            color: 'red',
-            label: 'Docs J+2',
+            color: getReminderColor(suggestedDocLevel, 'document_reminder'),
+            label: getReminderLabel('document_reminder', suggestedDocLevel),
           };
         }
+
+        // Build all document levels
+        result.allLevels = DOCUMENT_REMINDER_LEVELS.map(level => {
+          const alreadySent = offerReminders?.some(
+            r => r.reminder_type === 'document_reminder' && r.reminder_level === level && r.sent_at
+          );
+          return {
+            type: 'document_reminder' as const,
+            level,
+            daysElapsed,
+            isActive: !alreadySent,
+            color: getReminderColor(level, 'document_reminder'),
+            label: getReminderLabel('document_reminder', level),
+          };
+        });
       }
       
       // Check for offer reminder
@@ -290,22 +320,6 @@ export const useOffersReminders = (
             label: getReminderLabel('offer_reminder', level),
           };
         });
-      }
-
-      // Add document reminder to allLevels if applicable
-      if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
-        const docAlreadySent = offerReminders?.some(
-          r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
-        );
-        
-        result.allLevels = [{
-          type: 'document_reminder' as const,
-          level: 2,
-          daysElapsed,
-          isActive: !docAlreadySent,
-          color: 'red',
-          label: 'Docs J+2',
-        }];
       }
 
       // Suggested is document if available, otherwise offer

@@ -32,6 +32,7 @@ interface SendReminderModalProps {
 }
 
 const ALL_OFFER_LEVELS = [1, 3, 5, 9];
+const ALL_DOCUMENT_LEVELS = [1, 2, 3];
 
 const SendReminderModal: React.FC<SendReminderModalProps> = ({
   open,
@@ -60,16 +61,19 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     const reminders: ReminderStatus[] = [];
     
     if (isDocumentStatus) {
-      const docSent = sentReminders.some(
-        r => r.reminder_type === 'document_reminder' && r.reminder_level === 2 && r.sent_at
-      );
-      reminders.push({
-        type: 'document_reminder',
-        level: 2,
-        daysElapsed: 0,
-        isActive: !docSent,
-        color: 'red',
-        label: 'Docs J+2',
+      // 3 niveaux de rappels documents
+      ALL_DOCUMENT_LEVELS.forEach(level => {
+        const sent = sentReminders.some(
+          r => r.reminder_type === 'document_reminder' && r.reminder_level === level && r.sent_at
+        );
+        reminders.push({
+          type: 'document_reminder',
+          level,
+          daysElapsed: 0,
+          isActive: !sent,
+          color: level === 1 ? 'yellow' : level === 2 ? 'orange' : 'blink-red',
+          label: `Docs L${level}`,
+        });
       });
     }
     
@@ -149,7 +153,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         }
 
         const templateName = selectedReminder.type === 'document_reminder'
-          ? 'document_reminder'
+          ? `document_reminder_l${selectedReminder.level}`
           : `offer_reminder_j${selectedReminder.level}`;
 
         const { data: template } = await supabase
@@ -345,7 +349,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
                   <div key={r.id} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-xs">
-                      {r.reminder_type === 'document_reminder' ? 'Docs J+2' : `J+${r.reminder_level}`}
+                      {r.reminder_type === 'document_reminder' ? `Docs L${r.reminder_level}` : `J+${r.reminder_level}`}
                     </Badge>
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
