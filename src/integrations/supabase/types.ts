@@ -7095,9 +7095,8 @@ export type Database = {
             Returns: {
               count: number
               status: string
-              total_margin: number
-              total_purchases: number
-              total_revenue: number
+              total_amount: number
+              total_monthly: number
             }[]
           }
       get_contract_workflow_logs: {
