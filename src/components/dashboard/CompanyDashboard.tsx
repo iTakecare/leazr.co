@@ -32,11 +32,16 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 const CompanyDashboard = () => {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [timeFilter, setTimeFilter] = useState('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard();
+  const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
+  
+  // Générer les années disponibles (de 2024 à année courante + 1)
+  const availableYears = Array.from({ length: currentYear - 2023 }, (_, i) => 2024 + i);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -128,13 +133,24 @@ const CompanyDashboard = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Dashboard Financier 2025
+                Dashboard Financier {selectedYear}
               </h1>
               <p className="text-muted-foreground">
                 Performance et analytics de votre activité leasing
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
+                <SelectTrigger className="w-28 border-primary/20">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={timeFilter} onValueChange={setTimeFilter}>
                 <SelectTrigger className="w-36 border-primary/20">
                   <SelectValue />
@@ -228,7 +244,7 @@ const CompanyDashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle className="text-xl font-bold">Tableau Mensuel 2025</CardTitle>
+                <CardTitle className="text-xl font-bold">Tableau Mensuel {selectedYear}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-hidden rounded-lg">

@@ -7079,16 +7079,27 @@ export type Database = {
             }[]
           }
       get_contract_for_signature: { Args: { p_token: string }; Returns: Json }
-      get_contract_statistics_by_status: {
-        Args: never
-        Returns: {
-          count: number
-          status: string
-          total_margin: number
-          total_purchases: number
-          total_revenue: number
-        }[]
-      }
+      get_contract_statistics_by_status:
+        | {
+            Args: never
+            Returns: {
+              count: number
+              status: string
+              total_margin: number
+              total_purchases: number
+              total_revenue: number
+            }[]
+          }
+        | {
+            Args: { p_year?: number }
+            Returns: {
+              count: number
+              status: string
+              total_margin: number
+              total_purchases: number
+              total_revenue: number
+            }[]
+          }
       get_contract_workflow_logs: {
         Args: { p_contract_id: string }
         Returns: {
@@ -7184,20 +7195,35 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      get_monthly_financial_data: {
-        Args: never
-        Returns: {
-          contracts_count: number
-          margin: number
-          margin_percentage: number
-          month_name: string
-          month_number: number
-          offers_count: number
-          purchases: number
-          revenue: number
-          year: number
-        }[]
-      }
+      get_monthly_financial_data:
+        | {
+            Args: never
+            Returns: {
+              contracts_count: number
+              margin: number
+              margin_percentage: number
+              month_name: string
+              month_number: number
+              offers_count: number
+              purchases: number
+              revenue: number
+              year: number
+            }[]
+          }
+        | {
+            Args: { p_year?: number }
+            Returns: {
+              contracts_count: number
+              margin: number
+              margin_percentage: number
+              month_name: string
+              month_number: number
+              offers_count: number
+              purchases: number
+              revenue: number
+              year: number
+            }[]
+          }
       get_offer_by_id_public: {
         Args: { offer_id: string }
         Returns: {
