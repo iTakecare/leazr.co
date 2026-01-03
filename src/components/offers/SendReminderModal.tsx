@@ -66,12 +66,13 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         const sent = sentReminders.some(
           r => r.reminder_type === 'document_reminder' && r.reminder_level === level && r.sent_at
         );
+        const colorMap: Record<number, 'doc-l1' | 'doc-l2' | 'doc-l3'> = { 1: 'doc-l1', 2: 'doc-l2', 3: 'doc-l3' };
         reminders.push({
           type: 'document_reminder',
           level,
           daysElapsed: 0,
           isActive: !sent,
-          color: level === 1 ? 'yellow' : level === 2 ? 'orange' : 'blink-red',
+          color: colorMap[level] || 'doc-l1',
           label: `Docs L${level}`,
         });
       });
@@ -82,12 +83,13 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         const sent = sentReminders.some(
           r => r.reminder_type === 'offer_reminder' && r.reminder_level === level && r.sent_at
         );
+        const colorMap: Record<number, 'offer-l1' | 'offer-l2' | 'offer-l3'> = { 1: 'offer-l1', 2: 'offer-l2', 3: 'offer-l3' };
         reminders.push({
           type: 'offer_reminder',
           level,
           daysElapsed: 0,
           isActive: !sent,
-          color: level === 1 ? 'yellow' : level === 2 ? 'orange' : 'blink-red',
+          color: colorMap[level] || 'offer-l1',
           label: `Offre L${level}`,
         });
       });
@@ -262,14 +264,20 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   const getColorClasses = (r: ReminderStatus, isSelected: boolean) => {
     const baseClasses = isSelected ? 'ring-2 ring-offset-2' : '';
     switch (r.color) {
-      case 'yellow':
-        return cn("bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200", baseClasses, isSelected && 'ring-yellow-500');
-      case 'orange':
-        return cn("bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200", baseClasses, isSelected && 'ring-orange-500');
-      case 'red':
-        return cn("bg-red-100 text-red-800 border-red-300 hover:bg-red-200", baseClasses, isSelected && 'ring-red-500');
-      case 'blink-red':
-        return cn("bg-red-100 text-red-800 border-red-300 hover:bg-red-200", baseClasses, isSelected && 'ring-red-500');
+      // Documents - palette violette
+      case 'doc-l1':
+        return cn("bg-violet-100 text-violet-800 border-violet-300 hover:bg-violet-200", baseClasses, isSelected && 'ring-violet-500');
+      case 'doc-l2':
+        return cn("bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200", baseClasses, isSelected && 'ring-purple-500');
+      case 'doc-l3':
+        return cn("bg-purple-200 text-purple-900 border-purple-400 hover:bg-purple-300", baseClasses, isSelected && 'ring-purple-500');
+      // Offres - palette bleue
+      case 'offer-l1':
+        return cn("bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200", baseClasses, isSelected && 'ring-blue-500');
+      case 'offer-l2':
+        return cn("bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200", baseClasses, isSelected && 'ring-teal-500');
+      case 'offer-l3':
+        return cn("bg-sky-200 text-sky-900 border-sky-400 hover:bg-sky-300", baseClasses, isSelected && 'ring-sky-500');
       default:
         return cn("bg-muted text-muted-foreground", baseClasses);
     }
