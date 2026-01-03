@@ -59,12 +59,13 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         // Fetch company customizations for real company info
         const { data: customization } = await supabase
           .from('company_customizations')
-          .select('company_name, company_email')
+          .select('company_name, company_email, company_phone')
           .eq('company_id', profile.company_id)
           .single();
 
         const companyName = customization?.company_name || 'Notre équipe';
         const contactEmail = customization?.company_email || '';
+        const contactPhone = customization?.company_phone || '';
 
         // Determine template name
         const templateName = reminder.type === 'document_reminder'
@@ -90,6 +91,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
             .replace(/\{\{\s*client_name\s*\}\}/g, offer.client_name || 'Client')
             .replace(/\{\{\s*company_name\s*\}\}/g, companyName)
             .replace(/\{\{\s*contact_email\s*\}\}/g, contactEmail)
+            .replace(/\{\{\s*contact_phone\s*\}\}/g, contactPhone)
             .replace(/\{\{\s*offer_amount\s*\}\}/g, (offer.financed_amount || offer.amount || 0).toLocaleString('fr-FR'))
             .replace(/\{\{\s*monthly_payment\s*\}\}/g, (offer.monthly_payment || 0).toLocaleString('fr-FR'))
             .replace(/\{\{\s*custom_message\s*\}\}/g, customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '');
