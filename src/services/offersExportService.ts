@@ -51,7 +51,9 @@ const calculateSellingPriceFromEquipment = (offer: any): number => {
   if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
     return offer.offer_equipment_view.reduce((sum: number, eq: any) => {
       const qty = eq.quantity || 1;
-      const sellingPrice = eq.selling_price || ((eq.purchase_price || 0) + (eq.margin || 0));
+      // margin est un pourcentage, pas un montant
+      const sellingPrice = eq.selling_price || 
+        ((eq.purchase_price || 0) * (1 + (eq.margin || 0) / 100));
       return sum + (sellingPrice * qty);
     }, 0);
   }
@@ -59,7 +61,10 @@ const calculateSellingPriceFromEquipment = (offer: any): number => {
   if (offer.equipment_data && Array.isArray(offer.equipment_data)) {
     return offer.equipment_data.reduce((sum: number, eq: any) => {
       const qty = eq.quantity || 1;
-      const sellingPrice = eq.selling_price || ((eq.purchasePrice || eq.purchase_price || 0) + (eq.margin || 0));
+      const purchasePrice = eq.purchasePrice || eq.purchase_price || 0;
+      // margin est un pourcentage, pas un montant
+      const sellingPrice = eq.selling_price || 
+        (purchasePrice * (1 + (eq.margin || 0) / 100));
       return sum + (sellingPrice * qty);
     }, 0);
   }
