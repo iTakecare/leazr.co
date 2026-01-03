@@ -19,8 +19,11 @@ interface OfferReminder {
   created_at: string;
 }
 
-// Statuses that trigger offer reminders
-const OFFER_REMINDER_STATUSES = ['sent', 'offer_send', 'accepted', 'info_requested'];
+// Statuses that trigger document reminders
+const DOCUMENT_REMINDER_STATUSES = ['info_requested', 'internal_docs_requested'];
+
+// Statuses that trigger offer reminders (excluding document statuses to avoid duplicates)
+const OFFER_REMINDER_STATUSES = ['sent', 'offer_send', 'accepted'];
 
 // Calculate days since a date
 const daysSince = (dateStr: string | null | undefined): number => {
@@ -65,8 +68,8 @@ export const useOfferReminders = (
   sentReminders?: OfferReminder[]
 ): ReminderStatus | null => {
   return useMemo(() => {
-    // Check for document reminder first (info_requested status with pending upload links)
-    if (offer.workflow_status === 'info_requested') {
+    // Check for document reminder first (info_requested or internal_docs_requested status)
+    if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
       // Use created_at as reference date
       const daysElapsed = daysSince(offer.created_at);
       
@@ -130,7 +133,7 @@ export const useOffersReminders = (
       let reminder: ReminderStatus | null = null;
       
       // Check for document reminder
-      if (offer.workflow_status === 'info_requested') {
+      if (DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '')) {
         const daysElapsed = daysSince(offer.created_at);
         if (daysElapsed >= 2) {
           const alreadySent = offerReminders?.some(
