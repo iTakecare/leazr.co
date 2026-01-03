@@ -61,14 +61,22 @@ interface SingleBadgeProps {
 const SingleBadge: React.FC<SingleBadgeProps> = ({ reminder, onClick, compact = false }) => {
   const getColorClasses = () => {
     switch (reminder.color) {
-      case 'yellow':
-        return "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200";
-      case 'orange':
-        return "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200";
-      case 'red':
-        return "bg-red-100 text-red-800 border-red-300 hover:bg-red-200";
-      case 'blink-red':
-        return "bg-red-100 text-red-800 border-red-300 hover:bg-red-200 animate-pulse";
+      // Documents - palette violette/mauve
+      case 'doc-l1':
+        return "bg-violet-100 text-violet-800 border-violet-300 hover:bg-violet-200";
+      case 'doc-l2':
+        return "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200";
+      case 'doc-l3':
+        return "bg-purple-200 text-purple-900 border-purple-400 hover:bg-purple-300 animate-pulse";
+      
+      // Offres - palette bleue/teal
+      case 'offer-l1':
+        return "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200";
+      case 'offer-l2':
+        return "bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200";
+      case 'offer-l3':
+        return "bg-sky-200 text-sky-900 border-sky-400 hover:bg-sky-300 animate-pulse";
+      
       default:
         return "bg-muted text-muted-foreground";
     }

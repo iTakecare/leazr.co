@@ -6,7 +6,7 @@ export interface ReminderStatus {
   level: number; // 1, 2, 3 for both docs and offers
   daysElapsed: number;
   isActive: boolean;
-  color: 'yellow' | 'orange' | 'red' | 'blink-red';
+  color: 'doc-l1' | 'doc-l2' | 'doc-l3' | 'offer-l1' | 'offer-l2' | 'offer-l3';
   label: string;
 }
 
@@ -63,13 +63,22 @@ const getDocumentReminderLevel = (daysElapsed: number): number | null => {
   return null;
 };
 
-// Get color based on reminder level (same for both types now)
-const getReminderColor = (level: number, _type: 'document_reminder' | 'offer_reminder'): 'yellow' | 'orange' | 'red' | 'blink-red' => {
-  switch (level) {
-    case 1: return 'yellow';
-    case 2: return 'orange';
-    case 3: return 'blink-red';
-    default: return 'yellow';
+// Get color based on reminder type and level
+const getReminderColor = (level: number, type: 'document_reminder' | 'offer_reminder'): 'doc-l1' | 'doc-l2' | 'doc-l3' | 'offer-l1' | 'offer-l2' | 'offer-l3' => {
+  if (type === 'document_reminder') {
+    switch (level) {
+      case 1: return 'doc-l1';
+      case 2: return 'doc-l2';
+      case 3: return 'doc-l3';
+      default: return 'doc-l1';
+    }
+  } else {
+    switch (level) {
+      case 1: return 'offer-l1';
+      case 2: return 'offer-l2';
+      case 3: return 'offer-l3';
+      default: return 'offer-l1';
+    }
   }
 };
 
