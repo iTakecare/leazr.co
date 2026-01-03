@@ -47,13 +47,33 @@ const formatEquipmentForExcel = (offer: any): string => {
   return '-';
 };
 
-const calculateFinancedAmountForExcel = (offer: any): number => {
-  // Si c'est un achat, pas de montant financé
-  if (offer.is_purchase === true) {
-    return 0;
+const calculateSellingPriceFromEquipment = (offer: any): number => {
+  if (offer.offer_equipment_view && Array.isArray(offer.offer_equipment_view)) {
+    return offer.offer_equipment_view.reduce((sum: number, eq: any) => {
+      const qty = eq.quantity || 1;
+      const sellingPrice = eq.selling_price || ((eq.purchase_price || 0) + (eq.margin || 0));
+      return sum + (sellingPrice * qty);
+    }, 0);
   }
   
-  // Si on a une mensualité et un coefficient, calculer le montant financé
+  if (offer.equipment_data && Array.isArray(offer.equipment_data)) {
+    return offer.equipment_data.reduce((sum: number, eq: any) => {
+      const qty = eq.quantity || 1;
+      const sellingPrice = eq.selling_price || ((eq.purchasePrice || eq.purchase_price || 0) + (eq.margin || 0));
+      return sum + (sellingPrice * qty);
+    }, 0);
+  }
+  
+  return 0;
+};
+
+const calculateFinancedAmountForExcel = (offer: any): number => {
+  // Si c'est un achat, retourner le prix de vente total
+  if (offer.is_purchase === true) {
+    return offer.financed_amount || offer.amount || calculateSellingPriceFromEquipment(offer) || 0;
+  }
+  
+  // Pour le leasing : mensualité * 100 / coefficient
   if (offer.monthly_payment && offer.coefficient) {
     return (offer.monthly_payment * 100) / offer.coefficient;
   }
