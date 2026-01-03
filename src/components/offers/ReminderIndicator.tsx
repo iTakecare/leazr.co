@@ -2,21 +2,63 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Bell, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ReminderStatus } from "@/hooks/useOfferReminders";
+import { ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 
 interface ReminderIndicatorProps {
-  reminder: ReminderStatus | null;
+  reminder?: ReminderStatus | null;
+  allReminders?: AllReminders | null;
   onClick?: () => void;
   compact?: boolean;
 }
 
 const ReminderIndicator: React.FC<ReminderIndicatorProps> = ({
   reminder,
+  allReminders,
   onClick,
   compact = false,
 }) => {
+  // If allReminders is provided, show multiple badges
+  if (allReminders) {
+    const badges: ReminderStatus[] = [];
+    
+    if (allReminders.documentReminder) {
+      badges.push(allReminders.documentReminder);
+    }
+    if (allReminders.offerReminder) {
+      badges.push(allReminders.offerReminder);
+    }
+
+    if (badges.length === 0) return null;
+
+    return (
+      <div className="flex gap-1 flex-wrap">
+        {badges.map((r, index) => (
+          <SingleBadge
+            key={`${r.type}-${r.level}-${index}`}
+            reminder={r}
+            onClick={onClick}
+            compact={compact}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Fallback to single reminder for backward compatibility
   if (!reminder) return null;
 
+  return (
+    <SingleBadge reminder={reminder} onClick={onClick} compact={compact} />
+  );
+};
+
+interface SingleBadgeProps {
+  reminder: ReminderStatus;
+  onClick?: () => void;
+  compact?: boolean;
+}
+
+const SingleBadge: React.FC<SingleBadgeProps> = ({ reminder, onClick, compact = false }) => {
   const getColorClasses = () => {
     switch (reminder.color) {
       case 'yellow':

@@ -15,21 +15,15 @@ import OfferTypeTag from "./OfferTypeTag";
 import { generateSignatureLink } from "@/services/offerService";
 import ReminderIndicator from "./ReminderIndicator";
 import SendReminderModal from "./SendReminderModal";
-import { useOfferReminders, ReminderStatus } from "@/hooks/useOfferReminders";
+import { useOfferAllReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
+import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
 interface OfferCardProps {
   offer: Offer;
   onDelete: () => void;
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   isUpdatingStatus: boolean;
-  sentReminders?: Array<{
-    id: string;
-    offer_id: string;
-    reminder_type: string;
-    reminder_level: number;
-    sent_at: string | null;
-    created_at: string;
-  }>;
+  sentReminders?: OfferReminderRecord[];
   onReminderSent?: () => void;
 }
 
@@ -44,8 +38,8 @@ const OfferCard: React.FC<OfferCardProps> = ({
   const navigate = useNavigate();
   const [showReminderModal, setShowReminderModal] = useState(false);
   
-  // Calculate reminder status
-  const reminderStatus = useOfferReminders(offer, sentReminders);
+  // Calculate all reminders
+  const allReminders = useOfferAllReminders(offer, sentReminders);
   
   // Formatage de la date
   const formatDate = (dateString: string) => {
@@ -73,7 +67,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
   };
 
   const handleReminderClick = () => {
-    if (reminderStatus) {
+    if (allReminders.documentReminder || allReminders.offerReminder) {
       setShowReminderModal(true);
     }
   };
@@ -116,9 +110,9 @@ const OfferCard: React.FC<OfferCardProps> = ({
                 size="sm" 
               />
               {/* Reminder Indicator */}
-              {reminderStatus && (
+              {(allReminders.documentReminder || allReminders.offerReminder) && (
                 <ReminderIndicator 
-                  reminder={reminderStatus} 
+                  allReminders={allReminders}
                   onClick={handleReminderClick}
                   compact
                 />
@@ -183,12 +177,13 @@ const OfferCard: React.FC<OfferCardProps> = ({
       </Card>
 
       {/* Reminder Modal */}
-      {reminderStatus && (
+      {(allReminders.documentReminder || allReminders.offerReminder) && (
         <SendReminderModal
           open={showReminderModal}
           onClose={() => setShowReminderModal(false)}
           offer={offer}
-          reminder={reminderStatus}
+          allReminders={allReminders}
+          sentReminders={sentReminders}
           onSuccess={handleReminderSuccess}
         />
       )}

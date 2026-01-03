@@ -57,7 +57,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
-import { useOffersReminders, ReminderStatus } from "@/hooks/useOfferReminders";
+import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
 // Fonction pour extraire le nom et l'entreprise depuis client_name
@@ -122,7 +122,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
   // State for reminder modal
   const [reminderModalData, setReminderModalData] = useState<{
     offer: any;
-    reminder: ReminderStatus;
+    allReminders: AllReminders;
   } | null>(null);
   
   // Calculate reminders for all offers
@@ -428,13 +428,15 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   {/* Reminder column */}
                   <TableCell className="text-[11px] py-2">
                     {(() => {
-                      const reminder = offersReminders.get(offer.id);
-                      if (!reminder) return <span className="text-muted-foreground">-</span>;
+                      const allReminders = offersReminders.get(offer.id);
+                      if (!allReminders || (!allReminders.documentReminder && !allReminders.offerReminder)) {
+                        return <span className="text-muted-foreground">-</span>;
+                      }
                       return (
                         <ReminderIndicator
-                          reminder={reminder}
+                          allReminders={allReminders}
                           compact
-                          onClick={() => setReminderModalData({ offer, reminder })}
+                          onClick={() => setReminderModalData({ offer, allReminders })}
                         />
                       );
                     })()}
@@ -549,7 +551,8 @@ const OffersTable: React.FC<OffersTableProps> = ({
           open={!!reminderModalData}
           onClose={() => setReminderModalData(null)}
           offer={reminderModalData.offer}
-          reminder={reminderModalData.reminder}
+          allReminders={reminderModalData.allReminders}
+          sentReminders={sentReminders}
           onSuccess={() => {
             setReminderModalData(null);
             onReminderSent?.();

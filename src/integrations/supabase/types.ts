@@ -4436,6 +4436,53 @@ export type Database = {
           },
         ]
       }
+      offer_reminders: {
+        Row: {
+          created_at: string
+          custom_message: string | null
+          email_subject: string | null
+          id: string
+          offer_id: string
+          recipient_email: string | null
+          reminder_level: number
+          reminder_type: string
+          sent_at: string | null
+          sent_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          custom_message?: string | null
+          email_subject?: string | null
+          id?: string
+          offer_id: string
+          recipient_email?: string | null
+          reminder_level: number
+          reminder_type: string
+          sent_at?: string | null
+          sent_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          custom_message?: string | null
+          email_subject?: string | null
+          id?: string
+          offer_id?: string
+          recipient_email?: string | null
+          reminder_level?: number
+          reminder_type?: string
+          sent_at?: string | null
+          sent_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_reminders_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_upload_links: {
         Row: {
           created_at: string

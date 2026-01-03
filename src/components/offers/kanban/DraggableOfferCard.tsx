@@ -4,6 +4,7 @@ import { Draggable } from "react-beautiful-dnd";
 import { cn } from "@/lib/utils";
 import OfferCard from "../OfferCard";
 import { Offer } from "@/hooks/offers/useFetchOffers";
+import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
 interface DraggableOfferCardProps {
   offer: Offer;
@@ -11,14 +12,7 @@ interface DraggableOfferCardProps {
   onDelete: () => void;
   onStatusChange: (offerId: string, newStatus: string) => Promise<void>;
   isUpdatingStatus: boolean;
-  sentReminders?: Array<{
-    id: string;
-    offer_id: string;
-    reminder_type: string;
-    reminder_level: number;
-    sent_at: string | null;
-    created_at: string;
-  }>;
+  sentReminders?: OfferReminderRecord[];
   onReminderSent?: () => void;
 }
 
