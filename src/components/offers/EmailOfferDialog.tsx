@@ -15,7 +15,7 @@ import DOMPurify from 'dompurify';
 import { updateOfferStatus } from '@/services/offers/offerStatus';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { RichTextEditor } from '@/components/admin/RichTextEditor';
-import { getPlatformSettings } from '@/services/platformSettingsService';
+
 
 interface EmailOfferDialogProps {
   open: boolean;
@@ -345,7 +345,7 @@ export const EmailOfferDialog = ({
 
   const generateEmailPreview = async () => {
     try {
-      // Récupérer le prénom du client depuis la base de données
+      // Récupérer les données de l'offre avec l'entreprise
       const { data: offerData } = await supabase
         .from('offers')
         .select(`
@@ -353,14 +353,53 @@ export const EmailOfferDialog = ({
           clients (
             first_name,
             contact_name
+          ),
+          companies (
+            id,
+            name,
+            logo_url
           )
         `)
         .eq('id', offerId)
         .single();
 
-      // Récupérer les paramètres de la plateforme (logo, nom, etc.)
-      const platformSettings = await getPlatformSettings();
-      const logoUrl = platformSettings?.logo_url || '/leazr-logo.png';
+      // Valeurs par défaut pour l'entreprise
+      let companyInfo = {
+        name: 'iTakecare SRL',
+        logo_url: '/leazr-logo.png',
+        email: 'hello@itakecare.be',
+        phone: '+32 71 49 16 85',
+        address: 'Avenue du Général Michel 1E',
+        city: 'Charleroi',
+        postal_code: '6000',
+        vat_number: 'BE0795.642.894',
+        website: 'www.itakecare.be',
+        slogan: 'Leasing de pack informatique simple, économique et éco-responsable pour PME et startup'
+      };
+
+      // Récupérer les informations de contact de l'entreprise
+      if (offerData?.companies?.id) {
+        const { data: customization } = await supabase
+          .from('company_customizations')
+          .select('company_email, company_phone, company_address, company_city, company_postal_code, company_vat_number')
+          .eq('company_id', offerData.companies.id)
+          .single();
+        
+        if (customization || offerData.companies) {
+          companyInfo = {
+            name: offerData.companies.name || companyInfo.name,
+            logo_url: offerData.companies.logo_url || companyInfo.logo_url,
+            email: customization?.company_email || companyInfo.email,
+            phone: customization?.company_phone || companyInfo.phone,
+            address: customization?.company_address || companyInfo.address,
+            city: customization?.company_city || companyInfo.city,
+            postal_code: customization?.company_postal_code || companyInfo.postal_code,
+            vat_number: customization?.company_vat_number || companyInfo.vat_number,
+            website: companyInfo.website,
+            slogan: companyInfo.slogan
+          };
+        }
+      }
 
       // Extraire le prénom
       let firstName = 'Client';
@@ -405,31 +444,31 @@ export const EmailOfferDialog = ({
               <tr>
                 <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
                   <div style="margin-bottom: 12px;">
-                    <img src="${logoUrl}" alt="iTakecare" style="height: 40px; max-width: 150px; object-fit: contain;" onerror="this.style.display='none'">
+                    <img src="${companyInfo.logo_url}" alt="${companyInfo.name}" style="height: 40px; max-width: 150px; object-fit: contain;" onerror="this.style.display='none'">
                   </div>
                   <div style="font-weight: bold; color: #1e40af; font-size: 13px; margin-bottom: 10px;">
-                    iTakecare SRL
+                    ${companyInfo.name}
                   </div>
                   <div style="color: #5CC5CC; font-size: 10px; line-height: 1.5; font-style: italic;">
-                    Leasing de pack informatique simple, économique et éco-responsable pour PME et startup
+                    ${companyInfo.slogan}
                   </div>
                 </td>
                 <td style="vertical-align: top; padding-left: 20px; width: 55%;">
                   <div style="margin-bottom: 5px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Tel direct :</span> <a href="tel:+3271491685" style="color: #333; text-decoration: none;">+32 (0)71 49 16 85</a>
+                    <span style="color: #5CC5CC; font-weight: 600;">Tel direct :</span> <a href="tel:${companyInfo.phone.replace(/\s/g, '')}" style="color: #333; text-decoration: none;">${companyInfo.phone}</a>
                   </div>
                   <div style="margin-bottom: 5px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Mail :</span> <a href="mailto:hello@itakecare.be" style="color: #333; text-decoration: none;">hello@itakecare.be</a>
+                    <span style="color: #5CC5CC; font-weight: 600;">Mail :</span> <a href="mailto:${companyInfo.email}" style="color: #333; text-decoration: none;">${companyInfo.email}</a>
                   </div>
                   <div style="margin-bottom: 12px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Web :</span> <a href="https://www.itakecare.be" style="color: #5CC5CC; text-decoration: none;">www.itakecare.be</a>
+                    <span style="color: #5CC5CC; font-weight: 600;">Web :</span> <a href="https://${companyInfo.website}" style="color: #5CC5CC; text-decoration: none;">${companyInfo.website}</a>
                   </div>
                   <div style="font-size: 10px; line-height: 1.6; margin-bottom: 10px; color: #555;">
                     <strong style="color: #333;">Adresse :</strong><br>
-                    iTakecare SRL<br>
-                    Avenue du Général Michel 1E<br>
-                    BE-6000 Charleroi<br>
-                    TVA : BE0795.642.894
+                    ${companyInfo.name}<br>
+                    ${companyInfo.address}<br>
+                    BE-${companyInfo.postal_code} ${companyInfo.city}<br>
+                    TVA : ${companyInfo.vat_number}
                   </div>
                   <div style="margin-top: 10px;">
                     <a href="https://www.facebook.com/itakecarebe" style="margin-right: 10px; display: inline-block;">
@@ -447,10 +486,7 @@ export const EmailOfferDialog = ({
       `;
     } catch (error) {
       console.error('[EMAIL-OFFER] Error generating email preview:', error);
-      // Fallback si erreur
-      const platformSettings = await getPlatformSettings();
-      const logoUrl = platformSettings?.logo_url || '/leazr-logo.png';
-      
+      // Fallback si erreur - valeurs par défaut
       const validityText = validity 
         ? `<p style="margin-top: 16px; padding: 12px; background-color: #f3f4f6; border-left: 4px solid #3b82f6; font-size: 14px;">
              <strong>⏰ Validité:</strong> Cette offre est valable ${validity} jours à compter de ce jour.
@@ -478,50 +514,7 @@ export const EmailOfferDialog = ({
             N'hésitez pas à nous contacter pour toute question, ou marquer votre accord par retour de mail.
           </p>
           
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 15px 0; font-size: 12px;"><strong>Cordialement,</strong></p>
-            <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 11px; color: #333; width: 100%; max-width: 650px;">
-              <tr>
-                <td style="vertical-align: top; padding-right: 20px; border-right: 2px solid #ddd; width: 45%;">
-                  <div style="margin-bottom: 12px;">
-                    <img src="${logoUrl}" alt="iTakecare" style="height: 40px; max-width: 150px; object-fit: contain;" onerror="this.style.display='none'">
-                  </div>
-                  <div style="font-weight: bold; color: #1e40af; font-size: 13px; margin-bottom: 10px;">
-                    iTakecare SRL
-                  </div>
-                  <div style="color: #5CC5CC; font-size: 10px; line-height: 1.5; font-style: italic;">
-                    Leasing de pack informatique simple, économique et éco-responsable pour PME et startup
-                  </div>
-                </td>
-                <td style="vertical-align: top; padding-left: 20px; width: 55%;">
-                  <div style="margin-bottom: 5px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Tel direct :</span> <a href="tel:+3271491685" style="color: #333; text-decoration: none;">+32 (0)71 49 16 85</a>
-                  </div>
-                  <div style="margin-bottom: 5px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Mail :</span> <a href="mailto:hello@itakecare.be" style="color: #333; text-decoration: none;">hello@itakecare.be</a>
-                  </div>
-                  <div style="margin-bottom: 12px;">
-                    <span style="color: #5CC5CC; font-weight: 600;">Web :</span> <a href="https://www.itakecare.be" style="color: #5CC5CC; text-decoration: none;">www.itakecare.be</a>
-                  </div>
-                  <div style="font-size: 10px; line-height: 1.6; margin-bottom: 10px; color: #555;">
-                    <strong style="color: #333;">Adresse :</strong><br>
-                    iTakecare SRL<br>
-                    Avenue du Général Michel 1E<br>
-                    BE-6000 Charleroi<br>
-                    TVA : BE0795.642.894
-                  </div>
-                  <div style="margin-top: 10px;">
-                    <a href="https://www.facebook.com/itakecarebe" style="margin-right: 10px; display: inline-block;">
-                      <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" style="width: 22px; height: 22px; vertical-align: middle;">
-                    </a>
-                    <a href="https://www.linkedin.com/company/itakecare" style="display: inline-block;">
-                      <img src="https://cdn-icons-png.flaticon.com/512/733/733561.png" alt="LinkedIn" style="width: 22px; height: 22px; vertical-align: middle;">
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </div>
+          <p style="margin-top: 40px;">Cordialement,<br>L'équipe commerciale</p>
         </div>
       `;
     }
