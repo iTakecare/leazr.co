@@ -14,9 +14,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 interface ReminderEmailRequest {
   offerId: string;
   reminderType: 'document_reminder' | 'offer_reminder';
-  reminderLevel: number; // 1, 3, 5, 9 for offer reminders, 2 for document reminder
+  reminderLevel: number;
   customSubject?: string;
   customMessage?: string;
+  pdfBase64?: string;
+  pdfFilename?: string;
 }
 
 console.log("=== Edge Function send-reminder-email initialized ===");
@@ -53,9 +55,9 @@ serve(async (req) => {
 
     // Parse request body
     const requestData: ReminderEmailRequest = await req.json();
-    const { offerId, reminderType, reminderLevel, customSubject, customMessage } = requestData;
+    const { offerId, reminderType, reminderLevel, customSubject, customMessage, pdfBase64, pdfFilename } = requestData;
 
-    console.log("Request data:", { offerId, reminderType, reminderLevel });
+    console.log("Request data:", { offerId, reminderType, reminderLevel, hasPdf: !!pdfBase64 });
 
     // Get offer with client and company info
     const { data: offer, error: offerError } = await supabase
@@ -270,12 +272,24 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
     const fromField = `${smtpSettings.from_name || 'Service Commercial'} <${smtpSettings.from_email}>`;
 
-    const emailResult = await resend.emails.send({
+    // Build email payload
+    const emailPayload: any = {
       from: fromField,
       to: offer.client_email,
       subject: emailSubject,
       html: emailHtml,
-    });
+    };
+
+    // Add PDF attachment for offer reminders
+    if (reminderType === 'offer_reminder' && pdfBase64) {
+      emailPayload.attachments = [{
+        filename: pdfFilename || `offre-${offerId}.pdf`,
+        content: pdfBase64,
+      }];
+      console.log("[SEND-REMINDER] PDF attachment added:", pdfFilename);
+    }
+
+    const emailResult = await resend.emails.send(emailPayload);
 
     if (emailResult.error) {
       console.error("Resend error:", emailResult.error);
