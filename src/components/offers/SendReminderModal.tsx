@@ -27,7 +27,7 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { generateOfferPDF } from "@/services/clientPdfService";
+import { generateCommercialOfferPDF } from "@/services/commercialOfferPdfService";
 
 interface AdminUser {
   id: string;
@@ -307,7 +307,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
       if (selectedReminder.type === 'offer_reminder') {
         setGeneratingPdf(true);
         try {
-          const pdfBlob = await generateOfferPDF(offer.id, 'client');
+          const pdfBlob = await generateCommercialOfferPDF(offer.id);
           const buffer = await pdfBlob.arrayBuffer();
           const bytes = new Uint8Array(buffer);
           let binary = '';
