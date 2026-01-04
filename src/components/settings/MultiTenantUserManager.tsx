@@ -32,6 +32,7 @@ type CompanyUser = {
   first_name: string;
   last_name: string;
   role: string;
+  phone: string;
   created_at: string;
   last_sign_in_at: string;
   has_user_account: boolean;
@@ -74,6 +75,7 @@ const MultiTenantUserManager = () => {
   const [newPassword, setNewPassword] = useState("");
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [newRole, setNewRole] = useState("client");
   const [newCompanyId, setNewCompanyId] = useState("");
 
@@ -252,6 +254,7 @@ const MultiTenantUserManager = () => {
         p_first_name: newFirstName,
         p_last_name: newLastName,
         p_role: newRole,
+        p_phone: newPhone || null,
         p_company_id: newCompanyId === "keep_current" ? undefined : newCompanyId || undefined
       });
       
@@ -291,6 +294,7 @@ const MultiTenantUserManager = () => {
     setNewPassword("");
     setNewFirstName("");
     setNewLastName("");
+    setNewPhone("");
     setNewRole("client");
     setNewCompanyId("");
   };
@@ -301,6 +305,7 @@ const MultiTenantUserManager = () => {
     setNewPassword("");
     setNewFirstName(user.first_name || "");
     setNewLastName(user.last_name || "");
+    setNewPhone(user.phone || "");
     setNewRole(user.role || "client");
     setNewCompanyId("");
     setShowEditDialog(true);
@@ -450,6 +455,7 @@ const MultiTenantUserManager = () => {
             <TableRow>
               <TableHead>Nom complet</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Téléphone</TableHead>
               <TableHead>Rôle</TableHead>
               <TableHead>Date d'inscription</TableHead>
               <TableHead>Dernière connexion</TableHead>
@@ -459,7 +465,7 @@ const MultiTenantUserManager = () => {
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Aucun utilisateur trouvé pour cette entreprise
                 </TableCell>
               </TableRow>
@@ -473,6 +479,7 @@ const MultiTenantUserManager = () => {
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.phone || '-'}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>
                       {user.role}
@@ -560,6 +567,17 @@ const MultiTenantUserManager = () => {
             </div>
             
             <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input 
+                id="phone" 
+                type="tel"
+                value={newPhone} 
+                onChange={(e) => setNewPhone(e.target.value)} 
+                placeholder="+32 470 123 456"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="role">Rôle</Label>
               <Select value={newRole} onValueChange={setNewRole}>
                 <SelectTrigger>
@@ -645,6 +663,17 @@ const MultiTenantUserManager = () => {
               />
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="editPhone">Téléphone</Label>
+              <Input 
+                id="editPhone" 
+                type="tel"
+                value={newPhone} 
+                onChange={(e) => setNewPhone(e.target.value)} 
+                placeholder="+32 470 123 456"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="editRole">Rôle</Label>
               <Select value={newRole} onValueChange={setNewRole}>

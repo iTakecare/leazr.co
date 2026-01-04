@@ -20,6 +20,7 @@ interface ReminderEmailRequest {
   pdfBase64?: string;
   pdfFilename?: string;
   signerId?: string;
+  signerPhone?: string;
 }
 
 console.log("=== Edge Function send-reminder-email initialized ===");
@@ -118,7 +119,7 @@ serve(async (req) => {
     // Get company info
     const { data: company } = await supabase
       .from('companies')
-      .select('name, slug, logo_url, signature_representative_name, signature_representative_title, primary_color')
+      .select('name, slug, logo_url, signature_representative_name, primary_color')
       .eq('id', offer.company_id)
       .single();
 
@@ -250,7 +251,6 @@ serve(async (req) => {
       offer_link: offerLink,
       company_logo: company?.logo_url || '',
       representative_name: '', // Will be set below after signer lookup
-      representative_title: company?.signature_representative_title || '',
     };
 
     // Get signer info if specified, otherwise use company default
@@ -259,7 +259,7 @@ serve(async (req) => {
     if (signerId) {
       const { data: signer } = await supabase
         .from('profiles')
-        .select('first_name, last_name')
+        .select('first_name, last_name, phone')
         .eq('id', signerId)
         .single();
       
@@ -267,6 +267,10 @@ serve(async (req) => {
         const signerName = `${signer.first_name || ''} ${signer.last_name || ''}`.trim();
         if (signerName) {
           representativeName = signerName;
+        }
+        // Use signer's phone if available
+        if (signer.phone) {
+          templateVariables.contact_phone = signer.phone;
         }
       }
       console.log("Using signer:", representativeName);

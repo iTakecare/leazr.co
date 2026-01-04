@@ -34,6 +34,7 @@ interface AdminUser {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  phone: string | null;
 }
 
 interface SendReminderModalProps {
@@ -161,7 +162,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
       // Fetch all admins/sales from same company
       const { data: admins } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email')
+        .select('id, first_name, last_name, email, phone')
         .eq('company_id', profile.company_id)
         .in('role', ['admin', 'partner_admin', 'sales', 'commercial'])
         .order('first_name');
@@ -201,13 +202,12 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         // Fetch company data for logo and representative
         const { data: companyData } = await supabase
           .from('companies')
-          .select('logo_url, signature_representative_name, signature_representative_title')
+          .select('logo_url, signature_representative_name')
           .eq('id', profile.company_id)
           .single();
 
         const companyName = customization?.company_name || 'Notre équipe';
         const contactEmail = customization?.company_email || '';
-        const contactPhone = customization?.company_phone || '';
         const logoUrl = companyData?.logo_url || '';
         
         // Get signer info - use selected signer or fall back to company default
@@ -215,7 +215,10 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         const representativeName = selectedSigner 
           ? `${selectedSigner.first_name || ''} ${selectedSigner.last_name || ''}`.trim() || 'L\'équipe commerciale'
           : companyData?.signature_representative_name || 'L\'équipe commerciale';
-        const representativeTitle = companyData?.signature_representative_title || '';
+        
+        // Use signer's phone or fall back to company phone
+        const contactPhone = selectedSigner?.phone || customization?.company_phone || '';
+        
         const offerLink = `https://www.leazr.co/offre/${offer.id}`;
 
         // Get client first name - either from clients table or extract from client_name
@@ -254,7 +257,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
             .replace(/\{\{\s*monthly_payment\s*\}\}/g, (offer.monthly_payment || 0).toLocaleString('fr-FR'))
             .replace(/\{\{\s*company_logo\s*\}\}/g, logoUrl)
             .replace(/\{\{\s*representative_name\s*\}\}/g, representativeName)
-            .replace(/\{\{\s*representative_title\s*\}\}/g, representativeTitle)
             .replace(/\{\{\s*offer_link\s*\}\}/g, offerLink)
             .replace(/\{\{\s*custom_message\s*\}\}/g, customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '');
 

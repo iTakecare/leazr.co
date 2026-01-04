@@ -7121,6 +7121,7 @@ export type Database = {
               has_user_account: boolean
               last_name: string
               last_sign_in_at: string
+              phone: string
               role: string
               user_id: string
             }[]
@@ -7872,16 +7873,28 @@ export type Database = {
           success: boolean
         }[]
       }
-      update_company_user: {
-        Args: {
-          p_company_id?: string
-          p_first_name: string
-          p_last_name: string
-          p_role: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
+      update_company_user:
+        | {
+            Args: {
+              p_company_id?: string
+              p_first_name?: string
+              p_last_name?: string
+              p_phone?: string
+              p_role?: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_company_id?: string
+              p_first_name: string
+              p_last_name: string
+              p_role: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
       update_equipment_with_global_margin: {
         Args: {
           p_leaser_id: string
