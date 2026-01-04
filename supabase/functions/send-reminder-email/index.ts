@@ -259,7 +259,7 @@ serve(async (req) => {
     if (signerId) {
       const { data: signer } = await supabase
         .from('profiles')
-        .select('first_name, last_name, phone')
+        .select('first_name, last_name, phone, email')
         .eq('id', signerId)
         .single();
       
@@ -267,6 +267,10 @@ serve(async (req) => {
         const signerName = `${signer.first_name || ''} ${signer.last_name || ''}`.trim();
         if (signerName) {
           representativeName = signerName;
+        }
+        // Use signer's email if available
+        if (signer.email) {
+          templateVariables.contact_email = signer.email;
         }
         // Use signer's phone if available
         if (signer.phone) {
