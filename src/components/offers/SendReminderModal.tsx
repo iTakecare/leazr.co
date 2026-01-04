@@ -20,6 +20,7 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { generateOfferPDF } from "@/services/clientPdfService";
 
 interface SendReminderModalProps {
   open: boolean;
@@ -45,6 +46,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(true);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [subject, setSubject] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
@@ -239,6 +241,28 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         return;
       }
 
+      // Generate PDF for offer reminders only
+      let pdfBase64: string | undefined;
+      let pdfFilename: string | undefined;
+
+      if (selectedReminder.type === 'offer_reminder') {
+        setGeneratingPdf(true);
+        try {
+          const pdfBlob = await generateOfferPDF(offer.id, 'client');
+          const buffer = await pdfBlob.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          bytes.forEach(byte => binary += String.fromCharCode(byte));
+          pdfBase64 = btoa(binary);
+          pdfFilename = `Offre_${offer.client_name?.replace(/\s+/g, '_') || offer.id}.pdf`;
+        } catch (error) {
+          console.error('Erreur génération PDF:', error);
+          // Continue without PDF if error
+        } finally {
+          setGeneratingPdf(false);
+        }
+      }
+
       const response = await supabase.functions.invoke('send-reminder-email', {
         body: {
           offerId: offer.id,
@@ -246,6 +270,8 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           reminderLevel: selectedReminder.level,
           customSubject: subject !== "" ? subject : undefined,
           customMessage: customMessage || undefined,
+          pdfBase64,
+          pdfFilename,
         },
       });
 
@@ -434,11 +460,16 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+          <Button variant="outline" onClick={onClose} disabled={loading || generatingPdf}>
             Annuler
           </Button>
-          <Button onClick={handleSend} disabled={loading || loadingTemplate || !selectedReminder}>
-            {loading ? (
+          <Button onClick={handleSend} disabled={loading || loadingTemplate || generatingPdf || !selectedReminder}>
+            {generatingPdf ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Génération du PDF...
+              </>
+            ) : loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Envoi en cours...
