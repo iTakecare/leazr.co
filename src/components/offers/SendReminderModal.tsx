@@ -207,7 +207,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           .single();
 
         const companyName = customization?.company_name || 'Notre équipe';
-        const contactEmail = customization?.company_email || '';
         const logoUrl = companyData?.logo_url || '';
         
         // Get signer info - use selected signer or fall back to company default
@@ -216,7 +215,8 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           ? `${selectedSigner.first_name || ''} ${selectedSigner.last_name || ''}`.trim() || 'L\'équipe commerciale'
           : companyData?.signature_representative_name || 'L\'équipe commerciale';
         
-        // Use signer's phone or fall back to company phone
+        // Use signer's email and phone or fall back to company defaults
+        const contactEmail = selectedSigner?.email || customization?.company_email || '';
         const contactPhone = selectedSigner?.phone || customization?.company_phone || '';
         
         const offerLink = `https://www.leazr.co/offre/${offer.id}`;
