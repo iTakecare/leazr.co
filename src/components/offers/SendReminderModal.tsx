@@ -6,11 +6,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Mail, AlertCircle, Check, Clock, FileText, Bell } from "lucide-react";
+import { Loader2, Send, Mail, AlertCircle, Check, Clock, FileText, Bell, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Offer } from "@/hooks/offers/useFetchOffers";
@@ -21,6 +28,13 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { generateOfferPDF } from "@/services/clientPdfService";
+
+interface AdminUser {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}
 
 interface SendReminderModalProps {
   open: boolean;
@@ -53,6 +67,11 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   
   // Selected reminder type and level
   const [selectedReminder, setSelectedReminder] = useState<ReminderStatus | null>(null);
+  
+  // Signer selection
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [selectedSignerId, setSelectedSignerId] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   // Calculate available reminders based on offer status
   const isDocumentStatus = DOCUMENT_REMINDER_STATUSES.includes(offer.workflow_status || '');
@@ -115,7 +134,44 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     if (!open) {
       setSelectedReminder(null);
       setCustomMessage("");
+      setSelectedSignerId('');
+      setAdminUsers([]);
     }
+  }, [open]);
+
+  // Fetch admin users for signer selection
+  useEffect(() => {
+    const fetchAdminUsers = async () => {
+      if (!open) return;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      setCurrentUserId(user.id);
+      setSelectedSignerId(user.id); // Default: current user
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Fetch all admins/sales from same company
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .eq('company_id', profile.company_id)
+        .in('role', ['admin', 'partner_admin', 'sales', 'commercial'])
+        .order('first_name');
+
+      if (admins) {
+        setAdminUsers(admins);
+      }
+    };
+
+    fetchAdminUsers();
   }, [open]);
 
   // Fetch template when modal opens or selection changes
@@ -153,7 +209,12 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         const contactEmail = customization?.company_email || '';
         const contactPhone = customization?.company_phone || '';
         const logoUrl = companyData?.logo_url || '';
-        const representativeName = companyData?.signature_representative_name || 'L\'équipe commerciale';
+        
+        // Get signer info - use selected signer or fall back to company default
+        const selectedSigner = adminUsers.find(u => u.id === selectedSignerId);
+        const representativeName = selectedSigner 
+          ? `${selectedSigner.first_name || ''} ${selectedSigner.last_name || ''}`.trim() || 'L\'équipe commerciale'
+          : companyData?.signature_representative_name || 'L\'équipe commerciale';
         const representativeTitle = companyData?.signature_representative_title || '';
         const offerLink = `https://www.leazr.co/offre/${offer.id}`;
 
@@ -208,7 +269,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     };
 
     fetchTemplate();
-  }, [open, selectedReminder, offer, customMessage]);
+  }, [open, selectedReminder, offer, customMessage, selectedSignerId, adminUsers]);
 
   // Update preview when custom message changes
   useEffect(() => {
@@ -272,6 +333,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           customMessage: customMessage || undefined,
           pdfBase64,
           pdfFilename,
+          signerId: selectedSignerId || undefined,
         },
       });
 
@@ -440,6 +502,32 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
               Ce message sera ajouté au contenu du template d'email.
             </p>
           </div>
+
+          {/* Signer selection */}
+          {adminUsers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Signature de l'email
+              </Label>
+              <Select value={selectedSignerId} onValueChange={setSelectedSignerId}>
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Sélectionner le signataire" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  {adminUsers.map((admin) => (
+                    <SelectItem key={admin.id} value={admin.id}>
+                      {admin.first_name} {admin.last_name}
+                      {admin.id === currentUserId && " (vous)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                L'email sera signé par cette personne.
+              </p>
+            </div>
+          )}
 
           {/* Preview */}
           <div className="space-y-2">
