@@ -19,6 +19,7 @@ interface ReminderEmailRequest {
   customMessage?: string;
   pdfBase64?: string;
   pdfFilename?: string;
+  signerId?: string;
 }
 
 console.log("=== Edge Function send-reminder-email initialized ===");
@@ -55,9 +56,9 @@ serve(async (req) => {
 
     // Parse request body
     const requestData: ReminderEmailRequest = await req.json();
-    const { offerId, reminderType, reminderLevel, customSubject, customMessage, pdfBase64, pdfFilename } = requestData;
+    const { offerId, reminderType, reminderLevel, customSubject, customMessage, pdfBase64, pdfFilename, signerId } = requestData;
 
-    console.log("Request data:", { offerId, reminderType, reminderLevel, hasPdf: !!pdfBase64 });
+    console.log("Request data:", { offerId, reminderType, reminderLevel, hasPdf: !!pdfBase64, signerId });
 
     // Get offer with client and company info
     const { data: offer, error: offerError } = await supabase
@@ -248,9 +249,30 @@ serve(async (req) => {
       // New variables for professional signature
       offer_link: offerLink,
       company_logo: company?.logo_url || '',
-      representative_name: company?.signature_representative_name || 'L\'équipe commerciale',
+      representative_name: '', // Will be set below after signer lookup
       representative_title: company?.signature_representative_title || '',
     };
+
+    // Get signer info if specified, otherwise use company default
+    let representativeName = company?.signature_representative_name || 'L\'équipe commerciale';
+    
+    if (signerId) {
+      const { data: signer } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', signerId)
+        .single();
+      
+      if (signer) {
+        const signerName = `${signer.first_name || ''} ${signer.last_name || ''}`.trim();
+        if (signerName) {
+          representativeName = signerName;
+        }
+      }
+      console.log("Using signer:", representativeName);
+    }
+    
+    templateVariables.representative_name = representativeName;
 
     // Render template
     const renderTemplate = (templateStr: string, variables: Record<string, string>) => {
