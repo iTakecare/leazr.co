@@ -159,13 +159,9 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
 
       if (!profile?.company_id) return;
 
-      // Fetch all admins/sales from same company
+      // Fetch all admins/sales from same company with real emails from auth.users
       const { data: admins } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email, phone')
-        .eq('company_id', profile.company_id)
-        .in('role', ['admin', 'partner_admin', 'sales', 'commercial'])
-        .order('first_name');
+        .rpc('get_company_signers', { p_company_id: profile.company_id });
 
       if (admins) {
         setAdminUsers(admins);
