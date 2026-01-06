@@ -136,7 +136,8 @@ export const duplicatePack = async (id: string): Promise<ProductPack> => {
 export const calculatePackTotals = (
   items: ProductPackItem[], 
   leaser?: Leaser | null, 
-  duration: number = 36
+  duration: number = 36,
+  effectivePackPrice?: number // Prix pack personnalisé (pack_monthly_price ou pack_promo_price)
 ): PackCalculation => {
   if (!items || items.length === 0) {
     return {
@@ -149,55 +150,55 @@ export const calculatePackTotals = (
     };
   }
 
-  // 1. Calculate total purchase price
-  const total_purchase_price = items.reduce((sum, item) => 
-    sum + (item.unit_purchase_price * item.quantity), 0
-  );
-  
-  // 2. Calculate total monthly price (sum of individual monthly prices × quantities)
-  const total_monthly_price = items.reduce((sum, item) => 
-    sum + (item.unit_monthly_price * item.quantity), 0
-  );
-  
-  // 3. Calculate individual financed amounts to determine global coefficient range
-  const totalFinancedAmountIndividual = items.reduce((sum, item) => {
-    const lineMonthly = item.unit_monthly_price * item.quantity;
-    return sum + calculateSalePriceWithLeaser(lineMonthly, leaser, duration);
-  }, 0);
-  
-  // 4. Get global coefficient based on total financed amount
-  const globalCoefficient = getCoefficientFromLeaser(leaser, totalFinancedAmountIndividual, duration);
-  
-  // 5. Calculate financed amount using inverse Grenke formula (same as offers)
-  // financed_amount = monthly_payment × 100 / coefficient
-  const totalFinancedAmountDisplay = globalCoefficient > 0 
-    ? Math.round((total_monthly_price * 100 / globalCoefficient) * 100) / 100
-    : totalFinancedAmountIndividual;
-  
-  // 6. Calculate margin from financed amount - this is the real margin
-  // margin = financed_amount - purchase_price
-  const total_margin = Math.round((totalFinancedAmountDisplay - total_purchase_price) * 100) / 100;
-  
-  // 7. Calculate margin percentage based on purchase price
-  const average_margin_percentage = total_purchase_price > 0 
-    ? Math.round((total_margin / total_purchase_price) * 1000) / 10 // 1 decimal place
-    : 0;
-  
-  const total_quantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  // Calculs de base - sommes individuelles
+  let total_purchase_price = 0;
+  let total_monthly_price = 0; // Somme des mensualités individuelles
+  let total_quantity = 0;
+  let totalFinancedAmountIndividual = 0;
 
-  console.log("📦 Pack calculations:", {
-    total_purchase_price,
-    total_monthly_price,
-    totalFinancedAmountIndividual,
-    globalCoefficient,
-    totalFinancedAmountDisplay,
-    total_margin,
-    average_margin_percentage,
+  items.forEach(item => {
+    const qty = item.quantity || 1;
+    total_purchase_price += item.unit_purchase_price * qty;
+    total_monthly_price += item.unit_monthly_price * qty;
+    total_quantity += qty;
+
+    // Montant financé par ligne (pour obtenir le coefficient global)
+    const lineMonthlyTotal = item.unit_monthly_price * qty;
+    const lineFinanced = calculateSalePriceWithLeaser(lineMonthlyTotal, leaser, duration);
+    totalFinancedAmountIndividual += lineFinanced;
   });
+
+  // Arrondir à 2 décimales
+  total_purchase_price = Math.round(total_purchase_price * 100) / 100;
+  total_monthly_price = Math.round(total_monthly_price * 100) / 100;
+
+  // Déterminer la mensualité effective pour le calcul de la marge
+  // Si un prix pack est défini, on l'utilise; sinon on utilise la somme des individuels
+  const actualMonthlyPrice = (effectivePackPrice && effectivePackPrice > 0)
+    ? effectivePackPrice
+    : total_monthly_price;
+
+  // Obtenir le coefficient global basé sur le montant financé individuel total
+  const globalCoefficient = getCoefficientFromLeaser(leaser, totalFinancedAmountIndividual, duration);
+
+  // Calculer le montant financé display basé sur la mensualité effective
+  let totalFinancedAmountDisplay: number;
+  if (globalCoefficient > 0) {
+    totalFinancedAmountDisplay = Math.round((actualMonthlyPrice * 100 / globalCoefficient) * 100) / 100;
+  } else {
+    // Fallback si pas de coefficient
+    totalFinancedAmountDisplay = totalFinancedAmountIndividual;
+  }
+
+  // Marge et pourcentage basés sur le prix effectif
+  const total_margin = Math.round((totalFinancedAmountDisplay - total_purchase_price) * 100) / 100;
+  const average_margin_percentage = total_purchase_price > 0
+    ? Math.round((total_margin / total_purchase_price) * 1000) / 10
+    : 0;
 
   return {
     total_purchase_price,
-    total_monthly_price,
+    total_monthly_price, // Garde la somme individuelle pour référence
     total_margin,
     average_margin_percentage,
     items_count: items.length,

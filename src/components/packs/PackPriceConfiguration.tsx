@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,6 @@ import { PackCalculation } from "@/types/pack";
 import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
 import { useQuery } from "@tanstack/react-query";
 import { getLeasers } from "@/services/leaserService";
-
 interface PackPriceConfigurationProps {
   packItems: PackItemFormData[];
   calculations: PackCalculation;
@@ -159,6 +159,11 @@ export const PackPriceConfiguration = ({
   const effectivePackPrice = packData.promo_active && packData.pack_promo_price 
     ? packData.pack_promo_price 
     : packData.pack_monthly_price;
+
+  // Recalculer les totaux quand le prix du pack change
+  useEffect(() => {
+    onUpdateCalculations();
+  }, [packData.pack_monthly_price, packData.pack_promo_price, packData.promo_active]);
 
   return (
     <div className="space-y-6">

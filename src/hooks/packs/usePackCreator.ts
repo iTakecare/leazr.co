@@ -98,13 +98,20 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
       ? leasers.find(l => l.id === packData.leaser_id) || null
       : null;
     
+    // Déterminer le prix effectif du pack (promo si active, sinon pack_monthly_price)
+    const effectivePrice = packData.promo_active && packData.pack_promo_price
+      ? packData.pack_promo_price
+      : packData.pack_monthly_price;
+    
     const newCalculations = calculatePackTotals(
       itemsForCalculation, 
       leaser, 
-      packData.selected_duration || 36
+      packData.selected_duration || 36,
+      effectivePrice // Passer le prix pack effectif
     );
     setCalculations(newCalculations);
-  }, [packItems, editingPack?.id, packData.leaser_id, packData.selected_duration, leasers]);
+  }, [packItems, editingPack?.id, packData.leaser_id, packData.selected_duration, 
+      packData.pack_monthly_price, packData.pack_promo_price, packData.promo_active, leasers]);
 
   // Initialize form data when editingPack changes
   useEffect(() => {
