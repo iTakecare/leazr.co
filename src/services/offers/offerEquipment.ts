@@ -432,15 +432,22 @@ export const migrateEquipmentFromJson = async (offerId: string, equipmentJson: s
     
     // Migrer chaque équipement
     for (const item of equipmentData) {
-      // Créer l'équipement de base
+      // Calculer le selling_price si non fourni
+      const purchasePrice = Number(item.purchasePrice || item.purchase_price) || 0;
+      const margin = Number(item.margin) || 0;
+      const providedSellingPrice = Number(item.sellingPrice || item.selling_price) || 0;
+      const calculatedSellingPrice = purchasePrice * (1 + margin / 100);
+      
+      // Créer l'équipement de base avec selling_price
       const newEquipment = {
         offer_id: offerId,
         title: item.title || "Produit sans nom",
-        purchase_price: Number(item.purchasePrice || item.purchase_price) || 0,
+        purchase_price: purchasePrice,
         quantity: Number(item.quantity) || 1,
-        margin: Number(item.margin) || 0,
+        margin: margin,
         monthly_payment: Number(item.monthlyPayment || item.monthly_payment) || 0,
-        serial_number: item.serialNumber || item.serial_number
+        serial_number: item.serialNumber || item.serial_number,
+        selling_price: providedSellingPrice > 0 ? providedSellingPrice : calculatedSellingPrice
       };
       
       // Extraire les attributs et spécifications

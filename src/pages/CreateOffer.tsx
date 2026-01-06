@@ -594,9 +594,26 @@ const CreateOffer = () => {
       }
 
       // Préparer les données d'équipement avec les attributs et spécifications
-      // IMPORTANT: Préserver les mensualités catalogue si elles existent, sinon recalculer
+      // IMPORTANT: En mode achat, forcer monthlyPayment à 0 et calculer sellingPrice
       const equipmentData = equipmentList.map(eq => {
-        // CORRECTION : Préserver le monthlyPayment s'il existe (venant du catalogue)
+        // MODE ACHAT: Forcer mensualité à 0 et calculer sellingPrice
+        if (isPurchase) {
+          const sellingPrice = eq.purchasePrice * (1 + eq.margin / 100);
+          console.log(`💾 SAVE ACHAT - ${eq.title}: PA=${eq.purchasePrice}, marge=${eq.margin}%, PV=${sellingPrice}`);
+          return {
+            id: eq.id,
+            title: eq.title,
+            purchasePrice: eq.purchasePrice,
+            quantity: eq.quantity,
+            margin: eq.margin,
+            monthlyPayment: 0, // Toujours 0 en achat
+            sellingPrice: sellingPrice, // PV unitaire pour persistance
+            attributes: eq.attributes || {},
+            specifications: eq.specifications || {}
+          };
+        }
+        
+        // MODE LEASING: Préserver le monthlyPayment s'il existe (venant du catalogue)
         // Sinon, calculer à partir du prix d'achat + marge + coefficient
         let finalMonthlyPayment = eq.monthlyPayment;
         
@@ -607,7 +624,7 @@ const CreateOffer = () => {
           finalMonthlyPayment = (financedAmountForEquipment * coeff) / 100;
         }
         
-        console.log(`💾 SAVE - ${eq.title}: stored=${eq.monthlyPayment}, final=${finalMonthlyPayment}`);
+        console.log(`💾 SAVE LEASING - ${eq.title}: stored=${eq.monthlyPayment}, final=${finalMonthlyPayment}`);
         
         return {
           id: eq.id,
@@ -616,7 +633,6 @@ const CreateOffer = () => {
           quantity: eq.quantity,
           margin: eq.margin,
           monthlyPayment: finalMonthlyPayment,
-          // S'assurer que les attributs et spécifications sont inclus avec des valeurs par défaut
           attributes: eq.attributes || {},
           specifications: eq.specifications || {}
         };
@@ -673,11 +689,14 @@ const CreateOffer = () => {
         calculatedCommission,
         isInternalOffer
       });
-      // Calculer le montant total pour l'achat direct (prix d'achat + marge)
+      // Calculer les montants pour l'achat direct
+      const totalPurchaseAmountForSave = equipmentList.reduce((sum, eq) => 
+        sum + (eq.purchasePrice * eq.quantity), 0);
       const totalSaleAmount = equipmentList.reduce((sum, eq) => {
         const financedAmountForEq = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
         return sum + financedAmountForEq;
       }, 0);
+      const totalMarginForSave = totalSaleAmount - totalPurchaseAmountForSave;
 
       const offerData: OfferData = {
         user_id: user.id,
@@ -695,10 +714,11 @@ const CreateOffer = () => {
         equipment_description: productsToBeDetermined ? '[]' : JSON.stringify(equipmentData),
         
         // Montants adaptés selon le mode (achat vs leasing)
+        // ACHAT: amount = total achat, financed_amount = total vente, margin = différence
         amount: productsToBeDetermined 
           ? (estimatedBudget || 0) 
           : isPurchase 
-            ? totalSaleAmount 
+            ? totalPurchaseAmountForSave  // En achat: montant d'achat total
             : (totalAmount || 0),
         coefficient: isPurchase ? 0 : (productsToBeDetermined ? (getMaxCoefficientFromLeaser(selectedLeaser) || 3.55) : (Number(globalMarginAdjustment.newCoef) || 3.55)),
         monthly_payment: isPurchase 
@@ -708,7 +728,7 @@ const CreateOffer = () => {
             : (totalMonthlyPayment || 0),
         commission: calculatedCommission || 0,
         financed_amount: isPurchase 
-          ? totalSaleAmount 
+          ? totalSaleAmount  // En achat: montant de vente total
           : productsToBeDetermined 
             ? (estimatedBudget || 0) 
             : (financedAmount || 0),
@@ -716,7 +736,7 @@ const CreateOffer = () => {
         type: offerType,
         // En mode édition, ne jamais toucher au workflow_status ; en création, mettre 'draft'
         ...(isEditMode ? {} : { workflow_status: 'draft' }),
-        margin: productsToBeDetermined ? 0 : totalEquipmentMargin,
+        margin: productsToBeDetermined ? 0 : (isPurchase ? totalMarginForSave : totalEquipmentMargin),
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: productsToBeDetermined ? 0 : (totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)),
         ambassador_id: ambassadorId,
