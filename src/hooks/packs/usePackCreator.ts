@@ -159,7 +159,16 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
 
   // Create pack mutation
   const createPackMutation = useMutation({
-    mutationFn: createPack,
+    mutationFn: async (data: typeof packData) => {
+      // Inclure les calculs (marge correcte basée sur le prix pack) dans les données sauvegardées
+      const packDataWithCalculations = {
+        ...data,
+        total_purchase_price: calculations.total_purchase_price,
+        total_monthly_price: calculations.total_monthly_price,
+        total_margin: calculations.total_margin,
+      };
+      return createPack(packDataWithCalculations);
+    },
     onSuccess: async (newPack) => {
       if (packItems.length > 0) {
         const itemsData = packItems.map((item, index) => ({
@@ -192,8 +201,16 @@ export const usePackCreator = (editingPack?: ProductPack | null) => {
     mutationFn: async () => {
       if (!editingPack) throw new Error("No pack to update");
       
-      // Update pack basic info
-      await updatePack(editingPack.id, packData);
+      // Inclure les calculs (marge correcte basée sur le prix pack) dans les données sauvegardées
+      const packDataWithCalculations = {
+        ...packData,
+        total_purchase_price: calculations.total_purchase_price,
+        total_monthly_price: calculations.total_monthly_price,
+        total_margin: calculations.total_margin,
+      };
+      
+      // Update pack basic info with calculations
+      await updatePack(editingPack.id, packDataWithCalculations);
       
       // Handle items updates
       const existingItems = packItems.filter(item => !item.isNew && item.id);

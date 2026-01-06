@@ -218,10 +218,10 @@ export const updatePackCalculations = async (packId: string): Promise<void> => {
     throw error;
   }
 
-  // Get pack data to retrieve leaser and duration
+  // Get pack data to retrieve leaser, duration AND pack prices
   const { data: packData } = await supabase
     .from('product_packs')
-    .select('leaser_id, selected_duration')
+    .select('leaser_id, selected_duration, pack_monthly_price, pack_promo_price, promo_active')
     .eq('id', packId)
     .single();
   
@@ -236,19 +236,26 @@ export const updatePackCalculations = async (packId: string): Promise<void> => {
     leaser = leaserData;
   }
   
-  const calculations = calculatePackTotals(items || [], leaser, packData?.selected_duration || 36);
+  // Déterminer le prix effectif du pack
+  const effectivePrice = packData?.promo_active && packData?.pack_promo_price
+    ? packData.pack_promo_price
+    : packData?.pack_monthly_price;
+  
+  // Calculer avec le prix pack effectif pour obtenir la bonne marge
+  const calculations = calculatePackTotals(
+    items || [], 
+    leaser, 
+    packData?.selected_duration || 36,
+    effectivePrice // Passer le prix pack effectif
+  );
 
-  // CORRECTION: Mise à jour avec préservation des prix personnalisés
-  // Ne pas écraser pack_monthly_price ou pack_promo_price lors des recalculs
+  // Mise à jour avec préservation des prix personnalisés
   const updateData: any = {
     total_purchase_price: calculations.total_purchase_price,
     total_monthly_price: calculations.total_monthly_price,
     total_margin: calculations.total_margin,
     updated_at: new Date().toISOString()
   };
-
-  // Les prix pack_monthly_price et pack_promo_price sont préservés
-  // Ils ne sont modifiés que lors d'une édition explicite par l'utilisateur
 
   const { error: updateError } = await supabase
     .from('product_packs')
