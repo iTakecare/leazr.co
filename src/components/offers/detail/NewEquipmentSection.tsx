@@ -254,7 +254,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   };
 
   // Pré-calculer tous les P.V. répartis avec ajustement pour que la somme soit exacte (méthode Largest Remainder)
-  // Respecte les prix de vente manuels s'ils existent
+  // MODE ACHAT: Calcul direct par ligne (PA * (1 + marge%)), pas de répartition
+  // MODE LEASING: Répartition proportionnelle pour équilibrer
   const calculateAllSellingPrices = (equipmentList: any[], totalPurchasePrice: number, totalSellingPrice: number): Record<string, number> => {
     if (equipmentList.length === 0 || totalPurchasePrice === 0) {
       return {};
@@ -262,6 +263,26 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
     const adjustedPrices: Record<string, number> = {};
     
+    // MODE ACHAT: Calcul direct par ligne, pas de répartition
+    if (isPurchase) {
+      equipmentList.forEach(item => {
+        const equipmentPurchaseTotal = item.purchase_price * item.quantity;
+        
+        // Priorité 1: selling_price stocké en BD
+        if (item.selling_price !== null && item.selling_price !== undefined && item.selling_price > 0) {
+          adjustedPrices[item.id] = Math.round(item.selling_price * item.quantity * 100) / 100;
+        } 
+        // Priorité 2: Calcul depuis la marge de la ligne
+        else {
+          const marginPercent = item.margin || 0;
+          const sellingPriceUnit = item.purchase_price * (1 + marginPercent / 100);
+          adjustedPrices[item.id] = Math.round(sellingPriceUnit * item.quantity * 100) / 100;
+        }
+      });
+      return adjustedPrices;
+    }
+    
+    // MODE LEASING: Répartition proportionnelle (logique existante)
     // Étape 1: Identifier les équipements avec un selling_price stocké en BD
     let totalManualSellingPrice = 0;
     let totalManualPurchasePrice = 0;
@@ -318,7 +339,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   };
 
   // Pré-calculer toutes les marges réparties avec ajustement (méthode Largest Remainder)
-  // Respecte les marges issues des prix de vente manuels
+  // MODE ACHAT: Calcul direct par ligne (PV - PA), pas de répartition
+  // MODE LEASING: Répartition proportionnelle pour équilibrer
   const calculateAllMargins = (equipmentList: any[], totalPurchasePrice: number, totalMargin: number, adjustedSellingPrices: Record<string, number>): Record<string, number> => {
     if (equipmentList.length === 0 || totalPurchasePrice === 0) {
       return {};
@@ -326,6 +348,18 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
     const adjustedMargins: Record<string, number> = {};
     
+    // MODE ACHAT: Calcul direct par ligne, pas de répartition
+    if (isPurchase) {
+      equipmentList.forEach(item => {
+        const equipmentPurchaseTotal = item.purchase_price * item.quantity;
+        const sellingPriceTotal = adjustedSellingPrices[item.id] || 0;
+        const margin = sellingPriceTotal - equipmentPurchaseTotal;
+        adjustedMargins[item.id] = Math.round(margin * 100) / 100;
+      });
+      return adjustedMargins;
+    }
+    
+    // MODE LEASING: Répartition proportionnelle (logique existante)
     // Étape 1: Calculer les marges pour les équipements avec selling_price stocké en BD
     let totalManualMargin = 0;
     let totalManualPurchasePrice = 0;
