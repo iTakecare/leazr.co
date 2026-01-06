@@ -394,15 +394,10 @@ const [notesLoading, setNotesLoading] = useState(false);
       const isPurchase = offer?.is_purchase === true;
       
       // Calculer le totalSellingPrice pour les offres d'achat
-      // selling_price en DB est le prix UNITAIRE, donc on multiplie par quantity
-      // Priorité : financed_amount (source de vérité) sinon calcul depuis équipements
-      const totalSellingPriceFromEquipment = equipmentData.reduce(
-        (sum: number, eq: any) => sum + ((Number(eq.selling_price) || 0) * (Number(eq.quantity) || 1)),
+      const totalSellingPrice = equipmentData.reduce(
+        (sum: number, eq: any) => sum + (Number(eq.selling_price) || 0),
         0
       );
-      const totalSellingPrice = isPurchase && offer.financed_amount 
-        ? Number(offer.financed_amount) 
-        : totalSellingPriceFromEquipment;
       
       const offerData = {
         // Données de base

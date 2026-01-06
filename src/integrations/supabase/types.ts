@@ -2250,8 +2250,6 @@ export type Database = {
       }
       contract_equipment: {
         Row: {
-          actual_purchase_date: string | null
-          actual_purchase_price: number | null
           collaborator_id: string | null
           contract_id: string
           created_at: string
@@ -2261,7 +2259,6 @@ export type Database = {
           margin: number
           monthly_payment: number | null
           parent_equipment_id: string | null
-          purchase_notes: string | null
           purchase_price: number
           quantity: number
           serial_number: string | null
@@ -2269,8 +2266,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          actual_purchase_date?: string | null
-          actual_purchase_price?: number | null
           collaborator_id?: string | null
           contract_id: string
           created_at?: string
@@ -2280,7 +2275,6 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           parent_equipment_id?: string | null
-          purchase_notes?: string | null
           purchase_price?: number
           quantity?: number
           serial_number?: string | null
@@ -2288,8 +2282,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          actual_purchase_date?: string | null
-          actual_purchase_price?: number | null
           collaborator_id?: string | null
           contract_id?: string
           created_at?: string
@@ -2299,7 +2291,6 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           parent_equipment_id?: string | null
-          purchase_notes?: string | null
           purchase_price?: number
           quantity?: number
           serial_number?: string | null
@@ -7156,16 +7147,18 @@ export type Database = {
             }[]
           }
       get_contract_for_signature: { Args: { p_token: string }; Returns: Json }
-      get_contract_statistics_by_status: {
-        Args: { p_year?: number }
-        Returns: {
-          count: number
-          status: string
-          total_margin: number
-          total_purchases: number
-          total_revenue: number
-        }[]
-      }
+      get_contract_statistics_by_status:
+        | { Args: never; Returns: Json }
+        | {
+            Args: { p_year?: number }
+            Returns: {
+              count: number
+              status: string
+              total_margin: number
+              total_purchases: number
+              total_revenue: number
+            }[]
+          }
       get_contract_workflow_logs: {
         Args: { p_contract_id: string }
         Returns: {
