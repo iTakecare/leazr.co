@@ -144,9 +144,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                   </>
                 )}
                 <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right' }}>
-                  {item.selling_price 
-                    ? formatCurrency(isPurchase && item.quantity > 0 ? item.selling_price / item.quantity : item.selling_price) 
-                    : '-'}
+                  {item.selling_price ? formatCurrency(item.selling_price) : '-'}
                 </Text>
                 {!isPurchase && (
                   <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
@@ -155,7 +153,7 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                 )}
                 {isPurchase && (
                   <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
-                    {item.selling_price ? formatCurrency(item.selling_price) : '-'}
+                    {item.selling_price ? formatCurrency(item.selling_price * item.quantity) : '-'}
                   </Text>
                 )}
               </View>
