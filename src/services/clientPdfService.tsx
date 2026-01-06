@@ -135,8 +135,9 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
     }
 
     // Calculate total selling price for purchase offers
+    // Note: selling_price is already the line total (unit price × quantity), so don't multiply again
     const totalSellingPriceFromEquipment = equipmentData.reduce(
-      (sum, item) => sum + ((item.selling_price || 0) * (item.quantity || 1)),
+      (sum, item) => sum + (item.selling_price || 0),
       0
     );
 
