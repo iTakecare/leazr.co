@@ -229,10 +229,14 @@ export const useSimplifiedEquipmentCalculator = (selectedLeaser: Leaser | null, 
         : monthlyPayment;
       const marginToUse = calculatedMargin.percentage > 0 ? calculatedMargin.percentage : equipment.margin;
       
+      // Calculer le prix de vente unitaire pour le mode Achat
+      const sellingPriceUnit = roundToTwoDecimals(equipment.purchasePrice * (1 + marginToUse / 100));
+      
       const equipmentToAdd = {
         ...equipment,
         margin: Number(marginToUse.toFixed(2)),
-        monthlyPayment: currentMonthlyPayment
+        monthlyPayment: currentMonthlyPayment,
+        sellingPrice: sellingPriceUnit // Prix de vente unitaire pour le mode Achat
       };
       
       console.log("🔧 ADDING EQUIPMENT TO LIST:", {
