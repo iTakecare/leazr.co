@@ -208,7 +208,12 @@ export const PackCreator = ({ open, onOpenChange, editingPack }: PackCreatorProp
               {calculations.total_quantity} article{calculations.total_quantity > 1 ? 's' : ''}
             </Badge>
             <Badge variant="outline" className="gap-1">
-              {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(calculations.total_monthly_price)}
+              {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
+                packData.promo_active && packData.pack_promo_price
+                  ? packData.pack_promo_price
+                  : (packData.pack_monthly_price || calculations.total_monthly_price)
+              )}
+              {packData.pack_monthly_price && <span className="text-xs ml-1">(pack)</span>}
             </Badge>
             <Badge variant="outline" className="gap-1">
               Marge: {calculations.average_margin_percentage.toFixed(1)}%

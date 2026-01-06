@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Calculator, TrendingUp, AlertTriangle } from "lucide-react";
+import { Calculator, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react";
 import { PackItemFormData } from "@/hooks/packs/usePackCreator";
 import { PackCalculation } from "@/types/pack";
 import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
 import { useQuery } from "@tanstack/react-query";
 import { getLeasers } from "@/services/leaserService";
+import { toast } from "sonner";
 interface PackPriceConfigurationProps {
   packItems: PackItemFormData[];
   calculations: PackCalculation;
@@ -165,6 +166,33 @@ export const PackPriceConfiguration = ({
     onUpdateCalculations();
   }, [packData.pack_monthly_price, packData.pack_promo_price, packData.promo_active]);
 
+  // Fonction pour redistribuer le prix pack sur les mensualités individuelles
+  const distributePackPriceToItems = () => {
+    const targetPackPrice = packData.pack_monthly_price;
+    if (!targetPackPrice || targetPackPrice <= 0) return;
+    
+    const currentTotal = calculations.total_monthly_price;
+    if (currentTotal <= 0) return;
+    
+    const ratio = targetPackPrice / currentTotal;
+    
+    packItems.forEach((item, index) => {
+      const newMonthlyPrice = Math.round(item.unit_monthly_price * ratio * 100) / 100;
+      // Recalculer la marge basée sur le nouveau prix mensuel
+      const salePrice = calculateSalePriceWithLeaser(newMonthlyPrice, selectedLeaser, selectedDuration);
+      const newMargin = item.unit_purchase_price > 0 
+        ? ((salePrice - item.unit_purchase_price) / item.unit_purchase_price) * 100 
+        : 0;
+      
+      onUpdateItem(index, { 
+        unit_monthly_price: newMonthlyPrice,
+        margin_percentage: newMargin
+      });
+    });
+    
+    toast.success("Mensualités redistribuées proportionnellement");
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Card */}
@@ -243,6 +271,19 @@ export const PackPriceConfiguration = ({
                   </span>
                 </div>
               </div>
+            )}
+            
+            {/* Button to distribute pack price to individual items */}
+            {packData.pack_monthly_price && packData.pack_monthly_price !== calculations.total_monthly_price && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={distributePackPriceToItems}
+                className="mt-2 gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Répartir sur les produits
+              </Button>
             )}
           </div>
 
