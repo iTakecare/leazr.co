@@ -323,11 +323,12 @@ export const createOffer = async (offerData: OfferData) => {
           const quantity = equipment.quantity || 1;
           
           // Calculer le prix de vente automatiquement si non fourni (en mode achat)
+          // CORRECTION: selling_price doit être le prix UNITAIRE, pas le total
           let sellingPrice = equipment.sellingPrice || equipment.selling_price || null;
           if (isPurchase && !sellingPrice && purchasePrice > 0) {
-            // selling_price = (prix_achat + marge%) * quantité
-            sellingPrice = purchasePrice * (1 + marginPercent / 100) * quantity;
-            console.log(`💰 Prix de vente calculé pour ${equipment.title}: ${sellingPrice}€`);
+            // selling_price = prix_achat * (1 + marge%) - UNITAIRE, pas multiplié par quantité
+            sellingPrice = purchasePrice * (1 + marginPercent / 100);
+            console.log(`💰 Prix de vente UNITAIRE calculé pour ${equipment.title}: ${sellingPrice}€`);
           }
           
           const newEquipment = {

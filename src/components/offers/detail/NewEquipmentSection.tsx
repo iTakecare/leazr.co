@@ -45,6 +45,7 @@ interface NewEquipmentSectionProps {
     duration?: number;
     coefficient?: number;
     down_payment?: number;
+    is_purchase?: boolean; // Mode achat direct
   };
   onOfferUpdate?: () => void;
 }
@@ -194,6 +195,9 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     }
   };
 
+  // Détection du mode achat
+  const isPurchase = offer.is_purchase === true;
+
   const calculateTotals = () => {
     // Calculer les totaux directement à partir des valeurs stockées en BD
     const totalPrice = equipment.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
@@ -208,22 +212,30 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return sum + (calculatedPrice * item.quantity);
     }, 0);
     
-    // CORRECTION: Utiliser la formule inverse Grenke pour le montant financé
-    // Montant financé = Mensualité × 100 / Coefficient
+    // MODE ACHAT: utiliser directement le prix de vente total, pas la formule Grenke
+    // MODE LEASING: Utiliser la formule inverse Grenke pour le montant financé
     const coefficient = offer.coefficient || 0;
-    const effectiveFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
-      ? (totalMonthlyPayment * 100) / coefficient
-      : totalSellingPrice;
+    let effectiveFinancedAmount: number;
     
-    // Marge = Montant financé (Grenke) - Prix d'achat total
+    if (isPurchase) {
+      // En mode achat, le montant financé = prix de vente total (pas de formule Grenke)
+      effectiveFinancedAmount = totalSellingPrice;
+    } else {
+      // En mode leasing: Montant financé = Mensualité × 100 / Coefficient
+      effectiveFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
+        ? (totalMonthlyPayment * 100) / coefficient
+        : totalSellingPrice;
+    }
+    
+    // Marge = Montant financé - Prix d'achat total
     const totalMargin = effectiveFinancedAmount - totalPrice;
     const marginPercentage = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
     const globalCoefficient = totalPrice > 0 ? totalMonthlyPayment / totalPrice : 0;
 
-    // Calculs avec acompte
-    const downPayment = offer.down_payment || 0;
+    // Calculs avec acompte (seulement en mode leasing)
+    const downPayment = isPurchase ? 0 : (offer.down_payment || 0);
     const financedAfterDownPayment = Math.max(0, effectiveFinancedAmount - downPayment);
-    const adjustedMonthlyPayment = downPayment > 0 && coefficient > 0
+    const adjustedMonthlyPayment = !isPurchase && downPayment > 0 && coefficient > 0
       ? (financedAfterDownPayment * coefficient) / 100
       : totalMonthlyPayment;
 
@@ -567,14 +579,18 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                   <div>Marge</div>
                   <div>(€)</div>
                 </TableHead>
-                <TableHead className="text-right whitespace-nowrap">
-                  <div>Mens.</div>
-                  <div>unitaire</div>
-                </TableHead>
-                <TableHead className="text-right whitespace-nowrap">
-                  <div>Total</div>
-                  <div>mensuel</div>
-                </TableHead>
+                {!isPurchase && (
+                  <TableHead className="text-right whitespace-nowrap">
+                    <div>Mens.</div>
+                    <div>unitaire</div>
+                  </TableHead>
+                )}
+                {!isPurchase && (
+                  <TableHead className="text-right whitespace-nowrap">
+                    <div>Total</div>
+                    <div>mensuel</div>
+                  </TableHead>
+                )}
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -741,47 +757,51 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                         {formatPrice(equipmentMargin)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {isEditing ? (
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={inputValues[`${item.id}_monthly_payment`] ?? (values.monthly_payment || 0)}
-                          onChange={(e) => {
-                            setInputValues(prev => ({
-                              ...prev,
-                              [`${item.id}_monthly_payment`]: e.target.value
-                            }));
-                          }}
-                          onBlur={(e) => {
-                            const value = e.target.value.replace(',', '.');
-                            const numValue = parseFloat(value);
-                            handleFieldChange('monthly_payment', isNaN(numValue) ? 0 : numValue);
-                            setInputValues(prev => {
-                              const copy = {...prev};
-                              delete copy[`${item.id}_monthly_payment`];
-                              return copy;
-                            });
-                          }}
-                          className="w-32 text-right"
-                        />
-                      ) : (
-                        <span className="text-blue-600">
-                          {formatPrice((item.monthly_payment || 0) / (item.quantity || 1))}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isEditing ? (
-                        <span className="text-purple-600 font-semibold">
-                          {formatPrice(values.monthly_payment || 0)}
-                        </span>
-                      ) : (
-                        <span className="text-purple-600 font-semibold">
-                          {formatPrice(item.monthly_payment || 0)}
-                        </span>
-                      )}
-                    </TableCell>
+                    {!isPurchase && (
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={inputValues[`${item.id}_monthly_payment`] ?? (values.monthly_payment || 0)}
+                            onChange={(e) => {
+                              setInputValues(prev => ({
+                                ...prev,
+                                [`${item.id}_monthly_payment`]: e.target.value
+                              }));
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value.replace(',', '.');
+                              const numValue = parseFloat(value);
+                              handleFieldChange('monthly_payment', isNaN(numValue) ? 0 : numValue);
+                              setInputValues(prev => {
+                                const copy = {...prev};
+                                delete copy[`${item.id}_monthly_payment`];
+                                return copy;
+                              });
+                            }}
+                            className="w-32 text-right"
+                          />
+                        ) : (
+                          <span className="text-blue-600">
+                            {formatPrice((item.monthly_payment || 0) / (item.quantity || 1))}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                    {!isPurchase && (
+                      <TableCell className="text-right">
+                        {isEditing ? (
+                          <span className="text-purple-600 font-semibold">
+                            {formatPrice(values.monthly_payment || 0)}
+                          </span>
+                        ) : (
+                          <span className="text-purple-600 font-semibold">
+                            {formatPrice(item.monthly_payment || 0)}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
                      <TableCell className="text-center">
                        {isEditing ? (
                          <div className="flex gap-1 justify-center">
@@ -897,65 +917,69 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                   </div>
                 </TableCell>
                 
-                <TableCell className="text-right py-4">
-                  <span className="text-muted-foreground text-sm">—</span>
-                </TableCell>
+                {!isPurchase && (
+                  <TableCell className="text-right py-4">
+                    <span className="text-muted-foreground text-sm">—</span>
+                  </TableCell>
+                )}
                 
-                <TableCell className="text-right py-4">
-                  {isEditingTotalMonthly ? (
-                    <div className="flex items-center gap-2 justify-end">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={editedTotalMonthlyInput}
-                        onChange={(e) => {
-                          setEditedTotalMonthlyInput(e.target.value);
-                          const value = e.target.value.replace(',', '.');
-                          const numValue = parseFloat(value);
-                          if (!isNaN(numValue)) {
-                            setEditedTotalMonthly(numValue);
-                          }
-                        }}
-                        className="w-28 text-right font-mono text-sm"
-                        placeholder="0,00"
-                      />
-                      <div className="flex flex-col gap-1">
+                {!isPurchase && (
+                  <TableCell className="text-right py-4">
+                    {isEditingTotalMonthly ? (
+                      <div className="flex items-center gap-2 justify-end">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={editedTotalMonthlyInput}
+                          onChange={(e) => {
+                            setEditedTotalMonthlyInput(e.target.value);
+                            const value = e.target.value.replace(',', '.');
+                            const numValue = parseFloat(value);
+                            if (!isNaN(numValue)) {
+                              setEditedTotalMonthly(numValue);
+                            }
+                          }}
+                          className="w-28 text-right font-mono text-sm"
+                          placeholder="0,00"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveTotalMonthly}
+                            disabled={isSaving}
+                            className="h-7 w-7 p-0"
+                          >
+                            <Save className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelTotalMonthly}
+                            disabled={isSaving}
+                            className="h-7 w-7 p-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 justify-end">
+                        <div className="font-bold text-base text-purple-600">
+                          {formatPrice(totals.totalMonthlyPayment)}
+                        </div>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          onClick={handleSaveTotalMonthly}
-                          disabled={isSaving}
-                          className="h-7 w-7 p-0"
+                          onClick={handleEditTotalMonthly}
+                          className="p-2 h-7 w-7 hover:bg-muted"
                         >
-                          <Save className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCancelTotalMonthly}
-                          disabled={isSaving}
-                          className="h-7 w-7 p-0"
-                        >
-                          <X className="w-3 h-3" />
+                          <Edit3 className="w-3 h-3" />
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 justify-end">
-                      <div className="font-bold text-base text-purple-600">
-                        {formatPrice(totals.totalMonthlyPayment)}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleEditTotalMonthly}
-                        className="p-2 h-7 w-7 hover:bg-muted"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
+                    )}
+                  </TableCell>
+                )}
                 
                 <TableCell className="py-4"></TableCell>
               </TableRow>
@@ -963,8 +987,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
           </Table>
         </div>
         
-        {/* Section Acompte si présent */}
-        {totals.downPayment > 0 && (
+        {/* Section Acompte si présent - seulement en mode leasing */}
+        {!isPurchase && totals.downPayment > 0 && (
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-amber-800 mb-3">Acompte versé</h4>
             <div className="grid grid-cols-3 gap-4 text-sm">
