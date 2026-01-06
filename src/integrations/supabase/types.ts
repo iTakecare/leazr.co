@@ -2250,6 +2250,8 @@ export type Database = {
       }
       contract_equipment: {
         Row: {
+          actual_purchase_date: string | null
+          actual_purchase_price: number | null
           collaborator_id: string | null
           contract_id: string
           created_at: string
@@ -2259,6 +2261,7 @@ export type Database = {
           margin: number
           monthly_payment: number | null
           parent_equipment_id: string | null
+          purchase_notes: string | null
           purchase_price: number
           quantity: number
           serial_number: string | null
@@ -2266,6 +2269,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_purchase_date?: string | null
+          actual_purchase_price?: number | null
           collaborator_id?: string | null
           contract_id: string
           created_at?: string
@@ -2275,6 +2280,7 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           parent_equipment_id?: string | null
+          purchase_notes?: string | null
           purchase_price?: number
           quantity?: number
           serial_number?: string | null
@@ -2282,6 +2288,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_purchase_date?: string | null
+          actual_purchase_price?: number | null
           collaborator_id?: string | null
           contract_id?: string
           created_at?: string
@@ -2291,6 +2299,7 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           parent_equipment_id?: string | null
+          purchase_notes?: string | null
           purchase_price?: number
           quantity?: number
           serial_number?: string | null
@@ -7159,6 +7168,16 @@ export type Database = {
               total_revenue: number
             }[]
           }
+        | {
+            Args: { p_company_id?: string; p_year: number }
+            Returns: {
+              contracts_count: number
+              purchase_savings: number
+              status: string
+              total_amount: number
+              total_margin: number
+            }[]
+          }
       get_contract_workflow_logs: {
         Args: { p_contract_id: string }
         Returns: {
@@ -7281,6 +7300,22 @@ export type Database = {
               purchases: number
               revenue: number
               year: number
+            }[]
+          }
+        | {
+            Args: { p_company_id?: string; p_year: number }
+            Returns: {
+              actual_purchase: number
+              contracts_count: number
+              direct_sales_count: number
+              direct_sales_margin: number
+              direct_sales_revenue: number
+              estimated_purchase: number
+              margin: number
+              margin_rate: number
+              month: number
+              purchase_savings: number
+              revenue: number
             }[]
           }
       get_offer_by_id_public: {
