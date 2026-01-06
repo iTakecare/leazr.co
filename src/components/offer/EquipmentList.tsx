@@ -87,19 +87,20 @@ const EquipmentList = ({
   const totalPurchaseAmount = equipmentList.reduce((sum, equipment) => 
     sum + (equipment.purchasePrice * equipment.quantity), 0);
 
-  // MODE ACHAT: Construire un offerData local basé strictement sur les équipements
-  // pour que FinancialSummary affiche les bons totaux (PV = PA × (1 + marge%))
+  // MODE ACHAT: Utiliser les mêmes totaux que le mode Leasing
+  // Le prix de vente total en achat DOIT être égal au montant financé du leasing
+  // et la marge totale DOIT rester identique
   const purchaseOfferData: OfferFinancialData | undefined = isPurchase ? (() => {
-    const totalPurchasePrice = equipmentList.reduce((sum, eq) => 
+    const totalPurchasePrice = calculations?.totalPurchasePrice || equipmentList.reduce((sum, eq) => 
       sum + (eq.purchasePrice * eq.quantity), 0);
-    const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
-      const sellingPrice = eq.purchasePrice * eq.quantity * (1 + (eq.margin || 0) / 100);
-      return sum + sellingPrice;
-    }, 0);
+    // Utiliser le montant financé du leasing comme prix de vente total
+    const totalFinancedAmount = calculations?.totalFinancedAmount || 0;
+    // La marge est la différence entre le montant financé et le prix d'achat
+    const totalMargin = calculations?.normalMarginAmount || (totalFinancedAmount - totalPurchasePrice);
     return {
       totalPurchasePrice,
       totalFinancedAmount,
-      totalMargin: totalFinancedAmount - totalPurchasePrice,
+      totalMargin,
       monthlyPayment: 0,
       coefficient: 0
     };
@@ -332,7 +333,16 @@ const EquipmentList = ({
                       )}
                       <td className="px-2 py-3 text-sm text-gray-900 whitespace-nowrap">
                         {isPurchase 
-                          ? formatCurrency((item.purchasePrice * item.quantity) * (1 + (item.margin || 0) / 100))
+                          ? (() => {
+                              // En mode achat, afficher le prix de vente proportionnel
+                              // basé sur le montant financé total du leasing
+                              const totalPA = calculations?.totalPurchasePrice || equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0);
+                              const totalFinanced = calculations?.totalFinancedAmount || 0;
+                              const itemPA = item.purchasePrice * item.quantity;
+                              // Répartition proportionnelle du montant financé
+                              const proportionalSalePrice = totalPA > 0 ? (itemPA / totalPA) * totalFinanced : itemPA;
+                              return formatCurrency(proportionalSalePrice);
+                            })()
                           : formatCurrency(item.monthlyPayment || 0)
                         }
                       </td>
