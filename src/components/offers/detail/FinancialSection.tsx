@@ -123,24 +123,39 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
   };
   const totals = calculateEquipmentTotals();
   
+  // Détection du mode achat
+  const isPurchase = offer.is_purchase === true;
+
   // Auto-update offer financials when equipment data is available
   useEffect(() => {
     const updateOfferFinancials = async () => {
       if (offerEquipment && offerEquipment.length > 0 && !equipmentLoading) {
-        console.log("🔄 AUTO-UPDATE: Recalculating offer financials based on equipment");
+        console.log("🔄 AUTO-UPDATE: Recalculating offer financials based on equipment (isPurchase:", isPurchase, ")");
         
         const currentTotals = calculateEquipmentTotals();
         
-        // Calculate financed amount: prioritize totalSellingPrice, fallback to calculation
-        const newFinancedAmount = currentTotals.totalSellingPrice > 0 
-          ? currentTotals.totalSellingPrice 
-          : (currentTotals.totalMonthlyPayment * (offer.coefficient || 3.27));
+        let newFinancedAmount: number;
+        let newMonthlyPayment: number;
+        
+        if (isPurchase) {
+          // MODE ACHAT: Pas de mensualité, le montant financé = prix de vente total
+          newMonthlyPayment = 0;
+          newFinancedAmount = currentTotals.totalSellingPrice > 0 
+            ? currentTotals.totalSellingPrice 
+            : currentTotals.totalPurchasePrice;
+        } else {
+          // MODE LEASING: Utiliser la formule Grenke
+          newMonthlyPayment = currentTotals.totalMonthlyPayment;
+          newFinancedAmount = currentTotals.totalSellingPrice > 0 
+            ? currentTotals.totalSellingPrice 
+            : (currentTotals.totalMonthlyPayment * (offer.coefficient || 3.27));
+        }
         
         const newTotalAmount = currentTotals.totalPurchasePrice;
-        const newMonthlyPayment = currentTotals.totalMonthlyPayment;
         const newMargin = newFinancedAmount - currentTotals.totalPurchasePrice;
         
         console.log("🔄 AUTO-UPDATE: New calculations:", {
+          isPurchase,
           currentAmount: offer.amount,
           newTotalAmount,
           currentMonthlyPayment: offer.monthly_payment,
@@ -184,12 +199,25 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     };
     
     updateOfferFinancials();
-  }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated]);
+  }, [offerEquipment, equipmentLoading, offer.id, onOfferUpdated, isPurchase]);
   
-  // Calculer le montant financé via la formule inverse Grenke
-  // Montant financé = Mensualité × 100 / Coefficient
+  // Calculer le montant financé
+  // MODE ACHAT: Prix de vente total directement
+  // MODE LEASING: Formule inverse Grenke (Mensualité × 100 / Coefficient)
   const calculateFinancedAmount = () => {
-    // Priorité 1: Formule inverse Grenke (la méthode correcte)
+    // MODE ACHAT: utiliser directement le prix de vente
+    if (isPurchase) {
+      if (totals.totalSellingPrice > 0) {
+        return totals.totalSellingPrice;
+      }
+      // Fallback: financed_amount stocké en base
+      if (offer.financed_amount && offer.financed_amount > 0) {
+        return offer.financed_amount;
+      }
+      return totals.totalPurchasePrice;
+    }
+    
+    // MODE LEASING: Priorité 1 - Formule inverse Grenke
     if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
       return (totals.totalMonthlyPayment * 100) / offer.coefficient;
     }
