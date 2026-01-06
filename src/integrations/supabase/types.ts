@@ -4600,6 +4600,7 @@ export type Database = {
           margin_difference: number | null
           monthly_payment: number
           offer_number: string | null
+          pack_id: string | null
           previous_status: string | null
           products_to_be_determined: boolean | null
           remarks: string | null
@@ -4650,6 +4651,7 @@ export type Database = {
           margin_difference?: number | null
           monthly_payment?: number
           offer_number?: string | null
+          pack_id?: string | null
           previous_status?: string | null
           products_to_be_determined?: boolean | null
           remarks?: string | null
@@ -4700,6 +4702,7 @@ export type Database = {
           margin_difference?: number | null
           monthly_payment?: number
           offer_number?: string | null
+          pack_id?: string | null
           previous_status?: string | null
           products_to_be_determined?: boolean | null
           remarks?: string | null
@@ -4736,6 +4739,13 @@ export type Database = {
             columns: ["leaser_id"]
             isOneToOne: false
             referencedRelation: "leasers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "product_packs"
             referencedColumns: ["id"]
           },
         ]
@@ -7309,6 +7319,7 @@ export type Database = {
           margin_difference: number | null
           monthly_payment: number
           offer_number: string | null
+          pack_id: string | null
           previous_status: string | null
           products_to_be_determined: boolean | null
           remarks: string | null

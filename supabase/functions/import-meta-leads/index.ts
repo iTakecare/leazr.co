@@ -42,6 +42,31 @@ interface MultiProductMatch {
   allMatched: boolean;
 }
 
+interface MatchedPackItem {
+  product_id: string;
+  product_name: string;
+  variant_price_id: string | null;
+  quantity: number;
+  unit_purchase_price: number;
+  unit_monthly_price: number;
+  margin_percentage: number;
+}
+
+interface MatchedPack {
+  pack: {
+    id: string;
+    name: string;
+    pack_monthly_price: number | null;
+    pack_promo_price: number | null;
+    promo_active: boolean;
+    total_purchase_price: number;
+    total_monthly_price: number;
+    total_margin: number;
+  };
+  items: MatchedPackItem[];
+  effectiveMonthlyPrice: number;
+}
+
 // Brand capitalization dictionary
 const brandCapitalization: Record<string, string> = {
   'hp': 'HP',
@@ -163,11 +188,132 @@ function parsePackInterest(packInterest: string): ParsedPack {
   };
 }
 
+// Find matching pack in product_packs table
+async function findMatchingPack(
+  supabase: any,
+  parsedPack: ParsedPack,
+  companyId: string
+): Promise<MatchedPack | null> {
+  console.log('[META IMPORT] Searching for matching pack...');
+  
+  // Fetch active packs with their items
+  const { data: packs, error } = await supabase
+    .from('product_packs')
+    .select(`
+      id, name, pack_monthly_price, pack_promo_price, promo_active,
+      total_purchase_price, total_monthly_price, total_margin,
+      items:product_pack_items(
+        id, product_id, variant_price_id, quantity,
+        unit_purchase_price, unit_monthly_price, margin_percentage,
+        product:products(id, name)
+      )
+    `)
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .limit(50);
+  
+  if (error) {
+    console.error('[META IMPORT] Error fetching packs:', error);
+    return null;
+  }
+  
+  if (!packs || packs.length === 0) {
+    console.log('[META IMPORT] No active packs found');
+    return null;
+  }
+  
+  console.log('[META IMPORT] Found', packs.length, 'active packs to check');
+  
+  // Search terms from the parsed pack (main product keywords)
+  const searchTerms = parsedPack.formattedProducts.map(p => {
+    // Get first 2-3 significant words (brand + model)
+    const words = p.split(' ').filter(w => w.length > 1);
+    return words.slice(0, 3).map(w => w.toLowerCase());
+  }).flat();
+  
+  console.log('[META IMPORT] Search terms:', searchTerms);
+  
+  let bestMatch: any = null;
+  let bestScore = 0;
+  
+  for (const pack of packs) {
+    const packNameLower = pack.name.toLowerCase();
+    let score = 0;
+    let matchedTerms = 0;
+    
+    // Check how many search terms match the pack name
+    for (const term of searchTerms) {
+      if (packNameLower.includes(term)) {
+        // Higher score for important terms (brand names, model numbers)
+        if (['macbook', 'iphone', 'ipad', 'hp', 'dell', 'lenovo', 'pro', 'max', 'air'].includes(term)) {
+          score += 3;
+        } else if (['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', '17'].includes(term)) {
+          score += 4; // Model/chip identifiers are very important
+        } else {
+          score += 1;
+        }
+        matchedTerms++;
+      }
+    }
+    
+    // Bonus if pack has items (sanity check)
+    if (pack.items && pack.items.length > 0) {
+      score += 1;
+    }
+    
+    console.log(`[META IMPORT] Pack "${pack.name}" score: ${score} (${matchedTerms}/${searchTerms.length} terms matched)`);
+    
+    // Require at least 50% of terms to match
+    if (matchedTerms >= searchTerms.length * 0.5 && score > bestScore) {
+      bestScore = score;
+      bestMatch = pack;
+    }
+  }
+  
+  if (!bestMatch || bestScore < 4) {
+    console.log('[META IMPORT] No pack matched with sufficient score');
+    return null;
+  }
+  
+  console.log('[META IMPORT] Best matching pack:', bestMatch.name, 'with score:', bestScore);
+  
+  // Calculate effective price
+  const effectivePrice = bestMatch.promo_active && bestMatch.pack_promo_price
+    ? bestMatch.pack_promo_price
+    : (bestMatch.pack_monthly_price || bestMatch.total_monthly_price || 0);
+  
+  // Map items
+  const items: MatchedPackItem[] = (bestMatch.items || []).map((item: any) => ({
+    product_id: item.product_id,
+    product_name: item.product?.name || 'Produit',
+    variant_price_id: item.variant_price_id,
+    quantity: item.quantity || 1,
+    unit_purchase_price: item.unit_purchase_price || 0,
+    unit_monthly_price: item.unit_monthly_price || 0,
+    margin_percentage: item.margin_percentage || 0
+  }));
+  
+  return {
+    pack: {
+      id: bestMatch.id,
+      name: bestMatch.name,
+      pack_monthly_price: bestMatch.pack_monthly_price,
+      pack_promo_price: bestMatch.pack_promo_price,
+      promo_active: bestMatch.promo_active || false,
+      total_purchase_price: bestMatch.total_purchase_price || 0,
+      total_monthly_price: bestMatch.total_monthly_price || 0,
+      total_margin: bestMatch.total_margin || 0
+    },
+    items,
+    effectiveMonthlyPrice: effectivePrice
+  };
+}
+
 // Important short terms that should not be filtered out (model numbers, sizes, chip generations)
-const importantShortTerms = ['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', 'g7', 'g8', 'g9', 'g10', '450', '650', '840', '850', 'se', 'xs', 'xr'];
+const importantShortTerms = ['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', '17', 'g7', 'g8', 'g9', 'g10', '450', '650', '840', '850', 'se', 'xs', 'xr'];
 
 // Terms that are highly discriminating (sizes, chip generations, model numbers)
-const modelTerms = ['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', 'g7', 'g8', 'g9', 'g10'];
+const modelTerms = ['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', '17', 'g7', 'g8', 'g9', 'g10'];
 
 // Screen sizes that must match exactly
 const screenSizes = ['13', '14', '15', '16'];
@@ -371,6 +517,7 @@ Deno.serve(async (req) => {
       created: 0,
       duplicates: 0,
       existing_client_new_offer: 0,
+      pack_matched: 0,
       errors: 0,
       details: [] as any[]
     };
@@ -434,8 +581,94 @@ Deno.serve(async (req) => {
         const parsedPack = parsePackInterest(lead.pack_interest);
         console.log('[META IMPORT] Parsed pack:', parsedPack);
 
-        // Find matching products in catalog
-        const matchedProducts = await findMultipleProducts(supabase, parsedPack.formattedProducts, company.id);
+        // FIRST: Try to find a matching pack in product_packs
+        const matchedPack = await findMatchingPack(supabase, parsedPack, company.id);
+        
+        // Variables for offer creation
+        let monthlyPayment = 0;
+        let purchaseAmount = 0;
+        let marginAmount = 0;
+        let packId: string | null = null;
+        let packRemarks = '';
+        let equipmentToCreate: any[] = [];
+        let productsMatched = 0;
+        
+        if (matchedPack) {
+          // USE PACK DATA
+          console.log('[META IMPORT] Using matched pack:', matchedPack.pack.name);
+          
+          monthlyPayment = matchedPack.effectiveMonthlyPrice;
+          purchaseAmount = matchedPack.pack.total_purchase_price;
+          marginAmount = matchedPack.pack.total_margin;
+          packId = matchedPack.pack.id;
+          productsMatched = matchedPack.items.length;
+          
+          // Calculate margin percentage
+          const marginPercent = purchaseAmount > 0 
+            ? ((marginAmount / purchaseAmount) * 100).toFixed(1) 
+            : '0';
+          
+          // Build pack-specific remarks
+          packRemarks = `
+📦 PACK CORRESPONDANT TROUVÉ:
+✅ ${matchedPack.pack.name}
+💰 Prix pack: ${monthlyPayment.toFixed(2)}€/mois${matchedPack.pack.promo_active ? ' (PROMO)' : ''}
+📊 Marge: ${marginAmount.toFixed(2)}€ (${marginPercent}%)
+💵 Prix d'achat total: ${purchaseAmount.toFixed(2)}€
+
+📋 ÉQUIPEMENTS DU PACK:
+${matchedPack.items.map(item => `• ${item.product_name} (x${item.quantity}): ${item.unit_monthly_price.toFixed(2)}€/mois`).join('\n')}
+`;
+          
+          // Prepare equipment entries from pack items
+          equipmentToCreate = matchedPack.items.map(item => ({
+            title: item.product_name,
+            product_id: item.product_id,
+            variant_id: item.variant_price_id,
+            purchase_price: item.unit_purchase_price,
+            monthly_payment: item.unit_monthly_price,
+            quantity: item.quantity,
+            margin: item.margin_percentage
+          }));
+          
+          results.pack_matched++;
+          
+        } else {
+          // FALLBACK: Find individual products
+          console.log('[META IMPORT] No pack matched, falling back to product search');
+          
+          const matchedProducts = await findMultipleProducts(supabase, parsedPack.formattedProducts, company.id);
+          
+          monthlyPayment = matchedProducts.totalMonthly > 0 
+            ? matchedProducts.totalMonthly 
+            : (parsedPack.priceFromMeta || 0);
+          
+          purchaseAmount = matchedProducts.totalPurchase;
+          productsMatched = matchedProducts.products.length;
+          
+          // Prepare equipment entries from matched products
+          equipmentToCreate = matchedProducts.products.map(product => {
+            const margin = product.monthly_price && product.purchase_price
+              ? ((product.monthly_price - product.purchase_price) / product.purchase_price) * 100
+              : 0;
+            
+            return {
+              title: product.name,
+              product_id: product.product_id,
+              variant_id: null,
+              purchase_price: product.purchase_price,
+              monthly_payment: product.monthly_price,
+              quantity: 1,
+              margin: margin
+            };
+          });
+          
+          packRemarks = matchedProducts.products.length > 0 
+            ? `✅ CORRESPONDANCE CATALOGUE:
+${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)}€/mois`).join('\n')}
+📊 Total catalogue: ${matchedProducts.totalMonthly.toFixed(2)}€/mois`
+            : '⚠️ Produits non trouvés dans le catalogue';
+        }
 
         // Check if client already exists by email OR phone
         let existingClient = null;
@@ -569,20 +802,9 @@ ${parsedPack.priceFromMeta ? `💰 Prix affiché: ${parsedPack.priceFromMeta.toF
 📋 ÉQUIPEMENTS:
 ${parsedPack.equipmentDescription}
 
-${matchedProducts.products.length > 0 ? `✅ CORRESPONDANCE CATALOGUE:
-${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)}€/mois`).join('\n')}
-📊 Total catalogue: ${matchedProducts.totalMonthly.toFixed(2)}€/mois` : '⚠️ Produits non trouvés dans le catalogue'}
+${packRemarks}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
-
-        // Calculate monthly payment: use catalog total if found, otherwise Meta price
-        const monthlyPayment = matchedProducts.totalMonthly > 0 
-          ? matchedProducts.totalMonthly 
-          : (parsedPack.priceFromMeta || 0);
-
-        const purchaseAmount = matchedProducts.totalPurchase > 0 
-          ? matchedProducts.totalPurchase 
-          : 0;
 
         // Create offer with source 'meta'
         const offerData: any = {
@@ -598,9 +820,11 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           remarks: offerRemarks,
           leaser_id: leaserId,
           duration: 36,
-          products_to_be_determined: matchedProducts.products.length === 0,
+          products_to_be_determined: productsMatched === 0,
           amount: purchaseAmount,
           monthly_payment: monthlyPayment,
+          margin: marginAmount,
+          pack_id: packId,
           financed_amount: monthlyPayment ? (monthlyPayment * 100) / 3.53 : 0,
           coefficient: 3.53
         };
@@ -623,31 +847,28 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
           continue;
         }
 
-        console.log(`[META IMPORT] Offer created: ${offer.id}`);
+        console.log(`[META IMPORT] Offer created: ${offer.id}${packId ? ' (with pack)' : ''}`);
 
-        // Create equipment entries for each matched product
-        if (matchedProducts.products.length > 0) {
-          for (const product of matchedProducts.products) {
-            const margin = product.monthly_price && product.purchase_price
-              ? ((product.monthly_price - product.purchase_price) / product.purchase_price) * 100
-              : 0;
-
+        // Create equipment entries
+        if (equipmentToCreate.length > 0) {
+          for (const equipment of equipmentToCreate) {
             const { error: equipError } = await supabase
               .from('offer_equipment')
               .insert({
                 offer_id: offer.id,
-                title: product.name,
-                product_id: product.product_id,
-                purchase_price: product.purchase_price,
-                monthly_payment: product.monthly_price,
-                quantity: 1,
-                margin: margin
+                title: equipment.title,
+                product_id: equipment.product_id,
+                variant_id: equipment.variant_id,
+                purchase_price: equipment.purchase_price,
+                monthly_payment: equipment.monthly_payment,
+                quantity: equipment.quantity,
+                margin: equipment.margin
               });
 
             if (equipError) {
               console.error('[META IMPORT] Equipment creation error:', equipError);
             } else {
-              console.log(`[META IMPORT] Equipment created: ${product.name} for offer ${offer.id}`);
+              console.log(`[META IMPORT] Equipment created: ${equipment.title} for offer ${offer.id}`);
             }
           }
         }
@@ -667,7 +888,9 @@ ${matchedProducts.products.map(p => `• ${p.name}: ${p.monthly_price.toFixed(2)
             : '✓ Demande créée (client existant)',
           client_id: clientId,
           offer_id: offer.id,
-          products_matched: matchedProducts.products.length,
+          pack_matched: !!packId,
+          pack_name: matchedPack?.pack.name || null,
+          products_matched: productsMatched,
           total_monthly: monthlyPayment,
           parsed_pack: parsedPack.displayName
         });
