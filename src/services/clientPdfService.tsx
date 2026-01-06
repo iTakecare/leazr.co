@@ -134,6 +134,12 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       });
     }
 
+    // Calculate total selling price for purchase offers
+    const totalSellingPriceFromEquipment = equipmentData.reduce(
+      (sum, item) => sum + ((item.selling_price || 0) * (item.quantity || 1)),
+      0
+    );
+
     const data: OfferPDFData = {
       id: offerData.id,
       offer_number: offerData.offer_number || `OFF-${new Date().getFullYear()}-${offerData.id.slice(0, 8).toUpperCase()}`,
@@ -170,6 +176,11 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
       coefficient: coefficient,
       adjusted_monthly_payment: adjustedMonthlyPayment,
       financed_amount_after_down_payment: financedAmountAfterDownPayment,
+      // Purchase mode fields
+      is_purchase: offerData.is_purchase || false,
+      total_selling_price: offerData.is_purchase 
+        ? (offerData.financed_amount || totalSellingPriceFromEquipment)
+        : totalSellingPriceFromEquipment,
       // Content blocks
       content_blocks: {
         cover_greeting: contentBlocks.cover_greeting,
@@ -215,12 +226,15 @@ export async function generateOfferPDF(
   }
 
   // For client PDFs, remove sensitive financial data
+  // But for purchase offers, keep selling_price as it's the client-facing price
   if (pdfType === 'client') {
+    const isPurchase = offerData.is_purchase;
     offerData.equipment = offerData.equipment.map((item) => ({
       ...item,
       purchase_price: 0,
       margin: 0,
-      selling_price: undefined,
+      // Keep selling_price for purchase offers (it's the public price)
+      selling_price: isPurchase ? item.selling_price : undefined,
     }));
     offerData.total_margin = undefined;
   }
@@ -259,12 +273,15 @@ export async function generateOfferPDFWithOverrides(
   };
 
   // For client PDFs, remove sensitive financial data
+  // But for purchase offers, keep selling_price as it's the client-facing price
   if (pdfType === 'client') {
+    const isPurchase = mergedData.is_purchase;
     mergedData.equipment = mergedData.equipment.map((item) => ({
       ...item,
       purchase_price: 0,
       margin: 0,
-      selling_price: undefined,
+      // Keep selling_price for purchase offers (it's the public price)
+      selling_price: isPurchase ? item.selling_price : undefined,
     }));
     mergedData.total_margin = undefined;
   }

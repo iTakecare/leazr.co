@@ -19,6 +19,8 @@ interface OfferEquipmentPageProps {
   downPayment?: number;
   adjustedMonthlyPayment?: number;
   financedAmountAfterDownPayment?: number;
+  isPurchase?: boolean;
+  totalSellingPrice?: number;
   contentBlocks?: {
     title?: string;
     footer_note?: string;
@@ -40,6 +42,8 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   downPayment = 0,
   adjustedMonthlyPayment,
   financedAmountAfterDownPayment,
+  isPurchase = false,
+  totalSellingPrice = 0,
   contentBlocks,
   styles,
 }) => {
@@ -83,7 +87,12 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>
             {isInternal ? 'Prix vente' : 'Prix'}
           </Text>
-          <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Mens. HTVA</Text>
+          {!isPurchase && (
+            <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Mens. HTVA</Text>
+          )}
+          {isPurchase && (
+            <Text style={{ ...styles.tableCellHeader, flex: 1.5, textAlign: 'right' }}>Total</Text>
+          )}
         </View>
 
         {/* Table Rows */}
@@ -137,9 +146,16 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
                 <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right' }}>
                   {item.selling_price ? formatCurrency(item.selling_price) : '-'}
                 </Text>
-                <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
-                  {item.monthly_payment ? formatCurrency(item.monthly_payment) : '-'}
-                </Text>
+                {!isPurchase && (
+                  <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
+                    {item.monthly_payment ? formatCurrency(item.monthly_payment) : '-'}
+                  </Text>
+                )}
+                {isPurchase && (
+                  <Text style={{ ...styles.tableCell, flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>
+                    {item.selling_price ? formatCurrency(item.selling_price * item.quantity) : '-'}
+                  </Text>
+                )}
               </View>
 
               {/* Specifications row - only show unique specs */}
@@ -178,68 +194,92 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
           </View>
         )}
 
-        {/* Down Payment Section - Only show if there's a down payment */}
-        {downPayment > 0 && (
-          <View style={{ marginTop: 15, padding: 12, backgroundColor: '#FEF3C7', borderRadius: 4, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
-            <Text style={{ ...styles.textBold, marginBottom: 6, color: '#92400E' }}>
-              Acompte
-            </Text>
-            <View style={{ ...styles.row, marginBottom: 4 }}>
-              <Text style={styles.text}>Montant de l'acompte :</Text>
-              <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
-                {formatCurrency(downPayment)}
+        {/* Purchase Mode - Show total selling price */}
+        {isPurchase ? (
+          <>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>TOTAL HTVA</Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(totalSellingPrice)}
               </Text>
             </View>
-            {/* Mensualité d'origine barrée */}
-            <View style={styles.row}>
-              <Text style={styles.text}>Mensualité d'origine :</Text>
-              <Text style={{ 
-                ...styles.text, 
-                fontFamily: 'Helvetica',
-                textDecoration: 'line-through',
-                opacity: 0.7,
-              }}>
-                {formatCurrency(totalMonthlyPayment)}
+            
+            {/* Purchase terms */}
+            <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
+              <Text style={{ ...styles.textBold, marginBottom: 6, color: colors.primary }}>
+                Offre d'achat
+              </Text>
+              <Text style={{ ...styles.text, fontSize: 10, lineHeight: 1.4 }}>
+                {contractTerms}
               </Text>
             </View>
-          </View>
+          </>
+        ) : (
+          <>
+            {/* Down Payment Section - Only show if there's a down payment */}
+            {downPayment > 0 && (
+              <View style={{ marginTop: 15, padding: 12, backgroundColor: '#FEF3C7', borderRadius: 4, borderLeftWidth: 4, borderLeftColor: '#F59E0B' }}>
+                <Text style={{ ...styles.textBold, marginBottom: 6, color: '#92400E' }}>
+                  Acompte
+                </Text>
+                <View style={{ ...styles.row, marginBottom: 4 }}>
+                  <Text style={styles.text}>Montant de l'acompte :</Text>
+                  <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+                    {formatCurrency(downPayment)}
+                  </Text>
+                </View>
+                {/* Mensualité d'origine barrée */}
+                <View style={styles.row}>
+                  <Text style={styles.text}>Mensualité d'origine :</Text>
+                  <Text style={{ 
+                    ...styles.text, 
+                    fontFamily: 'Helvetica',
+                    textDecoration: 'line-through',
+                    opacity: 0.7,
+                  }}>
+                    {formatCurrency(totalMonthlyPayment)}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>
+                {downPayment > 0 ? 'MENSUALITÉ HTVA (après acompte)' : 'MENSUALITÉ HTVA'}
+              </Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(downPayment > 0 && adjustedMonthlyPayment ? adjustedMonthlyPayment : totalMonthlyPayment)}
+              </Text>
+            </View>
+            
+            {/* Financial Details */}
+            <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4 }}>
+              <View style={{ ...styles.row, marginBottom: 6 }}>
+                <Text style={styles.text}>Frais de dossier unique :</Text>
+                <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+                  {formatCurrency(fileFee)}
+                </Text>
+              </View>
+              
+              <View style={styles.row}>
+                <Text style={styles.text}>Montant de l'assurance annuelle :</Text>
+                <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
+                  {formatCurrency(annualInsurance)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Contract Terms */}
+            <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
+              <Text style={{ ...styles.textBold, marginBottom: 6, color: colors.primary }}>
+                Contrat de {contractDuration} mois
+              </Text>
+              <Text style={{ ...styles.text, fontSize: 10, lineHeight: 1.4 }}>
+                {contractTerms}
+              </Text>
+            </View>
+          </>
         )}
-
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>
-            {downPayment > 0 ? 'MENSUALITÉ HTVA (après acompte)' : 'MENSUALITÉ HTVA'}
-          </Text>
-          <Text style={styles.totalValue}>
-            {formatCurrency(downPayment > 0 && adjustedMonthlyPayment ? adjustedMonthlyPayment : totalMonthlyPayment)}
-          </Text>
-        </View>
-        
-        {/* Financial Details */}
-        <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4 }}>
-          <View style={{ ...styles.row, marginBottom: 6 }}>
-            <Text style={styles.text}>Frais de dossier unique :</Text>
-            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
-              {formatCurrency(fileFee)}
-            </Text>
-          </View>
-          
-          <View style={styles.row}>
-            <Text style={styles.text}>Montant de l'assurance annuelle :</Text>
-            <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold' }}>
-              {formatCurrency(annualInsurance)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Contract Terms */}
-        <View style={{ marginTop: 15, padding: 12, backgroundColor: colors.lightGray, borderRadius: 4, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
-          <Text style={{ ...styles.textBold, marginBottom: 6, color: colors.primary }}>
-            Contrat de {contractDuration} mois
-          </Text>
-          <Text style={{ ...styles.text, fontSize: 10, lineHeight: 1.4 }}>
-            {contractTerms}
-          </Text>
-        </View>
       </View>
 
       {/* Footer Note */}
