@@ -594,12 +594,23 @@ const CreateOffer = () => {
       }
 
       // Préparer les données d'équipement avec les attributs et spécifications
-      // IMPORTANT: En mode achat, forcer monthlyPayment à 0 et calculer sellingPrice
+      // IMPORTANT: En mode achat, forcer monthlyPayment à 0 et calculer sellingPrice proportionnellement
+      // MODE ACHAT: Utiliser les mêmes totaux que le leasing (priorité aux totaux)
+      const totalPurchaseForDistribution = calculations?.totalPurchasePrice || equipmentList.reduce((sum, eq) => 
+        sum + (eq.purchasePrice * eq.quantity), 0);
+      const totalFinancedForDistribution = calculations?.totalFinancedAmount || 0;
+      
       const equipmentData = equipmentList.map(eq => {
-        // MODE ACHAT: Forcer mensualité à 0 et calculer sellingPrice
+        // MODE ACHAT: Forcer mensualité à 0 et calculer sellingPrice proportionnellement
         if (isPurchase) {
-          const sellingPrice = eq.purchasePrice * (1 + eq.margin / 100);
-          console.log(`💾 SAVE ACHAT - ${eq.title}: PA=${eq.purchasePrice}, marge=${eq.margin}%, PV=${sellingPrice}`);
+          // Répartition proportionnelle du montant financé total sur chaque ligne
+          const linePA = eq.purchasePrice * eq.quantity;
+          const proportionalTotalSelling = totalPurchaseForDistribution > 0 
+            ? (linePA / totalPurchaseForDistribution) * totalFinancedForDistribution 
+            : linePA;
+          const sellingPriceUnit = proportionalTotalSelling / eq.quantity;
+          
+          console.log(`💾 SAVE ACHAT - ${eq.title}: PA=${eq.purchasePrice}, qty=${eq.quantity}, PV proportionnel unitaire=${sellingPriceUnit}`);
           return {
             id: eq.id,
             title: eq.title,
@@ -607,7 +618,7 @@ const CreateOffer = () => {
             quantity: eq.quantity,
             margin: eq.margin,
             monthlyPayment: 0, // Toujours 0 en achat
-            sellingPrice: sellingPrice, // PV unitaire pour persistance
+            sellingPrice: sellingPriceUnit, // PV unitaire proportionnel pour persistance
             attributes: eq.attributes || {},
             specifications: eq.specifications || {}
           };
@@ -689,14 +700,14 @@ const CreateOffer = () => {
         calculatedCommission,
         isInternalOffer
       });
-      // Calculer les montants pour l'achat direct
-      const totalPurchaseAmountForSave = equipmentList.reduce((sum, eq) => 
+      // MODE ACHAT: Utiliser les mêmes totaux que le mode leasing (priorité aux totaux)
+      // Le prix de vente total en achat DOIT être égal au montant financé du leasing
+      const totalPurchaseAmountForSave = calculations?.totalPurchasePrice || equipmentList.reduce((sum, eq) => 
         sum + (eq.purchasePrice * eq.quantity), 0);
-      const totalSaleAmount = equipmentList.reduce((sum, eq) => {
-        const financedAmountForEq = eq.purchasePrice * eq.quantity * (1 + eq.margin / 100);
-        return sum + financedAmountForEq;
-      }, 0);
-      const totalMarginForSave = totalSaleAmount - totalPurchaseAmountForSave;
+      
+      // En mode achat, utiliser les totaux du leasing (calculations) et non PA × (1 + margin%)
+      const totalSaleAmountForPurchase = calculations?.totalFinancedAmount || 0;
+      const totalMarginForPurchase = calculations?.normalMarginAmount || 0;
 
       const offerData: OfferData = {
         user_id: user.id,
@@ -714,7 +725,7 @@ const CreateOffer = () => {
         equipment_description: productsToBeDetermined ? '[]' : JSON.stringify(equipmentData),
         
         // Montants adaptés selon le mode (achat vs leasing)
-        // ACHAT: amount = total achat, financed_amount = total vente, margin = différence
+        // ACHAT: amount = total achat, financed_amount = total vente (= montant financé leasing), margin = marge leasing
         amount: productsToBeDetermined 
           ? (estimatedBudget || 0) 
           : isPurchase 
@@ -728,7 +739,7 @@ const CreateOffer = () => {
             : (totalMonthlyPayment || 0),
         commission: calculatedCommission || 0,
         financed_amount: isPurchase 
-          ? totalSaleAmount  // En achat: montant de vente total
+          ? totalSaleAmountForPurchase  // En achat: utiliser le montant financé du leasing
           : productsToBeDetermined 
             ? (estimatedBudget || 0) 
             : (financedAmount || 0),
@@ -736,7 +747,7 @@ const CreateOffer = () => {
         type: offerType,
         // En mode édition, ne jamais toucher au workflow_status ; en création, mettre 'draft'
         ...(isEditMode ? {} : { workflow_status: 'draft' }),
-        margin: productsToBeDetermined ? 0 : (isPurchase ? totalMarginForSave : totalEquipmentMargin),
+        margin: productsToBeDetermined ? 0 : (isPurchase ? totalMarginForPurchase : totalEquipmentMargin),
         margin_difference: globalMarginAdjustment.marginDifference || 0,
         total_margin_with_difference: productsToBeDetermined ? 0 : (totalEquipmentMargin + (globalMarginAdjustment.marginDifference || 0)),
         ambassador_id: ambassadorId,
