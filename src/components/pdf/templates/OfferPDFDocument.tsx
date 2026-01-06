@@ -53,6 +53,9 @@ export interface OfferPDFData {
   coefficient?: number;
   adjusted_monthly_payment?: number;
   financed_amount_after_down_payment?: number;
+  // Purchase mode fields
+  is_purchase?: boolean;
+  total_selling_price?: number;
   // Editable content blocks
   content_blocks?: {
     cover_greeting?: string;
@@ -119,6 +122,8 @@ export const OfferPDFDocument: React.FC<OfferPDFDocumentProps> = ({ offer, pdfTy
         downPayment={offer.down_payment}
         adjustedMonthlyPayment={offer.adjusted_monthly_payment}
         financedAmountAfterDownPayment={offer.financed_amount_after_down_payment}
+        isPurchase={offer.is_purchase}
+        totalSellingPrice={offer.total_selling_price}
         contentBlocks={{
           title: offer.content_blocks?.equipment_title,
           footer_note: offer.content_blocks?.equipment_footer_note,
