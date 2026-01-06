@@ -87,6 +87,24 @@ const EquipmentList = ({
   const totalPurchaseAmount = equipmentList.reduce((sum, equipment) => 
     sum + (equipment.purchasePrice * equipment.quantity), 0);
 
+  // MODE ACHAT: Construire un offerData local basé strictement sur les équipements
+  // pour que FinancialSummary affiche les bons totaux (PV = PA × (1 + marge%))
+  const purchaseOfferData: OfferFinancialData | undefined = isPurchase ? (() => {
+    const totalPurchasePrice = equipmentList.reduce((sum, eq) => 
+      sum + (eq.purchasePrice * eq.quantity), 0);
+    const totalFinancedAmount = equipmentList.reduce((sum, eq) => {
+      const sellingPrice = eq.purchasePrice * eq.quantity * (1 + (eq.margin || 0) / 100);
+      return sum + sellingPrice;
+    }, 0);
+    return {
+      totalPurchasePrice,
+      totalFinancedAmount,
+      totalMargin: totalFinancedAmount - totalPurchasePrice,
+      monthlyPayment: 0,
+      coefficient: 0
+    };
+  })() : undefined;
+
   // Calculate commission for admin creating ambassador offers
   const commissionData = useOfferCommissionCalculator({
     isInternalOffer: false,
@@ -385,7 +403,7 @@ const EquipmentList = ({
               calculations={calculations}
               useGlobalAdjustment={globalMarginAdjustment.active}
               onToggleAdjustment={toggleAdaptMonthlyPayment}
-              offerData={offerData}
+              offerData={isPurchase ? purchaseOfferData : offerData}
               fileFee={fileFee}
               annualInsurance={annualInsurance}
               isPurchase={isPurchase}
