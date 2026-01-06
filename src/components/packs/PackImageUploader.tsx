@@ -3,7 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { uploadImage } from "@/utils/imageUtils";
-import { ensureBucket } from "@/services/fileStorage";
+import { getCurrentUserCompanyId } from "@/services/multiTenantService";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -25,21 +25,22 @@ export const PackImageUploader: React.FC<PackImageUploaderProps> = ({
     setIsUploading(true);
 
     try {
-      // Ensure bucket exists
-      await ensureBucket("pack-images");
+      // Get company ID for multi-tenant path
+      const companyId = await getCurrentUserCompanyId();
+      const folder = `company-${companyId}/packs`;
 
-      // Upload image
-      const uploadedUrl = await uploadImage(file, "pack-images", "");
+      // Upload image to pack-images bucket with company folder
+      const uploadedUrl = await uploadImage(file, "pack-images", folder);
       
       if (uploadedUrl) {
         onImageUpdate(uploadedUrl);
-        toast.success("Image uploaded successfully");
+        toast.success("Image téléchargée avec succès");
       } else {
         throw new Error("Upload failed");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload image");
+      toast.error("Échec du téléchargement de l'image");
     } finally {
       setIsUploading(false);
     }

@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ProductPack, CreatePackData, ProductPackItem, PackCalculation } from "@/types/pack";
-import { calculateSalePriceWithLeaser } from "@/utils/leaserCalculator";
+import { calculateSalePriceWithLeaser, getCoefficientFromLeaser } from "@/utils/leaserCalculator";
 import { Leaser } from "@/types/equipment";
 
 export const getPacks = async (): Promise<ProductPack[]> => {
@@ -149,24 +149,51 @@ export const calculatePackTotals = (
     };
   }
 
+  // 1. Calculate total purchase price
   const total_purchase_price = items.reduce((sum, item) => 
     sum + (item.unit_purchase_price * item.quantity), 0
   );
   
+  // 2. Calculate total monthly price (sum of individual monthly prices × quantities)
   const total_monthly_price = items.reduce((sum, item) => 
     sum + (item.unit_monthly_price * item.quantity), 0
   );
   
-  // Calculate margin using direct percentage calculation (same as offer calculator)
-  const total_margin = items.reduce((sum, item) => 
-    sum + (item.unit_purchase_price * item.quantity * (item.margin_percentage || 0) / 100), 0
-  );
+  // 3. Calculate individual financed amounts to determine global coefficient range
+  const totalFinancedAmountIndividual = items.reduce((sum, item) => {
+    const lineMonthly = item.unit_monthly_price * item.quantity;
+    return sum + calculateSalePriceWithLeaser(lineMonthly, leaser, duration);
+  }, 0);
   
-  // Calculate simple arithmetic average of individual margin percentages
-  const average_margin_percentage = items.length > 0 ?
-    items.reduce((sum, item) => sum + (item.margin_percentage || 0), 0) / items.length : 0;
+  // 4. Get global coefficient based on total financed amount
+  const globalCoefficient = getCoefficientFromLeaser(leaser, totalFinancedAmountIndividual, duration);
+  
+  // 5. Calculate financed amount using inverse Grenke formula (same as offers)
+  // financed_amount = monthly_payment × 100 / coefficient
+  const totalFinancedAmountDisplay = globalCoefficient > 0 
+    ? Math.round((total_monthly_price * 100 / globalCoefficient) * 100) / 100
+    : totalFinancedAmountIndividual;
+  
+  // 6. Calculate margin from financed amount - this is the real margin
+  // margin = financed_amount - purchase_price
+  const total_margin = Math.round((totalFinancedAmountDisplay - total_purchase_price) * 100) / 100;
+  
+  // 7. Calculate margin percentage based on purchase price
+  const average_margin_percentage = total_purchase_price > 0 
+    ? Math.round((total_margin / total_purchase_price) * 1000) / 10 // 1 decimal place
+    : 0;
   
   const total_quantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  console.log("📦 Pack calculations:", {
+    total_purchase_price,
+    total_monthly_price,
+    totalFinancedAmountIndividual,
+    globalCoefficient,
+    totalFinancedAmountDisplay,
+    total_margin,
+    average_margin_percentage,
+  });
 
   return {
     total_purchase_price,
