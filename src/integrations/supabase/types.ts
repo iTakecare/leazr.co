@@ -7157,7 +7157,16 @@ export type Database = {
           }
       get_contract_for_signature: { Args: { p_token: string }; Returns: Json }
       get_contract_statistics_by_status:
-        | { Args: never; Returns: Json }
+        | {
+            Args: never
+            Returns: {
+              contracts_count: number
+              status: string
+              total_commission: number
+              total_margin: number
+              total_monthly_payment: number
+            }[]
+          }
         | {
             Args: { p_year?: number }
             Returns: {
@@ -7300,22 +7309,6 @@ export type Database = {
               purchases: number
               revenue: number
               year: number
-            }[]
-          }
-        | {
-            Args: { p_company_id?: string; p_year: number }
-            Returns: {
-              actual_purchase: number
-              contracts_count: number
-              direct_sales_count: number
-              direct_sales_margin: number
-              direct_sales_revenue: number
-              estimated_purchase: number
-              margin: number
-              margin_rate: number
-              month: number
-              purchase_savings: number
-              revenue: number
             }[]
           }
       get_offer_by_id_public: {
