@@ -283,10 +283,15 @@ export const useOfferActions = (offers: Offer[], setOffers: React.Dispatch<React
       const isPurchase = (offer as any)?.is_purchase === true;
       
       // Calculer le total prix de vente pour le mode achat
-      const totalSellingPrice = equipmentData.reduce(
-        (sum: number, eq: any) => sum + (Number(eq.selling_price) || 0),
+      // selling_price en DB est le prix UNITAIRE, donc on multiplie par quantity
+      // Priorité : financed_amount (source de vérité) sinon calcul depuis équipements
+      const totalSellingPriceFromEquipment = equipmentData.reduce(
+        (sum: number, eq: any) => sum + ((Number(eq.selling_price) || 0) * (Number(eq.quantity) || 1)),
         0
       );
+      const totalSellingPrice = isPurchase && (offer as any).financed_amount 
+        ? Number((offer as any).financed_amount) 
+        : totalSellingPriceFromEquipment;
       
       // Calculer l'acompte et la mensualité ajustée
       const downPayment = Number((offer as any).down_payment) || 0;
