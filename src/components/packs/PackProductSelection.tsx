@@ -109,7 +109,32 @@ export const PackProductSelection = ({
     monthlyPrice?: number
   ) => {
     const basePrice = price || product.price || 0;
-    const baseMonthlyPrice = monthlyPrice || product.monthly_price || basePrice * 1.2;
+    
+    // Determine initial monthly price
+    let baseMonthlyPrice = monthlyPrice || product.monthly_price;
+    
+    // If no monthly price available, calculate from purchase price with default 20% margin
+    if (!baseMonthlyPrice || baseMonthlyPrice <= 0) {
+      const defaultMargin = 0.20;
+      const targetFinanced = basePrice * (1 + defaultMargin);
+      // Estimate coefficient (will be refined when leaser is selected)
+      const estimatedCoeff = 3.27; // Default coefficient for typical amounts
+      baseMonthlyPrice = (targetFinanced * estimatedCoeff) / 100;
+    }
+    
+    // Calculate margin percentage correctly from financed amount
+    // financedAmount = monthly × 100 / coefficient
+    // margin% = (financedAmount - purchasePrice) / purchasePrice × 100
+    let marginPercentage = 20; // Default
+    if (basePrice > 0 && selectedLeaser) {
+      const financedAmount = calculateSalePriceWithLeaser(baseMonthlyPrice, selectedLeaser, selectedDuration);
+      marginPercentage = ((financedAmount - basePrice) / basePrice) * 100;
+    } else if (basePrice > 0) {
+      // Without leaser, use inverse calculation with estimated coefficient
+      const estimatedCoeff = 3.27;
+      const financedAmount = (baseMonthlyPrice * 100) / estimatedCoeff;
+      marginPercentage = ((financedAmount - basePrice) / basePrice) * 100;
+    }
 
     const newItem: PackItemFormData = {
       product_id: product.id,
@@ -117,7 +142,7 @@ export const PackProductSelection = ({
       quantity: 1,
       unit_purchase_price: basePrice,
       unit_monthly_price: baseMonthlyPrice,
-      margin_percentage: basePrice > 0 ? ((baseMonthlyPrice - basePrice) / basePrice) * 100 : 20,
+      margin_percentage: marginPercentage,
       custom_price_override: false,
       position: packItems.length,
       product: product,
