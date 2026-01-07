@@ -206,7 +206,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       const { data: selfLeasingContracts } = await supabase
         .from('contracts')
         .select(`
-          id, monthly_payment, contract_start_date, contract_end_date,
+          id, monthly_payment, contract_start_date, contract_end_date, contract_duration,
           contract_equipment(purchase_price, quantity)
         `)
         .eq('company_id', companyId)
@@ -240,10 +240,14 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         
         selfLeasingRevenue += (contract.monthly_payment || 0) * monthsActive;
         
-        // Achats seulement comptés une fois par contrat (pas répartis sur les années)
-        selfLeasingPurchases += (contract.contract_equipment || []).reduce(
+        // Achats répartis sur la durée du contrat (purchase / contract_duration)
+        const totalEquipmentPurchase = (contract.contract_equipment || []).reduce(
           (sum: number, e: any) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
         );
+        const contractDuration = contract.contract_duration || 36;
+        const monthlyPurchase = totalEquipmentPurchase / contractDuration;
+        selfLeasingPurchases += monthlyPurchase * monthsActive;
+        
         selfLeasingCount++;
       }
 
