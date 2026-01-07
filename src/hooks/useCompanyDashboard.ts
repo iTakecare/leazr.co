@@ -164,7 +164,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     refetchInterval: 60000,
   });
 
-  // Récupérer les statistiques "Contrats Réalisés" (factures leasing)
+  // Récupérer les statistiques "Contrats Réalisés" (factures leasing + contrats en propre)
   const { 
     data: realizedStats,
     isLoading: realizedStatsLoading,
@@ -174,7 +174,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     queryFn: async () => {
       if (!companyId) return null;
       
-      // Récupérer les factures de type 'leasing' pour l'année sélectionnée
+      // 1. Récupérer les factures de type 'leasing' pour l'année sélectionnée
       const { data: invoices, error } = await supabase
         .from('invoices')
         .select('id, amount, contract_id, invoice_date')
@@ -185,26 +185,76 @@ export const useCompanyDashboard = (selectedYear?: number) => {
 
       if (error) throw error;
 
-      // Récupérer les achats depuis contract_equipment pour ces contrats
+      // Récupérer les achats depuis contract_equipment pour ces contrats (factures)
       const contractIds = [...new Set((invoices || []).map(i => i.contract_id).filter(Boolean))] as string[];
       
-      let totalPurchases = 0;
+      let invoicePurchases = 0;
       if (contractIds.length > 0) {
         const { data: equipment } = await supabase
           .from('contract_equipment')
           .select('contract_id, purchase_price, quantity')
           .in('contract_id', contractIds);
         
-        totalPurchases = (equipment || []).reduce(
+        invoicePurchases = (equipment || []).reduce(
           (sum, e) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
         );
       }
 
-      const totalRevenue = (invoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
+      const invoiceRevenue = (invoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
+      
+      // 2. Récupérer les contrats en propre (self-leasing) actifs pour l'année
+      const { data: selfLeasingContracts } = await supabase
+        .from('contracts')
+        .select(`
+          id, monthly_payment, contract_start_date, contract_end_date,
+          contract_equipment(purchase_price, quantity)
+        `)
+        .eq('company_id', companyId)
+        .eq('is_self_leasing', true)
+        .in('status', ['signed', 'active', 'delivered'])
+        .lte('contract_start_date', `${year}-12-31`);
+
+      // Calculer les revenus et achats des contrats en propre
+      let selfLeasingRevenue = 0;
+      let selfLeasingPurchases = 0;
+      let selfLeasingCount = 0;
+
+      for (const contract of selfLeasingContracts || []) {
+        const startDate = contract.contract_start_date ? new Date(contract.contract_start_date) : null;
+        const endDate = contract.contract_end_date ? new Date(contract.contract_end_date) : null;
+        
+        if (!startDate) continue;
+        
+        // Calculer les mois actifs dans l'année sélectionnée
+        const yearStart = new Date(year, 0, 1);
+        const yearEnd = new Date(year, 11, 31);
+        
+        const effectiveStart = startDate > yearStart ? startDate : yearStart;
+        const effectiveEnd = endDate && endDate < yearEnd ? endDate : yearEnd;
+        
+        if (effectiveStart > effectiveEnd) continue;
+        
+        // Nombre de mois actifs
+        const monthsActive = (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12 
+          + effectiveEnd.getMonth() - effectiveStart.getMonth() + 1;
+        
+        selfLeasingRevenue += (contract.monthly_payment || 0) * monthsActive;
+        
+        // Achats seulement comptés une fois par contrat (pas répartis sur les années)
+        selfLeasingPurchases += (contract.contract_equipment || []).reduce(
+          (sum: number, e: any) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
+        );
+        selfLeasingCount++;
+      }
+
+      // Combiner factures leasing + contrats en propre
+      const totalRevenue = invoiceRevenue + selfLeasingRevenue;
+      const totalPurchases = invoicePurchases + selfLeasingPurchases;
+      const totalCount = (invoices?.length || 0) + selfLeasingCount;
       
       return {
         status: 'realized',
-        count: invoices?.length || 0,
+        count: totalCount,
         total_revenue: totalRevenue,
         total_purchases: totalPurchases,
         total_margin: totalRevenue - totalPurchases
