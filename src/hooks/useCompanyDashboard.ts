@@ -164,7 +164,153 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     refetchInterval: 60000,
   });
 
-  // Récupérer les autres statistiques par statut (signed, forecast) - FILTRÉ PAR ANNÉE
+  // Récupérer les statistiques "Contrats Réalisés" (factures leasing)
+  const { 
+    data: realizedStats,
+    isLoading: realizedStatsLoading,
+    refetch: refetchRealizedStats
+  } = useQuery({
+    queryKey: ['company-realized-stats', companyId, year],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      // Récupérer les factures de type 'leasing' pour l'année sélectionnée
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('id, amount, contract_id, invoice_date')
+        .eq('company_id', companyId)
+        .eq('invoice_type', 'leasing')
+        .gte('invoice_date', `${year}-01-01`)
+        .lte('invoice_date', `${year}-12-31`);
+
+      if (error) throw error;
+
+      // Récupérer les achats depuis contract_equipment pour ces contrats
+      const contractIds = [...new Set((invoices || []).map(i => i.contract_id).filter(Boolean))] as string[];
+      
+      let totalPurchases = 0;
+      if (contractIds.length > 0) {
+        const { data: equipment } = await supabase
+          .from('contract_equipment')
+          .select('contract_id, purchase_price, quantity')
+          .in('contract_id', contractIds);
+        
+        totalPurchases = (equipment || []).reduce(
+          (sum, e) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
+        );
+      }
+
+      const totalRevenue = (invoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
+      
+      return {
+        status: 'realized',
+        count: invoices?.length || 0,
+        total_revenue: totalRevenue,
+        total_purchases: totalPurchases,
+        total_margin: totalRevenue - totalPurchases
+      } as ContractStatistics;
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000,
+  });
+
+  // Récupérer les statistiques "Ventes Directes" (factures purchase)
+  const { 
+    data: directSalesStats,
+    isLoading: directSalesStatsLoading,
+    refetch: refetchDirectSalesStats
+  } = useQuery({
+    queryKey: ['company-direct-sales-stats', companyId, year],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      // Récupérer les factures de type 'purchase' pour l'année sélectionnée
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('id, amount, offer_id, invoice_date')
+        .eq('company_id', companyId)
+        .eq('invoice_type', 'purchase')
+        .gte('invoice_date', `${year}-01-01`)
+        .lte('invoice_date', `${year}-12-31`);
+
+      if (error) throw error;
+
+      // Récupérer les achats depuis offer_equipment pour ces offres
+      const offerIds = [...new Set((invoices || []).map(i => i.offer_id).filter(Boolean))] as string[];
+      
+      let totalPurchases = 0;
+      if (offerIds.length > 0) {
+        const { data: equipment } = await supabase
+          .from('offer_equipment')
+          .select('offer_id, purchase_price, quantity')
+          .in('offer_id', offerIds);
+        
+        totalPurchases = (equipment || []).reduce(
+          (sum, e) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
+        );
+      }
+
+      const totalRevenue = (invoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
+      
+      return {
+        status: 'direct_sales',
+        count: invoices?.length || 0,
+        total_revenue: totalRevenue,
+        total_purchases: totalPurchases,
+        total_margin: totalRevenue - totalPurchases
+      } as ContractStatistics;
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000,
+  });
+
+  // Récupérer les statistiques "Refusés/Sans Suite" (offres refusées)
+  const { 
+    data: refusedStats,
+    isLoading: refusedStatsLoading,
+    refetch: refetchRefusedStats
+  } = useQuery({
+    queryKey: ['company-refused-stats', companyId, year],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      // Récupérer les offres refusées de l'année sélectionnée
+      const { data: offers, error } = await supabase
+        .from('offers')
+        .select(`
+          id, financed_amount, amount, created_at,
+          offer_equipment(purchase_price, quantity)
+        `)
+        .eq('company_id', companyId)
+        .in('workflow_status', ['internal_rejected', 'leaser_rejected', 'rejected', 'cancelled', 'without_follow_up'])
+        .gte('created_at', `${year}-01-01`)
+        .lte('created_at', `${year}-12-31T23:59:59`);
+
+      if (error) throw error;
+
+      let totalRevenue = 0;
+      let totalPurchases = 0;
+
+      for (const offer of offers || []) {
+        totalRevenue += offer.financed_amount || offer.amount || 0;
+        totalPurchases += (offer.offer_equipment || []).reduce(
+          (sum: number, e: any) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
+        );
+      }
+      
+      return {
+        status: 'refused',
+        count: offers?.length || 0,
+        total_revenue: totalRevenue,
+        total_purchases: totalPurchases,
+        total_margin: totalRevenue - totalPurchases
+      } as ContractStatistics;
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000,
+  });
+
+  // Récupérer les autres statistiques par statut (forecast uniquement) - FILTRÉ PAR ANNÉE
   const { 
     data: otherContractStats = [], 
     isLoading: statsLoading,
@@ -175,16 +321,19 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       const { data, error } = await supabase.rpc('get_contract_statistics_by_status', { p_year: year });
 
       if (error) throw error;
-      // Filtrer pour ne garder que signed et forecast (pending est calculé séparément)
-      return (data as ContractStatistics[] || []).filter(s => s.status !== 'pending');
+      // Ne garder que forecast (les autres sont calculés séparément)
+      return (data as ContractStatistics[] || []).filter(s => s.status === 'forecast');
     },
     enabled: !companyLoading && !!companyId,
     refetchInterval: 60000,
   });
 
-  // Combiner les stats: pending calculé côté frontend + autres depuis RPC
+  // Combiner toutes les stats calculées côté frontend
   const contractStats: ContractStatistics[] = [
     ...(pendingStats ? [pendingStats] : []),
+    ...(realizedStats ? [realizedStats] : []),
+    ...(directSalesStats ? [directSalesStats] : []),
+    ...(refusedStats ? [refusedStats] : []),
     ...otherContractStats
   ];
 
@@ -241,6 +390,9 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       refetchMetrics(),
       refetchMonthly(),
       refetchPendingStats(),
+      refetchRealizedStats(),
+      refetchDirectSalesStats(),
+      refetchRefusedStats(),
       refetchStats(),
       refetchActivity(),
       refetchOverdue()
@@ -300,7 +452,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
     overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
-    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading || pendingStatsLoading,
+    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading || pendingStatsLoading || realizedStatsLoading || directSalesStatsLoading || refusedStatsLoading,
     refetch: refetchAll
   };
 };
