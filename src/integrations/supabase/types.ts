@@ -7156,27 +7156,17 @@ export type Database = {
             }[]
           }
       get_contract_for_signature: { Args: { p_token: string }; Returns: Json }
-      get_contract_statistics_by_status:
-        | {
-            Args: never
-            Returns: {
-              count: number
-              status: string
-              total_margin: number
-              total_purchases: number
-              total_revenue: number
-            }[]
-          }
-        | {
-            Args: { p_year?: number }
-            Returns: {
-              count: number
-              status: string
-              total_margin: number
-              total_purchases: number
-              total_revenue: number
-            }[]
-          }
+      get_contract_statistics_by_status: {
+        Args: { p_year?: number }
+        Returns: {
+          avg_amount: number
+          count: number
+          status: string
+          total_amount: number
+          total_margin: number
+          total_monthly_payment: number
+        }[]
+      }
       get_contract_workflow_logs: {
         Args: { p_contract_id: string }
         Returns: {
