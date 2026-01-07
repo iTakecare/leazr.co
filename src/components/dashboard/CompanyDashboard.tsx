@@ -389,6 +389,10 @@ const CompanyDashboard = () => {
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
+                    <span>Achats</span>
+                    <span className="font-semibold">{formatCurrency(Number(pendingStats?.total_purchases || 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>CA potentiel</span>
                     <span className="font-semibold">{formatCurrency(Number(pendingStats?.total_revenue || 0))}</span>
                   </div>
