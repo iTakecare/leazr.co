@@ -38,27 +38,49 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   const [billingFrequency, setBillingFrequency] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Récupérer les paramètres du leaser
+  // Récupérer les paramètres du leaser avec recherche robuste
   useEffect(() => {
     const fetchLeaserSettings = async () => {
-      let query = supabase
-        .from('leasers')
-        .select('contract_start_rule, billing_frequency');
+      let data = null;
       
-      // Chercher par ID si disponible (plus fiable), sinon par nom
+      // 1. Chercher par ID si disponible (priorité)
       if (leaserId) {
-        query = query.eq('id', leaserId);
-      } else if (leaserName) {
-        query = query.eq('name', leaserName);
-      } else {
-        return;
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('contract_start_rule, billing_frequency, name')
+          .eq('id', leaserId)
+          .maybeSingle();
+        data = leaserData;
       }
       
-      const { data, error } = await query.maybeSingle();
+      // 2. Si pas trouvé par ID, chercher par nom (recherche flexible avec ILIKE)
+      if (!data && leaserName) {
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('contract_start_rule, billing_frequency, name')
+          .ilike('name', `%${leaserName}%`)
+          .maybeSingle();
+        data = leaserData;
+      }
+      
+      // 3. Si toujours pas trouvé et c'est un self-leasing, chercher is_own_company
+      if (!data && leaserName && (leaserName.toLowerCase().includes('itakecare') || leaserName.toLowerCase().includes('itakcare'))) {
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('contract_start_rule, billing_frequency, name')
+          .eq('is_own_company', true)
+          .maybeSingle();
+        data = leaserData;
+      }
 
       if (data) {
         setLeaserRule(data.contract_start_rule || 'next_month_first');
         setBillingFrequency(data.billing_frequency || 'monthly');
+      } else {
+        // Valeurs par défaut
+        console.warn('Leaser non trouvé, utilisation des valeurs par défaut');
+        setLeaserRule('next_month_first');
+        setBillingFrequency('monthly');
       }
     };
 
