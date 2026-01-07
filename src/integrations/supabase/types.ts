@@ -7159,7 +7159,6 @@ export type Database = {
       get_contract_statistics_by_status: {
         Args: { p_year?: number }
         Returns: {
-          avg_amount: number
           count: number
           status: string
           total_amount: number
