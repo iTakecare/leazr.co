@@ -188,6 +188,64 @@ function parsePackInterest(packInterest: string): ParsedPack {
   };
 }
 
+// Helper: Calculate pack name score
+function calculatePackScore(packName: string, searchTerms: string[]): number {
+  const packNameLower = packName.toLowerCase();
+  let score = 0;
+  
+  for (const term of searchTerms) {
+    if (packNameLower.includes(term)) {
+      if (['macbook', 'iphone', 'ipad', 'hp', 'dell', 'lenovo', 'pro', 'max', 'air'].includes(term)) {
+        score += 3;
+      } else if (['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', '17'].includes(term)) {
+        score += 4;
+      } else {
+        score += 1;
+      }
+    }
+  }
+  
+  return score;
+}
+
+// Helper: Count matched terms
+function countMatchedTerms(packName: string, searchTerms: string[]): number {
+  const packNameLower = packName.toLowerCase();
+  return searchTerms.filter(term => packNameLower.includes(term)).length;
+}
+
+// Helper: Format pack result
+function formatPackResult(pack: any): MatchedPack {
+  const effectivePrice = pack.promo_active && pack.pack_promo_price
+    ? pack.pack_promo_price
+    : (pack.pack_monthly_price || pack.total_monthly_price || 0);
+  
+  const items: MatchedPackItem[] = (pack.items || []).map((item: any) => ({
+    product_id: item.product_id,
+    product_name: item.product?.name || 'Produit',
+    variant_price_id: item.variant_price_id,
+    quantity: item.quantity || 1,
+    unit_purchase_price: item.unit_purchase_price || 0,
+    unit_monthly_price: item.unit_monthly_price || 0,
+    margin_percentage: item.margin_percentage || 0
+  }));
+  
+  return {
+    pack: {
+      id: pack.id,
+      name: pack.name,
+      pack_monthly_price: pack.pack_monthly_price,
+      pack_promo_price: pack.pack_promo_price,
+      promo_active: pack.promo_active || false,
+      total_purchase_price: pack.total_purchase_price || 0,
+      total_monthly_price: pack.total_monthly_price || 0,
+      total_margin: pack.total_margin || 0
+    },
+    items,
+    effectiveMonthlyPrice: effectivePrice
+  };
+}
+
 // Find matching pack in product_packs table
 async function findMatchingPack(
   supabase: any,
@@ -195,6 +253,7 @@ async function findMatchingPack(
   companyId: string
 ): Promise<MatchedPack | null> {
   console.log('[META IMPORT] Searching for matching pack...');
+  console.log('[META IMPORT] Price from Meta:', parsedPack.priceFromMeta);
   
   // Fetch active packs with their items
   const { data: packs, error } = await supabase
@@ -226,42 +285,77 @@ async function findMatchingPack(
   
   // Search terms from the parsed pack (main product keywords)
   const searchTerms = parsedPack.formattedProducts.map(p => {
-    // Get first 2-3 significant words (brand + model)
     const words = p.split(' ').filter(w => w.length > 1);
     return words.slice(0, 3).map(w => w.toLowerCase());
   }).flat();
   
   console.log('[META IMPORT] Search terms:', searchTerms);
   
+  // === STRATEGY 1: PRICE-BASED MATCHING (PRIORITY) ===
+  if (parsedPack.priceFromMeta && parsedPack.priceFromMeta > 0) {
+    const targetPrice = parsedPack.priceFromMeta;
+    const tolerance = 0.10; // 10 centimes tolerance
+    
+    console.log('[META IMPORT] Using price-based matching. Target:', targetPrice, '€');
+    
+    // Find packs matching the price
+    const priceMatchedPacks = packs.filter((pack: any) => {
+      const effectivePrice = pack.promo_active && pack.pack_promo_price
+        ? pack.pack_promo_price
+        : (pack.pack_monthly_price || pack.total_monthly_price || 0);
+      
+      const priceDiff = Math.abs(effectivePrice - targetPrice);
+      const matches = priceDiff <= tolerance;
+      
+      console.log(`[META IMPORT] Pack "${pack.name}" price: ${effectivePrice}€, diff: ${priceDiff.toFixed(2)}€, matches: ${matches}`);
+      
+      return matches;
+    });
+    
+    console.log('[META IMPORT] Packs matching price:', priceMatchedPacks.length);
+    
+    if (priceMatchedPacks.length === 1) {
+      // Perfect: exactly one pack matches the price
+      const matchedPack = priceMatchedPacks[0];
+      console.log('[META IMPORT] Single price match found:', matchedPack.name);
+      return formatPackResult(matchedPack);
+    }
+    
+    if (priceMatchedPacks.length > 1) {
+      // Multiple packs with same price - use name scoring as tie-breaker
+      console.log('[META IMPORT] Multiple price matches, using name scoring as tie-breaker');
+      
+      let bestMatch: any = null;
+      let bestScore = 0;
+      
+      for (const pack of priceMatchedPacks) {
+        const score = calculatePackScore(pack.name, searchTerms);
+        console.log(`[META IMPORT] Pack "${pack.name}" name score: ${score}`);
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = pack;
+        }
+      }
+      
+      if (bestMatch) {
+        console.log('[META IMPORT] Best price+name match:', bestMatch.name);
+        return formatPackResult(bestMatch);
+      }
+    }
+  }
+  
+  // === STRATEGY 2: NAME-BASED MATCHING (FALLBACK) ===
+  console.log('[META IMPORT] Falling back to name-based matching');
+  
   let bestMatch: any = null;
   let bestScore = 0;
   
   for (const pack of packs) {
-    const packNameLower = pack.name.toLowerCase();
-    let score = 0;
-    let matchedTerms = 0;
+    const score = calculatePackScore(pack.name, searchTerms);
+    const matchedTerms = countMatchedTerms(pack.name, searchTerms);
     
-    // Check how many search terms match the pack name
-    for (const term of searchTerms) {
-      if (packNameLower.includes(term)) {
-        // Higher score for important terms (brand names, model numbers)
-        if (['macbook', 'iphone', 'ipad', 'hp', 'dell', 'lenovo', 'pro', 'max', 'air'].includes(term)) {
-          score += 3;
-        } else if (['m1', 'm2', 'm3', 'm4', '13', '14', '15', '16', '17'].includes(term)) {
-          score += 4; // Model/chip identifiers are very important
-        } else {
-          score += 1;
-        }
-        matchedTerms++;
-      }
-    }
-    
-    // Bonus if pack has items (sanity check)
-    if (pack.items && pack.items.length > 0) {
-      score += 1;
-    }
-    
-    console.log(`[META IMPORT] Pack "${pack.name}" score: ${score} (${matchedTerms}/${searchTerms.length} terms matched)`);
+    console.log(`[META IMPORT] Pack "${pack.name}" score: ${score} (${matchedTerms}/${searchTerms.length} terms)`);
     
     // Require at least 50% of terms to match
     if (matchedTerms >= searchTerms.length * 0.5 && score > bestScore) {
@@ -276,37 +370,7 @@ async function findMatchingPack(
   }
   
   console.log('[META IMPORT] Best matching pack:', bestMatch.name, 'with score:', bestScore);
-  
-  // Calculate effective price
-  const effectivePrice = bestMatch.promo_active && bestMatch.pack_promo_price
-    ? bestMatch.pack_promo_price
-    : (bestMatch.pack_monthly_price || bestMatch.total_monthly_price || 0);
-  
-  // Map items
-  const items: MatchedPackItem[] = (bestMatch.items || []).map((item: any) => ({
-    product_id: item.product_id,
-    product_name: item.product?.name || 'Produit',
-    variant_price_id: item.variant_price_id,
-    quantity: item.quantity || 1,
-    unit_purchase_price: item.unit_purchase_price || 0,
-    unit_monthly_price: item.unit_monthly_price || 0,
-    margin_percentage: item.margin_percentage || 0
-  }));
-  
-  return {
-    pack: {
-      id: bestMatch.id,
-      name: bestMatch.name,
-      pack_monthly_price: bestMatch.pack_monthly_price,
-      pack_promo_price: bestMatch.pack_promo_price,
-      promo_active: bestMatch.promo_active || false,
-      total_purchase_price: bestMatch.total_purchase_price || 0,
-      total_monthly_price: bestMatch.total_monthly_price || 0,
-      total_margin: bestMatch.total_margin || 0
-    },
-    items,
-    effectiveMonthlyPrice: effectivePrice
-  };
+  return formatPackResult(bestMatch);
 }
 
 // Important short terms that should not be filtered out (model numbers, sizes, chip generations)
