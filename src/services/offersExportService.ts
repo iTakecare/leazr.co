@@ -20,6 +20,7 @@ const getStatusLabel = (status: string | undefined): string => {
     case 'approved': return 'Approuvée';
     case 'leaser_review': return 'En révision bailleur';
     case 'accepted': return 'Acceptée';
+    case 'contract_signed': return 'Acceptée';
     case 'rejected': return 'Rejetée';
     case 'invoiced': return 'Facturée';
     default: return status || '-';

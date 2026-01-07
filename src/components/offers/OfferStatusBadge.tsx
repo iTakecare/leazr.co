@@ -164,6 +164,12 @@ export const OFFER_STATUSES = {
     icon: CheckCircle,
     color: "bg-green-100 text-green-700 border-green-200"
   },
+  CONTRACT_SIGNED: { 
+    id: "contract_signed", 
+    label: "Acceptée", 
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-700 border-green-200"
+  },
   REJECTED: { 
     id: "rejected", 
     label: "Rejetée", 
