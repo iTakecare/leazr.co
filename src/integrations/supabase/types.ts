@@ -7277,12 +7277,17 @@ export type Database = {
             }[]
           }
         | {
-            Args: { target_year: number }
+            Args: { p_year?: number }
             Returns: {
+              contracts_count: number
               margin: number
-              month: number
+              margin_percentage: number
+              month_name: string
+              month_number: number
+              offers_count: number
               purchases: number
               revenue: number
+              year: number
             }[]
           }
       get_offer_by_id_public: {

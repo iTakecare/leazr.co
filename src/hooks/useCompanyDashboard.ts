@@ -86,7 +86,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
   } = useQuery({
     queryKey: ['company-monthly-data', companyId, year],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_monthly_financial_data', { target_year: year });
+      const { data, error } = await supabase.rpc('get_monthly_financial_data', { p_year: year });
 
       if (error) throw error;
       return data as MonthlyFinancialData[] || [];
