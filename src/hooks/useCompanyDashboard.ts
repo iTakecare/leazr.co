@@ -95,9 +95,78 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     refetchInterval: 60000, // Actualisation toutes les minutes
   });
 
-  // Récupérer les statistiques par statut - FILTRÉ PAR ANNÉE (sauf pending/forecast)
+  // Récupérer les statistiques "En Attente" - MÊME LOGIQUE QUE L'EXPORT EXCEL
   const { 
-    data: contractStats = [], 
+    data: pendingStats,
+    isLoading: pendingStatsLoading,
+    refetch: refetchPendingStats
+  } = useQuery({
+    queryKey: ['company-pending-stats-excel', companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      // Récupérer les offres avec équipements - même requête que useFetchOffers
+      const { data: offers, error } = await supabase
+        .from('offers')
+        .select(`
+          id, workflow_status, financed_amount, amount, converted_to_contract,
+          offer_equipment(purchase_price, quantity, selling_price, margin)
+        `)
+        .eq('company_id', companyId)
+        .eq('converted_to_contract', false);
+
+      if (error) throw error;
+
+      // Filtrer les offres en attente (même logique que l'export Excel)
+      const pendingOffers = (offers || []).filter(o => 
+        ['draft', 'sent', 'offer_send', 'info_requested', 'info_received',
+         'internal_docs_requested', 'internal_approved', 'leaser_review', 
+         'leaser_introduced', 'approved', 'pending'].includes(o.workflow_status || '')
+      );
+
+      let count = 0;
+      let totalPurchases = 0;
+      let totalCA = 0;
+
+      for (const offer of pendingOffers) {
+        count++;
+        
+        // Achats = SUM(purchase_price * quantity) - même calcul que offersExportService
+        const purchases = (offer.offer_equipment || []).reduce(
+          (sum: number, eq: any) => sum + ((eq.purchase_price || 0) * (eq.quantity || 1)), 0
+        );
+        totalPurchases += purchases;
+        
+        // CA potentiel = financed_amount || amount || calcul depuis equipment
+        let ca = offer.financed_amount || offer.amount;
+        if (!ca && offer.offer_equipment) {
+          ca = (offer.offer_equipment || []).reduce((sum: number, eq: any) => {
+            const qty = eq.quantity || 1;
+            const sellingPrice = eq.selling_price || ((eq.purchase_price || 0) * (1 + (eq.margin || 0) / 100));
+            return sum + (sellingPrice * qty);
+          }, 0);
+        }
+        totalCA += ca || 0;
+      }
+
+      // Marge = CA - Achats (même calcul que offersExportService)
+      const totalMargin = totalCA - totalPurchases;
+
+      return {
+        status: 'pending',
+        count,
+        total_revenue: totalCA,
+        total_purchases: totalPurchases,
+        total_margin: totalMargin
+      } as ContractStatistics;
+    },
+    enabled: !companyLoading && !!companyId,
+    refetchInterval: 60000,
+  });
+
+  // Récupérer les autres statistiques par statut (signed, forecast) - FILTRÉ PAR ANNÉE
+  const { 
+    data: otherContractStats = [], 
     isLoading: statsLoading,
     refetch: refetchStats
   } = useQuery({
@@ -106,11 +175,18 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       const { data, error } = await supabase.rpc('get_contract_statistics_by_status', { p_year: year });
 
       if (error) throw error;
-      return data as ContractStatistics[] || [];
+      // Filtrer pour ne garder que signed et forecast (pending est calculé séparément)
+      return (data as ContractStatistics[] || []).filter(s => s.status !== 'pending');
     },
     enabled: !companyLoading && !!companyId,
-    refetchInterval: 60000, // Actualisation toutes les minutes
+    refetchInterval: 60000,
   });
+
+  // Combiner les stats: pending calculé côté frontend + autres depuis RPC
+  const contractStats: ContractStatistics[] = [
+    ...(pendingStats ? [pendingStats] : []),
+    ...otherContractStats
+  ];
 
   // Récupérer l'activité récente
   const { 
@@ -164,6 +240,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     await Promise.all([
       refetchMetrics(),
       refetchMonthly(),
+      refetchPendingStats(),
       refetchStats(),
       refetchActivity(),
       refetchOverdue()
@@ -223,7 +300,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
     metrics: realTimeMetrics || (metrics ? { ...metrics, monthly_data: monthlyData, contract_stats: contractStats } : null),
     recentActivity,
     overdueInvoices: overdueInvoices || { overdue_count: 0, overdue_amount: 0 },
-    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading,
+    isLoading: metricsLoading || activityLoading || companyLoading || monthlyLoading || statsLoading || overdueLoading || pendingStatsLoading,
     refetch: refetchAll
   };
 };
