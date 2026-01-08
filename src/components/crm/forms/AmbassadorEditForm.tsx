@@ -42,6 +42,8 @@ const AmbassadorEditForm = ({
   const form = useForm<AmbassadorFormValues>({
     resolver: zodResolver(ambassadorSchema),
     defaultValues: {
+      first_name: ambassadorData.first_name || "",
+      last_name: ambassadorData.last_name || "",
       name: ambassadorData.name || "",
       email: ambassadorData.email || "",
       company: ambassadorData.company || "",
@@ -61,11 +63,17 @@ const AmbassadorEditForm = ({
   const onSubmit = async (values: AmbassadorFormValues) => {
     setLoading(true);
     try {
-      console.log("Updating ambassador with values:", values);
+      // Générer le nom complet à partir de first_name et last_name
+      const dataToUpdate = {
+        ...values,
+        name: `${values.first_name} ${values.last_name}`.trim()
+      };
       
-      await updateAmbassador(ambassadorData.id, values);
+      console.log("Updating ambassador with values:", dataToUpdate);
       
-      const updatedAmbassador = { ...ambassadorData, ...values };
+      await updateAmbassador(ambassadorData.id, dataToUpdate);
+      
+      const updatedAmbassador = { ...ambassadorData, ...dataToUpdate };
       
       toast.success("Ambassadeur mis à jour avec succès");
       onAmbassadorUpdated(updatedAmbassador);
@@ -90,10 +98,24 @@ const AmbassadorEditForm = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="first_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nom complet*</FormLabel>
+                      <FormLabel>Prénom*</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de famille*</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
