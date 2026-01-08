@@ -49,6 +49,33 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
   const [availableDurations, setAvailableDurations] = useState<number[]>(
     currentLeaser?.available_durations || [12, 18, 24, 36, 48, 60, 72]
   );
+  const [customDurationInput, setCustomDurationInput] = useState<string>("");
+  
+  const PREDEFINED_DURATIONS = [12, 18, 24, 36, 48, 60, 72, 84];
+  
+  const handleAddCustomDuration = () => {
+    const duration = parseInt(customDurationInput);
+    if (isNaN(duration) || duration <= 0) {
+      toast.error("Veuillez entrer une durée valide");
+      return;
+    }
+    if (duration > 120) {
+      toast.error("La durée maximale est de 120 mois (10 ans)");
+      return;
+    }
+    if (availableDurations.includes(duration)) {
+      toast.error("Cette durée existe déjà");
+      return;
+    }
+    setAvailableDurations([...availableDurations, duration].sort((a, b) => a - b));
+    setCustomDurationInput("");
+    toast.success(`Durée de ${duration} mois ajoutée`);
+  };
+  
+  const handleRemoveCustomDuration = (duration: number) => {
+    setAvailableDurations(availableDurations.filter(d => d !== duration));
+    toast.success(`Durée de ${duration} mois supprimée`);
+  };
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLeaser?.logo_url || null);
@@ -559,8 +586,10 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
               <div className="space-y-4 p-4 border rounded-lg bg-muted/10">
                 <div className="space-y-3">
                   <Label className="font-medium">Durées de financement disponibles</Label>
+                  
+                  {/* Durées prédéfinies */}
                   <div className="grid grid-cols-4 gap-3">
-                    {[12, 18, 24, 36, 48, 60, 72, 84].map((duration) => (
+                    {PREDEFINED_DURATIONS.map((duration) => (
                       <div key={duration} className="flex items-center space-x-2">
                         <Checkbox
                           id={`duration-${duration}`}
@@ -572,6 +601,72 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
                         </Label>
                       </div>
                     ))}
+                  </div>
+                  
+                  {/* Durées personnalisées */}
+                  {availableDurations.filter(d => !PREDEFINED_DURATIONS.includes(d)).length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Durées personnalisées</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableDurations
+                          .filter(d => !PREDEFINED_DURATIONS.includes(d))
+                          .sort((a, b) => a - b)
+                          .map(duration => (
+                            <div 
+                              key={duration} 
+                              className="flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-md text-sm font-medium"
+                            >
+                              <span>{duration} mois</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomDuration(duration)}
+                                className="hover:bg-primary/20 rounded p-0.5 transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Ajout de durée personnalisée */}
+                  <div className="flex items-end gap-2 pt-2 border-t border-border/50">
+                    <div className="flex-1 max-w-[150px]">
+                      <Label htmlFor="custom-duration" className="text-sm text-muted-foreground">
+                        Ajouter une durée
+                      </Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id="custom-duration"
+                          type="number"
+                          min="1"
+                          max="120"
+                          placeholder="Ex: 42"
+                          value={customDurationInput}
+                          onChange={(e) => setCustomDurationInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomDuration();
+                            }
+                          }}
+                          className="h-8"
+                        />
+                        <span className="text-sm text-muted-foreground">mois</span>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddCustomDuration}
+                      className="h-8"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Ajouter
+                    </Button>
                   </div>
                 </div>
               </div>
