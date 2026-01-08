@@ -96,6 +96,40 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
     }
   }, [contractStartDate]);
 
+  // Fonction pour calculer la date de début selon la règle du leaser
+  const calculateStartDateFromRule = (deliveryDate: Date, rule: string): Date | null => {
+    switch (rule) {
+      case 'next_month_first': {
+        const nextMonth = new Date(deliveryDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        nextMonth.setDate(1);
+        return nextMonth;
+      }
+      case 'next_quarter_first': {
+        const currentQuarter = Math.floor(deliveryDate.getMonth() / 3);
+        const nextQuarter = (currentQuarter + 1) % 4;
+        const year = nextQuarter === 0 ? deliveryDate.getFullYear() + 1 : deliveryDate.getFullYear();
+        return new Date(year, nextQuarter * 3, 1);
+      }
+      case 'next_semester_first': {
+        const nextSemester = deliveryDate.getMonth() < 6 ? 6 : 0;
+        const semYear = nextSemester === 0 ? deliveryDate.getFullYear() + 1 : deliveryDate.getFullYear();
+        return new Date(semYear, nextSemester, 1);
+      }
+      case 'next_year_first':
+        return new Date(deliveryDate.getFullYear() + 1, 0, 1);
+      case 'delivery_date':
+        return deliveryDate;
+      case 'delivery_date_plus_15': {
+        const result = new Date(deliveryDate);
+        result.setDate(result.getDate() + 15);
+        return result;
+      }
+      default:
+        return null;
+    }
+  };
+
   // Fonction pour formater la règle en texte lisible
   const getRuleDescription = (rule: string): string => {
     const rules: Record<string, string> = {
@@ -125,6 +159,7 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
 
     setIsUpdating(true);
     try {
+      // 1. Mettre à jour la date de livraison
       const { error } = await supabase
         .from('contracts')
         .update({ 
@@ -134,15 +169,31 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
         .eq('id', contractId);
 
       if (error) throw error;
-
       setSelectedDeliveryDate(date);
-      toast.success('Date de livraison mise à jour');
+
+      // 2. Calculer automatiquement la date de début selon la règle du leaser
+      const calculatedStartDate = calculateStartDateFromRule(date, leaserRule);
       
-      // Le trigger auto_calculate_contract_start_date va calculer automatiquement
-      // Recharger les données
-      setTimeout(() => {
-        onUpdate?.();
-      }, 500);
+      if (calculatedStartDate) {
+        const { error: startError } = await supabase
+          .from('contracts')
+          .update({ 
+            contract_start_date: format(calculatedStartDate, 'yyyy-MM-dd'),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', contractId);
+        
+        if (!startError) {
+          setSelectedStartDate(calculatedStartDate);
+          toast.success(`Date de livraison mise à jour → Début contrat: ${format(calculatedStartDate, "d MMMM yyyy", { locale: fr })}`);
+        } else {
+          toast.success('Date de livraison mise à jour');
+        }
+      } else {
+        toast.success('Date de livraison mise à jour');
+      }
+      
+      onUpdate?.();
       
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour:', error);
