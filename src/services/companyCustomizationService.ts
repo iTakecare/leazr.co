@@ -145,7 +145,39 @@ class CompanyCustomizationService {
       root.style.setProperty('--accent', branding.accent_color);
     }
 
+    // Apply favicon dynamically
+    if (branding.favicon_url) {
+      this.applyFavicon(branding.favicon_url);
+    }
+
     console.log("🎨 CUSTOMIZATION SERVICE - Branding appliqué avec succès");
+  }
+
+  static applyFavicon(faviconUrl: string): void {
+    if (!faviconUrl) return;
+    
+    console.log("🎨 CUSTOMIZATION SERVICE - Application de la favicon:", faviconUrl);
+    
+    // Remove existing favicons
+    const existingFavicons = document.querySelectorAll("link[rel='icon'], link[rel='shortcut icon']");
+    existingFavicons.forEach(el => el.remove());
+    
+    // Create new favicon link
+    const faviconLink = document.createElement('link');
+    faviconLink.rel = 'icon';
+    faviconLink.href = faviconUrl;
+    
+    // Detect type based on extension
+    if (faviconUrl.endsWith('.ico')) {
+      faviconLink.type = 'image/x-icon';
+    } else if (faviconUrl.endsWith('.svg')) {
+      faviconLink.type = 'image/svg+xml';
+    } else {
+      faviconLink.type = 'image/png';
+    }
+    
+    document.head.appendChild(faviconLink);
+    console.log("🎨 CUSTOMIZATION SERVICE - Favicon appliquée avec succès");
   }
 }
 

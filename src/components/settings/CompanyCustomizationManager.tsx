@@ -145,6 +145,39 @@ const CompanyCustomizationManager = () => {
     }
   };
 
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+
+    try {
+      setSaving(true);
+      const faviconUrl = await CompanyCustomizationService.uploadCompanyAsset(
+        companyId,
+        file,
+        "favicon"
+      );
+
+      if (faviconUrl) {
+        setBrandingForm(prev => ({ ...prev, favicon_url: faviconUrl }));
+        await updateBranding({ favicon_url: faviconUrl });
+        CompanyCustomizationService.applyFavicon(faviconUrl);
+        
+        toast({
+          title: "Favicon mise à jour",
+          description: "La nouvelle favicon est appliquée.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger la favicon.",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSettingSave = async (category: string, key: string, value: any) => {
     if (!companyId) return;
 
@@ -332,6 +365,38 @@ const CompanyCustomizationManager = () => {
                           <Upload className="h-4 w-4" />
                         </Button>
                       </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="favicon_upload">Favicon du site</Label>
+                    <div className="mt-2 space-y-2">
+                      {brandingForm.favicon_url && (
+                        <div className="flex items-center gap-4 p-3 border rounded-lg">
+                          <img 
+                            src={brandingForm.favicon_url} 
+                            alt="Favicon actuelle"
+                            className="h-8 w-8"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">Favicon actuelle</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {brandingForm.favicon_url}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept="image/png,image/x-icon,image/svg+xml"
+                          onChange={handleFaviconUpload}
+                          className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, ICO ou SVG recommandé (32x32 ou 64x64 pixels)
+                      </p>
                     </div>
                   </div>
 
