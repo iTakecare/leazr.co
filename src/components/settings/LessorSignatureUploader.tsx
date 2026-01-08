@@ -33,15 +33,11 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
 
   // Synchronize state when props change (after async loading)
   useEffect(() => {
-    if (currentRepresentativeName !== undefined) {
-      setRepresentativeName(currentRepresentativeName || '');
-    }
+    setRepresentativeName(currentRepresentativeName || '');
   }, [currentRepresentativeName]);
 
   useEffect(() => {
-    if (currentRepresentativeTitle !== undefined) {
-      setRepresentativeTitle(currentRepresentativeTitle || '');
-    }
+    setRepresentativeTitle(currentRepresentativeTitle || '');
   }, [currentRepresentativeTitle]);
 
   const handleSaveDrawnSignature = async (signatureData: string) => {
