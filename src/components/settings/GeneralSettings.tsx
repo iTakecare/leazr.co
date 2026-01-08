@@ -8,17 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Building2, MapPin } from 'lucide-react';
+import { AlertCircle, Building2, MapPin, Upload, Image, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
 import LogoUploader from './LogoUploader';
 import LessorSignatureUploader from './LessorSignatureUploader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { useMultiTenant } from '@/hooks/useMultiTenant';
+import CompanyCustomizationService from '@/services/companyCustomizationService';
 
 const GeneralSettings = () => {
-  const { user } = useAuth();
+  const { companyId } = useMultiTenant();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,13 +33,15 @@ const GeneralSettings = () => {
     signature_representative_name: null,
     signature_representative_title: null
   });
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+  const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
 
   const fetchSignatureData = async () => {
-    if (!user?.company) return;
+    if (!companyId) return;
     const { data } = await supabase
       .from('companies')
       .select('signature_url, signature_representative_name, signature_representative_title')
-      .eq('id', user.company)
+      .eq('id', companyId)
       .single();
     if (data) {
       setSignatureData({
@@ -49,8 +52,17 @@ const GeneralSettings = () => {
     }
   };
 
+  const fetchFavicon = async () => {
+    if (!companyId) return;
+    const branding = await CompanyCustomizationService.getCompanyBranding(companyId);
+    if (branding?.favicon_url) {
+      setFaviconUrl(branding.favicon_url);
+    }
+  };
+
   useEffect(() => {
     const loadSettings = async () => {
+      if (!companyId) return;
       try {
         setIsLoading(true);
         setError(null);
@@ -58,7 +70,6 @@ const GeneralSettings = () => {
         if (data) {
           setSettings(data);
         } else {
-          // Si aucune donnée n'est retournée, initialiser avec des valeurs vides
           setSettings({
             company_name: '',
             company_address: '',
@@ -72,7 +83,7 @@ const GeneralSettings = () => {
             company_legal_form: ''
           });
         }
-        await fetchSignatureData();
+        await Promise.all([fetchSignatureData(), fetchFavicon()]);
       } catch (err) {
         console.error("Erreur lors du chargement des paramètres:", err);
         setError("Impossible de charger les paramètres");
@@ -81,7 +92,7 @@ const GeneralSettings = () => {
       }
     };
     loadSettings();
-  }, [user?.company]);
+  }, [companyId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -184,6 +195,50 @@ const GeneralSettings = () => {
             initialLogoUrl={settings?.logo_url || ''}
             onLogoUploaded={handleLogoUploaded}
           />
+        </div>
+
+        {/* Favicon */}
+        <div className="space-y-2">
+          <Label>Favicon du site</Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            L'icône qui s'affiche dans l'onglet du navigateur (PNG, ICO ou SVG recommandé, 32x32px ou 64x64px)
+          </p>
+          <div className="flex items-center gap-4">
+            {faviconUrl ? (
+              <img src={faviconUrl} alt="Favicon actuel" className="w-8 h-8 object-contain border rounded" />
+            ) : (
+              <div className="w-8 h-8 border rounded flex items-center justify-center bg-muted">
+                <Image className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
+            <div className="flex-1">
+              <Input
+                type="file"
+                accept="image/png,image/x-icon,image/svg+xml,image/ico,.ico"
+                disabled={isUploadingFavicon || !companyId}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !companyId) return;
+                  setIsUploadingFavicon(true);
+                  try {
+                    const url = await CompanyCustomizationService.uploadCompanyAsset(companyId, file, 'favicon');
+                    if (url) {
+                      await CompanyCustomizationService.updateCompanyBranding(companyId, { favicon_url: url });
+                      CompanyCustomizationService.applyFavicon(url);
+                      setFaviconUrl(url);
+                      toast.success("Favicon mis à jour ! Rafraîchissez la page si nécessaire (Ctrl+F5)");
+                    }
+                  } catch (err) {
+                    console.error("Erreur upload favicon:", err);
+                    toast.error("Erreur lors de l'upload du favicon");
+                  } finally {
+                    setIsUploadingFavicon(false);
+                  }
+                }}
+              />
+            </div>
+            {isUploadingFavicon && <Loader2 className="w-4 h-4 animate-spin" />}
+          </div>
         </div>
         
         <Separator />
