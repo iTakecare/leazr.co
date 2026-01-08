@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,19 @@ const LessorSignatureUploader: React.FC<LessorSignatureUploaderProps> = ({
   const [representativeName, setRepresentativeName] = useState(currentRepresentativeName || '');
   const [representativeTitle, setRepresentativeTitle] = useState(currentRepresentativeTitle || '');
   const [mode, setMode] = useState<'draw' | 'upload'>('draw');
+
+  // Synchronize state when props change (after async loading)
+  useEffect(() => {
+    if (currentRepresentativeName !== undefined) {
+      setRepresentativeName(currentRepresentativeName || '');
+    }
+  }, [currentRepresentativeName]);
+
+  useEffect(() => {
+    if (currentRepresentativeTitle !== undefined) {
+      setRepresentativeTitle(currentRepresentativeTitle || '');
+    }
+  }, [currentRepresentativeTitle]);
 
   const handleSaveDrawnSignature = async (signatureData: string) => {
     if (!companyId) return;
