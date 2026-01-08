@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Info } from "lucide-react";
+import { CalendarIcon, Info, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -38,46 +38,84 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
   const [billingFrequency, setBillingFrequency] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Récupérer les paramètres du leaser avec recherche robuste
+  // Fonction robuste pour récupérer les paramètres du leaser
+  const resolveLeaserSettings = async (): Promise<{ rule: string; frequency: string; foundLeaserId?: string } | null> => {
+    // 1. Chercher par ID si disponible (priorité)
+    if (leaserId) {
+      const { data } = await supabase
+        .from('leasers')
+        .select('id, contract_start_rule, billing_frequency, name')
+        .eq('id', leaserId)
+        .maybeSingle();
+      if (data) {
+        return { rule: data.contract_start_rule || 'next_month_first', frequency: data.billing_frequency || 'monthly', foundLeaserId: data.id };
+      }
+    }
+    
+    if (!leaserName) return null;
+    
+    // 2. Chercher par company_name exact (priorité haute - c'est le cas de SRL GRENKE LEASE)
+    const { data: byCompanyName } = await supabase
+      .from('leasers')
+      .select('id, contract_start_rule, billing_frequency, name, company_name')
+      .ilike('company_name', leaserName)
+      .limit(1);
+    
+    if (byCompanyName && byCompanyName.length > 0) {
+      const leaser = byCompanyName[0];
+      return { rule: leaser.contract_start_rule || 'next_month_first', frequency: leaser.billing_frequency || 'monthly', foundLeaserId: leaser.id };
+    }
+    
+    // 3. Chercher par name exact
+    const { data: byName } = await supabase
+      .from('leasers')
+      .select('id, contract_start_rule, billing_frequency, name')
+      .ilike('name', leaserName)
+      .limit(1);
+    
+    if (byName && byName.length > 0) {
+      const leaser = byName[0];
+      return { rule: leaser.contract_start_rule || 'next_month_first', frequency: leaser.billing_frequency || 'monthly', foundLeaserId: leaser.id };
+    }
+    
+    // 4. Recherche par mot-clé (extraire le mot principal du nom)
+    const keywords = leaserName.split(/\s+/).filter(w => w.length > 3 && !['SRL', 'SPRL', 'SA', 'NV', 'BV'].includes(w.toUpperCase()));
+    for (const keyword of keywords) {
+      const { data: byKeyword } = await supabase
+        .from('leasers')
+        .select('id, contract_start_rule, billing_frequency, name, company_name')
+        .or(`name.ilike.%${keyword}%,company_name.ilike.%${keyword}%`)
+        .limit(1);
+      
+      if (byKeyword && byKeyword.length > 0) {
+        const leaser = byKeyword[0];
+        return { rule: leaser.contract_start_rule || 'next_month_first', frequency: leaser.billing_frequency || 'monthly', foundLeaserId: leaser.id };
+      }
+    }
+    
+    // 5. Self-leasing fallback
+    if (leaserName.toLowerCase().includes('itakecare') || leaserName.toLowerCase().includes('itakcare')) {
+      const { data } = await supabase
+        .from('leasers')
+        .select('id, contract_start_rule, billing_frequency, name')
+        .eq('is_own_company', true)
+        .maybeSingle();
+      if (data) {
+        return { rule: data.contract_start_rule || 'next_month_first', frequency: data.billing_frequency || 'monthly', foundLeaserId: data.id };
+      }
+    }
+    
+    return null;
+  };
+
+  // Récupérer les paramètres du leaser au chargement
   useEffect(() => {
     const fetchLeaserSettings = async () => {
-      let data = null;
-      
-      // 1. Chercher par ID si disponible (priorité)
-      if (leaserId) {
-        const { data: leaserData } = await supabase
-          .from('leasers')
-          .select('contract_start_rule, billing_frequency, name')
-          .eq('id', leaserId)
-          .maybeSingle();
-        data = leaserData;
-      }
-      
-      // 2. Si pas trouvé par ID, chercher par nom (recherche flexible avec ILIKE)
-      if (!data && leaserName) {
-        const { data: leaserData } = await supabase
-          .from('leasers')
-          .select('contract_start_rule, billing_frequency, name')
-          .ilike('name', `%${leaserName}%`)
-          .maybeSingle();
-        data = leaserData;
-      }
-      
-      // 3. Si toujours pas trouvé et c'est un self-leasing, chercher is_own_company
-      if (!data && leaserName && (leaserName.toLowerCase().includes('itakecare') || leaserName.toLowerCase().includes('itakcare'))) {
-        const { data: leaserData } = await supabase
-          .from('leasers')
-          .select('contract_start_rule, billing_frequency, name')
-          .eq('is_own_company', true)
-          .maybeSingle();
-        data = leaserData;
-      }
-
-      if (data) {
-        setLeaserRule(data.contract_start_rule || 'next_month_first');
-        setBillingFrequency(data.billing_frequency || 'monthly');
+      const settings = await resolveLeaserSettings();
+      if (settings) {
+        setLeaserRule(settings.rule);
+        setBillingFrequency(settings.frequency);
       } else {
-        // Valeurs par défaut
         console.warn('Leaser non trouvé, utilisation des valeurs par défaut');
         setLeaserRule('next_month_first');
         setBillingFrequency('monthly');
@@ -171,8 +209,18 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
       if (error) throw error;
       setSelectedDeliveryDate(date);
 
-      // 2. Calculer automatiquement la date de début selon la règle du leaser
-      const calculatedStartDate = calculateStartDateFromRule(date, leaserRule);
+      // 2. Résoudre la règle du leaser (au cas où elle n'était pas encore chargée)
+      const settings = await resolveLeaserSettings();
+      const ruleToUse = settings?.rule || leaserRule || 'next_month_first';
+      
+      // Mettre à jour l'état si on a trouvé de nouvelles infos
+      if (settings) {
+        setLeaserRule(settings.rule);
+        setBillingFrequency(settings.frequency);
+      }
+
+      // 3. Calculer automatiquement la date de début selon la règle
+      const calculatedStartDate = calculateStartDateFromRule(date, ruleToUse);
       
       if (calculatedStartDate) {
         const { error: startError } = await supabase
@@ -198,6 +246,50 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour:', error);
       toast.error('Erreur lors de la mise à jour de la date');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Recalculer la date de début selon la règle du leaser (pour corriger des contrats existants)
+  const handleRecalculateStartDate = async () => {
+    if (!selectedDeliveryDate) {
+      toast.error('Veuillez d\'abord définir une date de livraison');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const settings = await resolveLeaserSettings();
+      const ruleToUse = settings?.rule || leaserRule || 'next_month_first';
+      
+      if (settings) {
+        setLeaserRule(settings.rule);
+        setBillingFrequency(settings.frequency);
+      }
+
+      const calculatedStartDate = calculateStartDateFromRule(selectedDeliveryDate, ruleToUse);
+      
+      if (calculatedStartDate) {
+        const { error } = await supabase
+          .from('contracts')
+          .update({ 
+            contract_start_date: format(calculatedStartDate, 'yyyy-MM-dd'),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', contractId);
+        
+        if (error) throw error;
+        
+        setSelectedStartDate(calculatedStartDate);
+        toast.success(`Date de début recalculée: ${format(calculatedStartDate, "d MMMM yyyy", { locale: fr })} (${getRuleDescription(ruleToUse)})`);
+        onUpdate?.();
+      } else {
+        toast.error('Impossible de calculer la date avec cette règle');
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du recalcul:', error);
+      toast.error('Erreur lors du recalcul de la date');
     } finally {
       setIsUpdating(false);
     }
@@ -308,9 +400,21 @@ const ContractDatesManager: React.FC<ContractDatesManagerProps> = ({
               />
             </PopoverContent>
           </Popover>
-          <p className="text-xs text-muted-foreground">
-            Par défaut calculée selon la règle du leaser, mais modifiable manuellement
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground flex-1">
+              Par défaut calculée selon la règle du leaser, mais modifiable manuellement
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRecalculateStartDate}
+              disabled={isUpdating || !selectedDeliveryDate}
+              className="text-xs"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Recalculer
+            </Button>
+          </div>
         </div>
 
         {/* Informations sur la règle du leaser */}
