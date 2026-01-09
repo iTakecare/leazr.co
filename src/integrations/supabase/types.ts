@@ -8005,6 +8005,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      validate_upload_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       app_role:
