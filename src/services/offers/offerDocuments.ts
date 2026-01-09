@@ -189,18 +189,14 @@ export const createUploadLink = async (
   }
 };
 
-// Vérifier la validité d'un token
+// Vérifier la validité d'un token via RPC sécurisé (pas d'accès direct à la table)
 export const validateUploadToken = async (token: string): Promise<OfferUploadLink | null> => {
   try {
-    console.log('Validation du token:', token);
+    console.log('Validation du token via RPC:', token);
     
+    // Use SECURITY DEFINER RPC function to validate token without exposing table data
     const { data, error } = await supabase
-      .from('offer_upload_links')
-      .select('*')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .is('used_at', null)
-      .single();
+      .rpc('validate_upload_token', { p_token: token });
 
     if (error) {
       console.error('Erreur lors de la validation du token:', error);
