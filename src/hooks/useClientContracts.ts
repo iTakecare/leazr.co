@@ -5,6 +5,12 @@ import { useMultiTenant } from "./useMultiTenant";
 
 const supabase = getSupabaseClient();
 
+export interface ContractEquipmentItem {
+  id: string;
+  title: string;
+  quantity: number;
+}
+
 export interface ClientContract {
   id: string;
   client_name: string;
@@ -23,6 +29,7 @@ export interface ClientContract {
   contract_start_date?: string;
   contract_end_date?: string;
   contract_duration?: number;
+  contract_equipment?: ContractEquipmentItem[];
 }
 
 export const useClientContracts = (clientEmail?: string | null, clientId?: string | null) => {
@@ -40,9 +47,16 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
       const idToUse = specificClientId || clientId;
       console.log(`Fetching contracts for: ${clientEmail || ''} / Client ID: ${idToUse || ''}`);
       
-      // Utiliser le service multi-tenant au lieu d'une requête directe
+      // Utiliser le service multi-tenant avec jointure sur contract_equipment
       let query = services.contracts.query()
-        .select('*')
+        .select(`
+          *,
+          contract_equipment (
+            id,
+            title,
+            quantity
+          )
+        `)
         .order('created_at', { ascending: false });
 
       // Apply filters based on available parameters
@@ -69,8 +83,23 @@ export const useClientContracts = (clientEmail?: string | null, clientId?: strin
         throw new Error(error.message);
       }
       
-      console.log(`Retrieved ${data?.length || 0} contracts for client`);
-      setContracts(data || []);
+      // Générer equipment_description à partir de contract_equipment si absent
+      const contractsWithEquipment = (data || []).map((contract: any) => {
+        if (!contract.equipment_description && contract.contract_equipment?.length > 0) {
+          const equipmentList = contract.contract_equipment.map((eq: ContractEquipmentItem) => ({
+            title: eq.title,
+            quantity: eq.quantity
+          }));
+          return {
+            ...contract,
+            equipment_description: JSON.stringify(equipmentList)
+          };
+        }
+        return contract;
+      });
+      
+      console.log(`Retrieved ${contractsWithEquipment.length} contracts for client`);
+      setContracts(contractsWithEquipment);
     } catch (err: any) {
       setError(err.message);
       console.error("Erreur lors de la récupération des contrats:", err);
