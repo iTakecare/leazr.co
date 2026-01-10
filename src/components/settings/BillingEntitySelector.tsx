@@ -25,7 +25,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface BillingEntity {
+// BillingEntity interface is exported below with the props
+
+export interface BillingEntity {
   id: string;
   company_id: string;
   name: string;
@@ -47,6 +49,7 @@ interface BillingEntitySelectorProps {
   companyId: string;
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string | null) => void;
+  onEntityChange?: (entity: BillingEntity | null) => void;
 }
 
 const emptyEntity = {
@@ -66,7 +69,8 @@ const emptyEntity = {
 const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
   companyId,
   selectedEntityId,
-  onEntitySelect
+  onEntitySelect,
+  onEntityChange
 }) => {
   const [entities, setEntities] = useState<BillingEntity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,9 +176,17 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
         const defaultEntity = data.find(e => e.is_default);
         if (defaultEntity) {
           onEntitySelect(defaultEntity.id);
+          onEntityChange?.(defaultEntity);
         } else {
           // Select first entity if no default
           onEntitySelect(data[0].id);
+          onEntityChange?.(data[0]);
+        }
+      } else if (selectedEntityId && data) {
+        // Notify parent of current entity data
+        const currentEntity = data.find(e => e.id === selectedEntityId);
+        if (currentEntity) {
+          onEntityChange?.(currentEntity);
         }
       }
     } catch (err) {
@@ -266,11 +278,24 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
         // Auto-select new entity
         if (data) {
           onEntitySelect(data.id);
+          onEntityChange?.(data);
         }
       }
 
       setIsDialogOpen(false);
-      fetchEntities();
+      await fetchEntities();
+      
+      // After save, notify parent of updated entity
+      if (editingEntity) {
+        const updatedEntities = await supabase
+          .from('billing_entities')
+          .select('*')
+          .eq('id', editingEntity.id)
+          .single();
+        if (updatedEntities.data) {
+          onEntityChange?.(updatedEntities.data);
+        }
+      }
     } catch (err) {
       console.error('Error saving billing entity:', err);
       toast.error("Erreur lors de l'enregistrement");
@@ -294,6 +319,7 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
       
       if (selectedEntityId === entityToDelete.id) {
         onEntitySelect(null);
+        onEntityChange?.(null);
       }
       
       setIsDeleteDialogOpen(false);
@@ -330,7 +356,11 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
       <div className="flex items-center gap-2">
         <Select
           value={selectedEntityId || ''}
-          onValueChange={(value) => onEntitySelect(value || null)}
+          onValueChange={(value) => {
+            onEntitySelect(value || null);
+            const entity = entities.find(e => e.id === value) || null;
+            onEntityChange?.(entity);
+          }}
           disabled={isLoading}
         >
           <SelectTrigger className="flex-1">
