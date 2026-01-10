@@ -40,8 +40,8 @@ const CompanyDashboard = () => {
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
   
-  // Générer les années disponibles (de 2024 à année courante + 1)
-  const availableYears = Array.from({ length: currentYear - 2023 }, (_, i) => 2024 + i);
+  // Générer les années disponibles (de 2022 à année courante)
+  const availableYears = Array.from({ length: currentYear - 2021 }, (_, i) => 2022 + i);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
