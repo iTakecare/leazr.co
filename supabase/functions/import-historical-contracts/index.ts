@@ -442,15 +442,15 @@ serve(async (req) => {
           leaser_id: leaserId,
           leaser_name: contract.leaser_name || null,
           leaser_contract_number: contract.contract_number || null,
+          contract_number: contract.dossier_number,
           monthly_payment: monthlyPayment,
           status: contract.status || 'active',
           tracking_status: 'delivered',
           type: 'leasing',
-          leasing_duration: duration,
+          contract_duration: duration,
           contract_start_date: contractStartDate,
           contract_end_date: contractEndDate,
-          created_at: parseDate(contract.dossier_date) || `${year}-01-01`,
-          dossier_number: contract.dossier_number
+          created_at: parseDate(contract.dossier_date) || `${year}-01-01`
         };
 
         const { data: createdContract, error: contractError } = await supabase
