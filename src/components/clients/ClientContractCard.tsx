@@ -91,8 +91,12 @@ const ClientContractCard: React.FC<ClientContractCardProps> = ({ contract }) => 
   };
 
   const getDeliveryStatusDisplay = () => {
-    // Ne pas afficher pour les contrats terminés ou annulés
-    if (isCompleted || isCancelled) {
+    // Si le contrat est terminé, il a forcément été livré
+    if (isCompleted) {
+      return "Livré";
+    }
+    // Si le contrat est annulé, ne pas afficher de livraison
+    if (isCancelled) {
       return null;
     }
     // Si le contrat est actif ou livré, c'est forcément livré
