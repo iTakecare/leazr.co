@@ -140,10 +140,7 @@ const ClientOtherDealsList: React.FC<ClientOtherDealsListProps> = ({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm font-medium truncate">
-                    VENTE DIRECTE
-                  </span>
-                  <span className="text-xs text-muted-foreground font-mono">
+                  <span className="text-sm font-medium font-mono">
                     {sale.dossier_number || formatDate(sale.created_at)}
                   </span>
                   {getOfferStatusBadge(sale.status, sale.workflow_status)}
