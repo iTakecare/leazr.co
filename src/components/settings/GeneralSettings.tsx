@@ -8,12 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Building2, MapPin, Upload, Image, Loader2 } from 'lucide-react';
+import { AlertCircle, Building2, MapPin, Upload, Image, Loader2, Pencil } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
 import LogoUploader from './LogoUploader';
 import LessorSignatureUploader from './LessorSignatureUploader';
-import BillingEntitySelector from './BillingEntitySelector';
+import BillingEntitySelector, { BillingEntity } from './BillingEntitySelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
@@ -37,6 +37,24 @@ const GeneralSettings = () => {
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
   const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
   const [selectedBillingEntityId, setSelectedBillingEntityId] = useState<string | null>(null);
+  const [selectedBillingEntity, setSelectedBillingEntity] = useState<BillingEntity | null>(null);
+
+  // Sync form fields when billing entity changes
+  const handleEntityChange = (entity: BillingEntity | null) => {
+    setSelectedBillingEntity(entity);
+    if (entity && settings) {
+      setSettings({
+        ...settings,
+        company_name: entity.name || settings.company_name,
+        company_legal_form: entity.legal_form || settings.company_legal_form,
+        company_vat_number: entity.vat_number || settings.company_vat_number,
+        company_address: entity.address || settings.company_address,
+        company_city: entity.city || settings.company_city,
+        company_postal_code: entity.postal_code || settings.company_postal_code,
+        company_country: entity.country || settings.company_country
+      });
+    }
+  };
 
   const fetchSignatureData = async () => {
     if (!companyId) return;
@@ -196,7 +214,18 @@ const GeneralSettings = () => {
             companyId={companyId}
             selectedEntityId={selectedBillingEntityId}
             onEntitySelect={setSelectedBillingEntityId}
+            onEntityChange={handleEntityChange}
           />
+        )}
+
+        {selectedBillingEntity && (
+          <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-md text-sm">
+            <Building2 className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">
+              Les champs ci-dessous sont synchronisés avec l'entité sélectionnée. 
+              Utilisez le bouton <Pencil className="inline h-3 w-3" /> pour les modifier.
+            </span>
+          </div>
         )}
 
         <Separator />
@@ -266,7 +295,14 @@ const GeneralSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company_name">Nom de l'entreprise</Label>
-              <Input id="company_name" name="company_name" value={settings?.company_name || ''} onChange={handleInputChange} />
+              <Input 
+                id="company_name" 
+                name="company_name" 
+                value={settings?.company_name || ''} 
+                onChange={handleInputChange}
+                readOnly={!!selectedBillingEntity}
+                className={selectedBillingEntity ? 'bg-muted' : ''}
+              />
             </div>
             
             <div className="space-y-2">
@@ -274,8 +310,9 @@ const GeneralSettings = () => {
               <Select
                 value={settings?.company_legal_form || ''}
                 onValueChange={(value) => setSettings(prev => prev ? {...prev, company_legal_form: value} : null)}
+                disabled={!!selectedBillingEntity}
               >
-                <SelectTrigger>
+                <SelectTrigger className={selectedBillingEntity ? 'bg-muted' : ''}>
                   <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -311,6 +348,8 @@ const GeneralSettings = () => {
                 value={settings?.company_vat_number || ''} 
                 onChange={handleInputChange} 
                 placeholder="BE0XXX.XXX.XXX"
+                readOnly={!!selectedBillingEntity}
+                className={selectedBillingEntity ? 'bg-muted' : ''}
               />
             </div>
           </div>
@@ -327,7 +366,15 @@ const GeneralSettings = () => {
           
           <div className="space-y-2">
             <Label htmlFor="company_address">Adresse (rue et numéro)</Label>
-            <Input id="company_address" name="company_address" value={settings?.company_address || ''} onChange={handleInputChange} placeholder="Rue Example 123" />
+            <Input 
+              id="company_address" 
+              name="company_address" 
+              value={settings?.company_address || ''} 
+              onChange={handleInputChange} 
+              placeholder="Rue Example 123"
+              readOnly={!!selectedBillingEntity}
+              className={selectedBillingEntity ? 'bg-muted' : ''}
+            />
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -339,6 +386,8 @@ const GeneralSettings = () => {
                 value={settings?.company_postal_code || ''} 
                 onChange={handleInputChange} 
                 placeholder="1000"
+                readOnly={!!selectedBillingEntity}
+                className={selectedBillingEntity ? 'bg-muted' : ''}
               />
             </div>
             
@@ -350,6 +399,8 @@ const GeneralSettings = () => {
                 value={settings?.company_city || ''} 
                 onChange={handleInputChange} 
                 placeholder="Bruxelles"
+                readOnly={!!selectedBillingEntity}
+                className={selectedBillingEntity ? 'bg-muted' : ''}
               />
             </div>
             
@@ -359,7 +410,9 @@ const GeneralSettings = () => {
                 id="company_country" 
                 name="company_country" 
                 value={settings?.company_country || 'Belgique'} 
-                onChange={handleInputChange} 
+                onChange={handleInputChange}
+                readOnly={!!selectedBillingEntity}
+                className={selectedBillingEntity ? 'bg-muted' : ''}
               />
             </div>
           </div>
