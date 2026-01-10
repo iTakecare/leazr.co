@@ -22,7 +22,9 @@ export interface ClientOffer {
   signature_data?: string;
   signed_at?: string;
   signer_name?: string;
-  equipment_data?: any[]; // Adding equipment_data property
+  equipment_data?: any[];
+  is_purchase?: boolean;
+  dossier_number?: string;
 }
 
 export const useClientOffers = (clientEmail?: string, clientId?: string | null) => {
