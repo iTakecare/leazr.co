@@ -438,6 +438,128 @@ serve(async (req) => {
           }
 
           report.contractsUpdated++;
+
+          // Create invoice if invoice_number is provided and no invoice exists yet (UPDATE MODE)
+          if (contract.invoice_number?.trim()) {
+            // Check if invoice already exists for this contract
+            const { data: existingInvoice } = await supabase
+              .from('invoices')
+              .select('id')
+              .eq('contract_id', existingContract.id)
+              .maybeSingle();
+
+            if (!existingInvoice) {
+              const invoiceDate = parseDate(contract.invoice_date) || contractStartDate;
+              const paymentDate = parseDate(contract.payment_date);
+              const invoiceStatus = paymentDate ? 'paid' : 'sent';
+              
+              // Build equipment data for billing_data
+              const equipmentData = contract.equipments.map(eq => ({
+                title: eq.title,
+                quantity: eq.quantity,
+                purchase_price: eq.purchase_price,
+                selling_price_excl_vat: eq.selling_price
+              }));
+              
+              // Get client data
+              const { data: clientData } = await supabase
+                .from('clients')
+                .select('name, company, email, phone, address, city, postal_code, country, vat_number')
+                .eq('id', clientId)
+                .single();
+              
+              // Get leaser data
+              let leaserData = null;
+              if (leaserId) {
+                const { data: leaser } = await supabase
+                  .from('leasers')
+                  .select('name, company_name, address, city, postal_code, country, vat_number, email, phone')
+                  .eq('id', leaserId)
+                  .single();
+                leaserData = leaser;
+              }
+              
+              const invoiceData = {
+                contract_id: existingContract.id,
+                offer_id: existingContract.offer_id,
+                company_id: companyId,
+                leaser_name: leaserData?.company_name || leaserData?.name || contract.leaser_name || '',
+                invoice_number: contract.invoice_number,
+                invoice_type: 'leasing',
+                amount: financedAmount || totalEquipmentCost,
+                status: invoiceStatus,
+                integration_type: 'local',
+                invoice_date: invoiceDate,
+                due_date: invoiceDate,
+                paid_at: paymentDate,
+                billing_data: {
+                  contract_data: {
+                    id: existingContract.id,
+                    offer_id: existingContract.offer_id,
+                    tracking_number: contract.dossier_number || '',
+                    client_name: clientData?.name || contract.client_name || '',
+                    client_email: clientData?.email || contract.client_email || '',
+                    status: contract.status || 'active',
+                    created_at: new Date().toISOString(),
+                    monthly_payment: monthlyPayment
+                  },
+                  client_data: clientData || { 
+                    name: contract.client_name,
+                    company: contract.client_company,
+                    email: contract.client_email,
+                    phone: contract.client_phone
+                  },
+                  offer_data: {
+                    id: existingContract.offer_id,
+                    tracking_number: contract.dossier_number || ''
+                  },
+                  equipment_data: equipmentData,
+                  leaser_data: leaserData ? {
+                    name: leaserData.company_name || leaserData.name,
+                    address: leaserData.address,
+                    city: leaserData.city,
+                    postal_code: leaserData.postal_code,
+                    country: leaserData.country || 'Belgique',
+                    vat_number: leaserData.vat_number,
+                    email: leaserData.email,
+                    phone: leaserData.phone
+                  } : null,
+                  invoice_totals: {
+                    total_excl_vat: financedAmount || totalEquipmentCost,
+                    vat_amount: (financedAmount || totalEquipmentCost) * 0.21,
+                    total_incl_vat: (financedAmount || totalEquipmentCost) * 1.21
+                  },
+                  imported_from_csv: true,
+                  created_at: new Date().toISOString()
+                }
+              };
+
+              const { data: createdInvoice, error: invoiceError } = await supabase
+                .from('invoices')
+                .insert(invoiceData)
+                .select('id')
+                .single();
+
+              if (!invoiceError) {
+                report.invoicesCreated++;
+                console.log(`Row ${rowNumber}: Created invoice ${contract.invoice_number} for existing contract`);
+                
+                // Update contract to mark invoice as generated
+                await supabase
+                  .from('contracts')
+                  .update({ 
+                    invoice_generated: true,
+                    invoice_id: createdInvoice.id 
+                  })
+                  .eq('id', existingContract.id);
+              } else {
+                console.error(`Row ${rowNumber}: Invoice creation error:`, invoiceError);
+              }
+            } else {
+              console.log(`Row ${rowNumber}: Invoice already exists for contract ${contract.dossier_number}`);
+            }
+          }
+
           console.log(`Row ${rowNumber}: Updated contract ${contract.dossier_number} with ${contract.equipments.length} equipment(s)`);
           continue;
 
