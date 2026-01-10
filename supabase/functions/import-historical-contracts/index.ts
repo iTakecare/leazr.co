@@ -630,10 +630,24 @@ serve(async (req) => {
             billing_data: {
               contract_data: {
                 id: createdContract.id,
-                client_name: contract.client_name,
+                offer_id: createdOffer.id,
+                tracking_number: contract.dossier_number || '',
+                client_name: clientData?.name || contract.client_name || '',
+                client_email: clientData?.email || contract.client_email || '',
+                status: contractStatus,
+                created_at: new Date().toISOString(),
                 monthly_payment: monthlyPayment
               },
-              client_data: clientData || { name: contract.client_name },
+              client_data: clientData || { 
+                name: contract.client_name,
+                company: contract.client_company,
+                email: contract.client_email,
+                phone: contract.client_phone
+              },
+              offer_data: {
+                id: createdOffer.id,
+                tracking_number: contract.dossier_number || ''
+              },
               equipment_data: equipmentData,
               leaser_data: leaserData ? {
                 name: leaserData.company_name || leaserData.name,
@@ -641,7 +655,9 @@ serve(async (req) => {
                 city: leaserData.city,
                 postal_code: leaserData.postal_code,
                 country: leaserData.country || 'Belgique',
-                vat_number: leaserData.vat_number
+                vat_number: leaserData.vat_number,
+                email: leaserData.email,
+                phone: leaserData.phone
               } : null,
               invoice_totals: {
                 total_excl_vat: financedAmount || totalEquipmentCost,
