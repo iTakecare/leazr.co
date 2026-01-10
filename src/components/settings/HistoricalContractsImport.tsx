@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,9 @@ import {
   Eye,
   X,
   History,
-  RefreshCw
+  RefreshCw,
+  Link2,
+  UserPlus
 } from 'lucide-react';
 
 interface CSVRow {
@@ -105,14 +107,41 @@ interface ImportReport {
   errors: Array<{ row: number; message: string }>;
 }
 
-// Template CSV content with multi-equipment example
-const CSV_TEMPLATE = `client_name;client_company;client_email;client_phone;client_vat;client_address;client_city;client_postal_code;client_country;dossier_number;contract_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;billing_entity_name
-Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00;iTakecare SRL
-Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;;;iPhone 15 Pro;2;1200.00;;;;;
-Marie Martin;Martin & Co;marie@martin.be;0471234567;;Avenue Louise 100;Bruxelles;1050;BE;DOS-2024-002;;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00;iTakecare PP`;
+interface CRMClient {
+  id: string;
+  name: string;
+  company: string | null;
+  vat_number: string | null;
+}
 
-// Required columns
-const REQUIRED_COLUMNS = ['client_name', 'dossier_number'];
+interface ClientMatch {
+  matched: boolean;
+  client: CRMClient | null;
+  matchType: 'vat' | 'name' | 'company' | null;
+}
+
+// Helper to normalize VAT numbers for comparison
+const normalizeVat = (vat: string | null | undefined): string => {
+  if (!vat) return '';
+  return vat.replace(/[\s\.\-]/g, '').toUpperCase();
+};
+
+// Helper to canonicalize names for comparison
+const canonicalizeName = (name: string | null | undefined): string => {
+  if (!name) return '';
+  return name.toLowerCase().trim()
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/\s+/g, '');
+};
+
+// Template CSV content with simplified example (only company name)
+const CSV_TEMPLATE = `client_company;dossier_number;contract_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;billing_entity_name
+Dupont SPRL;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00;iTakecare SRL
+Dupont SPRL;DOS-2024-001;;;iPhone 15 Pro;2;1200.00;;;;;
+Martin & Co;DOS-2024-002;;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00;iTakecare PP`;
+
+// Required columns - now either client_name OR client_company is acceptable
+const REQUIRED_COLUMNS = ['dossier_number'];
 
 // Column labels for display
 const COLUMN_LABELS: Record<string, string> = {
@@ -153,6 +182,72 @@ const HistoricalContractsImport: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [updateMode, setUpdateMode] = useState(false);
+  const [existingClients, setExistingClients] = useState<CRMClient[]>([]);
+  const [clientMatches, setClientMatches] = useState<Record<string, ClientMatch>>({});
+
+  // Fetch existing clients from CRM on mount
+  useEffect(() => {
+    const fetchClients = async () => {
+      if (!user?.id) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.company_id) {
+        const { data: clients } = await supabase
+          .from('clients')
+          .select('id, name, company, vat_number')
+          .eq('company_id', profile.company_id);
+        
+        if (clients) {
+          setExistingClients(clients);
+        }
+      }
+    };
+    
+    fetchClients();
+  }, [user?.id]);
+
+  // Match a CSV row to an existing CRM client
+  const matchClient = useCallback((row: CSVRow): ClientMatch => {
+    // First try to match by VAT number
+    if (row.client_vat?.trim()) {
+      const normalizedVat = normalizeVat(row.client_vat);
+      const match = existingClients.find(c => normalizeVat(c.vat_number) === normalizedVat);
+      if (match) {
+        return { matched: true, client: match, matchType: 'vat' };
+      }
+    }
+    
+    // Then try to match by company name
+    if (row.client_company?.trim()) {
+      const canonicalCompany = canonicalizeName(row.client_company);
+      const match = existingClients.find(c => 
+        canonicalizeName(c.company) === canonicalCompany ||
+        canonicalizeName(c.name) === canonicalCompany
+      );
+      if (match) {
+        return { matched: true, client: match, matchType: 'company' };
+      }
+    }
+    
+    // Finally try to match by client name
+    if (row.client_name?.trim()) {
+      const canonicalName = canonicalizeName(row.client_name);
+      const match = existingClients.find(c => 
+        canonicalizeName(c.name) === canonicalName ||
+        canonicalizeName(c.company) === canonicalName
+      );
+      if (match) {
+        return { matched: true, client: match, matchType: 'name' };
+      }
+    }
+    
+    return { matched: false, client: null, matchType: null };
+  }, [existingClients]);
 
   // Parse CSV content
   const parseCSV = (content: string): CSVRow[] => {
@@ -173,8 +268,8 @@ const HistoricalContractsImport: React.FC = () => {
         row[header] = values[index] || '';
       });
       
-      // Only add non-empty rows
-      if (row.client_name?.trim()) {
+      // Accept rows with either client_name OR client_company
+      if (row.client_name?.trim() || row.client_company?.trim()) {
         rows.push(row);
       }
     }
@@ -198,21 +293,39 @@ const HistoricalContractsImport: React.FC = () => {
       errors.push(`Colonnes requises manquantes: ${missingColumns.map(c => COLUMN_LABELS[c] || c).join(', ')}`);
     }
 
-    // Validate each row
+    // Validate each row - now client_name OR client_company is acceptable
     data.forEach((row, index) => {
-      if (!row.client_name?.trim()) {
-        errors.push(`Ligne ${index + 2}: Nom client manquant`);
+      const hasClientIdentifier = row.client_name?.trim() || row.client_company?.trim();
+      if (!hasClientIdentifier) {
+        errors.push(`Ligne ${index + 2}: Nom client ou entreprise manquant`);
       }
       if (!row.dossier_number?.trim()) {
         errors.push(`Ligne ${index + 2}: Numéro de dossier manquant`);
-      }
-      if (!row.monthly_payment?.trim()) {
-        errors.push(`Ligne ${index + 2}: Mensualité manquante`);
       }
     });
 
     return errors.slice(0, 10); // Limit to first 10 errors
   };
+
+  // Compute client matches when parsedData or existingClients change
+  useEffect(() => {
+    if (parsedData.length === 0 || existingClients.length === 0) {
+      setClientMatches({});
+      return;
+    }
+
+    const matches: Record<string, ClientMatch> = {};
+    
+    // Group by dossier number and compute match for each unique client
+    parsedData.forEach(row => {
+      const dossierNum = row.dossier_number || '';
+      if (!matches[dossierNum]) {
+        matches[dossierNum] = matchClient(row);
+      }
+    });
+    
+    setClientMatches(matches);
+  }, [parsedData, existingClients, matchClient]);
 
   // Handle file drop
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -233,8 +346,10 @@ const HistoricalContractsImport: React.FC = () => {
       setValidationErrors(errors);
       setShowPreview(data.length > 0);
       
+      const uniqueContracts = new Set(data.map(r => r.dossier_number)).size;
+      
       if (data.length > 0 && errors.length === 0) {
-        toast.success(`${data.length} contrats détectés dans le fichier`);
+        toast.success(`${uniqueContracts} contrat(s) détecté(s) dans le fichier`);
       } else if (errors.length > 0) {
         toast.warning(`Fichier chargé avec ${errors.length} erreur(s) de validation`);
       }
@@ -273,6 +388,7 @@ const HistoricalContractsImport: React.FC = () => {
     setReport(null);
     setValidationErrors([]);
     setShowPreview(false);
+    setClientMatches({});
   };
 
   // Handle import
@@ -536,12 +652,13 @@ const HistoricalContractsImport: React.FC = () => {
           {showPreview && parsedData.length > 0 && (
             (() => {
               // Group by dossier for preview
-              const grouped: Record<string, { client: string; leaser: string; monthly: string; equipments: string[] }> = {};
+              const grouped: Record<string, { client: string; company: string; leaser: string; monthly: string; equipments: string[] }> = {};
               parsedData.forEach(row => {
                 const key = row.dossier_number || '';
                 if (!grouped[key]) {
                   grouped[key] = {
                     client: row.client_name || '',
+                    company: row.client_company || '',
                     leaser: row.leaser_name || '',
                     monthly: row.monthly_payment || '',
                     equipments: []
@@ -554,51 +671,92 @@ const HistoricalContractsImport: React.FC = () => {
               });
               const entries = Object.entries(grouped);
               
+              // Count matches
+              const matchedCount = Object.values(clientMatches).filter(m => m.matched).length;
+              const newCount = entries.length - matchedCount;
+              
               return (
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto max-h-72">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="sticky top-0 bg-muted">#</TableHead>
-                          <TableHead className="sticky top-0 bg-muted">N° Dossier</TableHead>
-                          <TableHead className="sticky top-0 bg-muted">Client</TableHead>
-                          <TableHead className="sticky top-0 bg-muted">Équipements</TableHead>
-                          <TableHead className="sticky top-0 bg-muted">Leaser</TableHead>
-                          <TableHead className="sticky top-0 bg-muted text-right">Mensualité</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {entries.slice(0, 10).map(([dossier, data], idx) => (
-                          <TableRow key={dossier}>
-                            <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
-                            <TableCell className="font-mono text-sm">{dossier}</TableCell>
-                            <TableCell>{data.client}</TableCell>
-                            <TableCell>
-                              {data.equipments.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {data.equipments.map((eq, i) => (
-                                    <Badge key={i} variant="secondary" className="text-xs">
-                                      {eq}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>{data.leaser}</TableCell>
-                            <TableCell className="text-right">{data.monthly} €</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {entries.length > 10 && (
-                    <div className="p-2 text-center text-sm text-muted-foreground bg-muted/50 border-t">
-                      ... et {entries.length - 10} autres contrats
+                <div className="space-y-3">
+                  {/* Match summary */}
+                  {existingClients.length > 0 && (
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Link2 className="h-4 w-4 text-green-600" />
+                        <span className="text-green-700 font-medium">{matchedCount} lié(s) au CRM</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <UserPlus className="h-4 w-4 text-amber-600" />
+                        <span className="text-amber-700 font-medium">{newCount} nouveau(x) client(s)</span>
+                      </div>
                     </div>
                   )}
+                  
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto max-h-72">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="sticky top-0 bg-muted">#</TableHead>
+                            <TableHead className="sticky top-0 bg-muted">N° Dossier</TableHead>
+                            <TableHead className="sticky top-0 bg-muted">Client</TableHead>
+                            <TableHead className="sticky top-0 bg-muted">Matching CRM</TableHead>
+                            <TableHead className="sticky top-0 bg-muted">Équipements</TableHead>
+                            <TableHead className="sticky top-0 bg-muted">Leaser</TableHead>
+                            <TableHead className="sticky top-0 bg-muted text-right">Mensualité</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {entries.slice(0, 10).map(([dossier, data], idx) => {
+                            const match = clientMatches[dossier];
+                            const clientDisplay = data.company || data.client;
+                            
+                            return (
+                              <TableRow key={dossier}>
+                                <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                                <TableCell className="font-mono text-sm">{dossier}</TableCell>
+                                <TableCell className="max-w-[150px] truncate" title={clientDisplay}>
+                                  {clientDisplay}
+                                </TableCell>
+                                <TableCell>
+                                  {match?.matched ? (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                      <Link2 className="h-3 w-3 mr-1" />
+                                      {match.client?.company || match.client?.name}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                      <UserPlus className="h-3 w-3 mr-1" />
+                                      Nouveau client
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {data.equipments.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {data.equipments.map((eq, i) => (
+                                        <Badge key={i} variant="secondary" className="text-xs">
+                                          {eq}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>{data.leaser}</TableCell>
+                                <TableCell className="text-right">{data.monthly} €</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {entries.length > 10 && (
+                      <div className="p-2 text-center text-sm text-muted-foreground bg-muted/50 border-t">
+                        ... et {entries.length - 10} autres contrats
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })()
@@ -756,8 +914,10 @@ const HistoricalContractsImport: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
             {Object.entries(COLUMN_LABELS).map(([key, label]) => (
               <div key={key} className="flex items-center gap-2">
-                {REQUIRED_COLUMNS.includes(key) ? (
+                {key === 'dossier_number' ? (
                   <Badge variant="default" className="h-5 px-1 text-xs">*</Badge>
+                ) : key === 'client_company' ? (
+                  <Badge variant="secondary" className="h-5 px-1 text-xs">~</Badge>
                 ) : (
                   <span className="w-5" />
                 )}
@@ -767,7 +927,12 @@ const HistoricalContractsImport: React.FC = () => {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-4">
-            * Colonnes obligatoires. Séparateur : point-virgule (;) ou virgule (,). Format de date : JJ/MM/AAAA
+            <span className="inline-flex items-center gap-1"><Badge variant="default" className="h-4 px-1 text-xs">*</Badge> Obligatoire</span>
+            <span className="inline-flex items-center gap-1 ml-4"><Badge variant="secondary" className="h-4 px-1 text-xs">~</Badge> Recommandé pour le matching CRM</span>
+            <br />
+            Séparateur : point-virgule (;) ou virgule (,). Format de date : JJ/MM/AAAA
+            <br />
+            💡 <strong>Matching automatique</strong> : Le système lie automatiquement les clients existants par N° TVA, nom d'entreprise ou nom client.
             <br />
             💡 La date de fin de contrat est calculée automatiquement si non fournie (date début + durée).
           </p>
