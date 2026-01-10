@@ -385,7 +385,7 @@ serve(async (req) => {
           amount: financedAmount || totalEquipmentCost,
           financed_amount: financedAmount || totalEquipmentCost,
           monthly_payment: monthlyPayment,
-          type: 'leasing',
+          type: 'internal_offer',
           workflow_status: 'accepted',
           status: 'accepted',
           converted_to_contract: true,
