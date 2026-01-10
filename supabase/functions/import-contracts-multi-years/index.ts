@@ -111,22 +111,41 @@ function calculateContractStartDate(paymentDateStr: string | null, year: number)
   return paymentDate.toISOString().split('T')[0];
 }
 
-// Map leaser names
-function getLeaserId(leaserName: string): string | null {
-  const mapping: { [key: string]: string } = {
-    'Grenke': 'd60b86d7-a129-4a17-a877-e8e5caa66949',
-    'Atlance': '7dc97e91-2404-43b1-8bbc-c182628ac333',
-  };
-  return mapping[leaserName] || null;
+// Canonicalize name for comparison
+function canonicalizeName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
 }
 
-function getLeaserName(leaserName: string): string {
-  const mapping: { [key: string]: string } = {
-    'Grenke': '1. Grenke Lease',
-    'Atlance': 'Atlance',
-    'Olinn': 'Olinn'
-  };
-  return mapping[leaserName] || leaserName;
+// Find leaser by fuzzy matching
+function findLeaser(
+  searchName: string,
+  exactMap: Map<string, { id: string; name: string }>,
+  list: { id: string; name: string; canonical: string }[]
+): { id: string; name: string } | null {
+  const searchCanonical = canonicalizeName(searchName);
+  
+  // 1. Exact match
+  const exactMatch = exactMap.get(searchCanonical);
+  if (exactMatch) return exactMatch;
+  
+  // 2. Partial match: leaser name contains search term
+  for (const leaser of list) {
+    if (leaser.canonical.includes(searchCanonical)) {
+      return { id: leaser.id, name: leaser.name };
+    }
+  }
+  
+  // 3. Reverse partial match: search term contains leaser word
+  for (const leaser of list) {
+    const leaserWords = leaser.canonical.match(/[a-z]{4,}/g) || [];
+    for (const word of leaserWords) {
+      if (searchCanonical.includes(word)) {
+        return { id: leaser.id, name: leaser.name };
+      }
+    }
+  }
+  
+  return null;
 }
 
 // Map sources
@@ -251,6 +270,27 @@ serve(async (req) => {
 
     const companyId = profile.company_id;
 
+    // Charger les leasers depuis la base de données
+    const { data: leasers, error: leasersError } = await supabase
+      .from('leasers')
+      .select('id, name')
+      .eq('company_id', companyId);
+
+    if (leasersError || !leasers || leasers.length === 0) {
+      throw new Error('Aucun leaser trouvé pour cette entreprise');
+    }
+
+    const leaserExactMap = new Map<string, { id: string; name: string }>();
+    const leaserList: { id: string; name: string; canonical: string }[] = [];
+
+    leasers.forEach(l => {
+      const canonical = canonicalizeName(l.name);
+      leaserExactMap.set(canonical, { id: l.id, name: l.name });
+      leaserList.push({ id: l.id, name: l.name, canonical });
+    });
+
+    console.log(`📋 ${leasers.length} leasers chargés depuis la base`);
+
     // Load CSV data from embedded constants
     const csv2022 = CSV_2022;
     const csv2023 = CSV_2023;
@@ -294,6 +334,21 @@ serve(async (req) => {
 
       for (const contract of yearData.contracts) {
         if (!contract.dossierNumber) continue;
+
+        // Valider le leaser avant de continuer
+        const foundLeaser = findLeaser(contract.leaser, leaserExactMap, leaserList);
+        if (!foundLeaser) {
+          report.conflicts.push({
+            type: 'error',
+            dossier_number: contract.dossierNumber,
+            year: yearData.year,
+            error: `Leaser "${contract.leaser}" introuvable en base de données`
+          });
+          continue; // Skip this contract
+        }
+
+        const leaserId = foundLeaser.id;
+        const leaserName = foundLeaser.name;
 
         try {
           // 1. Find or create client
@@ -448,8 +503,8 @@ serve(async (req) => {
                 contract.tablets
               ),
               status: contractStatus,
-              leaser_name: getLeaserName(contract.leaser),
-              leaser_id: getLeaserId(contract.leaser),
+              leaser_name: leaserName,
+              leaser_id: leaserId,
               contract_number: null,
               dossier_date: parseDateFr(contract.dossierDate, yearData.year),
               invoice_date: parseDateFr(contract.invoiceDate, yearData.year),

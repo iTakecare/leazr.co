@@ -139,11 +139,65 @@ serve(async (req) => {
       'Partenaire': 'other',
     };
 
-    // Mapping des leasers
-    const leaserMapping: Record<string, string> = {
-      'Grenke': 'd60b86d7-a129-4a17-a877-e8e5caa66949',
-      'Atlance': '7dc97e91-2404-43b1-8bbc-c182628ac333',
+    // Fonctions utilitaires pour le matching des leasers
+    const canonicalizeName = (name: string): string => {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
     };
+
+    const findLeaser = (
+      searchName: string,
+      exactMap: Map<string, { id: string; name: string }>,
+      list: { id: string; name: string; canonical: string }[]
+    ): { id: string; name: string } | null => {
+      const searchCanonical = canonicalizeName(searchName);
+      
+      // 1. Exact match
+      const exactMatch = exactMap.get(searchCanonical);
+      if (exactMatch) return exactMatch;
+      
+      // 2. Partial match: leaser name contains search term
+      for (const leaser of list) {
+        if (leaser.canonical.includes(searchCanonical)) {
+          return { id: leaser.id, name: leaser.name };
+        }
+      }
+      
+      // 3. Reverse partial match: search term contains leaser word
+      for (const leaser of list) {
+        const leaserWords = leaser.canonical.match(/[a-z]{4,}/g) || [];
+        for (const word of leaserWords) {
+          if (searchCanonical.includes(word)) {
+            return { id: leaser.id, name: leaser.name };
+          }
+        }
+      }
+      
+      return null;
+    };
+
+    // Charger les leasers depuis la base de données
+    const { data: leasers, error: leasersError } = await supabaseClient
+      .from('leasers')
+      .select('id, name')
+      .eq('company_id', profile.company_id);
+
+    if (leasersError || !leasers || leasers.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Aucun leaser trouvé pour cette entreprise' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const leaserExactMap = new Map<string, { id: string; name: string }>();
+    const leaserList: { id: string; name: string; canonical: string }[] = [];
+
+    leasers.forEach(l => {
+      const canonical = canonicalizeName(l.name);
+      leaserExactMap.set(canonical, { id: l.id, name: l.name });
+      leaserList.push({ id: l.id, name: l.name, canonical });
+    });
+
+    console.log(`📋 ${leasers.length} leasers chargés depuis la base`);
 
     // Mapping des mois français
     const monthMapping: Record<string, string> = {
@@ -237,12 +291,15 @@ serve(async (req) => {
           result.anomalies.push(`Ligne ${result.stats.rowsProcessed}: Source "${row.source}" mappée vers "other"`);
         }
         
-        // Récupérer le leaser ID
-        const leaserId = leaserMapping[row.leaser];
-        if (!leaserId) {
-          result.errors.push(`Ligne ${result.stats.rowsProcessed}: Leaser "${row.leaser}" introuvable`);
+        // Récupérer le leaser ID avec la recherche dynamique
+        const foundLeaser = findLeaser(row.leaser, leaserExactMap, leaserList);
+        if (!foundLeaser) {
+          result.errors.push(`Ligne ${result.stats.rowsProcessed}: Leaser "${row.leaser}" introuvable en base de données`);
           continue;
         }
+        
+        const leaserId = foundLeaser.id;
+        const leaserName = foundLeaser.name;
         
         // Construire l'equipment_description
         const computers = parseInt(row.computers) || 0;
@@ -381,13 +438,7 @@ serve(async (req) => {
           result.stats.pendingContracts++;
         }
         
-        // Récupérer le nom du leaser
-        const { data: leaserData } = await supabaseClient
-          .from('leasers')
-          .select('name')
-          .eq('id', leaserId)
-          .single();
-        
+        // Utiliser le nom du leaser résolu
         const { error: contractError } = await supabaseClient
           .from('contracts')
           .insert({
@@ -397,7 +448,7 @@ serve(async (req) => {
             monthly_payment: monthlyPayment,
             equipment_description: equipmentDescription,
             status: contractStatus,
-            leaser_name: leaserData?.name || row.leaser,
+            leaser_name: leaserName,
             leaser_id: leaserId,
             contract_number: null, // À remplir manuellement plus tard
             dossier_date: dossierDate,
