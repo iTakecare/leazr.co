@@ -435,21 +435,19 @@ serve(async (req) => {
         const contractDbData = {
           offer_id: createdOffer.id,
           client_id: clientId,
-          client_name: contract.client_name,
+          client_name: contract.client_name || contract.client_company,
           client_email: contract.client_email || null,
           company_id: companyId,
           billing_entity_id: contractBillingEntityId,
           leaser_id: leaserId,
           leaser_name: contract.leaser_name || null,
-          leaser_contract_number: contract.contract_number || null,
-          contract_number: contract.dossier_number,
+          contract_number: contract.dossier_number || contract.contract_number,
           monthly_payment: monthlyPayment,
           status: contract.status || 'active',
-          tracking_status: 'delivered',
-          type: 'leasing',
           contract_duration: duration,
           contract_start_date: contractStartDate,
           contract_end_date: contractEndDate,
+          user_id: userId,
           created_at: parseDate(contract.dossier_date) || `${year}-01-01`
         };
 
