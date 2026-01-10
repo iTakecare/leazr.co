@@ -28,6 +28,7 @@ import DeliverySitesManager from "./DeliverySitesManager";
 import { CompanyLookupButton } from "./CompanyLookupButton";
 import { ClientLogoUploader } from "./ClientLogoUploader";
 import { CompanySearchModal } from "./CompanySearchModal";
+import ClientCommercialHistory from "./ClientCommercialHistory";
 
 interface UnifiedClientViewProps {
   client: Client;
@@ -804,6 +805,14 @@ const UnifiedClientView: React.FC<UnifiedClientViewProps> = ({
                 {/* Notes */}
                 <div className="border-t pt-4">
                   {renderField("Notes", "notes", client.notes, "textarea")}
+                </div>
+
+                {/* Historique commercial */}
+                <div className="border-t pt-4">
+                  <ClientCommercialHistory 
+                    clientId={client.id} 
+                    clientEmail={client.email || undefined}
+                  />
                 </div>
               </CardContent>
             </Card>
