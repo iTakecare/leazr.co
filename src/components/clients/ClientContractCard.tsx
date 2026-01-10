@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { ClientContract } from "@/hooks/useClientContracts";
+import { formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 
 interface ClientContractCardProps {
   contract: ClientContract;
@@ -52,11 +53,31 @@ const ClientContractCard: React.FC<ClientContractCardProps> = ({ contract }) => 
   };
 
   const getEquipmentSummary = () => {
-    if (contract.equipment_description) {
-      const desc = contract.equipment_description;
-      return desc.length > 40 ? `${desc.substring(0, 40)}...` : desc;
+    const formattedEquipment = formatAllEquipmentForCell(contract.equipment_description);
+    if (formattedEquipment && formattedEquipment !== "Non spécifié") {
+      return formattedEquipment.length > 50 
+        ? `${formattedEquipment.substring(0, 50)}...` 
+        : formattedEquipment;
     }
     return "Non spécifié";
+  };
+
+  const getDeliveryStatusDisplay = () => {
+    // Si le contrat est actif ou livré, c'est forcément livré
+    if (contract.status === 'active' || contract.status === 'delivered') {
+      return "Livré";
+    }
+    // Sinon utiliser delivery_status ou un défaut
+    if (contract.delivery_status) {
+      const statusLabels: Record<string, string> = {
+        'en_attente': 'En attente',
+        'expedie': 'Expédié',
+        'livre': 'Livré',
+        'delivered': 'Livré'
+      };
+      return statusLabels[contract.delivery_status] || contract.delivery_status;
+    }
+    return null;
   };
 
   return (
@@ -89,12 +110,15 @@ const ClientContractCard: React.FC<ClientContractCardProps> = ({ contract }) => 
             </div>
           )}
 
-          {contract.delivery_status && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Truck className="h-4 w-4" />
-              <span>{contract.delivery_status}</span>
-            </div>
-          )}
+          {(() => {
+            const deliveryDisplay = getDeliveryStatusDisplay();
+            return deliveryDisplay ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Truck className="h-4 w-4" />
+                <span>{deliveryDisplay}</span>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         <Button 
