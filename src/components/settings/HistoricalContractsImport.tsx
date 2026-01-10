@@ -103,6 +103,7 @@ interface GroupedContract {
   status: string;
   dossier_date: string;
   request_date: string;
+  offer_date: string;
   invoice_date: string;
   payment_date: string;
   contract_start_date: string;
@@ -154,10 +155,10 @@ const canonicalizeName = (name: string | null | undefined): string => {
 };
 
 // Template CSV content with simplified example (only company name)
-const CSV_TEMPLATE = `client_company;dossier_number;request_date;contract_number;invoice_number;monthly_payment;equipment_title;equipment_qty;equipment_price;equipment_selling_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;invoice_date;payment_date;billing_entity_name
-Dupont SPRL;DOS-2024-001;15/02/2024;GRK-123456;FAC-2024-001;150,00;MacBook Pro 14";1;2500,00;2875,00;Grenke;active;01/03/2024;01/03/2028;48;6000,00;01/03/2024;15/03/2024;iTakecare SRL
-Dupont SPRL;DOS-2024-001;;;;;iPhone 15 Pro;2;1200,00;1380,00;;;;;;
-Martin & Co;DOS-2024-002;20/03/2024;;FAC-2024-002;200,00;iMac 27";1;3000,00;3450,00;Atlance;active;01/04/2024;01/04/2027;36;6480,00;01/04/2024;;iTakecare PP`;
+const CSV_TEMPLATE = `client_company;dossier_number;request_date;offer_date;contract_number;invoice_number;monthly_payment;equipment_title;equipment_qty;equipment_price;equipment_selling_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;invoice_date;payment_date;billing_entity_name
+Dupont SPRL;DOS-2024-001;15/02/2024;20/02/2024;GRK-123456;FAC-2024-001;150,00;MacBook Pro 14";1;2500,00;2875,00;Grenke;active;01/03/2024;01/03/2028;48;6000,00;01/03/2024;15/03/2024;iTakecare SRL
+Dupont SPRL;DOS-2024-001;;;;;;;iPhone 15 Pro;2;1200,00;1380,00;;;;;;
+Martin & Co;DOS-2024-002;20/03/2024;25/03/2024;;FAC-2024-002;200,00;iMac 27";1;3000,00;3450,00;Atlance;active;01/04/2024;01/04/2027;36;6480,00;01/04/2024;;iTakecare PP`;
 
 // Required columns - now either client_name OR client_company is acceptable
 const REQUIRED_COLUMNS = ['dossier_number'];
@@ -174,6 +175,8 @@ const COLUMN_LABELS: Record<string, string> = {
   client_postal_code: 'Code postal',
   client_country: 'Pays',
   dossier_number: 'N° Dossier',
+  request_date: 'Date demande',
+  offer_date: 'Date offre',
   contract_number: 'N° Contrat leaser',
   invoice_number: 'N° Facture',
   monthly_payment: 'Mensualité (€)',
@@ -478,7 +481,8 @@ const HistoricalContractsImport: React.FC = () => {
             leaser_name: row.leaser_name || '',
             status: row.status || 'active',
             dossier_date: row.dossier_date || '',
-            request_date: row.request_date || row.offer_date || '',
+            request_date: row.request_date || '',
+            offer_date: row.offer_date || '',
             invoice_date: row.invoice_date || '',
             payment_date: row.payment_date || '',
             contract_start_date: row.contract_start_date || '',

@@ -31,6 +31,7 @@ interface ContractData {
   status?: string;
   dossier_date?: string;
   request_date?: string;
+  offer_date?: string;
   invoice_date?: string;
   payment_date?: string;
   contract_start_date?: string;
@@ -420,8 +421,8 @@ serve(async (req) => {
           workflow_status: 'accepted',
           status: 'accepted',
           converted_to_contract: true,
-          request_date: parseDate(contract.request_date) || parseDate(contract.dossier_date) || null,
-          created_at: parseDate(contract.dossier_date) || `${year}-01-01`,
+          request_date: parseDate(contract.request_date) || parseDate(contract.offer_date) || parseDate(contract.dossier_date) || null,
+          created_at: parseDate(contract.offer_date) || parseDate(contract.dossier_date) || parseDate(contract.request_date) || `${year}-01-01`,
           dossier_number: contract.dossier_number
         };
 
