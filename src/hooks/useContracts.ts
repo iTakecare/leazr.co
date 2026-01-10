@@ -26,7 +26,9 @@ export const useContracts = () => {
     try {
       setLoading(true);
       setLoadingError(null);
+      console.log('Fetching contracts with includeCompleted:', includeCompleted);
       const data = await getContracts(includeCompleted);
+      console.log('Contrats chargés:', data.length, 'dont terminés:', data.filter(c => c.status === 'completed').length);
       setContracts(data);
     } catch (error: any) {
       console.error("Error fetching contracts:", error);
