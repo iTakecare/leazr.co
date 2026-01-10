@@ -136,20 +136,18 @@ const ClientContractCard: React.FC<ClientContractCardProps> = ({ contract }) => 
             <span className="text-sm font-medium line-clamp-2">{getEquipmentSummary()}</span>
           </div>
 
-          {isCompleted ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CalendarRange className="h-4 w-4" />
-              <span>
-                {formatShortDate(contract.contract_start_date)} → {formatShortDate(contract.contract_end_date)}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-sm">
-              <Euro className="h-4 w-4 text-muted-foreground" />
-              <span className="font-semibold">{formatCurrency(contract.monthly_payment)}</span>
-              <span className="text-muted-foreground">/mois</span>
-            </div>
-          )}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarRange className="h-4 w-4" />
+          <span>
+            {formatShortDate(contract.contract_start_date)} → {formatShortDate(contract.contract_end_date)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 text-sm">
+          <Euro className="h-4 w-4 text-muted-foreground" />
+          <span className="font-semibold">{formatCurrency(contract.monthly_payment)}</span>
+          <span className="text-muted-foreground">/mois</span>
+        </div>
 
           {contract.leaser_name && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
