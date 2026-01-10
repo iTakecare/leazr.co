@@ -487,16 +487,29 @@ serve(async (req) => {
         report.offersCreated++;
 
         // STEP 6: Create equipment entries
+        // Calculer le total des prix de vente pour répartir la mensualité
+        const totalSellingPrice = contract.equipments.reduce(
+          (sum, eq) => sum + ((eq.selling_price || 0) * (eq.quantity || 1)), 
+          0
+        );
+
         if (contract.equipments.length > 0) {
           const equipmentEntries = contract.equipments.map(eq => {
             const margin = eq.selling_price - eq.purchase_price;
+            const eqTotalSellingPrice = (eq.selling_price || 0) * (eq.quantity || 1);
+            // Répartir la mensualité globale proportionnellement au prix de vente
+            const equipmentMonthlyPayment = totalSellingPrice > 0 
+              ? Math.round((eqTotalSellingPrice / totalSellingPrice) * monthlyPayment * 100) / 100
+              : 0;
+            
             return {
               offer_id: createdOffer.id,
               title: eq.title,
               purchase_price: eq.purchase_price,
               selling_price: eq.selling_price,
               quantity: eq.quantity,
-              margin: margin
+              margin: margin,
+              monthly_payment: equipmentMonthlyPayment
             };
           });
 
@@ -559,15 +572,23 @@ serve(async (req) => {
 
         // STEP 7bis: Create contract equipment (for display on contract detail page)
         if (contract.equipments && contract.equipments.length > 0) {
-          const contractEquipmentEntries = contract.equipments.map(eq => ({
-            contract_id: createdContract.id,
-            title: eq.title,
-            quantity: eq.quantity,
-            purchase_price: eq.purchase_price,
-            margin: (eq.selling_price || 0) - (eq.purchase_price || 0),
-            monthly_payment: null,
-            serial_number: null
-          }));
+          const contractEquipmentEntries = contract.equipments.map(eq => {
+            const eqTotalSellingPrice = (eq.selling_price || 0) * (eq.quantity || 1);
+            // Répartir la mensualité globale proportionnellement au prix de vente
+            const equipmentMonthlyPayment = totalSellingPrice > 0 
+              ? Math.round((eqTotalSellingPrice / totalSellingPrice) * monthlyPayment * 100) / 100
+              : 0;
+            
+            return {
+              contract_id: createdContract.id,
+              title: eq.title,
+              quantity: eq.quantity,
+              purchase_price: eq.purchase_price,
+              margin: (eq.selling_price || 0) - (eq.purchase_price || 0),
+              monthly_payment: equipmentMonthlyPayment,
+              serial_number: null
+            };
+          });
 
           const { error: contractEquipmentError } = await supabase
             .from('contract_equipment')
