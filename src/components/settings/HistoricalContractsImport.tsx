@@ -34,6 +34,17 @@ import {
   UserPlus
 } from 'lucide-react';
 
+// Parse European number format (1.234,56 or 1234.56)
+function parseEuropeanNumber(value: string): number {
+  if (!value) return 0;
+  let cleaned = value.replace(/[\s€]/g, '');
+  // Si contient une virgule, c'est le format européen
+  if (cleaned.includes(',')) {
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  }
+  return parseFloat(cleaned) || 0;
+}
+
 interface CSVRow {
   client_name?: string;
   client_company?: string;
@@ -55,6 +66,8 @@ interface CSVRow {
   leaser_name?: string;
   status?: string;
   dossier_date?: string;
+  request_date?: string;
+  offer_date?: string;
   invoice_date?: string;
   payment_date?: string;
   contract_start_date?: string;
@@ -89,6 +102,7 @@ interface GroupedContract {
   leaser_name: string;
   status: string;
   dossier_date: string;
+  request_date: string;
   invoice_date: string;
   payment_date: string;
   contract_start_date: string;
@@ -464,6 +478,7 @@ const HistoricalContractsImport: React.FC = () => {
             leaser_name: row.leaser_name || '',
             status: row.status || 'active',
             dossier_date: row.dossier_date || '',
+            request_date: row.request_date || row.offer_date || '',
             invoice_date: row.invoice_date || '',
             payment_date: row.payment_date || '',
             contract_start_date: row.contract_start_date || '',
@@ -477,8 +492,8 @@ const HistoricalContractsImport: React.FC = () => {
         
         // Add equipment to the contract
         if (row.equipment_title?.trim()) {
-          const purchasePrice = parseFloat(row.equipment_price || '0') || 0;
-          const sellingPrice = parseFloat(row.equipment_selling_price || '') || purchasePrice;
+          const purchasePrice = parseEuropeanNumber(row.equipment_price || '0');
+          const sellingPrice = parseEuropeanNumber(row.equipment_selling_price || '') || purchasePrice;
           groupedContracts[dossierNum].equipments.push({
             title: row.equipment_title,
             quantity: parseInt(row.equipment_qty || '1', 10),

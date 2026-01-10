@@ -30,6 +30,7 @@ interface ContractData {
   leaser_name?: string;
   status?: string;
   dossier_date?: string;
+  request_date?: string;
   invoice_date?: string;
   payment_date?: string;
   contract_start_date?: string;
@@ -216,6 +217,7 @@ serve(async (req) => {
 
         // STEP 1: Find or create client
         let clientId: string | null = null;
+        let matchedClientName: string | null = null;
 
         // Try matching by VAT first
         if (contract.client_vat) {
@@ -225,6 +227,7 @@ serve(async (req) => {
           );
           if (matchByVat) {
             clientId = matchByVat.id;
+            matchedClientName = matchByVat.name;
             console.log(`Row ${rowNumber}: Matched client by VAT: ${matchByVat.name}`);
           }
         }
@@ -238,6 +241,7 @@ serve(async (req) => {
           );
           if (matchByName) {
             clientId = matchByName.id;
+            matchedClientName = matchByName.name;
             console.log(`Row ${rowNumber}: Matched client by name: ${matchByName.name}`);
           }
         }
@@ -404,7 +408,7 @@ serve(async (req) => {
         
         const offerData = {
           client_id: clientId,
-          client_name: contract.client_name || contract.client_company,
+          client_name: matchedClientName || contract.client_name || contract.client_company,
           client_email: contract.client_email || null,
           company_id: companyId,
           billing_entity_id: contractBillingEntityId,
@@ -416,6 +420,7 @@ serve(async (req) => {
           workflow_status: 'accepted',
           status: 'accepted',
           converted_to_contract: true,
+          request_date: parseDate(contract.request_date) || parseDate(contract.dossier_date) || null,
           created_at: parseDate(contract.dossier_date) || `${year}-01-01`,
           dossier_number: contract.dossier_number
         };
