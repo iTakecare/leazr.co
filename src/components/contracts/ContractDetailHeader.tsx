@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import ClientOtherDeals from "@/components/shared/ClientOtherDeals";
 
 interface ContractDetailHeaderProps {
   contract: Contract;
@@ -281,18 +282,28 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
             <p className="font-semibold">{contract.leaser_name}</p>
           </div>
 
-          {contract.tracking_number && (
-            <div className="bg-background/60 backdrop-blur rounded-lg p-4 border">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium text-muted-foreground">Suivi</span>
-              </div>
-              <p className="font-semibold">{contract.tracking_number}</p>
+          {/* Autres dossiers du client */}
+          <div className="bg-background/60 backdrop-blur rounded-lg p-4 border">
+            <ClientOtherDeals
+              clientId={contract.client_id}
+              clientEmail={contract.client_email || contract.clients?.email}
+              currentContractId={contract.id}
+              compact={true}
+            />
+          </div>
+        </div>
+
+        {contract.tracking_number && (
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-800">📦 Suivi:</span>
+              <span className="font-semibold text-blue-900">{contract.tracking_number}</span>
               {contract.delivery_carrier && (
-                <p className="text-sm text-muted-foreground">{contract.delivery_carrier}</p>
+                <span className="text-sm text-blue-700">({contract.delivery_carrier})</span>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
