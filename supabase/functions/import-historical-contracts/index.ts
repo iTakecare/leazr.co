@@ -176,9 +176,10 @@ serve(async (req) => {
       const rowNumber = i + 1;
 
       try {
-        // Validate required fields
-        if (!contract.client_name) {
-          report.errors.push({ row: rowNumber, message: 'Nom client requis' });
+        // Validate required fields - accept client_name OR client_company
+        const clientIdentifier = contract.client_name || contract.client_company;
+        if (!clientIdentifier) {
+          report.errors.push({ row: rowNumber, message: 'Nom client ou entreprise requis' });
           continue;
         }
         if (!contract.dossier_number) {
@@ -218,7 +219,7 @@ serve(async (req) => {
         if (!clientId) {
           const newClient = {
             company_id: companyId,
-            name: contract.client_name,
+            name: contract.client_name || contract.client_company,
             company: contract.client_company || null,
             email: contract.client_email || null,
             phone: contract.client_phone || null,
@@ -243,7 +244,7 @@ serve(async (req) => {
 
           clientId = createdClient.id;
           report.clientsCreated++;
-          console.log(`Row ${rowNumber}: Created new client: ${contract.client_name}`);
+          console.log(`Row ${rowNumber}: Created new client: ${clientIdentifier}`);
           
           // Add to existing clients for subsequent matching
           existingClients?.push({
