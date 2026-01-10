@@ -404,7 +404,7 @@ serve(async (req) => {
         
         const offerData = {
           client_id: clientId,
-          client_name: contract.client_name,
+          client_name: contract.client_name || contract.client_company,
           client_email: contract.client_email || null,
           company_id: companyId,
           billing_entity_id: contractBillingEntityId,
@@ -459,6 +459,17 @@ serve(async (req) => {
         }
 
         // STEP 7: Create contract
+        // Calculate status based on end date
+        let calculatedStatus = contract.status || 'active';
+        if (contractEndDate) {
+          const endDate = new Date(contractEndDate);
+          const today = new Date();
+          if (endDate < today) {
+            calculatedStatus = 'completed';
+            console.log(`Row ${rowNumber}: Contract end date ${contractEndDate} is in the past, setting status to 'completed'`);
+          }
+        }
+
         const contractDbData = {
           offer_id: createdOffer.id,
           client_id: clientId,
@@ -470,7 +481,7 @@ serve(async (req) => {
           leaser_name: contract.leaser_name || null,
           contract_number: contract.dossier_number || contract.contract_number,
           monthly_payment: monthlyPayment,
-          status: contract.status || 'active',
+          status: calculatedStatus,
           contract_duration: duration,
           contract_start_date: contractStartDate,
           contract_end_date: contractEndDate,
@@ -491,6 +502,29 @@ serve(async (req) => {
 
         report.contractsCreated++;
         console.log(`Row ${rowNumber}: Created contract with ${contract.equipments.length} equipment(s) for ${contract.client_name}`);
+
+        // STEP 7bis: Create contract equipment (for display on contract detail page)
+        if (contract.equipments && contract.equipments.length > 0) {
+          const contractEquipmentEntries = contract.equipments.map(eq => ({
+            contract_id: createdContract.id,
+            title: eq.title,
+            quantity: eq.quantity,
+            purchase_price: eq.purchase_price,
+            margin: (eq.selling_price || 0) - (eq.purchase_price || 0),
+            monthly_payment: null,
+            serial_number: null
+          }));
+
+          const { error: contractEquipmentError } = await supabase
+            .from('contract_equipment')
+            .insert(contractEquipmentEntries);
+
+          if (contractEquipmentError) {
+            console.error(`Row ${rowNumber}: Contract equipment insert error:`, contractEquipmentError);
+          } else {
+            console.log(`Row ${rowNumber}: Created ${contractEquipmentEntries.length} contract equipment entries`);
+          }
+        }
 
         // STEP 8: Create invoice if invoice_number is provided
         if (contract.invoice_number?.trim()) {
