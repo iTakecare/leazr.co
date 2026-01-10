@@ -1,10 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, Mail, Phone, Building, ExternalLink } from "lucide-react";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import ClientOtherDeals from "@/components/shared/ClientOtherDeals";
 
 interface ClientSectionProps {
   offer: any;
@@ -69,6 +69,17 @@ const ClientSection: React.FC<ClientSectionProps> = ({ offer }) => {
             </div>
           )}
         </div>
+
+        {/* Autres dossiers du client */}
+        {(offer.client_id || offer.client_email) && (
+          <div className="border-t pt-4 mt-4">
+            <ClientOtherDeals
+              clientId={offer.client_id}
+              clientEmail={offer.client_email}
+              currentOfferId={offer.id}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
