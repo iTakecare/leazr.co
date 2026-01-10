@@ -21,7 +21,7 @@ import ChatSettings from '@/components/settings/ChatSettings';
 import TrialAwareSubscriptionCard from '@/components/settings/TrialAwareSubscriptionCard';
 
 import WorkflowManagement from '@/components/workflows/WorkflowManagement';
-import BulkClientImport from '@/components/settings/BulkClientImport';
+import HistoricalContractsImport from '@/components/settings/HistoricalContractsImport';
 import PDFContentEditor from '@/pages/AdminPages/PDFContentEditor';
 import CompanyDocuments from '@/pages/CompanyDocuments';
 
@@ -203,7 +203,7 @@ const Settings: React.FC = () => {
 
         {!isUserBroker && (
           <TabsContent value="import" className="mt-6">
-            <BulkClientImport />
+            <HistoricalContractsImport />
           </TabsContent>
         )}
 
