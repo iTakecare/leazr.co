@@ -3,13 +3,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, History, ChevronDown, ChevronUp, LayoutGrid, List, FileText, ScrollText } from "lucide-react";
+import { Loader2, History, ChevronDown, ChevronUp, LayoutGrid, List, FileText, ScrollText, ShoppingCart } from "lucide-react";
 import { useClientOffers } from "@/hooks/useClientOffers";
 import { useClientContracts } from "@/hooks/useClientContracts";
 import ClientOfferCard from "./ClientOfferCard";
 import ClientContractCard from "./ClientContractCard";
 import ClientOffersTableLight from "./ClientOffersTableLight";
 import ClientContractsTableLight from "./ClientContractsTableLight";
+import ClientDirectSaleCard from "./ClientDirectSaleCard";
+import ClientDirectSalesTableLight from "./ClientDirectSalesTableLight";
 
 interface ClientCommercialHistoryProps {
   clientId: string;
@@ -26,12 +28,34 @@ const ClientCommercialHistory: React.FC<ClientCommercialHistoryProps> = ({
   const { offers, loading: offersLoading } = useClientOffers(clientEmail, clientId);
   const { contracts, loading: contractsLoading } = useClientContracts(clientEmail, clientId);
 
+  // Séparer les ventes directes des demandes de leasing
+  const directSales = offers.filter(o => o.type === 'purchase_request');
+  const regularOffers = offers.filter(o => o.type !== 'purchase_request');
+
   const isLoading = offersLoading || contractsLoading;
   const totalCount = offers.length + contracts.length;
 
   if (totalCount === 0 && !isLoading) {
     return null;
   }
+
+  // Construire le texte du badge
+  const getBadgeText = () => {
+    const parts = [];
+    if (directSales.length > 0) {
+      parts.push(`${directSales.length} vente${directSales.length > 1 ? 's' : ''}`);
+    }
+    parts.push(`${regularOffers.length} demande${regularOffers.length > 1 ? 's' : ''}`);
+    parts.push(`${contracts.length} contrat${contracts.length > 1 ? 's' : ''}`);
+    return parts.join(', ');
+  };
+
+  // Déterminer l'onglet par défaut
+  const getDefaultTab = () => {
+    if (directSales.length > 0) return 'sales';
+    if (regularOffers.length > 0) return 'offers';
+    return 'contracts';
+  };
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -47,7 +71,7 @@ const ClientCommercialHistory: React.FC<ClientCommercialHistoryProps> = ({
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             ) : (
               <Badge variant="secondary" className="ml-2">
-                {offers.length} demande{offers.length > 1 ? 's' : ''}, {contracts.length} contrat{contracts.length > 1 ? 's' : ''}
+                {getBadgeText()}
               </Badge>
             )}
           </div>
@@ -66,12 +90,18 @@ const ClientCommercialHistory: React.FC<ClientCommercialHistoryProps> = ({
             <span className="ml-2 text-muted-foreground">Chargement...</span>
           </div>
         ) : (
-          <Tabs defaultValue="offers" className="w-full">
+          <Tabs defaultValue={getDefaultTab()} className="w-full">
             <div className="flex items-center justify-between mb-4">
               <TabsList>
+                {directSales.length > 0 && (
+                  <TabsTrigger value="sales" className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Ventes directes ({directSales.length})
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="offers" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Demandes ({offers.length})
+                  Demandes ({regularOffers.length})
                 </TabsTrigger>
                 <TabsTrigger value="contracts" className="flex items-center gap-2">
                   <ScrollText className="h-4 w-4" />
@@ -101,22 +131,41 @@ const ClientCommercialHistory: React.FC<ClientCommercialHistoryProps> = ({
               </div>
             </div>
 
+            {/* Onglet Ventes directes */}
+            <TabsContent value="sales" className="mt-0">
+              {directSales.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Aucune vente directe pour ce client
+                </div>
+              ) : viewMode === 'cards' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {directSales.map((sale) => (
+                    <ClientDirectSaleCard key={sale.id} sale={sale} />
+                  ))}
+                </div>
+              ) : (
+                <ClientDirectSalesTableLight sales={directSales} />
+              )}
+            </TabsContent>
+
+            {/* Onglet Demandes (leasing) */}
             <TabsContent value="offers" className="mt-0">
-              {offers.length === 0 ? (
+              {regularOffers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Aucune demande pour ce client
                 </div>
               ) : viewMode === 'cards' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {offers.map((offer) => (
+                  {regularOffers.map((offer) => (
                     <ClientOfferCard key={offer.id} offer={offer} />
                   ))}
                 </div>
               ) : (
-                <ClientOffersTableLight offers={offers} />
+                <ClientOffersTableLight offers={regularOffers} />
               )}
             </TabsContent>
 
+            {/* Onglet Contrats */}
             <TabsContent value="contracts" className="mt-0">
               {contracts.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
