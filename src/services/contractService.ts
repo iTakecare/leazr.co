@@ -575,6 +575,9 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
       return dateB - dateA;
     });
 
+    console.log('Contrats récupérés:', contracts.length, 'dont terminés:', contracts.filter(c => c.status === 'completed').length);
+    console.log('Statuts des contrats:', contracts.map(c => ({ name: c.client_name, status: c.status })));
+
     return contracts;
   } catch (error) {
     console.error("Erreur lors de la récupération des contrats:", error);
