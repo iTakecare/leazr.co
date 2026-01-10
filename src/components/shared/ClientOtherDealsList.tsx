@@ -23,6 +23,7 @@ interface ClientContract {
   status?: string;
   created_at: string;
   leaser_name?: string;
+  contract_number?: string;
 }
 
 interface ClientOtherDealsListProps {
@@ -167,8 +168,8 @@ const ClientOtherDealsList: React.FC<ClientOtherDealsListProps> = ({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <ScrollText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm font-medium truncate">
-                    {formatDate(contract.created_at)}
+                  <span className="text-sm font-medium truncate font-mono">
+                    {contract.contract_number || `CON-${contract.id.slice(0, 8)}`}
                   </span>
                   {getContractStatusBadge(contract.status)}
                 </div>

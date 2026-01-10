@@ -19,6 +19,7 @@ export interface ClientContract {
   estimated_delivery?: string;
   delivery_carrier?: string;
   delivery_status?: string;
+  contract_number?: string;
 }
 
 export const useClientContracts = (clientEmail?: string | null, clientId?: string | null) => {
