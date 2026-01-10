@@ -20,6 +20,7 @@ const ContractsFilter: React.FC<ContractsFilterProps> = ({
         <TabsTrigger value={contractStatuses.CONTRACT_SIGNED}>Signés</TabsTrigger>
         <TabsTrigger value={contractStatuses.ACTIVE}>Actifs</TabsTrigger>
         <TabsTrigger value="expiring_soon">Expiration prochaine</TabsTrigger>
+        <TabsTrigger value={contractStatuses.COMPLETED}>Terminés</TabsTrigger>
       </TabsList>
     </Tabs>
   );
