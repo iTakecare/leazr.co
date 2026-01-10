@@ -526,7 +526,7 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         *, 
         clients(name, email, company),
         offers!inner(dossier_number, down_payment, coefficient, financed_amount),
-        contract_equipment(id, monthly_payment, quantity)
+        contract_equipment(id, title, monthly_payment, quantity)
       `)
     if (!includeCompleted) {
       query = query.neq('status', contractStatuses.COMPLETED);
@@ -556,8 +556,21 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         adjustedMonthlyPayment = Math.round(((financedAmount - downPayment) * coefficient) / 100 * 100) / 100;
       }
       
+      // Générer equipment_description à partir de contract_equipment si non défini
+      let equipmentDescription = contract.equipment_description;
+      if (!equipmentDescription && contract.contract_equipment && contract.contract_equipment.length > 0) {
+        equipmentDescription = contract.contract_equipment
+          .map((eq: any) => {
+            const title = eq.title || 'Équipement';
+            const qty = eq.quantity || 1;
+            return qty > 1 ? `${title} (x${qty})` : title;
+          })
+          .join(', ');
+      }
+      
       return {
         ...contract,
+        equipment_description: equipmentDescription,
         offer_dossier_number: contract.offers?.dossier_number,
         down_payment: downPayment,
         coefficient: coefficient,
