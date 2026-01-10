@@ -10,6 +10,7 @@ interface EquipmentItem {
   title: string;
   quantity: number;
   purchase_price: number;
+  selling_price: number;
 }
 
 interface ContractData {
@@ -334,13 +335,17 @@ serve(async (req) => {
               .eq('offer_id', existingContract.offer_id);
 
             if (contract.equipments.length > 0) {
-              const equipmentEntries = contract.equipments.map(eq => ({
-                offer_id: existingContract.offer_id,
-                title: eq.title,
-                purchase_price: eq.purchase_price,
-                quantity: eq.quantity,
-                margin: 0
-              }));
+              const equipmentEntries = contract.equipments.map(eq => {
+                const margin = eq.selling_price - eq.purchase_price;
+                return {
+                  offer_id: existingContract.offer_id,
+                  title: eq.title,
+                  purchase_price: eq.purchase_price,
+                  selling_price: eq.selling_price,
+                  quantity: eq.quantity,
+                  margin: margin
+                };
+              });
 
               const { error: eqError } = await supabase
                 .from('offer_equipment')
@@ -402,13 +407,17 @@ serve(async (req) => {
 
         // STEP 6: Create equipment entries
         if (contract.equipments.length > 0) {
-          const equipmentEntries = contract.equipments.map(eq => ({
-            offer_id: createdOffer.id,
-            title: eq.title,
-            purchase_price: eq.purchase_price,
-            quantity: eq.quantity,
-            margin: 0
-          }));
+          const equipmentEntries = contract.equipments.map(eq => {
+            const margin = eq.selling_price - eq.purchase_price;
+            return {
+              offer_id: createdOffer.id,
+              title: eq.title,
+              purchase_price: eq.purchase_price,
+              selling_price: eq.selling_price,
+              quantity: eq.quantity,
+              margin: margin
+            };
+          });
 
           const { error: equipmentError } = await supabase
             .from('offer_equipment')
@@ -470,7 +479,7 @@ serve(async (req) => {
             title: eq.title,
             quantity: eq.quantity,
             purchase_price: eq.purchase_price,
-            selling_price_excl_vat: eq.purchase_price
+            selling_price_excl_vat: eq.selling_price
           }));
           
           // Get client data
