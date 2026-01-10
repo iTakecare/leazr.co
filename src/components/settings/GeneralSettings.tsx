@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSiteSettings, updateSiteSettings, SiteSettings } from '@/services/settingsService';
 import LogoUploader from './LogoUploader';
 import LessorSignatureUploader from './LessorSignatureUploader';
+import BillingEntitySelector from './BillingEntitySelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
 import { useMultiTenant } from '@/hooks/useMultiTenant';
@@ -35,6 +36,7 @@ const GeneralSettings = () => {
   });
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
   const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
+  const [selectedBillingEntityId, setSelectedBillingEntityId] = useState<string | null>(null);
 
   const fetchSignatureData = async () => {
     if (!companyId) return;
@@ -188,6 +190,17 @@ const GeneralSettings = () => {
         </CardContent>}
       
       <CardContent className="space-y-6">
+        {/* Billing Entity Selector */}
+        {companyId && (
+          <BillingEntitySelector
+            companyId={companyId}
+            selectedEntityId={selectedBillingEntityId}
+            onEntitySelect={setSelectedBillingEntityId}
+          />
+        )}
+
+        <Separator />
+
         {/* Logo */}
         <div className="space-y-2">
           <Label>Logo de l'entreprise</Label>
