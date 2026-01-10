@@ -119,9 +119,9 @@ function canonicalizeName(name: string): string {
 // Find leaser by fuzzy matching
 function findLeaser(
   searchName: string,
-  exactMap: Map<string, { id: string; name: string }>,
-  list: { id: string; name: string; canonical: string }[]
-): { id: string; name: string } | null {
+  exactMap: Map<string, { id: string; name: string; logo_url: string | null }>,
+  list: { id: string; name: string; logo_url: string | null; canonical: string }[]
+): { id: string; name: string; logo_url: string | null } | null {
   const searchCanonical = canonicalizeName(searchName);
   
   // 1. Exact match
@@ -131,7 +131,7 @@ function findLeaser(
   // 2. Partial match: leaser name contains search term
   for (const leaser of list) {
     if (leaser.canonical.includes(searchCanonical)) {
-      return { id: leaser.id, name: leaser.name };
+      return { id: leaser.id, name: leaser.name, logo_url: leaser.logo_url };
     }
   }
   
@@ -140,7 +140,7 @@ function findLeaser(
     const leaserWords = leaser.canonical.match(/[a-z]{4,}/g) || [];
     for (const word of leaserWords) {
       if (searchCanonical.includes(word)) {
-        return { id: leaser.id, name: leaser.name };
+        return { id: leaser.id, name: leaser.name, logo_url: leaser.logo_url };
       }
     }
   }
@@ -270,23 +270,23 @@ serve(async (req) => {
 
     const companyId = profile.company_id;
 
-    // Charger les leasers depuis la base de données
+    // Charger les leasers depuis la base de données (avec logo_url)
     const { data: leasers, error: leasersError } = await supabase
       .from('leasers')
-      .select('id, name')
+      .select('id, name, logo_url')
       .eq('company_id', companyId);
 
     if (leasersError || !leasers || leasers.length === 0) {
       throw new Error('Aucun leaser trouvé pour cette entreprise');
     }
 
-    const leaserExactMap = new Map<string, { id: string; name: string }>();
-    const leaserList: { id: string; name: string; canonical: string }[] = [];
+    const leaserExactMap = new Map<string, { id: string; name: string; logo_url: string | null }>();
+    const leaserList: { id: string; name: string; logo_url: string | null; canonical: string }[] = [];
 
     leasers.forEach(l => {
       const canonical = canonicalizeName(l.name);
-      leaserExactMap.set(canonical, { id: l.id, name: l.name });
-      leaserList.push({ id: l.id, name: l.name, canonical });
+      leaserExactMap.set(canonical, { id: l.id, name: l.name, logo_url: l.logo_url });
+      leaserList.push({ id: l.id, name: l.name, logo_url: l.logo_url, canonical });
     });
 
     console.log(`📋 ${leasers.length} leasers chargés depuis la base`);
@@ -349,6 +349,7 @@ serve(async (req) => {
 
         const leaserId = foundLeaser.id;
         const leaserName = foundLeaser.name;
+        const leaserLogoUrl = foundLeaser.logo_url;
 
         try {
           // 1. Find or create client
@@ -505,6 +506,7 @@ serve(async (req) => {
               status: contractStatus,
               leaser_name: leaserName,
               leaser_id: leaserId,
+              leaser_logo: leaserLogoUrl,
               contract_number: null,
               dossier_date: parseDateFr(contract.dossierDate, yearData.year),
               invoice_date: parseDateFr(contract.invoiceDate, yearData.year),
