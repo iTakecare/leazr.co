@@ -6,11 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ImportRow {
+interface EquipmentItem {
+  title: string;
+  quantity: number;
+  purchase_price: number;
+}
+
+interface ContractData {
   client_name: string;
-  client_first_name?: string;
-  client_last_name?: string;
-  client_contact_name?: string;
   client_company?: string;
   client_email?: string;
   client_phone?: string;
@@ -19,40 +22,23 @@ interface ImportRow {
   client_city?: string;
   client_postal_code?: string;
   client_country?: string;
-  client_billing_address?: string;
-  client_billing_city?: string;
-  client_billing_postal_code?: string;
-  client_billing_country?: string;
-  client_delivery_address?: string;
-  client_delivery_city?: string;
-  client_delivery_postal_code?: string;
-  client_delivery_country?: string;
-  client_delivery_same_as_billing?: string;
-  client_notes?: string;
-  client_status?: string;
-  client_business_sector?: string;
-  dossier_number?: string;
-  leaser?: string;
-  type?: string;
-  duration?: string;
-  source?: string;
+  dossier_number: string;
+  contract_number?: string;
+  monthly_payment: string;
+  leaser_name?: string;
+  status?: string;
   dossier_date?: string;
   invoice_date?: string;
   payment_date?: string;
+  contract_start_date?: string;
+  contract_end_date?: string;
+  contract_duration?: string;
   financed_amount?: string;
-  equipment_cost?: string;
-  margin?: string;
-  margin_rate?: string;
-  coefficient?: string;
-  monthly_payment?: string;
-  computers?: string;
-  smartphones?: string;
-  tablets?: string;
-  remarks?: string;
+  equipments: EquipmentItem[];
 }
 
 interface ImportRequest {
-  rows: ImportRow[];
+  contracts: ContractData[];
   billingEntityId: string;
   companyId: string;
   year: string;
@@ -74,9 +60,7 @@ function canonicalizeName(name: string): string {
 // Parse European number format (1.234,56 or 1234.56)
 function parseNumber(value: string): number {
   if (!value) return 0;
-  // Remove spaces and € symbol
   let cleaned = value.replace(/[\s€]/g, '');
-  // If contains comma as decimal separator
   if (cleaned.includes(',')) {
     cleaned = cleaned.replace(/\./g, '').replace(',', '.');
   }
@@ -123,6 +107,19 @@ function parseDate(value: string): string | null {
   return null;
 }
 
+// Calculate end date from start date and duration
+function calculateEndDate(startDate: string | null, durationMonths: number): string | null {
+  if (!startDate) return null;
+  
+  try {
+    const date = new Date(startDate);
+    date.setMonth(date.getMonth() + durationMonths);
+    return date.toISOString().split('T')[0];
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -134,17 +131,18 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { rows, billingEntityId, companyId, year }: ImportRequest = await req.json();
+    const { contracts, billingEntityId, companyId, year }: ImportRequest = await req.json();
 
-    console.log(`Starting import for ${rows.length} rows, year ${year}, company ${companyId}`);
+    console.log(`Starting import for ${contracts.length} contracts, year ${year}, company ${companyId}`);
 
     const report = {
       success: true,
-      totalRows: rows.length,
+      totalRows: contracts.length,
       clientsCreated: 0,
       clientsLinked: 0,
       offersCreated: 0,
       contractsCreated: 0,
+      equipmentsCreated: 0,
       errors: [] as Array<{ row: number; message: string }>
     };
 
@@ -165,33 +163,28 @@ serve(async (req) => {
       leaserMap.set(canonicalizeName(l.name), l.id);
     });
 
-    // Process each row
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+    // Process each contract
+    for (let i = 0; i < contracts.length; i++) {
+      const contract = contracts[i];
       const rowNumber = i + 1;
 
       try {
         // Validate required fields
-        if (!row.client_name) {
+        if (!contract.client_name) {
           report.errors.push({ row: rowNumber, message: 'Nom client requis' });
           continue;
         }
-        if (!row.financed_amount) {
-          report.errors.push({ row: rowNumber, message: 'Montant financé requis' });
-          continue;
-        }
-        if (!row.monthly_payment) {
-          report.errors.push({ row: rowNumber, message: 'Mensualité requise' });
+        if (!contract.dossier_number) {
+          report.errors.push({ row: rowNumber, message: 'Numéro de dossier requis' });
           continue;
         }
 
         // STEP 1: Find or create client
         let clientId: string | null = null;
-        let clientCreated = false;
 
         // Try matching by VAT first
-        if (row.client_vat) {
-          const normalizedVat = normalizeVat(row.client_vat);
+        if (contract.client_vat) {
+          const normalizedVat = normalizeVat(contract.client_vat);
           const matchByVat = existingClients?.find(c => 
             c.vat_number && normalizeVat(c.vat_number) === normalizedVat
           );
@@ -203,7 +196,7 @@ serve(async (req) => {
 
         // Try matching by name if no VAT match
         if (!clientId) {
-          const searchName = canonicalizeName(row.client_company || row.client_name);
+          const searchName = canonicalizeName(contract.client_company || contract.client_name);
           const matchByName = existingClients?.find(c => 
             canonicalizeName(c.company || c.name) === searchName ||
             canonicalizeName(c.name) === searchName
@@ -218,30 +211,16 @@ serve(async (req) => {
         if (!clientId) {
           const newClient = {
             company_id: companyId,
-            name: row.client_name,
-            first_name: row.client_first_name || null,
-            last_name: row.client_last_name || null,
-            contact_name: row.client_contact_name || null,
-            company: row.client_company || null,
-            email: row.client_email || null,
-            phone: row.client_phone || null,
-            vat_number: row.client_vat || null,
-            address: row.client_address || null,
-            city: row.client_city || null,
-            postal_code: row.client_postal_code || null,
-            country: row.client_country || 'BE',
-            billing_address: row.client_billing_address || null,
-            billing_city: row.client_billing_city || null,
-            billing_postal_code: row.client_billing_postal_code || null,
-            billing_country: row.client_billing_country || null,
-            delivery_address: row.client_delivery_address || null,
-            delivery_city: row.client_delivery_city || null,
-            delivery_postal_code: row.client_delivery_postal_code || null,
-            delivery_country: row.client_delivery_country || null,
-            delivery_same_as_billing: row.client_delivery_same_as_billing === 'true',
-            notes: row.client_notes || null,
-            status: row.client_status || 'active',
-            business_sector: row.client_business_sector || null
+            name: contract.client_name,
+            company: contract.client_company || null,
+            email: contract.client_email || null,
+            phone: contract.client_phone || null,
+            vat_number: contract.client_vat || null,
+            address: contract.client_address || null,
+            city: contract.client_city || null,
+            postal_code: contract.client_postal_code || null,
+            country: contract.client_country || 'BE',
+            status: 'active'
           };
 
           const { data: createdClient, error: clientError } = await supabase
@@ -256,76 +235,65 @@ serve(async (req) => {
           }
 
           clientId = createdClient.id;
-          clientCreated = true;
           report.clientsCreated++;
-          console.log(`Row ${rowNumber}: Created new client: ${row.client_name}`);
+          console.log(`Row ${rowNumber}: Created new client: ${contract.client_name}`);
           
           // Add to existing clients for subsequent matching
           existingClients?.push({
             id: clientId,
-            name: row.client_name,
-            company: row.client_company || null,
-            vat_number: row.client_vat || null,
-            email: row.client_email || null
+            name: contract.client_name,
+            company: contract.client_company || null,
+            vat_number: contract.client_vat || null,
+            email: contract.client_email || null
           });
         } else {
           report.clientsLinked++;
-          
-          // Optionally update client with missing info (enrichment)
-          const existingClient = existingClients?.find(c => c.id === clientId);
-          const updates: Record<string, any> = {};
-          
-          if (!existingClient?.email && row.client_email) updates.email = row.client_email;
-          // Add more enrichment fields as needed
-          
-          if (Object.keys(updates).length > 0) {
-            await supabase.from('clients').update(updates).eq('id', clientId);
-          }
         }
 
         // STEP 2: Find leaser
         let leaserId: string | null = null;
-        if (row.leaser) {
-          leaserId = leaserMap.get(canonicalizeName(row.leaser)) || null;
+        if (contract.leaser_name) {
+          leaserId = leaserMap.get(canonicalizeName(contract.leaser_name)) || null;
           if (!leaserId) {
-            console.log(`Row ${rowNumber}: Leaser not found: ${row.leaser}`);
+            console.log(`Row ${rowNumber}: Leaser not found: ${contract.leaser_name}`);
           }
         }
 
-        // STEP 3: Create offer
-        const financedAmount = parseNumber(row.financed_amount || '0');
-        const monthlyPayment = parseNumber(row.monthly_payment || '0');
-        const equipmentCost = parseNumber(row.equipment_cost || '0');
-        const margin = parseNumber(row.margin || '0');
-        const coefficient = parseNumber(row.coefficient || '0');
-        const duration = parseInt(row.duration || '36', 10);
+        // STEP 3: Parse dates and amounts
+        const monthlyPayment = parseNumber(contract.monthly_payment || '0');
+        const financedAmount = parseNumber(contract.financed_amount || '0') || monthlyPayment * 48;
+        const duration = parseInt(contract.contract_duration || '36', 10);
+        const contractStartDate = parseDate(contract.contract_start_date) || parseDate(contract.dossier_date) || `${year}-01-01`;
+        
+        // Contract end date: use provided or calculate from start + duration
+        let contractEndDate = parseDate(contract.contract_end_date);
+        if (!contractEndDate && contractStartDate) {
+          contractEndDate = calculateEndDate(contractStartDate, duration);
+        }
 
+        // Calculate total equipment cost
+        const totalEquipmentCost = contract.equipments.reduce(
+          (sum, eq) => sum + (eq.purchase_price * eq.quantity), 
+          0
+        );
+
+        // STEP 4: Create offer
         const offerData = {
           client_id: clientId,
-          client_name: row.client_name,
-          client_email: row.client_email || null,
+          client_name: contract.client_name,
+          client_email: contract.client_email || null,
           company_id: companyId,
           billing_entity_id: billingEntityId,
           leaser_id: leaserId,
-          amount: financedAmount,
-          financed_amount: financedAmount,
+          amount: financedAmount || totalEquipmentCost,
+          financed_amount: financedAmount || totalEquipmentCost,
           monthly_payment: monthlyPayment,
-          coefficient: coefficient || null,
-          commission: margin,
-          type: row.type === 'self_leasing' ? 'self_leasing' : 'leasing',
+          type: 'leasing',
           workflow_status: 'accepted',
           status: 'accepted',
           converted_to_contract: true,
-          remarks: row.remarks || null,
-          created_at: parseDate(row.dossier_date) || `${year}-01-01`,
-          dossier_number: row.dossier_number || null,
-          // Equipment summary
-          equipment_description: JSON.stringify({
-            computers: parseInt(row.computers || '0', 10),
-            smartphones: parseInt(row.smartphones || '0', 10),
-            tablets: parseInt(row.tablets || '0', 10),
-            total_cost: equipmentCost
-          })
+          created_at: parseDate(contract.dossier_date) || `${year}-01-01`,
+          dossier_number: contract.dossier_number
         };
 
         const { data: createdOffer, error: offerError } = await supabase
@@ -341,28 +309,52 @@ serve(async (req) => {
 
         report.offersCreated++;
 
-        // STEP 4: Create contract
-        const contractData = {
+        // STEP 5: Create equipment entries
+        if (contract.equipments.length > 0) {
+          const equipmentEntries = contract.equipments.map(eq => ({
+            offer_id: createdOffer.id,
+            title: eq.title,
+            purchase_price: eq.purchase_price,
+            quantity: eq.quantity,
+            margin: 0
+          }));
+
+          const { error: equipmentError } = await supabase
+            .from('offer_equipment')
+            .insert(equipmentEntries);
+
+          if (equipmentError) {
+            console.error(`Row ${rowNumber}: Equipment insert error:`, equipmentError);
+          } else {
+            report.equipmentsCreated += contract.equipments.length;
+          }
+        }
+
+        // STEP 6: Create contract
+        const contractDbData = {
           offer_id: createdOffer.id,
           client_id: clientId,
-          client_name: row.client_name,
-          client_email: row.client_email || null,
+          client_name: contract.client_name,
+          client_email: contract.client_email || null,
           company_id: companyId,
           billing_entity_id: billingEntityId,
           leaser_id: leaserId,
-          leaser_name: row.leaser || null,
+          leaser_name: contract.leaser_name || null,
+          leaser_contract_number: contract.contract_number || null,
           monthly_payment: monthlyPayment,
-          status: 'active',
+          status: contract.status || 'active',
           tracking_status: 'delivered',
-          type: row.type === 'self_leasing' ? 'self_leasing' : 'leasing',
+          type: 'leasing',
           leasing_duration: duration,
-          created_at: parseDate(row.dossier_date) || `${year}-01-01`,
-          dossier_number: row.dossier_number || null
+          contract_start_date: contractStartDate,
+          contract_end_date: contractEndDate,
+          created_at: parseDate(contract.dossier_date) || `${year}-01-01`,
+          dossier_number: contract.dossier_number
         };
 
         const { error: contractError } = await supabase
           .from('contracts')
-          .insert(contractData);
+          .insert(contractDbData);
 
         if (contractError) {
           report.errors.push({ row: rowNumber, message: `Erreur création contrat: ${contractError.message}` });
@@ -370,7 +362,7 @@ serve(async (req) => {
         }
 
         report.contractsCreated++;
-        console.log(`Row ${rowNumber}: Created offer and contract for ${row.client_name}`);
+        console.log(`Row ${rowNumber}: Created contract with ${contract.equipments.length} equipment(s) for ${contract.client_name}`);
 
       } catch (rowError) {
         console.error(`Error processing row ${rowNumber}:`, rowError);
@@ -380,7 +372,7 @@ serve(async (req) => {
 
     report.success = report.errors.length === 0;
 
-    console.log(`Import completed: ${report.offersCreated} offers, ${report.contractsCreated} contracts, ${report.errors.length} errors`);
+    console.log(`Import completed: ${report.contractsCreated} contracts, ${report.equipmentsCreated} equipments, ${report.errors.length} errors`);
 
     return new Response(JSON.stringify(report), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

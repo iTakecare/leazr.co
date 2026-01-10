@@ -42,16 +42,50 @@ interface CSVRow {
   dossier_number?: string;
   contract_number?: string;
   monthly_payment?: string;
-  equipment_description?: string;
+  equipment_title?: string;
+  equipment_qty?: string;
+  equipment_price?: string;
   leaser_name?: string;
   status?: string;
   dossier_date?: string;
   invoice_date?: string;
   payment_date?: string;
   contract_start_date?: string;
+  contract_end_date?: string;
   contract_duration?: string;
   financed_amount?: string;
   [key: string]: string | undefined;
+}
+
+interface EquipmentItem {
+  title: string;
+  quantity: number;
+  purchase_price: number;
+}
+
+interface GroupedContract {
+  client_name: string;
+  client_company: string;
+  client_email: string;
+  client_phone: string;
+  client_vat: string;
+  client_address: string;
+  client_city: string;
+  client_postal_code: string;
+  client_country: string;
+  dossier_number: string;
+  contract_number: string;
+  monthly_payment: string;
+  leaser_name: string;
+  status: string;
+  dossier_date: string;
+  invoice_date: string;
+  payment_date: string;
+  contract_start_date: string;
+  contract_end_date: string;
+  contract_duration: string;
+  financed_amount: string;
+  equipments: EquipmentItem[];
 }
 
 interface ImportReport {
@@ -61,16 +95,18 @@ interface ImportReport {
   clientsLinked: number;
   offersCreated: number;
   contractsCreated: number;
+  equipmentsCreated: number;
   errors: Array<{ row: number; message: string }>;
 }
 
-// Template CSV content
-const CSV_TEMPLATE = `client_name;client_company;client_email;client_phone;client_vat;client_address;client_city;client_postal_code;client_country;dossier_number;contract_number;monthly_payment;equipment_description;leaser_name;status;dossier_date;invoice_date;payment_date;contract_start_date;contract_duration;financed_amount
-Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";Grenke;active;01/01/2024;15/01/2024;01/02/2024;01/03/2024;48;6000.00
-Marie Martin;Martin & Co;marie@martin.be;0471234567;;Avenue Louise 100;Bruxelles;1050;BE;DOS-2024-002;;200.00;2x iPhone 15 Pro;Atlance;active;15/02/2024;;;01/04/2024;36;6480.00`;
+// Template CSV content with multi-equipment example
+const CSV_TEMPLATE = `client_name;client_company;client_email;client_phone;client_vat;client_address;client_city;client_postal_code;client_country;dossier_number;contract_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount
+Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00
+Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;;;iPhone 15 Pro;2;1200.00;;;;;
+Marie Martin;Martin & Co;marie@martin.be;0471234567;;Avenue Louise 100;Bruxelles;1050;BE;DOS-2024-002;;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00`;
 
 // Required columns
-const REQUIRED_COLUMNS = ['client_name', 'dossier_number', 'monthly_payment', 'leaser_name'];
+const REQUIRED_COLUMNS = ['client_name', 'dossier_number'];
 
 // Column labels for display
 const COLUMN_LABELS: Record<string, string> = {
@@ -86,13 +122,16 @@ const COLUMN_LABELS: Record<string, string> = {
   dossier_number: 'N° Dossier',
   contract_number: 'N° Contrat leaser',
   monthly_payment: 'Mensualité (€)',
-  equipment_description: 'Équipement',
+  equipment_title: 'Équipement',
+  equipment_qty: 'Quantité',
+  equipment_price: 'Prix achat (€)',
   leaser_name: 'Leaser',
   status: 'Statut',
   dossier_date: 'Date dossier',
   invoice_date: 'Date facture',
   payment_date: 'Date paiement',
   contract_start_date: 'Début contrat',
+  contract_end_date: 'Fin contrat',
   contract_duration: 'Durée (mois)',
   financed_amount: 'Montant financé (€)'
 };
@@ -268,33 +307,56 @@ const HistoricalContractsImport: React.FC = () => {
         setProgress(prev => Math.min(prev + 5, 90));
       }, 500);
 
-      // Transform data for edge function
-      const rows = parsedData.map(row => ({
-        client_name: row.client_name || '',
-        client_company: row.client_company || '',
-        client_email: row.client_email || '',
-        client_phone: row.client_phone || '',
-        client_vat: row.client_vat || '',
-        client_address: row.client_address || '',
-        client_city: row.client_city || '',
-        client_postal_code: row.client_postal_code || '',
-        client_country: row.client_country || 'BE',
-        dossier_number: row.dossier_number || '',
-        leaser: row.leaser_name || '',
-        monthly_payment: row.monthly_payment || '',
-        financed_amount: row.financed_amount || row.monthly_payment || '',
-        duration: row.contract_duration || '36',
-        dossier_date: row.dossier_date || '',
-        invoice_date: row.invoice_date || '',
-        payment_date: row.payment_date || '',
-        remarks: row.equipment_description || ''
-      }));
+      // Group rows by dossier_number for multi-equipment support
+      const groupedContracts: Record<string, GroupedContract> = {};
+      
+      parsedData.forEach(row => {
+        const dossierNum = row.dossier_number || '';
+        
+        if (!groupedContracts[dossierNum]) {
+          // First row with this dossier number - initialize contract
+          groupedContracts[dossierNum] = {
+            client_name: row.client_name || '',
+            client_company: row.client_company || '',
+            client_email: row.client_email || '',
+            client_phone: row.client_phone || '',
+            client_vat: row.client_vat || '',
+            client_address: row.client_address || '',
+            client_city: row.client_city || '',
+            client_postal_code: row.client_postal_code || '',
+            client_country: row.client_country || 'BE',
+            dossier_number: dossierNum,
+            contract_number: row.contract_number || '',
+            monthly_payment: row.monthly_payment || '',
+            leaser_name: row.leaser_name || '',
+            status: row.status || 'active',
+            dossier_date: row.dossier_date || '',
+            invoice_date: row.invoice_date || '',
+            payment_date: row.payment_date || '',
+            contract_start_date: row.contract_start_date || '',
+            contract_end_date: row.contract_end_date || '',
+            contract_duration: row.contract_duration || '36',
+            financed_amount: row.financed_amount || '',
+            equipments: []
+          };
+        }
+        
+        // Add equipment to the contract
+        if (row.equipment_title?.trim()) {
+          groupedContracts[dossierNum].equipments.push({
+            title: row.equipment_title,
+            quantity: parseInt(row.equipment_qty || '1', 10),
+            purchase_price: parseFloat(row.equipment_price || '0') || 0
+          });
+        }
+      });
 
+      const contractsToImport = Object.values(groupedContracts);
       const year = new Date().getFullYear().toString();
 
       const { data, error } = await supabase.functions.invoke('import-historical-contracts', {
         body: {
-          rows,
+          contracts: contractsToImport,
           billingEntityId: billingEntity.id,
           companyId: profile.company_id,
           year
@@ -309,7 +371,7 @@ const HistoricalContractsImport: React.FC = () => {
       setReport(data);
       
       if (data.success || data.errors?.length === 0) {
-        toast.success(`Import terminé ! ${data.contractsCreated} contrats créés.`);
+        toast.success(`Import terminé ! ${data.contractsCreated} contrats créés avec ${data.equipmentsCreated || 0} équipements.`);
       } else {
         toast.warning(`Import terminé avec ${data.errors?.length || 0} erreur(s)`);
       }
@@ -373,21 +435,29 @@ const HistoricalContractsImport: React.FC = () => {
             <input {...getInputProps()} />
             
             {fileName ? (
-              <div className="flex flex-col items-center gap-2">
-                <FileText className="h-12 w-12 text-primary" />
-                <p className="font-medium">{fileName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {parsedData.length} contrat{parsedData.length > 1 ? 's' : ''} détecté{parsedData.length > 1 ? 's' : ''}
-                </p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={(e) => { e.stopPropagation(); clearImport(); }}
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Supprimer
-                </Button>
-              </div>
+              (() => {
+                // Count unique dossiers for display
+                const uniqueDossiers = new Set(parsedData.map(r => r.dossier_number)).size;
+                const totalEquipments = parsedData.filter(r => r.equipment_title?.trim()).length;
+                return (
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText className="h-12 w-12 text-primary" />
+                    <p className="font-medium">{fileName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {uniqueDossiers} contrat{uniqueDossiers > 1 ? 's' : ''} détecté{uniqueDossiers > 1 ? 's' : ''} 
+                      {totalEquipments > 0 && ` • ${totalEquipments} équipement${totalEquipments > 1 ? 's' : ''}`}
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={(e) => { e.stopPropagation(); clearImport(); }}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </Button>
+                  </div>
+                );
+              })()
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-12 w-12 text-muted-foreground" />
@@ -438,59 +508,101 @@ const HistoricalContractsImport: React.FC = () => {
 
           {/* Preview table */}
           {showPreview && parsedData.length > 0 && (
-            <div className="border rounded-lg overflow-hidden">
-              <div className="overflow-x-auto max-h-64">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky top-0 bg-muted">#</TableHead>
-                      <TableHead className="sticky top-0 bg-muted">Client</TableHead>
-                      <TableHead className="sticky top-0 bg-muted">N° Dossier</TableHead>
-                      <TableHead className="sticky top-0 bg-muted">Leaser</TableHead>
-                      <TableHead className="sticky top-0 bg-muted text-right">Mensualité</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {parsedData.slice(0, 10).map((row, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
-                        <TableCell>{row.client_name}</TableCell>
-                        <TableCell className="font-mono text-sm">{row.dossier_number}</TableCell>
-                        <TableCell>{row.leaser_name}</TableCell>
-                        <TableCell className="text-right">{row.monthly_payment} €</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {parsedData.length > 10 && (
-                <div className="p-2 text-center text-sm text-muted-foreground bg-muted/50 border-t">
-                  ... et {parsedData.length - 10} autres contrats
+            (() => {
+              // Group by dossier for preview
+              const grouped: Record<string, { client: string; leaser: string; monthly: string; equipments: string[] }> = {};
+              parsedData.forEach(row => {
+                const key = row.dossier_number || '';
+                if (!grouped[key]) {
+                  grouped[key] = {
+                    client: row.client_name || '',
+                    leaser: row.leaser_name || '',
+                    monthly: row.monthly_payment || '',
+                    equipments: []
+                  };
+                }
+                if (row.equipment_title?.trim()) {
+                  const qty = parseInt(row.equipment_qty || '1', 10);
+                  grouped[key].equipments.push(`${qty}x ${row.equipment_title}`);
+                }
+              });
+              const entries = Object.entries(grouped);
+              
+              return (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto max-h-72">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky top-0 bg-muted">#</TableHead>
+                          <TableHead className="sticky top-0 bg-muted">N° Dossier</TableHead>
+                          <TableHead className="sticky top-0 bg-muted">Client</TableHead>
+                          <TableHead className="sticky top-0 bg-muted">Équipements</TableHead>
+                          <TableHead className="sticky top-0 bg-muted">Leaser</TableHead>
+                          <TableHead className="sticky top-0 bg-muted text-right">Mensualité</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {entries.slice(0, 10).map(([dossier, data], idx) => (
+                          <TableRow key={dossier}>
+                            <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                            <TableCell className="font-mono text-sm">{dossier}</TableCell>
+                            <TableCell>{data.client}</TableCell>
+                            <TableCell>
+                              {data.equipments.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {data.equipments.map((eq, i) => (
+                                    <Badge key={i} variant="secondary" className="text-xs">
+                                      {eq}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>{data.leaser}</TableCell>
+                            <TableCell className="text-right">{data.monthly} €</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {entries.length > 10 && (
+                    <div className="p-2 text-center text-sm text-muted-foreground bg-muted/50 border-t">
+                      ... et {entries.length - 10} autres contrats
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()
           )}
 
           {/* Import button */}
           {parsedData.length > 0 && validationErrors.length === 0 && !report && (
-            <Button 
-              onClick={handleImport} 
-              disabled={loading}
-              className="w-full"
-              size="lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Import en cours...
-                </>
-              ) : (
-                <>
-                  <History className="mr-2 h-4 w-4" />
-                  Lancer l'import historique ({parsedData.length} contrats)
-                </>
-              )}
-            </Button>
+            (() => {
+              const uniqueContracts = new Set(parsedData.map(r => r.dossier_number)).size;
+              return (
+                <Button 
+                  onClick={handleImport} 
+                  disabled={loading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Import en cours...
+                    </>
+                  ) : (
+                    <>
+                      <History className="mr-2 h-4 w-4" />
+                      Lancer l'import historique ({uniqueContracts} contrat{uniqueContracts > 1 ? 's' : ''})
+                    </>
+                  )}
+                </Button>
+              );
+            })()
           )}
 
           {/* Progress bar */}
@@ -520,10 +632,10 @@ const HistoricalContractsImport: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Stats grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
                 <div className="text-2xl font-bold text-blue-700">{report.totalRows}</div>
-                <div className="text-xs text-blue-600">Lignes traitées</div>
+                <div className="text-xs text-blue-600">Contrats traités</div>
               </div>
               <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
                 <div className="text-2xl font-bold text-green-700">{report.clientsCreated}</div>
@@ -536,6 +648,10 @@ const HistoricalContractsImport: React.FC = () => {
               <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200 text-center">
                 <div className="text-2xl font-bold text-indigo-700">{report.contractsCreated}</div>
                 <div className="text-xs text-indigo-600">Contrats créés</div>
+              </div>
+              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 text-center">
+                <div className="text-2xl font-bold text-orange-700">{report.equipmentsCreated || 0}</div>
+                <div className="text-xs text-orange-600">Équipements créés</div>
               </div>
             </div>
 
