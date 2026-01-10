@@ -51,8 +51,14 @@ const ClientOtherDeals: React.FC<ClientOtherDealsProps> = ({
 
   const getSummaryText = () => {
     const parts = [];
-    if (offers.length > 0) {
-      parts.push(`${offers.length} demande${offers.length > 1 ? "s" : ""}`);
+    const directSales = offers.filter(o => o.type === 'purchase_request');
+    const regularOffers = offers.filter(o => o.type !== 'purchase_request');
+    
+    if (directSales.length > 0) {
+      parts.push(`${directSales.length} vente${directSales.length > 1 ? "s" : ""}`);
+    }
+    if (regularOffers.length > 0) {
+      parts.push(`${regularOffers.length} demande${regularOffers.length > 1 ? "s" : ""}`);
     }
     if (contracts.length > 0) {
       parts.push(`${contracts.length} contrat${contracts.length > 1 ? "s" : ""}`);
