@@ -64,6 +64,39 @@ function canonicalizeName(name: string): string {
     .trim();
 }
 
+// Find leaser by exact or partial match
+function findLeaser(
+  searchName: string,
+  exactMap: Map<string, { id: string; name: string }>,
+  list: { id: string; name: string; canonical: string }[]
+): { id: string; name: string } | null {
+  const searchCanonical = canonicalizeName(searchName);
+  
+  // 1. Try exact match first
+  const exactMatch = exactMap.get(searchCanonical);
+  if (exactMatch) return exactMatch;
+  
+  // 2. Try partial match: leaser name contains search term
+  for (const leaser of list) {
+    if (leaser.canonical.includes(searchCanonical)) {
+      return { id: leaser.id, name: leaser.name };
+    }
+  }
+  
+  // 3. Try reverse partial match: search term contains leaser keywords
+  for (const leaser of list) {
+    // Extract main keyword from leaser name (e.g., "grenke" from "1. Grenke Lease")
+    const leaserWords = leaser.canonical.match(/[a-z]{4,}/g) || [];
+    for (const word of leaserWords) {
+      if (searchCanonical.includes(word)) {
+        return { id: leaser.id, name: leaser.name };
+      }
+    }
+  }
+  
+  return null;
+}
+
 // Parse European number format (1.234,56 or 1234.56)
 function parseNumber(value: string): number {
   if (!value) return 0;
@@ -194,9 +227,14 @@ serve(async (req) => {
       .select('id, name')
       .eq('company_id', companyId);
 
-    const leaserMap = new Map<string, string>();
+    // Create both exact and partial matching maps
+    const leaserExactMap = new Map<string, { id: string; name: string }>();
+    const leaserList: { id: string; name: string; canonical: string }[] = [];
+
     leasers?.forEach(l => {
-      leaserMap.set(canonicalizeName(l.name), l.id);
+      const canonical = canonicalizeName(l.name);
+      leaserExactMap.set(canonical, { id: l.id, name: l.name });
+      leaserList.push({ id: l.id, name: l.name, canonical });
     });
 
     // Process each contract
@@ -290,12 +328,19 @@ serve(async (req) => {
           report.clientsLinked++;
         }
 
-        // STEP 2: Find leaser
+        // STEP 2: Find leaser (with fuzzy matching)
         let leaserId: string | null = null;
+        let resolvedLeaserName: string | null = null;
+
         if (contract.leaser_name) {
-          leaserId = leaserMap.get(canonicalizeName(contract.leaser_name)) || null;
-          if (!leaserId) {
+          const foundLeaser = findLeaser(contract.leaser_name, leaserExactMap, leaserList);
+          if (foundLeaser) {
+            leaserId = foundLeaser.id;
+            resolvedLeaserName = foundLeaser.name;
+            console.log(`Row ${rowNumber}: Leaser matched: "${contract.leaser_name}" -> "${resolvedLeaserName}"`);
+          } else {
             console.log(`Row ${rowNumber}: Leaser not found: ${contract.leaser_name}`);
+            resolvedLeaserName = contract.leaser_name;
           }
         }
 
@@ -334,7 +379,7 @@ serve(async (req) => {
             .from('contracts')
             .update({
               leaser_id: leaserId,
-              leaser_name: contract.leaser_name || null,
+              leaser_name: resolvedLeaserName || null,
               leaser_contract_number: contract.contract_number || null,
               monthly_payment: monthlyPayment,
               status: contract.status || 'active',
@@ -484,7 +529,7 @@ serve(async (req) => {
           company_id: companyId,
           billing_entity_id: contractBillingEntityId,
           leaser_id: leaserId,
-          leaser_name: contract.leaser_name || null,
+          leaser_name: resolvedLeaserName || null,
           contract_number: contract.dossier_number || contract.contract_number,
           monthly_payment: monthlyPayment,
           status: calculatedStatus,
