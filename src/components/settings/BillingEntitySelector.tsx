@@ -77,18 +77,93 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState(emptyEntity);
 
+  const createEntityFromCompanyData = async () => {
+    try {
+      // Fetch company data to create initial entity
+      const { data: companyData, error: companyError } = await supabase
+        .from('company_customizations')
+        .select('company_name, company_vat_number, company_address, company_city, company_postal_code, company_country, company_legal_form')
+        .eq('company_id', companyId)
+        .single();
+
+      if (companyError || !companyData) {
+        // Fallback to companies table
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', companyId)
+          .single();
+        
+        if (fallbackError || !fallbackData) return null;
+        
+        const newEntity = {
+          company_id: companyId,
+          name: fallbackData.name,
+          legal_form: 'societe',
+          valid_from: '2023-01-01',
+          is_default: true,
+          country: 'Belgique'
+        };
+
+        const { data: createdEntity, error: createError } = await supabase
+          .from('billing_entities')
+          .insert(newEntity)
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        return createdEntity;
+      }
+
+      const newEntity = {
+        company_id: companyId,
+        name: companyData.company_name || 'Entité par défaut',
+        legal_form: companyData.company_legal_form || 'societe',
+        vat_number: companyData.company_vat_number || null,
+        address: companyData.company_address || null,
+        city: companyData.company_city || null,
+        postal_code: companyData.company_postal_code || null,
+        country: companyData.company_country || 'Belgique',
+        valid_from: '2023-01-01',
+        is_default: true
+      };
+
+      const { data: createdEntity, error: createError } = await supabase
+        .from('billing_entities')
+        .insert(newEntity)
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      
+      toast.success("Entité de facturation créée automatiquement à partir des données de l'entreprise");
+      return createdEntity;
+    } catch (err) {
+      console.error('Error creating entity from company data:', err);
+      return null;
+    }
+  };
+
   const fetchEntities = async () => {
     if (!companyId) return;
     
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('billing_entities')
         .select('*')
         .eq('company_id', companyId)
         .order('valid_from', { ascending: false });
 
       if (error) throw error;
+      
+      // If no entities exist, create one from company data
+      if (!data || data.length === 0) {
+        const newEntity = await createEntityFromCompanyData();
+        if (newEntity) {
+          data = [newEntity];
+        }
+      }
       
       setEntities(data || []);
       
@@ -97,6 +172,9 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
         const defaultEntity = data.find(e => e.is_default);
         if (defaultEntity) {
           onEntitySelect(defaultEntity.id);
+        } else {
+          // Select first entity if no default
+          onEntitySelect(data[0].id);
         }
       }
     } catch (err) {
