@@ -777,7 +777,7 @@ serve(async (req) => {
                 tracking_number: contract.dossier_number || '',
                 client_name: clientData?.name || contract.client_name || '',
                 client_email: clientData?.email || contract.client_email || '',
-                status: contractStatus,
+                status: calculatedStatus,
                 created_at: new Date().toISOString(),
                 monthly_payment: monthlyPayment
               },
