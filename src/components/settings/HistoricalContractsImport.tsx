@@ -57,6 +57,7 @@ interface CSVRow {
   contract_end_date?: string;
   contract_duration?: string;
   financed_amount?: string;
+  billing_entity_name?: string;
   [key: string]: string | undefined;
 }
 
@@ -88,6 +89,7 @@ interface GroupedContract {
   contract_end_date: string;
   contract_duration: string;
   financed_amount: string;
+  billing_entity_name: string;
   equipments: EquipmentItem[];
 }
 
@@ -104,10 +106,10 @@ interface ImportReport {
 }
 
 // Template CSV content with multi-equipment example
-const CSV_TEMPLATE = `client_name;client_company;client_email;client_phone;client_vat;client_address;client_city;client_postal_code;client_country;dossier_number;contract_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount
-Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00
+const CSV_TEMPLATE = `client_name;client_company;client_email;client_phone;client_vat;client_address;client_city;client_postal_code;client_country;dossier_number;contract_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;billing_entity_name
+Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00;iTakecare SRL
 Jean Dupont;Dupont SPRL;jean@dupont.be;0470123456;BE0123456789;Rue de la Loi 1;Bruxelles;1000;BE;DOS-2024-001;;;iPhone 15 Pro;2;1200.00;;;;;
-Marie Martin;Martin & Co;marie@martin.be;0471234567;;Avenue Louise 100;Bruxelles;1050;BE;DOS-2024-002;;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00`;
+Marie Martin;Martin & Co;marie@martin.be;0471234567;;Avenue Louise 100;Bruxelles;1050;BE;DOS-2024-002;;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00;iTakecare PP`;
 
 // Required columns
 const REQUIRED_COLUMNS = ['client_name', 'dossier_number'];
@@ -137,7 +139,8 @@ const COLUMN_LABELS: Record<string, string> = {
   contract_start_date: 'Début contrat',
   contract_end_date: 'Fin contrat',
   contract_duration: 'Durée (mois)',
-  financed_amount: 'Montant financé (€)'
+  financed_amount: 'Montant financé (€)',
+  billing_entity_name: 'Entité de facturation'
 };
 
 const HistoricalContractsImport: React.FC = () => {
@@ -284,7 +287,7 @@ const HistoricalContractsImport: React.FC = () => {
     setReport(null);
 
     try {
-      // Get user's company and billing entity
+      // Get user's company and billing entities
       const { data: profile } = await supabase
         .from('profiles')
         .select('company_id')
@@ -295,17 +298,18 @@ const HistoricalContractsImport: React.FC = () => {
         throw new Error('Profil utilisateur non trouvé');
       }
 
-      // Get default billing entity
-      const { data: billingEntity } = await supabase
+      // Get all billing entities for the company
+      const { data: billingEntities } = await supabase
         .from('billing_entities')
-        .select('id')
-        .eq('company_id', profile.company_id)
-        .eq('is_default', true)
-        .single();
+        .select('id, name, is_default')
+        .eq('company_id', profile.company_id);
 
-      if (!billingEntity) {
+      if (!billingEntities || billingEntities.length === 0) {
         throw new Error('Entité de facturation non configurée');
       }
+
+      // Get default billing entity for fallback
+      const defaultBillingEntity = billingEntities.find(e => e.is_default) || billingEntities[0];
 
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -342,6 +346,7 @@ const HistoricalContractsImport: React.FC = () => {
             contract_end_date: row.contract_end_date || '',
             contract_duration: row.contract_duration || '36',
             financed_amount: row.financed_amount || '',
+            billing_entity_name: row.billing_entity_name || '',
             equipments: []
           };
         }
@@ -356,13 +361,25 @@ const HistoricalContractsImport: React.FC = () => {
         }
       });
 
-      const contractsToImport = Object.values(groupedContracts);
+      // Map contracts with their billing entity IDs
+      const contractsToImport = Object.values(groupedContracts).map(contract => {
+        // Find billing entity by name (case-insensitive)
+        const matchedEntity = billingEntities?.find(e => 
+          e.name.toLowerCase().trim() === contract.billing_entity_name.toLowerCase().trim()
+        );
+        
+        return {
+          ...contract,
+          billingEntityId: matchedEntity?.id || defaultBillingEntity.id
+        };
+      });
+      
       const year = new Date().getFullYear().toString();
 
       const { data, error } = await supabase.functions.invoke('import-historical-contracts', {
         body: {
           contracts: contractsToImport,
-          billingEntityId: billingEntity.id,
+          defaultBillingEntityId: defaultBillingEntity.id,
           companyId: profile.company_id,
           year,
           updateMode
