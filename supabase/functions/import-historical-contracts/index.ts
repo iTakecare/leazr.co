@@ -42,6 +42,7 @@ interface ImportRequest {
   billingEntityId: string;
   companyId: string;
   year: string;
+  updateMode?: boolean;
 }
 
 // Normalize VAT number for comparison
@@ -131,9 +132,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { contracts, billingEntityId, companyId, year }: ImportRequest = await req.json();
+    const { contracts, billingEntityId, companyId, year, updateMode }: ImportRequest = await req.json();
 
-    console.log(`Starting import for ${contracts.length} contracts, year ${year}, company ${companyId}`);
+    console.log(`Starting import for ${contracts.length} contracts, year ${year}, company ${companyId}, updateMode: ${updateMode}`);
 
     const report = {
       success: true,
@@ -142,6 +143,7 @@ serve(async (req) => {
       clientsLinked: 0,
       offersCreated: 0,
       contractsCreated: 0,
+      contractsUpdated: 0,
       equipmentsCreated: 0,
       errors: [] as Array<{ row: number; message: string }>
     };
@@ -277,7 +279,89 @@ serve(async (req) => {
           0
         );
 
-        // STEP 4: Create offer
+        // STEP 4: Check if contract already exists (by dossier_number)
+        const { data: existingContract } = await supabase
+          .from('contracts')
+          .select('id, offer_id')
+          .eq('dossier_number', contract.dossier_number)
+          .eq('company_id', companyId)
+          .maybeSingle();
+
+        if (existingContract && updateMode) {
+          // UPDATE MODE: Update existing contract
+          console.log(`Row ${rowNumber}: Updating existing contract ${contract.dossier_number}`);
+          
+          // Update contract
+          const { error: updateError } = await supabase
+            .from('contracts')
+            .update({
+              leaser_id: leaserId,
+              leaser_name: contract.leaser_name || null,
+              leaser_contract_number: contract.contract_number || null,
+              monthly_payment: monthlyPayment,
+              status: contract.status || 'active',
+              leasing_duration: duration,
+              contract_start_date: contractStartDate,
+              contract_end_date: contractEndDate,
+            })
+            .eq('id', existingContract.id);
+
+          if (updateError) {
+            report.errors.push({ row: rowNumber, message: `Erreur MAJ contrat: ${updateError.message}` });
+            continue;
+          }
+
+          // Update offer if exists
+          if (existingContract.offer_id) {
+            await supabase
+              .from('offers')
+              .update({
+                leaser_id: leaserId,
+                amount: financedAmount || totalEquipmentCost,
+                financed_amount: financedAmount || totalEquipmentCost,
+                monthly_payment: monthlyPayment,
+              })
+              .eq('id', existingContract.offer_id);
+
+            // Delete old equipment and recreate
+            await supabase
+              .from('offer_equipment')
+              .delete()
+              .eq('offer_id', existingContract.offer_id);
+
+            if (contract.equipments.length > 0) {
+              const equipmentEntries = contract.equipments.map(eq => ({
+                offer_id: existingContract.offer_id,
+                title: eq.title,
+                purchase_price: eq.purchase_price,
+                quantity: eq.quantity,
+                margin: 0
+              }));
+
+              const { error: eqError } = await supabase
+                .from('offer_equipment')
+                .insert(equipmentEntries);
+
+              if (!eqError) {
+                report.equipmentsCreated += contract.equipments.length;
+              }
+            }
+          }
+
+          report.contractsUpdated++;
+          console.log(`Row ${rowNumber}: Updated contract ${contract.dossier_number} with ${contract.equipments.length} equipment(s)`);
+          continue;
+
+        } else if (existingContract && !updateMode) {
+          // Contract exists but update mode is off -> error
+          report.errors.push({ 
+            row: rowNumber, 
+            message: `Contrat ${contract.dossier_number} existe déjà (activez le mode mise à jour)` 
+          });
+          continue;
+        }
+
+        // STEP 5: Create new offer (contract doesn't exist)
         const offerData = {
           client_id: clientId,
           client_name: contract.client_name,
@@ -309,7 +393,7 @@ serve(async (req) => {
 
         report.offersCreated++;
 
-        // STEP 5: Create equipment entries
+        // STEP 6: Create equipment entries
         if (contract.equipments.length > 0) {
           const equipmentEntries = contract.equipments.map(eq => ({
             offer_id: createdOffer.id,
@@ -330,7 +414,7 @@ serve(async (req) => {
           }
         }
 
-        // STEP 6: Create contract
+        // STEP 7: Create contract
         const contractDbData = {
           offer_id: createdOffer.id,
           client_id: clientId,
@@ -372,7 +456,7 @@ serve(async (req) => {
 
     report.success = report.errors.length === 0;
 
-    console.log(`Import completed: ${report.contractsCreated} contracts, ${report.equipmentsCreated} equipments, ${report.errors.length} errors`);
+    console.log(`Import completed: ${report.contractsCreated} created, ${report.contractsUpdated} updated, ${report.equipmentsCreated} equipments, ${report.errors.length} errors`);
 
     return new Response(JSON.stringify(report), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
