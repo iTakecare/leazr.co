@@ -34,12 +34,14 @@ interface ContractData {
   contract_end_date?: string;
   contract_duration?: string;
   financed_amount?: string;
+  billing_entity_name?: string;
+  billingEntityId?: string;
   equipments: EquipmentItem[];
 }
 
 interface ImportRequest {
   contracts: ContractData[];
-  billingEntityId: string;
+  defaultBillingEntityId: string;
   companyId: string;
   year: string;
   updateMode?: boolean;
@@ -132,7 +134,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { contracts, billingEntityId, companyId, year, updateMode }: ImportRequest = await req.json();
+    const { contracts, defaultBillingEntityId, companyId, year, updateMode }: ImportRequest = await req.json();
 
     console.log(`Starting import for ${contracts.length} contracts, year ${year}, company ${companyId}, updateMode: ${updateMode}`);
 
@@ -362,12 +364,15 @@ serve(async (req) => {
         }
 
         // STEP 5: Create new offer (contract doesn't exist)
+        // Use per-contract billing entity or fallback to default
+        const contractBillingEntityId = contract.billingEntityId || defaultBillingEntityId;
+        
         const offerData = {
           client_id: clientId,
           client_name: contract.client_name,
           client_email: contract.client_email || null,
           company_id: companyId,
-          billing_entity_id: billingEntityId,
+          billing_entity_id: contractBillingEntityId,
           leaser_id: leaserId,
           amount: financedAmount || totalEquipmentCost,
           financed_amount: financedAmount || totalEquipmentCost,
@@ -421,7 +426,7 @@ serve(async (req) => {
           client_name: contract.client_name,
           client_email: contract.client_email || null,
           company_id: companyId,
-          billing_entity_id: billingEntityId,
+          billing_entity_id: contractBillingEntityId,
           leaser_id: leaserId,
           leaser_name: contract.leaser_name || null,
           leaser_contract_number: contract.contract_number || null,
