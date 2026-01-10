@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Pencil, Trash2, Building2, CalendarIcon, Loader2 } from 'lucide-react';
-import { format, parseISO, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, isAfter, isBefore, parse, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
@@ -80,6 +80,86 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
   const [editingEntity, setEditingEntity] = useState<BillingEntity | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState(emptyEntity);
+  
+  // États pour la saisie manuelle des dates
+  const [validFromInput, setValidFromInput] = useState('');
+  const [validUntilInput, setValidUntilInput] = useState('');
+
+  // Synchroniser les inputs de date quand formData change
+  useEffect(() => {
+    setValidFromInput(formData.valid_from ? format(formData.valid_from, 'dd/MM/yyyy') : '');
+    setValidUntilInput(formData.valid_until ? format(formData.valid_until, 'dd/MM/yyyy') : '');
+  }, [formData.valid_from, formData.valid_until]);
+
+  // Parser une date saisie manuellement
+  const parseDateFromInput = (value: string): Date | null => {
+    if (!value || value.trim() === '') return null;
+    
+    // Accepter les formats: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+    const cleaned = value.replace(/[-\.]/g, '/').trim();
+    
+    // Vérifier le format complet
+    const match = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return null;
+    
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10);
+    
+    // Valider les valeurs
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+      return null;
+    }
+    
+    const date = new Date(year, month - 1, day);
+    
+    // Vérifier que la date est valide (pas le 31 février par ex)
+    if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {
+      return null;
+    }
+    
+    return date;
+  };
+
+  // Gérer le blur pour valider la saisie
+  const handleDateBlur = (field: 'valid_from' | 'valid_until') => {
+    const input = field === 'valid_from' ? validFromInput : validUntilInput;
+    
+    if (!input || input.trim() === '') {
+      if (field === 'valid_until') {
+        setFormData({ ...formData, valid_until: null });
+      }
+      return;
+    }
+    
+    const parsed = parseDateFromInput(input);
+    if (parsed) {
+      if (field === 'valid_from') {
+        setFormData({ ...formData, valid_from: parsed });
+      } else {
+        setFormData({ ...formData, valid_until: parsed });
+      }
+    } else {
+      toast.error("Format de date invalide. Utilisez JJ/MM/AAAA");
+      // Reset to previous value
+      if (field === 'valid_from') {
+        setValidFromInput(formData.valid_from ? format(formData.valid_from, 'dd/MM/yyyy') : '');
+      } else {
+        setValidUntilInput(formData.valid_until ? format(formData.valid_until, 'dd/MM/yyyy') : '');
+      }
+    }
+  };
+
+  // Gérer la sélection depuis le calendrier
+  const handleCalendarSelect = (date: Date | undefined, field: 'valid_from' | 'valid_until') => {
+    if (field === 'valid_from' && date) {
+      setFormData({ ...formData, valid_from: date });
+      setValidFromInput(format(date, 'dd/MM/yyyy'));
+    } else if (field === 'valid_until') {
+      setFormData({ ...formData, valid_until: date || null });
+      setValidUntilInput(date ? format(date, 'dd/MM/yyyy') : '');
+    }
+  };
 
   const createEntityFromCompanyData = async () => {
     try {
@@ -535,54 +615,66 @@ const BillingEntitySelector: React.FC<BillingEntitySelectorProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Date de début de validité *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.valid_from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.valid_from ? format(formData.valid_from, 'dd/MM/yyyy', { locale: fr }) : "Sélectionner..."}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.valid_from}
-                      onSelect={(date) => date && setFormData({ ...formData, valid_from: date })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex">
+                  <Input
+                    value={validFromInput}
+                    onChange={(e) => setValidFromInput(e.target.value)}
+                    onBlur={() => handleDateBlur('valid_from')}
+                    placeholder="JJ/MM/AAAA"
+                    className="rounded-r-none"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="rounded-l-none border-l-0 px-3"
+                        type="button"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.valid_from}
+                        onSelect={(date) => handleCalendarSelect(date, 'valid_from')}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Date de fin de validité</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.valid_until && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.valid_until ? format(formData.valid_until, 'dd/MM/yyyy', { locale: fr }) : "Non définie"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.valid_until || undefined}
-                      onSelect={(date) => setFormData({ ...formData, valid_until: date || null })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex">
+                  <Input
+                    value={validUntilInput}
+                    onChange={(e) => setValidUntilInput(e.target.value)}
+                    onBlur={() => handleDateBlur('valid_until')}
+                    placeholder="JJ/MM/AAAA"
+                    className="rounded-r-none"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="rounded-l-none border-l-0 px-3"
+                        type="button"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.valid_until || undefined}
+                        onSelect={(date) => handleCalendarSelect(date, 'valid_until')}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
 
