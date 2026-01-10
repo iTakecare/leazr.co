@@ -68,6 +68,7 @@ import InvoiceDetailPage from "@/pages/InvoiceDetailPage";
 import InvoiceEditPage from "@/pages/InvoiceEditPage";
 import CompanyDocuments from "@/pages/CompanyDocuments";
 import ClientDuplicates from "@/pages/admin/ClientDuplicates";
+import ImportHistoricalData from "@/pages/admin/ImportHistoricalData";
 
 // Admin settings pages
 import CompanyValuesSettings from "@/pages/admin/settings/CompanyValuesSettings";
@@ -296,6 +297,9 @@ const AppRoutes = () => (
       <Route path="settings/company-values" element={<Layout><CompanyValuesSettings /></Layout>} />
       <Route path="settings/company-metrics" element={<Layout><CompanyMetricsSettings /></Layout>} />
       <Route path="settings/partner-logos" element={<Layout><PartnerLogosSettings /></Layout>} />
+      
+      {/* Import historical data - temporary admin route */}
+      <Route path="import-historical" element={<Layout><ImportHistoricalData /></Layout>} />
       
       {/* Unified product form routes - handles both creation and editing */}
       <Route path="catalog/form/:id?" element={<Layout><ProductFormPage /></Layout>} />

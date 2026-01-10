@@ -499,6 +499,68 @@ export type Database = {
           },
         ]
       }
+      billing_entities: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_id: string
+          country: string | null
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          legal_form: string | null
+          name: string
+          partner_id: string | null
+          postal_code: string | null
+          updated_at: string | null
+          valid_from: string
+          valid_until: string | null
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_id: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          legal_form?: string | null
+          name: string
+          partner_id?: string | null
+          postal_code?: string | null
+          updated_at?: string | null
+          valid_from: string
+          valid_until?: string | null
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_id?: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          legal_form?: string | null
+          name?: string
+          partner_id?: string | null
+          postal_code?: string | null
+          updated_at?: string | null
+          valid_from?: string
+          valid_until?: string | null
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           author_avatar: string | null
@@ -2547,6 +2609,7 @@ export type Database = {
       }
       contracts: {
         Row: {
+          billing_entity_id: string | null
           client_bic: string | null
           client_email: string | null
           client_iban: string | null
@@ -2589,6 +2652,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          billing_entity_id?: string | null
           client_bic?: string | null
           client_email?: string | null
           client_iban?: string | null
@@ -2631,6 +2695,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          billing_entity_id?: string | null
           client_bic?: string | null
           client_email?: string | null
           client_iban?: string | null
@@ -2673,6 +2738,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contracts_billing_entity_id_fkey"
+            columns: ["billing_entity_id"]
+            isOneToOne: false
+            referencedRelation: "billing_entities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contracts_client_id_fkey"
             columns: ["client_id"]
@@ -4579,6 +4651,7 @@ export type Database = {
           ambassador_id: string | null
           amount: number
           annual_insurance: number | null
+          billing_entity_id: string | null
           business_sector: string | null
           client_email: string | null
           client_id: string | null
@@ -4630,6 +4703,7 @@ export type Database = {
           ambassador_id?: string | null
           amount?: number
           annual_insurance?: number | null
+          billing_entity_id?: string | null
           business_sector?: string | null
           client_email?: string | null
           client_id?: string | null
@@ -4681,6 +4755,7 @@ export type Database = {
           ambassador_id?: string | null
           amount?: number
           annual_insurance?: number | null
+          billing_entity_id?: string | null
           business_sector?: string | null
           client_email?: string | null
           client_id?: string | null
@@ -4729,6 +4804,13 @@ export type Database = {
           workflow_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "offers_billing_entity_id_fkey"
+            columns: ["billing_entity_id"]
+            isOneToOne: false
+            referencedRelation: "billing_entities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "offers_client_id_fkey"
             columns: ["client_id"]
@@ -7296,6 +7378,7 @@ export type Database = {
           ambassador_id: string | null
           amount: number
           annual_insurance: number | null
+          billing_entity_id: string | null
           business_sector: string | null
           client_email: string | null
           client_id: string | null
