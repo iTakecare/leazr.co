@@ -46,6 +46,7 @@ interface CSVRow {
   client_country?: string;
   dossier_number?: string;
   contract_number?: string;
+  invoice_number?: string;
   monthly_payment?: string;
   equipment_title?: string;
   equipment_qty?: string;
@@ -81,6 +82,7 @@ interface GroupedContract {
   client_country: string;
   dossier_number: string;
   contract_number: string;
+  invoice_number: string;
   monthly_payment: string;
   leaser_name: string;
   status: string;
@@ -104,6 +106,7 @@ interface ImportReport {
   contractsCreated: number;
   contractsUpdated: number;
   equipmentsCreated: number;
+  invoicesCreated: number;
   errors: Array<{ row: number; message: string }>;
 }
 
@@ -135,10 +138,10 @@ const canonicalizeName = (name: string | null | undefined): string => {
 };
 
 // Template CSV content with simplified example (only company name)
-const CSV_TEMPLATE = `client_company;dossier_number;contract_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;billing_entity_name
-Dupont SPRL;DOS-2024-001;GRK-123456;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00;iTakecare SRL
-Dupont SPRL;DOS-2024-001;;;iPhone 15 Pro;2;1200.00;;;;;
-Martin & Co;DOS-2024-002;;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00;iTakecare PP`;
+const CSV_TEMPLATE = `client_company;dossier_number;contract_number;invoice_number;monthly_payment;equipment_title;equipment_qty;equipment_price;leaser_name;status;contract_start_date;contract_end_date;contract_duration;financed_amount;invoice_date;payment_date;billing_entity_name
+Dupont SPRL;DOS-2024-001;GRK-123456;FAC-2024-001;150.00;MacBook Pro 14";1;2500.00;Grenke;active;01/03/2024;01/03/2028;48;6000.00;01/03/2024;15/03/2024;iTakecare SRL
+Dupont SPRL;DOS-2024-001;;;;iPhone 15 Pro;2;1200.00;;;;;;
+Martin & Co;DOS-2024-002;;FAC-2024-002;200.00;iMac 27";1;3000.00;Atlance;active;01/04/2024;01/04/2027;36;6480.00;01/04/2024;;iTakecare PP`;
 
 // Required columns - now either client_name OR client_company is acceptable
 const REQUIRED_COLUMNS = ['dossier_number'];
@@ -156,6 +159,7 @@ const COLUMN_LABELS: Record<string, string> = {
   client_country: 'Pays',
   dossier_number: 'N° Dossier',
   contract_number: 'N° Contrat leaser',
+  invoice_number: 'N° Facture',
   monthly_payment: 'Mensualité (€)',
   equipment_title: 'Équipement',
   equipment_qty: 'Quantité',
@@ -452,6 +456,7 @@ const HistoricalContractsImport: React.FC = () => {
             client_country: row.client_country || 'BE',
             dossier_number: dossierNum,
             contract_number: row.contract_number || '',
+            invoice_number: row.invoice_number || '',
             monthly_payment: row.monthly_payment || '',
             leaser_name: row.leaser_name || '',
             status: row.status || 'active',
@@ -838,7 +843,7 @@ const HistoricalContractsImport: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Stats grid */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
                 <div className="text-2xl font-bold text-blue-700">{report.totalRows}</div>
                 <div className="text-xs text-blue-600">Contrats traités</div>
@@ -862,6 +867,10 @@ const HistoricalContractsImport: React.FC = () => {
               <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 text-center">
                 <div className="text-2xl font-bold text-orange-700">{report.equipmentsCreated || 0}</div>
                 <div className="text-xs text-orange-600">Équipements</div>
+              </div>
+              <div className="p-4 bg-teal-50 rounded-lg border border-teal-200 text-center">
+                <div className="text-2xl font-bold text-teal-700">{report.invoicesCreated || 0}</div>
+                <div className="text-xs text-teal-600">Factures créées</div>
               </div>
             </div>
 

@@ -24,6 +24,7 @@ interface ContractData {
   client_country?: string;
   dossier_number: string;
   contract_number?: string;
+  invoice_number?: string;
   monthly_payment: string;
   leaser_name?: string;
   status?: string;
@@ -147,6 +148,7 @@ serve(async (req) => {
       contractsCreated: 0,
       contractsUpdated: 0,
       equipmentsCreated: 0,
+      invoicesCreated: 0,
       errors: [] as Array<{ row: number; message: string }>
     };
 
@@ -441,9 +443,11 @@ serve(async (req) => {
           dossier_number: contract.dossier_number
         };
 
-        const { error: contractError } = await supabase
+        const { data: createdContract, error: contractError } = await supabase
           .from('contracts')
-          .insert(contractDbData);
+          .insert(contractDbData)
+          .select('id')
+          .single();
 
         if (contractError) {
           report.errors.push({ row: rowNumber, message: `Erreur création contrat: ${contractError.message}` });
@@ -453,6 +457,102 @@ serve(async (req) => {
         report.contractsCreated++;
         console.log(`Row ${rowNumber}: Created contract with ${contract.equipments.length} equipment(s) for ${contract.client_name}`);
 
+        // STEP 8: Create invoice if invoice_number is provided
+        if (contract.invoice_number?.trim()) {
+          const invoiceDate = parseDate(contract.invoice_date) || contractStartDate;
+          const paymentDate = parseDate(contract.payment_date);
+          
+          // Determine invoice status based on payment_date
+          const invoiceStatus = paymentDate ? 'paid' : 'sent';
+          
+          // Build equipment data for billing_data
+          const equipmentData = contract.equipments.map(eq => ({
+            title: eq.title,
+            quantity: eq.quantity,
+            purchase_price: eq.purchase_price,
+            selling_price_excl_vat: eq.purchase_price
+          }));
+          
+          // Get client data
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('name, company, email, phone, address, city, postal_code, country, vat_number')
+            .eq('id', clientId)
+            .single();
+          
+          // Get leaser data
+          let leaserData = null;
+          if (leaserId) {
+            const { data: leaser } = await supabase
+              .from('leasers')
+              .select('name, company_name, address, city, postal_code, country, vat_number, email, phone')
+              .eq('id', leaserId)
+              .single();
+            leaserData = leaser;
+          }
+          
+          const invoiceData = {
+            contract_id: createdContract.id,
+            offer_id: createdOffer.id,
+            company_id: companyId,
+            leaser_name: leaserData?.company_name || leaserData?.name || contract.leaser_name || '',
+            invoice_number: contract.invoice_number,
+            invoice_type: 'leasing',
+            amount: financedAmount || totalEquipmentCost,
+            status: invoiceStatus,
+            integration_type: 'local',
+            invoice_date: invoiceDate,
+            due_date: invoiceDate,
+            paid_at: paymentDate,
+            billing_data: {
+              contract_data: {
+                id: createdContract.id,
+                client_name: contract.client_name,
+                monthly_payment: monthlyPayment
+              },
+              client_data: clientData || { name: contract.client_name },
+              equipment_data: equipmentData,
+              leaser_data: leaserData ? {
+                name: leaserData.company_name || leaserData.name,
+                address: leaserData.address,
+                city: leaserData.city,
+                postal_code: leaserData.postal_code,
+                country: leaserData.country || 'Belgique',
+                vat_number: leaserData.vat_number
+              } : null,
+              invoice_totals: {
+                total_excl_vat: financedAmount || totalEquipmentCost,
+                vat_amount: (financedAmount || totalEquipmentCost) * 0.21,
+                total_incl_vat: (financedAmount || totalEquipmentCost) * 1.21
+              },
+              imported_from_csv: true,
+              created_at: new Date().toISOString()
+            }
+          };
+
+          const { data: createdInvoice, error: invoiceError } = await supabase
+            .from('invoices')
+            .insert(invoiceData)
+            .select('id')
+            .single();
+
+          if (invoiceError) {
+            console.error(`Row ${rowNumber}: Invoice creation error:`, invoiceError);
+          } else {
+            report.invoicesCreated++;
+            console.log(`Row ${rowNumber}: Created invoice ${contract.invoice_number} with status ${invoiceStatus}`);
+            
+            // Update contract to mark invoice as generated
+            await supabase
+              .from('contracts')
+              .update({ 
+                invoice_generated: true,
+                invoice_id: createdInvoice.id 
+              })
+              .eq('id', createdContract.id);
+          }
+        }
+
       } catch (rowError) {
         console.error(`Error processing row ${rowNumber}:`, rowError);
         report.errors.push({ row: rowNumber, message: `Erreur inattendue: ${rowError.message}` });
@@ -461,7 +561,7 @@ serve(async (req) => {
 
     report.success = report.errors.length === 0;
 
-    console.log(`Import completed: ${report.contractsCreated} created, ${report.contractsUpdated} updated, ${report.equipmentsCreated} equipments, ${report.errors.length} errors`);
+    console.log(`Import completed: ${report.contractsCreated} created, ${report.contractsUpdated} updated, ${report.equipmentsCreated} equipments, ${report.invoicesCreated} invoices, ${report.errors.length} errors`);
 
     return new Response(JSON.stringify(report), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
