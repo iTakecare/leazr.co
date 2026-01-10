@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Table, 
   TableBody, 
@@ -26,7 +28,8 @@ import {
   FileText,
   Eye,
   X,
-  History
+  History,
+  RefreshCw
 } from 'lucide-react';
 
 interface CSVRow {
@@ -95,6 +98,7 @@ interface ImportReport {
   clientsLinked: number;
   offersCreated: number;
   contractsCreated: number;
+  contractsUpdated: number;
   equipmentsCreated: number;
   errors: Array<{ row: number; message: string }>;
 }
@@ -145,6 +149,7 @@ const HistoricalContractsImport: React.FC = () => {
   const [report, setReport] = useState<ImportReport | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [updateMode, setUpdateMode] = useState(false);
 
   // Parse CSV content
   const parseCSV = (content: string): CSVRow[] => {
@@ -359,7 +364,8 @@ const HistoricalContractsImport: React.FC = () => {
           contracts: contractsToImport,
           billingEntityId: billingEntity.id,
           companyId: profile.company_id,
-          year
+          year,
+          updateMode
         }
       });
 
@@ -371,7 +377,10 @@ const HistoricalContractsImport: React.FC = () => {
       setReport(data);
       
       if (data.success || data.errors?.length === 0) {
-        toast.success(`Import terminé ! ${data.contractsCreated} contrats créés avec ${data.equipmentsCreated || 0} équipements.`);
+        const createdMsg = data.contractsCreated > 0 ? `${data.contractsCreated} créé(s)` : '';
+        const updatedMsg = data.contractsUpdated > 0 ? `${data.contractsUpdated} mis à jour` : '';
+        const parts = [createdMsg, updatedMsg].filter(Boolean).join(', ');
+        toast.success(`Import terminé ! ${parts} avec ${data.equipmentsCreated || 0} équipements.`);
       } else {
         toast.warning(`Import terminé avec ${data.errors?.length || 0} erreur(s)`);
       }
@@ -578,6 +587,28 @@ const HistoricalContractsImport: React.FC = () => {
             })()
           )}
 
+          {/* Update mode toggle */}
+          {parsedData.length > 0 && validationErrors.length === 0 && !report && (
+            <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <RefreshCw className="h-5 w-5 text-amber-600" />
+                <div>
+                  <Label htmlFor="update-mode" className="font-medium cursor-pointer">
+                    Mode mise à jour
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Mettre à jour les contrats existants au lieu de créer des doublons
+                  </p>
+                </div>
+              </div>
+              <Switch 
+                id="update-mode"
+                checked={updateMode}
+                onCheckedChange={setUpdateMode}
+              />
+            </div>
+          )}
+
           {/* Import button */}
           {parsedData.length > 0 && validationErrors.length === 0 && !report && (
             (() => {
@@ -597,7 +628,7 @@ const HistoricalContractsImport: React.FC = () => {
                   ) : (
                     <>
                       <History className="mr-2 h-4 w-4" />
-                      Lancer l'import historique ({uniqueContracts} contrat{uniqueContracts > 1 ? 's' : ''})
+                      {updateMode ? 'Mettre à jour' : 'Importer'} ({uniqueContracts} contrat{uniqueContracts > 1 ? 's' : ''})
                     </>
                   )}
                 </Button>
@@ -632,7 +663,7 @@ const HistoricalContractsImport: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Stats grid */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
                 <div className="text-2xl font-bold text-blue-700">{report.totalRows}</div>
                 <div className="text-xs text-blue-600">Contrats traités</div>
@@ -649,9 +680,13 @@ const HistoricalContractsImport: React.FC = () => {
                 <div className="text-2xl font-bold text-indigo-700">{report.contractsCreated}</div>
                 <div className="text-xs text-indigo-600">Contrats créés</div>
               </div>
+              <div className="p-4 bg-cyan-50 rounded-lg border border-cyan-200 text-center">
+                <div className="text-2xl font-bold text-cyan-700">{report.contractsUpdated || 0}</div>
+                <div className="text-xs text-cyan-600">Contrats MAJ</div>
+              </div>
               <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 text-center">
                 <div className="text-2xl font-bold text-orange-700">{report.equipmentsCreated || 0}</div>
-                <div className="text-xs text-orange-600">Équipements créés</div>
+                <div className="text-xs text-orange-600">Équipements</div>
               </div>
             </div>
 
@@ -716,6 +751,8 @@ const HistoricalContractsImport: React.FC = () => {
           </div>
           <p className="text-xs text-muted-foreground mt-4">
             * Colonnes obligatoires. Séparateur : point-virgule (;) ou virgule (,). Format de date : JJ/MM/AAAA
+            <br />
+            💡 La date de fin de contrat est calculée automatiquement si non fournie (date début + durée).
           </p>
         </CardContent>
       </Card>
