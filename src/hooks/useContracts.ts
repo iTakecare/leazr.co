@@ -19,7 +19,7 @@ export const useContracts = () => {
   const [activeStatusFilter, setActiveStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
-  const [includeCompleted, setIncludeCompleted] = useState(false);
+  const [includeCompleted, setIncludeCompleted] = useState(true);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
 
   const fetchContracts = async () => {
