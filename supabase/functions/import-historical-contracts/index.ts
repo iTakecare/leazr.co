@@ -380,6 +380,7 @@ serve(async (req) => {
           const { error: updateError } = await supabase
             .from('contracts')
             .update({
+              client_name: matchedClientName || existingContract.client_name,
               leaser_id: leaserId,
               leaser_name: resolvedLeaserName || null,
               leaser_contract_number: contract.contract_number || null,
@@ -401,6 +402,7 @@ serve(async (req) => {
             await supabase
               .from('offers')
               .update({
+                client_name: matchedClientName || null,
                 leaser_id: leaserId,
                 amount: financedAmount || totalEquipmentCost,
                 financed_amount: financedAmount || totalEquipmentCost,
@@ -661,7 +663,7 @@ serve(async (req) => {
         const contractDbData = {
           offer_id: createdOffer.id,
           client_id: clientId,
-          client_name: contract.client_name || contract.client_company,
+          client_name: matchedClientName || contract.client_name || contract.client_company,
           client_email: contract.client_email || null,
           company_id: companyId,
           billing_entity_id: contractBillingEntityId,
