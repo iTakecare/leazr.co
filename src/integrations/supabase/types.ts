@@ -7362,6 +7362,7 @@ export type Database = {
             Args: { p_year?: number }
             Returns: {
               contracts_count: number
+              credit_notes_amount: number
               margin: number
               margin_percentage: number
               month_name: string
