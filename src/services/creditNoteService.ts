@@ -119,6 +119,29 @@ export const createCreditNote = async (
     throw updateError;
   }
 
+  // Récupérer le contract_id de la facture et annuler le contrat
+  const { data: invoiceWithContract, error: fetchContractError } = await supabase
+    .from('invoices')
+    .select('contract_id')
+    .eq('id', invoiceId)
+    .single();
+
+  if (!fetchContractError && invoiceWithContract?.contract_id) {
+    const { error: contractUpdateError } = await supabase
+      .from('contracts')
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', invoiceWithContract.contract_id);
+
+    if (contractUpdateError) {
+      console.error('Erreur lors de l\'annulation du contrat:', contractUpdateError);
+    } else {
+      console.log('Contrat annulé suite à la note de crédit:', invoiceWithContract.contract_id);
+    }
+  }
+
   return creditNote;
 };
 
