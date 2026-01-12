@@ -50,14 +50,22 @@ const CompanyDashboard = () => {
   };
 
   // Traitement des données mensuelles réelles
-  const monthlyData = metrics?.monthly_data?.map(month => ({
-    month: month.month_name,
-    ca: Number(month.revenue),
-    achats: Number(month.purchases),
-    marge: Number(month.margin),
-    margePercent: Number(month.margin_percentage),
-    creditNotes: Number(month.credit_notes_amount || 0)
-  })) || [];
+  // Le revenue retourné par la fonction SQL est le CA NET (brut - notes de crédit)
+  // On recalcule le CA BRUT pour l'affichage : revenueBrut = revenueNet + creditNotes
+  const monthlyData = metrics?.monthly_data?.map(month => {
+    const creditNotes = Number(month.credit_notes_amount || 0);
+    const revenueNet = Number(month.revenue);
+    const revenueBrut = revenueNet + creditNotes; // CA brut des factures
+    
+    return {
+      month: month.month_name,
+      ca: revenueBrut,  // Afficher le CA BRUT (montant des factures)
+      achats: Number(month.purchases),
+      marge: Number(month.margin),
+      margePercent: Number(month.margin_percentage),
+      creditNotes: creditNotes
+    };
+  }) || [];
 
   const totals = {
     ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
