@@ -36,6 +36,7 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
   const [saving, setSaving] = useState<string | null>(null);
   const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
+  const [editingDates, setEditingDates] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchEquipment();
@@ -62,6 +63,7 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
   const handleSavePurchase = async (equipmentId: string) => {
     const priceStr = editingPrices[equipmentId];
     const notes = editingNotes[equipmentId];
+    const dateStr = editingDates[equipmentId];
     
     if (!priceStr) {
       toast.error("Veuillez saisir un prix d'achat");
@@ -76,13 +78,24 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
 
     setSaving(equipmentId);
     try {
+      // Ne pas remplir automatiquement la date - utiliser uniquement la date saisie manuellement
+      const updateData: {
+        actual_purchase_price: number;
+        purchase_notes: string | null;
+        actual_purchase_date?: string | null;
+      } = {
+        actual_purchase_price: actualPrice,
+        purchase_notes: notes || null
+      };
+
+      // Ajouter la date uniquement si elle est renseignée manuellement
+      if (dateStr) {
+        updateData.actual_purchase_date = new Date(dateStr).toISOString();
+      }
+
       const { error } = await supabase
         .from('contract_equipment')
-        .update({
-          actual_purchase_price: actualPrice,
-          actual_purchase_date: new Date().toISOString(),
-          purchase_notes: notes || null
-        })
+        .update(updateData)
         .eq('id', equipmentId);
 
       if (error) throw error;
@@ -97,6 +110,10 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
         return rest;
       });
       setEditingNotes(prev => {
+        const { [equipmentId]: _, ...rest } = prev;
+        return rest;
+      });
+      setEditingDates(prev => {
         const { [equipmentId]: _, ...rest } = prev;
         return rest;
       });
@@ -240,6 +257,16 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                             }))}
                           />
                           <Input
+                            type="date"
+                            placeholder="Date d'achat"
+                            className="w-28 text-xs h-7"
+                            value={editingDates[eq.id] ?? ''}
+                            onChange={(e) => setEditingDates(prev => ({
+                              ...prev,
+                              [eq.id]: e.target.value
+                            }))}
+                          />
+                          <Input
                             type="text"
                             placeholder="Notes (optionnel)"
                             className="w-28 text-xs h-7"
@@ -281,6 +308,10 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                             setEditingPrices(prev => ({
                               ...prev,
                               [eq.id]: eq.actual_purchase_price!.toString()
+                            }));
+                            setEditingDates(prev => ({
+                              ...prev,
+                              [eq.id]: eq.actual_purchase_date ? format(new Date(eq.actual_purchase_date), 'yyyy-MM-dd') : ''
                             }));
                             setEditingNotes(prev => ({
                               ...prev,
