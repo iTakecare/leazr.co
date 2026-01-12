@@ -25,6 +25,7 @@ const InvoiceDetailPage = () => {
   const { navigateToAdmin } = useRoleNavigation();
   const { companyId } = useMultiTenant();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [creditNote, setCreditNote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -64,6 +65,21 @@ const InvoiceDetailPage = () => {
         
         if (foundInvoice) {
           setInvoice(foundInvoice);
+          
+          // Récupérer la note de crédit associée si la facture est créditée
+          const invoiceStatus = foundInvoice.status as string;
+          if (invoiceStatus === 'credited' || (foundInvoice as any).credited_amount > 0) {
+            const { supabase } = await import('@/integrations/supabase/client');
+            const { data: creditNoteData } = await supabase
+              .from('credit_notes')
+              .select('*')
+              .eq('invoice_id', foundInvoice.id)
+              .maybeSingle();
+            
+            if (creditNoteData) {
+              setCreditNote(creditNoteData);
+            }
+          }
         } else {
           toast.error("Facture non trouvée");
           navigateToAdmin("invoicing");
@@ -547,6 +563,53 @@ const InvoiceDetailPage = () => {
             </CardContent>
           </Card>
 
+          {/* Bloc Note de crédit associée - Affiché si la facture est créditée */}
+          {creditNote && (
+            <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-900/20 dark:border-purple-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
+                  <Receipt className="h-5 w-5" />
+                  Note de crédit associée
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">N° Note de crédit</label>
+                    <p className="font-medium text-purple-700 dark:text-purple-400">{creditNote.credit_note_number}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Montant crédité</label>
+                    <p className="font-medium text-purple-700 dark:text-purple-400">{formatCurrency(creditNote.amount)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Date d'émission de la note</label>
+                    <p className="font-medium">{formatDate(creditNote.issued_at)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Exercice comptable</label>
+                    <p className="font-medium">
+                      {new Date(invoice.invoice_date || invoice.created_at).getFullYear()}
+                    </p>
+                  </div>
+                </div>
+                {creditNote.reason && (
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-muted-foreground">Motif</label>
+                    <p className="text-sm">{creditNote.reason}</p>
+                  </div>
+                )}
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    <strong>Comptabilisation :</strong> Cette facture émise en {new Date(invoice.invoice_date || invoice.created_at).getFullYear()} reste comptabilisée 
+                    sur l'exercice <strong>{new Date(invoice.invoice_date || invoice.created_at).getFullYear()}</strong>, 
+                    même si la note de crédit a été émise le {formatDate(creditNote.issued_at)}.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Données de facturation */}
           {invoice.billing_data && Object.keys(invoice.billing_data).length > 0 && (
             <EditableBillingDataTable
@@ -724,6 +787,19 @@ const InvoiceDetailPage = () => {
                     <p className="text-sm font-medium">Facture payée</p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(invoice.paid_at)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Événement Note de crédit */}
+              {creditNote && (
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2" />
+                  <div>
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-400">Note de crédit émise</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(creditNote.issued_at)} - {creditNote.credit_note_number}
                     </p>
                   </div>
                 </div>
