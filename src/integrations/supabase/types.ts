@@ -7385,6 +7385,16 @@ export type Database = {
               year: number
             }[]
           }
+        | {
+            Args: { user_company_id: string }
+            Returns: {
+              margin: number
+              month: number
+              purchases: number
+              revenue: number
+              year: number
+            }[]
+          }
       get_offer_by_id_public: {
         Args: { offer_id: string }
         Returns: {
