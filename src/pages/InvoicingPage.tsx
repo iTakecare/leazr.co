@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Container from "@/components/layout/Container";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt } from "lucide-react";
+import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,6 +17,7 @@ import InvoiceSortFilter, { InvoiceSortBy } from "@/components/invoicing/Invoice
 import { CreditNotesList } from "@/components/invoicing/CreditNotesList";
 import { NewInvoiceDialog } from "@/components/invoicing/NewInvoiceDialog";
 import { InvoiceDateRangeFilter } from "@/components/invoicing/InvoiceDateRangeFilter";
+import { AccountingReportTab } from "@/components/invoicing/AccountingReportTab";
 
 const InvoicingPage = () => {
   const navigate = useNavigate();
@@ -32,14 +33,21 @@ const InvoicingPage = () => {
   
   // Gérer l'onglet actif via URL
   const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl === 'credit-notes' ? 'credit-notes' : 'invoices');
+  const validTabs = ['invoices', 'credit-notes', 'accounting-report'];
+  const [activeTab, setActiveTab] = useState(
+    validTabs.includes(tabFromUrl || '') ? tabFromUrl! : 'invoices'
+  );
+  
+  // Sous-filtre pour les statuts de factures
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>("all");
 
   // Synchroniser l'onglet avec l'URL
   useEffect(() => {
-    if (tabFromUrl === 'credit-notes' && activeTab !== 'credit-notes') {
-      setActiveTab('credit-notes');
-      // Rafraîchir les notes de crédit quand on arrive sur l'onglet
-      fetchCreditNotes();
+    if (tabFromUrl && validTabs.includes(tabFromUrl) && activeTab !== tabFromUrl) {
+      setActiveTab(tabFromUrl);
+      if (tabFromUrl === 'credit-notes') {
+        fetchCreditNotes();
+      }
     }
   }, [tabFromUrl]);
 
@@ -48,41 +56,77 @@ const InvoicingPage = () => {
     if (value === 'credit-notes') {
       setSearchParams({ tab: 'credit-notes' });
       fetchCreditNotes();
+    } else if (value === 'accounting-report') {
+      setSearchParams({ tab: 'accounting-report' });
     } else {
       setSearchParams({});
     }
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
-    const searchLower = searchTerm.toLowerCase();
-    const clientCompany = invoice.billing_data?.client_data?.company 
-      || invoice.billing_data?.contract_data?.client_company || "";
-    
-    const matchesSearch = invoice.invoice_number?.toLowerCase().includes(searchLower) ||
-      invoice.leaser_name.toLowerCase().includes(searchLower) ||
-      invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchLower) ||
-      clientCompany.toLowerCase().includes(searchLower);
+  const filteredInvoices = useMemo(() => {
+    let filtered = invoices.filter(invoice => {
+      const searchLower = searchTerm.toLowerCase();
+      const clientCompany = invoice.billing_data?.client_data?.company 
+        || invoice.billing_data?.contract_data?.client_company || "";
+      
+      const matchesSearch = invoice.invoice_number?.toLowerCase().includes(searchLower) ||
+        invoice.leaser_name.toLowerCase().includes(searchLower) ||
+        invoice.billing_data?.contract_data?.client_name?.toLowerCase().includes(searchLower) ||
+        clientCompany.toLowerCase().includes(searchLower);
 
-    // Filtre par plage de dates
-    if (startDate || endDate) {
-      const invoiceDate = new Date(invoice.invoice_date || invoice.created_at);
-      invoiceDate.setHours(0, 0, 0, 0);
-      
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (invoiceDate < start) return false;
+      // Filtre par plage de dates
+      if (startDate || endDate) {
+        const invoiceDate = new Date(invoice.invoice_date || invoice.created_at);
+        invoiceDate.setHours(0, 0, 0, 0);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (invoiceDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (invoiceDate > end) return false;
+        }
       }
-      
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        if (invoiceDate > end) return false;
-      }
+
+      return matchesSearch;
+    });
+
+    // Filtrer par statut de facture
+    const isCredited = (inv: typeof invoices[0]) => 
+      inv.status === 'credited' || (inv as any).credited_amount > 0;
+
+    if (invoiceStatusFilter === "credited") {
+      filtered = filtered.filter(inv => isCredited(inv));
+    } else if (invoiceStatusFilter === "all") {
+      // Exclure les factures créditées de "Toutes"
+      filtered = filtered.filter(inv => !isCredited(inv));
+    } else {
+      // Filtrer par statut spécifique et exclure les créditées
+      filtered = filtered.filter(inv => 
+        inv.status === invoiceStatusFilter && !isCredited(inv)
+      );
     }
 
-    return matchesSearch;
-  });
+    return filtered;
+  }, [invoices, invoiceStatusFilter, searchTerm, startDate, endDate]);
+
+  // Compteur pour chaque statut
+  const invoiceCounts = useMemo(() => {
+    const isCredited = (inv: typeof invoices[0]) => 
+      inv.status === 'credited' || (inv as any).credited_amount > 0;
+    
+    return {
+      all: invoices.filter(inv => !isCredited(inv)).length,
+      draft: invoices.filter(inv => inv.status === 'draft' && !isCredited(inv)).length,
+      sent: invoices.filter(inv => inv.status === 'sent' && !isCredited(inv)).length,
+      paid: invoices.filter(inv => inv.status === 'paid' && !isCredited(inv)).length,
+      credited: invoices.filter(inv => isCredited(inv)).length,
+    };
+  }, [invoices]);
 
   const sortedInvoices = useMemo(() => {
     return [...filteredInvoices].sort((a, b) => {
@@ -193,7 +237,7 @@ const InvoicingPage = () => {
                 <FileText className="h-4 w-4" />
                 Factures
                 {invoices.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{invoices.length}</Badge>
+                  <Badge variant="secondary" className="ml-1">{invoiceCounts.all}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="credit-notes" className="flex items-center gap-2">
@@ -203,9 +247,39 @@ const InvoicingPage = () => {
                   <Badge variant="secondary" className="ml-1">{creditNotes.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="accounting-report" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Rapport comptable
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="invoices" className="mt-6">
+              {/* Sous-onglets pour filtrer par statut */}
+              <Tabs value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter} className="mb-4">
+                <TabsList className="bg-muted/60">
+                  <TabsTrigger value="all">
+                    Toutes
+                    <Badge variant="outline" className="ml-1 text-xs">{invoiceCounts.all}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="draft">
+                    Brouillons
+                    {invoiceCounts.draft > 0 && <Badge variant="outline" className="ml-1 text-xs">{invoiceCounts.draft}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="sent">
+                    Envoyées
+                    {invoiceCounts.sent > 0 && <Badge variant="outline" className="ml-1 text-xs">{invoiceCounts.sent}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="paid">
+                    Payées
+                    {invoiceCounts.paid > 0 && <Badge variant="outline" className="ml-1 text-xs">{invoiceCounts.paid}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="credited" className="text-purple-600">
+                    Créditées
+                    {invoiceCounts.credited > 0 && <Badge className="ml-1 text-xs bg-purple-100 text-purple-700">{invoiceCounts.credited}</Badge>}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -349,6 +423,10 @@ const InvoicingPage = () => {
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="accounting-report" className="mt-6">
+              <AccountingReportTab />
             </TabsContent>
           </Tabs>
         </div>
