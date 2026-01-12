@@ -7375,6 +7375,7 @@ export type Database = {
             Returns: {
               contracts_count: number
               credit_notes_amount: number
+              direct_sales_revenue: number
               margin: number
               margin_percentage: number
               month_name: string
