@@ -190,7 +190,7 @@ export const updateOfferStatus = async (
             .single();
           
           if (selectedLeaser) {
-            leaserName = selectedLeaser.company_name || selectedLeaser.name;
+            leaserName = selectedLeaser.name || selectedLeaser.company_name;
             leaserLogo = selectedLeaser.logo_url;
             console.log("✅ Bailleur trouvé depuis l'offre:", leaserName);
           } else {
@@ -206,7 +206,7 @@ export const updateOfferStatus = async (
             .limit(1);
           
           if (availableLeasers?.[0]) {
-            leaserName = availableLeasers[0].company_name || availableLeasers[0].name;
+            leaserName = availableLeasers[0].name || availableLeasers[0].company_name;
             leaserLogo = availableLeasers[0].logo_url;
             console.log("✅ Bailleur fallback utilisé:", leaserName);
           }
