@@ -13,6 +13,7 @@ export interface MonthlyFinancialData {
   margin_percentage: number;
   contracts_count: number;
   offers_count: number;
+  credit_notes_amount: number;
 }
 
 export interface ContractStatistics {

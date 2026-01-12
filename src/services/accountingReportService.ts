@@ -90,22 +90,17 @@ export const getAccountingReport = async (companyId: string): Promise<FiscalYear
       report.invoices.unpaidCount++;
     }
     
-    report.invoices.netRevenue = report.invoices.total - report.invoices.credited;
   });
 
-  // Ajouter les notes de crédit par année d'émission de la facture originale
+  // Ajouter les notes de crédit par année d'ÉMISSION (issued_at), pas de la facture originale
   creditNotes?.forEach(cn => {
-    const invoiceData = cn.invoices as any;
-    const invoiceYear = invoiceData?.invoice_date 
-      ? new Date(invoiceData.invoice_date).getFullYear()
-      : invoiceData?.created_at 
-        ? new Date(invoiceData.created_at).getFullYear()
-        : new Date(cn.issued_at).getFullYear();
+    // Utiliser l'année d'émission de la note de crédit
+    const creditNoteYear = new Date(cn.issued_at).getFullYear();
     
     // S'assurer que l'année existe dans le rapport
-    if (!reportByYear.has(invoiceYear)) {
-      reportByYear.set(invoiceYear, {
-        year: invoiceYear,
+    if (!reportByYear.has(creditNoteYear)) {
+      reportByYear.set(creditNoteYear, {
+        year: creditNoteYear,
         invoices: { 
           total: 0, 
           count: 0, 
@@ -121,11 +116,16 @@ export const getAccountingReport = async (companyId: string): Promise<FiscalYear
       });
     }
     
-    const report = reportByYear.get(invoiceYear);
+    const report = reportByYear.get(creditNoteYear);
     if (report) {
       report.creditNotes.total += cn.amount || 0;
       report.creditNotes.count++;
     }
+  });
+
+  // Recalculer le netRevenue pour chaque année (total factures - notes de crédit de l'année)
+  reportByYear.forEach(report => {
+    report.invoices.netRevenue = report.invoices.total - report.creditNotes.total;
   });
 
   return Array.from(reportByYear.values()).sort((a, b) => b.year - a.year);
