@@ -7359,6 +7359,18 @@ export type Database = {
             }[]
           }
         | {
+            Args: { p_company_id: string; p_year: number }
+            Returns: {
+              credit_notes_amount: number
+              margin: number
+              margin_percentage: number
+              month_name: string
+              month_number: number
+              purchases: number
+              revenue: number
+            }[]
+          }
+        | {
             Args: { p_year?: number }
             Returns: {
               contracts_count: number
