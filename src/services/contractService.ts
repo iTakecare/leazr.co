@@ -382,6 +382,7 @@ export const createContractFromOffer = async (
       client_id: offerData.client_id,
       monthly_payment: offerData.monthly_payment,
       equipment_description: offerData.equipment_description,
+      leaser_id: offerData.leaser_id,
       leaser_name: leaserName,
       leaser_logo: leaserLogo || null,
       status: contractStatuses.CONTRACT_SENT,

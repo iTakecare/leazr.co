@@ -35,6 +35,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   const [canGenerateInvoice, setCanGenerateInvoice] = useState(false);
   const [existingInvoice, setExistingInvoice] = useState<any>(null);
   const [hasMissingSerials, setHasMissingSerials] = useState(false);
+  const [resolvedLeaserName, setResolvedLeaserName] = useState<string | null>(null);
   const [contractStartDate, setContractStartDate] = useState<Date | undefined>(
     contract.contract_start_date ? new Date(contract.contract_start_date) : undefined
   );
@@ -50,6 +51,24 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
 
     checkBillitIntegration();
   }, [companyId]);
+
+  // Récupérer le nom du leaser depuis la DB si leaser_id existe
+  useEffect(() => {
+    const fetchLeaser = async () => {
+      if (contract.leaser_id) {
+        const { data: leaserData } = await supabase
+          .from('leasers')
+          .select('name')
+          .eq('id', contract.leaser_id)
+          .maybeSingle();
+        
+        if (leaserData) {
+          setResolvedLeaserName(leaserData.name);
+        }
+      }
+    };
+    fetchLeaser();
+  }, [contract.leaser_id]);
 
   useEffect(() => {
     const checkExistingInvoice = async () => {
@@ -279,7 +298,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
               <Building2 className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-muted-foreground">Bailleur</span>
             </div>
-            <p className="font-semibold">{contract.leaser_name}</p>
+            <p className="font-semibold">{resolvedLeaserName || contract.leaser_name}</p>
           </div>
 
           {/* Autres dossiers du client */}
