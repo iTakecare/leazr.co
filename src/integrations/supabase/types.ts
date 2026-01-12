@@ -7373,15 +7373,15 @@ export type Database = {
         | {
             Args: { p_year?: number }
             Returns: {
-              contracts_count: number
+              active_contracts: number
               credit_notes_amount: number
               margin: number
               margin_percentage: number
-              month_name: string
-              month_number: number
-              offers_count: number
+              month: number
+              new_contracts: number
               purchases: number
               revenue: number
+              revenue_net: number
               year: number
             }[]
           }
