@@ -21,6 +21,7 @@ const ContractsFilter: React.FC<ContractsFilterProps> = ({
         <TabsTrigger value={contractStatuses.ACTIVE}>Actifs</TabsTrigger>
         <TabsTrigger value="expiring_soon">Expiration prochaine</TabsTrigger>
         <TabsTrigger value={contractStatuses.COMPLETED}>Terminés</TabsTrigger>
+        <TabsTrigger value={contractStatuses.CANCELLED}>Annulés</TabsTrigger>
       </TabsList>
     </Tabs>
   );

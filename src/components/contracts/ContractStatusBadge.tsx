@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { 
-  CheckCircle, Send, Package, Truck, Play, AlarmClock
+  CheckCircle, Send, Package, Truck, Play, AlarmClock, XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -57,6 +57,14 @@ export const CONTRACT_STATUSES = {
     textColor: 'text-gray-700',
     progressValue: 100,
     icon: AlarmClock,
+  },
+  CANCELLED: {
+    id: contractStatuses.CANCELLED,
+    label: 'Annulé',
+    color: 'bg-red-100',
+    textColor: 'text-red-700',
+    progressValue: 0,
+    icon: XCircle,
   }
 };
 

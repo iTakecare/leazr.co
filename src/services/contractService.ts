@@ -8,7 +8,8 @@ export const contractStatuses = {
   EQUIPMENT_ORDERED: "equipment_ordered",
   DELIVERED: "delivered",
   ACTIVE: "active",
-  COMPLETED: "completed"
+  COMPLETED: "completed",
+  CANCELLED: "cancelled"
 };
 
 export interface Contract {

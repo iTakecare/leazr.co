@@ -50,10 +50,14 @@ export const useContracts = () => {
     let filtered = [...contracts];
     
     // Filtre par statut/onglet
-    if (activeStatusFilter === "in_progress") {
-      // En cours : contract_sent, equipment_ordered, delivered
+    if (activeStatusFilter === contractStatuses.CANCELLED) {
+      // Onglet Annulés : uniquement les contrats annulés
+      filtered = filtered.filter(contract => contract.status === contractStatuses.CANCELLED);
+    } else if (activeStatusFilter === "in_progress") {
+      // En cours : contract_sent, equipment_ordered, delivered (exclure annulés)
       filtered = filtered.filter(contract => 
-        [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(contract.status as any)
+        [contractStatuses.CONTRACT_SENT, contractStatuses.EQUIPMENT_ORDERED, contractStatuses.DELIVERED].includes(contract.status as any) &&
+        contract.status !== contractStatuses.CANCELLED
       );
     } else if (activeStatusFilter === "expiring_soon") {
       // Expiration prochaine : actifs dont la date de fin est dans les 3 prochains mois
@@ -62,13 +66,20 @@ export const useContracts = () => {
       
       filtered = filtered.filter(contract => 
         contract.status === contractStatuses.ACTIVE &&
+        contract.status !== contractStatuses.CANCELLED &&
         contract.contract_end_date &&
         new Date(contract.contract_end_date) <= threeMonthsFromNow &&
         new Date(contract.contract_end_date) >= new Date()
       );
-    } else if (activeStatusFilter !== "all") {
-      // Filtres simples par statut (signed, active)
-      filtered = filtered.filter(contract => contract.status === activeStatusFilter);
+    } else if (activeStatusFilter === "all") {
+      // Tous : exclure les contrats annulés
+      filtered = filtered.filter(contract => contract.status !== contractStatuses.CANCELLED);
+    } else {
+      // Filtres simples par statut (signed, active, completed)
+      filtered = filtered.filter(contract => 
+        contract.status === activeStatusFilter && 
+        contract.status !== contractStatuses.CANCELLED
+      );
     }
     
     // Filtre par terme de recherche
