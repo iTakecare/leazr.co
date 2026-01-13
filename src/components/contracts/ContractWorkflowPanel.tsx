@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, Clock, Package, Truck, Play, AlarmClock, Send, Zap } from "lucide-react";
+import { CheckCircle, Clock, Package, Truck, Play, AlarmClock, Send, Zap, RefreshCw } from "lucide-react";
 import { Contract, contractStatuses, updateContractStatus, addTrackingNumber } from "@/services/contractService";
 import { toast } from "sonner";
 
@@ -54,6 +54,12 @@ const ContractWorkflowPanel: React.FC<ContractWorkflowPanelProps> = ({ contract,
       label: "Actif",
       icon: Play,
       description: "Contrat en cours"
+    },
+    {
+      id: contractStatuses.EXTENDED,
+      label: "Prolongé",
+      icon: RefreshCw,
+      description: "Contrat prolongé au-delà de la date de fin"
     },
     {
       id: contractStatuses.COMPLETED,

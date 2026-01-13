@@ -12,6 +12,7 @@ import ContractPurchaseTracking from "@/components/contracts/ContractPurchaseTra
 import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
+import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -156,6 +157,12 @@ const ContractDetail = () => {
               <ContractSelfLeasingCard 
                 contract={contract}
                 onContractUpdated={refetch}
+              />
+
+              {/* Toggle de terminaison - visible pour contrats actifs/prolongés */}
+              <ContractTerminationToggle 
+                contract={contract}
+                onUpdate={refetch}
               />
 
               {/* Historique / Timeline de signature */}

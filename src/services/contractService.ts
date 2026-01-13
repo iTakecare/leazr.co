@@ -8,6 +8,7 @@ export const contractStatuses = {
   EQUIPMENT_ORDERED: "equipment_ordered",
   DELIVERED: "delivered",
   ACTIVE: "active",
+  EXTENDED: "extended",
   COMPLETED: "completed",
   CANCELLED: "cancelled"
 };
