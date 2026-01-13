@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { toast } from "sonner";
-import { getWorkflowLogs, getOfferNotes } from "@/services/offerService";
+import { getWorkflowLogs, getOfferNotes, deleteOffer, generateSignatureLink } from "@/services/offerService";
 import { useOfferDetail } from "@/hooks/offers/useOfferDetail";
 import { formatCurrency } from "@/utils/formatters";
 import { format, differenceInMonths } from "date-fns";
@@ -19,20 +19,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import EquipmentDisplay from "@/components/offers/EquipmentDisplay";
 import { formatEquipmentDisplay } from "@/utils/equipmentFormatter";
 import { logUserProfileDiagnostics } from "@/utils/userProfileDiagnostics";
+import { createRoot } from 'react-dom/client';
+import CommercialOffer from '@/components/offers/CommercialOffer';
 
 // Import des nouveaux composants modulaires
 import AmbassadorOfferHeader from "@/components/offers/detail/AmbassadorOfferHeader";
 import AmbassadorFinancialCards from "@/components/offers/detail/AmbassadorFinancialCards";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
-import { deleteOffer } from "@/services/offerService";
-import { downloadOfferPDF } from "@/services/pdfService";
 import AmbassadorWorkflowTimeline from "@/components/offers/detail/AmbassadorWorkflowTimeline";
 import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
 import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
 import CompactEquipmentSection from "@/components/offers/detail/CompactEquipmentSection";
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
-
 import OfferEditConfiguration from "@/components/offer/OfferEditConfiguration";
+import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 
 const AmbassadorOfferDetail = () => {
   console.log('🔥 AMBASSADOR OFFER DETAIL - Component starting to execute');
@@ -58,6 +58,7 @@ const AmbassadorOfferDetail = () => {
   const [logsLoading, setLogsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   
   
   
@@ -229,32 +230,332 @@ const AmbassadorOfferDetail = () => {
     navigateToAmbassador(`offers/${offer?.id}/edit`);
   };
 
+  // Générer le PDF de l'offre (même logique que l'admin)
   const handleGeneratePDF = async () => {
     if (!offer) return;
+    
+    const toastId = toast.loading('Préparation du PDF...');
+    setIsGeneratingPDF(true);
+    
     try {
-      setIsGeneratingPDF(true);
-      await downloadOfferPDF(offer.id, 'client');
-      toast.success("PDF généré avec succès");
+      // 1. Récupérer les équipements depuis la base de données
+      const { getOfferEquipment } = await import('@/services/offers/offerEquipment');
+      const equipmentData = await getOfferEquipment(offer.id);
+
+      // Récupérer les données complètes du client depuis la table clients
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('billing_address, billing_city, billing_postal_code, billing_country, phone')
+        .eq('id', offer.client_id)
+        .single();
+
+      // Récupérer les paramètres de l'entreprise (logo, couleurs, nom)
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id, logo_url, primary_color, secondary_color, name')
+        .eq('id', offer.company_id)
+        .single();
+
+      if (!companyData?.id) {
+        toast.error("Impossible de récupérer les informations de l'entreprise", { id: toastId });
+        return;
+      }
+
+      // Formater l'adresse de facturation complète
+      const billingAddress = clientData ? 
+        [
+          clientData.billing_address,
+          clientData.billing_postal_code,
+          clientData.billing_city,
+          clientData.billing_country
+        ].filter(Boolean).join(', ') 
+        : '';
+
+      // Convertir le logo en Base64 pour compatibilité html2canvas
+      let companyLogoBase64 = null;
+      if (companyData?.logo_url) {
+        try {
+          const response = await fetch(companyData.logo_url);
+          const blob = await response.blob();
+          companyLogoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.warn('⚠️ Erreur chargement logo:', error);
+        }
+      }
+
+      // Récupérer les logos partenaires
+      const { data: partnerLogosData } = await supabase
+        .from('company_partner_logos')
+        .select('logo_url')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      // Récupérer les valeurs de l'entreprise
+      const { data: companyValuesData } = await supabase
+        .from('company_values')
+        .select('title, description, icon_url')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
+
+      // Récupérer les métriques de l'entreprise
+      const { data: companyMetricsData } = await supabase
+        .from('company_metrics')
+        .select('label, value, icon_name')
+        .eq('company_id', companyData.id)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
+
+      // Récupérer les blocs de contenu texte
+      const { data: contentBlocksData } = await supabase
+        .from('pdf_content_blocks')
+        .select('page_name, block_key, content')
+        .eq('company_id', companyData.id);
+
+      // Créer un map pour faciliter l'accès
+      const contentBlocksMap: Record<string, Record<string, string>> = {};
+      contentBlocksData?.forEach(block => {
+        if (!contentBlocksMap[block.page_name]) {
+          contentBlocksMap[block.page_name] = {};
+        }
+        contentBlocksMap[block.page_name][block.block_key] = block.content;
+      });
+
+      // 2. Créer un conteneur VISIBLE
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '0';
+      container.style.left = '0';
+      container.style.width = '210mm';
+      container.style.minHeight = '297mm';
+      container.style.background = 'white';
+      container.style.zIndex = '9999';
+      document.body.appendChild(container);
+
+      // 3. Préparer les données pour CommercialOffer
+      const isPurchase = offer?.is_purchase === true;
+      
+      const totalSellingPriceFromEquipment = equipmentData.reduce(
+        (sum: number, eq: any) => sum + ((Number(eq.selling_price) || 0) * (Number(eq.quantity) || 1)),
+        0
+      );
+      const totalSellingPrice = isPurchase && offer.financed_amount 
+        ? Number(offer.financed_amount) 
+        : totalSellingPriceFromEquipment;
+      
+      const offerData = {
+        offerNumber: offer.dossier_number || `OFF-${Date.now().toString().slice(-6)}`,
+        offerDate: offer.created_at ? new Date(offer.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'),
+        clientName: offer.client_name || 'Client',
+        clientEmail: offer.client_email || clientData?.email || '',
+        clientPhone: clientData?.phone || '',
+        clientCompany: offer.client_company || '',
+        clientAddress: billingAddress,
+        companyLogo: companyLogoBase64,
+        companyName: companyData?.name || 'iTakecare',
+        showPrintButton: false,
+        isPDFMode: true,
+        isPurchase: isPurchase,
+        totalSellingPrice: totalSellingPrice,
+        equipment: equipmentData.map((eq: any) => ({
+          id: eq.id,
+          title: eq.title,
+          quantity: eq.quantity || 1,
+          monthlyPayment: isPurchase ? 0 : (eq.monthly_payment || 0),
+          sellingPrice: eq.selling_price || 0,
+          imageUrl: eq.image_url || eq.product?.image_urls?.[0] || eq.product?.image_url || null,
+          attributes: eq.attributes?.reduce((acc: any, attr: any) => {
+            acc[attr.key] = attr.value;
+            return acc;
+          }, {}) || {},
+          specifications: eq.specifications?.reduce((acc: any, spec: any) => {
+            acc[spec.key] = spec.value;
+            return acc;
+          }, {}) || {}
+        })),
+        totalMonthly: isPurchase ? 0 : (Number(offer.monthly_payment) || 0),
+        contractDuration: Number(offer.duration) || 36,
+        fileFee: isPurchase ? 0 : (Number(offer.file_fee) || 0),
+        insuranceCost: isPurchase ? 0 : (Number(offer.annual_insurance) || 0),
+        downPayment: Number(offer.down_payment) || 0,
+        adjustedMonthlyPayment: (() => {
+          const dp = Number(offer.down_payment) || 0;
+          const coef = Number(offer.coefficient) || 0;
+          if (dp > 0 && coef > 0) {
+            const baseFinancedAmount = totalSellingPrice > 0 
+              ? totalSellingPrice 
+              : (coef > 0 && (offer.monthly_payment || 0) > 0 
+                  ? ((Number(offer.monthly_payment) || 0) * 100) / coef 
+                  : Number(offer.financed_amount) || Number(offer.amount) || 0);
+            const financedAfterDp = Math.max(0, baseFinancedAmount - dp);
+            return Math.round((financedAfterDp * coef) / 100 * 100) / 100;
+          }
+          return Number(offer.monthly_payment) || 0;
+        })(),
+        financedAmountAfterDownPayment: (() => {
+          const dp = Number(offer.down_payment) || 0;
+          const coef = Number(offer.coefficient) || 0;
+          const baseFinancedAmount = totalSellingPrice > 0 
+            ? totalSellingPrice 
+            : (coef > 0 && (offer.monthly_payment || 0) > 0 
+                ? ((Number(offer.monthly_payment) || 0) * 100) / coef 
+                : Number(offer.financed_amount) || Number(offer.amount) || 0);
+          return Math.max(0, baseFinancedAmount - dp);
+        })(),
+        partnerLogos: partnerLogosData?.map(logo => logo.logo_url) || [],
+        companyValues: companyValuesData?.map(v => ({
+          title: v.title,
+          description: v.description,
+          iconUrl: v.icon_url,
+        })) || [],
+        metrics: companyMetricsData?.map(m => ({
+          label: m.label,
+          value: m.value,
+          iconName: m.icon_name,
+        })) || [],
+        contentBlocks: {
+          cover: {
+            greeting: contentBlocksMap['cover']?.['greeting'] || '<p>Madame, Monsieur,</p>',
+            introduction: isPurchase 
+              ? (contentBlocksMap['cover']?.['introduction_purchase'] || '<p>Nous avons le plaisir de vous présenter notre offre d\'achat.</p>')
+              : (contentBlocksMap['cover']?.['introduction'] || '<p>Nous avons le plaisir de vous présenter notre offre commerciale.</p>'),
+            validity: contentBlocksMap['cover']?.['validity'] || '<p>Cette offre est valable 30 jours.</p>',
+          },
+          equipment: {
+            title: contentBlocksMap['equipment']?.['title'] || 'Détail de l\'équipement',
+            footer_note: contentBlocksMap['equipment']?.['footer_note'] || 'Tous nos équipements sont garantis.',
+          },
+          conditions: {
+            general_conditions: contentBlocksMap['conditions']?.['general_conditions'] || '<h3>Conditions générales</h3>',
+            sale_general_conditions: contentBlocksMap['conditions']?.['sale_general_conditions'] || '',
+            additional_info: contentBlocksMap['conditions']?.['additional_info'] || '',
+            contact_info: contentBlocksMap['conditions']?.['contact_info'] || 'Contactez-nous pour plus d\'informations.',
+          },
+        },
+      };
+
+      // 4a. Attendre que toutes les polices soient chargées
+      toast.loading('Chargement des polices...', { id: toastId });
+      if ('fonts' in document) {
+        await document.fonts.ready;
+      }
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 4b. Activer le mode PDF
+      container.classList.add('pdf-mode');
+
+      // 4c. Render le composant React dans le conteneur
+      const root = createRoot(container);
+      root.render(
+        React.createElement('div', 
+          { 
+            style: { 
+              width: '100%', 
+              background: 'white', 
+              fontFamily: 'Inter, sans-serif' 
+            } 
+          },
+          React.createElement(CommercialOffer, offerData)
+        )
+      );
+
+      // 5. Attendre que TOUT soit chargé
+      toast.loading('Chargement du contenu...', { id: toastId });
+      await new Promise(resolve => setTimeout(resolve, 3500));
+
+      // 6. Vérifier qu'il y a du contenu
+      const pages = container.querySelectorAll('.page');
+      
+      if (pages.length === 0) {
+        throw new Error('Aucune page trouvée. Le composant ne s\'est pas rendu correctement.');
+      }
+
+      // 7. Créer le PDF avec jsPDF
+      toast.loading('Génération du PDF...', { id: toastId });
+      const { default: JsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+      const pdf = new JsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // 8. Convertir chaque page en image et l'ajouter au PDF
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i] as HTMLElement;
+        
+        const canvas = await html2canvas(page, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: 794,
+          height: 1123,
+          windowWidth: 794,
+          windowHeight: 1123
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+        if (i > 0) {
+          pdf.addPage();
+        }
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      }
+
+      // 9. Télécharger le PDF
+      const date = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+      const clientName = (offer.client_company || offer.client_name || offerData.clientName || 'Client')
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 30);
+      const filename = `Offre_${offerData.offerNumber}_${clientName}_${date}.pdf`;
+      pdf.save(filename);
+
+      // 9b. Retirer le mode PDF
+      container.classList.remove('pdf-mode');
+
+      // 10. Nettoyage
+      root.unmount();
+      document.body.removeChild(container);
+
+      // 11. Notification de succès
+      toast.success('PDF téléchargé avec succès !', { id: toastId });
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
+      toast.error("Erreur lors de la génération du PDF", { id: toastId });
     } finally {
       setIsGeneratingPDF(false);
     }
   };
 
+  // Ouvrir le lien public de l'offre
   const handleOpenPublicLink = () => {
-    if (!offer?.id) return;
-    const publicUrl = `${window.location.origin}/client/offer/${offer.id}/sign`;
-    window.open(publicUrl, '_blank');
+    if (!offer) return;
+    const link = generateSignatureLink(offer.id);
+    window.open(link, '_blank', 'noopener,noreferrer');
   };
 
+  // Supprimer l'offre
   const handleDeleteOffer = async () => {
-    if (!offer?.id) return;
+    if (!offer) return;
+    
     try {
-      await deleteOffer(offer.id);
-      toast.success("Offre supprimée avec succès");
-      navigateToAmbassador("offers");
+      const success = await deleteOffer(offer.id);
+      if (success) {
+        toast.success("Offre supprimée avec succès");
+        navigateToAmbassador('offers');
+      } else {
+        toast.error("Erreur lors de la suppression");
+      }
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       toast.error("Erreur lors de la suppression de l'offre");
@@ -377,7 +678,7 @@ const AmbassadorOfferDetail = () => {
                 offer={offer}
                 onEdit={handleEditOffer}
                 onGeneratePDF={handleGeneratePDF}
-                onSendEmail={shareSignatureLink}
+                onSendEmail={() => setEmailDialogOpen(true)}
                 onOpenPublicLink={handleOpenPublicLink}
                 onDelete={handleDeleteOffer}
                 isGeneratingPDF={isGeneratingPDF}
@@ -401,6 +702,24 @@ const AmbassadorOfferDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Dialog pour envoyer l'offre par email */}
+        <EmailOfferDialog
+          open={emailDialogOpen}
+          onOpenChange={(open) => {
+            setEmailDialogOpen(open);
+            if (!open) {
+              fetchOffer();
+              if (id) {
+                fetchWorkflowLogs(id);
+              }
+            }
+          }}
+          offerId={offer.id}
+          offerNumber={offer.dossier_number || `OFF-${offer.id.slice(0, 6)}`}
+          clientEmail={offer.client_email}
+          clientName={offer.client_name}
+        />
       </Container>
     </PageTransition>
   );
