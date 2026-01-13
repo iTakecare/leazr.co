@@ -50,18 +50,17 @@ const CompanyDashboard = () => {
   };
 
   // Traitement des données mensuelles réelles
-  // Le revenue retourné par la fonction SQL est le CA NET (brut - notes de crédit)
-  // On recalcule le CA BRUT pour l'affichage : revenueBrut = revenueNet + creditNotes
+  // La fonction SQL renvoie directement le CA BRUT des factures (revenue = leasing, direct_sales_revenue = ventes)
+  // Les notes de crédit sont séparées et déjà déduites dans le calcul de la marge
   const monthlyData = metrics?.monthly_data?.map(month => {
     const creditNotes = Number(month.credit_notes_amount || 0);
-    const revenueNet = Number(month.revenue);
-    const revenueBrut = revenueNet + creditNotes; // CA brut des factures
-    const directSales = Number(month.direct_sales_revenue || 0);
+    const revenueLeasing = Number(month.revenue || 0);  // CA leasing (factures leasing)
+    const directSales = Number(month.direct_sales_revenue || 0);  // CA ventes directes
     
     return {
       month: month.month_name,
-      ca: revenueBrut,  // Afficher le CA BRUT (montant des factures)
-      directSales: directSales,  // CA ventes directes
+      ca: revenueLeasing + directSales,  // CA brut = leasing + ventes directes
+      directSales: directSales,
       achats: Number(month.purchases),
       marge: Number(month.margin),
       margePercent: Number(month.margin_percentage),
@@ -280,7 +279,7 @@ const CompanyDashboard = () => {
                             className={`hover:bg-primary/5 ${index % 2 === 0 ? "bg-background" : "bg-muted/30"}`}
                           >
                             <TableCell className="font-semibold">{month.month}</TableCell>
-                            <TableCell className="text-right font-medium">{formatCurrency(month.ca + month.directSales)}</TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(month.ca)}</TableCell>
                             <TableCell className="text-right font-medium text-purple-600">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
@@ -301,7 +300,7 @@ const CompanyDashboard = () => {
                       )}
                       <TableRow className="bg-green-50 dark:bg-green-900/10 border-t-2 border-green-200">
                         <TableCell className="font-bold text-lg">TOTAL</TableCell>
-                        <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.ca + totals.directSales)}</TableCell>
+                        <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.ca)}</TableCell>
                         <TableCell className="text-right font-bold text-lg text-purple-600">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
@@ -313,7 +312,7 @@ const CompanyDashboard = () => {
                       </TableRow>
                       <TableRow className="bg-blue-50 dark:bg-blue-900/10 border-b-2 border-blue-200">
                         <TableCell className="font-bold">MOYENNE</TableCell>
-                        <TableCell className="text-right font-semibold">{formatCurrency(moyennes.ca + moyennes.directSales)}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(moyennes.ca)}</TableCell>
                         <TableCell className="text-right font-semibold text-purple-600">-</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-semibold text-blue-600">{formatCurrency(moyennes.marge)}</TableCell>
