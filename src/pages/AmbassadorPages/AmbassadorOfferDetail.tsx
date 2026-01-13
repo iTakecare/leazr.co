@@ -23,7 +23,9 @@ import { logUserProfileDiagnostics } from "@/utils/userProfileDiagnostics";
 // Import des nouveaux composants modulaires
 import AmbassadorOfferHeader from "@/components/offers/detail/AmbassadorOfferHeader";
 import AmbassadorFinancialCards from "@/components/offers/detail/AmbassadorFinancialCards";
-import AmbassadorActionButtons from "@/components/offers/detail/AmbassadorActionButtons";
+import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
+import { deleteOffer } from "@/services/offerService";
+import { downloadOfferPDF } from "@/services/pdfService";
 import AmbassadorWorkflowTimeline from "@/components/offers/detail/AmbassadorWorkflowTimeline";
 import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNotes";
 import ClientInfoCard from "@/components/offers/detail/ClientInfoCard";
@@ -55,6 +57,7 @@ const AmbassadorOfferDetail = () => {
   const [offerNotes, setOfferNotes] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [notesLoading, setNotesLoading] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
   
   
@@ -221,6 +224,43 @@ const AmbassadorOfferDetail = () => {
     return user?.role === 'admin';
   }, [user]);
 
+  // Handlers pour CompactActionsSidebar
+  const handleEditOffer = () => {
+    navigateToAmbassador(`offers/${offer?.id}/edit`);
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!offer) return;
+    try {
+      setIsGeneratingPDF(true);
+      await downloadOfferPDF(offer.id, 'client');
+      toast.success("PDF généré avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleOpenPublicLink = () => {
+    if (!offer?.id) return;
+    const publicUrl = `${window.location.origin}/client/offer/${offer.id}/sign`;
+    window.open(publicUrl, '_blank');
+  };
+
+  const handleDeleteOffer = async () => {
+    if (!offer?.id) return;
+    try {
+      await deleteOffer(offer.id);
+      toast.success("Offre supprimée avec succès");
+      navigateToAmbassador("offers");
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression de l'offre");
+    }
+  };
+
   console.log('🔥 AMBASSADOR OFFER DETAIL - Before loading check, loading:', loading);
   
   if (loading) {
@@ -333,11 +373,14 @@ const AmbassadorOfferDetail = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              <AmbassadorActionButtons
-                status={offer.workflow_status || offer.status}
-                offerId={offer.id}
-                onSendSignatureLink={shareSignatureLink}
-                sendingEmail={sendingEmail}
+              <CompactActionsSidebar
+                offer={offer}
+                onEdit={handleEditOffer}
+                onGeneratePDF={handleGeneratePDF}
+                onSendEmail={shareSignatureLink}
+                onOpenPublicLink={handleOpenPublicLink}
+                onDelete={handleDeleteOffer}
+                isGeneratingPDF={isGeneratingPDF}
               />
 
               <OfferEditConfiguration
