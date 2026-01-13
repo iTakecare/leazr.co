@@ -273,7 +273,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead className="text-[10px] w-[70px] hidden xl:table-cell">Source</TableHead>
                 <TableHead className="text-[10px] w-[90px] hidden lg:table-cell">Bailleur</TableHead>
                 {!isAmbassador() && <TableHead className="text-right text-[10px] w-[90px] hidden xl:table-cell">Mt. achat</TableHead>}
-                <TableHead className="text-right text-[10px] w-[95px]">Mt. financé</TableHead>
+                {!isAmbassador() && <TableHead className="text-right text-[10px] w-[95px]">Mt. financé</TableHead>}
                 {showMarginColumn && <TableHead className="text-right text-[10px] w-[80px] hidden lg:table-cell">Marge €</TableHead>}
                 {showMarginColumn && <TableHead className="text-right text-[10px] w-[70px] hidden xl:table-cell">Marge %</TableHead>}
                 {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-[10px] w-[85px] hidden xl:table-cell">Comm.</TableHead>}
@@ -373,15 +373,17 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </TableCell>
                   )}
                   
-                   {/* Montant financé */}
-                  <TableCell className="text-right text-[11px] py-2">
-                    <div className="font-medium text-blue-600 flex items-center justify-end gap-1">
-                      {formatCurrency(offer.effectiveFinancedAmount)}
-                      {offer.hasDownPayment && (
-                        <span className="text-amber-500 text-[9px]" title="Acompte déduit">●</span>
-                      )}
-                    </div>
-                  </TableCell>
+                  {/* Montant financé - masqué pour les ambassadeurs */}
+                  {!isAmbassador() && (
+                    <TableCell className="text-right text-[11px] py-2">
+                      <div className="font-medium text-blue-600 flex items-center justify-end gap-1">
+                        {formatCurrency(offer.effectiveFinancedAmount)}
+                        {offer.hasDownPayment && (
+                          <span className="text-amber-500 text-[9px]" title="Acompte déduit">●</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                   
                   {/* Marge € - Display margin in euros */}
                   {showMarginColumn && (
