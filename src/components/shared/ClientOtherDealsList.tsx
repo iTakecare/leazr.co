@@ -71,12 +71,14 @@ const getContractStatusBadge = (status?: string) => {
     pending: "En attente",
     completed: "Terminé",
     cancelled: "Annulé",
+    extended: "Prolongé",
   };
   const statusColors: Record<string, string> = {
     active: "bg-green-100 text-green-800",
     pending: "bg-yellow-100 text-yellow-800",
     completed: "bg-gray-100 text-gray-800",
     cancelled: "bg-red-100 text-red-800",
+    extended: "bg-amber-100 text-amber-800",
   };
   return (
     <Badge className={`${statusColors[displayStatus] || statusColors.active} text-xs`}>
