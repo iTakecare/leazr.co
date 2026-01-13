@@ -7016,6 +7016,7 @@ export type Database = {
           link_created_at: string
         }[]
       }
+      get_ambassador_id: { Args: never; Returns: string }
       get_blog_categories: {
         Args: never
         Returns: {
