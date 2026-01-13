@@ -271,7 +271,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
                 <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
                 <TableHead className="text-[10px] w-[70px] hidden xl:table-cell">Source</TableHead>
-                <TableHead className="text-[10px] w-[90px] hidden lg:table-cell">Bailleur</TableHead>
+                {!isAmbassador() && <TableHead className="text-[10px] w-[90px] hidden lg:table-cell">Bailleur</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right text-[10px] w-[90px] hidden xl:table-cell">Mt. achat</TableHead>}
                 {!isAmbassador() && <TableHead className="text-right text-[10px] w-[95px]">Mt. financé</TableHead>}
                 {showMarginColumn && <TableHead className="text-right text-[10px] w-[80px] hidden lg:table-cell">Marge €</TableHead>}
@@ -359,10 +359,12 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     )}
                   </TableCell>
                   
-                  {/* Bailleur */}
-                  <TableCell className="text-[11px] py-2 hidden lg:table-cell">
-                    {offer.leaser_name || '-'}
-                  </TableCell>
+                  {/* Bailleur - masqué pour les ambassadeurs */}
+                  {!isAmbassador() && (
+                    <TableCell className="text-[11px] py-2 hidden lg:table-cell">
+                      {offer.leaser_name || '-'}
+                    </TableCell>
+                  )}
                   
                   {/* Montant d'achat - masqué pour les ambassadeurs */}
                   {!isAmbassador() && (
