@@ -227,7 +227,7 @@ const AmbassadorOfferDetail = () => {
 
   // Handlers pour CompactActionsSidebar
   const handleEditOffer = () => {
-    navigateToAmbassador(`offers/${offer?.id}/edit`);
+    navigateToAmbassador(`edit-offer/${offer?.id}`);
   };
 
   // Générer le PDF de l'offre (même logique que l'admin)
