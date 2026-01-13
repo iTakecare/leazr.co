@@ -261,7 +261,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
     <TooltipProvider>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto max-w-full">
-          <Table className="min-w-[1400px] text-[11px]">
+          <Table className={`${isAmbassador() ? 'min-w-[900px]' : 'min-w-[1400px]'} text-[11px]`}>
             <TableHeader>
               <TableRow className="h-9">
                 <TableHead className="font-mono text-[10px] w-[110px]">N° Demande</TableHead>
