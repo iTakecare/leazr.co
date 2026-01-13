@@ -240,6 +240,13 @@ const ContractsTable: React.FC<ContractsTableProps> = ({
             Actif
           </Badge>
         );
+      case contractStatuses.EXTENDED:
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+            <Clock className="mr-1 h-3 w-3" />
+            Prolongé
+          </Badge>
+        );
       case contractStatuses.COMPLETED:
         return (
           <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
