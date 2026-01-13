@@ -237,6 +237,7 @@ const AppRoutes = () => (
         <Route path="products/:id" element={<AmbassadorProductDetailPage />} />
         <Route path="custom-offer-generator" element={<CustomOfferGeneratorPage />} />
         <Route path="create-offer" element={<AmbassadorCreateOffer />} />
+        <Route path="edit-offer/:id" element={<AmbassadorCreateOffer />} />
         <Route path="clients" element={<AmbassadorClientsPage />} />
         <Route path="clients/create" element={<AmbassadorClientCreatePage />} />
         <Route path="offers" element={<AmbassadorOffersPage />} />

@@ -128,6 +128,7 @@ export const useAmbassadorOfferState = () => {
 
   return {
     client,
+    setClient,
     loading,
     loadingLeasers,
     isSubmitting,
@@ -140,6 +141,7 @@ export const useAmbassadorOfferState = () => {
     remarks,
     setRemarks,
     selectedLeaser,
+    setSelectedLeaser,
     selectedDuration,
     setSelectedDuration,
     ambassadorId,

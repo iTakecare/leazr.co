@@ -7,6 +7,7 @@ import { Equipment, GlobalMarginAdjustment } from "@/types/equipment";
 import { Client } from "@/types/client";
 import { useOfferCommissionCalculator } from "@/hooks/useOfferCommissionCalculator";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AmbassadorOfferSaveLogicProps {
   client: Client | null;
@@ -22,6 +23,7 @@ interface AmbassadorOfferSaveLogicProps {
   totalMargin?: number;
   selectedLeaser?: any;
   selectedDuration?: number;
+  editId?: string; // ID de l'offre en mode édition
 }
 
 export const useAmbassadorOfferSave = ({
@@ -37,10 +39,13 @@ export const useAmbassadorOfferSave = ({
   totalMonthlyPayment,
   totalMargin = 0,
   selectedLeaser,
-  selectedDuration = 36
+  selectedDuration = 36,
+  editId
 }: AmbassadorOfferSaveLogicProps) => {
   const navigate = useNavigate();
   const { navigateToAmbassador } = useRoleNavigation();
+  
+  const isEditMode = !!editId;
 
   // Calcul du prix d'achat total pour la commission
   const totalPurchaseAmount = equipmentList.reduce((sum, equipment) => 
@@ -83,9 +88,6 @@ export const useAmbassadorOfferSave = ({
     try {
       setIsSubmitting(true);
       
-      // IMPORTANT: Ne plus créer equipment_description JSON pour éviter la duplication
-      // Le matériel sera sauvegardé uniquement via la table offer_equipment
-      
       const currentCoefficient = coefficient || globalMarginAdjustment.newCoef || 3.27;
       const financedAmount = calculateFinancedAmount(totalMonthlyPayment, currentCoefficient);
       
@@ -99,7 +101,9 @@ export const useAmbassadorOfferSave = ({
         equipmentListLength: equipmentList.length,
         totalMonthlyPayment,
         calculatedCommission,
-        commissionData
+        commissionData,
+        isEditMode,
+        editId
       });
 
       // Convertir le montant de total_margin_with_difference en number au lieu de string
@@ -108,19 +112,10 @@ export const useAmbassadorOfferSave = ({
       // Récupérer la marge totale générée (sans la différence)
       const marginAmount = globalMarginAdjustment.amount || 0;
       
-      console.log("💾 AmbassadorOfferSaveLogic - Company ID Debug:", {
-        ambassadorId,
-        ambassadorName: ambassador?.name,
-        ambassadorCompanyId: ambassador?.company_id,
-        clientId: client.id,
-        clientName: client.name
-      });
-      
       const offerData = {
         client_id: client.id,
         client_name: client.name,
         client_email: client.email || null,
-        // SUPPRIMÉ: equipment_description pour éviter la duplication
         amount: globalMarginAdjustment.amount + equipmentList.reduce((sum, eq) => sum + (eq.purchasePrice * eq.quantity), 0),
         coefficient: globalMarginAdjustment.newCoef,
         monthly_payment: totalMonthlyPayment,
@@ -134,61 +129,88 @@ export const useAmbassadorOfferSave = ({
         remarks: remarks,
         total_margin_with_difference: totalMarginWithDifference,
         margin: marginAmount,
-        // CORRECTION: Sauvegarder le bailleur et la durée sélectionnés
         leaser_id: selectedLeaser?.id,
         duration: selectedDuration
       };
       
-      console.log("💾 AmbassadorOfferSaveLogic - Saving offer with data:", offerData);
-      console.log("💾 AmbassadorOfferSaveLogic - Commission value being saved:", calculatedCommission);
-      console.log("💾 AmbassadorOfferSaveLogic - Ambassador:", ambassador?.name);
-      console.log("💾 AmbassadorOfferSaveLogic - Company ID being saved:", ambassador.company_id);
+      let offerId: string;
       
-      const { data, error } = await createOffer(offerData);
-      
-      if (error) {
-        console.error("Erreur lors de la sauvegarde:", error);
-        toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
-        return;
+      if (isEditMode && editId) {
+        // MODE ÉDITION - Mettre à jour l'offre existante
+        console.log("💾 AmbassadorOfferSaveLogic - UPDATING offer:", editId);
+        
+        const { error: updateError } = await supabase
+          .from('offers')
+          .update(offerData)
+          .eq('id', editId);
+        
+        if (updateError) {
+          console.error("Erreur lors de la mise à jour:", updateError);
+          toast.error(`Impossible de mettre à jour l'offre: ${updateError.message || 'Erreur inconnue'}`);
+          return;
+        }
+        
+        offerId = editId;
+        
+        // Supprimer les anciens équipements avant de sauvegarder les nouveaux
+        const { error: deleteError } = await supabase
+          .from('offer_equipment')
+          .delete()
+          .eq('offer_id', editId);
+        
+        if (deleteError) {
+          console.warn("⚠️ Erreur lors de la suppression des anciens équipements:", deleteError);
+        }
+        
+      } else {
+        // MODE CRÉATION - Créer une nouvelle offre
+        console.log("💾 AmbassadorOfferSaveLogic - CREATING new offer");
+        
+        const { data, error } = await createOffer(offerData);
+        
+        if (error) {
+          console.error("Erreur lors de la sauvegarde:", error);
+          toast.error(`Impossible de sauvegarder l'offre: ${error.message || 'Erreur inconnue'}`);
+          return;
+        }
+        
+        offerId = data.id;
       }
       
       // Sauvegarder chaque équipement individuellement avec leurs attributs
-      if (data && data.id) {
-        console.log("💾 AmbassadorOfferSaveLogic - Saving individual equipment items for offer:", data.id);
-        
-        for (const equipmentItem of equipmentList) {
-          try {
-            const { saveEquipment } = await import('@/services/offerService');
-            const savedEquipment = await saveEquipment(
-              {
-                offer_id: data.id,
-                title: equipmentItem.title,
-                purchase_price: equipmentItem.purchasePrice,
-                quantity: equipmentItem.quantity,
-                margin: equipmentItem.margin,
-                monthly_payment: equipmentItem.monthlyPayment || 0,
-                serial_number: null,
-                product_id: equipmentItem.productId || null,
-                image_url: equipmentItem.imageUrl || equipmentItem.image_url || 
-                          (equipmentItem.image_urls && equipmentItem.image_urls[0]) || null
-              },
-              equipmentItem.attributes || {}, // Save attributes
-              {} // Specifications (empty for now)
-            );
-            
-            if (savedEquipment) {
-              console.log("✅ AmbassadorOfferSaveLogic - Equipment saved successfully:", savedEquipment.id);
-            } else {
-              console.error("❌ AmbassadorOfferSaveLogic - Failed to save equipment:", equipmentItem.title);
-            }
-          } catch (equipmentError) {
-            console.error("❌ AmbassadorOfferSaveLogic - Error saving equipment:", equipmentItem.title, equipmentError);
-            // Continue with other equipment even if one fails
+      console.log("💾 AmbassadorOfferSaveLogic - Saving individual equipment items for offer:", offerId);
+      
+      for (const equipmentItem of equipmentList) {
+        try {
+          const { saveEquipment } = await import('@/services/offerService');
+          const savedEquipment = await saveEquipment(
+            {
+              offer_id: offerId,
+              title: equipmentItem.title,
+              purchase_price: equipmentItem.purchasePrice,
+              quantity: equipmentItem.quantity,
+              margin: equipmentItem.margin,
+              monthly_payment: equipmentItem.monthlyPayment || 0,
+              serial_number: null,
+              product_id: equipmentItem.productId || null,
+              image_url: equipmentItem.imageUrl || equipmentItem.image_url || 
+                        (equipmentItem.image_urls && equipmentItem.image_urls[0]) || null
+            },
+            equipmentItem.attributes || {},
+            {}
+          );
+          
+          if (savedEquipment) {
+            console.log("✅ AmbassadorOfferSaveLogic - Equipment saved successfully:", savedEquipment.id);
+          } else {
+            console.error("❌ AmbassadorOfferSaveLogic - Failed to save equipment:", equipmentItem.title);
           }
+        } catch (equipmentError) {
+          console.error("❌ AmbassadorOfferSaveLogic - Error saving equipment:", equipmentItem.title, equipmentError);
         }
       }
       
-      toast.success("Offre créée avec succès!");
+      toast.success(isEditMode ? "Offre mise à jour avec succès!" : "Offre créée avec succès!");
       navigateToAmbassador("offers");
       
     } catch (error) {
@@ -201,6 +223,6 @@ export const useAmbassadorOfferSave = ({
 
   return { 
     handleSaveOffer,
-    commissionData // Exposer les données de commission pour debug/affichage
+    commissionData
   };
 };

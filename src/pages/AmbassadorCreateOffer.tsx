@@ -1,5 +1,6 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientInfo from "@/components/offer/ClientInfo";
@@ -17,13 +18,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { getOfferEquipment } from "@/services/offers/offerEquipment";
+import { getLeasers, getLeaserById } from "@/services/leaserService";
 
 const AmbassadorCreateOffer = () => {
+  const { id: editId } = useParams();
   const { navigateToAmbassador } = useRoleNavigation();
   const [productsToBeDetermined, setProductsToBeDetermined] = useState(false);
   const [estimatedBudget, setEstimatedBudget] = useState(0);
+  const [isLoadingEditData, setIsLoadingEditData] = useState(false);
+  const [editOfferData, setEditOfferData] = useState<any>(null);
   
-  console.log("🎯 AmbassadorCreateOffer - Component rendered");
+  const isEditMode = !!editId;
+  
+  console.log("🎯 AmbassadorCreateOffer - Component rendered", { isEditMode, editId });
   
   // Wrap hooks in try-catch for error handling
   let hookStates = null;
@@ -36,6 +46,7 @@ const AmbassadorCreateOffer = () => {
 
   const {
     client,
+    setClient,
     loading,
     loadingLeasers,
     isSubmitting,
@@ -48,6 +59,7 @@ const AmbassadorCreateOffer = () => {
     remarks,
     setRemarks,
     selectedLeaser,
+    setSelectedLeaser,
     selectedDuration,
     setSelectedDuration,
     ambassadorId,
@@ -97,6 +109,7 @@ const AmbassadorCreateOffer = () => {
     coefficient,
     calculatedMargin,
     equipmentList,
+    setEquipmentList,
     totalMonthlyPayment,
     globalMarginAdjustment,
     editingId,
@@ -112,6 +125,98 @@ const AmbassadorCreateOffer = () => {
 
   // Calculate the correct total margin from calculations
   const totalMargin = calculations?.normalMarginAmount || 0;
+
+  // Charger les données de l'offre existante en mode édition
+  useEffect(() => {
+    const loadExistingOffer = async () => {
+      if (!editId || !user || loading || loadingLeasers) return;
+      
+      setIsLoadingEditData(true);
+      console.log("🔍 AmbassadorCreateOffer - Loading existing offer:", editId);
+      
+      try {
+        // 1. Récupérer l'offre
+        const { data: offerData, error: offerError } = await supabase
+          .from('offers')
+          .select('*')
+          .eq('id', editId)
+          .single();
+        
+        if (offerError || !offerData) {
+          console.error("❌ Error loading offer:", offerError);
+          toast.error("Impossible de charger l'offre");
+          navigateToAmbassador('offers');
+          return;
+        }
+        
+        console.log("✅ Offer loaded:", offerData);
+        setEditOfferData(offerData);
+        
+        // 2. Charger le client
+        if (offerData.client_id) {
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('id', offerData.client_id)
+            .single();
+          
+          if (clientData) {
+            console.log("✅ Client loaded:", clientData.name);
+            setClient(clientData);
+          }
+        }
+        
+        // 3. Charger le leaser
+        if (offerData.leaser_id) {
+          const leaser = await getLeaserById(offerData.leaser_id);
+          if (leaser) {
+            console.log("✅ Leaser loaded:", leaser.name);
+            setSelectedLeaser(leaser);
+          }
+        }
+        
+        // 4. Charger la durée
+        if (offerData.duration) {
+          setSelectedDuration(offerData.duration);
+        }
+        
+        // 5. Charger les remarques
+        if (offerData.remarks) {
+          setRemarks(offerData.remarks);
+        }
+        
+        // 6. Charger les équipements
+        const equipmentData = await getOfferEquipment(editId);
+        if (equipmentData && equipmentData.length > 0) {
+          console.log("✅ Equipment loaded:", equipmentData.length, "items");
+          
+          // Convertir les données de la DB vers le format attendu par equipmentList
+          const convertedEquipment = equipmentData.map((eq: any) => ({
+            id: eq.id,
+            title: eq.title,
+            purchasePrice: eq.purchase_price || 0,
+            quantity: eq.quantity || 1,
+            margin: eq.margin || 20,
+            monthlyPayment: eq.monthly_payment || 0,
+            imageUrl: eq.image_url || null,
+            specifications: eq.specifications || [],
+            attributes: eq.attributes || []
+          }));
+          
+          setEquipmentList(convertedEquipment);
+        }
+        
+        toast.success("Offre chargée pour modification");
+      } catch (error) {
+        console.error("❌ Error loading offer data:", error);
+        toast.error("Erreur lors du chargement de l'offre");
+      } finally {
+        setIsLoadingEditData(false);
+      }
+    };
+    
+    loadExistingOffer();
+  }, [editId, user, loading, loadingLeasers]);
 
   // Wrap offer save hook in try-catch
   let offerSaveHook = null;
@@ -129,7 +234,8 @@ const AmbassadorCreateOffer = () => {
       totalMonthlyPayment,
       totalMargin,
       selectedLeaser,
-      selectedDuration
+      selectedDuration,
+      editId
     });
   } catch (error) {
     console.error("❌ Error in useAmbassadorOfferSave:", error);
@@ -201,7 +307,7 @@ const AmbassadorCreateOffer = () => {
                 <div className="flex items-center gap-3">
                   <CalcIcon className="h-8 w-8 text-blue-600" />
                   <h1 className="text-2xl font-bold text-gray-900">
-                    Calculateur de Mensualités iTakecare
+                    {isEditMode ? "Modifier l'offre" : "Calculateur de Mensualités iTakecare"}
                     {/* Debug info pour la commission */}
                     {commissionData && commissionData.amount > 0 && (
                       <span className="ml-2 text-sm text-green-600">
@@ -211,6 +317,11 @@ const AmbassadorCreateOffer = () => {
                   </h1>
                 </div>
                 <div className="flex gap-4">
+                  {isLoadingEditData && (
+                    <span className="text-sm text-muted-foreground animate-pulse">
+                      Chargement de l'offre...
+                    </span>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => navigateToAmbassador('offers')}
