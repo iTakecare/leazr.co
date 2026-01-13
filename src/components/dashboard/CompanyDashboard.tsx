@@ -265,8 +265,7 @@ const CompanyDashboard = () => {
                     <TableHeader>
                       <TableRow className="bg-primary/5">
                         <TableHead className="font-bold">Mois</TableHead>
-                        <TableHead className="text-right font-bold">CA leasing (€)</TableHead>
-                        <TableHead className="text-right font-bold text-blue-600">CA ventes directes (€)</TableHead>
+                        <TableHead className="text-right font-bold">CA mensuel (€)</TableHead>
                         <TableHead className="text-right font-bold text-purple-600">Notes de crédit (€)</TableHead>
                         <TableHead className="text-right font-bold">Achats (€)</TableHead>
                         <TableHead className="text-right font-bold">Marge brute (€)</TableHead>
@@ -281,10 +280,7 @@ const CompanyDashboard = () => {
                             className={`hover:bg-primary/5 ${index % 2 === 0 ? "bg-background" : "bg-muted/30"}`}
                           >
                             <TableCell className="font-semibold">{month.month}</TableCell>
-                            <TableCell className="text-right font-medium">{formatCurrency(month.ca)}</TableCell>
-                            <TableCell className="text-right font-medium text-blue-600">
-                              {month.directSales > 0 ? formatCurrency(month.directSales) : '-'}
-                            </TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(month.ca + month.directSales)}</TableCell>
                             <TableCell className="text-right font-medium text-purple-600">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
@@ -295,7 +291,7 @@ const CompanyDashboard = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Activity className="w-8 h-8 opacity-50" />
                               <span>Aucune donnée disponible pour cette période</span>
@@ -305,10 +301,7 @@ const CompanyDashboard = () => {
                       )}
                       <TableRow className="bg-green-50 dark:bg-green-900/10 border-t-2 border-green-200">
                         <TableCell className="font-bold text-lg">TOTAL</TableCell>
-                        <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.ca)}</TableCell>
-                        <TableCell className="text-right font-bold text-lg text-blue-600">
-                          {totals.directSales > 0 ? formatCurrency(totals.directSales) : '-'}
-                        </TableCell>
+                        <TableCell className="text-right font-bold text-lg">{formatCurrency(totals.ca + totals.directSales)}</TableCell>
                         <TableCell className="text-right font-bold text-lg text-purple-600">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
@@ -320,10 +313,7 @@ const CompanyDashboard = () => {
                       </TableRow>
                       <TableRow className="bg-blue-50 dark:bg-blue-900/10 border-b-2 border-blue-200">
                         <TableCell className="font-bold">MOYENNE</TableCell>
-                        <TableCell className="text-right font-semibold">{formatCurrency(moyennes.ca)}</TableCell>
-                        <TableCell className="text-right font-semibold text-blue-600">
-                          {moyennes.directSales > 0 ? formatCurrency(moyennes.directSales) : '-'}
-                        </TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(moyennes.ca + moyennes.directSales)}</TableCell>
                         <TableCell className="text-right font-semibold text-purple-600">-</TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(moyennes.achats)}</TableCell>
                         <TableCell className="text-right font-semibold text-blue-600">{formatCurrency(moyennes.marge)}</TableCell>
