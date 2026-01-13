@@ -22,11 +22,16 @@ const ContractTerminationToggle: React.FC<ContractTerminationToggleProps> = ({
   const [reason, setReason] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Only show for active or extended contracts
+  // Show for active or extended contracts (to terminate)
   const canTerminate = contract.status === contractStatuses.ACTIVE || 
                        contract.status === contractStatuses.EXTENDED;
 
-  if (!canTerminate) {
+  // Show for completed contracts with past end date (to reactivate as extended)
+  const canReactivate = contract.status === contractStatuses.COMPLETED &&
+                        contract.contract_end_date &&
+                        new Date(contract.contract_end_date) < new Date();
+
+  if (!canTerminate && !canReactivate) {
     return null;
   }
 
@@ -57,8 +62,63 @@ const ContractTerminationToggle: React.FC<ContractTerminationToggleProps> = ({
     }
   };
 
+  const handleReactivate = async () => {
+    try {
+      setIsUpdating(true);
+      
+      const success = await updateContractStatus(
+        contract.id,
+        contractStatuses.EXTENDED,
+        contract.status,
+        'Contrat réactivé en statut prolongé'
+      );
+
+      if (success) {
+        toast.success("Contrat réactivé en statut prolongé");
+        onUpdate();
+      } else {
+        toast.error("Erreur lors de la réactivation du contrat");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la réactivation:", error);
+      toast.error("Erreur lors de la réactivation du contrat");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const isExtended = contract.status === contractStatuses.EXTENDED;
 
+  // Reactivation mode for completed contracts
+  if (canReactivate) {
+    return (
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-blue-600" />
+            Réactiver le contrat
+          </CardTitle>
+          <CardDescription>
+            Ce contrat est marqué comme terminé mais sa date de fin est dépassée.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            onClick={handleReactivate}
+            disabled={isUpdating}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            {isUpdating ? "En cours..." : "Réactiver en statut Prolongé"}
+          </Button>
+          <p className="text-xs text-blue-600 mt-2">
+            Le contrat sera marqué comme "Prolongé" au lieu de "Terminé".
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Termination mode for active/extended contracts
   return (
     <>
       <Card className={isExtended ? "border-amber-200 bg-amber-50/50" : ""}>
