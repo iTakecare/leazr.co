@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { 
-  CheckCircle, Send, Package, Truck, Play, AlarmClock, XCircle
+  CheckCircle, Send, Package, Truck, Play, AlarmClock, XCircle, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -47,8 +47,16 @@ export const CONTRACT_STATUSES = {
     label: 'Actif',
     color: 'bg-green-100',
     textColor: 'text-green-700',
-    progressValue: 83,
+    progressValue: 75,
     icon: Play,
+  },
+  EXTENDED: {
+    id: contractStatuses.EXTENDED,
+    label: 'Prolongé',
+    color: 'bg-amber-100',
+    textColor: 'text-amber-700',
+    progressValue: 90,
+    icon: Clock,
   },
   COMPLETED: {
     id: contractStatuses.COMPLETED,

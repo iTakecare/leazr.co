@@ -122,3 +122,6 @@ verify_jwt = true
 
 [functions.import-historical-contracts]
 verify_jwt = true
+
+[functions.update-extended-contracts]
+verify_jwt = false
