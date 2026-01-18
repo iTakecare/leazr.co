@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface OffersKPIStatsProps {
   offers: any[];
+  activeKPIFilter: string | null;
+  onKPIClick: (filter: string) => void;
 }
 
 // Mêmes statuts que le dashboard pour "En Attente"
@@ -13,7 +15,7 @@ const PENDING_STATUSES = [
   'leaser_introduced', 'approved', 'pending'
 ];
 
-const OffersKPIStats = ({ offers }: OffersKPIStatsProps) => {
+const OffersKPIStats = ({ offers, activeKPIFilter, onKPIClick }: OffersKPIStatsProps) => {
   const stats = useMemo(() => {
     // Total = mêmes statuts que la carte "En Attente" du dashboard
     const total = offers.filter(o => 
@@ -29,20 +31,41 @@ const OffersKPIStats = ({ offers }: OffersKPIStatsProps) => {
   }, [offers]);
 
   const kpis = [
-    { icon: FileText, label: "Total", value: stats.total, bgColor: "bg-indigo-50", borderColor: "border-indigo-200", textColor: "text-indigo-600" },
-    { icon: FilePen, label: "Brouillons", value: stats.drafts, bgColor: "bg-gray-50", borderColor: "border-gray-200", textColor: "text-gray-600" },
-    { icon: FileSearch, label: "Docs demandés", value: stats.docsRequested, bgColor: "bg-orange-50", borderColor: "border-orange-200", textColor: "text-orange-600" },
-    { icon: Send, label: "Offres envoyées", value: stats.sent, bgColor: "bg-blue-50", borderColor: "border-blue-200", textColor: "text-blue-600" },
-    { icon: Building2, label: "Introduit Leaser", value: stats.leaserIntroduced, bgColor: "bg-purple-50", borderColor: "border-purple-200", textColor: "text-purple-600" },
+    { filterKey: 'total', icon: FileText, label: "Total", value: stats.total, bgColor: "bg-indigo-50", borderColor: "border-indigo-200", textColor: "text-indigo-600" },
+    { filterKey: 'drafts', icon: FilePen, label: "Brouillons", value: stats.drafts, bgColor: "bg-gray-50", borderColor: "border-gray-200", textColor: "text-gray-600" },
+    { filterKey: 'docsRequested', icon: FileSearch, label: "Docs demandés", value: stats.docsRequested, bgColor: "bg-orange-50", borderColor: "border-orange-200", textColor: "text-orange-600" },
+    { filterKey: 'sent', icon: Send, label: "Offres envoyées", value: stats.sent, bgColor: "bg-blue-50", borderColor: "border-blue-200", textColor: "text-blue-600" },
+    { filterKey: 'leaserIntroduced', icon: Building2, label: "Introduit Leaser", value: stats.leaserIntroduced, bgColor: "bg-purple-50", borderColor: "border-purple-200", textColor: "text-purple-600" },
   ];
+
+  const isActive = (filterKey: string) => {
+    if (filterKey === 'total') {
+      return !activeKPIFilter || activeKPIFilter === 'total';
+    }
+    return activeKPIFilter === filterKey;
+  };
+
+  const handleClick = (filterKey: string) => {
+    if (filterKey === 'total') {
+      onKPIClick('total');
+    } else {
+      onKPIClick(activeKPIFilter === filterKey ? 'total' : filterKey);
+    }
+  };
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
       {kpis.map((kpi) => {
         const Icon = kpi.icon;
+        const active = isActive(kpi.filterKey);
         
         return (
-          <Card key={kpi.label} className={`${kpi.bgColor} ${kpi.borderColor} border`}>
+          <Card 
+            key={kpi.filterKey} 
+            className={`${kpi.bgColor} ${kpi.borderColor} border cursor-pointer transition-all hover:shadow-md
+              ${active ? 'ring-2 ring-offset-2 ring-primary shadow-md' : 'opacity-80 hover:opacity-100'}`}
+            onClick={() => handleClick(kpi.filterKey)}
+          >
             <CardContent className="p-3 flex items-center gap-3">
               <div className={`p-2 rounded-full bg-white/50 ${kpi.textColor}`}>
                 <Icon className="h-4 w-4" />
