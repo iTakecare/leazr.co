@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { createErrorResponse, sanitizeError } from '../_shared/errorHandler.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,7 +47,7 @@ export default async function handler(req: Request) {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('Verifying token:', { token, type });
+    console.log('Verifying token:', { token: token.substring(0, 8) + '...', type });
 
     // Query the custom_auth_tokens table
     const { data: tokenData, error } = await supabase
@@ -58,12 +59,11 @@ export default async function handler(req: Request) {
       .single();
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('[INTERNAL] Database error:', error.message);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Token not found or expired',
-          details: error.message 
+          error: 'Token not found or expired'
         }),
         { 
           status: 404, 
@@ -101,7 +101,7 @@ export default async function handler(req: Request) {
       );
     }
 
-    console.log('Token verified successfully:', tokenData);
+    console.log('Token verified successfully for user:', tokenData.user_email);
 
     return new Response(
       JSON.stringify({ 
@@ -121,17 +121,7 @@ export default async function handler(req: Request) {
     );
 
   } catch (error) {
-    console.error('Error in verify-custom-token function:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'Internal server error',
-        details: error.message 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    console.error('[INTERNAL] Error in verify-custom-token function:', error);
+    return createErrorResponse(error, corsHeaders);
   }
 }
