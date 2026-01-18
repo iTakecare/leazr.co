@@ -13,6 +13,7 @@ import OffersSearch from "@/components/offers/OffersSearch";
 import OffersFilter from "@/components/offers/OffersFilter";
 import OffersLoading from "@/components/offers/OffersLoading";
 import OffersError from "@/components/offers/OffersError";
+import OffersKPIStats from "@/components/offers/OffersKPIStats";
 import { ExcelImportDialog } from "@/components/excel/ExcelImportDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -167,6 +168,8 @@ const Offers = () => {
             )}
           </div>
         </div>
+        
+        <OffersKPIStats offers={offers} />
         
         {loading ? (
           <OffersLoading />
