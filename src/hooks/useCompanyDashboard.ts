@@ -188,18 +188,42 @@ export const useCompanyDashboard = (selectedYear?: number) => {
       if (error) throw error;
 
       // Récupérer les achats depuis contract_equipment pour ces contrats (factures)
+      // IMPORTANT: Utiliser actual_purchase_date pour filtrer par année d'achat réelle
       const contractIds = [...new Set((invoices || []).map(i => i.contract_id).filter(Boolean))] as string[];
+      
+      // Créer un map contract_id -> invoice_date pour le fallback
+      const contractInvoiceDateMap = new Map<string, string>();
+      for (const inv of invoices || []) {
+        if (inv.contract_id && inv.invoice_date) {
+          contractInvoiceDateMap.set(inv.contract_id, inv.invoice_date);
+        }
+      }
       
       let invoicePurchases = 0;
       if (contractIds.length > 0) {
         const { data: equipment } = await supabase
           .from('contract_equipment')
-          .select('contract_id, purchase_price, quantity')
+          .select('contract_id, purchase_price, actual_purchase_price, actual_purchase_date, quantity')
           .in('contract_id', contractIds);
         
-        invoicePurchases = (equipment || []).reduce(
-          (sum, e) => sum + ((e.purchase_price || 0) * (e.quantity || 1)), 0
-        );
+        // Filtrer les équipements par année d'achat effective (actual_purchase_date ou invoice_date)
+        for (const eq of equipment || []) {
+          // Déterminer la date d'achat effective
+          const actualPurchaseDate = eq.actual_purchase_date 
+            ? new Date(eq.actual_purchase_date) 
+            : null;
+          const invoiceDate = eq.contract_id && contractInvoiceDateMap.has(eq.contract_id)
+            ? new Date(contractInvoiceDateMap.get(eq.contract_id)!)
+            : null;
+          
+          const effectivePurchaseDate = actualPurchaseDate || invoiceDate;
+          
+          // Ne compter que si la date d'achat effective est dans l'année sélectionnée
+          if (effectivePurchaseDate && effectivePurchaseDate.getFullYear() === year) {
+            const price = eq.actual_purchase_price || eq.purchase_price || 0;
+            invoicePurchases += price * (eq.quantity || 1);
+          }
+        }
       }
 
       const invoiceRevenue = (invoices || []).reduce((sum, i) => sum + (i.amount || 0), 0);
