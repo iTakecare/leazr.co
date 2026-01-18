@@ -7,6 +7,7 @@ export const useOfferFilters = (offers: Offer[]) => {
   const [activeTab, setActiveTab] = useState("in_progress");
   const [activeType, setActiveType] = useState("all");
   const [activeSource, setActiveSource] = useState("all");
+  const [activeKPIFilter, setActiveKPIFilter] = useState<string | null>(null);
   const [filteredOffers, setFilteredOffers] = useState<Offer[]>([]);
   
   useEffect(() => {
@@ -97,9 +98,23 @@ export const useOfferFilters = (offers: Offer[]) => {
       });
     }
     
+    // Filtre par KPI (clic sur les cartes)
+    if (activeKPIFilter && activeKPIFilter !== 'total') {
+      console.log(`Filtering by KPI: ${activeKPIFilter}`);
+      if (activeKPIFilter === 'drafts') {
+        result = result.filter(o => o.workflow_status === 'draft');
+      } else if (activeKPIFilter === 'docsRequested') {
+        result = result.filter(o => o.workflow_status === 'internal_docs_requested');
+      } else if (activeKPIFilter === 'sent') {
+        result = result.filter(o => ['sent', 'offer_send'].includes(o.workflow_status || ''));
+      } else if (activeKPIFilter === 'leaserIntroduced') {
+        result = result.filter(o => o.workflow_status === 'leaser_introduced');
+      }
+    }
+    
     console.log(`Filtering complete: ${result.length} offers remain`);
     setFilteredOffers(result);
-  }, [offers, searchTerm, activeTab, activeType, activeSource]);
+  }, [offers, searchTerm, activeTab, activeType, activeSource, activeKPIFilter]);
   
   return {
     searchTerm,
@@ -110,6 +125,8 @@ export const useOfferFilters = (offers: Offer[]) => {
     setActiveType,
     activeSource,
     setActiveSource,
+    activeKPIFilter,
+    setActiveKPIFilter,
     filteredOffers
   };
 };

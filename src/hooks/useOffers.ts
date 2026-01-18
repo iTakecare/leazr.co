@@ -25,6 +25,8 @@ export const useOffers = () => {
     setActiveType,
     activeSource,
     setActiveSource,
+    activeKPIFilter,
+    setActiveKPIFilter,
     filteredOffers
   } = useOfferFilters(offers);
 
@@ -59,6 +61,8 @@ export const useOffers = () => {
     setActiveType,
     activeSource,
     setActiveSource,
+    activeKPIFilter,
+    setActiveKPIFilter,
     isUpdatingStatus,
     isRequestingInfo,
     isGeneratingPdf,

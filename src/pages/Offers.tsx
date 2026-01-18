@@ -42,6 +42,8 @@ const Offers = () => {
     setActiveType,
     activeSource,
     setActiveSource,
+    activeKPIFilter,
+    setActiveKPIFilter,
     handleDeleteOffer,
     handleUpdateWorkflowStatus,
     isUpdatingStatus,
@@ -169,7 +171,11 @@ const Offers = () => {
           </div>
         </div>
         
-        <OffersKPIStats offers={offers} />
+        <OffersKPIStats 
+          offers={offers} 
+          activeKPIFilter={activeKPIFilter}
+          onKPIClick={setActiveKPIFilter}
+        />
         
         {loading ? (
           <OffersLoading />
