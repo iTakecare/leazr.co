@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -36,6 +37,7 @@ const CompanyDashboard = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [timeFilter, setTimeFilter] = useState('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [includeCreditNotes, setIncludeCreditNotes] = useState(false);
   const { metrics, recentActivity, overdueInvoices, isLoading, refetch } = useCompanyDashboard(selectedYear);
   const { branding } = useCompanyBranding();
   const navigate = useNavigate();
@@ -68,11 +70,14 @@ const CompanyDashboard = () => {
     };
   }) || [];
 
+  const totalCreditNotes = monthlyData.reduce((sum, m) => sum + m.creditNotes, 0);
+
   const totals = {
-    ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
+    ca: monthlyData.reduce((sum, month) => sum + month.ca, 0) - (includeCreditNotes ? totalCreditNotes : 0),
     directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
     achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
-    marge: monthlyData.reduce((sum, month) => sum + month.marge, 0),
+    marge: monthlyData.reduce((sum, month) => sum + month.marge, 0) - (includeCreditNotes ? totalCreditNotes : 0),
+    creditNotes: totalCreditNotes,
   };
 
   const moyennes = {
@@ -80,7 +85,7 @@ const CompanyDashboard = () => {
     directSales: monthlyData.length ? totals.directSales / monthlyData.length : 0,
     achats: monthlyData.length ? totals.achats / monthlyData.length : 0,
     marge: monthlyData.length ? totals.marge / monthlyData.length : 0,
-    margePercent: (totals.ca + totals.directSales) > 0 ? (totals.marge / (totals.ca + totals.directSales)) * 100 : 0
+    margePercent: totals.ca > 0 ? (totals.marge / totals.ca) * 100 : 0
   };
 
   // Traitement des statistiques par statut
@@ -197,7 +202,9 @@ const CompanyDashboard = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">CA Total</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    CA Total {includeCreditNotes && <span className="text-purple-600">(net)</span>}
+                  </p>
                   <p className="text-xl font-bold text-green-600">{formatCurrency(totals.ca)}</p>
                 </div>
                 <div className="p-2 rounded-full bg-green-500/20">
@@ -225,7 +232,9 @@ const CompanyDashboard = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Marge Brute</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Marge Brute {includeCreditNotes && <span className="text-purple-600">(net)</span>}
+                  </p>
                   <p className="text-xl font-bold text-emerald-600">{formatCurrency(totals.marge)}</p>
                 </div>
                 <div className="p-2 rounded-full bg-emerald-500/20">
@@ -265,7 +274,26 @@ const CompanyDashboard = () => {
                       <TableRow className="bg-primary/5">
                         <TableHead className="font-bold">Mois</TableHead>
                         <TableHead className="text-right font-bold">CA mensuel (€)</TableHead>
-                        <TableHead className="text-right font-bold text-purple-600">Notes de crédit (€)</TableHead>
+                        <TableHead className="text-right font-bold text-purple-600">
+                          <div className="flex items-center justify-end gap-2">
+                            <span>Notes de crédit (€)</span>
+                            <div className="flex items-center gap-1">
+                              <Checkbox 
+                                id="includeCreditNotes"
+                                checked={includeCreditNotes}
+                                onCheckedChange={(checked) => setIncludeCreditNotes(checked === true)}
+                                className="h-4 w-4"
+                              />
+                              <label 
+                                htmlFor="includeCreditNotes" 
+                                className="text-xs font-normal cursor-pointer"
+                                title="Déduire les notes de crédit du CA et de la marge"
+                              >
+                                Déduire
+                              </label>
+                            </div>
+                          </div>
+                        </TableHead>
                         <TableHead className="text-right font-bold">Achats (€)</TableHead>
                         <TableHead className="text-right font-bold">Marge brute (€)</TableHead>
                         <TableHead className="text-right font-bold">Marge (%)</TableHead>
