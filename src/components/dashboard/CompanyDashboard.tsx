@@ -73,10 +73,10 @@ const CompanyDashboard = () => {
   const totalCreditNotes = monthlyData.reduce((sum, m) => sum + m.creditNotes, 0);
 
   const totals = {
-    ca: monthlyData.reduce((sum, month) => sum + month.ca, 0) - (includeCreditNotes ? totalCreditNotes : 0),
+    ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
     directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
     achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
-    marge: monthlyData.reduce((sum, month) => sum + month.marge, 0) - (includeCreditNotes ? totalCreditNotes : 0),
+    marge: monthlyData.reduce((sum, month) => sum + month.marge, 0) + (includeCreditNotes ? totalCreditNotes : 0),
     creditNotes: totalCreditNotes,
   };
 
@@ -202,9 +202,7 @@ const CompanyDashboard = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    CA Total {includeCreditNotes && <span className="text-purple-600">(net)</span>}
-                  </p>
+                  <p className="text-sm font-medium text-muted-foreground">CA Total</p>
                   <p className="text-xl font-bold text-green-600">{formatCurrency(totals.ca)}</p>
                 </div>
                 <div className="p-2 rounded-full bg-green-500/20">
