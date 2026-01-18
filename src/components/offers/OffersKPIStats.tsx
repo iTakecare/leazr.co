@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { FileText, FilePen, FileSearch, Send } from "lucide-react";
+import { FileText, FilePen, FileSearch, Send, Building2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface OffersKPIStatsProps {
@@ -23,8 +23,9 @@ const OffersKPIStats = ({ offers }: OffersKPIStatsProps) => {
     const drafts = offers.filter(o => o.workflow_status === 'draft').length;
     const docsRequested = offers.filter(o => o.workflow_status === 'internal_docs_requested').length;
     const sent = offers.filter(o => ['sent', 'offer_send'].includes(o.workflow_status || '')).length;
+    const leaserIntroduced = offers.filter(o => o.workflow_status === 'leaser_introduced').length;
     
-    return { total, drafts, docsRequested, sent };
+    return { total, drafts, docsRequested, sent, leaserIntroduced };
   }, [offers]);
 
   const kpis = [
@@ -32,10 +33,11 @@ const OffersKPIStats = ({ offers }: OffersKPIStatsProps) => {
     { icon: FilePen, label: "Brouillons", value: stats.drafts, bgColor: "bg-gray-50", borderColor: "border-gray-200", textColor: "text-gray-600" },
     { icon: FileSearch, label: "Docs demandés", value: stats.docsRequested, bgColor: "bg-orange-50", borderColor: "border-orange-200", textColor: "text-orange-600" },
     { icon: Send, label: "Offres envoyées", value: stats.sent, bgColor: "bg-blue-50", borderColor: "border-blue-200", textColor: "text-blue-600" },
+    { icon: Building2, label: "Introduit Leaser", value: stats.leaserIntroduced, bgColor: "bg-purple-50", borderColor: "border-purple-200", textColor: "text-purple-600" },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
       {kpis.map((kpi) => {
         const Icon = kpi.icon;
         
