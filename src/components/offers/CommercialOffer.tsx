@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import './CommercialOffer.css';
 import './CommercialOfferPDFMode.css';
 
@@ -277,10 +278,10 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
             </h1>
             <div className="subtitle">
               {contentBlocks?.cover?.greeting && (
-                <div dangerouslySetInnerHTML={{ __html: contentBlocks.cover.greeting }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentBlocks.cover.greeting) }} />
               )}
               {contentBlocks?.cover?.introduction && (
-                <div dangerouslySetInnerHTML={{ __html: contentBlocks.cover.introduction }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentBlocks.cover.introduction) }} />
               )}
             </div>
             
@@ -305,7 +306,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             {contentBlocks?.cover?.validity ? (
-              <div dangerouslySetInnerHTML={{ __html: contentBlocks.cover.validity }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentBlocks.cover.validity) }} />
             ) : (
               <p>
                 <strong>Attention :</strong> Cette offre est valable {validityDays} jours à compter de la date d'émission.
@@ -1014,7 +1015,7 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                   columnCount: 2,
                   columnGap: '1rem',
                 }}
-                dangerouslySetInnerHTML={{ __html: contentBlocks.conditions.sale_general_conditions }} 
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentBlocks.conditions.sale_general_conditions) }} 
               />
             ) : (
               <div style={{ fontSize: '7.5px', lineHeight: '1.2', color: '#374151', columnCount: 2, columnGap: '1rem' }}>
