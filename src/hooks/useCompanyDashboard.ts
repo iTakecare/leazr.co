@@ -426,7 +426,7 @@ export const useCompanyDashboard = (selectedYear?: number) => {
         .from('invoices')
         .select('id, amount')
         .eq('company_id', companyId)
-        .neq('status', 'paid')
+        .in('status', ['sent', 'pending'])
         .lte('due_date', today);
       
       if (error) throw error;
