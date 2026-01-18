@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -110,66 +110,81 @@ const calculateMarginAmountForExcel = (offer: any): number => {
   return financedAmount - purchasePrice;
 };
 
-const applyCurrencyFormat = (worksheet: XLSX.WorkSheet, columnIndices: number[]) => {
-  const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-  const currencyFormat = '#,##0.00 €';
+export const exportOffersToExcel = async (offers: any[], filename = 'demandes') => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'iTakecare';
+  workbook.created = new Date();
   
-  for (let row = range.s.r + 1; row <= range.e.r; row++) {
-    for (const col of columnIndices) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-      const cell = worksheet[cellAddress];
-      if (cell && typeof cell.v === 'number') {
-        cell.z = currencyFormat;
-        cell.t = 'n';
-      }
-    }
-  }
-};
+  const worksheet = workbook.addWorksheet('Demandes');
 
-export const exportOffersToExcel = (offers: any[], filename = 'demandes') => {
-  const excelData = offers.map(offer => ({
-    'N° Dossier': offer.dossier_number || '-',
-    'Date': offer.created_at ? format(new Date(offer.created_at), 'dd/MM/yyyy', { locale: fr }) : '-',
-    'Client': offer.client_name?.split(' - ')[0] || '-',
-    'Entreprise': offer.clients?.company || '-',
-    'Type': getTypeLabel(offer.type),
-    'Équipement': formatEquipmentForExcel(offer),
-    'Source': offer.source || '-',
-    'Bailleur': offer.leaser_name || '-',
-    'Montant achat (€)': calculatePurchasePriceFromEquipment(offer),
-    'CA potentiel (€)': calculateFinancedAmountForExcel(offer),
-    'Marge potentielle (%)': offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
-    'Marge potentielle (€)': calculateMarginAmountForExcel(offer),
-    'Mensualité (€)': offer.monthly_payment || 0,
-    'Statut': getStatusLabel(offer.workflow_status),
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  
-  // Appliquer le format devise aux colonnes de montants (indices 8, 9, 11, 12)
-  applyCurrencyFormat(worksheet, [8, 9, 11, 12]);
-  
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 15 }, // N° Dossier
-    { wch: 12 }, // Date
-    { wch: 20 }, // Client
-    { wch: 20 }, // Entreprise
-    { wch: 18 }, // Type
-    { wch: 40 }, // Équipement
-    { wch: 12 }, // Source
-    { wch: 15 }, // Bailleur
-    { wch: 15 }, // Montant achat
-    { wch: 15 }, // CA potentiel
-    { wch: 18 }, // Marge potentielle %
-    { wch: 18 }, // Marge potentielle €
-    { wch: 12 }, // Mensualité
-    { wch: 15 }, // Statut
+  // Define columns with headers and widths
+  worksheet.columns = [
+    { header: 'N° Dossier', key: 'dossier_number', width: 15 },
+    { header: 'Date', key: 'date', width: 12 },
+    { header: 'Client', key: 'client', width: 20 },
+    { header: 'Entreprise', key: 'entreprise', width: 20 },
+    { header: 'Type', key: 'type', width: 18 },
+    { header: 'Équipement', key: 'equipment', width: 40 },
+    { header: 'Source', key: 'source', width: 12 },
+    { header: 'Bailleur', key: 'bailleur', width: 15 },
+    { header: 'Montant achat (€)', key: 'montant_achat', width: 15 },
+    { header: 'CA potentiel (€)', key: 'ca_potentiel', width: 15 },
+    { header: 'Marge potentielle (%)', key: 'marge_percent', width: 18 },
+    { header: 'Marge potentielle (€)', key: 'marge_euros', width: 18 },
+    { header: 'Mensualité (€)', key: 'mensualite', width: 12 },
+    { header: 'Statut', key: 'statut', width: 15 },
   ];
 
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Demandes');
+  // Style header row
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  };
 
+  // Add data rows
+  offers.forEach(offer => {
+    const row = worksheet.addRow({
+      dossier_number: offer.dossier_number || '-',
+      date: offer.created_at ? format(new Date(offer.created_at), 'dd/MM/yyyy', { locale: fr }) : '-',
+      client: offer.client_name?.split(' - ')[0] || '-',
+      entreprise: offer.clients?.company || '-',
+      type: getTypeLabel(offer.type),
+      equipment: formatEquipmentForExcel(offer),
+      source: offer.source || '-',
+      bailleur: offer.leaser_name || '-',
+      montant_achat: calculatePurchasePriceFromEquipment(offer),
+      ca_potentiel: calculateFinancedAmountForExcel(offer),
+      marge_percent: offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
+      marge_euros: calculateMarginAmountForExcel(offer),
+      mensualite: offer.monthly_payment || 0,
+      statut: getStatusLabel(offer.workflow_status),
+    });
+
+    // Apply currency format to monetary columns
+    const currencyColumns = [9, 10, 12, 13]; // montant_achat, ca_potentiel, marge_euros, mensualite
+    currencyColumns.forEach(colIndex => {
+      const cell = row.getCell(colIndex);
+      if (typeof cell.value === 'number') {
+        cell.numFmt = '#,##0.00 €';
+      }
+    });
+  });
+
+  // Generate and download file
   const dateStr = format(new Date(), 'yyyy-MM-dd');
-  XLSX.writeFile(workbook, `${filename}_${dateStr}.xlsx`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  
+  const blob = new Blob([buffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  });
+  
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}_${dateStr}.xlsx`;
+  link.click();
+  window.URL.revokeObjectURL(url);
 };
