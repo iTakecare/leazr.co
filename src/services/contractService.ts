@@ -41,6 +41,7 @@ export interface Contract {
   financed_amount?: number;
   amount?: number;
   lease_duration?: number;
+  contract_duration?: number;
   equipment_description?: string;
   status: string;
   leaser_name: string;
@@ -68,6 +69,7 @@ export interface ContractEquipment {
   contract_id: string;
   title: string;
   purchase_price: number;
+  actual_purchase_price?: number | null;
   quantity: number;
   margin: number;
   monthly_payment?: number;
