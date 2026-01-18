@@ -5,6 +5,7 @@ import { Pencil, Check, X, FileText, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+import DOMPurify from 'dompurify';
 
 interface ContractSpecialProvisionsCardProps {
   contractId: string;
@@ -142,7 +143,7 @@ const ContractSpecialProvisionsCard: React.FC<ContractSpecialProvisionsCardProps
         ) : (
           <div 
             className="prose prose-sm max-w-none text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
           />
         )}
       </CardContent>

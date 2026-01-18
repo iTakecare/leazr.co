@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { generateCommercialOfferPDF } from "@/services/commercialOfferPdfService";
+import DOMPurify from 'dompurify';
 
 interface AdminUser {
   id: string;
@@ -538,7 +539,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
               ) : (
                 <div 
                   className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml) }}
                 />
               )}
             </div>
