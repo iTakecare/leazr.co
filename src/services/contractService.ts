@@ -531,7 +531,8 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         *, 
         clients(name, email, company),
         offers!inner(dossier_number, down_payment, coefficient, financed_amount),
-        contract_equipment(id, title, monthly_payment, quantity)
+        contract_equipment(id, title, monthly_payment, quantity),
+        leasers(logo_url)
       `)
     if (!includeCompleted) {
       query = query.neq('status', contractStatuses.COMPLETED);
@@ -573,6 +574,9 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
           .join(', ');
       }
       
+      // Utiliser le logo du leaser comme fallback si leaser_logo est null
+      const effectiveLeaserLogo = contract.leaser_logo || contract.leasers?.logo_url || null;
+      
       return {
         ...contract,
         equipment_description: equipmentDescription,
@@ -582,7 +586,9 @@ export const getContracts = async (includeCompleted = true): Promise<Contract[]>
         financed_amount: financedAmount,
         // Utiliser le montant calculé s'il y a des équipements, sinon garder la valeur stockée
         monthly_payment: baseMonthlyPayment,
-        adjusted_monthly_payment: adjustedMonthlyPayment
+        adjusted_monthly_payment: adjustedMonthlyPayment,
+        // Fallback vers le logo du leaser si leaser_logo du contrat est null
+        leaser_logo: effectiveLeaserLogo
       };
     }) || [];
 
