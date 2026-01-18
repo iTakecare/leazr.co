@@ -16,6 +16,7 @@ interface OfferEditConfigurationProps {
   currentType?: string;
   currentSector?: string;
   isPurchase?: boolean;
+  currentWorkflowId?: string;
   onUpdate?: () => void;
 }
 
@@ -41,11 +42,13 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   currentType,
   currentSector,
   isPurchase,
+  currentWorkflowId,
   onUpdate
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSource, setSelectedSource] = useState(currentSource || '');
   const [selectedSector, setSelectedSector] = useState(currentSector || '');
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState(currentWorkflowId || '');
   
   const { mutateAsync: updateOffer, isPending: isUpdating } = useUpdateOfferMutation();
   
@@ -53,24 +56,29 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   const filterType = isPurchase ? 'purchase_request' : undefined;
   const { workflows, loading: workflowsLoading } = useAvailableWorkflows(filterType);
 
-  // Initialiser selectedWorkflowId basé sur le type actuel une fois les workflows chargés
-  const matchingWorkflow = workflows.find(w => w.offer_type === currentType);
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
-  
-  // Mettre à jour selectedWorkflowId quand les workflows sont chargés
+  // Mettre à jour selectedWorkflowId quand les workflows sont chargés ou quand currentWorkflowId change
   React.useEffect(() => {
-    if (workflows.length > 0 && !selectedWorkflowId) {
+    if (currentWorkflowId) {
+      setSelectedWorkflowId(currentWorkflowId);
+    } else if (workflows.length > 0 && !selectedWorkflowId) {
+      // Fallback: si pas de workflow ID mais workflows chargés, trouver par type
       const match = workflows.find(w => w.offer_type === currentType);
       if (match) {
         setSelectedWorkflowId(match.value);
       }
     }
-  }, [workflows, currentType, selectedWorkflowId]);
+  }, [workflows, currentType, currentWorkflowId]);
 
-  // Trouver le label du type actuel (basé sur offer_type)
-  const getTypeLabel = (offerType?: string) => {
-    const workflow = workflows.find(w => w.offer_type === offerType);
-    return workflow?.label || translateOfferType(offerType || '');
+  // Trouver le label du type actuel (basé sur workflow_id ou offer_type)
+  const getTypeLabel = (workflowId?: string, offerType?: string) => {
+    // D'abord essayer de trouver par workflow ID
+    if (workflowId) {
+      const workflow = workflows.find(w => w.value === workflowId);
+      if (workflow) return workflow.label;
+    }
+    // Fallback sur offer_type
+    const workflowByType = workflows.find(w => w.offer_type === offerType);
+    return workflowByType?.label || translateOfferType(offerType || '');
   };
 
   const handleSave = async () => {
@@ -81,10 +89,13 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
         updates.source = selectedSource;
       }
       
-      // Vérifier si le workflow a changé - on met à jour uniquement le type
-      const selectedWorkflow = workflows.find(w => w.value === selectedWorkflowId);
-      if (selectedWorkflow && selectedWorkflow.offer_type !== currentType) {
-        updates.type = selectedWorkflow.offer_type;
+      // Vérifier si le workflow a changé
+      if (selectedWorkflowId !== currentWorkflowId) {
+        const selectedWorkflow = workflows.find(w => w.value === selectedWorkflowId);
+        if (selectedWorkflow) {
+          updates.type = selectedWorkflow.offer_type;
+          updates.workflow_template_id = selectedWorkflowId;
+        }
       }
       
       if (selectedSector !== currentSector) {
@@ -109,8 +120,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
 
   const handleCancel = () => {
     setSelectedSource(currentSource || '');
-    const match = workflows.find(w => w.offer_type === currentType);
-    setSelectedWorkflowId(match?.value || '');
+    setSelectedWorkflowId(currentWorkflowId || '');
     setSelectedSector(currentSector || '');
     setIsEditing(false);
   };
@@ -195,7 +205,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
             )
           ) : (
             <div>
-              <Badge variant="outline">{getTypeLabel(currentType)}</Badge>
+              <Badge variant="outline">{getTypeLabel(currentWorkflowId, currentType)}</Badge>
             </div>
           )}
         </div>

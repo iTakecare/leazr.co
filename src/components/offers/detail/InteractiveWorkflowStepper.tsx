@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkflowForOfferType } from "@/hooks/workflows/useWorkflows";
+import { useWorkflowSteps } from "@/hooks/workflows/useWorkflowSteps";
 import type { OfferType } from "@/types/workflow";
 import EmailConfirmationModal from "../EmailConfirmationModal";
 import { sendLeasingAcceptanceEmail } from "@/services/offers/offerEmail";
@@ -52,12 +53,24 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   const offerType = (offer?.type || 'client_request') as OfferType;
   const companyId = offer?.company_id || user?.company;
   const isPurchase = offer?.is_purchase === true;
+  const workflowTemplateId = offer?.workflow_template_id;
   
-  const { steps: workflowSteps, loading: workflowLoading } = useWorkflowForOfferType(
+  // Si l'offre a un workflow_template_id spécifique, charger ses étapes
+  const { steps: templateSteps, loading: templateLoading } = useWorkflowSteps(workflowTemplateId);
+  
+  // Sinon, utiliser le workflow par défaut basé sur le type
+  const { steps: defaultWorkflowSteps, loading: defaultLoading } = useWorkflowForOfferType(
     companyId, 
     offerType,
     isPurchase
   );
+
+  // Utiliser les étapes du template spécifique si disponible, sinon le workflow par défaut
+  const workflowSteps = workflowTemplateId && templateSteps.length > 0 
+    ? templateSteps 
+    : defaultWorkflowSteps;
+  
+  const workflowLoading = workflowTemplateId ? templateLoading : defaultLoading;
 
   const steps = workflowSteps.map(step => ({
     key: step.step_key,
@@ -81,6 +94,11 @@ const InteractiveWorkflowStepper: React.FC<InteractiveWorkflowStepperProps> = ({
   ];
 
   const activeSteps = workflowLoading || steps.length === 0 ? defaultSteps : steps;
+  
+  console.log("🔄 InteractiveWorkflowStepper - workflowTemplateId:", workflowTemplateId, 
+    "templateSteps:", templateSteps.length, 
+    "defaultSteps:", defaultWorkflowSteps.length,
+    "using:", workflowTemplateId && templateSteps.length > 0 ? "template" : "default");
 
   useEffect(() => {
     if (showEmailModal && (!offerDataForModal || !offerDataForModal?.company_id)) {
