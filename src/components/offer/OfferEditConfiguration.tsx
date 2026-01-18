@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
-import { Edit3, Save, X } from 'lucide-react';
+import { Edit3, Save, X, Loader2 } from 'lucide-react';
 import { translateOfferType } from '@/utils/offerTypeTranslator';
 import { useUpdateOfferMutation } from '@/hooks/offers/useOffersQuery';
 import { BUSINESS_SECTORS, getBusinessSectorLabel } from '@/constants/businessSectors';
+import { useAvailableWorkflows } from '@/hooks/useAvailableWorkflows';
 
 interface OfferEditConfigurationProps {
   offerId: string;
@@ -28,15 +29,6 @@ const SOURCE_OPTIONS = [
   { value: 'other', label: 'Autre' }
 ];
 
-const TYPE_OPTIONS = [
-  { value: 'client_request', label: 'Demande client' },
-  { value: 'web_request', label: 'Dem. web - standard' },
-  { value: 'custom_pack_request', label: 'Dem. web - pack perso' },
-  { value: 'ambassador_offer', label: 'Demande ambassadeur' },
-  { value: 'purchase_request', label: 'Demande Achat' },
-  { value: 'self_leasing', label: 'Location propre' }
-];
-
 const SECTOR_OPTIONS = BUSINESS_SECTORS.map(sector => ({
   value: sector.value,
   label: sector.label
@@ -55,6 +47,13 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   const [selectedSector, setSelectedSector] = useState(currentSector || '');
   
   const { mutateAsync: updateOffer, isPending: isUpdating } = useUpdateOfferMutation();
+  const { workflows, loading: workflowsLoading } = useAvailableWorkflows();
+
+  // Trouver le label du type actuel
+  const getTypeLabel = (value: string) => {
+    const workflow = workflows.find(w => w.offer_type === value);
+    return workflow?.label || translateOfferType(value);
+  };
 
   const handleSave = async () => {
     try {
@@ -154,21 +153,28 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
             Type d'offre
           </label>
           {isEditing ? (
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un type" />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            workflowsLoading ? (
+              <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Chargement...</span>
+              </div>
+            ) : (
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflows.map((workflow) => (
+                    <SelectItem key={workflow.offer_type} value={workflow.offer_type}>
+                      {workflow.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
           ) : (
             <div>
-              <Badge variant="outline">{translateOfferType(currentType)}</Badge>
+              <Badge variant="outline">{getTypeLabel(currentType || '')}</Badge>
             </div>
           )}
         </div>
