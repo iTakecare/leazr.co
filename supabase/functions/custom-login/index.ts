@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { createErrorResponse } from '../_shared/errorHandler.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
       password = validated.password;
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
-        console.log('Validation failed:', validationError.errors);
+        console.log('[INTERNAL] Validation failed:', validationError.errors);
         return new Response(
           JSON.stringify({ error: 'Email ou mot de passe invalide' }),
           { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -49,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw validationError;
     }
 
-    console.log(`Tentative de connexion pour ${email}`);
+    console.log(`Login attempt for user: ${email.substring(0, 3)}***`);
 
     // 1. Récupérer l'utilisateur par email
     const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
@@ -92,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (profileError) {
-      console.error('Erreur récupération profil:', profileError);
+      console.error('[INTERNAL] Profile fetch error:', profileError.message);
     }
 
     // 4. Enrichir les données utilisateur avec le profil
@@ -120,14 +121,8 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error('Erreur dans custom-login:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
+    console.error('[INTERNAL] Error in custom-login:', error);
+    return createErrorResponse(error, corsHeaders);
   }
 };
 
