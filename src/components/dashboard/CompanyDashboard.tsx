@@ -310,8 +310,14 @@ const CompanyDashboard = () => {
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(month.achats)}</TableCell>
-                            <TableCell className="text-right font-bold text-green-600">{formatCurrency(month.marge)}</TableCell>
-                            <TableCell className="text-right font-bold text-green-600">{Number(month.margePercent).toFixed(1)}%</TableCell>
+                            <TableCell className="text-right font-bold text-green-600">
+                              {formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-green-600">
+                              {month.ca > 0 
+                                ? (((month.marge + (includeCreditNotes ? month.creditNotes : 0)) / month.ca) * 100).toFixed(1)
+                                : '0.0'}%
+                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
