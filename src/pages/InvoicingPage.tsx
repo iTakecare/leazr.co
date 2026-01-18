@@ -6,6 +6,7 @@ import { Calculator, FileText, Plus, Search, Eye, MoreHorizontal, Receipt, BarCh
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/SortableTableHead";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -127,6 +128,15 @@ const InvoicingPage = () => {
       credited: invoices.filter(inv => isCredited(inv)).length,
     };
   }, [invoices]);
+
+  const handleSort = (column: InvoiceSortBy) => {
+    if (sortBy === column) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
 
   const sortedInvoices = useMemo(() => {
     return [...filteredInvoices].sort((a, b) => {
@@ -337,14 +347,44 @@ const InvoicingPage = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Numéro</TableHead>
+                          <SortableTableHead
+                            column="invoice_number"
+                            label="Numéro"
+                            currentSort={sortBy}
+                            direction={sortOrder}
+                            onSort={handleSort}
+                          />
                           <TableHead>Type</TableHead>
-                          <TableHead>Client</TableHead>
+                          <SortableTableHead
+                            column="client"
+                            label="Client"
+                            currentSort={sortBy}
+                            direction={sortOrder}
+                            onSort={handleSort}
+                          />
                           <TableHead>Société</TableHead>
                           <TableHead>Bailleur / Destinataire</TableHead>
-                          <TableHead>Montant</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Date de facture</TableHead>
+                          <SortableTableHead
+                            column="amount"
+                            label="Montant"
+                            currentSort={sortBy}
+                            direction={sortOrder}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            column="status"
+                            label="Statut"
+                            currentSort={sortBy}
+                            direction={sortOrder}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            column="invoice_date"
+                            label="Date de facture"
+                            currentSort={sortBy}
+                            direction={sortOrder}
+                            onSort={handleSort}
+                          />
                           <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>

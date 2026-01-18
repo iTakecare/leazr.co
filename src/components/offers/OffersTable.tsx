@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/SortableTableHead";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -59,6 +60,8 @@ import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, 
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
+
+type OfferSortColumn = 'dossier_number' | 'date' | 'client' | 'company' | 'monthly_payment' | 'status';
 
 // Fonction pour extraire le nom et l'entreprise depuis client_name
 const parseClientName = (clientName: string, clientsData?: any) => {
@@ -124,6 +127,19 @@ const OffersTable: React.FC<OffersTableProps> = ({
     offer: any;
     allReminders: AllReminders;
   } | null>(null);
+  
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<OfferSortColumn>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  const handleSort = (column: OfferSortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
   
   // Calculate reminders for all offers
   const offersReminders = useOffersReminders(offers, sentReminders);
@@ -249,7 +265,35 @@ const OffersTable: React.FC<OffersTableProps> = ({
     [computedOffers]
   );
 
-  if (!computedOffers.length) {
+  // Sort computed offers
+  const sortedOffers = useMemo(() => {
+    return [...computedOffers].sort((a, b) => {
+      let comparison = 0;
+      switch (sortColumn) {
+        case 'dossier_number':
+          comparison = (a.dossier_number || '').localeCompare(b.dossier_number || '', 'fr', { numeric: true });
+          break;
+        case 'date':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'client':
+          comparison = (a.clientDisplayName || '').localeCompare(b.clientDisplayName || '', 'fr');
+          break;
+        case 'company':
+          comparison = (a.clientCompanyName || '').localeCompare(b.clientCompanyName || '', 'fr');
+          break;
+        case 'monthly_payment':
+          comparison = (a.adjustedMonthlyPayment || 0) - (b.adjustedMonthlyPayment || 0);
+          break;
+        case 'status':
+          comparison = (a.workflow_status || '').localeCompare(b.workflow_status || '', 'fr');
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [computedOffers, sortColumn, sortDirection]);
+
+  if (!sortedOffers.length) {
     return (
       <div className="text-center p-8 bg-gray-50 rounded-md">
         <p className="text-gray-500">Aucune offre trouvée.</p>
@@ -264,10 +308,38 @@ const OffersTable: React.FC<OffersTableProps> = ({
           <Table className={`${isAmbassador() ? 'min-w-[900px]' : 'min-w-[1400px]'} text-[11px]`}>
             <TableHeader>
               <TableRow className="h-9">
-                <TableHead className="font-mono text-[10px] w-[110px]">N° Demande</TableHead>
-                <TableHead className="text-[10px] w-[75px] hidden lg:table-cell">Date offre</TableHead>
-                <TableHead className="w-[60px] text-[10px]">Client</TableHead>
-                <TableHead className="text-[10px] w-[100px] hidden lg:table-cell">Entreprise</TableHead>
+                <SortableTableHead
+                  column="dossier_number"
+                  label="N° Demande"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="font-mono text-[10px] w-[110px]"
+                />
+                <SortableTableHead
+                  column="date"
+                  label="Date offre"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-[10px] w-[75px] hidden lg:table-cell"
+                />
+                <SortableTableHead
+                  column="client"
+                  label="Client"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="w-[60px] text-[10px]"
+                />
+                <SortableTableHead
+                  column="company"
+                  label="Entreprise"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-[10px] w-[100px] hidden lg:table-cell"
+                />
                 <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
                 <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
                 <TableHead className="text-[10px] w-[70px] hidden xl:table-cell">Source</TableHead>
@@ -277,14 +349,28 @@ const OffersTable: React.FC<OffersTableProps> = ({
                 {showMarginColumn && <TableHead className="text-right text-[10px] w-[80px] hidden lg:table-cell">Marge €</TableHead>}
                 {showMarginColumn && <TableHead className="text-right text-[10px] w-[70px] hidden xl:table-cell">Marge %</TableHead>}
                 {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-[10px] w-[85px] hidden xl:table-cell">Comm.</TableHead>}
-                <TableHead className="text-right text-[10px] w-[85px]">Mensualité</TableHead>
-                <TableHead className="text-[10px] w-[90px]">Statut</TableHead>
+                <SortableTableHead
+                  column="monthly_payment"
+                  label="Mensualité"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-right text-[10px] w-[85px]"
+                />
+                <SortableTableHead
+                  column="status"
+                  label="Statut"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-[10px] w-[90px]"
+                />
                 <TableHead className="text-[10px] w-[80px]">Rappel</TableHead>
                 <TableHead className="text-right w-[55px] sticky right-0 bg-background text-[10px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {computedOffers.map((offer) => (
+              {sortedOffers.map((offer) => (
                 <TableRow key={offer.id} className="h-10">
                   {/* Numéro de demande */}
                   <TableCell className="font-mono text-[11px] py-2">
