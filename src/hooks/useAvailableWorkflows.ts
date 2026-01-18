@@ -15,17 +15,30 @@ export const useAvailableWorkflows = () => {
 
   useEffect(() => {
     const fetchWorkflows = async () => {
-      const companyId = user?.company;
-      if (!companyId) {
+      if (!user?.id) {
         setLoading(false);
         return;
       }
       
       const supabase = getSupabaseClient();
+      
+      // D'abord récupérer le company_id depuis le profil
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError || !profile?.company_id) {
+        console.error('Erreur récupération company_id:', profileError?.message);
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('workflow_templates')
         .select('id, name, offer_type')
-        .eq('company_id', companyId)
+        .eq('company_id', profile.company_id)
         .eq('is_active', true)
         .eq('is_for_contracts', false)
         .order('name');
@@ -49,7 +62,7 @@ export const useAvailableWorkflows = () => {
     };
 
     fetchWorkflows();
-  }, [user?.company]);
+  }, [user?.id]);
 
   return { workflows, loading };
 };
