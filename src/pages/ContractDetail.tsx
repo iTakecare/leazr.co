@@ -13,6 +13,7 @@ import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
+import ContractBreakevenCard from "@/components/contracts/ContractBreakevenCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -158,6 +159,20 @@ const ContractDetail = () => {
                 contract={contract}
                 onContractUpdated={refetch}
               />
+
+              {/* Carte rentabilité breakeven - self-leasing uniquement */}
+              {contract.is_self_leasing && (
+                <ContractBreakevenCard 
+                  contract={{
+                    monthly_payment: contract.monthly_payment || 0,
+                    contract_start_date: contract.contract_start_date || null,
+                    contract_duration: contract.contract_duration || contract.lease_duration || null
+                  }}
+                  equipmentCost={equipment.reduce((sum, eq) => 
+                    sum + (((eq.actual_purchase_price ?? eq.purchase_price) || 0) * (eq.quantity || 1)), 0
+                  )}
+                />
+              )}
 
               {/* Toggle de terminaison - visible pour contrats actifs/prolongés */}
               <ContractTerminationToggle 
