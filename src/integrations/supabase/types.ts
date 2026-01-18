@@ -4698,6 +4698,7 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           workflow_status: string | null
+          workflow_template_id: string | null
         }
         Insert: {
           ambassador_id?: string | null
@@ -4750,6 +4751,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           workflow_status?: string | null
+          workflow_template_id?: string | null
         }
         Update: {
           ambassador_id?: string | null
@@ -4802,6 +4804,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           workflow_status?: string | null
+          workflow_template_id?: string | null
         }
         Relationships: [
           {
@@ -4837,6 +4840,13 @@ export type Database = {
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "product_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_workflow_template_id_fkey"
+            columns: ["workflow_template_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -7450,6 +7460,7 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           workflow_status: string | null
+          workflow_template_id: string | null
         }[]
         SetofOptions: {
           from: "*"
