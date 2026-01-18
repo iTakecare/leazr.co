@@ -69,8 +69,10 @@ export const getDefaultSettings = (): PlatformSettings => ({
  */
 export const getPublicPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
+    // 🔒 SECURITY: Query the public VIEW which only contains non-sensitive columns
+    // The base table is protected by RLS - anon users cannot access it directly
     const { data, error } = await supabase
-      .from('platform_settings')
+      .from('platform_settings_public')
       .select('*')
       .limit(1)
       .maybeSingle();
@@ -84,13 +86,13 @@ export const getPublicPlatformSettings = async (): Promise<PlatformSettings | nu
       return getDefaultSettings();
     }
 
-    // 🔒 SECURITY: Sensitive fields are explicitly set to empty strings for public access
+    // Return only public branding data - sensitive fields are not in the view
     return {
       company_name: data.company_name || 'Leazr',
-      company_description: '', // 🔒 RESTRICTED: Requires authentication
-      company_address: '', // 🔒 RESTRICTED: Requires authentication
-      company_phone: '', // 🔒 RESTRICTED: Requires authentication
-      company_email: '', // 🔒 RESTRICTED: Requires authentication
+      company_description: '', // Not available in public view
+      company_address: '', // Not available in public view
+      company_phone: '', // Not available in public view
+      company_email: '', // Not available in public view
       logo_url: data.logo_url || '/leazr-logo.png',
       primary_color: data.primary_color || '#3b82f6',
       secondary_color: data.secondary_color || '#64748b',
