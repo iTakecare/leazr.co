@@ -70,13 +70,23 @@ const ContractWorkflowPanel: React.FC<ContractWorkflowPanelProps> = ({ contract,
   ];
 
   const getCurrentStepIndex = () => {
-    // Check signature_status for signed contracts (using any to access dynamic properties)
+    // D'abord chercher l'index basé sur le statut réel du contrat
+    const statusIndex = workflowSteps.findIndex(step => step.id === contract.status);
+    
+    // Si le statut est trouvé et est un statut avancé (pas juste draft/pending), l'utiliser
+    if (statusIndex >= 0) {
+      return statusIndex;
+    }
+    
+    // Fallback : vérifier signature_status pour les contrats sans status standard
     const contractAny = contract as any;
-    if (contractAny.signature_status === 'signed' || contract.status === 'signed') {
+    if (contractAny.signature_status === 'signed') {
       const signedIndex = workflowSteps.findIndex(step => step.id === contractStatuses.CONTRACT_SIGNED);
       if (signedIndex >= 0) return signedIndex;
     }
-    return workflowSteps.findIndex(step => step.id === contract.status);
+    
+    // Par défaut retourner 0 (première étape)
+    return 0;
   };
 
   const getStepStatus = (stepIndex: number) => {
