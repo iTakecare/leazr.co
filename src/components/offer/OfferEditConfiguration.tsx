@@ -15,6 +15,8 @@ interface OfferEditConfigurationProps {
   currentSource?: string;
   currentType?: string;
   currentSector?: string;
+  isPurchase?: boolean;
+  currentWorkflowId?: string;
   onUpdate?: () => void;
 }
 
@@ -39,20 +41,28 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
   currentSource,
   currentType,
   currentSector,
+  isPurchase,
+  currentWorkflowId,
   onUpdate
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSource, setSelectedSource] = useState(currentSource || '');
-  const [selectedType, setSelectedType] = useState(currentType || '');
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState(currentWorkflowId || '');
   const [selectedSector, setSelectedSector] = useState(currentSector || '');
   
   const { mutateAsync: updateOffer, isPending: isUpdating } = useUpdateOfferMutation();
-  const { workflows, loading: workflowsLoading } = useAvailableWorkflows();
+  
+  // Filtrer par type d'offre : purchase_request pour achat, sinon tous les workflows
+  const filterType = isPurchase ? 'purchase_request' : undefined;
+  const { workflows, loading: workflowsLoading } = useAvailableWorkflows(filterType);
 
-  // Trouver le label du type actuel
-  const getTypeLabel = (value: string) => {
-    const workflow = workflows.find(w => w.offer_type === value);
-    return workflow?.label || translateOfferType(value);
+  // Trouver le label du type actuel (basé sur workflow ID ou offer_type)
+  const getTypeLabel = (workflowId: string, offerType?: string) => {
+    const workflow = workflows.find(w => w.value === workflowId);
+    if (workflow) return workflow.label;
+    // Fallback sur offer_type si pas de workflow trouvé
+    const workflowByType = workflows.find(w => w.offer_type === offerType);
+    return workflowByType?.label || translateOfferType(offerType || '');
   };
 
   const handleSave = async () => {
@@ -63,8 +73,13 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
         updates.source = selectedSource;
       }
       
-      if (selectedType !== currentType) {
-        updates.type = selectedType;
+      // Vérifier si le workflow a changé
+      if (selectedWorkflowId !== currentWorkflowId) {
+        const selectedWorkflow = workflows.find(w => w.value === selectedWorkflowId);
+        if (selectedWorkflow) {
+          updates.type = selectedWorkflow.offer_type;
+          updates.workflow_template_id = selectedWorkflowId;
+        }
       }
       
       if (selectedSector !== currentSector) {
@@ -89,7 +104,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
 
   const handleCancel = () => {
     setSelectedSource(currentSource || '');
-    setSelectedType(currentType || '');
+    setSelectedWorkflowId(currentWorkflowId || '');
     setSelectedSector(currentSector || '');
     setIsEditing(false);
   };
@@ -159,13 +174,13 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
                 <span className="text-sm text-muted-foreground">Chargement...</span>
               </div>
             ) : (
-              <Select value={selectedType} onValueChange={setSelectedType}>
+              <Select value={selectedWorkflowId} onValueChange={setSelectedWorkflowId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un type" />
                 </SelectTrigger>
                 <SelectContent>
                   {workflows.map((workflow) => (
-                    <SelectItem key={workflow.offer_type} value={workflow.offer_type}>
+                    <SelectItem key={workflow.value} value={workflow.value}>
                       {workflow.label}
                     </SelectItem>
                   ))}
@@ -174,7 +189,7 @@ const OfferEditConfiguration: React.FC<OfferEditConfigurationProps> = ({
             )
           ) : (
             <div>
-              <Badge variant="outline">{getTypeLabel(currentType || '')}</Badge>
+              <Badge variant="outline">{getTypeLabel(currentWorkflowId || '', currentType)}</Badge>
             </div>
           )}
         </div>

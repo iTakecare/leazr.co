@@ -1039,6 +1039,8 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   currentSource={offer.source}
                   currentType={offer.type}
                   currentSector={offer.business_sector}
+                  isPurchase={offer.is_purchase === true}
+                  currentWorkflowId={offer.workflow_template_id}
                   onUpdate={() => {
                     // Recharger les données de l'offre
                     const fetchOfferDetails = async () => {
