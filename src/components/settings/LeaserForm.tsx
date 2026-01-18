@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Image as ImageIcon, Loader2, X, Plus, Trash2, Search, Check, AlertCircle } from "lucide-react";
 import { Leaser, DurationCoefficient } from "@/types/equipment";
-import { supabase, STORAGE_URL, SUPABASE_KEY } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { getFileUploadClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { verifyVatNumber } from "@/services/clientService";
 import LeaserDurationMatrix from "@/components/leasers/LeaserDurationMatrix";
@@ -170,32 +171,31 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
     try {
       setIsUploading(true);
       
+      // Vérifier que l'utilisateur est connecté
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Vous devez être connecté pour télécharger un logo");
+        return;
+      }
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = fileName;
       
-      // 1. Créer un objet FormData pour gérer correctement le type du fichier
-      const formData = new FormData();
-      formData.append('file', file);
+      // Utiliser le client Supabase authentifié pour l'upload
+      const fileClient = getFileUploadClient();
+      const { error: uploadError } = await fileClient.storage
+        .from('leaser-logos')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
       
-      // 2. Utiliser fetch au lieu de l'API supabase directe pour un meilleur contrôle
-      const uploadResponse = await fetch(
-        `${STORAGE_URL}/object/leaser-logos/${filePath}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            // Ne pas définir Content-Type ici pour que fetch définisse la bonne frontière multipart
-          },
-          body: formData
-        }
-      );
-      
-      if (!uploadResponse.ok) {
-        throw new Error(`Erreur de téléchargement: ${await uploadResponse.text()}`);
+      if (uploadError) {
+        throw new Error(`Erreur de téléchargement: ${uploadError.message}`);
       }
       
-      // 3. Obtenir l'URL publique
+      // Obtenir l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('leaser-logos')
         .getPublicUrl(filePath);
