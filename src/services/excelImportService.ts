@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { supabase } from "@/integrations/supabase/client";
 import { createOffer } from "./offers";
 import { OfferData, OfferWorkflowStatus } from "./offers/types";
@@ -218,98 +218,92 @@ export class ExcelImportService {
   /**
    * Parse le fichier Excel et retourne les données avec détection des colonnes
    */
-  static parseExcelFile(file: File): Promise<{ data: ExcelRowData[], columnDetection: ColumnDetectionResult }> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          
-          // Convertir en JSON avec headers
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-            header: 1,
-            defval: ''
-          }) as any[];
-          
-          if (jsonData.length < 2) {
-            throw new Error("Le fichier Excel doit contenir au moins une ligne d'en-tête et une ligne de données");
-          }
-          
-          // Première ligne = headers
-          const headers = jsonData[0];
-          const rows = jsonData.slice(1);
-          
-          console.log(`📋 Headers détectés: ${headers.join(', ')}`);
-          console.log(`📊 ${rows.length} lignes de données détectées`);
-          
-          // Detect column mappings
-          const columnDetection = this.detectColumns(headers);
-          
-          if (!columnDetection.isValid) {
-            resolve({
-              data: [],
-              columnDetection
-            });
-            return;
-          }
-          
-          // Map data using detected columns
-          const mappedData: ExcelRowData[] = rows.map((row, index) => {
-            const getValue = (field: string): any => {
-              const mapping = columnDetection.mappings[field];
-              if (!mapping || !mapping.detected) return '';
-              const colIndex = headers.indexOf(mapping.detected);
-              return colIndex >= 0 ? (row[colIndex] || '') : '';
-            };
+  static async parseExcelFile(file: File): Promise<{ data: ExcelRowData[], columnDetection: ColumnDetectionResult }> {
+    const buffer = await file.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    
+    const worksheet = workbook.worksheets[0];
+    
+    if (!worksheet || worksheet.rowCount < 2) {
+      throw new Error("Le fichier Excel doit contenir au moins une ligne d'en-tête et une ligne de données");
+    }
 
-            const clientValue = getValue('client');
-            const amountValue = getValue('amount');
-            const monthlyValue = getValue('monthly_payment');
-            const coeffValue = getValue('coefficient');
-            
-            console.log(`📝 Ligne ${index + 1} - Valeurs brutes:`, { clientValue, amountValue, monthlyValue, coeffValue });
-            
-            const parsedData: ExcelRowData = {
-              'N° du dossier': String(getValue('dossier_number')).trim() || '',
-              'Client': String(clientValue).trim() || '',
-              'Email': String(getValue('email')).trim() || '',
-              'Localisation': '',
-              'Pays Source': '',
-              'Leaser': String(clientValue).trim() || '',
-              'Date dossier': '',
-              'Date contrat': '',
-              'Facture leaser': '',
-              'Achat de vente': '',
-              'Marge en €': this.parseNumericValue(amountValue),
-              'E confirmés': 0,
-              'E manquants': 0,
-              'Taux de marge': this.parseNumericValue(coeffValue) || 1,
-              'Mensualité client offres': this.parseNumericValue(monthlyValue),
-              'Mensualité': this.parseNumericValue(monthlyValue),
-              'Statut': String(getValue('status')).trim() || 'Brouillon',
-              'Relations': ''
-            };
-
-            console.log(`✅ Ligne ${index + 1} - Données parsées:`, parsedData);
-            return parsedData;
-          });
-          
-          resolve({
-            data: mappedData,
-            columnDetection
-          });
-        } catch (error) {
-          reject(error);
-        }
-      };
-      
-      reader.onerror = () => reject(new Error("Erreur lors de la lecture du fichier"));
-      reader.readAsArrayBuffer(file);
+    // Get headers from first row
+    const headerRow = worksheet.getRow(1);
+    const headers: string[] = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber - 1] = String(cell.value || '').trim();
     });
+    
+    console.log(`📋 Headers détectés: ${headers.join(', ')}`);
+    
+    // Detect column mappings
+    const columnDetection = this.detectColumns(headers);
+    
+    if (!columnDetection.isValid) {
+      return {
+        data: [],
+        columnDetection
+      };
+    }
+
+    // Map data using detected columns
+    const mappedData: ExcelRowData[] = [];
+    
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+      
+      const rowValues: any[] = [];
+      row.eachCell((cell, colNumber) => {
+        rowValues[colNumber - 1] = cell.value;
+      });
+
+      const getValue = (field: string): any => {
+        const mapping = columnDetection.mappings[field];
+        if (!mapping || !mapping.detected) return '';
+        const colIndex = headers.indexOf(mapping.detected);
+        return colIndex >= 0 ? (rowValues[colIndex] || '') : '';
+      };
+
+      const clientValue = getValue('client');
+      const amountValue = getValue('amount');
+      const monthlyValue = getValue('monthly_payment');
+      const coeffValue = getValue('coefficient');
+      
+      console.log(`📝 Ligne ${rowNumber} - Valeurs brutes:`, { clientValue, amountValue, monthlyValue, coeffValue });
+      
+      const parsedData: ExcelRowData = {
+        'N° du dossier': String(getValue('dossier_number')).trim() || '',
+        'Client': String(clientValue).trim() || '',
+        'Email': String(getValue('email')).trim() || '',
+        'Localisation': '',
+        'Pays Source': '',
+        'Leaser': String(clientValue).trim() || '',
+        'Date dossier': '',
+        'Date contrat': '',
+        'Facture leaser': '',
+        'Achat de vente': '',
+        'Marge en €': this.parseNumericValue(amountValue),
+        'E confirmés': 0,
+        'E manquants': 0,
+        'Taux de marge': this.parseNumericValue(coeffValue) || 1,
+        'Mensualité client offres': this.parseNumericValue(monthlyValue),
+        'Mensualité': this.parseNumericValue(monthlyValue),
+        'Statut': String(getValue('status')).trim() || 'Brouillon',
+        'Relations': ''
+      };
+
+      console.log(`✅ Ligne ${rowNumber} - Données parsées:`, parsedData);
+      mappedData.push(parsedData);
+    });
+    
+    console.log(`📊 ${mappedData.length} lignes de données détectées`);
+
+    return {
+      data: mappedData,
+      columnDetection
+    };
   }
 
   /**
@@ -370,7 +364,6 @@ export class ExcelImportService {
     try {
       // Générer directement un ID sans appel RPC
       const year = new Date().getFullYear();
-      const timestamp = Date.now().toString().slice(-4);
       const randomNumber = Math.floor(Math.random() * 9000) + 1000; // Entre 1000 et 9999
       return `ITC-${year}-OFF-${randomNumber}`;
     } catch (error) {
@@ -466,93 +459,57 @@ export class ExcelImportService {
           }
         }
 
-        // Génération de l'ID d'offre - utiliser le N° du dossier s'il existe
-        const offerId = row['N° du dossier'] || await this.generateOfferId();
+        // Générer l'ID d'offre
+        const offerId = await this.generateOfferId();
+        
+        // Déterminer le statut
+        const status = this.mapStatus(row['Statut']);
 
-        // Mapping du statut
-        const workflowStatus = STATUS_MAPPING[row['Statut']] || OfferWorkflowStatus.DRAFT;
-
-        // Création de l'offre avec les valeurs validées et nettoyées
-        const offerData: OfferData = {
+        // Créer l'offre
+        const offerData: Partial<OfferData> = {
           client_id: clientId,
-          client_name: clientName, // Utiliser la valeur nettoyée
-          client_email: row['Email'] || undefined,
-          equipment_description: `${row['Localisation']} - ${row['Relations']}` || undefined,
-          amount: Number(montantHT), // S'assurer que c'est un nombre (Marge en €)
-          coefficient: Number(coefficient), // Utiliser la valeur validée (Taux de marge)
-          monthly_payment: Number(monthlyPayment), // Utiliser la valeur validée/calculée
-          commission: 0, // Pas de commission dans ce fichier
-          workflow_status: workflowStatus,
-          status: workflowStatus === OfferWorkflowStatus.SIGNED ? 'accepted' : 'pending',
-          dossier_number: offerId, // Utilisation de l'ID généré ou existant comme numéro de dossier
-          source: row['Pays Source'] || undefined,
-          company_id: companyId,
-          user_id: userId,
-          type: 'admin_offer'
-        };
-
-        console.log(`📝 Création de l'offre pour ${clientName} (ligne ${rowNumber}):`, {
-          dossier_number: offerId, // L'ID personnalisé va dans dossier_number, PAS dans id
-          clientName: clientName,
           amount: Number(montantHT),
           coefficient: Number(coefficient),
-          monthlyPayment: Number(monthlyPayment),
-          workflowStatus
-        });
+          monthly_payment: Number(monthlyPayment),
+          workflow_status: status,
+          type: 'admin_offer',
+          user_id: userId
+        };
 
-        console.log("🚨 DEBUG: offerData envoyé à createOffer:", JSON.stringify(offerData, null, 2));
+        const createdOffer = await createOffer(offerData as any);
         
-        const { data, error } = await createOffer(offerData);
-        
-        if (error) {
+        if (createdOffer) {
+          result.success++;
+          console.log(`✅ Offre créée avec succès pour la ligne ${rowNumber}`);
+        } else {
           result.errors.push({
             row: rowNumber,
-            error: `Erreur lors de la création de l'offre: ${error.message || 'Erreur inconnue'}`
+            error: "Échec de la création de l'offre"
           });
-          continue;
         }
 
-        result.success++;
-        console.log(`✅ Offre créée avec succès: ${offerId}`);
-        
       } catch (error: any) {
         console.error(`❌ Erreur ligne ${rowNumber}:`, error);
         result.errors.push({
           row: rowNumber,
-          error: error.message || 'Erreur inconnue'
+          error: error.message || "Erreur inconnue"
         });
       }
     }
 
-    console.log(`📊 Import terminé: ${result.success} succès, ${result.errors.length} erreurs`);
+    console.log(`📊 Import terminé: ${result.success} succès, ${result.errors.length} erreurs, ${result.duplicates} doublons`);
     return result;
   }
 
   /**
-   * Valide le format du fichier Excel avec matching flexible
+   * Map le statut Excel vers le statut workflow
    */
-  static validateExcelFormat(headers: string[]): string[] {
-    const requiredColumns = ['margeen', 'client']; // Colonnes obligatoires: Marge en € et Client (ou Leaser)
-    const missingHeaders: string[] = [];
-    
-    console.log(`🔍 Validation des headers: ${headers.join(', ')}`);
-    
-    for (const requiredCol of requiredColumns) {
-      let found = this.findColumnMatch(requiredCol, headers);
-      
-      // Pour le client, essayer aussi leaser comme alternative
-      if (!found && requiredCol === 'client') {
-        found = this.findColumnMatch('leaser', headers);
-      }
-      
-      if (!found) {
-        // Retourner le nom lisible pour l'utilisateur
-        const readableName = requiredCol === 'margeen' ? 'Marge en €' : 'Client (ou Leaser)';
-        missingHeaders.push(readableName);
-      }
-    }
-    
-    console.log(`❌ Headers manquants: ${missingHeaders.join(', ')}`);
-    return missingHeaders;
+  static mapStatus(excelStatus: string): OfferWorkflowStatus {
+    const normalized = (excelStatus || '').trim();
+    return STATUS_MAPPING[normalized] || OfferWorkflowStatus.DRAFT;
   }
 }
+
+// Export pour compatibilité
+export const parseExcelFile = ExcelImportService.parseExcelFile.bind(ExcelImportService);
+export const importOffers = ExcelImportService.importOffers.bind(ExcelImportService);
