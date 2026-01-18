@@ -8,7 +8,7 @@ interface WorkflowOption {
   offer_type: string;
 }
 
-export const useAvailableWorkflows = () => {
+export const useAvailableWorkflows = (filterOfferType?: string) => {
   const { user } = useAuth();
   const [workflows, setWorkflows] = useState<WorkflowOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,34 +35,33 @@ export const useAvailableWorkflows = () => {
         return;
       }
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('workflow_templates')
         .select('id, name, offer_type')
         .eq('company_id', profile.company_id)
         .eq('is_active', true)
-        .eq('is_for_contracts', false)
-        .order('name');
+        .eq('is_for_contracts', false);
+      
+      // Si un filtre est spécifié, ne récupérer que les workflows de ce type
+      if (filterOfferType) {
+        query = query.eq('offer_type', filterOfferType);
+      }
+      
+      const { data, error } = await query.order('name');
 
       if (!error && data) {
-        // Dédupliquer par offer_type pour éviter les doublons
-        const uniqueByOfferType = data.reduce((acc, w) => {
-          if (!acc.find(item => item.offer_type === w.offer_type)) {
-            acc.push({
-              value: w.offer_type,
-              label: w.name,
-              offer_type: w.offer_type
-            });
-          }
-          return acc;
-        }, [] as WorkflowOption[]);
-        
-        setWorkflows(uniqueByOfferType);
+        // Retourner tous les workflows avec leur ID comme valeur
+        setWorkflows(data.map(w => ({
+          value: w.id,
+          label: w.name,
+          offer_type: w.offer_type
+        })));
       }
       setLoading(false);
     };
 
     fetchWorkflows();
-  }, [user?.id]);
+  }, [user?.id, filterOfferType]);
 
   return { workflows, loading };
 };

@@ -688,6 +688,9 @@ const AmbassadorOfferDetail = () => {
                 offerId={offer.id}
                 currentSource={offer.source}
                 currentType={offer.type}
+                currentSector={offer.business_sector}
+                isPurchase={offer.is_purchase === true}
+                currentWorkflowId={offer.workflow_template_id}
                 onUpdate={() => {
                   fetchOffer();
                   if (id) {
