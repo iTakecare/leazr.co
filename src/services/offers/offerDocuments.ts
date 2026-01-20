@@ -197,6 +197,12 @@ export const validateUploadToken = async (token: string): Promise<OfferUploadLin
   }
 };
 
+// Interface pour le retour d'upload avec message d'erreur détaillé
+export interface UploadResult {
+  success: boolean;
+  error?: string;
+}
+
 // Uploader un document avec la nouvelle approche simplifiée
 export const uploadDocument = async (
   token: string,
@@ -204,7 +210,7 @@ export const uploadDocument = async (
   file: File,
   uploaderEmail?: string,
   customDescription?: string
-): Promise<boolean> => {
+): Promise<UploadResult> => {
   try {
     console.log('=== DÉBUT UPLOAD DOCUMENT SIMPLIFIÉ ===');
     console.log('Token:', token);
@@ -216,20 +222,20 @@ export const uploadDocument = async (
       lastModified: file.lastModified
     });
     
-    // Étape 1: Valider le token
+    // Étape 1: Valider le token via RPC sécurisé
     const uploadLink = await validateUploadToken(token);
     if (!uploadLink) {
       console.error('Token invalide ou expiré');
-      throw new Error('Token invalide ou expiré');
+      return { success: false, error: 'Token invalide ou expiré. Le lien a peut-être expiré.' };
     }
 
     console.log('✓ Token validé, offer_id:', uploadLink.offer_id);
 
-    // Étape 2: S'assurer que le bucket existe
+    // Étape 2: S'assurer que le bucket existe (simplifié)
     const bucketReady = await ensureOfferDocumentsBucket();
     if (!bucketReady) {
       console.error('Impossible de préparer le stockage des documents');
-      throw new Error('Impossible de préparer le stockage des documents');
+      return { success: false, error: 'Impossible de préparer le stockage des documents' };
     }
 
     console.log('✓ Bucket prêt');
@@ -260,7 +266,11 @@ export const uploadDocument = async (
 
     if (uploadError) {
       console.error('❌ Erreur upload storage:', uploadError);
-      throw new Error(`Erreur upload: ${uploadError.message}`);
+      // Message d'erreur plus explicite
+      if (uploadError.message?.includes('policy') || uploadError.message?.includes('403')) {
+        return { success: false, error: 'Erreur de permission lors de l\'upload. Veuillez réessayer ou contacter le support.' };
+      }
+      return { success: false, error: `Erreur upload: ${uploadError.message}` };
     }
 
     console.log('✓ Upload réussi:', uploadData);
@@ -298,7 +308,11 @@ export const uploadDocument = async (
         .from('offer-documents')
         .remove([fileName]);
       
-      throw new Error(`Erreur base de données: ${insertError.message}`);
+      // Message d'erreur plus explicite
+      if (insertError.message?.includes('policy') || insertError.message?.includes('RLS')) {
+        return { success: false, error: 'Erreur de permission lors de l\'enregistrement. Veuillez réessayer.' };
+      }
+      return { success: false, error: `Erreur base de données: ${insertError.message}` };
     }
 
     console.log('=== ✅ SUCCÈS COMPLET ===');
@@ -327,11 +341,12 @@ export const uploadDocument = async (
       console.error('⚠️ Erreur lors de la notification admins (non bloquant):', notifError);
     }
     
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('=== ❌ ERREUR GÉNÉRALE UPLOAD ===');
     console.error('Erreur complète:', error);
-    return false;
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue lors de l\'upload';
+    return { success: false, error: errorMessage };
   }
 };
 
