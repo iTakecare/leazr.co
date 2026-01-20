@@ -63,41 +63,39 @@ export const getDefaultSettings = (): PlatformSettings => ({
 
 /**
  * Get platform settings for public display (safe fields only)
- * 🔒 SECURITY: This function filters sensitive fields (email, phone, address)
+ * 🔒 SECURITY: Uses SECURITY DEFINER RPC function to bypass RLS safely
  * Only returns: company_name, logo_url, colors, website_url
  * For full access including sensitive fields, use getPlatformSettings() (requires authentication)
  */
 export const getPublicPlatformSettings = async (): Promise<PlatformSettings | null> => {
   try {
-    // 🔒 SECURITY: Query the public VIEW which only contains non-sensitive columns
-    // The base table is protected by RLS - anon users cannot access it directly
-    const { data, error } = await supabase
-      .from('platform_settings_public')
-      .select('*')
-      .limit(1)
-      .maybeSingle();
+    // 🔒 SECURITY: Use RPC function with SECURITY DEFINER to access public branding
+    // This bypasses RLS safely by only exposing non-sensitive fields
+    const { data, error } = await supabase.rpc('get_public_platform_branding');
 
     if (error) {
-      console.error('Error fetching public platform settings:', error);
+      console.error('Error fetching public platform branding:', error);
       return getDefaultSettings();
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       return getDefaultSettings();
     }
 
-    // Return only public branding data - sensitive fields are not in the view
+    const branding = data[0];
+
+    // Return only public branding data - sensitive fields are not exposed by the RPC
     return {
-      company_name: data.company_name || 'Leazr',
-      company_description: '', // Not available in public view
-      company_address: '', // Not available in public view
-      company_phone: '', // Not available in public view
-      company_email: '', // Not available in public view
-      logo_url: data.logo_url || '/leazr-logo.png',
-      primary_color: data.primary_color || '#3b82f6',
-      secondary_color: data.secondary_color || '#64748b',
-      accent_color: data.accent_color || '#8b5cf6',
-      website_url: data.website_url || ''
+      company_name: branding.company_name || 'Leazr',
+      company_description: '', // Not available in public function
+      company_address: '', // Not available in public function
+      company_phone: '', // Not available in public function
+      company_email: '', // Not available in public function
+      logo_url: branding.logo_url || '/leazr-logo.png',
+      primary_color: branding.primary_color || '#3b82f6',
+      secondary_color: branding.secondary_color || '#64748b',
+      accent_color: branding.accent_color || '#8b5cf6',
+      website_url: branding.website_url || ''
     };
   } catch (error) {
     console.error('Error fetching public platform settings:', error);

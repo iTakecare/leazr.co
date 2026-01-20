@@ -7633,6 +7633,18 @@ export type Database = {
           total_monthly_price: number
         }[]
       }
+      get_public_platform_branding: {
+        Args: never
+        Returns: {
+          accent_color: string
+          company_name: string
+          id: string
+          logo_url: string
+          primary_color: string
+          secondary_color: string
+          website_url: string
+        }[]
+      }
       get_public_products_by_company: {
         Args: { p_company_id: string }
         Returns: {
