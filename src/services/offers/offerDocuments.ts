@@ -29,7 +29,7 @@ export interface OfferUploadLink {
   created_at: string;
 }
 
-export const DOCUMENT_TYPES = {
+export const DOCUMENT_TYPES: Record<string, string> = {
   balance_sheet: "Bilan financier",
   tax_notice: "Avertissement extrait de rôle",
   id_card_front: "Carte d'identité - Recto",
@@ -42,6 +42,19 @@ export const DOCUMENT_TYPES = {
   provisional_balance: "Bilan financier provisoire",
   tax_return: "Liasse fiscale",
   custom: "Autre document"
+};
+
+// Types de documents additionnels que le client peut uploader de son initiative
+export const ADDITIONAL_DOCUMENT_TYPES: Record<string, string> = {
+  other: "Autre document",
+  additional_id: "Pièce d'identité supplémentaire",
+  proof_of_address: "Justificatif de domicile",
+  company_statutes: "Statuts de l'entreprise",
+  bank_statement_additional: "Relevé bancaire supplémentaire",
+  other_financial: "Autre document financier",
+  quote: "Devis",
+  contract: "Contrat",
+  insurance: "Attestation d'assurance"
 };
 
 // Fonction de détection MIME type robuste avec validation du contenu
@@ -111,45 +124,13 @@ const getMimeTypeFromFile = async (file: File): Promise<string> => {
 };
 
 // S'assurer que le bucket existe
+// Le bucket 'offer-documents' existe déjà en production.
+// L'API listBuckets() n'est pas accessible aux utilisateurs anonymes
+// qui uploadent via un lien public avec token - cela causait l'erreur d'upload.
 const ensureOfferDocumentsBucket = async (): Promise<boolean> => {
-  try {
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.error('Erreur lors de la vérification des buckets:', listError);
-      return false;
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === 'offer-documents');
-    
-    if (!bucketExists) {
-      console.log('Création du bucket offer-documents...');
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
-          body: { bucket_name: 'offer-documents' }
-        });
-        
-        if (error) {
-          console.error('Erreur lors de la création du bucket via edge function:', error);
-          return false;
-        }
-        
-        if (data?.success) {
-          console.log('Bucket offer-documents créé avec succès');
-          return true;
-        }
-      } catch (functionError) {
-        console.error('Erreur lors de l\'appel à l\'edge function:', functionError);
-        return false;
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Erreur générale lors de la vérification du bucket:', error);
-    return false;
-  }
+  // Retourner true directement car le bucket existe en production
+  // et la vérification bloquait les uploads clients (API admin-only)
+  return true;
 };
 
 // Créer un lien d'upload sécurisé
@@ -221,7 +202,8 @@ export const uploadDocument = async (
   token: string,
   documentType: string,
   file: File,
-  uploaderEmail?: string
+  uploaderEmail?: string,
+  customDescription?: string
 ): Promise<boolean> => {
   try {
     console.log('=== DÉBUT UPLOAD DOCUMENT SIMPLIFIÉ ===');
@@ -284,10 +266,15 @@ export const uploadDocument = async (
     console.log('✓ Upload réussi:', uploadData);
 
     // Étape 6: Enregistrer les métadonnées en base de données
+    // Pour les documents additionnels, utiliser le type préfixé et la description personnalisée
+    const isAdditionalDocument = documentType.startsWith('additional:');
+    const finalDocumentType = isAdditionalDocument ? documentType : documentType;
+    const displayName = customDescription || file.name;
+    
     const documentData = {
       offer_id: uploadLink.offer_id,
-      document_type: documentType,
-      file_name: file.name,
+      document_type: finalDocumentType,
+      file_name: displayName,
       file_path: fileName,
       file_size: file.size,
       mime_type: detectedMimeType,
