@@ -5,6 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Upload, 
   CheckCircle, 
@@ -13,13 +22,16 @@ import {
   X,
   Download,
   Clock,
-  XCircle
+  XCircle,
+  Plus,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   validateUploadToken, 
   uploadDocument, 
   DOCUMENT_TYPES,
+  ADDITIONAL_DOCUMENT_TYPES,
   OfferUploadLink,
   markLinkAsUsed,
   getOfferDocuments,
@@ -43,6 +55,11 @@ const OfferDocumentUpload = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
+  
+  // États pour les documents additionnels
+  const [additionalDocType, setAdditionalDocType] = useState<string>("");
+  const [additionalDocDescription, setAdditionalDocDescription] = useState<string>("");
+  const [uploadingAdditional, setUploadingAdditional] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
 
@@ -174,6 +191,62 @@ const OfferDocumentUpload = () => {
       toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setUploading(null);
+    }
+  };
+
+  // Handler pour upload de document additionnel
+  const handleAdditionalDocUpload = async (file: File) => {
+    if (!token || !uploadLink) {
+      toast.error("Token ou lien d'upload manquant");
+      return;
+    }
+
+    // Validation du fichier
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+
+    if (file.size > maxSize) {
+      toast.error("Le fichier est trop volumineux (max 10MB)");
+      return;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Type de fichier non autorisé (PDF, JPG, PNG uniquement)");
+      return;
+    }
+
+    setUploadingAdditional(true);
+
+    try {
+      const docType = additionalDocType ? `additional:${additionalDocType}` : 'additional:other';
+      const description = additionalDocDescription || file.name;
+      
+      console.log('Upload document additionnel:', { 
+        docType, 
+        description,
+        fileName: file.name, 
+        size: file.size,
+        offerId: uploadLink.offer_id
+      });
+      
+      const success = await uploadDocument(token, docType, file, "", description);
+      
+      if (success) {
+        // Refresh existing documents
+        const updatedDocuments = await getOfferDocuments(uploadLink.offer_id);
+        setExistingDocuments(updatedDocuments);
+        // Reset form
+        setAdditionalDocType("");
+        setAdditionalDocDescription("");
+        toast.success("Document additionnel uploadé avec succès");
+      } else {
+        toast.error("Erreur lors de l'upload du document");
+      }
+    } catch (error) {
+      console.error("Erreur upload document additionnel:", error);
+      toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setUploadingAdditional(false);
     }
   };
 
@@ -549,7 +622,115 @@ const OfferDocumentUpload = () => {
               })}
             </div>
 
-            {/* Debug info en mode développement */}
+            {/* Section Documents Additionnels */}
+            <Card className="mt-8 border-dashed border-2 border-muted-foreground/30">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Ajouter d'autres documents
+                </CardTitle>
+                <CardDescription>
+                  Vous pouvez ajouter des documents supplémentaires pour accélérer le traitement de votre dossier 
+                  (pièce d'identité supplémentaire, justificatif de domicile, statuts, etc.)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Sélecteur de type de document */}
+                <div className="space-y-2">
+                  <Label htmlFor="doc-type">Type de document (optionnel)</Label>
+                  <Select value={additionalDocType} onValueChange={setAdditionalDocType}>
+                    <SelectTrigger id="doc-type">
+                      <SelectValue placeholder="Sélectionner le type de document" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ADDITIONAL_DOCUMENT_TYPES).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Champ description */}
+                <div className="space-y-2">
+                  <Label htmlFor="doc-description">Description du document (recommandé)</Label>
+                  <Input 
+                    id="doc-description"
+                    placeholder="Ex: Extrait de compte janvier 2026"
+                    value={additionalDocDescription}
+                    onChange={(e) => setAdditionalDocDescription(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Une description précise permet un traitement plus rapide de votre dossier.
+                  </p>
+                </div>
+
+                {/* Zone de drop pour upload */}
+                <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                  <input
+                    type="file"
+                    id="additional-file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleAdditionalDocUpload(file);
+                      }
+                      // Reset input to allow re-upload of same file
+                      e.target.value = '';
+                    }}
+                    disabled={uploadingAdditional}
+                  />
+                  <label 
+                    htmlFor="additional-file"
+                    className={`cursor-pointer block ${uploadingAdditional ? 'opacity-50 cursor-wait' : ''}`}
+                  >
+                    {uploadingAdditional ? (
+                      <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-2" />
+                    ) : (
+                      <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                    )}
+                    <p className="text-sm text-foreground">
+                      {uploadingAdditional ? "Upload en cours..." : "Cliquez pour sélectionner un fichier"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF, JPG, PNG (max 10MB)
+                    </p>
+                  </label>
+                </div>
+
+                {/* Liste des documents additionnels déjà uploadés */}
+                {existingDocuments.filter(doc => doc.document_type.startsWith('additional:')).length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium">Documents additionnels déjà envoyés :</Label>
+                    <div className="mt-2 space-y-2">
+                      {existingDocuments
+                        .filter(doc => doc.document_type.startsWith('additional:'))
+                        .map((doc) => {
+                          const typeKey = doc.document_type.replace('additional:', '');
+                          const typeName = ADDITIONAL_DOCUMENT_TYPES[typeKey] || 'Autre document';
+                          return (
+                            <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                              <div className="flex items-center">
+                                <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <span className="text-sm font-medium">{doc.file_name}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">({typeName})</span>
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-amber-600 border-amber-600">
+                                <Clock className="mr-1 h-3 w-3" />
+                                En attente
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
                 <strong>Debug Info:</strong>
