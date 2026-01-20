@@ -173,9 +173,9 @@ const OfferDocumentUpload = () => {
         offerId: uploadLink.offer_id
       });
       
-      const success = await uploadDocument(token, documentType, file, "");
+      const result = await uploadDocument(token, documentType, file, "");
       
-      if (success) {
+      if (result.success) {
         // Refresh existing documents to get updated status
         const updatedDocuments = await getOfferDocuments(uploadLink.offer_id);
         setExistingDocuments(updatedDocuments);
@@ -183,8 +183,9 @@ const OfferDocumentUpload = () => {
         toast.success("Document uploadé avec succès");
         console.log('Upload réussi pour:', documentType);
       } else {
-        toast.error("Erreur lors de l'upload du document");
-        console.error('Échec de l\'upload pour:', documentType);
+        // Afficher le message d'erreur détaillé
+        toast.error(result.error || "Erreur lors de l'upload du document");
+        console.error('Échec de l\'upload pour:', documentType, result.error);
       }
     } catch (error) {
       console.error("Erreur upload:", error);
@@ -229,9 +230,9 @@ const OfferDocumentUpload = () => {
         offerId: uploadLink.offer_id
       });
       
-      const success = await uploadDocument(token, docType, file, "", description);
+      const result = await uploadDocument(token, docType, file, "", description);
       
-      if (success) {
+      if (result.success) {
         // Refresh existing documents
         const updatedDocuments = await getOfferDocuments(uploadLink.offer_id);
         setExistingDocuments(updatedDocuments);
@@ -240,7 +241,8 @@ const OfferDocumentUpload = () => {
         setAdditionalDocDescription("");
         toast.success("Document additionnel uploadé avec succès");
       } else {
-        toast.error("Erreur lors de l'upload du document");
+        // Afficher le message d'erreur détaillé
+        toast.error(result.error || "Erreur lors de l'upload du document");
       }
     } catch (error) {
       console.error("Erreur upload document additionnel:", error);

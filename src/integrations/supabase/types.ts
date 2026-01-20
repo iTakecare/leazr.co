@@ -7505,6 +7505,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_offer_id_from_token: { Args: { p_token: string }; Returns: string }
       get_pages_cms: {
         Args: never
         Returns: {
@@ -7809,6 +7810,10 @@ export type Database = {
           variation_attributes: Json
         }[]
       }
+      has_active_offer_upload_link: {
+        Args: { p_offer_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -7922,6 +7927,10 @@ export type Database = {
       is_partner: { Args: never; Returns: boolean }
       is_saas_admin: { Args: never; Returns: boolean }
       is_same_company: { Args: { target_company_id: string }; Returns: boolean }
+      is_valid_offer_upload_token: {
+        Args: { p_token: string }
+        Returns: boolean
+      }
       link_client_to_ambassador_secure: {
         Args: { p_client_id: string; p_user_id: string }
         Returns: boolean
@@ -7940,6 +7949,7 @@ export type Database = {
         Args: { client_ids: string[]; main_client_id: string }
         Returns: boolean
       }
+      mark_upload_token_used: { Args: { p_token: string }; Returns: boolean }
       organize_product_variants: { Args: never; Returns: undefined }
       recalculate_offer_to_target_monthly: {
         Args: { p_offer_id: string; p_target_monthly_payment: number }
