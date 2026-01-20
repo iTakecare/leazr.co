@@ -287,11 +287,11 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                       )}
                     </TableCell>
                     <TableCell>
-                      {(isEditing || !isPurchased) && editingPrices[eq.id] && (
+                      {(isEditing || !isPurchased) && (
                         <Button
                           size="sm"
                           onClick={() => handleSavePurchase(eq.id)}
-                          disabled={saving === eq.id}
+                          disabled={saving === eq.id || !editingPrices[eq.id]}
                         >
                           {saving === eq.id ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
