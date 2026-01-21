@@ -9,14 +9,18 @@ import { supabase, getAdminSupabaseClient } from "@/integrations/supabase/client
 
 interface ClientCleanupButtonProps {
   refreshClients?: () => Promise<void>;
+  clientId?: string; // ID du client à supprimer (configurable)
 }
 
-export default function ClientCleanupButton({ refreshClients }: ClientCleanupButtonProps) {
+export default function ClientCleanupButton({ refreshClients, clientId }: ClientCleanupButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fonction pour supprimer un client spécifique avec l'ID 8270aeca-563c-4f53-9ade-6342aa7b3bd9
+  // Fonction pour supprimer un client spécifique
   const deleteSpecificClient = async () => {
-    const clientId = '8270aeca-563c-4f53-9ade-6342aa7b3bd9';
+    if (!clientId) {
+      toast.error("Aucun client spécifié pour la suppression");
+      return;
+    }
     
     setIsDeleting(true);
     try {
