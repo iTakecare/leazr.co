@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Check, X, Download, Trash2, MessageSquare, Mail, FileText } from 'lucide-react';
+import { Check, X, Download, Trash2, MessageSquare, Mail, FileText, Eye } from 'lucide-react';
 import { getOfferDocuments, updateDocumentStatus, deleteDocument, downloadDocument, rejectDocumentWithEmail, markDocumentsAsViewed, DOCUMENT_TYPES, type OfferDocument } from '@/services/offers/offerDocuments';
 import { toast } from 'sonner';
+import { PDFViewer } from '@/components/pdf/PDFViewer';
 
 interface OfferDocumentsProps {
   offerId: string;
@@ -20,6 +21,11 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
   const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
   const [rejectingDoc, setRejectingDoc] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<{[key: string]: string}>({});
+  
+  // États pour le PDFViewer
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfFilename, setPdfFilename] = useState('');
 
   useEffect(() => {
     loadDocuments();
@@ -89,14 +95,50 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
     }
   };
 
-  const handleDownload = async (document: OfferDocument) => {
+  const handleView = async (doc: OfferDocument) => {
     try {
-      const url = await downloadDocument(document.file_path);
-      if (url) {
-        window.open(url, '_blank');
-      } else {
-        toast.error("Erreur lors du téléchargement");
+      const url = await downloadDocument(doc.file_path);
+      if (!url) {
+        toast.error("Erreur lors du chargement");
+        return;
       }
+
+      // Pour les PDFs, utiliser le PDFViewer
+      if (doc.mime_type === 'application/pdf' || doc.file_name.toLowerCase().endsWith('.pdf')) {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        setPdfBlob(blob);
+        setPdfFilename(doc.file_name);
+        setPdfViewerOpen(true);
+      } else {
+        // Pour les images et autres, ouvrir dans un nouvel onglet
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error("Erreur visualisation:", error);
+      toast.error("Erreur lors de la visualisation");
+    }
+  };
+
+  const handleDownload = async (doc: OfferDocument) => {
+    try {
+      const url = await downloadDocument(doc.file_path);
+      if (!url) {
+        toast.error("Erreur lors du téléchargement");
+        return;
+      }
+
+      // Forcer le téléchargement via blob
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+      link.href = blobUrl;
+      link.download = doc.file_name;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Erreur téléchargement:", error);
       toast.error("Erreur lors du téléchargement");
@@ -206,7 +248,17 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleView(doc)}
+                      title="Visualiser"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleDownload(doc)}
+                      title="Télécharger"
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -327,6 +379,17 @@ const OfferDocuments: React.FC<OfferDocumentsProps> = ({ offerId }) => {
           </div>
         )}
       </CardContent>
+      
+      {/* PDF Viewer Modal */}
+      <PDFViewer
+        isOpen={pdfViewerOpen}
+        onClose={() => {
+          setPdfViewerOpen(false);
+          setPdfBlob(null);
+        }}
+        pdfBlob={pdfBlob}
+        filename={pdfFilename}
+      />
     </Card>
   );
 };
