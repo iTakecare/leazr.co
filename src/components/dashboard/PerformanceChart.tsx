@@ -42,7 +42,7 @@ export const PerformanceChart = ({ data = dummyData, isLoading = false }: Perfor
   const gridColor = isDark ? '#334155' : '#e2e8f0';
   
   return (
-    <Card>
+    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200/50">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-md font-medium">Performance</CardTitle>
         <BarChart3 className="h-4 w-4 text-muted-foreground" />
