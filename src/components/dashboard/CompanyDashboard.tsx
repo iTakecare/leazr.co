@@ -146,7 +146,7 @@ const CompanyDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/5 p-6">
       <div className="space-y-6">
         {/* Header */}
-        <div className="rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 p-6 border border-primary/20">
+        <div className="rounded-xl bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 p-6 border border-orange-300/50">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
