@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,198 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// Generate email HTML for Meta lead notification
+function generateMetaLeadEmailHtml(data: {
+  clientName: string;
+  clientEmail: string | null;
+  clientPhone: string | null;
+  companyName: string | null;
+  platform: string;
+  packName: string;
+  monthlyPayment: number;
+  offerId: string;
+  appUrl: string;
+}): string {
+  const platformName = data.platform === 'fb' ? 'Facebook' : 'Instagram';
+  const platformIcon = data.platform === 'fb' ? '📘' : '📸';
+  
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="color: #2d618f;">iTakecare</h1>
+      </div>
+      
+      <h2 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;">
+        ${platformIcon} Nouveau lead ${platformName}
+      </h2>
+      
+      <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #9b59b6;">
+        <h3 style="color: #7c3aed; margin-top: 0;">📋 Informations client</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li style="margin: 8px 0;"><strong>👤 Nom :</strong> ${data.clientName}</li>
+          ${data.companyName ? `<li style="margin: 8px 0;"><strong>🏢 Entreprise :</strong> ${data.companyName}</li>` : ''}
+          ${data.clientEmail ? `<li style="margin: 8px 0;"><strong>📧 Email :</strong> ${data.clientEmail}</li>` : ''}
+          ${data.clientPhone ? `<li style="margin: 8px 0;"><strong>📞 Téléphone :</strong> ${data.clientPhone}</li>` : ''}
+        </ul>
+      </div>
+      
+      <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #10b981;">
+        <h3 style="color: #059669; margin-top: 0;">📦 Pack demandé</h3>
+        <p style="font-size: 18px; font-weight: bold; margin: 10px 0;">${data.packName}</p>
+        <p style="font-size: 24px; color: #059669; margin: 10px 0;">
+          <strong>${data.monthlyPayment.toFixed(2)}€ HTVA/mois</strong>
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${data.appUrl}/offers?id=${data.offerId}" 
+           style="background: linear-gradient(135deg, #2d618f 0%, #3b82f6 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(45, 97, 143, 0.3);">
+          👁️ Voir l'offre dans Leazr
+        </a>
+      </div>
+      
+      <div style="background-color: #fff8e1; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+        <p style="margin: 0; color: #f57c00; font-weight: bold;">⚡ Action requise</p>
+        <p style="margin: 5px 0 0 0; font-size: 14px;">Ce lead Meta nécessite votre attention. Connectez-vous pour traiter la demande.</p>
+      </div>
+      
+      <p style="color: #666; font-size: 12px; text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee;">
+        📧 Cet email a été envoyé automatiquement suite à un lead ${platformName}.<br>
+        🕐 Lead reçu le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
+      </p>
+    </div>
+  `;
+}
+
+// Send notifications to admins (in-app + email)
+async function notifyAdminsOfMetaLead(
+  supabase: any,
+  data: {
+    companyId: string;
+    offerId: string;
+    clientName: string;
+    clientEmail: string | null;
+    clientPhone: string | null;
+    companyName: string | null;
+    platform: string;
+    packName: string;
+    monthlyPayment: number;
+    metaLeadId: string;
+  }
+) {
+  const platformName = data.platform === 'fb' ? 'Facebook' : 'Instagram';
+  const platformIcon = data.platform === 'fb' ? '📘' : '📸';
+  
+  try {
+    // 1. Create in-app notification
+    const { error: notifError } = await supabase.from('admin_notifications').insert({
+      company_id: data.companyId,
+      offer_id: data.offerId,
+      type: 'new_meta_lead',
+      title: `${platformIcon} Nouveau lead Meta - ${data.clientName}`,
+      message: `Lead reçu via ${platformName}. Pack: ${data.packName}. Mensualité: ${data.monthlyPayment.toFixed(2)}€/mois`,
+      metadata: {
+        source: 'meta',
+        platform: data.platform,
+        client_name: data.clientName,
+        client_email: data.clientEmail,
+        client_phone: data.clientPhone,
+        company_name: data.companyName,
+        pack_name: data.packName,
+        monthly_payment: data.monthlyPayment,
+        meta_lead_id: data.metaLeadId
+      }
+    });
+    
+    if (notifError) {
+      console.error('[META IMPORT] Failed to create in-app notification:', notifError);
+    } else {
+      console.log('[META IMPORT] In-app notification created for offer:', data.offerId);
+    }
+    
+    // 2. Send email to admins
+    const resendApiKey = Deno.env.get('ITAKECARE_RESEND_API');
+    if (!resendApiKey) {
+      console.log('[META IMPORT] RESEND_API_KEY not configured, skipping email notification');
+      return;
+    }
+    
+    const resend = new Resend(resendApiKey);
+    const appUrl = Deno.env.get('APP_URL') || 'https://leazr.co';
+    
+    // Get admin emails
+    const { data: adminUsers, error: adminError } = await supabase
+      .rpc('get_admin_emails_for_company', { p_company_id: data.companyId });
+    
+    if (adminError || !adminUsers || adminUsers.length === 0) {
+      console.log('[META IMPORT] No admin emails found or error:', adminError);
+      return;
+    }
+    
+    console.log('[META IMPORT] Found', adminUsers.length, 'admin(s) to notify');
+    
+    const recipients = adminUsers.map((a: any) => a.email);
+    const emailHtml = generateMetaLeadEmailHtml({
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      clientPhone: data.clientPhone,
+      companyName: data.companyName,
+      platform: data.platform,
+      packName: data.packName,
+      monthlyPayment: data.monthlyPayment,
+      offerId: data.offerId,
+      appUrl
+    });
+    
+    let emailResult = await resend.emails.send({
+      from: 'iTakecare <noreply@itakecare.be>',
+      to: recipients,
+      subject: `${platformIcon} Nouveau lead Meta - ${data.clientName}`,
+      html: emailHtml
+    });
+    
+    // Handle rate limit with retry
+    if (emailResult.error && 
+        ((emailResult.error as any).name === 'rate_limit_exceeded' || 
+         /Too many requests/i.test((emailResult.error as any).message || ''))) {
+      console.log('[META IMPORT] Rate limit hit, retrying in 800ms...');
+      await new Promise(r => setTimeout(r, 800));
+      emailResult = await resend.emails.send({
+        from: 'iTakecare <noreply@itakecare.be>',
+        to: recipients,
+        subject: `${platformIcon} Nouveau lead Meta - ${data.clientName}`,
+        html: emailHtml
+      });
+    }
+    
+    if (emailResult.error) {
+      console.error('[META IMPORT] Email send error:', emailResult.error);
+      // Update in-app notification with email error
+      await supabase.from('admin_notifications')
+        .update({ 
+          metadata: {
+            source: 'meta',
+            platform: data.platform,
+            client_name: data.clientName,
+            client_email: data.clientEmail,
+            pack_name: data.packName,
+            monthly_payment: data.monthlyPayment,
+            meta_lead_id: data.metaLeadId,
+            email_error: (emailResult.error as any).message || 'Unknown error'
+          }
+        })
+        .eq('offer_id', data.offerId)
+        .eq('type', 'new_meta_lead');
+    } else {
+      console.log('[META IMPORT] Email sent successfully to:', recipients.join(', '));
+    }
+    
+  } catch (error) {
+    console.error('[META IMPORT] Notification error:', error);
+    // Don't throw - notification failure shouldn't block import
+  }
+}
 
 interface MetaLead {
   meta_lead_id: string;
@@ -936,6 +1129,20 @@ ${packRemarks}
             }
           }
         }
+
+        // === NOTIFY ADMINS (in-app + email) ===
+        await notifyAdminsOfMetaLead(supabase, {
+          companyId: company.id,
+          offerId: offer.id,
+          clientName: fullName,
+          clientEmail: validEmail,
+          clientPhone: validPhone,
+          companyName: lead.company_name || null,
+          platform: lead.platform,
+          packName: parsedPack.displayName,
+          monthlyPayment: monthlyPayment,
+          metaLeadId: lead.meta_lead_id
+        });
 
         if (isNewClient) {
           results.created++;
