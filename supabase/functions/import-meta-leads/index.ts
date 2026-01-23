@@ -20,6 +20,7 @@ function generateMetaLeadEmailHtml(data: {
   monthlyPayment: number;
   offerId: string;
   appUrl: string;
+  companySlug: string;
 }): string {
   const platformName = data.platform === 'fb' ? 'Facebook' : 'Instagram';
   const platformIcon = data.platform === 'fb' ? '📘' : '📸';
@@ -53,7 +54,7 @@ function generateMetaLeadEmailHtml(data: {
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${data.appUrl}/offers?id=${data.offerId}" 
+        <a href="${data.appUrl}/${data.companySlug}/admin/offers/${data.offerId}" 
            style="background: linear-gradient(135deg, #2d618f 0%, #3b82f6 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(45, 97, 143, 0.3);">
           👁️ Voir l'offre dans Leazr
         </a>
@@ -77,6 +78,7 @@ async function notifyAdminsOfMetaLead(
   supabase: any,
   data: {
     companyId: string;
+    companySlug: string;
     offerId: string;
     clientName: string;
     clientEmail: string | null;
@@ -149,7 +151,8 @@ async function notifyAdminsOfMetaLead(
       packName: data.packName,
       monthlyPayment: data.monthlyPayment,
       offerId: data.offerId,
-      appUrl
+      appUrl,
+      companySlug: data.companySlug
     });
     
     let emailResult = await resend.emails.send({
@@ -757,7 +760,7 @@ Deno.serve(async (req) => {
     // Verify company exists
     const { data: company, error: companyError } = await supabase
       .from('companies')
-      .select('id')
+      .select('id, slug')
       .eq('id', company_id)
       .eq('is_active', true)
       .single();
@@ -1133,6 +1136,7 @@ ${packRemarks}
         // === NOTIFY ADMINS (in-app + email) ===
         await notifyAdminsOfMetaLead(supabase, {
           companyId: company.id,
+          companySlug: company.slug || 'admin',
           offerId: offer.id,
           clientName: fullName,
           clientEmail: validEmail,
