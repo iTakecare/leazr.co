@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Building2 } from "lucide-react";
@@ -13,6 +13,7 @@ const SidebarIcon: React.FC<SidebarIconProps> = ({
   size = "md"
 }) => {
   const { settings, loading } = useSiteSettings();
+  const [imageError, setImageError] = useState(false);
 
   const sizeClasses = {
     sm: "w-6 h-6",
@@ -20,9 +21,9 @@ const SidebarIcon: React.FC<SidebarIconProps> = ({
     lg: "w-10 h-10",
   };
 
-  // Use favicon if available, otherwise logo, otherwise default icon
   const iconUrl = settings?.logo_url;
 
+  // Show loading state
   if (loading) {
     return (
       <div className={cn(
@@ -35,7 +36,8 @@ const SidebarIcon: React.FC<SidebarIconProps> = ({
     );
   }
 
-  if (!iconUrl) {
+  // Show fallback if no URL or image failed to load
+  if (!iconUrl || imageError) {
     return (
       <div className={cn(
         "rounded-lg bg-primary/20 flex items-center justify-center",
@@ -49,19 +51,15 @@ const SidebarIcon: React.FC<SidebarIconProps> = ({
 
   return (
     <div className={cn(
-      "rounded-lg overflow-hidden flex-shrink-0 bg-white/10",
+      "rounded-lg overflow-hidden flex-shrink-0 bg-white/10 flex items-center justify-center",
       sizeClasses[size],
       className
     )}>
       <img 
         src={iconUrl}
         alt={settings?.company_name || "Logo"}
-        className="w-full h-full object-contain p-1"
-        onError={(e) => {
-          // On error, hide image and show fallback
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-        }}
+        className="w-full h-full object-contain p-0.5"
+        onError={() => setImageError(true)}
       />
     </div>
   );
