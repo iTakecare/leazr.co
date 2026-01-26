@@ -1,195 +1,201 @@
 
-# Plan : Intégration des Boutons "Sans Suite" et "Réactiver" dans la Page Détail
+# Plan : Ajouter l'Option d'Email de Clôture dans la Modale "Sans Suite"
 
-## Résumé
+## Objectif
 
-Intégration du bouton "Classer sans suite" et du bouton "Réactiver le dossier" dans la page de détail de l'offre (`AdminOfferDetail.tsx`) et la sidebar des actions (`CompactActionsSidebar.tsx`).
+Permettre à l'utilisateur d'envoyer un email au client lors du classement sans suite (Score D), expliquant que malgré plusieurs tentatives de contact ou demandes de documents, le dossier est clôturé, tout en invitant le client à reprendre contact si nécessaire.
 
 ---
 
-## Fichiers à Modifier
+## Fichiers à Modifier/Créer
 
 | Fichier | Action |
 |---------|--------|
-| `src/pages/AdminOfferDetail.tsx` | Ajouter le state et le modal NoFollowUpModal |
-| `src/components/offers/detail/CompactActionsSidebar.tsx` | Ajouter le bouton "Classer sans suite" et le bouton "Réactiver" |
+| `src/components/offers/detail/NoFollowUpModal.tsx` | Ajouter checkbox email + éditeur de contenu |
+| `src/services/offers/offerEmail.ts` | Ajouter fonction `sendNoFollowUpEmail` |
+| `supabase/functions/send-no-follow-up-email/index.ts` | Créer l'edge function pour envoyer l'email |
 
 ---
 
-## 1. Modifications de `AdminOfferDetail.tsx`
+## 1. Modification de `NoFollowUpModal.tsx`
 
-### Imports à ajouter
-
-```typescript
-import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
-```
-
-### Nouvel état
+### Nouveaux états à ajouter
 
 ```typescript
-const [noFollowUpModalOpen, setNoFollowUpModalOpen] = useState(false);
+const [sendEmail, setSendEmail] = useState(false);
+const [emailTitle, setEmailTitle] = useState("📁 Clôture de votre dossier");
+const [emailContent, setEmailContent] = useState<string>(DEFAULT_NO_FOLLOW_UP_HTML);
 ```
 
-### Ajout du modal en fin de composant
-
-Le modal `NoFollowUpModal` sera ajouté après les autres modaux existants (après `EmailOfferDialog`).
-
-### Passage des props à CompactActionsSidebar
-
-Ajouter les props pour gérer l'ouverture du modal et le callback de mise à jour.
-
----
-
-## 2. Modifications de `CompactActionsSidebar.tsx`
-
-### Imports à ajouter
+### Template email par défaut
 
 ```typescript
-import { UserX } from "lucide-react";
-import ReactivateOfferButton from "./ReactivateOfferButton";
+const DEFAULT_NO_FOLLOW_UP_HTML = `<p>Bonjour {{client_name}},</p>
+
+<p>Nous avons tenté de vous joindre à plusieurs reprises concernant votre demande de leasing informatique, mais nous n'avons malheureusement pas eu de nouvelles de votre part.</p>
+
+<p>En l'absence de retour, nous sommes contraints de <strong>clore votre dossier</strong>.</p>
+
+<p>Si toutefois il s'agit d'un oubli ou si votre situation a changé, n'hésitez pas à nous recontacter. Nous serons ravis de reprendre l'étude de votre demande.</p>
+
+<p>Nous restons à votre disposition.</p>
+
+<p>Cordialement,<br/>L'équipe iTakecare</p>`;
 ```
 
-### Nouvelles props de l'interface
+### Nouvelle section UI (après la sélection de raison)
 
-```typescript
-interface CompactActionsSidebarProps {
-  // ... props existantes
-  onClassifyNoFollowUp?: () => void;  // NOUVEAU
-  onStatusUpdated?: () => void;        // NOUVEAU
-}
-```
-
-### Condition d'affichage du bouton "Classer sans suite"
-
-Le bouton sera visible uniquement pour certains statuts actifs (pas pour les statuts déjà terminés ou rejetés) :
-
-```typescript
-const canClassifyNoFollowUp = ![
-  'without_follow_up',
-  'internal_rejected', 
-  'leaser_rejected',
-  'validated',
-  'financed',
-  'signed',
-  'completed',
-  'contract_sent'
-].includes(offer.workflow_status);
-```
-
-### Bouton "Classer sans suite"
-
-Positionné après le bouton "Supprimer" dans la section Actions :
-
-```tsx
-{canClassifyNoFollowUp && onClassifyNoFollowUp && (
-  <Button 
-    variant="outline" 
-    size="sm"
-    className="w-full justify-start text-sm h-8 text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300" 
-    onClick={onClassifyNoFollowUp}
-  >
-    <UserX className="w-4 h-4 mr-2" />
-    <span>Classer sans suite</span>
-  </Button>
-)}
-```
-
-### Bouton "Réactiver le dossier"
-
-Pour les dossiers `without_follow_up`, le composant `ReactivateOfferButton` sera affiché (il gère lui-même sa visibilité) :
-
-```tsx
-<ReactivateOfferButton
-  offerId={offer.id}
-  currentStatus={offer.workflow_status}
-  onStatusUpdated={onStatusUpdated}
-  size="sm"
-/>
-```
-
----
-
-## 3. Structure Finale de la Sidebar Actions
+Une checkbox permettant d'activer l'envoi d'email, suivie de l'éditeur ReactQuill si activée :
 
 ```text
-┌─────────────────────────────────┐
-│  Actions                        │
-├─────────────────────────────────┤
-│  [Modifier]                     │  ← Si éditable
-│  [Générer PDF]                  │
-│  [Envoyer offre par mail]       │
-│  [Ouvrir le lien public]        │
-│  [Accéder à l'upload docs]      │  ← Si Score B
-│  [Supprimer]                    │
-│  [Classer sans suite]           │  ← NOUVEAU (si actif)
-│  [Réactiver le dossier]         │  ← NOUVEAU (si without_follow_up)
-└─────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│ ☐ Envoyer un email de clôture au client         │
+│                                                 │
+│ (si cochée, affiche l'éditeur ci-dessous)       │
+├─────────────────────────────────────────────────┤
+│ Titre de l'email: [📁 Clôture de votre dossier] │
+│                                                 │
+│ Corps de l'email:                               │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ [Éditeur ReactQuill avec le template]       │ │
+│ └─────────────────────────────────────────────┘ │
+│                                                 │
+│ ⚠️ L'email sera envoyé via Resend              │
+└─────────────────────────────────────────────────┘
+```
+
+### Modification des boutons d'action
+
+Deux boutons seront affichés quand l'email est activé :
+- **"Classer sans suite et envoyer email"** (bouton principal)
+- **"Classer sans suite SANS envoyer d'email"** (bouton secondaire)
+
+Si l'email n'est pas coché, un seul bouton "Classer sans suite" sera affiché.
+
+---
+
+## 2. Service Email Client-Side
+
+### Nouvelle fonction dans `src/services/offers/offerEmail.ts`
+
+```typescript
+/**
+ * Envoie l'email de clôture pour dossier sans suite
+ */
+export const sendNoFollowUpEmail = async (
+  offerId: string,
+  customTitle?: string,
+  customContent?: string
+): Promise<boolean> => {
+  const { error } = await supabase.functions.invoke('send-no-follow-up-email', {
+    body: { offerId, customTitle, customContent }
+  });
+
+  if (error) throw error;
+  return true;
+};
 ```
 
 ---
 
-## 4. Flux d'Intégration
+## 3. Edge Function Backend
+
+### Nouveau fichier `supabase/functions/send-no-follow-up-email/index.ts`
+
+Structure similaire à `send-leasing-rejection-email` avec :
+- Récupération de l'offre (client_email, client_name)
+- Remplacement des variables `{{client_name}}`
+- Template HTML avec header gris/neutre (au lieu de rouge pour refus)
+- Envoi via Resend API
+
+### Design de l'email
 
 ```text
-AdminOfferDetail.tsx
-       │
-       ├── State: noFollowUpModalOpen
-       │
-       ├── CompactActionsSidebar
-       │        │
-       │        ├── Bouton "Classer sans suite" 
-       │        │       → onClick: setNoFollowUpModalOpen(true)
-       │        │
-       │        └── ReactivateOfferButton (auto-géré)
-       │                → onStatusUpdated: fetchOfferDetails
-       │
-       └── NoFollowUpModal
+┌─────────────────────────────────────────────────┐
+│  📁 Clôture de votre dossier                    │ ← Header gris
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  Bonjour [Client],                              │
+│                                                 │
+│  Nous avons tenté de vous joindre à plusieurs   │
+│  reprises concernant votre demande...           │
+│                                                 │
+│  [...contenu personnalisable...]                │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│  iTakecare SRL | www.itakecare.be               │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Flux Complet
+
+```text
+Utilisateur clique "Classer sans suite"
+        │
+        ▼
+NoFollowUpModal s'ouvre
+        │
+        ├── Sélectionne une raison (obligatoire)
+        │
+        ├── Coche "Envoyer un email au client" (optionnel)
+        │       │
+        │       └── Si coché : affiche éditeur d'email
+        │
+        └── Clique sur "Valider"
                 │
-                ├── isOpen: noFollowUpModalOpen
-                ├── onClose: setNoFollowUpModalOpen(false)
-                ├── offerId: offer.id
-                ├── currentStatus: offer.workflow_status
-                └── onStatusUpdated: fetchOfferDetails
+                ├── Si email activé :
+                │       └── Appel sendNoFollowUpEmail()
+                │               └── Edge function envoie l'email
+                │
+                └── Dans tous les cas :
+                        └── updateOfferStatus() → without_follow_up
+                        └── internal_score = 'D'
+                        └── Toast de confirmation
 ```
 
 ---
 
-## 5. Détail des Modifications
+## 5. Détails des Modifications UI
 
-### `AdminOfferDetail.tsx`
+### Dans NoFollowUpModal.tsx
 
-1. Ajouter l'import de `NoFollowUpModal`
-2. Ajouter l'état `noFollowUpModalOpen`
-3. Passer les nouvelles props à `CompactActionsSidebar` :
-   - `onClassifyNoFollowUp={() => setNoFollowUpModalOpen(true)}`
-   - `onStatusUpdated={fetchOfferDetails}`
-4. Ajouter le composant `<NoFollowUpModal />` après les autres modaux
+#### Imports à ajouter
+```typescript
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+```
 
-### `CompactActionsSidebar.tsx`
+#### Nouvelle section après le commentaire
+La section email sera affichée entre le commentaire et le badge Score D :
 
-1. Ajouter les imports (`UserX`, `ReactivateOfferButton`)
-2. Étendre l'interface avec les nouvelles props
-3. Ajouter la logique `canClassifyNoFollowUp`
-4. Ajouter le bouton "Classer sans suite" dans la section Actions
-5. Ajouter le `ReactivateOfferButton` après le bouton "Supprimer"
+1. Checkbox "Envoyer un email de clôture au client"
+2. Si cochée : Input pour le titre + ReactQuill pour le contenu
+3. Message d'avertissement "L'email sera envoyé via Resend"
+
+#### Modification de handleSubmit
+- Si `sendEmail === true` : appeler `sendNoFollowUpEmail()` avant de mettre à jour le statut
+- Gérer les erreurs d'envoi d'email séparément
 
 ---
 
-## 6. Comportement Attendu
+## 6. Template Email par Défaut (Complet)
 
-### Dossier Actif (draft, sent, internal_review, etc.)
+Le contenu proposé correspond à votre demande :
 
-- Le bouton "Classer sans suite" est visible
-- Clic → Ouvre `NoFollowUpModal`
-- Après classification → Statut devient `without_follow_up` + Score D
+> "Après avoir tenté de vous joindre plusieurs fois ou vous avoir demandé des documents, sans nouvelle de votre part, nous sommes contraints de clore le dossier. Si toutefois c'est une erreur ou un oubli, n'hésitez pas à nous recontacter pour relancer le dossier."
 
-### Dossier "Sans Suite" (without_follow_up)
+Ce message sera personnalisable via ReactQuill avant envoi.
 
-- Le bouton "Classer sans suite" est masqué
-- Le bouton "Réactiver le dossier" est visible
-- Clic → Ouvre le dialog de réactivation
-- Après réactivation → Statut revient au choix (draft/sent/internal_review)
+---
 
-### Dossier Refusé/Validé/Finalisé
+## Récapitulatif Technique
 
-- Ni le bouton "Classer sans suite" ni "Réactiver" ne sont visibles
+| Composant | Modification |
+|-----------|-------------|
+| **NoFollowUpModal.tsx** | + États email, + Section UI avec checkbox/éditeur, + Logique handleSubmit |
+| **offerEmail.ts** | + Fonction `sendNoFollowUpEmail()` |
+| **Edge Function** | + Nouveau `send-no-follow-up-email` basé sur `send-leasing-rejection-email` |
