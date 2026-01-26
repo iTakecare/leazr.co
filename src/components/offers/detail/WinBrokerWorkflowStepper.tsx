@@ -368,7 +368,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
         </div>
 
         {/* Stepper horizontal - WinBroker style */}
-        <div className="relative flex items-start justify-start gap-0 overflow-x-auto pb-24">
+        <div className="relative flex items-start justify-center gap-0 overflow-x-auto pb-6">
           {activeSteps.map((step, index) => {
             const Icon = step.icon;
             const isActive = index === currentIndex;
@@ -388,7 +388,8 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                     onClick={() => canClick && handleStepClick(step.key, index)}
                     disabled={!canClick || updating}
                     className={cn(
-                      "relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all min-w-[140px] min-h-[120px]",
+                      "relative flex flex-col items-center p-4 rounded-xl border-2 transition-all min-w-[160px]",
+                      isActive ? "min-h-[200px] justify-start" : "min-h-[140px] justify-center",
                       isCompleted && "border-primary/40 bg-white",
                       isActive && "border-orange-400 shadow-lg bg-white",
                       isUpcoming && "border-gray-200 bg-white",
@@ -447,6 +448,52 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                         En attente
                       </span>
                     )}
+
+                    {/* Action buttons INSIDE the card for active step - WinBroker style */}
+                    {isActive && (
+                      <div className="mt-3 flex flex-col gap-2 w-full px-1">
+                        {/* Analysis/Document request button */}
+                        {step.enables_scoring && onAnalysisClick && step.scoring_type && (
+                          <button 
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
+                            }}
+                          >
+                            <ClipboardList className="w-4 h-4 text-gray-500" />
+                            <span>
+                              {step.scoring_type === 'internal' ? 'Analyse Interne' : 
+                               step.scoring_type === 'leaser' ? 'Analyse Leaser' : 
+                               'Documents'}
+                            </span>
+                          </button>
+                        )}
+
+                        {/* Next step button */}
+                        {nextStep && (
+                          <button 
+                            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStepClick(nextStep.key, currentIndex + 1);
+                            }}
+                            disabled={updating}
+                          >
+                            <span>Vers {nextStep.label}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        )}
+
+                        {/* If no next step - Final step indicator */}
+                        {!nextStep && (
+                          <div className="w-full flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-primary bg-primary/5 rounded-lg border border-primary/20">
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Étape finale</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </button>
 
                   {/* Step label */}
@@ -487,51 +534,6 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                     </button>
                   )}
 
-                  {/* Action popup for active step - exact WinBroker style */}
-                  {isActive && (
-                    <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-white border-2 border-gray-100 rounded-xl shadow-2xl min-w-[220px] z-20 overflow-hidden">
-                      {/* Analysis/Document request button */}
-                      {step.enables_scoring && onAnalysisClick && step.scoring_type && (
-                        <button 
-                          className="w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-gray-50 border-b border-gray-100 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
-                          }}
-                        >
-                          <ClipboardList className="w-5 h-5 text-gray-500" />
-                          <span className="font-medium">
-                            {step.scoring_type === 'internal' ? 'Analyse Interne' : 
-                             step.scoring_type === 'leaser' ? 'Analyse Leaser' : 
-                             'Demander documents'}
-                          </span>
-                        </button>
-                      )}
-
-                      {/* Next step button - prominent */}
-                      {nextStep && (
-                        <button 
-                          className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStepClick(nextStep.key, currentIndex + 1);
-                          }}
-                          disabled={updating}
-                        >
-                          <span>Vers {nextStep.label}</span>
-                          <ArrowRight className="w-4 h-4 text-gray-400" />
-                        </button>
-                      )}
-
-                      {/* If no next step - Final step indicator */}
-                      {!nextStep && (
-                        <div className="w-full flex items-center gap-2 px-4 py-3.5 text-sm text-primary bg-primary/5 font-medium">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Étape finale</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Dashed arrow connector - WinBroker style */}
