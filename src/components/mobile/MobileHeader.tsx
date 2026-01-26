@@ -1,20 +1,11 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
 import { 
-  Menu, 
-  X, 
   Search, 
   Bell, 
-  Camera,
-  Settings,
-  LogOut,
-  User
+  Camera
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useNavigate } from "react-router-dom";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface MobileHeaderProps {
   title?: string;
@@ -37,17 +28,10 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   onScannerClick,
   companySlug,
 }) => {
-  const { user, signOut } = useAuth();
   const { settings } = useSiteSettings();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const basePrefix = companySlug ? `/${companySlug}` : '';
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
-  };
 
   const logoUrl = settings?.logo_url;
   const companyName = settings?.company_name || "Leazr";
@@ -55,89 +39,18 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
       <div className="flex items-center justify-between h-14 px-4">
-        {/* Left side - Menu */}
-        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-          <SheetTrigger asChild>
-            <button 
+        {/* Left side - Scanner or spacer */}
+        <div className="w-10 flex items-center justify-start">
+          {showScanner && (
+            <button
+              onClick={onScannerClick}
               className="touch-target flex items-center justify-center"
-              aria-label="Menu"
+              aria-label="Scanner un document"
             >
-              <Menu className="h-5 w-5 text-foreground" />
+              <Camera className="h-5 w-5 text-muted-foreground" />
             </button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0">
-            <div className="flex flex-col h-full">
-              {/* Menu Header */}
-              <div className="flex items-center gap-3 p-4 border-b border-border">
-                {logoUrl ? (
-                  <img 
-                    src={logoUrl} 
-                    alt={companyName}
-                    className="h-8 w-8 rounded-lg object-contain"
-                  />
-                ) : (
-                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground font-bold text-sm">
-                      {companyName.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{companyName}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {user?.email}
-                  </p>
-                </div>
-              </div>
-
-              {/* Menu Items */}
-              <nav className="flex-1 p-4 space-y-1">
-                <button
-                  onClick={() => {
-                    navigate(`${basePrefix}/admin/settings`);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-accent transition-colors touch-target"
-                >
-                  <Settings className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Paramètres</span>
-                </button>
-                <button
-                  onClick={() => {
-                    navigate(`${basePrefix}/admin/settings`);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-accent transition-colors touch-target"
-                >
-                  <User className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Mon profil</span>
-                </button>
-              </nav>
-
-              {/* Sign Out */}
-              <div className="p-4 border-t border-border">
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors touch-target"
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span className="text-sm font-medium">Déconnexion</span>
-                </button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {/* Scanner button */}
-        {showScanner && (
-          <button
-            onClick={onScannerClick}
-            className="touch-target flex items-center justify-center"
-            aria-label="Scanner un document"
-          >
-            <Camera className="h-5 w-5 text-muted-foreground" />
-          </button>
-        )}
+          )}
+        </div>
 
         {/* Center - Logo/Title */}
         <div className="flex-1 flex items-center justify-center">
