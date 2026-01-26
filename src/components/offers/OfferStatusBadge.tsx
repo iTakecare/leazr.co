@@ -28,7 +28,7 @@ export const OFFER_STATUSES = {
     id: "draft", 
     label: "Brouillon", 
     icon: Circle,
-    color: "bg-slate-100 text-slate-700 border-slate-200"
+    color: "bg-slate-100 text-slate-600 border-slate-300"
   },
   
   // Envoi
@@ -36,13 +36,13 @@ export const OFFER_STATUSES = {
     id: "sent", 
     label: "Offre envoyée", 
     icon: Send,
-    color: "bg-sky-100 text-sky-700 border-sky-200"
+    color: "bg-blue-50 text-blue-700 border-blue-200"
   },
   OFFER_SEND: { 
     id: "offer_send", 
     label: "Offre envoyée", 
     icon: Send,
-    color: "bg-sky-100 text-sky-700 border-sky-200"
+    color: "bg-blue-50 text-blue-700 border-blue-200"
   },
   
   // Analyse interne
@@ -50,25 +50,25 @@ export const OFFER_STATUSES = {
     id: "internal_review", 
     label: "Analyse interne", 
     icon: Search,
-    color: "bg-purple-100 text-purple-700 border-purple-200"
+    color: "bg-slate-100 text-slate-700 border-slate-300"
   },
   INTERNAL_APPROVED: { 
     id: "internal_approved", 
     label: "Validée interne", 
     icon: CheckCircle,
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   INTERNAL_DOCS_REQUESTED: { 
     id: "internal_docs_requested", 
     label: "Documents demandés (interne)", 
     icon: FileText,
-    color: "bg-amber-100 text-amber-700 border-amber-200"
+    color: "bg-amber-50 text-amber-800 border-amber-300"
   },
   INTERNAL_REJECTED: { 
     id: "internal_rejected", 
     label: "Rejetée interne", 
     icon: XCircle,
-    color: "bg-rose-100 text-rose-700 border-rose-200"
+    color: "bg-red-50 text-red-800 border-red-300"
   },
   
   // Analyse leaser
@@ -76,37 +76,37 @@ export const OFFER_STATUSES = {
     id: "leaser_review", 
     label: "Analyse leaser", 
     icon: Building2,
-    color: "bg-indigo-100 text-indigo-700 border-indigo-200"
+    color: "bg-slate-100 text-slate-700 border-slate-300"
   },
   LEASER_INTRODUCED: { 
     id: "leaser_introduced", 
     label: "Introduit leaser", 
     icon: Building2,
-    color: "bg-indigo-100 text-indigo-700 border-indigo-200"
+    color: "bg-slate-100 text-slate-700 border-slate-300"
   },
   SCORING_REVIEW: { 
     id: "Scoring_review", 
     label: "Résultat leaser", 
     icon: BarChart3,
-    color: "bg-indigo-100 text-indigo-700 border-indigo-200"
+    color: "bg-slate-100 text-slate-700 border-slate-300"
   },
   LEASER_APPROVED: { 
     id: "leaser_approved", 
     label: "Validée leaser", 
     icon: CheckCircle,
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   LEASER_DOCS_REQUESTED: { 
     id: "leaser_docs_requested", 
     label: "Documents demandés (leaser)", 
     icon: FileText,
-    color: "bg-amber-100 text-amber-700 border-amber-200"
+    color: "bg-amber-50 text-amber-800 border-amber-300"
   },
   LEASER_REJECTED: { 
     id: "leaser_rejected", 
     label: "Rejetée leaser", 
     icon: XCircle,
-    color: "bg-rose-100 text-rose-700 border-rose-200"
+    color: "bg-red-50 text-red-800 border-red-300"
   },
   
   // Client
@@ -114,19 +114,19 @@ export const OFFER_STATUSES = {
     id: "client_review", 
     label: "En revue client", 
     icon: User,
-    color: "bg-sky-100 text-sky-700 border-sky-200"
+    color: "bg-blue-50 text-blue-700 border-blue-200"
   },
   OFFER_ACCEPTED: { 
     id: "offer_accepted", 
     label: "Offre acceptée", 
     icon: CheckCircle,
-    color: "bg-green-100 text-green-700 border-green-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   CLIENT_REJECTED: { 
     id: "client_rejected", 
     label: "Rejetée par client", 
     icon: XCircle,
-    color: "bg-rose-100 text-rose-700 border-rose-200"
+    color: "bg-red-50 text-red-800 border-red-300"
   },
   
   // Finalisation
@@ -134,13 +134,13 @@ export const OFFER_STATUSES = {
     id: "validated", 
     label: "Contrat prêt", 
     icon: FileCheck,
-    color: "bg-teal-100 text-teal-700 border-teal-200"
+    color: "bg-blue-50 text-blue-800 border-blue-300"
   },
   FINANCED: { 
     id: "financed", 
     label: "Financée", 
     icon: Banknote,
-    color: "bg-cyan-100 text-cyan-700 border-cyan-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   
   // Facturation (offres d'achat)
@@ -148,7 +148,7 @@ export const OFFER_STATUSES = {
     id: "invoicing", 
     label: "Facturé", 
     icon: FileCheck,
-    color: "bg-green-100 text-green-700 border-green-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   
   // Anciens statuts pour compatibilité
@@ -156,37 +156,37 @@ export const OFFER_STATUSES = {
     id: "approved", 
     label: "Approuvée", 
     icon: CheckCircle,
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   ACCEPTED: { 
     id: "accepted", 
     label: "Acceptée", 
     icon: CheckCircle,
-    color: "bg-green-100 text-green-700 border-green-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   CONTRACT_SIGNED: { 
     id: "contract_signed", 
     label: "Acceptée", 
     icon: CheckCircle,
-    color: "bg-green-100 text-green-700 border-green-200"
+    color: "bg-emerald-50 text-emerald-800 border-emerald-300"
   },
   REJECTED: { 
     id: "rejected", 
     label: "Rejetée", 
     icon: XCircle,
-    color: "bg-rose-100 text-rose-700 border-rose-200"
+    color: "bg-red-50 text-red-800 border-red-300"
   },
   INFO_REQUESTED: { 
     id: "info_requested", 
     label: "Informations demandées", 
     icon: HelpCircle,
-    color: "bg-amber-100 text-amber-700 border-amber-200"
+    color: "bg-amber-50 text-amber-800 border-amber-300"
   },
   VALID_ITC: { 
     id: "valid_itc", 
     label: "Validée ITC", 
     icon: Sparkle,
-    color: "bg-purple-100 text-purple-700 border-purple-200"
+    color: "bg-slate-200 text-slate-700 border-slate-300"
   },
 };
 
