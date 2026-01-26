@@ -10,9 +10,10 @@ import NavbarUserProfile from "./NavbarUserProfile";
 
 interface SidebarUserSectionProps {
   collapsed?: boolean;
+  darkMode?: boolean;
 }
 
-const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
+const SidebarUserSection = ({ collapsed = false, darkMode = false }: SidebarUserSectionProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -41,17 +42,26 @@ const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
   if (collapsed) {
     return (
       <div className="p-2">
-        <div className="flex flex-col items-start gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-xs font-semibold text-primary">
+        <div className="flex flex-col items-center gap-2">
+          <div className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center",
+            darkMode ? "bg-white/10" : "bg-primary/10"
+          )}>
+            <span className={cn(
+              "text-xs font-semibold",
+              darkMode ? "text-white" : "text-primary"
+            )}>
               {getUserInitials()}
             </span>
           </div>
           <Button
-            variant="outline"
+            variant={darkMode ? "ghost" : "outline"}
             size="sm"
             onClick={handleLogout}
-            className="w-8 h-8 p-0 flex items-center justify-center"
+            className={cn(
+              "w-8 h-8 p-0 flex items-center justify-center",
+              darkMode && "text-sidebar-foreground/70 hover:text-white hover:bg-white/10"
+            )}
           >
             <LogOut className="h-3 w-3" />
           </Button>
@@ -62,18 +72,25 @@ const SidebarUserSection = ({ collapsed = false }: SidebarUserSectionProps) => {
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-start mb-3">
+      <div className={cn(
+        "flex items-center justify-start mb-3",
+        darkMode && "text-white"
+      )}>
         <NavbarUserProfile 
           user={user}
           avatarUrl={null}
           getUserInitials={getUserInitials}
+          darkMode={darkMode}
         />
       </div>
       <Button
-        variant="outline"
+        variant={darkMode ? "ghost" : "outline"}
         size="sm"
         onClick={handleLogout}
-        className="w-full flex items-center gap-2"
+        className={cn(
+          "w-full flex items-center gap-2",
+          darkMode && "text-sidebar-foreground/70 hover:text-white hover:bg-white/10 border-sidebar-border"
+        )}
       >
         <LogOut className="h-4 w-4" />
         Se déconnecter
