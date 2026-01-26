@@ -135,8 +135,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-bottom">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-bottom overflow-visible">
+      <div className="flex items-center justify-around h-16 px-2 overflow-visible">
         {items.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -150,9 +150,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className="flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg"
+                  className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-xl border-4 border-background"
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-7 w-7" />
                 </motion.div>
               </Link>
             );
