@@ -1,9 +1,10 @@
-import React, { useState, memo, useMemo, useCallback } from "react";
+import React, { useState, memo, useMemo, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useLocation } from "react-router-dom";
 import { 
   BarChart3, 
@@ -32,9 +33,21 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { companyId } = useMultiTenant();
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { hasModuleAccess } = useModuleAccess();
+  const { preferences, updateSidebarCollapsed } = useUserPreferences();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Par défaut, la sidebar est repliée (true)
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Synchroniser avec les préférences utilisateur
+  useEffect(() => {
+    if (preferences && !hasInitialized) {
+      setIsCollapsed(preferences.sidebar_collapsed ?? true);
+      setHasInitialized(true);
+    }
+  }, [preferences, hasInitialized]);
 
   const getCompanySlugFromPath = () => {
     const pathMatch = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/);
@@ -106,7 +119,16 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   }, [companySlug, hasModuleAccess]);
 
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
-  const toggleCollapsed = useCallback(() => setIsCollapsed(prev => !prev), []);
+  
+  const toggleCollapsed = useCallback(() => {
+    setIsCollapsed(prev => {
+      const newValue = !prev;
+      // Sauvegarder l'état dans les préférences utilisateur
+      updateSidebarCollapsed(newValue);
+      return newValue;
+    });
+  }, [updateSidebarCollapsed]);
+  
   const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), []);
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
   const companyName = useMemo(() => settings?.company_name || "Leazr", [settings?.company_name]);
