@@ -21,7 +21,8 @@ const SidebarIcon: React.FC<SidebarIconProps> = ({
     lg: "w-10 h-10",
   };
 
-  const iconUrl = settings?.logo_url;
+  // Prioritize favicon, then fallback to logo
+  const iconUrl = settings?.favicon_url || settings?.logo_url;
 
   // Show loading state
   if (loading) {

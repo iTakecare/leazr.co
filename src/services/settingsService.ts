@@ -17,6 +17,7 @@ export interface SiteSettings {
   company_vat_number?: string;
   company_legal_form?: string;
   logo_url?: string;
+  favicon_url?: string;
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
