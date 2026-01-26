@@ -1,172 +1,192 @@
 
 
-# Plan : Centrer le stepper et intégrer les boutons dans les cartes
+# Plan : Application de la typographie WinBroker à Leazr
 
 ## Objectif
 
-Modifier le composant `WinBrokerWorkflowStepper.tsx` pour :
-1. **Centrer le stepper** horizontalement sur la page
-2. **Placer les boutons d'action à l'intérieur de la carte** de l'étape active (comme WinBroker)
+Appliquer la même typographie fine et légère de WinBroker dans toute l'application Leazr. Les polices doivent être plus fines (`font-normal`/`font-medium` au lieu de `font-semibold`/`font-bold`) et les tailles réduites.
 
 ---
 
-## Analyse du problème actuel
+## Analyse comparative
 
-### Problème 1 : Stepper non centré
+| Élément | Leazr actuel | WinBroker cible |
+|---------|--------------|-----------------|
+| Titres de page | `text-2xl font-semibold` | `text-xl font-medium` |
+| Sous-titres | `text-sm text-muted-foreground` | `text-xs text-muted-foreground` |
+| Valeurs KPI | `text-2xl font-semibold` | `text-xl font-medium` |
+| Labels KPI | `text-sm font-medium` | `text-xs font-normal` |
+| Titres de cartes | `text-lg font-semibold` | `text-sm font-medium` |
+| Tableau - headers | `font-bold` | `font-medium text-sm` |
+| Tableau - cellules | `font-semibold` / `font-bold` | `font-normal` / `font-medium` |
+| Sidebar labels | `text-sm font-semibold` | `text-xs font-medium` |
 
-**Code actuel (ligne 371):**
+---
+
+## Fichiers à modifier
+
+### 1. Composants UI de base (style global)
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/ui/card.tsx` | `CardTitle`: `text-lg font-semibold` → `text-sm font-medium` |
+| `src/components/page-header.tsx` | Titre: `text-2xl font-semibold` → `text-xl font-medium` |
+| `src/components/dashboard/StatCard.tsx` | Valeurs: `text-2xl font-semibold` → `text-xl font-medium` |
+
+### 2. Dashboard (page principale)
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/dashboard/CompanyDashboard.tsx` | Réduire toutes les tailles et weights |
+
+### 3. Sidebar
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/layout/Sidebar.tsx` | Labels et titres plus fins |
+
+### 4. CSS global (optionnel mais recommandé)
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/index.css` | Ajouter un style de base pour la typographie fine |
+
+---
+
+## Détail des modifications
+
+### `src/components/ui/card.tsx`
+
 ```tsx
-<div className="relative flex items-start justify-start gap-0 overflow-x-auto pb-24">
+// CardTitle - ligne 39
+const CardTitle = ... (
+  <h3 className={cn(
+    "text-sm font-medium leading-none tracking-tight",  // Avant: text-lg font-semibold
+    className
+  )} />
+))
+
+// CardDescription - ligne 53
+const CardDescription = ... (
+  <p className={cn("text-xs text-muted-foreground", className)} />  // Avant: text-sm
+))
 ```
 
-**Solution:** Changer `justify-start` en `justify-center`
-
----
-
-### Problème 2 : Boutons en popup externe
-
-**Situation actuelle:**
-- Les boutons d'action sont dans un `div` positionné en `absolute` **en dessous** de la carte
-- Ils apparaissent comme un menu flottant séparé
-
-**Design WinBroker cible:**
-- Les boutons sont **directement dans la carte**, sous l'icône
-- Ils font partie intégrante de la carte, pas un popup séparé
-
----
-
-## Modifications à apporter
-
-### Fichier : `src/components/offers/detail/WinBrokerWorkflowStepper.tsx`
-
-#### 1. Centrer le stepper
+### `src/components/page-header.tsx`
 
 ```tsx
-// Ligne 371 - Changer justify-start en justify-center
-<div className="relative flex items-start justify-center gap-0 overflow-x-auto pb-6">
+// Ligne 11
+<h1 className="text-xl font-medium tracking-tight text-foreground">{title}</h1>  // Avant: text-2xl font-semibold
+
+// Ligne 13
+<p className="text-xs text-muted-foreground">{description}</p>  // Avant: text-sm
 ```
 
-Réduire aussi `pb-24` à `pb-6` car les boutons ne seront plus en dessous.
-
----
-
-#### 2. Déplacer les boutons à l'intérieur de la carte
-
-Supprimer le popup externe (lignes 490-534) et intégrer les boutons directement dans le `<button>` de la carte :
+### `src/components/dashboard/StatCard.tsx`
 
 ```tsx
-<button className={cn(
-  "relative flex flex-col items-center justify-start p-4 rounded-xl border-2 transition-all min-w-[160px] min-h-[180px]",
-  // ... styles existants
-)}>
-  {/* Badge numéro/check - existant */}
+// Titre - ligne 29
+<CardTitle className="text-xs font-normal text-muted-foreground">  // Avant: text-sm font-medium
+
+// Valeur - ligne 37
+<div className="text-xl font-medium">{value}</div>  // Avant: text-2xl font-semibold
+
+// Description - ligne 39
+<p className="text-[10px] text-muted-foreground mt-1">  // Avant: text-xs
+```
+
+### `src/components/dashboard/CompanyDashboard.tsx`
+
+```tsx
+// Header - ligne 151
+<h1 className="text-xl font-medium text-foreground">  // Avant: text-2xl font-semibold
+
+// Description - ligne 154
+<p className="text-xs text-muted-foreground">  // Avant: text-sm
+
+// KPI Cards - lignes 202-203
+<p className="text-xs font-normal text-muted-foreground">CA Total</p>  // Avant: text-sm font-medium
+<p className="text-xl font-medium text-foreground">  // Avant: text-2xl font-semibold
+
+// CardTitle tableau - ligne 263
+<CardTitle className="text-base font-medium">  // Avant: text-xl font-bold
+
+// TableHead - ligne 270
+<TableHead className="font-medium text-xs">  // Avant: font-bold
+
+// TableCell font-semibold -> font-normal partout
+// TableCell font-bold -> font-medium partout
+
+// TOTAL row - lignes 331-340
+<TableCell className="font-medium text-base">  // Avant: font-bold text-lg
+
+// Section headers (Contrats Réalisés, etc.) - réduire les tailles
+```
+
+### `src/components/layout/Sidebar.tsx`
+
+```tsx
+// Company name - ligne 134
+<h1 className="text-xs font-medium text-white truncate">  // Avant: text-sm font-semibold
+
+// Admin label - ligne 135
+<p className="text-[10px] text-sidebar-foreground/60">  // Avant: text-xs
+
+// Navigation label - ligne 159
+<p className="text-[9px] font-medium uppercase text-sidebar-foreground/40">  // Avant: text-[10px] font-semibold
+```
+
+### `src/index.css` - Optionnel
+
+Ajouter des styles de base pour une typographie plus fine globalement :
+
+```css
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-weight: 400;
+    font-size: 14px;
+  }
   
-  {/* Icon box - existant */}
-  
-  {/* Score/En attente - existant */}
-  
-  {/* NOUVEAUX: Boutons d'action DANS la carte pour l'étape active */}
-  {isActive && (
-    <div className="mt-3 flex flex-col gap-2 w-full px-2">
-      {/* Bouton Analyse/Documents */}
-      {step.enables_scoring && onAnalysisClick && step.scoring_type && (
-        <button 
-          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
-          }}
-        >
-          <ClipboardList className="w-4 h-4 text-gray-500" />
-          <span>
-            {step.scoring_type === 'internal' ? 'Analyse Interne' : 'Analyse Leaser'}
-          </span>
-        </button>
-      )}
-
-      {/* Bouton Vers prochaine étape */}
-      {nextStep && (
-        <button 
-          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleStepClick(nextStep.key, currentIndex + 1);
-          }}
-          disabled={updating}
-        >
-          <span>Vers {nextStep.label}</span>
-          <ArrowRight className="w-3 h-3" />
-        </button>
-      )}
-    </div>
-  )}
-</button>
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+  }
+}
 ```
 
 ---
 
-#### 3. Ajuster la taille des cartes
+## Résumé des changements typographiques
 
-Pour que les boutons tiennent dans les cartes :
-- Augmenter `min-h` de `120px` à `180px` pour les cartes actives
-- Utiliser `justify-start` au lieu de `justify-center` dans le conteneur de carte
-
-```tsx
-className={cn(
-  "relative flex flex-col items-center justify-start p-4 rounded-xl border-2 transition-all min-w-[160px]",
-  isActive ? "min-h-[200px]" : "min-h-[140px]",
-  // ... reste des styles
-)}
-```
+| Pattern actuel | Nouveau pattern |
+|----------------|-----------------|
+| `font-bold` | `font-medium` |
+| `font-semibold` | `font-normal` ou `font-medium` |
+| `text-2xl` | `text-xl` |
+| `text-xl` | `text-base` ou `text-lg` |
+| `text-lg` | `text-sm` |
+| `text-sm` | `text-xs` |
+| `text-xs` | `text-[10px]` ou `text-[11px]` |
 
 ---
 
-## Structure visuelle finale
+## Fichiers impactés
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ ↯ Progression du workflow  • Workflow Winfinance                                │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│            ┌──────────┐       ┌════════════════┐       ┌──────────┐            │
-│            │✓         │       │             [2]│       │        [3]│            │
-│            │  ┌────┐  │       │    ┌────┐     │       │  ┌────┐  │            │
-│            │  │ 📄 │  │  ---→ │    │ 📋 │     │  ---→ │  │ 🔍 │  │            │
-│            │  └────┘  │       │    └────┘     │       │  └────┘  │            │
-│            │          │       │    Score B    │       │          │            │
-│            │          │       │ ┌───────────┐ │       │          │            │
-│            │          │       │ │📋 Analyse │ │       │          │            │
-│            │          │       │ │  Interne  │ │       │          │            │
-│            │          │       │ ├───────────┤ │       │          │            │
-│            │          │       │ │Vers Étude→│ │       │          │            │
-│            └──────────┘       └════════════════┘       └──────────┘            │
-│            Nouvelle           Collecte                Étude du                 │
-│            demande            documents               dossier                  │
-│            ┌──────────┐       ┌──────────┐           ┌──────────┐             │
-│            │ Terminée │       │ En cours │           │ À venir  │             │
-│            └──────────┘       └──────────┘           └──────────┘             │
-│            ↩ Retour à                                                          │
-│               Nouvelle                                                         │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+| Fichier | Priorité |
+|---------|----------|
+| `src/components/ui/card.tsx` | Haute (affecte toute l'app) |
+| `src/components/page-header.tsx` | Haute |
+| `src/components/dashboard/StatCard.tsx` | Haute |
+| `src/components/dashboard/CompanyDashboard.tsx` | Haute |
+| `src/components/layout/Sidebar.tsx` | Moyenne |
+| `src/index.css` | Optionnelle |
 
 ---
 
-## Récapitulatif des changements
+## Résultat attendu
 
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Alignement stepper | `justify-start` | `justify-center` |
-| Position boutons | Popup `absolute` en dessous | Intégrés dans la carte |
-| Taille carte active | `min-h-[120px]` | `min-h-[200px]` |
-| Padding bottom container | `pb-24` | `pb-6` |
-| Alignement carte | `justify-center` | `justify-start` |
-
----
-
-## Fichier à modifier
-
-| Fichier | Action |
-|---------|--------|
-| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Centrer le stepper + boutons dans la carte |
+- Titres de page plus discrets et élégants
+- Valeurs numériques lisibles mais pas "criantes"
+- Aspect général plus léger et professionnel
+- Cohérence avec le design WinBroker
 
