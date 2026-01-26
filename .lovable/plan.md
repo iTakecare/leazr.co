@@ -1,39 +1,37 @@
 
 
-# Plan : Application exacte du design WinBroker au stepper Leazr
+# Plan : Centrer le stepper et intégrer les boutons dans les cartes
 
 ## Objectif
 
-Modifier le composant `WinBrokerWorkflowStepper.tsx` pour qu'il soit **identique** au design WinBroker de la première capture.
+Modifier le composant `WinBrokerWorkflowStepper.tsx` pour :
+1. **Centrer le stepper** horizontalement sur la page
+2. **Placer les boutons d'action à l'intérieur de la carte** de l'étape active (comme WinBroker)
 
 ---
 
-## Analyse détaillée des différences
+## Analyse du problème actuel
 
-### WinBroker (Design cible - 1ère capture)
+### Problème 1 : Stepper non centré
 
-| Élément | Style WinBroker |
-|---------|-----------------|
-| Icône | Dans une **boîte grise arrondie** (`bg-gray-100 rounded-lg p-3`) |
-| Carte active | Bordure **orange vif** épaisse (`border-orange-400`) |
-| Badge numéro (active) | **Orange** en haut à droite |
-| Checkmark (complétée) | **Vert** en haut à gauche |
-| Badge "Terminée" | Vert avec fond vert clair |
-| Badge "À venir" | **Texte gris** (pas vert) |
-| Connecteurs | Pointillés gris (`---→`) |
-| Score/En attente | Affiché **sous l'icône** dans la carte |
-| Popup action | Attachée à la carte, boutons empilés |
+**Code actuel (ligne 371):**
+```tsx
+<div className="relative flex items-start justify-start gap-0 overflow-x-auto pb-24">
+```
 
-### Leazr (Problèmes actuels - 2ème capture)
+**Solution:** Changer `justify-start` en `justify-center`
 
-| Problème | Correction nécessaire |
-|----------|----------------------|
-| Icône sans background box | Ajouter `bg-gray-50 rounded-lg p-3` autour de l'icône |
-| Bordure active bleue/primary | Changer pour **orange** (`border-orange-400`) |
-| Badge numéro bleu | Changer pour **orange** pour l'étape active |
-| Badge "À venir" vert | Changer pour **gris** (`text-gray-400 bg-gray-100`) |
-| Score dans la carte | Séparer visuellement avec badge sous l'icône |
-| Connecteur tiret solide | Utiliser **pointillés** (`border-dashed`) |
+---
+
+### Problème 2 : Boutons en popup externe
+
+**Situation actuelle:**
+- Les boutons d'action sont dans un `div` positionné en `absolute` **en dessous** de la carte
+- Ils apparaissent comme un menu flottant séparé
+
+**Design WinBroker cible:**
+- Les boutons sont **directement dans la carte**, sous l'icône
+- Ils font partie intégrante de la carte, pas un popup séparé
 
 ---
 
@@ -41,155 +39,128 @@ Modifier le composant `WinBrokerWorkflowStepper.tsx` pour qu'il soit **identique
 
 ### Fichier : `src/components/offers/detail/WinBrokerWorkflowStepper.tsx`
 
-#### 1. Icône dans une boîte grise arrondie
+#### 1. Centrer le stepper
 
 ```tsx
-{/* Icon box - WinBroker style */}
-<div className={cn(
-  "p-3 rounded-lg",
-  isCompleted && "bg-primary/10",
-  isActive && "bg-orange-50",
-  isUpcoming && "bg-gray-100"
+// Ligne 371 - Changer justify-start en justify-center
+<div className="relative flex items-start justify-center gap-0 overflow-x-auto pb-6">
+```
+
+Réduire aussi `pb-24` à `pb-6` car les boutons ne seront plus en dessous.
+
+---
+
+#### 2. Déplacer les boutons à l'intérieur de la carte
+
+Supprimer le popup externe (lignes 490-534) et intégrer les boutons directement dans le `<button>` de la carte :
+
+```tsx
+<button className={cn(
+  "relative flex flex-col items-center justify-start p-4 rounded-xl border-2 transition-all min-w-[160px] min-h-[180px]",
+  // ... styles existants
 )}>
-  <Icon className={cn(
-    "w-8 h-8",
-    isCompleted && "text-primary",
-    isActive && "text-orange-500",
-    isUpcoming && "text-gray-400"
-  )} />
-</div>
-```
+  {/* Badge numéro/check - existant */}
+  
+  {/* Icon box - existant */}
+  
+  {/* Score/En attente - existant */}
+  
+  {/* NOUVEAUX: Boutons d'action DANS la carte pour l'étape active */}
+  {isActive && (
+    <div className="mt-3 flex flex-col gap-2 w-full px-2">
+      {/* Bouton Analyse/Documents */}
+      {step.enables_scoring && onAnalysisClick && step.scoring_type && (
+        <button 
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
+          }}
+        >
+          <ClipboardList className="w-4 h-4 text-gray-500" />
+          <span>
+            {step.scoring_type === 'internal' ? 'Analyse Interne' : 'Analyse Leaser'}
+          </span>
+        </button>
+      )}
 
-#### 2. Couleurs de bordure et badge pour étape active = ORANGE
-
-```tsx
-{/* Card styles */}
-className={cn(
-  "relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all min-w-[120px] min-h-[100px]",
-  isCompleted && "border-primary/40 bg-white",
-  isActive && "border-orange-400 shadow-lg bg-white",  // ORANGE pour active
-  isUpcoming && "border-gray-200 bg-white"
-)}
-
-{/* Number badge for active step - ORANGE */}
-{isActive && (
-  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm bg-orange-500 text-white">
-    {step.number}
-  </div>
-)}
-```
-
-#### 3. Badge "À venir" en GRIS (pas vert)
-
-```tsx
-<Badge 
-  variant="secondary"
-  className={cn(
-    "mt-2 text-xs font-medium",
-    isCompleted && "bg-green-100 text-green-600",
-    isActive && "bg-orange-100 text-orange-600",  // Orange pour active
-    isUpcoming && "bg-gray-100 text-gray-500"     // GRIS pour à venir
+      {/* Bouton Vers prochaine étape */}
+      {nextStep && (
+        <button 
+          className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleStepClick(nextStep.key, currentIndex + 1);
+          }}
+          disabled={updating}
+        >
+          <span>Vers {nextStep.label}</span>
+          <ArrowRight className="w-3 h-3" />
+        </button>
+      )}
+    </div>
   )}
->
-  {isCompleted ? 'Terminée' : isActive ? 'En cours' : 'À venir'}
-</Badge>
-```
-
-#### 4. Connecteurs en pointillés
-
-```tsx
-{/* Dashed arrow connector - WinBroker style */}
-{index < activeSteps.length - 1 && (
-  <div className="flex items-center self-start mt-12 px-2">
-    <div className="w-8 border-t-2 border-dashed border-gray-300"></div>
-    <ChevronRight className="w-4 h-4 text-gray-300 -ml-1" />
-  </div>
-)}
-```
-
-#### 5. Score affiché proprement sous l'icône
-
-```tsx
-{/* Score badge inside icon box */}
-{score && (
-  <div className="mt-2 flex flex-col items-center">
-    <span className="text-xs text-gray-500">Score {score}</span>
-  </div>
-)}
-
-{/* Waiting docs badge */}
-{waitingDocs && (
-  <span className="text-xs text-gray-500 mt-1">En attente</span>
-)}
-```
-
-#### 6. Lien "Retour à" avec flèche courbe (↩)
-
-```tsx
-{/* Return link for completed steps */}
-{isCompleted && (
-  <button className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline">
-    <span>↩</span>
-    Retour à {step.label}
-  </button>
-)}
+</button>
 ```
 
 ---
 
-## Palette de couleurs finale
+#### 3. Ajuster la taille des cartes
 
-| État | Bordure | Badge numéro | Badge statut | Icône background | Connecteur |
-|------|---------|--------------|--------------|------------------|------------|
-| **Complétée** | `border-primary/40` | Check vert (gauche) | `bg-green-100 text-green-600` | `bg-primary/10` | - |
-| **Active** | `border-orange-400` | Orange (droite) | `bg-orange-100 text-orange-600` | `bg-orange-50` | - |
-| **À venir** | `border-gray-200` | Gris (droite) | `bg-gray-100 text-gray-500` | `bg-gray-100` | `border-dashed border-gray-300` |
+Pour que les boutons tiennent dans les cartes :
+- Augmenter `min-h` de `120px` à `180px` pour les cartes actives
+- Utiliser `justify-start` au lieu de `justify-center` dans le conteneur de carte
+
+```tsx
+className={cn(
+  "relative flex flex-col items-center justify-start p-4 rounded-xl border-2 transition-all min-w-[160px]",
+  isActive ? "min-h-[200px]" : "min-h-[140px]",
+  // ... reste des styles
+)}
+```
 
 ---
 
 ## Structure visuelle finale
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────┐
-│ ↯ Progression du workflow  • Workflow Winfinance                               │
-├────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                │
-│  ┌──────────┐            ┌──────────┐            ┌──────────┐                  │
-│  │✓         │   ----→    │   ▢     2│   ----→    │        3 │                  │
-│  │  ┌────┐  │            │  ┌────┐  │            │  ┌────┐  │                  │
-│  │  │ 📄 │  │            │  │ 📋 │  │            │  │ 🔍 │  │                  │
-│  │  └────┘  │            │  └────┘  │            │  └────┘  │                  │
-│  │          │            │ Score B  │            │          │                  │
-│  └──────────┘            └══════════┘            └──────────┘                  │
-│                           (orange)                                             │
-│  Nouvelle                Collecte                Étude du                      │
-│  demande                 documents               dossier                       │
-│                                                                                │
-│ ┌──────────┐            ┌──────────┐            ┌──────────┐                   │
-│ │ Terminée │            │ En cours │            │ À venir  │                   │
-│ │  (vert)  │            │ (orange) │            │  (gris)  │                   │
-│ └──────────┘            └──────────┘            └──────────┘                   │
-│                                                                                │
-│ ↩ Retour à              ┌─────────────────┐                                    │
-│   Nouvelle              │ 📋 Analyse      │                                    │
-│                         │    Interne      │                                    │
-│                         ├─────────────────┤                                    │
-│                         │ Vers Étude →    │                                    │
-│                         └─────────────────┘                                    │
-└────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ ↯ Progression du workflow  • Workflow Winfinance                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│            ┌──────────┐       ┌════════════════┐       ┌──────────┐            │
+│            │✓         │       │             [2]│       │        [3]│            │
+│            │  ┌────┐  │       │    ┌────┐     │       │  ┌────┐  │            │
+│            │  │ 📄 │  │  ---→ │    │ 📋 │     │  ---→ │  │ 🔍 │  │            │
+│            │  └────┘  │       │    └────┘     │       │  └────┘  │            │
+│            │          │       │    Score B    │       │          │            │
+│            │          │       │ ┌───────────┐ │       │          │            │
+│            │          │       │ │📋 Analyse │ │       │          │            │
+│            │          │       │ │  Interne  │ │       │          │            │
+│            │          │       │ ├───────────┤ │       │          │            │
+│            │          │       │ │Vers Étude→│ │       │          │            │
+│            └──────────┘       └════════════════┘       └──────────┘            │
+│            Nouvelle           Collecte                Étude du                 │
+│            demande            documents               dossier                  │
+│            ┌──────────┐       ┌──────────┐           ┌──────────┐             │
+│            │ Terminée │       │ En cours │           │ À venir  │             │
+│            └──────────┘       └──────────┘           └──────────┘             │
+│            ↩ Retour à                                                          │
+│               Nouvelle                                                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Résumé des changements clés
+## Récapitulatif des changements
 
-1. **Icônes dans des boîtes grises arrondies** - pas directement dans la carte
-2. **Bordure orange pour l'étape active** - pas bleue/primary
-3. **Badge numéro orange** pour l'étape active
-4. **Badge "À venir" en gris** - pas en vert
-5. **Connecteurs en pointillés** avec flèches
-6. **Score affiché proprement** sous l'icône dans la carte
-7. **Symbole ↩** pour "Retour à" au lieu de flèche
+| Élément | Avant | Après |
+|---------|-------|-------|
+| Alignement stepper | `justify-start` | `justify-center` |
+| Position boutons | Popup `absolute` en dessous | Intégrés dans la carte |
+| Taille carte active | `min-h-[120px]` | `min-h-[200px]` |
+| Padding bottom container | `pb-24` | `pb-6` |
+| Alignement carte | `justify-center` | `justify-start` |
 
 ---
 
@@ -197,5 +168,5 @@ className={cn(
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Refonte complète du rendu visuel pour correspondre exactement à WinBroker |
+| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Centrer le stepper + boutons dans la carte |
 
