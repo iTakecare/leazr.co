@@ -10,6 +10,16 @@ export { default as MobileFAB } from './MobileFAB';
 export { default as OfflineIndicator } from './OfflineIndicator';
 export { default as SyncStatus } from './SyncStatus';
 
+// Detail page components
+export { default as MobileDetailHeader } from './MobileDetailHeader';
+export { default as MobileWorkflowStatus } from './MobileWorkflowStatus';
+export { default as MobileFinancialSummary } from './MobileFinancialSummary';
+export { default as MobileEquipmentList } from './MobileEquipmentList';
+export { default as MobileQuickActions } from './MobileQuickActions';
+export { default as MobileActionsSheet } from './MobileActionsSheet';
+export { default as MobileEquipmentDrawer } from './MobileEquipmentDrawer';
+export { default as MobileClientSummaryCard } from './MobileClientSummaryCard';
+
 // Cards
 export * from './cards';
 

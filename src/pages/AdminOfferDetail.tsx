@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { getOfferById, updateOfferStatus, deleteOffer, generateSignatureLink } from "@/services/offerService";
 import { workflowService } from "@/services/workflows/workflowService";
@@ -45,11 +46,13 @@ import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
+import { MobileOfferDetailPage } from "@/components/mobile/pages";
 
 const AdminOfferDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { navigateToAdmin } = useRoleNavigation();
+  const { navigateToAdmin, companySlug } = useRoleNavigation();
+  const isMobile = useIsMobile();
 
   const [offer, setOffer] = useState<any>(null);
   const [leaser, setLeaser] = useState<Leaser | null>(null);
@@ -907,6 +910,31 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
     return user?.role === 'admin';
   }, [user]);
 
+  // Mobile render
+  if (isMobile) {
+    return (
+      <MobileOfferDetailPage
+        offer={offer}
+        leaser={leaser}
+        loading={loading}
+        error={error}
+        isGeneratingPDF={isGeneratingPDF}
+        onGeneratePDF={handleGeneratePDF}
+        onSendEmail={() => setEmailDialogOpen(true)}
+        onEdit={handleEditOffer}
+        onDelete={handleDeleteOffer}
+        onStatusChange={handleStatusChange}
+        onRefresh={fetchOfferDetails}
+        onNoFollowUp={() => setNoFollowUpModalOpen(true)}
+        onEditDates={() => {
+          setDateEditorType('request');
+          setIsDateEditorOpen(true);
+        }}
+        companySlug={companySlug}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <PageTransition>
@@ -925,9 +953,9 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
       <PageTransition>
         <Container>
           <div className="flex flex-col items-center justify-center h-64">
-            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
             <h2 className="text-xl font-semibold mb-2">Erreur</h2>
-            <p className="text-gray-600 mb-4">{error || "Offre introuvable"}</p>
+            <p className="text-muted-foreground mb-4">{error || "Offre introuvable"}</p>
             <Button onClick={() => navigateToAdmin("offers")}>
               Retour aux offres
             </Button>
