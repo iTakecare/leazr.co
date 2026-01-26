@@ -131,8 +131,8 @@ const Sidebar = memo(({ className }: SidebarProps) => {
               <div className="min-w-0 flex-1">
                 {!settingsLoading && (
                   <>
-                    <h1 className="text-sm font-semibold text-white truncate">{companyName}</h1>
-                    <p className="text-xs text-sidebar-foreground/60">Administration</p>
+                    <h1 className="text-xs font-medium text-white truncate">{companyName}</h1>
+                    <p className="text-[10px] text-sidebar-foreground/60">Administration</p>
                   </>
                 )}
               </div>
@@ -156,7 +156,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "px-2 py-3" : "p-3"
       )}>
         {!isCollapsed && (
-          <p className="text-[10px] font-semibold uppercase text-sidebar-foreground/40 px-3 mb-2">
+          <p className="text-[9px] font-medium uppercase text-sidebar-foreground/40 px-3 mb-2">
             Navigation
           </p>
         )}

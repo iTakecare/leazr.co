@@ -8,9 +8,9 @@ export function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
     <div className="flex items-center justify-between py-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+        <h1 className="text-xl font-medium tracking-tight text-foreground">{title}</h1>
         {description && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {description}
           </p>
         )}
