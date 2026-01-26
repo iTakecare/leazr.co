@@ -18,7 +18,7 @@ import {
   Package,
   Mail
 } from "lucide-react";
-import CompanyLogo from "./CompanyLogo";
+import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
 import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
@@ -121,19 +121,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         isCollapsed ? "p-3" : "p-4"
       )}>
         {isCollapsed ? (
-          <div className="flex flex-col items-center gap-2">
-            <CompanyLogo 
-              logoSize="sm"
-              className="w-8 h-8"
-            />
+          <div className="flex flex-col items-center">
+            <SidebarIcon size="md" />
           </div>
         ) : (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CompanyLogo 
-                logoSize="sm"
-                className="w-8 h-8"
-              />
+              <SidebarIcon size="md" />
               <div className="min-w-0 flex-1">
                 {!settingsLoading && (
                   <>
