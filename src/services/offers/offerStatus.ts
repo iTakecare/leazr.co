@@ -69,6 +69,9 @@ export const updateOfferStatus = async (
       updateData.internal_score = 'C';
     } else if (newStatus === 'leaser_rejected') {
       updateData.leaser_score = 'C';
+    } else if (newStatus === 'without_follow_up') {
+      // Score D for without_follow_up status
+      updateData.internal_score = 'D';
     }
     
     const { error: updateError } = await supabase

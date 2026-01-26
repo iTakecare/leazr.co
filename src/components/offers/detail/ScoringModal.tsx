@@ -15,7 +15,8 @@ import {
   Search,
   Building,
   Mail,
-  AlertCircle
+  AlertCircle,
+  UserX
 } from "lucide-react";
 import { toast } from "sonner";
 import ReactQuill from "react-quill";
@@ -34,7 +35,7 @@ interface ScoringModalProps {
   offerId: string;
   currentStatus: string;
   analysisType: "internal" | "leaser";
-  onScoreAssigned: (score: 'A' | 'B' | 'C', reason?: string) => Promise<void>;
+  onScoreAssigned: (score: 'A' | 'B' | 'C' | 'D', reason?: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -51,11 +52,20 @@ const DOCUMENT_OPTIONS = [
 ];
 
 const REJECTION_REASONS = [
-  "Sans suite - Plus de nouvelles",
-  "Sans suite - Ne souhaite plus de leasing",
   "REFUS - client suspect / Fraude",
   "REFUS - entreprise trop jeune / montant demandé",
   "REFUS - Client particulier",
+  "REFUS - Situation financière insuffisante",
+  "REFUS - Autre raison",
+];
+
+const NO_FOLLOW_UP_REASONS = [
+  { code: "no_response", label: "Plus de nouvelles après relances" },
+  { code: "project_postponed", label: "Projet reporté par le client" },
+  { code: "went_competitor", label: "Parti chez un concurrent" },
+  { code: "budget_issue", label: "Problème de budget" },
+  { code: "project_cancelled", label: "Projet annulé" },
+  { code: "other", label: "Autre raison" },
 ];
 
 const DEFAULT_REJECTION_HTML = `<p>Bonjour,</p>
@@ -72,7 +82,8 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   onScoreAssigned,
   isLoading
 }) => {
-  const [selectedScore, setSelectedScore] = useState<'A' | 'B' | 'C' | null>(null);
+  const [selectedScore, setSelectedScore] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
+  const [selectedNoFollowUpReason, setSelectedNoFollowUpReason] = useState<string>("");
   const [reason, setReason] = useState("");
   const [selectedRejectionReason, setSelectedRejectionReason] = useState<string>("");
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
@@ -247,10 +258,18 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     {
       score: 'C' as const,
       label: 'Refusé',
-      description: 'Dossier non conforme - Refus',
+      description: 'Dossier non conforme - Refus qualifié',
       icon: X,
       color: 'bg-red-50 text-red-700 border-red-200',
-      nextStep: 'Fin du processus'
+      nextStep: 'Fin du processus (email de refus)'
+    },
+    {
+      score: 'D' as const,
+      label: 'Sans suite',
+      description: 'Client injoignable ou projet abandonné',
+      icon: UserX,
+      color: 'bg-gray-50 text-gray-700 border-gray-200',
+      nextStep: 'Classement sans suite (pas d\'email)'
     }
   ];
 
@@ -262,7 +281,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     }
   };
 
-  const handleScoreSelection = (score: 'A' | 'B' | 'C') => {
+  const handleScoreSelection = (score: 'A' | 'B' | 'C' | 'D') => {
     setSelectedScore(score);
     // Reset document selection when changing score
     if (score !== 'B') {
@@ -273,6 +292,13 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     // Reset rejection fields when changing from C
     if (score !== 'C') {
       setSelectedRejectionReason("");
+    }
+    // Reset no follow-up fields when changing from D
+    if (score !== 'D') {
+      setSelectedNoFollowUpReason("");
+    }
+    // Reset reason for all score changes
+    if (score !== 'C' && score !== 'D') {
       setReason("");
     }
     // Réinitialiser l'email de refus quand on sélectionne C
@@ -290,6 +316,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
 
     if (selectedScore === 'C' && !selectedRejectionReason) {
       toast.error("Veuillez sélectionner une raison de refus");
+      return;
+    }
+
+    if (selectedScore === 'D' && !selectedNoFollowUpReason) {
+      toast.error("Veuillez sélectionner une raison de classement sans suite");
       return;
     }
 
@@ -338,6 +369,24 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
       } catch (error) {
         console.error("Erreur lors de l'envoi de la demande:", error);
         toast.error("Erreur lors de l'envoi de la demande");
+      } finally {
+        setIsSending(false);
+      }
+    } else if (selectedScore === 'D') {
+      // Pour le score D (Sans suite), comportement spécifique
+      try {
+        setIsSending(true);
+        const reasonLabel = NO_FOLLOW_UP_REASONS.find(r => r.code === selectedNoFollowUpReason)?.label || selectedNoFollowUpReason;
+        const fullReason = reason.trim() 
+          ? `${reasonLabel}\n\nCommentaire: ${reason.trim()}`
+          : reasonLabel;
+        
+        await onScoreAssigned(selectedScore, fullReason);
+        toast.success("Dossier classé sans suite (Score D)");
+        onClose();
+      } catch (error) {
+        console.error("Erreur lors du classement sans suite:", error);
+        toast.error("Erreur lors du classement sans suite");
       } finally {
         setIsSending(false);
       }
@@ -597,6 +646,40 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                   />
                 </div>
               )}
+
+              {/* Zone Sans suite pour score D */}
+              {selectedScore === 'D' && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Raison du classement sans suite <span className="text-red-500 ml-1">*</span>
+                    </label>
+                    <Select value={selectedNoFollowUpReason} onValueChange={setSelectedNoFollowUpReason}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionnez une raison..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-background shadow-md border">
+                        {NO_FOLLOW_UP_REASONS.map((r) => (
+                          <SelectItem key={r.code} value={r.code}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Commentaire (optionnel)</label>
+                    <Textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Ajoutez des détails supplémentaires si nécessaire..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="bg-gray-100 p-3 rounded-lg text-sm text-gray-600 flex items-center gap-2">
+                    <UserX className="h-4 w-4" />
+                    <span>Aucun email ne sera envoyé au client - Le dossier pourra être réactivé ultérieurement</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -816,6 +899,26 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                     )}
                   </Button>
                 </>
+              ) : selectedScore === 'D' ? (
+                /* Pour le score D (Sans suite), un seul bouton */
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isLoading || isSending || !selectedNoFollowUpReason}
+                  size="lg"
+                  className="bg-gray-600 hover:bg-gray-700 text-white"
+                >
+                  {isLoading || isSending ? (
+                    <>
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
+                      Traitement...
+                    </>
+                  ) : (
+                    <>
+                      <UserX className="mr-2 h-4 w-4" />
+                      Classer sans suite (Score D)
+                    </>
+                  )}
+                </Button>
               ) : (
                 /* Pour le score A, comportement normal */
                 <Button 
