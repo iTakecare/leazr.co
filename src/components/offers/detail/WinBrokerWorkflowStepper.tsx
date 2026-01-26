@@ -368,7 +368,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
         </div>
 
         {/* Stepper horizontal - WinBroker style */}
-        <div className="relative flex items-start justify-center gap-0 overflow-x-auto pb-6">
+        <div className="relative flex items-start justify-center gap-0 overflow-x-auto pt-4 pb-6">
           {activeSteps.map((step, index) => {
             const Icon = step.icon;
             const isActive = index === currentIndex;
