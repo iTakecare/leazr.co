@@ -95,30 +95,18 @@ const Offers = () => {
       <div className="w-full p-4 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <OffersHeader />
-          <div className="flex gap-2">
-            <ExcelExportDialog offers={offers}>
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Exporter Excel
-              </Button>
-            </ExcelExportDialog>
-            <ExcelImportDialog onImportComplete={fetchOffers}>
-              <Button variant="outline">
-                Importer Excel
-              </Button>
-            </ExcelImportDialog>
-            <Button onClick={() => navigateToAdmin("create-offer")} className="bg-emerald-500 hover:bg-emerald-600 text-white">
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle demande
-            </Button>
-          </div>
-        </div>
-        
-        <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
-          <OffersFilter activeTab={activeTab} onTabChange={setActiveTab} activeType={activeType} onTypeChange={setActiveType} activeSource={activeSource} onSourceChange={setActiveSource} hideTypeFilter={isBrokerUser()} />
-          
           <div className="flex items-center gap-2">
             <OffersSearch value={searchTerm} onChange={setSearchTerm} />
+            
+            {/* Sélecteur de vue - masqué pour les broker users */}
+            {!isBrokerUser() && <div className="flex items-center border rounded-md overflow-hidden">
+                <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="rounded-none px-3">
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className="rounded-none px-3">
+                  <Grid className="h-4 w-4" />
+                </Button>
+              </div>}
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -136,18 +124,25 @@ const Offers = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Sélecteur de vue - masqué pour les broker users */}
-            {!isBrokerUser() && <div className="flex items-center border rounded-md overflow-hidden">
-                <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')} className="rounded-none px-3 bg-muted-foreground">
-                  <List className="h-4 w-4 mr-2" />
-                  Liste
-                </Button>
-                <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className="rounded-none px-3">
-                  <Grid className="h-4 w-4 mr-2" />
-                  Kanban
-                </Button>
-              </div>}
+            <ExcelExportDialog offers={offers}>
+              <Button variant="outline" size="icon">
+                <Download className="h-4 w-4" />
+              </Button>
+            </ExcelExportDialog>
+            <ExcelImportDialog onImportComplete={fetchOffers}>
+              <Button variant="outline" size="sm">
+                Importer
+              </Button>
+            </ExcelImportDialog>
+            <Button onClick={() => navigateToAdmin("create-offer")} className="bg-emerald-500 hover:bg-emerald-600 text-white">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle demande
+            </Button>
           </div>
+        </div>
+        
+        <div className="mb-6">
+          <OffersFilter activeTab={activeTab} onTabChange={setActiveTab} activeType={activeType} onTypeChange={setActiveType} activeSource={activeSource} onSourceChange={setActiveSource} hideTypeFilter={isBrokerUser()} />
         </div>
         
         <OffersKPIStats offers={offers} activeKPIFilter={activeKPIFilter} onKPIClick={setActiveKPIFilter} />
