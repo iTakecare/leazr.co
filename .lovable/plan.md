@@ -1,350 +1,300 @@
 
 
-# Plan de refonte visuelle : Adopter le look WinBroker
+# Plan : Refonte de la page "Détail de demande" style WinBroker
 
 ## Objectif
 
-Adapter l'interface de Leazr pour correspondre au style épuré et professionnel de WinBroker, visible dans les captures d'écran fournies.
+Adapter la page de détail d'offre de Leazr pour qu'elle ressemble à celle de WinBroker, avec un focus particulier sur le composant de progression du workflow.
 
 ---
 
-## Analyse du design cible (WinBroker)
+## Analyse comparative
 
-### Palette de couleurs
+### Design WinBroker (cible)
 
-| Element | Couleur WinBroker | Couleur Leazr actuelle |
-|---------|-------------------|------------------------|
-| Sidebar fond | `#1a1f2e` (slate foncé) | Blanc avec gradient |
-| Sidebar texte | `#e2e8f0` (gris clair) | Gris foncé |
-| Sidebar actif | Fond bleu subtil `#1e3a5f` | Couleurs vives multiples |
-| Background page | `#f8fafc` (gris très clair) | `#fafbfc` (similaire) |
-| Cartes | `#ffffff` (blanc pur) | Gradients colorés |
-| Primary | `#1e52f1` (bleu profond) | `#3b82f6` (bleu) |
-| Accents | Orange `#f97316` pour highlights | Multiples couleurs |
+**En-tête :**
+- Titre avec ID court (REQ-MKV4XR1V)
+- Badge de statut coloré (Nouvelle demande - bleu)
+- Description sous le titre
+- Menu "..." à droite
 
-### Typographie
+**Stepper de progression :**
+- Section "Progression du workflow" avec titre et nom du workflow
+- Etapes numérotées (1, 2, 3, 4, 5, 6, 7)
+- Icônes dans des cercles gris clair
+- Connecteurs en pointillés avec flèches (- - - →)
+- Etape active : cercle bleu avec popup/tooltip montrant :
+  - Badge "En cours"
+  - Bouton "Vers [prochaine étape] →"
+- Etapes futures : icône + titre + "À venir" en gris
+- Etapes complètes : cercle vert avec check
 
-- Police : Inter (deja utilisee)
-- Titres : font-semibold (pas bold)
-- Sous-titres : text-muted-foreground
-- Taille H1 : text-2xl
+**Layout principal :**
+- Card "Informations" à gauche avec champs en grille
+- Card "Client" à droite en sidebar
 
-### Composants
+### Design Leazr actuel
 
-- **Boutons** : Coins arrondis moderés, pas de scale hover, ombres légères
-- **Cartes** : Blanches pures, bordures très subtiles, ombres légères
-- **Sidebar** : Fond sombre, items avec icônes fines, état actif avec fond bleu subtil
-- **Tabs** : Style underline, pas de fond
+- Stepper horizontal avec boutons circulaires colorés (vert/bleu/gris)
+- Lignes de progression pleines
+- Badges sous chaque étape
+- Tabs pour la navigation (Vue d'ensemble, Financier, Documents...)
+- Sidebar à droite avec Statut, Actions, Détails
 
 ---
 
-## Fichiers a modifier
+## Modifications à apporter
 
-### 1. Variables CSS (`src/index.css`)
+### 1. Nouveau composant `WinBrokerWorkflowStepper`
 
-Mise a jour des variables de couleurs :
+Créer un nouveau stepper qui reproduit le design WinBroker :
 
-```css
-:root {
-  --background: 220 14% 96%;        /* #f5f7fa - fond page */
-  --foreground: 222 47% 11%;        /* #0f172a - texte */
-  --card: 0 0% 100%;                /* blanc pur */
-  --card-foreground: 222 47% 11%;
-  --primary: 228 76% 52%;           /* #1e52f1 - bleu WinBroker */
-  --primary-foreground: 0 0% 100%;
-  --muted: 220 14% 96%;
-  --muted-foreground: 215 16% 47%;  /* #64748b */
-  --border: 220 13% 91%;            /* #e2e8f0 */
-  
-  /* Nouvelles variables pour sidebar */
-  --sidebar: 222 47% 11%;           /* #0f172a - fond sidebar */
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 17%;    /* #1e293b */
-  --sidebar-accent: 217 91% 60%;    /* bleu pour actif */
+```text
+Structure visuelle :
+
+  (1)  - - → (2) - - → (3) - - → (4) - - → (5) - - → (6) - - → (7)
+  [●]        ○          ○          ○          ○          ○          ○
+  📄        📋         📬         💼         ✍️         ✓          📞
+  Brouillon Collecte   Etude     Proposition Signature  Cloturé   Contact
+  En cours  À venir    À venir   À venir     À venir    À venir   À venir
+  ┌─────────────┐
+  │ En cours    │
+  │ Vers xxx →  │
+  └─────────────┘
+```
+
+**Caractéristiques :**
+- Numéros d'étapes dans des cercles
+- Connecteurs en pointillés avec flèches
+- Popup sur l'étape active avec :
+  - Badge de statut
+  - Bouton d'action vers l'étape suivante
+- Texte "À venir" pour les étapes futures
+- Style épuré, pas de couleurs vives sauf bleu pour l'étape active
+
+### 2. Refonte de l'en-tête de page
+
+Modifier la section header dans `AdminOfferDetail.tsx` :
+- Ajouter un bouton retour avec flèche (←)
+- Titre : ID de l'offre avec badge de statut à côté
+- Sous-titre : description/type de l'offre
+- Menu d'actions "..." à droite
+
+### 3. Réorganisation du layout
+
+**Section principale :**
+- Card "Informations client" avec design grille 2 colonnes
+- Formulaire propre avec labels en haut des champs
+
+**Sidebar droite :**
+- Card "Client" avec :
+  - Sélecteur de client
+  - Email cliquable
+  - Téléphone cliquable
+  - Bouton "Voir la fiche client"
+
+### 4. Mise à jour des styles de composants
+
+- Cards : bordures très subtiles, ombres légères
+- Titres de sections avec icônes
+- Espacements généreux
+- Typographie cohérente
+
+---
+
+## Fichiers à créer/modifier
+
+| Fichier | Action | Description |
+|---------|--------|-------------|
+| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Créer | Nouveau stepper style WinBroker |
+| `src/pages/AdminOfferDetail.tsx` | Modifier | Intégrer le nouveau stepper et refonte header |
+| `src/components/offers/detail/ClientSection.tsx` | Modifier | Design WinBroker pour la card client |
+| `src/components/offers/detail/CompactActionsSidebar.tsx` | Modifier | Simplifier et adapter au nouveau style |
+
+---
+
+## Détails techniques
+
+### Composant `WinBrokerWorkflowStepper`
+
+```typescript
+interface WinBrokerWorkflowStepperProps {
+  currentStatus: string;
+  offerId: string;
+  onStatusChange?: (status: string) => void;
+  internalScore?: 'A' | 'B' | 'C' | null;
+  leaserScore?: 'A' | 'B' | 'C' | null;
+  onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
+  offer?: any;
+}
+
+// Structure d'une étape
+interface WorkflowStep {
+  number: number;
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  status: 'completed' | 'current' | 'upcoming';
 }
 ```
 
-### 2. Configuration Tailwind (`tailwind.config.ts`)
-
-Ajouter les couleurs sidebar et ajuster les ombres :
-
-```typescript
-colors: {
-  sidebar: {
-    DEFAULT: 'hsl(var(--sidebar))',
-    foreground: 'hsl(var(--sidebar-foreground))',
-    border: 'hsl(var(--sidebar-border))',
-    accent: 'hsl(var(--sidebar-accent))',
-    muted: 'hsl(222 47% 18%)',
-  },
-  // Nouvelle palette WinBroker
-  winbroker: {
-    primary: '#1e52f1',
-    sidebar: '#0f172a',
-    background: '#f5f7fa',
-  }
-}
-```
-
-### 3. Composant Button (`src/components/ui/button.tsx`)
-
-Simplifier les variants pour un look plus clean :
-
-```typescript
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      // ... sizes inchangees
-    },
-  }
-)
-```
-
-**Changements cles** :
-- Retirer les gradients
-- Retirer `hover:scale-105`
-- Simplifier les ombres
-- Coins arrondis `rounded-lg` au lieu de `rounded-md`
-
-### 4. Sidebar Admin (`src/components/layout/Sidebar.tsx`)
-
-Refonte complete pour adopter le style sombre :
+**Rendu visuel :**
 
 ```tsx
-<div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-  {/* Header avec logo */}
-  <div className="p-4 border-b border-sidebar-border">
-    <div className="flex items-center gap-3">
-      <CompanyLogo logoSize="sm" />
-      <div>
-        <h1 className="text-sm font-semibold text-white">{companyName}</h1>
-        <p className="text-xs text-sidebar-foreground/60">Administration</p>
-      </div>
-    </div>
+<div className="bg-white rounded-lg border p-6">
+  {/* Titre de section */}
+  <div className="flex items-center gap-2 mb-6">
+    <GitBranch className="w-5 h-5 text-primary" />
+    <h3 className="text-lg font-semibold">Progression du workflow</h3>
+    <span className="text-sm text-muted-foreground">• {workflowName}</span>
   </div>
 
-  {/* Navigation sections */}
-  <nav className="flex-1 p-3">
-    <div className="mb-4">
-      <p className="text-[10px] font-semibold uppercase text-sidebar-foreground/40 px-3 mb-2">
-        Navigation
-      </p>
-      <ul className="space-y-1">
-        {/* Menu items */}
-      </ul>
-    </div>
-    
-    <div className="mb-4">
-      <p className="text-[10px] font-semibold uppercase text-sidebar-foreground/40 px-3 mb-2">
-        Administration
-      </p>
-      <ul className="space-y-1">
-        {/* Admin items */}
-      </ul>
-    </div>
-  </nav>
+  {/* Stepper horizontal */}
+  <div className="relative flex items-start justify-between">
+    {steps.map((step, index) => (
+      <div key={step.key} className="flex flex-col items-center relative flex-1">
+        {/* Numéro dans cercle */}
+        <div className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2",
+          step.status === 'completed' && "bg-green-500 border-green-500 text-white",
+          step.status === 'current' && "bg-primary border-primary text-white",
+          step.status === 'upcoming' && "bg-gray-50 border-gray-200 text-gray-400"
+        )}>
+          {step.status === 'completed' ? <Check className="w-4 h-4" /> : step.number}
+        </div>
 
-  {/* User section */}
-  <div className="p-4 border-t border-sidebar-border">
-    <SidebarUserSection collapsed={isCollapsed} darkMode />
-  </div>
-</div>
-```
+        {/* Connecteur pointillé */}
+        {index < steps.length - 1 && (
+          <div className="absolute left-1/2 top-4 w-full flex items-center">
+            <div className="flex-1 border-t-2 border-dashed border-gray-300" />
+            <ChevronRight className="w-4 h-4 text-gray-300" />
+          </div>
+        )}
 
-### 5. Menu Item Sidebar (`src/components/layout/SidebarMenuItem.tsx`)
+        {/* Icône de l'étape */}
+        <div className="mt-3 p-2 rounded-lg bg-gray-50">
+          <step.icon className="w-5 h-5 text-gray-500" />
+        </div>
 
-Style epure avec fond sombre :
+        {/* Label */}
+        <span className="mt-2 text-sm font-medium text-center">{step.label}</span>
+        
+        {/* Sous-label statut */}
+        <span className={cn(
+          "text-xs",
+          step.status === 'current' ? "text-primary" : "text-muted-foreground"
+        )}>
+          {step.status === 'completed' ? 'Terminé' : 
+           step.status === 'current' ? 'En cours' : 'À venir'}
+        </span>
 
-```tsx
-<button
-  onClick={handleClick}
-  className={cn(
-    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-    active
-      ? "bg-primary/20 text-white"
-      : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-white"
-  )}
->
-  <item.icon className="h-4 w-4" />
-  {!collapsed && <span>{item.label}</span>}
-</button>
-```
-
-**Changements** :
-- Toutes les icônes en blanc/gris clair
-- Etat actif : fond bleu subtil, pas de couleurs vives
-- Pas de bordure gauche coloree
-- Pas d'effets de scale
-
-### 6. Composant Card (`src/components/ui/card.tsx`)
-
-Simplifier pour un look plus propre :
-
-```tsx
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm",
-        className
-      )}
-      {...props}
-    />
-  )
-)
-```
-
-### 7. Dashboard (`src/components/dashboard/CompanyDashboard.tsx`)
-
-Simplifier les KPI cards et retirer les gradients colores :
-
-```tsx
-{/* Header simplifie */}
-<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-  <div>
-    <h1 className="text-2xl font-semibold text-foreground">
-      Tableau de bord
-    </h1>
-    <p className="text-sm text-muted-foreground">
-      Bienvenue sur votre espace {companyName}
-    </p>
-  </div>
-  {/* Actions */}
-</div>
-
-{/* KPI Cards blanches */}
-<Card className="bg-card border-border/50">
-  <CardContent className="p-5">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-muted-foreground">Demandes en cours</p>
-        <p className="text-2xl font-semibold text-foreground">0</p>
-        <p className="text-xs text-muted-foreground mt-1">0 nouvelles cette semaine</p>
-      </div>
-      <div className="p-2 rounded-lg bg-primary/10">
-        <FileText className="w-5 h-5 text-primary" />
-      </div>
-    </div>
-  </CardContent>
-</Card>
-```
-
-### 8. Tabs (`src/components/ui/tabs.tsx`)
-
-Style underline comme WinBroker :
-
-```tsx
-const TabsList = React.forwardRef<...>(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      "inline-flex h-auto items-center gap-1 bg-transparent border-b border-border",
-      className
-    )}
-    {...props}
-  />
-))
-
-const TabsTrigger = React.forwardRef<...>(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors",
-      "border-b-2 border-transparent -mb-px",
-      "hover:text-foreground",
-      "data-[state=active]:text-foreground data-[state=active]:border-primary",
-      className
-    )}
-    {...props}
-  />
-))
-```
-
-### 9. Page Header (`src/components/page-header.tsx`)
-
-Garder simple et propre :
-
-```tsx
-export function PageHeader({ title, description, children }: PageHeaderProps) {
-  return (
-    <div className="flex items-center justify-between py-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+        {/* Popup pour étape active */}
+        {step.status === 'current' && (
+          <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-[180px] z-10">
+            <Badge className="mb-2">En cours</Badge>
+            <Button size="sm" className="w-full" onClick={() => goToNextStep()}>
+              Vers {nextStepLabel} <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         )}
       </div>
-      {children && <div className="flex items-center gap-3">{children}</div>}
-    </div>
-  );
-}
+    ))}
+  </div>
+</div>
 ```
 
-### 10. StatCard Dashboard (`src/components/dashboard/StatCard.tsx`)
+### Modification de `AdminOfferDetail.tsx`
 
-Version simplifiee sans gradients :
+**Nouveau header :**
 
 ```tsx
-<Card className="bg-card border-border/50 hover:shadow-md transition-shadow">
-  <CardHeader className="flex flex-row items-center justify-between pb-2">
-    <CardTitle className="text-sm font-medium text-muted-foreground">
-      {title}
-    </CardTitle>
-    <div className="p-2 rounded-lg bg-primary/10">
-      <Icon className="h-4 w-4 text-primary" />
+{/* Header épuré style WinBroker */}
+<div className="flex items-center justify-between mb-6">
+  <div className="flex items-center gap-4">
+    <Button variant="ghost" size="sm" onClick={() => navigateToAdmin("offers")}>
+      <ArrowLeft className="w-4 h-4" />
+    </Button>
+    <div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-semibold">
+          {offer.dossier_number || `Offre #${offer.id?.slice(0, 8)}`}
+        </h1>
+        <Badge className="bg-primary/10 text-primary border-primary/20">
+          {getStatusLabel(offer.workflow_status)}
+        </Badge>
+      </div>
+      <p className="text-sm text-muted-foreground mt-1">
+        {offer.client_name} • {translateOfferType(offer.type)}
+      </p>
     </div>
+  </div>
+  <Button variant="ghost" size="icon">
+    <MoreHorizontal className="w-5 h-5" />
+  </Button>
+</div>
+```
+
+### Modification de `ClientSection.tsx`
+
+Style WinBroker avec layout plus épuré :
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2 text-base">
+      <User className="w-4 h-4" />
+      Client
+    </CardTitle>
   </CardHeader>
-  <CardContent>
-    <div className="text-2xl font-semibold">{value}</div>
-    {description && (
-      <p className="text-xs text-muted-foreground mt-1">{description}</p>
-    )}
+  <CardContent className="space-y-4">
+    {/* Sélecteur/nom du client */}
+    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+      <Avatar className="h-8 w-8">
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
+      <span className="font-medium">{offer.client_name}</span>
+    </div>
+
+    {/* Email */}
+    <a href={`mailto:${offer.client_email}`} 
+       className="flex items-center gap-2 text-sm text-primary hover:underline">
+      <Mail className="w-4 h-4" />
+      {offer.client_email}
+    </a>
+
+    {/* Téléphone */}
+    <a href={`tel:${offer.client_phone}`}
+       className="flex items-center gap-2 text-sm text-primary hover:underline">
+      <Phone className="w-4 h-4" />
+      {offer.client_phone}
+    </a>
+
+    {/* Bouton fiche client */}
+    <Button variant="outline" className="w-full" asChild>
+      <Link to={`/${companySlug}/admin/clients/${offer.client_id}`}>
+        <ExternalLink className="w-4 h-4 mr-2" />
+        Voir la fiche client
+      </Link>
+    </Button>
   </CardContent>
 </Card>
 ```
 
 ---
 
-## Resume des fichiers a modifier
+## Résultat attendu
 
-| Fichier | Type de modification |
-|---------|---------------------|
-| `src/index.css` | Nouvelles variables CSS |
-| `tailwind.config.ts` | Couleurs sidebar + ombres |
-| `src/components/ui/button.tsx` | Simplifier variants |
-| `src/components/ui/card.tsx` | Retirer gradients |
-| `src/components/ui/tabs.tsx` | Style underline |
-| `src/components/layout/Sidebar.tsx` | Refonte fond sombre |
-| `src/components/layout/SidebarMenuItem.tsx` | Style epure |
-| `src/components/layout/SidebarUserSection.tsx` | Adapter au theme sombre |
-| `src/components/layout/BrokerSidebar.tsx` | Appliquer meme style |
-| `src/components/layout/AmbassadorSidebar.tsx` | Appliquer meme style |
-| `src/components/dashboard/CompanyDashboard.tsx` | Retirer gradients |
-| `src/components/dashboard/StatCard.tsx` | Simplifier |
-| `src/components/page-header.tsx` | Ajustements mineurs |
+Après ces modifications, la page de détail d'offre Leazr aura :
 
----
+- **Header épuré** avec ID, badge de statut, et description
+- **Stepper de workflow style WinBroker** avec :
+  - Numéros d'étapes dans des cercles
+  - Connecteurs en pointillés avec flèches
+  - Popup sur l'étape active avec action rapide
+  - Labels "En cours" / "À venir" / "Terminé"
+- **Layout propre** avec cards blanches et ombres subtiles
+- **Card Client** dans la sidebar avec liens cliquables
+- **Design cohérent** avec le reste de la refonte WinBroker
 
-## Resultat attendu
-
-Apres ces modifications, l'interface Leazr aura :
-
-- **Sidebar sombre** avec navigation claire et epuree
-- **Cartes blanches** sans gradients colores
-- **Boutons simples** sans effets exageres
-- **Typographie propre** avec hierarchie claire
-- **Palette coherente** : bleu primaire, gris neutres, accents orange si necessaire
-- **Ombres subtiles** pour la profondeur sans surcharge visuelle
-
-Le look sera moderne, professionnel et coherent avec le design WinBroker tout en conservant l'identite Leazr.
+Le design sera professionnel, moderne, et offrira une meilleure lisibilité de la progression du dossier.
 
