@@ -1,150 +1,61 @@
 
-
-# Plan : Adapter les Pages pour une Interface Mobile Native
+# Plan : Adapter la Page Détail de l'Offre pour Mobile
 
 ## Problème Identifié
 
-Actuellement, même si le `MobileLayout` (header + bottom nav) est affiché, **le contenu des pages reste identique au desktop** :
-- Tableaux avec colonnes multiples qui débordent
-- Filtres horizontaux (onglets) trop nombreux
-- Interface non adaptée au tactile
-- Pas d'utilisation des composants mobiles créés (`MobileOfferCard`, `MobileFilterSheet`, etc.)
+La page `AdminOfferDetail.tsx` affiche actuellement une interface desktop complexe sur mobile :
+- Grille à 4 colonnes qui ne s'adapte pas
+- 5 onglets horizontaux trop étroits sur mobile
+- Stepper de workflow illisible
+- Sidebar d'actions qui s'empile mal
+- Contenu qui déborde horizontalement
 
 ## Solution
 
-Créer des versions mobiles des pages principales et les afficher conditionnellement avec `useIsMobile()`.
+Créer un composant `MobileOfferDetailPage` dédié et l'afficher conditionnellement dans `AdminOfferDetail.tsx` avec `useIsMobile()`.
 
 ---
 
-## Architecture Proposée
+## Architecture Mobile Proposée
 
-```text
-Page (ex: Offers.tsx)
-       │
-       ├── isMobile ? → MobileOffersPage
-       │                    ├── Pull-to-refresh
-       │                    ├── Liste de MobileOfferCard
-       │                    ├── MobileFilterSheet (bottom drawer)
-       │                    └── MobileFAB (créer offre)
-       │
-       └── Desktop ? → Version actuelle avec tableau
-```
-
----
-
-## Pages à Adapter
-
-### 1. Page Offres (Priorité 1)
-
-**Fichiers à créer :**
-- `src/components/mobile/pages/MobileOffersPage.tsx`
-
-**Changements :**
-- Remplacer le tableau par une liste de `MobileOfferCard` avec swipe actions
-- Remplacer les onglets de filtres par un `MobileFilterSheet` (bottom drawer)
-- Les KPI stats deviennent des cards horizontales scrollables
-- Bouton "Nouvelle demande" devient un `MobileFAB`
-- Recherche via `MobileSearchSheet`
-
-**Rendu mobile :**
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│  📷    itakecare                        🔔  🔍             │  ← Header
+│  ←       Offre #DEM-2024-001                    ⋮          │  ← Header simplifié
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  Mes demandes                                               │
-│  Gérez et suivez toutes vos demandes                        │
-│                                                             │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │ 50 Total│ │ 9 Brouil│ │ 24 Docs │ │ 13 Envo │ →         │  ← KPIs scroll horiz.
-│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
-│                                                             │
-│  ┌──────────────────────────────┐  ┌─────────────────────┐ │
-│  │ À traiter ▼                  │  │ 🔽 Filtres          │ │  ← Filtres simplifiés
-│  └──────────────────────────────┘  └─────────────────────┘ │
-│                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │ #DEM-2024...                     🏷️ Leasing        │   │
-│  │ 👤 Jean Dupont                                      │   │
-│  │ 🏢 Entreprise SARL                                  │   │
-│  │ 💰 15 000 €            💳 450 €/mois               │   │
-│  │ ────────────────────────────────────────────────    │   │
-│  │ 📅 36 mois                          12 jan 2026    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│  ← [📞] [✉️]                        [✓] [🗑️] →           │  ← Swipe actions
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ #DEM-2024...                                        │   │
-│  │ ...                                                 │   │
+│  │ 👤 Jean Dupont                                      │   │  ← Card Client
+│  │    Entreprise SARL                                  │   │
+│  │    📧 jean@example.com  📞 Appeler                  │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
-│                                              ╔═══╗          │
-│                                              ║ + ║          │  ← FAB
-│                                              ╚═══╝          │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 📊 Statut actuel                                    │   │
+│  │    ● Analyse interne                                │   │  ← Status Badge
+│  │    [Voir progression →]                             │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 💰 Résumé financier                                 │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ Montant achat      │  15 000 €                      │   │
+│  │ Mensualité         │  450 €/mois                    │   │
+│  │ Marge              │  2 500 € (16.7%)               │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 📦 Équipements (3)                          [Voir]  │   │
+│  │    MacBook Pro M2 (x2)                              │   │
+│  │    iPhone 15 Pro (x1)                               │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐               │
+│  │  📄   │ │  📧   │ │  ✏️   │ │  ⋮   │               │  ← Actions rapides
+│  │  PDF  │ │ Email │ │ Modif │ │ Plus │               │
+│  └───────┘ └───────┘ └───────┘ └───────┘               │
+│                                                             │
 ├─────────────────────────────────────────────────────────────┤
 │  🏠     📋     [+]     📁     👤                           │  ← Bottom Nav
-│ Accueil Demandes     Contrats Profil                        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 2. Page Contrats (Priorité 2)
-
-**Fichiers à créer :**
-- `src/components/mobile/pages/MobileContractsPage.tsx`
-
-**Changements :**
-- Remplacer le tableau par une liste de `MobileContractCard`
-- Filtres de statut via bottom drawer
-- Chaque contrat affiche : date, client, montant mensuel, statut
-
-### 3. Dashboard (Priorité 3)
-
-**Fichiers à créer :**
-- `src/components/mobile/pages/MobileDashboardPage.tsx`
-
-**Changements :**
-- Cards KPI empilées verticalement (full width)
-- Tableau mensuel → scroll horizontal ou accordéon
-- Onglets Financier/Commercial → tabs simples en haut
-
-### 4. Page Paramètres (Priorité 4)
-
-**Fichiers à créer :**
-- `src/components/mobile/pages/MobileSettingsPage.tsx`
-
-**Changements :**
-- Remplacer les 12 onglets horizontaux par une liste de sections cliquables
-- Chaque section s'ouvre dans un drawer ou une sous-page
-- Design type "page de réglages iOS/Android"
-
-**Rendu mobile Settings :**
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Paramètres                                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ ⚙️ Général                                     >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ ⚡ Intégrations                                >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ ✉️ Emails                                      >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ 🏢 Leasers                                     >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ 💰 Commissions                                 >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ 🔀 Workflows                                   >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ 📄 Templates                                   >    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │ 👥 Utilisateurs                                >    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 💳 Abonnement                                  >    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -154,11 +65,10 @@ Page (ex: Offers.tsx)
 
 | Fichier | Description |
 |---------|-------------|
-| `src/components/mobile/pages/MobileOffersPage.tsx` | Liste cards offres + filtres drawer |
-| `src/components/mobile/pages/MobileContractsPage.tsx` | Liste cards contrats |
-| `src/components/mobile/pages/MobileDashboardPage.tsx` | Dashboard KPIs verticaux |
-| `src/components/mobile/pages/MobileSettingsPage.tsx` | Menu liste avec navigation |
-| `src/components/mobile/pages/index.ts` | Exports |
+| `src/components/mobile/pages/MobileOfferDetailPage.tsx` | Page détail offre mobile |
+| `src/components/mobile/cards/MobileOfferDetailCard.tsx` | Card résumé offre |
+| `src/components/mobile/MobileWorkflowStatus.tsx` | Affichage compact du statut workflow |
+| `src/components/mobile/MobileActionsSheet.tsx` | Bottom sheet pour actions supplémentaires |
 
 ---
 
@@ -166,32 +76,79 @@ Page (ex: Offers.tsx)
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/pages/Offers.tsx` | Ajouter `useIsMobile()` + rendu conditionnel `MobileOffersPage` |
-| `src/pages/Contracts.tsx` | Ajouter `useIsMobile()` + rendu conditionnel `MobileContractsPage` |
-| `src/pages/Dashboard.tsx` | Ajouter `useIsMobile()` + rendu conditionnel `MobileDashboardPage` |
-| `src/pages/Settings.tsx` | Ajouter `useIsMobile()` + rendu conditionnel `MobileSettingsPage` |
+| `src/pages/AdminOfferDetail.tsx` | Ajouter `useIsMobile()` + rendu conditionnel |
+| `src/components/mobile/pages/index.ts` | Ajouter export MobileOfferDetailPage |
 
 ---
 
-## Logique d'Intégration (Exemple Offers.tsx)
+## Composants Mobile du Détail Offre
+
+### 1. Header Mobile Simplifié
+- Bouton retour (←) à gauche
+- Titre de l'offre centré
+- Menu d'actions (⋮) à droite
+
+### 2. Card Client Compacte
+- Avatar + Nom + Entreprise
+- Boutons d'action directe : 📧 Email | 📞 Appeler
+- Cliquable pour voir la fiche client
+
+### 3. Statut Workflow Compact
+- Badge coloré avec statut actuel
+- Bouton "Voir progression" qui ouvre un drawer avec le stepper vertical
+- Scores A/B/C affichés si présents
+
+### 4. Résumé Financier Mobile
+- 3 métriques principales en liste verticale
+- Montant d'achat
+- Mensualité  
+- Marge (€ et %)
+
+### 5. Liste Équipements Compacte
+- Titre avec compteur "(3 équipements)"
+- Liste scrollable des noms d'équipements
+- Bouton "Voir détails" qui ouvre un drawer
+
+### 6. Actions Rapides (Grille 4 boutons)
+- 📄 Générer PDF
+- 📧 Envoyer email
+- ✏️ Modifier
+- ⋮ Plus d'actions (ouvre drawer)
+
+### 7. Drawer Actions Supplémentaires
+- Voir le lien public
+- Supprimer l'offre
+- Classer sans suite
+- Réactiver (si applicable)
+- Modifier les dates
+
+---
+
+## Logique d'Intégration dans AdminOfferDetail.tsx
 
 ```typescript
 import { useIsMobile } from "@/hooks/use-mobile";
-import MobileOffersPage from "@/components/mobile/pages/MobileOffersPage";
+import MobileOfferDetailPage from "@/components/mobile/pages/MobileOfferDetailPage";
 
-const Offers = () => {
+const AdminOfferDetail = () => {
   const isMobile = useIsMobile();
+  const { id } = useParams();
   
-  // ... hooks existants
+  // ... hooks existants (offer, leaser, loading, etc.)
   
-  if (isMobile) {
+  if (isMobile && offer) {
     return (
-      <MobileOffersPage 
-        offers={filteredOffers}
-        onSearch={setSearchTerm}
-        onFilterChange={setActiveTab}
-        onDeleteOffer={handleDeleteOffer}
-        // ... autres props
+      <MobileOfferDetailPage
+        offer={offer}
+        leaser={leaser}
+        onGeneratePDF={handleGeneratePDF}
+        onSendEmail={() => setEmailDialogOpen(true)}
+        onEdit={handleEditOffer}
+        onDelete={handleDeleteOffer}
+        onStatusChange={handleStatusChange}
+        onRefresh={fetchOfferDetails}
+        loading={loading}
+        error={error}
       />
     );
   }
@@ -207,34 +164,203 @@ const Offers = () => {
 
 ---
 
-## Composants Existants à Utiliser
+## Structure de MobileOfferDetailPage
 
-Les composants mobiles suivants sont déjà créés et prêts :
-- `MobileOfferCard` - Card offre avec swipe
-- `MobileClientCard` - Card client avec swipe
-- `MobileContractCard` - Card contrat avec swipe
-- `MobileSwipeCard` - Composant de base swipeable
-- `MobileFilterSheet` - Bottom drawer pour filtres
-- `MobileSearchSheet` - Recherche plein écran
-- `MobileFAB` - Bouton action flottant
+```typescript
+const MobileOfferDetailPage = ({
+  offer,
+  leaser,
+  onGeneratePDF,
+  onSendEmail,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onRefresh,
+  loading,
+  error
+}) => {
+  const [showWorkflowDrawer, setShowWorkflowDrawer] = useState(false);
+  const [showEquipmentDrawer, setShowEquipmentDrawer] = useState(false);
+  const [showActionsDrawer, setShowActionsDrawer] = useState(false);
+  const { navigateToAdmin } = useRoleNavigation();
+
+  if (loading) {
+    return <MobileLoadingState />;
+  }
+
+  if (error || !offer) {
+    return <MobileErrorState error={error} onBack={() => navigateToAdmin('offers')} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header avec retour */}
+      <MobileDetailHeader 
+        title={offer.dossier_number || `Offre #${offer.id?.slice(0,8)}`}
+        onBack={() => navigateToAdmin('offers')}
+        onMoreActions={() => setShowActionsDrawer(true)}
+      />
+      
+      <div className="pt-14 pb-20 px-4 space-y-4">
+        {/* Card Client */}
+        <MobileClientCard client={{...}} onCall={...} onEmail={...} />
+        
+        {/* Statut Workflow */}
+        <MobileWorkflowStatus 
+          status={offer.workflow_status}
+          scores={{ internal: offer.internal_score, leaser: offer.leaser_score }}
+          onClick={() => setShowWorkflowDrawer(true)}
+        />
+        
+        {/* Résumé Financier */}
+        <MobileFinancialSummary
+          purchaseAmount={totals.totalPurchasePrice}
+          monthlyPayment={totals.totalMonthlyPayment}
+          margin={displayMargin}
+          marginPercent={marginPercentage}
+        />
+        
+        {/* Équipements */}
+        <MobileEquipmentList
+          equipment={offer.equipment_data || []}
+          onClick={() => setShowEquipmentDrawer(true)}
+        />
+        
+        {/* Actions Rapides */}
+        <MobileQuickActions
+          onPDF={onGeneratePDF}
+          onEmail={onSendEmail}
+          onEdit={onEdit}
+          onMore={() => setShowActionsDrawer(true)}
+        />
+      </div>
+
+      {/* Drawers */}
+      <MobileWorkflowDrawer 
+        open={showWorkflowDrawer} 
+        onClose={() => setShowWorkflowDrawer(false)}
+        status={offer.workflow_status}
+        onStatusChange={onStatusChange}
+      />
+      
+      <MobileEquipmentDrawer
+        open={showEquipmentDrawer}
+        onClose={() => setShowEquipmentDrawer(false)}
+        equipment={offer.equipment_data || []}
+      />
+      
+      <MobileActionsDrawer
+        open={showActionsDrawer}
+        onClose={() => setShowActionsDrawer(false)}
+        onDelete={onDelete}
+        onClassifyNoFollowUp={...}
+        onViewPublicLink={...}
+      />
+    </div>
+  );
+};
+```
 
 ---
 
-## Ordre d'Implémentation
+## Sous-Composants à Créer
 
-1. **MobileOffersPage** - La plus utilisée
-2. **MobileContractsPage** - Similaire structure
-3. **MobileSettingsPage** - Navigation type réglages
-4. **MobileDashboardPage** - Adaptation des KPIs
+### MobileDetailHeader
+```typescript
+// Header spécifique aux pages de détail
+<header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background border-b flex items-center px-4">
+  <button onClick={onBack}><ArrowLeft /></button>
+  <h1 className="flex-1 text-center font-semibold truncate">{title}</h1>
+  <button onClick={onMoreActions}><MoreVertical /></button>
+</header>
+```
+
+### MobileWorkflowStatus
+```typescript
+// Affichage compact du statut
+<Card className="p-4">
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm text-muted-foreground">Statut actuel</p>
+      <Badge className={getStatusColor(status)}>{getStatusLabel(status)}</Badge>
+    </div>
+    <Button variant="ghost" size="sm">
+      Voir progression <ChevronRight />
+    </Button>
+  </div>
+  {(scores.internal || scores.leaser) && (
+    <div className="mt-2 flex gap-2">
+      {scores.internal && <Badge>Score interne: {scores.internal}</Badge>}
+      {scores.leaser && <Badge>Score leaser: {scores.leaser}</Badge>}
+    </div>
+  )}
+</Card>
+```
+
+### MobileFinancialSummary
+```typescript
+// Résumé financier vertical
+<Card>
+  <CardHeader><CardTitle>Résumé financier</CardTitle></CardHeader>
+  <CardContent className="space-y-3">
+    <div className="flex justify-between">
+      <span>Montant d'achat</span>
+      <span className="font-semibold">{formatCurrency(purchaseAmount)}</span>
+    </div>
+    <div className="flex justify-between">
+      <span>Mensualité</span>
+      <span className="font-semibold">{formatCurrency(monthlyPayment)}/mois</span>
+    </div>
+    <Separator />
+    <div className="flex justify-between text-primary">
+      <span>Marge</span>
+      <span className="font-bold">{formatCurrency(margin)} ({marginPercent.toFixed(1)}%)</span>
+    </div>
+  </CardContent>
+</Card>
+```
+
+### MobileQuickActions
+```typescript
+// Grille de 4 boutons d'action
+<div className="grid grid-cols-4 gap-2">
+  <Button variant="outline" onClick={onPDF} className="flex-col h-16">
+    <FileText className="h-5 w-5 mb-1" />
+    <span className="text-xs">PDF</span>
+  </Button>
+  <Button variant="outline" onClick={onEmail} className="flex-col h-16">
+    <Mail className="h-5 w-5 mb-1" />
+    <span className="text-xs">Email</span>
+  </Button>
+  <Button variant="outline" onClick={onEdit} className="flex-col h-16">
+    <Edit className="h-5 w-5 mb-1" />
+    <span className="text-xs">Modifier</span>
+  </Button>
+  <Button variant="outline" onClick={onMore} className="flex-col h-16">
+    <MoreHorizontal className="h-5 w-5 mb-1" />
+    <span className="text-xs">Plus</span>
+  </Button>
+</div>
+```
 
 ---
 
 ## Résultat Attendu
 
-Après implémentation, l'application sur mobile aura une vraie expérience native :
-- Cards swipeable pour les actions rapides
-- Filtres via bottom drawer (pas des onglets qui débordent)
-- FAB pour les actions principales
-- Navigation fluide type application iOS/Android
-- Plus de tableaux avec colonnes qui débordent
+L'interface mobile de la page détail offre sera :
+- **Verticale** : Toutes les informations empilées
+- **Tactile** : Boutons larges, zones cliquables généreuses
+- **Fluide** : Drawers pour les informations détaillées
+- **Rapide** : Actions principales accessibles en 1 tap
+- **Cohérente** : Même look que les autres pages mobiles (Offres, Contrats, etc.)
 
+---
+
+## Ordre d'Implémentation
+
+1. Créer `MobileOfferDetailPage.tsx` avec structure de base
+2. Créer les sous-composants (Header, WorkflowStatus, FinancialSummary, etc.)
+3. Créer les drawers (Workflow, Equipment, Actions)
+4. Modifier `AdminOfferDetail.tsx` pour le rendu conditionnel
+5. Ajouter l'export dans `index.ts`
+6. Tester sur mobile
