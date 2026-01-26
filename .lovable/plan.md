@@ -1,47 +1,79 @@
 
-
-# Plan : Correction des icônes tronquées sur le stepper
+# Plan : Correction des textes blancs illisibles dans la modale de scoring
 
 ## Problème identifié
 
-Les badges de numérotation et de validation (checkmark) sont positionnés avec `absolute -top-2` ce qui les fait dépasser du haut des cartes. Cependant, le conteneur parent a `overflow-x-auto` sans padding-top suffisant, ce qui tronque ces éléments visuellement.
+Dans la modale "Analyse Leaser", certains éléments ont du texte blanc sur un fond clair, les rendant invisibles :
 
-**Ligne concernée (371):**
+1. **Boutons secondaires avec spinner de chargement** : Le spinner utilise `border-white` mais le fond du bouton secondaire est clair (`bg-secondary`)
+2. **Bouton principal à l'état désactivé** : L'opacité réduite (`opacity-50`) peut rendre le texte blanc moins lisible
+
+## Fichier à modifier
+
+**`src/components/offers/detail/ScoringModal.tsx`**
+
+## Modifications détaillées
+
+### 1. Corriger les spinners de chargement dans les boutons secondaires
+
+Les boutons secondaires (lignes 756-773, 798-815) utilisent `border-white` pour le spinner mais ont un fond clair. Changer pour `border-current` qui utilisera la couleur du texte actuel.
+
+| Lignes | Avant | Après |
+|--------|-------|-------|
+| 765 | `border-t-2 border-b-2 border-white` | `border-t-2 border-b-2 border-current` |
+| 807 | `border-t-2 border-b-2 border-white` | `border-t-2 border-b-2 border-current` |
+
+### 2. Ajouter une variante appropriée aux boutons de validation selon le score
+
+Pour améliorer la lisibilité et la cohérence visuelle, utiliser `variant="success"` pour le score A (déjà défini dans button.tsx avec `text-white`).
+
+| Lignes | Score | Modification |
+|--------|-------|--------------|
+| 737 | B | Ajouter `className="bg-amber-600 text-white hover:bg-amber-700"` |
+| 779 | C | Ajouter `variant="destructive"` |
+| 819 | A | Ajouter `variant="success"` |
+
+## Récapitulatif des changements
+
 ```tsx
-<div className="relative flex items-start justify-center gap-0 overflow-x-auto pb-6">
+// Ligne 737 - Bouton Score B (email)
+<Button 
+  onClick={handleSubmit}
+  disabled={isLoading || isSending}
+  size="lg"
+  className="bg-amber-600 text-white hover:bg-amber-700"
+>
+
+// Ligne 765 - Spinner dans bouton secondaire B
+border-t-2 border-b-2 border-current  // Avant: border-white
+
+// Ligne 779 - Bouton Score C (email)
+<Button 
+  onClick={handleSendRejectionAndValidate}
+  disabled={isLoading || isSending}
+  size="lg"
+  variant="destructive"
+>
+
+// Ligne 807 - Spinner dans bouton secondaire C
+border-t-2 border-b-2 border-current  // Avant: border-white
+
+// Ligne 819 - Bouton Score A
+<Button 
+  onClick={handleSubmit}
+  disabled={isLoading || isSending}
+  size="lg"
+  variant="success"
+>
+
+// Ligne 827 - Spinner dans bouton Score A
+border-t-2 border-b-2 border-current  // Avant: border-white
 ```
-
----
-
-## Solution
-
-Ajouter un `pt-4` (padding-top) au conteneur du stepper pour laisser de l'espace aux badges qui dépassent en haut des cartes.
-
----
-
-## Modification
-
-### Fichier : `src/components/offers/detail/WinBrokerWorkflowStepper.tsx`
-
-**Ligne 371 - Ajouter `pt-4`:**
-
-| Avant | Après |
-|-------|-------|
-| `overflow-x-auto pb-6` | `overflow-x-auto pt-4 pb-6` |
-
-```tsx
-// Avant
-<div className="relative flex items-start justify-center gap-0 overflow-x-auto pb-6">
-
-// Après
-<div className="relative flex items-start justify-center gap-0 overflow-x-auto pt-4 pb-6">
-```
-
----
 
 ## Résultat attendu
 
-- Les badges numérotés (2, 3, 4...) en haut à droite des cartes seront entièrement visibles
-- Le badge checkmark vert en haut à gauche des étapes terminées sera entièrement visible
-- Pas de troncature visuelle sur le haut du stepper
-
+- **Score A** : Bouton vert émeraude avec texte blanc visible
+- **Score B** : Bouton ambre/orange avec texte blanc visible
+- **Score C** : Bouton rouge avec texte blanc visible
+- **Boutons secondaires** : Spinner avec couleur adaptée au fond clair
+- Tous les textes seront lisibles sur tous les fonds de boutons
