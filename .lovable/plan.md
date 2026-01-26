@@ -1,150 +1,68 @@
 
-# Plan : Rendre le Dashboard plus attrayant visuellement
+# Plan : Rendre la barre d'onglets plus compacte
 
-## Analyse du probleme
+## Analyse du problème
 
-Le dashboard actuel est effectivement trop sobre avec :
-- Toutes les cartes identiques en blanc/gris
-- Icones uniformement grises (`text-slate-400` et `text-slate-500`)
-- Aucune hierarchie visuelle entre les differentes sections
-- Manque de couleurs d'accent pour guider l'oeil
+La barre d'onglets actuelle s'étend sur toute la largeur disponible à cause de :
+- `TabsList` avec `w-full` dans le composant `tabs.tsx`
+- `border-b` qui crée une ligne sur toute la largeur
+- Les onglets ne sont pas contenus dans un espace délimité
 
-## Ameliorations proposees
+Les cartes KPI en dessous utilisent une grille `grid-cols-5` avec des cartes individuelles bien définies.
 
-### 1. Reintroduire des couleurs d'accent subtiles sur les KPI Cards
+## Solution proposée
 
-Ajouter des icones colorees avec un fond leger pour chaque KPI :
+Modifier le style des `TabsList` dans `OffersFilter.tsx` pour avoir un design plus compact :
+- Ajouter un fond gris clair (`bg-slate-100`) avec coins arrondis
+- Supprimer la bordure inférieure qui s'étend sur toute la largeur
+- Réduire le padding des déclencheurs d'onglets
+- Utiliser `w-fit` au lieu de `w-full` pour que chaque groupe d'onglets soit compact
 
-| KPI | Couleur icone | Fond icone |
-|-----|---------------|------------|
-| CA Total | `text-blue-600` | `bg-blue-50` |
-| Achats Total | `text-amber-600` | `bg-amber-50` |
-| Marge Brute | `text-emerald-600` | `bg-emerald-50` |
-| Taux de Marge | `text-purple-600` | `bg-purple-50` |
+## Fichier à modifier
 
-### 2. Ajouter une barre coloree sur le cote gauche des cartes sidebar
+**`src/components/offers/OffersFilter.tsx`**
 
-Differencier visuellement les 5 cartes de statistiques avec des bordures colorees :
+### Modifications des TabsList
 
-| Carte | Bordure gauche |
-|-------|----------------|
-| Contrats Realises | `border-l-4 border-l-emerald-500` |
-| En Attente | `border-l-4 border-l-amber-500` |
-| Refuses | `border-l-4 border-l-rose-400` |
-| Ventes Directes | `border-l-4 border-l-cyan-500` |
-| Previsionnel | `border-l-4 border-l-indigo-500` |
-
-### 3. Colorer les icones des cartes sidebar (en accord avec la bordure)
-
-| Carte | Couleur icone |
-|-------|---------------|
-| Contrats Realises | `text-emerald-500` |
-| En Attente | `text-amber-500` |
-| Refuses | `text-rose-500` |
-| Ventes Directes | `text-cyan-500` |
-| Previsionnel | `text-indigo-500` |
-
-### 4. Ameliorer la section "Factures en attente"
-
-Ajouter un fond leger orange pour signaler l'urgence :
-- Bordure gauche orange : `border-l-4 border-l-orange-400`
-- Fond subtil : `bg-orange-50/50`
-
-### 5. Ajouter un fond subtil au header du dashboard
-
-Creer une separation visuelle avec un gradient leger ou un fond colore subtil pour le titre.
-
----
-
-## Fichier a modifier
-
-**`src/components/dashboard/CompanyDashboard.tsx`**
-
-### Modifications KPI Cards (lignes 197-247)
-
+Chaque `TabsList` recevra les classes suivantes :
 ```tsx
-// CA Total - Bleu
-<div className="p-2 rounded-lg bg-blue-50">
-  <DollarSign className="w-5 h-5 text-blue-600" />
-</div>
-
-// Achats - Ambre
-<div className="p-2 rounded-lg bg-amber-50">
-  <HandshakeIcon className="w-5 h-5 text-amber-600" />
-</div>
-
-// Marge - Emeraude
-<div className="p-2 rounded-lg bg-emerald-50">
-  <TrendingUp className="w-5 h-5 text-emerald-600" />
-</div>
-
-// Taux - Violet
-<div className="p-2 rounded-lg bg-purple-50">
-  <Target className="w-5 h-5 text-purple-600" />
-</div>
+<TabsList className="bg-slate-100 rounded-lg p-1">
 ```
 
-### Modifications cartes sidebar (lignes 383-550)
-
+Et chaque `TabsTrigger` sera plus compact :
 ```tsx
-// Contrats Realises
-<Card className="border-l-4 border-l-emerald-500">
-  <CheckCircle className="w-5 h-5 text-emerald-500" />
-
-// En Attente
-<Card className="border-l-4 border-l-amber-500">
-  <Clock className="w-5 h-5 text-amber-500" />
-
-// Refuses
-<Card className="border-l-4 border-l-rose-400">
-  <Target className="w-5 h-5 text-rose-500" />
-
-// Ventes Directes
-<Card className="border-l-4 border-l-cyan-500">
-  <ShoppingBag className="w-5 h-5 text-cyan-500" />
-
-// Previsionnel
-<Card className="border-l-4 border-l-indigo-500">
-  <TrendingUp className="w-5 h-5 text-indigo-500" />
+<TabsTrigger className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
 ```
 
-### Modification carte "Factures en attente" (lignes 348-376)
+## Détail des changements
 
-```tsx
-<Card className="border-l-4 border-l-orange-400 bg-orange-50/30">
-  <AlertTriangle className="w-5 h-5 text-orange-500" />
-```
+| Ligne | Avant | Après |
+|-------|-------|-------|
+| 28 | `<TabsList>` | `<TabsList className="bg-slate-100 rounded-lg p-1">` |
+| 29-32 | `<TabsTrigger value="...">` | `<TabsTrigger value="..." className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">` |
+| 39 | `<TabsList>` | `<TabsList className="bg-slate-100 rounded-lg p-1">` |
+| 40-43 | `<TabsTrigger value="...">` | `<TabsTrigger value="..." className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">` |
+| 48 | `<TabsList>` | `<TabsList className="bg-slate-100 rounded-lg p-1">` |
+| 49-52 | `<TabsTrigger value="...">` | `<TabsTrigger value="..." className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">` |
 
----
-
-## Resume visuel
+## Résultat visuel attendu
 
 ```text
-+--------------------------------------------------+
-|  Dashboard Financier 2026                        |
-+--------------------------------------------------+
+AVANT:
+|--À traiter--|--Acceptées--|--Facturé--|--Refusées--|-----------------------------|
+______________________________________________________________________________
 
-+-----------+ +-----------+ +-----------+ +-----------+
-| CA Total  | | Achats    | | Marge     | | Taux      |
-| [bleu]    | | [ambre]   | | [emeraude]| | [violet]  |
-+-----------+ +-----------+ +-----------+ +-----------+
-
-+----------------------------+  +----------------------+
-| Tableau Mensuel            |  | [vert] Realises      |
-| (inchange)                 |  +----------------------+
-|                            |  | [ambre] En Attente   |
-|                            |  +----------------------+
-+----------------------------+  | [rose] Refuses       |
-| [orange] Factures retard   |  +----------------------+
-+----------------------------+  | [cyan] Ventes Dir.   |
-                                +----------------------+
-                                | [indigo] Previsionnel|
-                                +----------------------+
+APRÈS:
++--------------------------------------------------+
+| À traiter | Acceptées | Facturé | Refusées       |  (fond gris, compact)
++--------------------------------------------------+
 ```
 
-## Resultat attendu
+Les trois groupes d'onglets (Statut, Type, Source) seront visuellement séparés avec chacun leur fond gris arrondi, alignés avec la largeur des cartes KPI en dessous.
 
-- Hierarchie visuelle claire entre les differentes sections
-- Couleurs semantiques (vert = succes, orange = attention, etc.)
-- Look moderne et corporate sans etre trop colore
-- Meilleure lisibilite et navigation visuelle
+## Impact
+
+- Aucun changement fonctionnel
+- Meilleure cohérence visuelle avec les cartes KPI
+- Design plus moderne et compact
+- Seul le fichier `OffersFilter.tsx` sera modifié
