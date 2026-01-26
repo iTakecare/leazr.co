@@ -202,9 +202,7 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">CA Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.ca)}</p>
                 </div>
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <DollarSign className="w-5 h-5 text-primary" />
-                </div>
+                <DollarSign className="w-5 h-5 text-slate-400" />
               </div>
             </CardContent>
           </Card>
@@ -216,9 +214,7 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">Achats Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.achats)}</p>
                 </div>
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <HandshakeIcon className="w-5 h-5 text-primary" />
-                </div>
+                <HandshakeIcon className="w-5 h-5 text-slate-400" />
               </div>
             </CardContent>
           </Card>
@@ -232,9 +228,7 @@ const CompanyDashboard = () => {
                   </p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.marge)}</p>
                 </div>
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                </div>
+                <TrendingUp className="w-5 h-5 text-slate-400" />
               </div>
             </CardContent>
           </Card>
@@ -246,9 +240,7 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">Taux de Marge</p>
                   <p className="text-xl font-medium text-foreground">{moyennes.margePercent.toFixed(2)}%</p>
                 </div>
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Target className="w-5 h-5 text-primary" />
-                </div>
+                <Target className="w-5 h-5 text-slate-400" />
               </div>
             </CardContent>
           </Card>
@@ -266,10 +258,10 @@ const CompanyDashboard = () => {
                 <div className="overflow-hidden rounded-lg">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-primary/5">
+                      <TableRow className="bg-slate-50">
                         <TableHead className="font-medium text-xs">Mois</TableHead>
                         <TableHead className="text-right font-medium text-xs">CA mensuel (€)</TableHead>
-                        <TableHead className="text-right font-medium text-xs text-purple-600">
+                        <TableHead className="text-right font-medium text-xs text-slate-600">
                           <div className="flex items-center justify-end gap-2">
                             <span>Notes de crédit (€)</span>
                             <div className="flex items-center gap-1">
@@ -303,14 +295,14 @@ const CompanyDashboard = () => {
                           >
                             <TableCell className="font-normal">{month.month}</TableCell>
                             <TableCell className="text-right font-normal">{formatCurrency(month.ca)}</TableCell>
-                            <TableCell className="text-right font-normal text-purple-600">
+                            <TableCell className="text-right font-normal text-slate-500">
                               {month.creditNotes > 0 ? `-${formatCurrency(month.creditNotes)}` : '-'}
                             </TableCell>
                             <TableCell className="text-right font-normal">{formatCurrency(month.achats)}</TableCell>
-                            <TableCell className="text-right font-medium text-green-600">
+                            <TableCell className="text-right font-medium text-emerald-700">
                               {formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
                             </TableCell>
-                            <TableCell className="text-right font-medium text-green-600">
+                            <TableCell className="text-right font-medium text-emerald-700">
                               {month.ca > 0 
                                 ? (((month.marge + (includeCreditNotes ? month.creditNotes : 0)) / month.ca) * 100).toFixed(1)
                                 : '0.0'}%
@@ -327,25 +319,25 @@ const CompanyDashboard = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                      <TableRow className="bg-green-50 dark:bg-green-900/10 border-t-2 border-green-200">
-                        <TableCell className="font-medium text-base">TOTAL</TableCell>
+                      <TableRow className="bg-slate-100 dark:bg-slate-800/50 border-t-2 border-slate-300">
+                        <TableCell className="font-medium text-base text-slate-900">TOTAL</TableCell>
                         <TableCell className="text-right font-medium text-base">{formatCurrency(totals.ca)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-purple-600">
+                        <TableCell className="text-right font-medium text-base text-slate-500">
                           {monthlyData.reduce((sum, m) => sum + m.creditNotes, 0) > 0 
                             ? `-${formatCurrency(monthlyData.reduce((sum, m) => sum + m.creditNotes, 0))}` 
                             : '-'}
                         </TableCell>
                         <TableCell className="text-right font-medium text-base">{formatCurrency(totals.achats)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-green-600">{formatCurrency(totals.marge)}</TableCell>
-                        <TableCell className="text-right font-medium text-base text-green-600">{moyennes.margePercent.toFixed(1)}%</TableCell>
+                        <TableCell className="text-right font-medium text-base text-emerald-700">{formatCurrency(totals.marge)}</TableCell>
+                        <TableCell className="text-right font-medium text-base text-emerald-700">{moyennes.margePercent.toFixed(1)}%</TableCell>
                       </TableRow>
-                      <TableRow className="bg-blue-50 dark:bg-blue-900/10 border-b-2 border-blue-200">
-                        <TableCell className="font-medium">MOYENNE</TableCell>
+                      <TableRow className="bg-slate-50 dark:bg-slate-800/30 border-b-2 border-slate-200">
+                        <TableCell className="font-medium text-slate-600">MOYENNE</TableCell>
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.ca)}</TableCell>
-                        <TableCell className="text-right font-normal text-purple-600">-</TableCell>
+                        <TableCell className="text-right font-normal text-slate-500">-</TableCell>
                         <TableCell className="text-right font-normal">{formatCurrency(moyennes.achats)}</TableCell>
-                        <TableCell className="text-right font-normal text-blue-600">{formatCurrency(moyennes.marge)}</TableCell>
-                        <TableCell className="text-right font-normal text-blue-600">{moyennes.margePercent.toFixed(1)}%</TableCell>
+                        <TableCell className="text-right font-normal text-slate-600">{formatCurrency(moyennes.marge)}</TableCell>
+                        <TableCell className="text-right font-normal text-slate-600">{moyennes.margePercent.toFixed(1)}%</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -391,7 +383,7 @@ const CompanyDashboard = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-emerald-500" />
+                  <CheckCircle className="w-5 h-5 text-slate-500" />
                   Contrats Réalisés
                 </CardTitle>
               </CardHeader>
@@ -423,7 +415,7 @@ const CompanyDashboard = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-orange-500" />
+                  <Clock className="w-5 h-5 text-slate-500" />
                   En Attente
                 </CardTitle>
               </CardHeader>
@@ -455,7 +447,7 @@ const CompanyDashboard = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-rose-500" />
+                  <Target className="w-5 h-5 text-slate-500" />
                   Refusés/Sans Suite
                 </CardTitle>
               </CardHeader>
@@ -483,7 +475,7 @@ const CompanyDashboard = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-primary" />
+                  <ShoppingBag className="w-5 h-5 text-slate-500" />
                   Ventes Directes
                 </CardTitle>
               </CardHeader>
@@ -515,7 +507,7 @@ const CompanyDashboard = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <TrendingUp className="w-5 h-5 text-slate-500" />
                   Prévisionnel
                 </CardTitle>
               </CardHeader>
