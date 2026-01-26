@@ -53,39 +53,39 @@ const OfferTypeTag = ({ type, source, hasCustomPacks = false, size = "md" }: Off
   
   switch (type) {
     case "web_request":
-      color = "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-50";
+      color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <Globe className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "custom_pack_request":
-      color = "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-50";
+      color = "bg-slate-200 text-slate-700 border-slate-400 hover:bg-slate-200";
       icon = <Package className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "ambassador_offer":
-      color = "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50";
+      color = "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-50";
       icon = <Flag className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "client_request":
-      color = "bg-green-50 text-green-700 border-green-200 hover:bg-green-50";
+      color = "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
       icon = <Phone className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "partner_offer":
-      color = "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50";
+      color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <Briefcase className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "internal_offer":
-      color = "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-50";
+      color = "bg-slate-200 text-slate-700 border-slate-400 hover:bg-slate-200";
       icon = <Building className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "admin_offer":
-      color = "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50";
+      color = "bg-slate-200 text-slate-700 border-slate-400 hover:bg-slate-200";
       icon = <UserCog className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     case "self_leasing":
-      color = "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-50";
+      color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <Home className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
       break;
     default:
-      color = "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-50";
+      color = "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-100";
       icon = <User className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />;
   }
 
