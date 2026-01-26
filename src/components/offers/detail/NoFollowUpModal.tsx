@@ -6,13 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { UserX, Mail, Clock, Calendar, FileX } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { UserX, Mail, Clock, Calendar, FileX, Send, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
+import { sendNoFollowUpEmail } from "@/services/offers/offerEmail";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 interface NoFollowUpModalProps {
   isOpen: boolean;
@@ -31,6 +36,27 @@ const NO_FOLLOW_UP_REASONS = [
   { code: "other", label: "Autre raison", icon: FileX },
 ];
 
+const DEFAULT_NO_FOLLOW_UP_HTML = `<p>Bonjour {{client_name}},</p>
+
+<p>Nous avons tenté de vous joindre à plusieurs reprises concernant votre demande de leasing informatique, mais nous n'avons malheureusement pas eu de nouvelles de votre part.</p>
+
+<p>En l'absence de retour, nous sommes contraints de <strong>clore votre dossier</strong>.</p>
+
+<p>Si toutefois il s'agit d'un oubli ou si votre situation a changé, n'hésitez pas à nous recontacter. Nous serons ravis de reprendre l'étude de votre demande.</p>
+
+<p>Nous restons à votre disposition.</p>
+
+<p>Cordialement,<br/>L'équipe iTakecare</p>`;
+
+const quillModules = {
+  toolbar: [
+    ['bold', 'italic', 'underline'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    ['link'],
+    ['clean']
+  ],
+};
+
 const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
   isOpen,
   onClose,
@@ -41,6 +67,11 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Email states
+  const [sendEmail, setSendEmail] = useState(false);
+  const [emailTitle, setEmailTitle] = useState("📁 Clôture de votre dossier");
+  const [emailContent, setEmailContent] = useState<string>(DEFAULT_NO_FOLLOW_UP_HTML);
 
   // Fetch reminder history
   const { data: reminders = [] } = useQuery({
@@ -63,7 +94,7 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
     enabled: isOpen,
   });
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (withEmail: boolean = false) => {
     if (!selectedReason) {
       toast.error("Veuillez sélectionner une raison");
       return;
@@ -72,6 +103,17 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Send email if requested
+      if (withEmail && sendEmail) {
+        try {
+          await sendNoFollowUpEmail(offerId, emailTitle, emailContent);
+          toast.success("Email de clôture envoyé");
+        } catch (emailError) {
+          console.error("Error sending email:", emailError);
+          toast.error("Erreur lors de l'envoi de l'email, mais le dossier sera classé");
+        }
+      }
+
       const reasonLabel = NO_FOLLOW_UP_REASONS.find(r => r.code === selectedReason)?.label || selectedReason;
       const fullReason = comment.trim() 
         ? `${reasonLabel}\n\nCommentaire: ${comment.trim()}`
@@ -129,15 +171,18 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
   const handleClose = () => {
     setSelectedReason("");
     setComment("");
+    setSendEmail(false);
+    setEmailTitle("📁 Clôture de votre dossier");
+    setEmailContent(DEFAULT_NO_FOLLOW_UP_HTML);
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserX className="h-5 w-5 text-gray-600" />
+            <UserX className="h-5 w-5 text-muted-foreground" />
             Classer ce dossier sans suite
           </DialogTitle>
         </DialogHeader>
@@ -145,10 +190,10 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
         <div className="space-y-6">
           {/* Reminder History */}
           {reminders.length > 0 && (
-            <Card className="border-blue-200 bg-blue-50/30">
+            <Card className="border-primary/20 bg-primary/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-blue-600" />
+                  <Mail className="h-4 w-4 text-primary" />
                   Historique des relances ({reminders.length})
                 </CardTitle>
               </CardHeader>
@@ -157,10 +202,10 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
                   {reminders.map((reminder, index) => (
                     <div 
                       key={reminder.id} 
-                      className="flex items-center justify-between text-sm p-2 bg-white rounded border"
+                      className="flex items-center justify-between text-sm p-2 bg-background rounded border"
                     >
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                        <Badge variant="outline" className="bg-primary/10 text-primary">
                           L{index + 1}
                         </Badge>
                         <span className="text-muted-foreground">
@@ -178,8 +223,8 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
           )}
 
           {reminders.length === 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg text-center text-muted-foreground text-sm">
-              <Mail className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <div className="bg-muted/50 p-4 rounded-lg text-center text-muted-foreground text-sm">
+              <Mail className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
               Aucune relance envoyée pour ce dossier
             </div>
           )}
@@ -188,7 +233,7 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">
-                Raison du classement sans suite <span className="text-red-500">*</span>
+                Raison du classement sans suite <span className="text-destructive">*</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -201,13 +246,13 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
                         key={reason.code}
                         className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                           selectedReason === reason.code 
-                            ? 'bg-gray-100 border-gray-400' 
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                            ? 'bg-muted border-border' 
+                            : 'bg-background border-border hover:bg-muted/50'
                         }`}
                         onClick={() => setSelectedReason(reason.code)}
                       >
                         <RadioGroupItem value={reason.code} id={reason.code} />
-                        <Icon className="h-4 w-4 text-gray-500" />
+                        <Icon className="h-4 w-4 text-muted-foreground" />
                         <Label htmlFor={reason.code} className="flex-1 cursor-pointer">
                           {reason.label}
                         </Label>
@@ -231,9 +276,62 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
             />
           </div>
 
+          {/* Email Option */}
+          <Card className="border-amber-200 bg-amber-50/30">
+            <CardHeader className="pb-2">
+              <div className="flex items-center space-x-3">
+                <Checkbox 
+                  id="sendEmail" 
+                  checked={sendEmail}
+                  onCheckedChange={(checked) => setSendEmail(checked === true)}
+                />
+                <Label htmlFor="sendEmail" className="cursor-pointer flex items-center gap-2 font-medium">
+                  <Send className="h-4 w-4" />
+                  Envoyer un email de clôture au client
+                </Label>
+              </div>
+            </CardHeader>
+            
+            {sendEmail && (
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emailTitle">Titre de l'email</Label>
+                  <Input
+                    id="emailTitle"
+                    value={emailTitle}
+                    onChange={(e) => setEmailTitle(e.target.value)}
+                    placeholder="Titre de l'email..."
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Corps de l'email</Label>
+                  <div className="border rounded-lg overflow-hidden bg-background">
+                    <ReactQuill
+                      theme="snow"
+                      value={emailContent}
+                      onChange={setEmailContent}
+                      modules={quillModules}
+                      className="bg-background"
+                      style={{ minHeight: '200px' }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Utilisez <code className="bg-muted px-1 rounded">{"{{client_name}}"}</code> pour insérer le nom du client
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 p-3 bg-amber-100 rounded-lg text-sm text-amber-800">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                  <span>L'email sera envoyé via Resend à l'adresse du client</span>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
           {/* Score D Badge */}
-          <div className="bg-gray-50 p-3 rounded-lg flex items-center gap-2 text-sm text-gray-600">
-            <Badge className="bg-gray-200 text-gray-800 hover:bg-gray-200">
+          <div className="bg-muted/50 p-3 rounded-lg flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="secondary">
               Score D
             </Badge>
             <span>sera automatiquement attribué à ce dossier</span>
@@ -241,27 +339,67 @@ const NoFollowUpModal: React.FC<NoFollowUpModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-4 border-t">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Annuler
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting || !selectedReason}
-            className="bg-gray-600 hover:bg-gray-700 text-white"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full" />
-                Traitement...
-              </>
-            ) : (
-              <>
-                <FileX className="mr-2 h-4 w-4" />
-                Classer sans suite
-              </>
-            )}
-          </Button>
+          
+          {sendEmail ? (
+            <>
+              <Button 
+                variant="outline"
+                onClick={() => handleSubmit(false)} 
+                disabled={isSubmitting || !selectedReason}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full" />
+                    Traitement...
+                  </>
+                ) : (
+                  <>
+                    <FileX className="mr-2 h-4 w-4" />
+                    Classer sans envoyer d'email
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={() => handleSubmit(true)} 
+                disabled={isSubmitting || !selectedReason}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full" />
+                    Traitement...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Classer et envoyer l'email
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <Button 
+              onClick={() => handleSubmit(false)} 
+              disabled={isSubmitting || !selectedReason}
+              variant="secondary"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full" />
+                  Traitement...
+                </>
+              ) : (
+                <>
+                  <FileX className="mr-2 h-4 w-4" />
+                  Classer sans suite
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

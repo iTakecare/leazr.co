@@ -69,6 +69,40 @@ export const sendLeasingRejectionEmail = async (
 };
 
 /**
+ * Envoie l'email de clôture pour dossier sans suite (Score D)
+ */
+export const sendNoFollowUpEmail = async (
+  offerId: string,
+  customTitle?: string,
+  customContent?: string
+): Promise<boolean> => {
+  try {
+    console.log("📧 Envoi de l'email de clôture pour dossier sans suite");
+    console.log("📧 Titre personnalisé:", customTitle ? "Oui" : "Non");
+    console.log("📧 Contenu personnalisé:", customContent ? "Oui" : "Non");
+
+    const { error } = await supabase.functions.invoke('send-no-follow-up-email', {
+      body: { 
+        offerId, 
+        customTitle, 
+        customContent 
+      }
+    });
+
+    if (error) {
+      console.error("⚠️ Erreur lors de l'envoi de l'email de clôture:", error);
+      throw error;
+    }
+
+    console.log("✅ Email de clôture envoyé avec succès");
+    return true;
+  } catch (error) {
+    console.error("❌ Erreur lors de l'envoi de l'email de clôture:", error);
+    throw error;
+  }
+};
+
+/**
  * Génère le template HTML par défaut de l'email
  */
 export const getDefaultEmailTemplate = (
