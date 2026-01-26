@@ -5,6 +5,7 @@ import {
   Check, 
   ChevronRight, 
   ArrowRight,
+  ArrowLeft,
   FileText,
   Search,
   Send,
@@ -12,7 +13,9 @@ import {
   Clock,
   Building,
   Receipt,
-  GitBranch
+  GitBranch,
+  ClipboardList,
+  FilePen
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -364,8 +367,8 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
           )}
         </div>
 
-        {/* Stepper horizontal */}
-        <div className="relative flex items-start justify-between">
+        {/* Stepper horizontal - WinBroker style */}
+        <div className="relative flex items-start justify-start gap-0 overflow-x-auto pb-24">
           {activeSteps.map((step, index) => {
             const Icon = step.icon;
             const isActive = index === currentIndex;
@@ -374,109 +377,157 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
             const canClick = !updating && (index <= currentIndex + 1 || index < currentIndex);
             const score = getScoreForStep(step.key);
             const waitingDocs = isWaitingForDocuments(step.key);
+            const prevStep = index > 0 ? activeSteps[index - 1] : null;
 
             return (
-              <div 
-                key={step.key} 
-                className="flex flex-col items-center relative flex-1"
-              >
-                {/* Connector line */}
-                {index < activeSteps.length - 1 && (
-                  <div className="absolute left-[calc(50%+20px)] right-[calc(-50%+20px)] top-4 flex items-center z-0">
+              <React.Fragment key={step.key}>
+                {/* Step column */}
+                <div className="flex flex-col items-center relative min-w-[120px]">
+                  {/* Step box - WinBroker style */}
+                  <button
+                    onClick={() => canClick && handleStepClick(step.key, index)}
+                    disabled={!canClick || updating}
+                    className={cn(
+                      "relative flex flex-col items-center justify-center p-4 rounded-xl border-2 bg-card transition-all min-w-[100px] min-h-[80px]",
+                      isCompleted && "border-primary/30",
+                      isActive && "border-primary shadow-lg ring-2 ring-primary/20",
+                      isUpcoming && "border-border",
+                      canClick && !updating && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      (!canClick || updating) && "cursor-not-allowed opacity-70"
+                    )}
+                  >
+                    {/* Number badge in corner */}
                     <div className={cn(
-                      "flex-1 border-t-2 border-dashed",
-                      isCompleted ? "border-primary" : "border-muted-foreground/30"
-                    )} />
-                    <ChevronRight className={cn(
-                      "w-4 h-4 -ml-1",
-                      isCompleted ? "text-primary" : "text-muted-foreground/30"
-                    )} />
-                  </div>
-                )}
+                      "absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm",
+                      isCompleted && "bg-primary text-primary-foreground",
+                      isActive && "bg-primary text-primary-foreground",
+                      isUpcoming && "bg-muted text-muted-foreground border border-border"
+                    )}>
+                      {isCompleted ? <Check className="w-3 h-3" /> : step.number}
+                    </div>
 
-                {/* Step number circle */}
-                <button
-                  onClick={() => canClick && handleStepClick(step.key, index)}
-                  disabled={!canClick || updating}
-                  className={cn(
-                    "relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all",
-                    isCompleted && "bg-primary border-primary text-primary-foreground",
-                    isActive && "bg-primary border-primary text-primary-foreground",
-                    isUpcoming && "bg-muted border-border text-muted-foreground",
-                    canClick && !updating && "cursor-pointer hover:scale-110",
-                    (!canClick || updating) && "cursor-not-allowed"
+                    {/* Large icon */}
+                    <Icon className={cn(
+                      "w-8 h-8",
+                      isCompleted && "text-primary",
+                      isActive && "text-primary",
+                      isUpcoming && "text-muted-foreground"
+                    )} />
+
+                    {/* Score badge inside box */}
+                    {score && (
+                      <Badge 
+                        variant="outline" 
+                        className={cn("mt-2 text-xs", getScoreBadgeColor(score))}
+                      >
+                        Score {score}
+                      </Badge>
+                    )}
+
+                    {/* Waiting docs badge inside box */}
+                    {waitingDocs && (
+                      <Badge 
+                        variant="outline" 
+                        className="mt-2 text-xs bg-warning/10 text-warning border-warning/20"
+                      >
+                        En attente
+                      </Badge>
+                    )}
+                  </button>
+
+                  {/* Step label */}
+                  <span className={cn(
+                    "mt-3 text-sm font-medium text-center max-w-[110px]",
+                    isActive && "text-foreground",
+                    isCompleted && "text-foreground",
+                    isUpcoming && "text-muted-foreground"
+                  )}>
+                    {step.label}
+                  </span>
+                  
+                  {/* Status badge */}
+                  <Badge 
+                    variant="secondary"
+                    className={cn(
+                      "mt-1.5 text-xs",
+                      isCompleted && "bg-primary/10 text-primary",
+                      isActive && "bg-primary text-primary-foreground",
+                      isUpcoming && "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isCompleted ? 'Terminée' : isActive ? 'En cours' : 'À venir'}
+                  </Badge>
+
+                  {/* Action popup for active step - WinBroker style */}
+                  {isActive && (
+                    <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg shadow-xl min-w-[200px] z-20 overflow-hidden">
+                      {/* Analysis/Document request button */}
+                      {step.enables_scoring && onAnalysisClick && step.scoring_type && (
+                        <button 
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted border-b border-border transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAnalysisClick(step.scoring_type as 'internal' | 'leaser');
+                          }}
+                        >
+                          <ClipboardList className="w-4 h-4 text-muted-foreground" />
+                          <span>
+                            {step.scoring_type === 'internal' ? 'Analyse Interne' : 
+                             step.scoring_type === 'leaser' ? 'Analyse Leaser' : 
+                             'Demander documents'}
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Back to previous step */}
+                      {prevStep && (
+                        <button 
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-warning hover:bg-warning/10 border-b border-border transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStepClick(prevStep.key, currentIndex - 1);
+                          }}
+                          disabled={updating}
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Retour à {prevStep.label}</span>
+                        </button>
+                      )}
+
+                      {/* Next step button */}
+                      {nextStep && (
+                        <button 
+                          className="w-full flex items-center justify-between px-4 py-3 text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStepClick(nextStep.key, currentIndex + 1);
+                          }}
+                          disabled={updating}
+                        >
+                          <span>Vers {nextStep.label}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {/* If no next step - Final step indicator */}
+                      {!nextStep && (
+                        <div className="w-full flex items-center gap-2 px-4 py-3 text-sm text-primary bg-primary/5">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Étape finale</span>
+                        </div>
+                      )}
+                    </div>
                   )}
-                >
-                  {isCompleted ? <Check className="w-4 h-4" /> : step.number}
-                </button>
-
-                {/* Icon box */}
-                <div className={cn(
-                  "mt-3 p-2 rounded-lg",
-                  isActive ? "bg-primary/10" : "bg-muted"
-                )}>
-                  <Icon className={cn(
-                    "w-5 h-5",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )} />
                 </div>
 
-                {/* Label */}
-                <span className={cn(
-                  "mt-2 text-sm font-medium text-center max-w-[100px]",
-                  isActive && "text-foreground",
-                  isCompleted && "text-foreground",
-                  isUpcoming && "text-muted-foreground"
-                )}>
-                  {step.label}
-                </span>
-                
-                {/* Status sublabel */}
-                <span className={cn(
-                  "text-xs",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}>
-                  {isCompleted ? 'Terminé' : isActive ? 'En cours' : 'À venir'}
-                </span>
-
-                {/* Score badge */}
-                {score && (
-                  <Badge 
-                    variant="outline" 
-                    className={cn("mt-1 text-xs", getScoreBadgeColor(score))}
-                  >
-                    Score {score}
-                  </Badge>
-                )}
-
-                {/* Waiting docs badge */}
-                {waitingDocs && (
-                  <Badge 
-                    variant="outline" 
-                    className="mt-1 text-xs bg-warning/10 text-warning border-warning/20"
-                  >
-                    Docs demandés
-                  </Badge>
-                )}
-
-                {/* Active step popup */}
-                {isActive && nextStep && (
-                  <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg shadow-lg p-3 min-w-[180px] z-20">
-                    <Badge className="mb-2 bg-primary/10 text-primary border-primary/20">
-                      En cours
-                    </Badge>
-                    <Button 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => handleStepClick(nextStep.key, currentIndex + 1)}
-                      disabled={updating}
-                    >
-                      Vers {nextStep.label}
-                      <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
+                {/* Arrow connector between steps */}
+                {index < activeSteps.length - 1 && (
+                  <div className="flex items-center self-start mt-10 px-1 text-muted-foreground/40">
+                    <span className="text-lg font-light">—</span>
+                    <ChevronRight className="w-4 h-4 -ml-1" />
                   </div>
                 )}
-              </div>
+              </React.Fragment>
             );
           })}
         </div>
