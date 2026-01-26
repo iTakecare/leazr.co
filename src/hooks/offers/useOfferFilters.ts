@@ -38,7 +38,12 @@ export const useOfferFilters = (offers: Offer[]) => {
       'invoicing'        // En facturation (offres d'achat)
     ]);
     
-    // Statuts "Refusées" = Tous les types de rejets
+    // Statuts "Sans suite" = Score D (client injoignable, projet abandonné)
+    const withoutFollowUpStatuses = new Set([
+      'without_follow_up'  // Sans suite (Score D)
+    ]);
+    
+    // Statuts "Refusées" = Tous les types de rejets (Score C)
     const rejectedStatuses = new Set([
       'internal_rejected',  // Rejeté en interne
       'leaser_rejected',    // Rejeté par le leaser
@@ -54,11 +59,13 @@ export const useOfferFilters = (offers: Offer[]) => {
         return acceptedStatuses.has(status);
       } else if (activeTab === "invoiced") {
         return invoicedStatuses.has(status);
+      } else if (activeTab === "without_follow_up") {
+        return withoutFollowUpStatuses.has(status);
       } else if (activeTab === "rejected") {
         return rejectedStatuses.has(status);
       } else {
-        // in_progress: exclut les acceptés, facturés et refusés
-        return !acceptedStatuses.has(status) && !invoicedStatuses.has(status) && !rejectedStatuses.has(status);
+        // in_progress: exclut les acceptés, facturés, sans suite et refusés
+        return !acceptedStatuses.has(status) && !invoicedStatuses.has(status) && !withoutFollowUpStatuses.has(status) && !rejectedStatuses.has(status);
       }
     });
     

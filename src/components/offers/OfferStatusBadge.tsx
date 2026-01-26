@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -19,7 +18,8 @@ import {
   FileText,
   Circle,
   Send,
-  XCircle
+  XCircle,
+  UserX
 } from "lucide-react";
 
 export const OFFER_STATUSES = {
@@ -187,6 +187,14 @@ export const OFFER_STATUSES = {
     label: "Validée ITC", 
     icon: Sparkle,
     color: "bg-slate-200 text-slate-700 border-slate-300"
+  },
+  
+  // Sans suite (Score D)
+  WITHOUT_FOLLOW_UP: { 
+    id: "without_follow_up", 
+    label: "Sans suite", 
+    icon: UserX,
+    color: "bg-gray-100 text-gray-600 border-gray-300"
   },
 };
 

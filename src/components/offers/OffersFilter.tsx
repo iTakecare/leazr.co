@@ -29,6 +29,7 @@ const OffersFilter = ({
             <TabsTrigger value="in_progress" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">À traiter</TabsTrigger>
             <TabsTrigger value="accepted" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Acceptées</TabsTrigger>
             <TabsTrigger value="invoiced" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Facturé</TabsTrigger>
+            <TabsTrigger value="without_follow_up" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Sans suite</TabsTrigger>
             <TabsTrigger value="rejected" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Refusées</TabsTrigger>
           </TabsList>
         </Tabs>

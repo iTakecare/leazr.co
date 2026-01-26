@@ -4619,6 +4619,7 @@ export type Database = {
           offer_id: string
           previous_status: string
           reason: string | null
+          sub_reason: string | null
           user_id: string
         }
         Insert: {
@@ -4628,6 +4629,7 @@ export type Database = {
           offer_id: string
           previous_status: string
           reason?: string | null
+          sub_reason?: string | null
           user_id: string
         }
         Update: {
@@ -4637,6 +4639,7 @@ export type Database = {
           offer_id?: string
           previous_status?: string
           reason?: string | null
+          sub_reason?: string | null
           user_id?: string
         }
         Relationships: [
