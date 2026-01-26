@@ -117,7 +117,24 @@ const [notesLoading, setNotesLoading] = useState(false);
         return;
       }
 
-      setOffer(offerData);
+      // Récupérer le contrat lié à l'offre
+      let linkedContract = null;
+      try {
+        const { data: contractData } = await supabase
+          .from('contracts')
+          .select('id, contract_number, status, is_self_leasing')
+          .eq('offer_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        linkedContract = contractData;
+        console.log("📄 AdminOfferDetail - Contrat lié:", linkedContract);
+      } catch (contractErr) {
+        console.warn("⚠️ Erreur récupération contrat:", contractErr);
+      }
+
+      setOffer({ ...offerData, linkedContract });
       
       // Récupérer les informations du leaser si présent
       if (offerData.leaser_id) {
