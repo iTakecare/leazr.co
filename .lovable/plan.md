@@ -1,9 +1,12 @@
 
-# Plan : Ajouter la Colonne Droite "Email de Clôture" pour Score D dans ScoringModal
+# Plan : Textes d'Email Personnalisés par Raison + Suppression de la Checkbox
 
-## Objectif
+## Résumé
 
-Ajouter une colonne droite dans `ScoringModal.tsx` pour le Score D, similaire à Score B et Score C, permettant d'envoyer optionnellement un email de clôture au client expliquant que le dossier est clos faute de nouvelles.
+Modifier l'interface Score D dans `ScoringModal.tsx` pour :
+1. Supprimer la checkbox "Envoyer un email de clôture au client" 
+2. Toujours afficher l'éditeur d'email
+3. Charger automatiquement un texte d'email différent selon la raison sélectionnée
 
 ---
 
@@ -11,260 +14,164 @@ Ajouter une colonne droite dans `ScoringModal.tsx` pour le Score D, similaire à
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/offers/detail/ScoringModal.tsx` | Ajouter la colonne droite pour Score D avec email optionnel |
+| `src/components/offers/detail/ScoringModal.tsx` | Modifier la section Score D |
 
 ---
 
-## Modifications Techniques
+## 1. Nouveaux Templates Email par Raison
 
-### 1. Nouveaux États à Ajouter
-
-```typescript
-// États pour l'email de clôture (score D)
-const [sendNoFollowUpEmail, setSendNoFollowUpEmail] = useState(false);
-const [noFollowUpEmailTitle, setNoFollowUpEmailTitle] = useState("📁 Clôture de votre dossier");
-const [noFollowUpEmailContent, setNoFollowUpEmailContent] = useState<string>(DEFAULT_NO_FOLLOW_UP_HTML);
-```
-
-### 2. Constante pour le Template Email par Défaut
+Créer une constante `NO_FOLLOW_UP_EMAIL_TEMPLATES` avec un texte adapté à chaque raison :
 
 ```typescript
-const DEFAULT_NO_FOLLOW_UP_HTML = `<p>Bonjour {{client_name}},</p>
-
+const NO_FOLLOW_UP_EMAIL_TEMPLATES: Record<string, string> = {
+  no_response: `<p>Bonjour {{client_name}},</p>
 <p>Nous avons tenté de vous joindre à plusieurs reprises concernant votre demande de leasing informatique, mais nous n'avons malheureusement pas eu de nouvelles de votre part.</p>
-
 <p>En l'absence de retour, nous sommes contraints de <strong>clore votre dossier</strong>.</p>
-
 <p>Si toutefois il s'agit d'un oubli ou si votre situation a changé, n'hésitez pas à nous recontacter. Nous serons ravis de reprendre l'étude de votre demande.</p>
-
 <p>Nous restons à votre disposition.</p>
+<p>Cordialement,<br/>L'équipe iTakecare</p>`,
 
-<p>Cordialement,<br/>L'équipe iTakecare</p>`;
-```
+  project_postponed: `<p>Bonjour {{client_name}},</p>
+<p>Nous avons bien pris note que votre projet de leasing informatique a été reporté.</p>
+<p>Nous procédons donc à la <strong>clôture temporaire de votre dossier</strong>.</p>
+<p>Lorsque vous serez prêt à relancer votre projet, n'hésitez pas à nous recontacter. Nous serons heureux de reprendre l'étude de votre demande.</p>
+<p>Nous restons à votre disposition pour toute question.</p>
+<p>Cordialement,<br/>L'équipe iTakecare</p>`,
 
-### 3. Mise à Jour de la Condition d'Élargissement du Dialog
+  went_competitor: `<p>Bonjour {{client_name}},</p>
+<p>Nous avons pris note de votre décision de poursuivre votre projet avec un autre prestataire.</p>
+<p>Nous procédons donc à la <strong>clôture de votre dossier</strong>.</p>
+<p>Si vous souhaitez nous solliciter pour un futur projet, nous serons heureux de vous accompagner.</p>
+<p>Nous vous souhaitons une excellente continuation.</p>
+<p>Cordialement,<br/>L'équipe iTakecare</p>`,
 
-Modifier la ligne 510 pour inclure Score D :
+  budget_issue: `<p>Bonjour {{client_name}},</p>
+<p>Nous comprenons que des contraintes budgétaires ne vous permettent pas de poursuivre votre projet de leasing informatique pour le moment.</p>
+<p>Nous procédons donc à la <strong>clôture de votre dossier</strong>.</p>
+<p>Si votre situation évolue, n'hésitez pas à nous recontacter. Nous serons ravis de reprendre l'étude de votre demande.</p>
+<p>Nous restons à votre disposition.</p>
+<p>Cordialement,<br/>L'équipe iTakecare</p>`,
 
-```typescript
-// Avant
-<DialogContent className={`${(selectedScore === 'B' || selectedScore === 'C') ? 'max-w-4xl' : 'max-w-2xl'} ...`}>
+  project_cancelled: `<p>Bonjour {{client_name}},</p>
+<p>Nous avons bien pris note de l'annulation de votre projet de leasing informatique.</p>
+<p>Nous procédons donc à la <strong>clôture définitive de votre dossier</strong>.</p>
+<p>Si un nouveau projet venait à se présenter, nous serions heureux de vous accompagner.</p>
+<p>Nous vous souhaitons une excellente continuation dans vos activités.</p>
+<p>Cordialement,<br/>L'équipe iTakecare</p>`,
 
-// Après
-<DialogContent className={`${(selectedScore === 'B' || selectedScore === 'C' || selectedScore === 'D') ? 'max-w-4xl' : 'max-w-2xl'} ...`}>
-```
-
-Et modifier la ligne 522 :
-
-```typescript
-// Avant
-<div className={`space-y-6 ${(selectedScore === 'B' || selectedScore === 'C') ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
-
-// Après
-<div className={`space-y-6 ${(selectedScore === 'B' || selectedScore === 'C' || selectedScore === 'D') ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
-```
-
-### 4. Nouvelle Section UI - Colonne Droite pour Score D
-
-Ajouter après la section Score C (ligne 806) :
-
-```tsx
-{/* Section Email de clôture (visible uniquement pour score D) */}
-{selectedScore === 'D' && (
-  <Card className="border-2 border-gray-200 bg-gray-50/30">
-    <CardHeader className="pb-4">
-      <CardTitle className="text-lg flex items-center gap-2">
-        <Mail className="h-5 w-5 text-gray-600" />
-        Email de clôture (optionnel)
-      </CardTitle>
-      <p className="text-sm text-muted-foreground">
-        Envoyez optionnellement un email au client pour l'informer de la clôture du dossier.
-      </p>
-    </CardHeader>
-
-    <CardContent className="space-y-4">
-      {/* Checkbox pour activer l'email */}
-      <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="send-no-follow-up-email" 
-          checked={sendNoFollowUpEmail}
-          onCheckedChange={(checked) => setSendNoFollowUpEmail(checked === true)}
-        />
-        <label 
-          htmlFor="send-no-follow-up-email"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Envoyer un email de clôture au client
-        </label>
-      </div>
-
-      {/* Contenu de l'email (visible si checkbox cochée) */}
-      {sendNoFollowUpEmail && (
-        <>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Titre de l'email</label>
-            <Input
-              value={noFollowUpEmailTitle}
-              onChange={(e) => setNoFollowUpEmailTitle(e.target.value)}
-              placeholder="Titre de l'email..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Corps de l'email</label>
-            <ReactQuill
-              value={noFollowUpEmailContent}
-              onChange={setNoFollowUpEmailContent}
-              theme="snow"
-              modules={{ toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['link'], ['clean']] }}
-              className="bg-white rounded-md"
-            />
-          </div>
-
-          <div className="flex items-center text-gray-600 text-xs bg-gray-100 p-2 rounded">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            L'email sera envoyé via Resend avec votre clé configurée
-          </div>
-        </>
-      )}
-
-      {!sendNoFollowUpEmail && (
-        <div className="bg-gray-100 p-3 rounded-lg text-sm text-gray-600 flex items-center gap-2">
-          <UserX className="h-4 w-4" />
-          <span>Aucun email ne sera envoyé - Le dossier pourra être réactivé ultérieurement</span>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-)}
-```
-
-### 5. Nouvelles Fonctions de Gestion
-
-Ajouter deux nouvelles fonctions :
-
-```typescript
-// Envoyer email de clôture et valider score D
-const handleSendNoFollowUpAndValidate = async () => {
-  if (!selectedNoFollowUpReason) {
-    toast.error("Veuillez sélectionner une raison");
-    return;
-  }
-
-  try {
-    setIsSending(true);
-    
-    // Envoyer l'email de clôture via l'edge function
-    const { sendNoFollowUpEmail: sendEmail } = await import('@/services/offers/offerEmail');
-    await sendEmail(offerId, noFollowUpEmailTitle, noFollowUpEmailContent);
-    
-    // Valider le score D
-    const reasonLabel = NO_FOLLOW_UP_REASONS.find(r => r.code === selectedNoFollowUpReason)?.label || selectedNoFollowUpReason;
-    const fullReason = reason.trim() 
-      ? `${reasonLabel}\n\nCommentaire: ${reason.trim()}`
-      : reasonLabel;
-    
-    await onScoreAssigned('D', fullReason);
-    toast.success("Email de clôture envoyé et dossier classé sans suite");
-    onClose();
-  } catch (error) {
-    console.error("Erreur:", error);
-    toast.error("Erreur lors de l'envoi de l'email");
-  } finally {
-    setIsSending(false);
-  }
+  other: `<p>Bonjour {{client_name}},</p>
+<p>Suite à nos échanges, nous procédons à la <strong>clôture de votre dossier</strong> de demande de leasing informatique.</p>
+<p>Si vous souhaitez reprendre ce projet ultérieurement, n'hésitez pas à nous recontacter. Nous serons heureux de vous accompagner.</p>
+<p>Nous restons à votre disposition pour toute question.</p>
+<p>Cordialement,<br/>L'équipe iTakecare</p>`
 };
-
-// Valider score D sans envoyer d'email
-const handleValidateDWithoutEmail = async () => {
-  // ... (code existant dans handleSubmit pour score D)
-};
-```
-
-### 6. Modification des Boutons d'Action pour Score D
-
-Remplacer le bouton unique actuel (lignes 902-921) par deux boutons :
-
-```tsx
-selectedScore === 'D' ? (
-  <>
-    {sendNoFollowUpEmail ? (
-      <>
-        {/* Bouton principal : Envoyer email */}
-        <Button 
-          onClick={handleSendNoFollowUpAndValidate}
-          disabled={isLoading || isSending || !selectedNoFollowUpReason}
-          size="lg"
-          className="bg-gray-600 hover:bg-gray-700 text-white"
-        >
-          <Mail className="mr-2 h-4 w-4" />
-          Classer et envoyer l'email
-        </Button>
-        
-        {/* Bouton alternatif : Sans email */}
-        <Button 
-          onClick={handleSubmit}
-          disabled={isLoading || isSending || !selectedNoFollowUpReason}
-          variant="secondary"
-          size="lg"
-        >
-          <UserX className="mr-2 h-4 w-4" />
-          Classer sans envoyer d'email
-        </Button>
-      </>
-    ) : (
-      /* Si email non coché, un seul bouton */
-      <Button 
-        onClick={handleSubmit}
-        disabled={isLoading || isSending || !selectedNoFollowUpReason}
-        size="lg"
-        className="bg-gray-600 hover:bg-gray-700 text-white"
-      >
-        <UserX className="mr-2 h-4 w-4" />
-        Classer sans suite (Score D)
-      </Button>
-    )}
-  </>
-)
 ```
 
 ---
 
-## Structure Finale de la Modale pour Score D
+## 2. Suppression de la Variable d'État `sendNoFollowUpEmailState`
+
+- Supprimer `const [sendNoFollowUpEmailState, setSendNoFollowUpEmailState] = useState(false);`
+- L'éditeur d'email sera toujours visible quand Score D est sélectionné
+
+---
+
+## 3. Mise à Jour Dynamique du Contenu Email
+
+Modifier le `useEffect` ou `handleScoreSelection` pour mettre à jour le contenu de l'email quand la raison change :
+
+```typescript
+// Dans handleScoreSelection ou via useEffect sur selectedNoFollowUpReason
+useEffect(() => {
+  if (selectedNoFollowUpReason && selectedScore === 'D') {
+    const template = NO_FOLLOW_UP_EMAIL_TEMPLATES[selectedNoFollowUpReason] || NO_FOLLOW_UP_EMAIL_TEMPLATES.other;
+    setNoFollowUpEmailContent(template);
+  }
+}, [selectedNoFollowUpReason, selectedScore]);
+```
+
+---
+
+## 4. Modification de l'Interface Score D
+
+Supprimer la checkbox et afficher directement l'éditeur d'email :
+
+**Avant (lignes 870-928)** :
+```text
+┌─────────────────────────────────┐
+│ ☐ Envoyer un email de clôture   │  ← À SUPPRIMER
+│                                 │
+│ (si coché, affiche éditeur)     │
+│ (sinon, message "Aucun email")  │
+└─────────────────────────────────┘
+```
+
+**Après** :
+```text
+┌─────────────────────────────────────────────┐
+│ 📧 Email de clôture (optionnel)             │
+│                                             │
+│ Titre: [📁 Clôture de votre dossier]        │
+│                                             │
+│ Corps de l'email:                           │
+│ [ReactQuill avec texte adapté à la raison]  │
+│                                             │
+│ ⚠️ L'email sera envoyé via Resend           │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 5. Simplification des Boutons d'Action Score D
+
+Puisque l'éditeur est toujours visible, afficher toujours les deux boutons :
+
+**Avant (lignes 1027-1093)** :
+```typescript
+// Si sendNoFollowUpEmailState → 2 boutons
+// Sinon → 1 bouton
+```
+
+**Après** :
+```typescript
+// Toujours 2 boutons :
+// 1. "Classer et envoyer l'email" 
+// 2. "Classer sans envoyer d'email"
+```
+
+---
+
+## 6. Récapitulatif des Modifications
+
+| Section | Modification |
+|---------|-------------|
+| **États** | Supprimer `sendNoFollowUpEmailState` |
+| **Constantes** | Ajouter `NO_FOLLOW_UP_EMAIL_TEMPLATES` avec 6 templates |
+| **useEffect** | Ajouter mise à jour dynamique du contenu email selon raison |
+| **UI Score D** | Supprimer checkbox, afficher éditeur directement |
+| **Boutons D** | Toujours afficher 2 boutons (avec/sans email) |
+
+---
+
+## 7. Comportement Final
+
+| Action | Résultat |
+|--------|----------|
+| Sélectionner Score D | Affiche la raison + l'éditeur d'email |
+| Changer la raison | L'email se met à jour automatiquement avec le texte adapté |
+| "Classer et envoyer l'email" | Envoie l'email personnalisé + classe sans suite |
+| "Classer sans envoyer d'email" | Classe sans suite sans envoyer d'email |
+
+---
+
+## 8. Exemple de Flux Utilisateur
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  🔍 Analyse interne                                                      │
-├───────────────────────────────────┬─────────────────────────────────────┤
-│ Évaluation du dossier            │ 📧 Email de clôture (optionnel)     │
-│ ────────────────────────────────  │ ────────────────────────────────    │
-│ ○ Score A - Approuvé              │ ☐ Envoyer un email de clôture      │
-│ ○ Score B - Documents requis      │                                     │
-│ ○ Score C - Refusé                │ (si coché, affiche :)               │
-│ ● Score D - Sans suite ◄          │ ┌─────────────────────────────────┐ │
-│                                   │ │ Titre: [📁 Clôture de votre...] │ │
-│ Raison: [Plus de nouvelles...]    │ │                                 │ │
-│                                   │ │ Corps de l'email:               │ │
-│ Commentaire (optionnel):          │ │ [ReactQuill Editor]             │ │
-│ [________________________]        │ └─────────────────────────────────┘ │
-│                                   │                                     │
-│                                   │ (si non coché :)                    │
-│                                   │ ⚠️ Aucun email ne sera envoyé      │
-├───────────────────────────────────┴─────────────────────────────────────┤
-│                      [Annuler] [Classer sans email] [Classer et envoyer]│
-└─────────────────────────────────────────────────────────────────────────┘
+1. Sélectionner "Score D - Sans suite"
+2. Choisir raison : "Plus de nouvelles après relances"
+   → L'email affiche automatiquement le texte correspondant
+3. (Optionnel) Modifier le texte de l'email
+4. Clic sur :
+   - "Classer et envoyer l'email" → Email envoyé + dossier clos
+   - "Classer sans envoyer d'email" → Dossier clos silencieusement
 ```
-
----
-
-## Récapitulatif des Changements
-
-| Élément | Modification |
-|---------|-------------|
-| **États** | + `sendNoFollowUpEmail`, `noFollowUpEmailTitle`, `noFollowUpEmailContent` |
-| **Constantes** | + `DEFAULT_NO_FOLLOW_UP_HTML` |
-| **Dialog** | Élargissement à `max-w-4xl` pour Score D |
-| **Layout** | Activation grille 2 colonnes pour Score D |
-| **UI** | + Card "Email de clôture" avec checkbox + éditeur conditionnel |
-| **Fonctions** | + `handleSendNoFollowUpAndValidate()` |
-| **Boutons** | 2 boutons si email coché, 1 bouton sinon |
