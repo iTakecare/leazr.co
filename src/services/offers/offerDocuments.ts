@@ -15,7 +15,47 @@ export interface OfferDocument {
   admin_notes?: string;
   created_at: string;
   updated_at: string;
+  notified_at?: string;
 }
+
+// ========== SYSTÈME DE NOTIFICATION GROUPÉE ==========
+// Map pour stocker les timers de notification par offerId
+const pendingNotifications = new Map<string, ReturnType<typeof setTimeout>>();
+
+/**
+ * Programme une notification groupée pour les documents uploadés.
+ * Si plusieurs documents sont uploadés en rafale, un seul email sera envoyé
+ * 5 secondes après le dernier upload.
+ */
+const scheduleDocumentNotification = (offerId: string) => {
+  // Annuler le timer précédent s'il existe
+  if (pendingNotifications.has(offerId)) {
+    clearTimeout(pendingNotifications.get(offerId));
+    console.log('📧 Timer de notification annulé, nouveau timer programmé pour:', offerId);
+  }
+  
+  // Programmer un nouvel appel dans 5 secondes
+  const timer = setTimeout(async () => {
+    console.log('📧 Envoi notification groupée pour offre:', offerId);
+    try {
+      const { data, error } = await supabase.functions.invoke('notify-documents-uploaded', {
+        body: { offerId }
+      });
+      
+      if (error) {
+        console.error('⚠️ Erreur notification groupée:', error);
+      } else {
+        console.log('✅ Notification groupée envoyée:', data);
+      }
+    } catch (err) {
+      console.error('⚠️ Erreur lors de l\'appel à notify-documents-uploaded:', err);
+    }
+    pendingNotifications.delete(offerId);
+  }, 5000); // 5 secondes de délai
+  
+  pendingNotifications.set(offerId, timer);
+  console.log('📧 Notification programmée dans 5 secondes pour:', offerId);
+};
 
 export interface OfferUploadLink {
   id: string;
@@ -320,26 +360,19 @@ export const uploadDocument = async (
     console.log('MIME type final:', detectedMimeType);
     console.log('Chemin final:', fileName);
     
-    // Notifier les admins en arrière-plan (ne bloque pas l'upload)
+    // Mettre à jour le timestamp de dernier upload sur l'offre
     try {
-      console.log('📧 Envoi notification admins...');
-      supabase.functions.invoke('notify-admins-document-upload', {
-        body: {
-          offerId: uploadLink.offer_id,
-          documentType: DOCUMENT_TYPES[documentType as keyof typeof DOCUMENT_TYPES] || documentType,
-          fileName: file.name,
-          uploaderEmail: uploaderEmail || null
-        }
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('⚠️ Erreur notification admins (non bloquant):', error);
-        } else {
-          console.log('✅ Notification admins envoyée:', data);
-        }
-      });
-    } catch (notifError) {
-      console.error('⚠️ Erreur lors de la notification admins (non bloquant):', notifError);
+      await supabase
+        .from('offers')
+        .update({ documents_last_uploaded_at: new Date().toISOString() })
+        .eq('id', uploadLink.offer_id);
+      console.log('✓ Timestamp dernier upload mis à jour');
+    } catch (updateErr) {
+      console.error('⚠️ Erreur mise à jour timestamp (non bloquant):', updateErr);
     }
+    
+    // Programmer la notification groupée (debounce de 5 secondes)
+    scheduleDocumentNotification(uploadLink.offer_id);
     
     return { success: true };
   } catch (error) {

@@ -4176,6 +4176,7 @@ export type Database = {
           file_size: number
           id: string
           mime_type: string
+          notified_at: string | null
           offer_id: string
           requested_by: string | null
           status: string
@@ -4192,6 +4193,7 @@ export type Database = {
           file_size: number
           id?: string
           mime_type: string
+          notified_at?: string | null
           offer_id: string
           requested_by?: string | null
           status?: string
@@ -4208,6 +4210,7 @@ export type Database = {
           file_size?: number
           id?: string
           mime_type?: string
+          notified_at?: string | null
           offer_id?: string
           requested_by?: string | null
           status?: string
@@ -4665,6 +4668,7 @@ export type Database = {
           contract_terms: string | null
           converted_to_contract: boolean
           created_at: string | null
+          documents_last_uploaded_at: string | null
           documents_last_viewed_at: string | null
           dossier_number: string | null
           down_payment: number | null
@@ -4718,6 +4722,7 @@ export type Database = {
           contract_terms?: string | null
           converted_to_contract?: boolean
           created_at?: string | null
+          documents_last_uploaded_at?: string | null
           documents_last_viewed_at?: string | null
           dossier_number?: string | null
           down_payment?: number | null
@@ -4771,6 +4776,7 @@ export type Database = {
           contract_terms?: string | null
           converted_to_contract?: boolean
           created_at?: string | null
+          documents_last_uploaded_at?: string | null
           documents_last_viewed_at?: string | null
           dossier_number?: string | null
           down_payment?: number | null
@@ -7463,6 +7469,7 @@ export type Database = {
           contract_terms: string | null
           converted_to_contract: boolean
           created_at: string | null
+          documents_last_uploaded_at: string | null
           documents_last_viewed_at: string | null
           dossier_number: string | null
           down_payment: number | null
