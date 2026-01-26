@@ -23,7 +23,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { getOfferById } from "@/services/offerService";
 import { sendDocumentRequestEmail } from "@/services/offers/documentEmail";
-import { sendLeasingRejectionEmail } from "@/services/offers/offerEmail";
+import { sendLeasingRejectionEmail, sendNoFollowUpEmail } from "@/services/offers/offerEmail";
 import { updateOfferStatus } from "@/services/offers/offerStatus";
 import { getOfferDocuments } from "@/services/offers/offerDocuments";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +73,18 @@ const DEFAULT_REJECTION_HTML = `<p>Bonjour,</p>
 <p>Nous ne pourrons donc pas vous proposer de matériel cette fois-ci.<br/>Je vous souhaite tout le meilleur pour la suite de vos activités.</p>
 <p>À bientôt,<br/>L'équipe iTakecare</p>`;
 
+const DEFAULT_NO_FOLLOW_UP_HTML = `<p>Bonjour {{client_name}},</p>
+
+<p>Nous avons tenté de vous joindre à plusieurs reprises concernant votre demande de leasing informatique, mais nous n'avons malheureusement pas eu de nouvelles de votre part.</p>
+
+<p>En l'absence de retour, nous sommes contraints de <strong>clore votre dossier</strong>.</p>
+
+<p>Si toutefois il s'agit d'un oubli ou si votre situation a changé, n'hésitez pas à nous recontacter. Nous serons ravis de reprendre l'étude de votre demande.</p>
+
+<p>Nous restons à votre disposition.</p>
+
+<p>Cordialement,<br/>L'équipe iTakecare</p>`;
+
 const ScoringModal: React.FC<ScoringModalProps> = ({
   isOpen,
   onClose,
@@ -96,6 +108,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
   // États pour l'email de refus (score C)
   const [emailTitle, setEmailTitle] = useState("😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée");
   const [emailContent, setEmailContent] = useState<string>(DEFAULT_REJECTION_HTML);
+  
+  // États pour l'email de clôture (score D)
+  const [sendNoFollowUpEmailState, setSendNoFollowUpEmailState] = useState(false);
+  const [noFollowUpEmailTitle, setNoFollowUpEmailTitle] = useState("📁 Clôture de votre dossier");
+  const [noFollowUpEmailContent, setNoFollowUpEmailContent] = useState<string>(DEFAULT_NO_FOLLOW_UP_HTML);
 
   const isInternalAnalysis = analysisType === 'internal';
   
@@ -296,6 +313,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     // Reset no follow-up fields when changing from D
     if (score !== 'D') {
       setSelectedNoFollowUpReason("");
+      setSendNoFollowUpEmailState(false);
     }
     // Reset reason for all score changes
     if (score !== 'C' && score !== 'D') {
@@ -305,6 +323,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     if (score === 'C') {
       setEmailTitle("😕 Nous sommes désolés, votre demande de leasing n'a pas été acceptée");
       setEmailContent(DEFAULT_REJECTION_HTML);
+    }
+    // Réinitialiser l'email de clôture quand on sélectionne D
+    if (score === 'D') {
+      setNoFollowUpEmailTitle("📁 Clôture de votre dossier");
+      setNoFollowUpEmailContent(DEFAULT_NO_FOLLOW_UP_HTML);
     }
   };
 
@@ -501,13 +524,43 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
     }
   };
 
+  // Nouvelle fonction : Envoyer email de clôture et valider score D
+  const handleSendNoFollowUpAndValidate = async () => {
+    if (!selectedNoFollowUpReason) {
+      toast.error("Veuillez sélectionner une raison de classement sans suite");
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      
+      // Envoyer l'email de clôture via l'edge function
+      await sendNoFollowUpEmail(offerId, noFollowUpEmailTitle, noFollowUpEmailContent);
+      
+      // Valider le score D
+      const reasonLabel = NO_FOLLOW_UP_REASONS.find(r => r.code === selectedNoFollowUpReason)?.label || selectedNoFollowUpReason;
+      const fullReason = reason.trim() 
+        ? `${reasonLabel}\n\nCommentaire: ${reason.trim()}`
+        : reasonLabel;
+      
+      await onScoreAssigned('D', fullReason);
+      toast.success("Email de clôture envoyé et dossier classé sans suite");
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de l'email de clôture:", error);
+      toast.error("Erreur lors de l'envoi de l'email de clôture");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   if (!canScore) {
     return null;
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`${(selectedScore === 'B' || selectedScore === 'C') ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+      <DialogContent className={`${(selectedScore === 'B' || selectedScore === 'C' || selectedScore === 'D') ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isInternalAnalysis ? (
@@ -519,7 +572,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className={`space-y-6 ${(selectedScore === 'B' || selectedScore === 'C') ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
+        <div className={`space-y-6 ${(selectedScore === 'B' || selectedScore === 'C' || selectedScore === 'D') ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
           {/* Section Scoring */}
           <Card className="border-2 border-purple-200 bg-purple-50/30">
             <CardHeader className="pb-4">
@@ -674,10 +727,6 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                       rows={3}
                     />
                   </div>
-                  <div className="bg-gray-100 p-3 rounded-lg text-sm text-gray-600 flex items-center gap-2">
-                    <UserX className="h-4 w-4" />
-                    <span>Aucun email ne sera envoyé au client - Le dossier pourra être réactivé ultérieurement</span>
-                  </div>
                 </div>
               )}
             </CardContent>
@@ -804,6 +853,82 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
               </CardContent>
             </Card>
           )}
+
+          {/* Section Email de clôture (visible uniquement pour score D) */}
+          {selectedScore === 'D' && (
+            <Card className="border-2 border-gray-200 bg-gray-50/30">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-gray-600" />
+                  Email de clôture (optionnel)
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Envoyez optionnellement un email au client pour l'informer de la clôture du dossier.
+                </p>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {/* Checkbox pour activer l'email */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="send-no-follow-up-email" 
+                    checked={sendNoFollowUpEmailState}
+                    onCheckedChange={(checked) => setSendNoFollowUpEmailState(checked === true)}
+                  />
+                  <label 
+                    htmlFor="send-no-follow-up-email"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Envoyer un email de clôture au client
+                  </label>
+                </div>
+
+                {/* Contenu de l'email (visible si checkbox cochée) */}
+                {sendNoFollowUpEmailState && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Titre de l'email</label>
+                      <Input
+                        value={noFollowUpEmailTitle}
+                        onChange={(e) => setNoFollowUpEmailTitle(e.target.value)}
+                        placeholder="Titre de l'email..."
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Corps de l'email</label>
+                      <ReactQuill
+                        value={noFollowUpEmailContent}
+                        onChange={setNoFollowUpEmailContent}
+                        theme="snow"
+                        modules={{
+                          toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            ['link'],
+                            ['clean']
+                          ]
+                        }}
+                        className="bg-white rounded-md"
+                      />
+                    </div>
+
+                    <div className="flex items-center text-gray-600 text-xs bg-gray-100 p-2 rounded">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      L'email sera envoyé via Resend avec votre clé configurée
+                    </div>
+                  </>
+                )}
+
+                {!sendNoFollowUpEmailState && (
+                  <div className="bg-gray-100 p-3 rounded-lg text-sm text-gray-600 flex items-center gap-2">
+                    <UserX className="h-4 w-4" />
+                    <span>Aucun email ne sera envoyé - Le dossier pourra être réactivé ultérieurement</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Boutons d'action */}
@@ -900,25 +1025,72 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                   </Button>
                 </>
               ) : selectedScore === 'D' ? (
-                /* Pour le score D (Sans suite), un seul bouton */
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={isLoading || isSending || !selectedNoFollowUpReason}
-                  size="lg"
-                  className="bg-gray-600 hover:bg-gray-700 text-white"
-                >
-                  {isLoading || isSending ? (
+                /* Pour le score D (Sans suite), afficher DEUX boutons si email activé */
+                <>
+                  {sendNoFollowUpEmailState ? (
                     <>
-                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
-                      Traitement...
+                      {/* Bouton principal : Envoyer email */}
+                      <Button 
+                        onClick={handleSendNoFollowUpAndValidate}
+                        disabled={isLoading || isSending || !selectedNoFollowUpReason}
+                        size="lg"
+                        className="bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        {isLoading || isSending ? (
+                          <>
+                            <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
+                            Envoi en cours...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Classer et envoyer l'email
+                          </>
+                        )}
+                      </Button>
+                      
+                      {/* Bouton alternatif : Sans email */}
+                      <Button 
+                        onClick={handleSubmit}
+                        disabled={isLoading || isSending || !selectedNoFollowUpReason}
+                        variant="secondary"
+                        size="lg"
+                      >
+                        {isLoading || isSending ? (
+                          <>
+                            <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
+                            Traitement...
+                          </>
+                        ) : (
+                          <>
+                            <UserX className="mr-2 h-4 w-4" />
+                            Classer sans envoyer d'email
+                          </>
+                        )}
+                      </Button>
                     </>
                   ) : (
-                    <>
-                      <UserX className="mr-2 h-4 w-4" />
-                      Classer sans suite (Score D)
-                    </>
+                    /* Si email non coché, un seul bouton */
+                    <Button 
+                      onClick={handleSubmit}
+                      disabled={isLoading || isSending || !selectedNoFollowUpReason}
+                      size="lg"
+                      className="bg-gray-600 hover:bg-gray-700 text-white"
+                    >
+                      {isLoading || isSending ? (
+                        <>
+                          <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
+                          Traitement...
+                        </>
+                      ) : (
+                        <>
+                          <UserX className="mr-2 h-4 w-4" />
+                          Classer sans suite (Score D)
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                </>
               ) : (
                 /* Pour le score A, comportement normal */
                 <Button 
