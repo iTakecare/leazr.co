@@ -26,7 +26,7 @@ export const StatCard = ({
   return (
     <Card className={cn("transition-shadow hover:shadow-md", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-xs font-normal text-muted-foreground">
           {title}
         </CardTitle>
         <div className="p-2 rounded-lg bg-primary/10">
@@ -34,9 +34,9 @@ export const StatCard = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold">{value}</div>
+        <div className="text-xl font-medium">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-[10px] text-muted-foreground mt-1">
             {description}
           </p>
         )}
