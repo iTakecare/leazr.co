@@ -1,79 +1,141 @@
 
-# Plan : Correction des textes blancs illisibles dans la modale de scoring
+# Plan : Correction de la progression du stepper de "Offre acceptée" vers "Résultat leaser"
 
 ## Problème identifié
 
-Dans la modale "Analyse Leaser", certains éléments ont du texte blanc sur un fond clair, les rendant invisibles :
+### Analyse de la situation actuelle
+- **Statut actuel de l'offre** : `accepted` (avec score leaser A)
+- **Workflow utilisé** : "Demande Client Standard" avec les étapes :
+  1. Brouillon (`draft`)
+  2. Analyse Interne (`internal_review`) 
+  3. Offre envoyée (`offer_send`)
+  4. Offre acceptée (`offer_accepted`)
+  5. Introduit leaser (`leaser_introduced`)
+  6. Résultat leaser (`Scoring_review`) - **scoring_type: leaser**
+  7. Contrat Prêt (`validated`)
 
-1. **Boutons secondaires avec spinner de chargement** : Le spinner utilise `border-white` mais le fond du bouton secondaire est clair (`bg-secondary`)
-2. **Bouton principal à l'état désactivé** : L'opacité réduite (`opacity-50`) peut rendre le texte blanc moins lisible
+### Cause du bug
+Le `statusMapping` dans `getCurrentStepIndex` (ligne 132-155) ne contient pas le statut `accepted` :
 
-## Fichier à modifier
+```tsx
+const statusMapping = {
+  // ... autres mappings
+  'offer_accepted': 'validated',  // ← Mapping incorrect !
+  'leaser_accepted': 'validated',
+  // 'accepted' n'existe pas ici !
+};
+```
 
-**`src/components/offers/detail/ScoringModal.tsx`**
+**Conséquence** : 
+- `accepted` n'étant pas mappé, le fallback partiel (ligne 161-165) peut retourner un index incorrect
+- Le code pense être sur l'étape 4 "Offre acceptée" alors que le leaser a déjà validé avec un Score A
+- Cliquer sur "Résultat leaser" (étape 6) ouvre la modale de scoring au lieu d'avancer
 
-## Modifications détaillées
+---
 
-### 1. Corriger les spinners de chargement dans les boutons secondaires
+## Solution proposée
 
-Les boutons secondaires (lignes 756-773, 798-815) utilisent `border-white` pour le spinner mais ont un fond clair. Changer pour `border-current` qui utilisera la couleur du texte actuel.
+### Fichier : `src/components/offers/detail/WinBrokerWorkflowStepper.tsx`
 
-| Lignes | Avant | Après |
-|--------|-------|-------|
-| 765 | `border-t-2 border-b-2 border-white` | `border-t-2 border-b-2 border-current` |
-| 807 | `border-t-2 border-b-2 border-white` | `border-t-2 border-b-2 border-current` |
+### 1. Ajouter `accepted` au statusMapping
 
-### 2. Ajouter une variante appropriée aux boutons de validation selon le score
+Mapper `accepted` vers l'étape appropriée selon le contexte de progression du workflow :
 
-Pour améliorer la lisibilité et la cohérence visuelle, utiliser `variant="success"` pour le score A (déjà défini dans button.tsx avec `text-white`).
+| Statut DB | Étape cible | Raison |
+|-----------|-------------|--------|
+| `accepted` | `Scoring_review` | Le leaser a accepté (score A), on est à l'étape "Résultat leaser" |
 
-| Lignes | Score | Modification |
-|--------|-------|--------------|
-| 737 | B | Ajouter `className="bg-amber-600 text-white hover:bg-amber-700"` |
-| 779 | C | Ajouter `variant="destructive"` |
-| 819 | A | Ajouter `variant="success"` |
+**Modification ligne 132-155** :
+
+```tsx
+const statusMapping: { [key: string]: string } = {
+  // ... mappings existants ...
+  'accepted': 'Scoring_review',           // ← NOUVEAU : Offre acceptée par le leaser
+  'offer_accepted': 'offer_accepted',     // ← CORRIGÉ : Ne plus mapper vers validated
+  'score_leaser': 'Scoring_review',       // ← NOUVEAU : Alias pour étape scoring leaser
+  'leaser_accepted': 'Scoring_review',    // ← CORRIGÉ : Mapper vers Scoring_review pas validated
+  // ... autres mappings inchangés ...
+};
+```
+
+### 2. Corriger la logique de mapping hiérarchique
+
+Le problème est que `offer_accepted` est mappé vers `validated` alors que ce sont deux étapes distinctes dans le workflow. 
+
+**Changements dans statusMapping** :
+
+| Avant | Après |
+|-------|-------|
+| `'offer_accepted': 'validated'` | `'offer_accepted': 'offer_accepted'` |
+| `'leaser_accepted': 'validated'` | `'leaser_accepted': 'Scoring_review'` |
+| (absent) | `'accepted': 'Scoring_review'` |
+| (absent) | `'score_leaser': 'Scoring_review'` |
+
+### 3. Ajouter un mapping pour les étapes dynamiques
+
+Pour gérer le cas où le step_key dans le workflow est différent (ex: `Scoring_review` vs `leaser_review`), ajouter une recherche par `scoring_type` plus robuste.
+
+---
+
+## Code final à modifier
+
+### Lignes 132-155 - Nouveau statusMapping
+
+```tsx
+const statusMapping: { [key: string]: string } = {
+  'internal_approved': 'internal_review',
+  'internal_docs_requested': 'internal_review',
+  'internal_rejected': 'internal_review',
+  'internal_scoring': 'internal_review',
+  'leaser_approved': 'Scoring_review',       // Corrigé
+  'leaser_docs_requested': 'Scoring_review', // Corrigé  
+  'leaser_rejected': 'Scoring_review',       // Corrigé
+  'leaser_scoring': 'Scoring_review',        // Corrigé
+  'leaser_sent': 'leaser_introduced',        // Corrigé
+  'leaser_accepted': 'Scoring_review',       // Corrigé
+  'Scoring_review': 'Scoring_review',
+  'score_leaser': 'Scoring_review',          // Nouveau
+  'accepted': 'Scoring_review',              // Nouveau
+  'offer_send': 'offer_send',                // Corrigé pour être explicite
+  'offer_sent': 'offer_send',
+  'client_approved': 'client_approved',
+  'offer_accepted': 'offer_accepted',        // Corrigé
+  'offer_validation': 'validated',
+  'validated': 'validated',
+  'financed': 'validated',
+  'invoicing': 'invoicing',
+  'draft': 'draft',
+  'sent': 'offer_send',
+  'leaser_introduced': 'leaser_introduced'
+};
+```
+
+---
 
 ## Récapitulatif des changements
 
-```tsx
-// Ligne 737 - Bouton Score B (email)
-<Button 
-  onClick={handleSubmit}
-  disabled={isLoading || isSending}
-  size="lg"
-  className="bg-amber-600 text-white hover:bg-amber-700"
->
+| Modification | Description |
+|--------------|-------------|
+| Ajouter `'accepted': 'Scoring_review'` | Mapper le statut "accepted" vers l'étape scoring leaser |
+| Corriger `'offer_accepted': 'offer_accepted'` | Ne plus sauter vers validated |
+| Corriger `'leaser_accepted': 'Scoring_review'` | Mapper vers étape résultat leaser |
+| Ajouter `'score_leaser': 'Scoring_review'` | Alias supplémentaire |
+| Corriger `'leaser_*': 'Scoring_review'` | Tous les statuts leaser sauf introduced |
+| Corriger `'leaser_sent': 'leaser_introduced'` | Mapper vers l'étape d'introduction |
 
-// Ligne 765 - Spinner dans bouton secondaire B
-border-t-2 border-b-2 border-current  // Avant: border-white
-
-// Ligne 779 - Bouton Score C (email)
-<Button 
-  onClick={handleSendRejectionAndValidate}
-  disabled={isLoading || isSending}
-  size="lg"
-  variant="destructive"
->
-
-// Ligne 807 - Spinner dans bouton secondaire C
-border-t-2 border-b-2 border-current  // Avant: border-white
-
-// Ligne 819 - Bouton Score A
-<Button 
-  onClick={handleSubmit}
-  disabled={isLoading || isSending}
-  size="lg"
-  variant="success"
->
-
-// Ligne 827 - Spinner dans bouton Score A
-border-t-2 border-b-2 border-current  // Avant: border-white
-```
+---
 
 ## Résultat attendu
 
-- **Score A** : Bouton vert émeraude avec texte blanc visible
-- **Score B** : Bouton ambre/orange avec texte blanc visible
-- **Score C** : Bouton rouge avec texte blanc visible
-- **Boutons secondaires** : Spinner avec couleur adaptée au fond clair
-- Tous les textes seront lisibles sur tous les fonds de boutons
+- Quand le statut est `accepted` (score leaser A), l'étape active sera "Résultat leaser" (étape 6)
+- Le bouton "Vers Contrat Prêt" apparaîtra pour avancer à l'étape 7
+- Les étapes 1-5 seront marquées comme terminées
+- La progression vers "Contrat Prêt" fonctionnera correctement
+
+---
+
+## Fichier impacté
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Mise à jour du statusMapping (lignes 132-155) |
