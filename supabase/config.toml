@@ -79,7 +79,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.notify-admins-document-upload]
-verify_jwt = true
+verify_jwt = false
+
+[functions.notify-documents-uploaded]
+verify_jwt = false
 
 [functions.send-leasing-acceptance-email]
 verify_jwt = false
