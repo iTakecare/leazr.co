@@ -24,13 +24,21 @@ import WorkflowManagement from '@/components/workflows/WorkflowManagement';
 import HistoricalContractsImport from '@/components/settings/HistoricalContractsImport';
 import PDFContentEditor from '@/pages/AdminPages/PDFContentEditor';
 import CompanyDocuments from '@/pages/CompanyDocuments';
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileSettingsPage } from "@/components/mobile/pages";
 
 const Settings: React.FC = () => {
+  const isMobile = useIsMobile();
   const { user, subscription, checkSubscription, logout, isBroker } = useAuth();
   const isUserBroker = isBroker && typeof isBroker === 'function' ? isBroker() : false;
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+
+  // Mobile rendering
+  if (isMobile) {
+    return <MobileSettingsPage />;
+  }
 
   const handleManageSubscription = async () => {
     setLoading(true);

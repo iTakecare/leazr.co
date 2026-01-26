@@ -4,8 +4,11 @@ import { BarChart3, Users } from "lucide-react";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import CompanyDashboard from "@/components/dashboard/CompanyDashboard";
 import CommercialDashboard from "@/components/dashboard/CommercialDashboard";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileDashboardPage } from "@/components/mobile/pages";
 
 const Dashboard = () => {
+  const isMobile = useIsMobile();
   const { preferences, isLoading } = useUserPreferences();
   const [activeTab, setActiveTab] = useState<string>('financial');
 
@@ -14,6 +17,11 @@ const Dashboard = () => {
       setActiveTab(preferences.default_dashboard);
     }
   }, [preferences, isLoading]);
+
+  // Mobile rendering
+  if (isMobile) {
+    return <MobileDashboardPage />;
+  }
 
   return (
     <div className="p-6">

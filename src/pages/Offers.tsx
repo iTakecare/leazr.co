@@ -22,7 +22,10 @@ import { Label } from "@/components/ui/label";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import { useAuth } from "@/context/AuthContext";
 import { useFetchOfferReminders } from "@/hooks/useFetchOfferReminders";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileOffersPage } from "@/components/mobile/pages";
 const Offers = () => {
+  const isMobile = useIsMobile();
   const {
     offers,
     filteredOffers,
@@ -91,6 +94,29 @@ const Offers = () => {
       });
     }
   };
+
+  // Mobile rendering
+  if (isMobile) {
+    return (
+      <MobileOffersPage
+        offers={filteredOffers}
+        loading={loading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        activeType={activeType}
+        onTypeChange={setActiveType}
+        activeSource={activeSource}
+        onSourceChange={setActiveSource}
+        onDeleteOffer={handleDeleteOffer}
+        onRefresh={fetchOffers}
+        includeConverted={includeConverted}
+        onIncludeConvertedChange={setIncludeConverted}
+      />
+    );
+  }
+
   return <PageTransition>
       <div className="w-full p-4 md:p-8">
         <div className="flex justify-between items-center mb-6">
