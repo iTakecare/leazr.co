@@ -1,128 +1,113 @@
 
-# Plan : Refonte "Corporate" des tags et badges
 
-## Objectif
+# Plan : Refonte Corporate du Dashboard Financier
 
-Transformer les tags de l'application vers un style plus professionnel et corporate tout en conservant la lisibilité et la distinction rapide des différents statuts, types et sources.
+## Analyse de l'état actuel
 
-## Changements visuels prévus
+Le dashboard actuel présente :
+- 4 cartes KPI en haut avec icônes colorées
+- Un tableau mensuel détaillé
+- Une sidebar avec 5 cartes de statistiques empilées
+- Un style "flat" avec des couleurs pastels
 
-### 1. Arrondi des coins
-- **Avant** : `rounded-full` (totalement arrondi, style "pilule")
-- **Après** : `rounded` (4px, style corporate sobre)
+## Améliorations Corporate Proposées
 
-### 2. Palette de couleurs sobre
+### 1. Simplification des icônes dans les KPI Cards
 
-Au lieu des couleurs pastel vives actuelles, utiliser une palette gris/bleu plus professionnelle :
+**Avant** : Icônes dans des cercles colorés (`bg-primary/10`)
+**Après** : Icônes simples sans fond, ton gris discret
 
-| Catégorie | Ancienne couleur | Nouvelle couleur |
-|-----------|------------------|------------------|
-| **Par défaut** | `bg-gray-50 text-gray-700` | `bg-slate-100 text-slate-700 border-slate-300` |
-| **Info/Envoyé** | `bg-sky-100 text-sky-700` | `bg-blue-50 text-blue-700 border-blue-200` |
-| **Succès/Validé** | `bg-green-100 text-green-700` | `bg-emerald-50 text-emerald-800 border-emerald-300` |
-| **Attention/Attente** | `bg-amber-100 text-amber-700` | `bg-amber-50 text-amber-800 border-amber-300` |
-| **Erreur/Rejet** | `bg-rose-100 text-rose-700` | `bg-red-50 text-red-800 border-red-300` |
-| **Interne/Analyse** | `bg-purple-100 text-purple-700` | `bg-slate-200 text-slate-700 border-slate-300` |
-| **Leaser** | `bg-indigo-100 text-indigo-700` | `bg-slate-100 text-slate-700 border-slate-300` |
+| Élément | Modification |
+|---------|--------------|
+| Div icône | Supprimer `p-2 rounded-lg bg-primary/10` |
+| Icône | Changer `text-primary` → `text-slate-400` |
 
-### 3. Système de distinction conservé
+### 2. Bordures subtiles sur les cartes
 
-Les icônes restent pour permettre l'identification rapide :
-- ✓ Statuts : Icônes conservées (CheckCircle, XCircle, Send, etc.)
-- ✓ Types : Icônes conservées (Globe, Phone, Building, etc.)
-- ✓ Sources : Icônes conservées (Search, Linkedin, Users, etc.)
+Ajouter une bordure légère sur toutes les cards pour un look plus structuré :
+
+```tsx
+<Card className="border border-slate-200">
+```
+
+### 3. En-tête du tableau plus sobre
+
+**Avant** : `bg-primary/5` (teinte bleue)
+**Après** : `bg-slate-50` (gris neutre corporate)
+
+### 4. Lignes TOTAL et MOYENNE plus discrètes
+
+**Avant** : `bg-green-50` et `bg-blue-50` (couleurs vives)
+**Après** : 
+- TOTAL : `bg-slate-100` avec texte `text-slate-900`
+- MOYENNE : `bg-slate-50` avec texte `text-slate-600`
+
+### 5. Cards sidebar plus uniformes
+
+Remplacer les icônes colorées par des icônes grises :
+
+| Card | Icône actuelle | Nouvelle icône |
+|------|----------------|----------------|
+| Contrats Réalisés | `text-emerald-500` | `text-slate-500` |
+| En Attente | `text-orange-500` | `text-slate-500` |
+| Refusés | `text-rose-500` | `text-slate-500` |
+| Ventes Directes | `text-primary` | `text-slate-500` |
+| Prévisionnel | `text-primary` | `text-slate-500` |
+
+### 6. Badges et indicateurs dans le tableau
+
+Les valeurs positives (marge) restent en vert discret, les notes de crédit en gris plutôt que violet.
 
 ---
 
 ## Fichiers à modifier
 
-### 1. `src/components/ui/badge.tsx`
-Modifier le `badgeVariants` pour réduire l'arrondi :
+### `src/components/dashboard/CompanyDashboard.tsx`
 
-```tsx
-// Ligne 8 : Changer rounded-full → rounded
-"inline-flex items-center rounded border px-2.5 py-0.5 text-xs font-semibold..."
-```
+**Lignes 197-255 - KPI Cards** :
+- Supprimer le background des icônes
+- Changer les couleurs des icônes en `text-slate-400`
 
-### 2. `src/components/offers/OfferStatusBadge.tsx`
-Mettre à jour les couleurs des statuts :
+**Lignes 269-295 - En-tête tableau** :
+- `bg-primary/5` → `bg-slate-50`
+- `text-purple-600` → `text-slate-600`
 
-| Statut | Nouvelle couleur |
-|--------|------------------|
-| DRAFT | `bg-slate-100 text-slate-600 border-slate-300` |
-| SENT/OFFER_SEND | `bg-blue-50 text-blue-700 border-blue-200` |
-| INTERNAL_REVIEW | `bg-slate-100 text-slate-700 border-slate-300` |
-| INTERNAL_APPROVED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
-| INTERNAL_DOCS_REQUESTED | `bg-amber-50 text-amber-800 border-amber-300` |
-| INTERNAL_REJECTED | `bg-red-50 text-red-800 border-red-300` |
-| LEASER_REVIEW/INTRODUCED | `bg-slate-100 text-slate-700 border-slate-300` |
-| SCORING_REVIEW | `bg-slate-100 text-slate-700 border-slate-300` |
-| LEASER_APPROVED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
-| LEASER_REJECTED | `bg-red-50 text-red-800 border-red-300` |
-| OFFER_ACCEPTED/ACCEPTED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
-| VALIDATED | `bg-blue-50 text-blue-800 border-blue-300` |
-| FINANCED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
-| REJECTED | `bg-red-50 text-red-800 border-red-300` |
+**Lignes 306-307, 333-340 - Notes de crédit et TOTAL** :
+- `text-purple-600` → `text-slate-500`
+- `bg-green-50` → `bg-slate-100`
+- `text-green-600` → `text-emerald-700` (plus sobre)
 
-### 3. `src/components/offers/OfferTypeTag.tsx`
-Mettre à jour les couleurs des types d'offres :
+**Lignes 342-349 - MOYENNE** :
+- `bg-blue-50` → `bg-slate-50`
+- `text-blue-600` → `text-slate-600`
 
-| Type | Nouvelle couleur |
-|------|------------------|
-| web_request | `bg-slate-100 text-slate-700 border-slate-300` |
-| custom_pack_request | `bg-slate-200 text-slate-700 border-slate-400` |
-| ambassador_offer | `bg-amber-50 text-amber-800 border-amber-300` |
-| client_request | `bg-blue-50 text-blue-700 border-blue-200` |
-| partner_offer | `bg-slate-100 text-slate-700 border-slate-300` |
-| internal_offer | `bg-slate-200 text-slate-700 border-slate-400` |
-| admin_offer | `bg-slate-200 text-slate-700 border-slate-400` |
-| self_leasing | `bg-slate-100 text-slate-700 border-slate-300` |
-
-### 4. `src/utils/offerSourceTranslator.ts`
-Mettre à jour les couleurs des sources :
-
-| Source | Nouvelle couleur |
-|--------|------------------|
-| recommendation | `bg-slate-100 text-slate-700 border-slate-300` |
-| google | `bg-slate-100 text-slate-700 border-slate-300` |
-| meta | `bg-blue-50 text-blue-700 border-blue-200` |
-| linkedin | `bg-blue-50 text-blue-700 border-blue-200` |
-| existing_client | `bg-emerald-50 text-emerald-800 border-emerald-300` |
-| website | `bg-slate-100 text-slate-700 border-slate-300` |
-| event | `bg-slate-200 text-slate-700 border-slate-400` |
-
-### 5. `src/components/contracts/ContractStatusBadge.tsx`
-Harmoniser avec le même style :
-
-| Statut | Nouvelle couleur |
-|--------|------------------|
-| CONTRACT_SENT | `bg-blue-50 text-blue-700` |
-| CONTRACT_SIGNED | `bg-slate-100 text-slate-700` |
-| EQUIPMENT_ORDERED | `bg-slate-200 text-slate-700` |
-| DELIVERED | `bg-amber-50 text-amber-800` |
-| ACTIVE | `bg-emerald-50 text-emerald-800` |
-| EXTENDED | `bg-amber-50 text-amber-800` |
-| COMPLETED | `bg-slate-100 text-slate-600` |
-| CANCELLED | `bg-red-50 text-red-800` |
+**Lignes 391-560 - Cards sidebar** :
+- Changer toutes les icônes colorées en `text-slate-500`
+- Uniformiser les styles des cartes
 
 ---
 
-## Récapitulatif des modifications
+## Résumé des modifications
 
-| Fichier | Modification |
-|---------|--------------|
-| `src/components/ui/badge.tsx` | `rounded-full` → `rounded` (ligne 8) |
-| `src/components/offers/OfferStatusBadge.tsx` | Mise à jour palette couleurs (lignes 25-190) |
-| `src/components/offers/OfferTypeTag.tsx` | Mise à jour palette couleurs (lignes 54-90) |
-| `src/utils/offerSourceTranslator.ts` | Mise à jour palette couleurs (lignes 25-68) |
-| `src/components/contracts/ContractStatusBadge.tsx` | Mise à jour palette couleurs (lignes 12-76) |
+| Fichier | Lignes | Modification |
+|---------|--------|--------------|
+| CompanyDashboard.tsx | 205-206 | Icône CA sans bg, couleur slate |
+| CompanyDashboard.tsx | 219-220 | Icône Achats sans bg, couleur slate |
+| CompanyDashboard.tsx | 235-236 | Icône Marge sans bg, couleur slate |
+| CompanyDashboard.tsx | 249-250 | Icône Taux sans bg, couleur slate |
+| CompanyDashboard.tsx | 269 | Header tableau → bg-slate-50 |
+| CompanyDashboard.tsx | 272, 306, 333 | Notes crédit → text-slate-500 |
+| CompanyDashboard.tsx | 310, 313, 339, 340 | Valeurs marge → text-emerald-700 |
+| CompanyDashboard.tsx | 330 | TOTAL → bg-slate-100 |
+| CompanyDashboard.tsx | 342-348 | MOYENNE → bg-slate-50, text-slate-600 |
+| CompanyDashboard.tsx | 394, 426, 458, 486, 518 | Icônes sidebar → text-slate-500 |
 
 ---
 
 ## Résultat attendu
 
-- Tags avec coins légèrement arrondis (4px) au lieu de "pilules"
-- Palette sobre gris/bleu plus professionnelle
-- Distinction visuelle conservée grâce aux icônes et aux nuances de couleur
-- Lisibilité maintenue avec contraste suffisant
-- Cohérence visuelle sur toute l'application
+- Interface plus professionnelle et épurée
+- Palette de couleurs sobre (gris/slate dominant)
+- Distinction visuelle conservée par les valeurs numériques
+- Cohérence avec le style WinBroker déjà appliqué
+
