@@ -1,12 +1,9 @@
-import React, { Suspense, lazy } from "react";
+import React from "react";
 import { useLocation } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-// Lazy load components to avoid bundling issues with dexie
-const MobileHeader = lazy(() => import("./MobileHeader"));
-const MobileBottomNav = lazy(() => import("./MobileBottomNav"));
-const MobilePageContainer = lazy(() => import("./MobilePageContainer"));
-const OfflineIndicator = lazy(() => import("./OfflineIndicator"));
+import MobileHeader from "./MobileHeader";
+import MobileBottomNav from "./MobileBottomNav";
+import MobilePageContainer from "./MobilePageContainer";
+import OfflineIndicator from "./OfflineIndicator";
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -34,7 +31,6 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   noPadding = false,
 }) => {
   const location = useLocation();
-  const isMobile = useIsMobile();
 
   // Extract company slug and user role from path
   const getCompanySlugAndRole = () => {
@@ -47,57 +43,38 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
 
   const { companySlug, userRole } = getCompanySlugAndRole();
 
-  // If not mobile, just render children
-  if (!isMobile) {
-    return <>{children}</>;
-  }
-
-  const LoadingSpinner = () => (
-    <div className="flex items-center justify-center p-4">
-      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-background">
       {/* Offline Indicator */}
-      <Suspense fallback={null}>
-        <OfflineIndicator />
-      </Suspense>
+      <OfflineIndicator />
       
       {/* Header */}
-      <Suspense fallback={<div className="h-14 bg-background border-b" />}>
-        <MobileHeader
-          title={title}
-          showSearch={showSearch}
-          showScanner={showScanner}
-          showNotifications={showNotifications}
-          notificationCount={notificationCount}
-          onSearchClick={onSearchClick}
-          onScannerClick={onScannerClick}
-          companySlug={companySlug}
-        />
-      </Suspense>
+      <MobileHeader
+        title={title}
+        showSearch={showSearch}
+        showScanner={showScanner}
+        showNotifications={showNotifications}
+        notificationCount={notificationCount}
+        onSearchClick={onSearchClick}
+        onScannerClick={onScannerClick}
+        companySlug={companySlug}
+      />
 
       {/* Page Content */}
-      <Suspense fallback={<LoadingSpinner />}>
-        <MobilePageContainer 
-          hasHeader={true} 
-          hasBottomNav={hasBottomNav}
-          noPadding={noPadding}
-        >
-          {children}
-        </MobilePageContainer>
-      </Suspense>
+      <MobilePageContainer 
+        hasHeader={true} 
+        hasBottomNav={hasBottomNav}
+        noPadding={noPadding}
+      >
+        {children}
+      </MobilePageContainer>
 
       {/* Bottom Navigation */}
       {hasBottomNav && (
-        <Suspense fallback={<div className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t" />}>
-          <MobileBottomNav 
-            companySlug={companySlug} 
-            userRole={userRole} 
-          />
-        </Suspense>
+        <MobileBottomNav 
+          companySlug={companySlug} 
+          userRole={userRole} 
+        />
       )}
     </div>
   );
