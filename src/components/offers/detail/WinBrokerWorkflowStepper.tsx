@@ -383,60 +383,69 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
               <React.Fragment key={step.key}>
                 {/* Step column */}
                 <div className="flex flex-col items-center relative min-w-[120px]">
-                  {/* Step box - WinBroker style with colors */}
+                  {/* Step box - WinBroker style with ORANGE active border */}
                   <button
                     onClick={() => canClick && handleStepClick(step.key, index)}
                     disabled={!canClick || updating}
                     className={cn(
-                      "relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all min-w-[120px] min-h-[100px]",
-                      isCompleted && "border-primary/40 bg-primary/5",
-                      isActive && "border-primary shadow-lg ring-2 ring-primary/20 bg-primary/5",
+                      "relative flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all min-w-[140px] min-h-[120px]",
+                      isCompleted && "border-primary/40 bg-white",
+                      isActive && "border-orange-400 shadow-lg bg-white",
                       isUpcoming && "border-gray-200 bg-white",
-                      canClick && !updating && "cursor-pointer hover:shadow-md hover:border-primary/50",
+                      canClick && !updating && "cursor-pointer hover:shadow-md",
+                      isCompleted && canClick && !updating && "hover:border-primary/60",
+                      isActive && canClick && !updating && "hover:border-orange-500",
+                      isUpcoming && canClick && !updating && "hover:border-gray-300",
                       (!canClick || updating) && "cursor-not-allowed opacity-70"
                     )}
                   >
                     {/* Badge position - checkmark LEFT for completed, number RIGHT for active/upcoming */}
                     {isCompleted ? (
-                      <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm bg-primary text-primary-foreground">
+                      <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm bg-green-500 text-white">
                         <Check className="w-3 h-3" />
                       </div>
                     ) : (
                       <div className={cn(
                         "absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm",
-                        isActive && "bg-primary text-primary-foreground",
+                        isActive && "bg-orange-500 text-white",
                         isUpcoming && "bg-gray-100 text-gray-500 border border-gray-200"
                       )}>
                         {step.number}
                       </div>
                     )}
 
-                    {/* Large icon */}
-                    <Icon className={cn(
-                      "w-8 h-8",
-                      isCompleted && "text-primary",
-                      isActive && "text-primary",
-                      isUpcoming && "text-gray-400"
-                    )} />
+                    {/* Icon inside rounded gray box - WinBroker style */}
+                    <div className={cn(
+                      "p-3 rounded-lg",
+                      isCompleted && "bg-primary/10",
+                      isActive && "bg-orange-50",
+                      isUpcoming && "bg-gray-100"
+                    )}>
+                      <Icon className={cn(
+                        "w-8 h-8",
+                        isCompleted && "text-primary",
+                        isActive && "text-orange-500",
+                        isUpcoming && "text-gray-400"
+                      )} />
+                    </div>
 
                     {/* Score badge inside box */}
                     {score && (
-                      <Badge 
-                        variant="outline" 
-                        className={cn("mt-2 text-xs", getScoreBadgeColor(score))}
-                      >
+                      <span className={cn(
+                        "mt-2 text-xs font-medium",
+                        score === 'A' && "text-primary",
+                        score === 'B' && "text-orange-500",
+                        score === 'C' && "text-destructive"
+                      )}>
                         Score {score}
-                      </Badge>
+                      </span>
                     )}
 
                     {/* Waiting docs badge inside box */}
                     {waitingDocs && (
-                      <Badge 
-                        variant="outline" 
-                        className="mt-2 text-xs bg-warning/10 text-warning border-warning/20"
-                      >
+                      <span className="mt-2 text-xs text-gray-500">
                         En attente
-                      </Badge>
+                      </span>
                     )}
                   </button>
 
@@ -450,20 +459,20 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                     {step.label}
                   </span>
                   
-                  {/* Status badge - WinBroker colors */}
+                  {/* Status badge - WinBroker colors: green for completed, orange for active, GRAY for upcoming */}
                   <Badge 
                     variant="secondary"
                     className={cn(
                       "mt-2 text-xs font-medium",
                       isCompleted && "bg-green-100 text-green-600 border-green-200",
-                      isActive && "bg-primary text-primary-foreground",
-                      isUpcoming && "bg-green-50 text-green-600 border-green-100"
+                      isActive && "bg-orange-100 text-orange-600 border-orange-200",
+                      isUpcoming && "bg-gray-100 text-gray-500 border-gray-200"
                     )}
                   >
                     {isCompleted ? 'Terminée' : isActive ? 'En cours' : 'À venir'}
                   </Badge>
 
-                  {/* Return link for completed steps - WinBroker style */}
+                  {/* Return link for completed steps - WinBroker style with ↩ symbol */}
                   {isCompleted && (
                     <button 
                       onClick={(e) => {
@@ -473,7 +482,7 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                       className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline"
                       disabled={updating}
                     >
-                      <ArrowLeft className="w-3 h-3" />
+                      <span className="mr-0.5">↩</span>
                       Retour à {step.label}
                     </button>
                   )}
@@ -525,11 +534,11 @@ const WinBrokerWorkflowStepper: React.FC<WinBrokerWorkflowStepperProps> = ({
                   )}
                 </div>
 
-                {/* Arrow connector between steps */}
+                {/* Dashed arrow connector - WinBroker style */}
                 {index < activeSteps.length - 1 && (
-                  <div className="flex items-center self-start mt-10 px-1 text-muted-foreground/40">
-                    <span className="text-lg font-light">—</span>
-                    <ChevronRight className="w-4 h-4 -ml-1" />
+                  <div className="flex items-center self-start mt-14 px-2">
+                    <div className="w-8 border-t-2 border-dashed border-gray-300"></div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 -ml-1" />
                   </div>
                 )}
               </React.Fragment>
