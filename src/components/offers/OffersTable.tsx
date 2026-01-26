@@ -61,7 +61,7 @@ import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/u
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
 
-type OfferSortColumn = 'dossier_number' | 'date' | 'client' | 'company' | 'monthly_payment' | 'status';
+type OfferSortColumn = 'dossier_number' | 'date' | 'client' | 'company' | 'type' | 'equipment' | 'source' | 'leaser' | 'purchase_amount' | 'financed_amount' | 'margin_amount' | 'margin_percent' | 'commission' | 'monthly_payment' | 'status' | 'reminder';
 
 // Fonction pour extraire le nom et l'entreprise depuis client_name
 const parseClientName = (clientName: string, clientsData?: any) => {
@@ -282,16 +282,51 @@ const OffersTable: React.FC<OffersTableProps> = ({
         case 'company':
           comparison = (a.clientCompanyName || '').localeCompare(b.clientCompanyName || '', 'fr');
           break;
+        case 'type':
+          comparison = (a.type || '').localeCompare(b.type || '', 'fr');
+          break;
+        case 'equipment':
+          comparison = (a.equipmentForCell || '').localeCompare(b.equipmentForCell || '', 'fr');
+          break;
+        case 'source':
+          comparison = (a.source || '').localeCompare(b.source || '', 'fr');
+          break;
+        case 'leaser':
+          comparison = (a.leaser_name || '').localeCompare(b.leaser_name || '', 'fr');
+          break;
+        case 'purchase_amount':
+          comparison = (a.total_purchase_price || 0) - (b.total_purchase_price || 0);
+          break;
+        case 'financed_amount':
+          comparison = (a.effectiveFinancedAmount || 0) - (b.effectiveFinancedAmount || 0);
+          break;
+        case 'margin_amount':
+          comparison = (a.marginInEuros || 0) - (b.marginInEuros || 0);
+          break;
+        case 'margin_percent':
+          comparison = (a.margin_percentage || 0) - (b.margin_percentage || 0);
+          break;
+        case 'commission':
+          comparison = (a.commission || 0) - (b.commission || 0);
+          break;
         case 'monthly_payment':
           comparison = (a.adjustedMonthlyPayment || 0) - (b.adjustedMonthlyPayment || 0);
           break;
         case 'status':
           comparison = (a.workflow_status || '').localeCompare(b.workflow_status || '', 'fr');
           break;
+        case 'reminder':
+          const reminderA = offersReminders.get(a.id);
+          const reminderB = offersReminders.get(b.id);
+          // Sort by level (higher level = more urgent), document reminders first
+          const levelA = reminderA?.documentReminder?.level || reminderA?.offerReminder?.level || 0;
+          const levelB = reminderB?.documentReminder?.level || reminderB?.offerReminder?.level || 0;
+          comparison = levelA - levelB;
+          break;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [computedOffers, sortColumn, sortDirection]);
+  }, [computedOffers, sortColumn, sortDirection, offersReminders]);
 
   if (!sortedOffers.length) {
     return (
@@ -340,15 +375,90 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   onSort={handleSort}
                   className="text-[10px] w-[100px] hidden lg:table-cell"
                 />
-                <TableHead className="w-[100px] text-[10px] hidden xl:table-cell">Type</TableHead>
-                <TableHead className="max-w-[100px] text-[10px] hidden lg:table-cell">Équip.</TableHead>
-                <TableHead className="text-[10px] w-[70px] hidden xl:table-cell">Source</TableHead>
-                {!isAmbassador() && <TableHead className="text-[10px] w-[90px] hidden lg:table-cell">Bailleur</TableHead>}
-                {!isAmbassador() && <TableHead className="text-right text-[10px] w-[90px] hidden xl:table-cell">Mt. achat</TableHead>}
-                {!isAmbassador() && <TableHead className="text-right text-[10px] w-[95px]">Mt. financé</TableHead>}
-                {showMarginColumn && <TableHead className="text-right text-[10px] w-[80px] hidden lg:table-cell">Marge €</TableHead>}
-                {showMarginColumn && <TableHead className="text-right text-[10px] w-[70px] hidden xl:table-cell">Marge %</TableHead>}
-                {hasAmbassadorOffers && showMarginColumn && <TableHead className="text-right text-[10px] w-[85px] hidden xl:table-cell">Comm.</TableHead>}
+                <SortableTableHead
+                  column="type"
+                  label="Type"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="w-[100px] text-[10px] hidden xl:table-cell"
+                />
+                <SortableTableHead
+                  column="equipment"
+                  label="Équip."
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="max-w-[100px] text-[10px] hidden lg:table-cell"
+                />
+                <SortableTableHead
+                  column="source"
+                  label="Source"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-[10px] w-[70px] hidden xl:table-cell"
+                />
+                {!isAmbassador() && (
+                  <SortableTableHead
+                    column="leaser"
+                    label="Bailleur"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-[10px] w-[90px] hidden lg:table-cell"
+                  />
+                )}
+                {!isAmbassador() && (
+                  <SortableTableHead
+                    column="purchase_amount"
+                    label="Mt. achat"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-right text-[10px] w-[90px] hidden xl:table-cell"
+                  />
+                )}
+                {!isAmbassador() && (
+                  <SortableTableHead
+                    column="financed_amount"
+                    label="Mt. financé"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-right text-[10px] w-[95px]"
+                  />
+                )}
+                {showMarginColumn && (
+                  <SortableTableHead
+                    column="margin_amount"
+                    label="Marge €"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-right text-[10px] w-[80px] hidden lg:table-cell"
+                  />
+                )}
+                {showMarginColumn && (
+                  <SortableTableHead
+                    column="margin_percent"
+                    label="Marge %"
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-right text-[10px] w-[70px] hidden xl:table-cell"
+                  />
+                )}
+                {hasAmbassadorOffers && showMarginColumn && (
+                  <SortableTableHead
+                    column="commission"
+                    label="Comm."
+                    currentSort={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                    className="text-right text-[10px] w-[85px] hidden xl:table-cell"
+                  />
+                )}
                 <SortableTableHead
                   column="monthly_payment"
                   label="Mensualité"
@@ -365,13 +475,24 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   onSort={handleSort}
                   className="text-[10px] w-[90px]"
                 />
-                <TableHead className="text-[10px] w-[80px]">Rappel</TableHead>
+                <SortableTableHead
+                  column="reminder"
+                  label="Rappel"
+                  currentSort={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  className="text-[10px] w-[80px]"
+                />
                 <TableHead className="text-right w-[55px] sticky right-0 bg-background text-[10px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedOffers.map((offer) => (
-                <TableRow key={offer.id} className="h-10">
+                <TableRow 
+                  key={offer.id} 
+                  className="h-10 cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleViewDetails(offer.id)}
+                >
                   {/* Numéro de demande */}
                   <TableCell className="font-mono text-[11px] py-2">
                     {offer.dossier_number || '-'}
@@ -518,7 +639,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   </TableCell>
                   
                   {/* Reminder column */}
-                  <TableCell className="text-[11px] py-2">
+                  <TableCell className="text-[11px] py-2" onClick={(e) => e.stopPropagation()}>
                     {(() => {
                       const allReminders = offersReminders.get(offer.id);
                       if (!allReminders || (!allReminders.documentReminder && !allReminders.offerReminder)) {
@@ -534,7 +655,7 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     })()}
                   </TableCell>
                   
-                  <TableCell className="text-right sticky right-0 bg-background py-2">
+                  <TableCell className="text-right sticky right-0 bg-background py-2" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
