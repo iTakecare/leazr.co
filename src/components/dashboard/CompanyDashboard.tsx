@@ -202,7 +202,9 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">CA Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.ca)}</p>
                 </div>
-                <DollarSign className="w-5 h-5 text-slate-400" />
+                <div className="p-2 rounded-lg bg-blue-50">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -214,7 +216,9 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">Achats Total</p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.achats)}</p>
                 </div>
-                <HandshakeIcon className="w-5 h-5 text-slate-400" />
+                <div className="p-2 rounded-lg bg-amber-50">
+                  <HandshakeIcon className="w-5 h-5 text-amber-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -228,7 +232,9 @@ const CompanyDashboard = () => {
                   </p>
                   <p className="text-xl font-medium text-foreground">{formatCurrency(totals.marge)}</p>
                 </div>
-                <TrendingUp className="w-5 h-5 text-slate-400" />
+                <div className="p-2 rounded-lg bg-emerald-50">
+                  <TrendingUp className="w-5 h-5 text-emerald-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -240,7 +246,9 @@ const CompanyDashboard = () => {
                   <p className="text-xs font-normal text-muted-foreground">Taux de Marge</p>
                   <p className="text-xl font-medium text-foreground">{moyennes.margePercent.toFixed(2)}%</p>
                 </div>
-                <Target className="w-5 h-5 text-slate-400" />
+                <div className="p-2 rounded-lg bg-purple-50">
+                  <Target className="w-5 h-5 text-purple-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -346,7 +354,7 @@ const CompanyDashboard = () => {
             </Card>
 
             {/* Factures en retard */}
-            <Card>
+            <Card className="border-l-4 border-l-orange-400 bg-orange-50/30">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-orange-500" />
@@ -355,11 +363,11 @@ const CompanyDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 rounded-lg bg-muted">
+                  <div className="text-center p-3 rounded-lg bg-orange-100/50">
                     <p className="text-xs text-muted-foreground">Nombre</p>
                     <p className="text-xl font-bold text-foreground">{overdueInvoices.overdue_count}</p>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-muted">
+                  <div className="text-center p-3 rounded-lg bg-orange-100/50">
                     <p className="text-xs text-muted-foreground">Montant dû</p>
                     <p className="text-lg font-bold text-foreground">{formatCurrency(overdueInvoices.overdue_amount)}</p>
                   </div>
@@ -380,10 +388,10 @@ const CompanyDashboard = () => {
           {/* Statistics Sidebar */}
           <div className="space-y-4">
             {/* Contrats réalisés */}
-            <Card>
+            <Card className="border-l-4 border-l-emerald-500">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-slate-500" />
+                  <CheckCircle className="w-5 h-5 text-emerald-500" />
                   Contrats Réalisés
                 </CardTitle>
               </CardHeader>
@@ -412,10 +420,10 @@ const CompanyDashboard = () => {
             </Card>
 
             {/* Contrats en attente */}
-            <Card>
+            <Card className="border-l-4 border-l-amber-500">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-slate-500" />
+                  <Clock className="w-5 h-5 text-amber-500" />
                   En Attente
                 </CardTitle>
               </CardHeader>
@@ -444,10 +452,10 @@ const CompanyDashboard = () => {
             </Card>
 
             {/* Contrats refusés */}
-            <Card>
+            <Card className="border-l-4 border-l-rose-400">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-slate-500" />
+                  <Target className="w-5 h-5 text-rose-500" />
                   Refusés/Sans Suite
                 </CardTitle>
               </CardHeader>
@@ -472,10 +480,10 @@ const CompanyDashboard = () => {
             </Card>
 
             {/* Ventes Directes */}
-            <Card>
+            <Card className="border-l-4 border-l-cyan-500">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-slate-500" />
+                  <ShoppingBag className="w-5 h-5 text-cyan-500" />
                   Ventes Directes
                 </CardTitle>
               </CardHeader>
@@ -504,10 +512,10 @@ const CompanyDashboard = () => {
             </Card>
 
             {/* Prévisionnel */}
-            <Card>
+            <Card className="border-l-4 border-l-indigo-500">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-slate-500" />
+                  <TrendingUp className="w-5 h-5 text-indigo-500" />
                   Prévisionnel
                 </CardTitle>
               </CardHeader>
