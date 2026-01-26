@@ -738,10 +738,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                     onClick={handleSubmit}
                     disabled={isLoading || isSending}
                     size="lg"
+                    className="bg-amber-600 text-white hover:bg-amber-700"
                   >
                     {isLoading || isSending ? (
                       <>
-                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
                         Envoi en cours...
                       </>
                     ) : (
@@ -761,7 +762,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                   >
                     {isLoading || isSending ? (
                       <>
-                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
                         Traitement...
                       </>
                     ) : (
@@ -780,10 +781,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                     onClick={handleSendRejectionAndValidate}
                     disabled={isLoading || isSending}
                     size="lg"
+                    variant="destructive"
                   >
                     {isLoading || isSending ? (
                       <>
-                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
                         Envoi en cours...
                       </>
                     ) : (
@@ -803,7 +805,7 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                   >
                     {isLoading || isSending ? (
                       <>
-                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                        <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
                         Traitement...
                       </>
                     ) : (
@@ -820,10 +822,11 @@ const ScoringModal: React.FC<ScoringModalProps> = ({
                   onClick={handleSubmit}
                   disabled={isLoading || isSending}
                   size="lg"
+                  variant="success"
                 >
                   {isLoading || isSending ? (
                     <>
-                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></div>
                       Traitement...
                     </>
                   ) : (
