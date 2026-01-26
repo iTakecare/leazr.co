@@ -1,217 +1,100 @@
 
 
-# Plan : Interface Mobile Simplifiée pour Leazr
+# Plan : Supprimer le Hamburger Menu pour une vraie experience PWA
 
-## Diagnostic du Probleme
+## Probleme Identifie
 
-L'erreur `TypeError: null is not an object (evaluating 'dispatcher.useContext')` est causee par un conflit entre plusieurs librairies qui utilisent React de maniere incompatible :
-- `dexie-react-hooks` (v4.2.0) dans les dependances
-- `next-themes` pour la gestion du theme
-- Le lazy loading des composants mobiles
+Le `MobileHeader.tsx` actuel contient un menu hamburger (lignes 59-129) qui :
+- N'est pas typique d'une PWA avec bottom navigation
+- Duplique les fonctionnalites deja presentes dans la bottom nav (Profil → Parametres)
+- Donne un aspect "site web responsive" plutot qu'application native
 
-Le probleme survient quand `MobileLayout` est charge avec ses dependances sur `dexie`.
+## Solution
 
-## Solution Simplifiee
+Modifier `MobileHeader.tsx` pour supprimer completement le menu hamburger et creer un header minimaliste type application mobile :
 
-La solution consiste a :
-1. Supprimer les dependances problematiques (`dexie-react-hooks`)
-2. Simplifier les composants mobiles en evitant les imports circulaires
-3. Integrer le MobileLayout directement dans Layout.tsx sans lazy loading excessif
-
----
-
-## Fichiers a Modifier
-
-### 1. Layout.tsx - Integration Mobile Directe
-
-Modifier le composant Layout pour integrer directement la detection mobile et le rendu conditionnel, sans lazy loading qui cause des conflits de contexte.
-
-```typescript
-// Logique simplifiee
-const isMobile = useIsMobile();
-
-if (isMobile) {
-  return <MobileLayoutWrapper>{children}</MobileLayoutWrapper>;
-}
-return <DesktopLayout>{children}</DesktopLayout>;
-```
-
-### 2. MobileLayout.tsx - Simplification
-
-Supprimer le lazy loading et les dependances sur dexie. Importer directement les composants mobiles.
-
-### 3. OfflineIndicator.tsx - Deja Simplifie
-
-Ce fichier utilise deja un hook reseau simple sans dexie - pas de modification necessaire.
-
-### 4. package.json - Supprimer dexie-react-hooks
-
-Retirer `dexie-react-hooks` des dependances car il cause le conflit React. Garder `dexie` pour le stockage offline (utilisation directe sans hooks React).
-
-### 5. offlineStorage.ts - Adaptation
-
-Modifier pour utiliser dexie directement sans les hooks React.
-
----
-
-## Fichiers Concernes
-
-| Fichier | Action |
-|---------|--------|
-| `src/components/layout/Layout.tsx` | Ajouter detection mobile et rendu conditionnel |
-| `src/components/mobile/MobileLayout.tsx` | Simplifier - supprimer lazy loading |
-| `package.json` | Retirer `dexie-react-hooks` |
-| `src/hooks/useOfflineSync.ts` | Adapter sans dexie-react-hooks |
-
----
-
-## Implementation Detaillee
-
-### Etape 1 : Mise a jour de Layout.tsx
-
-```typescript
-import React from "react";
-import { useLocation } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { useIsMobile } from "@/hooks/use-mobile";
-import Sidebar from "./Sidebar";
-import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
-import MobileLayout from "@/components/mobile/MobileLayout";
-
-const Layout = ({ children }) => {
-  const location = useLocation();
-  const { isSuperAdmin, isLoading } = useAuth();
-  const isMobile = useIsMobile();
-
-  const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
-  const isLeazrSaaSAdmin = !isLoading && isSuperAdmin?.() || false;
-  const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
-
-  // Rendu mobile
-  if (isMobile) {
-    return <MobileLayout>{children}</MobileLayout>;
-  }
-
-  // Rendu desktop
-  return (
-    <div className="h-screen bg-background flex w-full overflow-hidden">
-      {shouldUseLeazrSaaSSidebar ? <LeazrSaaSSidebar /> : <Sidebar />}
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
-  );
-};
-```
-
-### Etape 2 : Simplification de MobileLayout.tsx
-
-```typescript
-import React from "react";
-import { useLocation } from "react-router-dom";
-import MobileHeader from "./MobileHeader";
-import MobileBottomNav from "./MobileBottomNav";
-import MobilePageContainer from "./MobilePageContainer";
-import OfflineIndicator from "./OfflineIndicator";
-
-const MobileLayout = ({ children }) => {
-  const location = useLocation();
-
-  // Extraction du slug et role depuis l'URL
-  const getCompanySlugAndRole = () => {
-    const pathMatch = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/);
-    return {
-      companySlug: pathMatch?.[1] || null,
-      userRole: pathMatch?.[2] || 'admin',
-    };
-  };
-
-  const { companySlug, userRole } = getCompanySlugAndRole();
-
-  return (
-    <div className="min-h-screen bg-background">
-      <OfflineIndicator />
-      <MobileHeader companySlug={companySlug} />
-      <MobilePageContainer hasHeader hasBottomNav>
-        {children}
-      </MobilePageContainer>
-      <MobileBottomNav companySlug={companySlug} userRole={userRole} />
-    </div>
-  );
-};
-
-export default MobileLayout;
-```
-
-### Etape 3 : Adaptation de useOfflineSync.ts
-
-Utiliser dexie directement au lieu de dexie-react-hooks :
-
-```typescript
-import { offlineDb } from "@/lib/offlineStorage";
-import { useState, useEffect, useCallback } from "react";
-
-export function useOfflineSync() {
-  const [pendingCount, setPendingCount] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Charger le compte des actions en attente
-  const loadPendingCount = useCallback(async () => {
-    try {
-      const count = await offlineDb.pendingActions.where('synced').equals(0).count();
-      setPendingCount(count);
-    } catch (error) {
-      console.warn('IndexedDB not available:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadPendingCount();
-  }, [loadPendingCount]);
-
-  return { pendingCount, isSyncing, sync: loadPendingCount };
-}
-```
-
----
-
-## Resultat Attendu
-
-Apres ces modifications :
-
-1. **Sur mobile (< 768px)** : L'application affiche automatiquement :
-   - Header compact avec menu hamburger, logo, notifications et recherche
-   - Contenu adapte avec padding pour header et bottom nav
-   - Bottom navigation avec 5 boutons (Accueil, Demandes, Creer, Contrats, Profil)
-   - Indicateur offline quand deconnecte
-
-2. **Sur desktop (>= 768px)** : L'application conserve son layout actuel avec sidebar
-
-3. **Pas d'erreur** : En evitant dexie-react-hooks et le lazy loading problematique
-
----
-
-## Navigation Mobile
+### Nouveau Design du Header
 
 ```text
 +--------------------------------------------------+
-|  ≡    📷          LEAZR           🔔  🔍        |  <- Header 56px
+|                    LEAZR                    🔔 🔍 |
 +--------------------------------------------------+
-|                                                   |
-|                                                   |
-|              Contenu de la page                   |
-|                                                   |
-|                                                   |
-+--------------------------------------------------+
-|  🏠     📋     [+]     📁     👤                |  <- Bottom Nav 64px
-| Accueil Demandes Creer Contrats Profil          |
-+--------------------------------------------------+
+         (logo centre, actions a droite)
 ```
 
----
+- **Supprimer** : Menu hamburger (Sheet + Menu icon)
+- **Garder** : Logo/titre centre
+- **Garder** : Notifications et recherche a droite
+- **Optionnel** : Scanner document (peut etre deplace vers un FAB ou bottom sheet)
 
-## Points Techniques
+### Fichier a Modifier
 
-- **Pas de lazy loading** sur MobileLayout pour eviter les conflits de contexte React
-- **Imports directs** des composants mobiles
-- **dexie sans hooks** pour le stockage offline (utilisation directe de la base IndexedDB)
-- **Hook useIsMobile** existant reutilise sans modification
+**`src/components/mobile/MobileHeader.tsx`**
+
+Changements :
+1. Supprimer l'import de `Menu`, `Sheet`, `SheetContent`, `SheetTrigger`
+2. Supprimer tout le bloc `<Sheet>` (lignes 59-129)
+3. Supprimer les items de menu qui sont deja dans la bottom nav
+4. Garder uniquement : logo centre + icones notifications/recherche a droite
+5. Optionnel : Ajouter le scanner comme icone a gauche si necessaire
+
+### Code Simplifie
+
+```typescript
+return (
+  <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
+    <div className="flex items-center justify-between h-14 px-4">
+      {/* Left side - Spacer ou Scanner */}
+      <div className="w-10">
+        {showScanner && (
+          <button onClick={onScannerClick} aria-label="Scanner">
+            <Camera className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
+      </div>
+
+      {/* Center - Logo/Title */}
+      <div className="flex-1 flex items-center justify-center">
+        {title ? (
+          <h1 className="font-semibold text-base">{title}</h1>
+        ) : logoUrl ? (
+          <img src={logoUrl} alt={companyName} className="h-7" />
+        ) : (
+          <span className="font-bold text-lg text-primary">{companyName}</span>
+        )}
+      </div>
+
+      {/* Right side - Notifications & Search */}
+      <div className="flex items-center gap-2">
+        {showNotifications && (
+          <button onClick={() => navigate('/notifications')} aria-label="Notifications">
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            {notificationCount > 0 && <badge>...</badge>}
+          </button>
+        )}
+        {showSearch && (
+          <button onClick={onSearchClick} aria-label="Rechercher">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
+      </div>
+    </div>
+  </header>
+);
+```
+
+### Navigation Conservee
+
+Les fonctionnalites du menu hamburger sont deja couvertes par la bottom nav :
+- **Parametres** → Onglet "Profil" dans bottom nav
+- **Mon profil** → Onglet "Profil" dans bottom nav  
+- **Deconnexion** → Sera accessible depuis la page Profil/Parametres
+
+### Resultat Attendu
+
+L'application aura l'apparence d'une vraie PWA/application mobile :
+- Header epure avec logo centre
+- Actions rapides (notifications, recherche) a droite
+- Navigation principale via bottom nav
+- Plus de menu hamburger visible
 
