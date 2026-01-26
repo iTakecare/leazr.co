@@ -1,17 +1,34 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { WifiOff, RefreshCw } from "lucide-react";
-import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useOfflineSync } from "@/hooks/useOfflineSync";
-import { cn } from "@/lib/utils";
+import { WifiOff } from "lucide-react";
+
+// Simple network status hook that doesn't depend on external libraries
+function useSimpleNetworkStatus() {
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  return isOnline;
+}
 
 const OfflineIndicator: React.FC = () => {
-  const { isOnline, isSlowConnection } = useNetworkStatus();
-  const { pendingCount, isSyncing, syncAll } = useOfflineSync();
+  const isOnline = useSimpleNetworkStatus();
 
-  const showIndicator = !isOnline || pendingCount > 0;
-
-  if (!showIndicator) return null;
+  // Only show when offline - simplified version without IndexedDB
+  if (isOnline) return null;
 
   return (
     <AnimatePresence>
@@ -19,43 +36,13 @@ const OfflineIndicator: React.FC = () => {
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -50, opacity: 0 }}
-        className={cn(
-          "fixed top-14 left-0 right-0 z-40 px-4 py-2 safe-top",
-          !isOnline 
-            ? "bg-destructive/90 text-destructive-foreground" 
-            : "bg-primary/90 text-primary-foreground"
-        )}
+        className="fixed top-14 left-0 right-0 z-40 px-4 py-2 safe-top bg-destructive/90 text-destructive-foreground"
       >
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-2">
-            {!isOnline ? (
-              <>
-                <WifiOff className="h-4 w-4" />
-                <span className="text-xs font-medium">
-                  Mode hors ligne
-                  {pendingCount > 0 && ` • ${pendingCount} action(s) en attente`}
-                </span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-                <span className="text-xs font-medium">
-                  {isSyncing 
-                    ? "Synchronisation en cours..." 
-                    : `${pendingCount} action(s) en attente`}
-                </span>
-              </>
-            )}
-          </div>
-          
-          {isOnline && pendingCount > 0 && !isSyncing && (
-            <button
-              onClick={syncAll}
-              className="text-xs font-semibold underline"
-            >
-              Synchroniser
-            </button>
-          )}
+        <div className="flex items-center justify-center gap-2 max-w-lg mx-auto">
+          <WifiOff className="h-4 w-4" />
+          <span className="text-xs font-medium">
+            Mode hors ligne - Les données seront synchronisées à la reconnexion
+          </span>
         </div>
       </motion.div>
     </AnimatePresence>
