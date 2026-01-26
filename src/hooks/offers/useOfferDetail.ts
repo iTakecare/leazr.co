@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { getOfferById } from "@/services/offerService";
 import { getOfferEquipment } from "@/services/offers/offerEquipment";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useOfferDetail = (offerId: string) => {
   const [offer, setOffer] = useState<any>(null);
@@ -145,19 +146,39 @@ export const useOfferDetail = (offerId: string) => {
         }
       }
       
-      // Step 5: Create final offer object
-      console.log("🔄 useOfferDetail - ÉTAPE 5 - Création objet offre final");
+      // Step 5: Fetch linked contract if exists
+      console.log("🔄 useOfferDetail - ÉTAPE 5 - Récupération contrat lié");
+      let linkedContract = null;
+      try {
+        const { data: contractData } = await supabase
+          .from('contracts')
+          .select('id, contract_number, status, is_self_leasing')
+          .eq('offer_id', offerId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        linkedContract = contractData;
+        console.log("📄 useOfferDetail - Contrat lié:", linkedContract);
+      } catch (contractErr) {
+        console.warn("⚠️ useOfferDetail - Erreur récupération contrat:", contractErr);
+      }
+      
+      // Step 6: Create final offer object
+      console.log("🔄 useOfferDetail - ÉTAPE 6 - Création objet offre final");
       const finalOffer = {
         ...offerData,
         parsedEquipment: finalEquipment,
         equipmentItems: finalEquipment,
+        linkedContract,
         offerMargin: offerData.margin || offerData.total_margin_with_difference || 0,
         // Ajouter des infos de debug
         _debug: {
           hasEquipment: finalEquipment.length > 0,
           equipmentCount: finalEquipment.length,
           equipmentError: equipmentError ? equipmentError.message : null,
-          source: parsedEquipment.length > 0 ? 'database' : 'json_fallback'
+          source: parsedEquipment.length > 0 ? 'database' : 'json_fallback',
+          hasLinkedContract: !!linkedContract
         }
       };
       

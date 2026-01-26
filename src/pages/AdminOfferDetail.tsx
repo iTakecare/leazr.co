@@ -13,7 +13,7 @@ import type { Leaser } from "@/types/equipment";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
-import { AlertCircle, ArrowLeft, Edit } from "lucide-react";
+import { AlertCircle, ArrowLeft, Edit, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -948,7 +948,22 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                     </div>
                     {offer.type && <OfferTypeTag type={offer.type} size="md" />}
                   </div>
-                  <p className="text-gray-600 font-medium">{offer.client_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-600 font-medium">{offer.client_name}</p>
+                    
+                    {/* Lien vers le contrat si existant */}
+                    {offer.linkedContract && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                        onClick={() => navigateToAdmin(`contracts/${offer.linkedContract.id}`)}
+                      >
+                        <FileText className="w-3 h-3" />
+                        Contrat {offer.linkedContract.contract_number || offer.linkedContract.id?.slice(0, 8)}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
