@@ -115,14 +115,14 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({ product, onVariantSel
                   const isAvailable = isOptionAvailable(attributeName, option);
                   const isSelected = selectedAttributes[attributeName] === option;
                   
-                  return (
-                    <Button
-                      key={`${attributeName}-${option}`}
-                      variant={isSelected ? "default" : "outline"}
-                      size="sm"
-                      className={`relative rounded-full px-4 py-2 transition-all ${
-                        isSelected ? "bg-primary text-white" : "bg-white"
-                      } ${!isAvailable ? "opacity-40" : ""}`}
+                      return (
+                        <Button
+                          key={`${attributeName}-${option}`}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          className={`relative rounded-full px-4 py-2 transition-all ${
+                            isSelected ? "bg-primary text-white" : "bg-white text-foreground"
+                          } ${!isAvailable ? "opacity-40" : ""}`}
                       disabled={!isAvailable}
                       onClick={() => handleSelectAttribute(attributeName, option)}
                     >

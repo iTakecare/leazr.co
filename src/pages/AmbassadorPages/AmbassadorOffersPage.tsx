@@ -289,7 +289,7 @@ const AmbassadorOffersPage = () => {
                     variant={viewMode === 'list' ? 'default' : 'ghost'} 
                     size="sm"
                     onClick={() => setViewMode('list')} 
-                    className="rounded-none px-3"
+                    className={`rounded-none px-3 ${viewMode === 'list' ? 'text-white' : 'text-foreground'}`}
                   >
                     <List className="h-4 w-4 mr-2" />
                     Liste
@@ -298,7 +298,7 @@ const AmbassadorOffersPage = () => {
                     variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
                     size="sm"
                     onClick={() => setViewMode('kanban')} 
-                    className="rounded-none px-3"
+                    className={`rounded-none px-3 ${viewMode === 'kanban' ? 'text-white' : 'text-foreground'}`}
                   >
                     <Grid className="h-4 w-4 mr-2" />
                     Kanban
