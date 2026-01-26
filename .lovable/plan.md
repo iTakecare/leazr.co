@@ -1,107 +1,128 @@
 
-# Plan : Correction des textes blancs illisibles dans l'application
+# Plan : Refonte "Corporate" des tags et badges
 
-## Problème identifié
+## Objectif
 
-Plusieurs éléments de l'interface ont du texte blanc sur des fonds clairs, les rendant illisibles. L'analyse a révélé les problèmes suivants :
+Transformer les tags de l'application vers un style plus professionnel et corporate tout en conservant la lisibilité et la distinction rapide des différents statuts, types et sources.
 
-### 1. VariantSelector.tsx (Ligne 124)
-Le bouton utilise `bg-white` quand non sélectionné mais ne définit pas de couleur de texte explicite :
-```tsx
-className={`... ${isSelected ? "bg-primary text-white" : "bg-white"} ...`}
-```
-**Problème** : Quand le bouton n'est pas sélectionné, il a un fond blanc mais peut hériter d'une couleur de texte blanche de la variante outline.
+## Changements visuels prévus
 
-### 2. OfferCompleteHistory.tsx (Lignes 49, 57)
-Les compteurs dans les onglets utilisent `bg-primary text-primary-foreground` qui devrait fonctionner, mais le texte peut être difficile à lire dans certains contextes de tabs.
+### 1. Arrondi des coins
+- **Avant** : `rounded-full` (totalement arrondi, style "pilule")
+- **Après** : `rounded` (4px, style corporate sobre)
 
-### 3. OfferWorkflowSection.tsx (Ligne 242)
-Même problème avec un compteur dans un tab trigger.
+### 2. Palette de couleurs sobre
 
-### 4. Boutons avec variante "default" sans fond explicite
-Les boutons "Nouvelle demande" et "Liste" utilisent la variante `default` qui définit `bg-primary text-primary-foreground`. Normalement cela devrait fonctionner, mais il semble y avoir un conflit de styles.
+Au lieu des couleurs pastel vives actuelles, utiliser une palette gris/bleu plus professionnelle :
+
+| Catégorie | Ancienne couleur | Nouvelle couleur |
+|-----------|------------------|------------------|
+| **Par défaut** | `bg-gray-50 text-gray-700` | `bg-slate-100 text-slate-700 border-slate-300` |
+| **Info/Envoyé** | `bg-sky-100 text-sky-700` | `bg-blue-50 text-blue-700 border-blue-200` |
+| **Succès/Validé** | `bg-green-100 text-green-700` | `bg-emerald-50 text-emerald-800 border-emerald-300` |
+| **Attention/Attente** | `bg-amber-100 text-amber-700` | `bg-amber-50 text-amber-800 border-amber-300` |
+| **Erreur/Rejet** | `bg-rose-100 text-rose-700` | `bg-red-50 text-red-800 border-red-300` |
+| **Interne/Analyse** | `bg-purple-100 text-purple-700` | `bg-slate-200 text-slate-700 border-slate-300` |
+| **Leaser** | `bg-indigo-100 text-indigo-700` | `bg-slate-100 text-slate-700 border-slate-300` |
+
+### 3. Système de distinction conservé
+
+Les icônes restent pour permettre l'identification rapide :
+- ✓ Statuts : Icônes conservées (CheckCircle, XCircle, Send, etc.)
+- ✓ Types : Icônes conservées (Globe, Phone, Building, etc.)
+- ✓ Sources : Icônes conservées (Search, Linkedin, Users, etc.)
 
 ---
 
-## Solution proposée
+## Fichiers à modifier
 
-### Fichier 1 : `src/components/catalog/VariantSelector.tsx`
-
-**Ligne 124** - Ajouter `text-foreground` pour les boutons non sélectionnés :
-
-| Avant | Après |
-|-------|-------|
-| `isSelected ? "bg-primary text-white" : "bg-white"` | `isSelected ? "bg-primary text-white" : "bg-white text-foreground"` |
-
-### Fichier 2 : `src/components/offers/OfferCompleteHistory.tsx`
-
-**Lignes 49 et 57** - Changer la couleur du compteur pour assurer la lisibilité :
-
-| Avant | Après |
-|-------|-------|
-| `bg-primary text-primary-foreground` | `bg-primary/10 text-primary` |
-
-### Fichier 3 : `src/components/offers/OfferWorkflowSection.tsx`
-
-**Ligne 242** - Même correction que ci-dessus :
-
-| Avant | Après |
-|-------|-------|
-| `bg-primary text-primary-foreground` | `bg-primary/10 text-primary` |
-
-### Fichier 4 : `src/pages/Offers.tsx`
-
-**Lignes 151-168** - S'assurer que les boutons de vue ont un style explicite pour le texte :
-
-Pour les boutons "Liste" et "Kanban", ajouter des classes explicites pour garantir la lisibilité du texte dans les deux états (actif et inactif).
-
-**Bouton Liste (lignes 151-159)** :
-```tsx
-<Button 
-  variant={viewMode === 'list' ? 'default' : 'ghost'} 
-  size="sm"
-  onClick={() => setViewMode('list')} 
-  className={`rounded-none px-3 ${viewMode === 'list' ? 'text-white' : 'text-foreground'}`}
->
-```
-
-**Bouton Kanban (lignes 160-168)** :
-```tsx
-<Button 
-  variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
-  size="sm"
-  onClick={() => setViewMode('kanban')} 
-  className={`rounded-none px-3 ${viewMode === 'kanban' ? 'text-white' : 'text-foreground'}`}
->
-```
-
-### Fichier 5 : `src/pages/AmbassadorPages/AmbassadorOffersPage.tsx`
-
-**Lignes 288-305** - Appliquer la même correction aux boutons de vue dans la page Ambassador :
+### 1. `src/components/ui/badge.tsx`
+Modifier le `badgeVariants` pour réduire l'arrondi :
 
 ```tsx
-className={`rounded-none px-3 ${viewMode === 'list' ? 'text-white' : 'text-foreground'}`}
-// et
-className={`rounded-none px-3 ${viewMode === 'kanban' ? 'text-white' : 'text-foreground'}`}
+// Ligne 8 : Changer rounded-full → rounded
+"inline-flex items-center rounded border px-2.5 py-0.5 text-xs font-semibold..."
 ```
+
+### 2. `src/components/offers/OfferStatusBadge.tsx`
+Mettre à jour les couleurs des statuts :
+
+| Statut | Nouvelle couleur |
+|--------|------------------|
+| DRAFT | `bg-slate-100 text-slate-600 border-slate-300` |
+| SENT/OFFER_SEND | `bg-blue-50 text-blue-700 border-blue-200` |
+| INTERNAL_REVIEW | `bg-slate-100 text-slate-700 border-slate-300` |
+| INTERNAL_APPROVED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
+| INTERNAL_DOCS_REQUESTED | `bg-amber-50 text-amber-800 border-amber-300` |
+| INTERNAL_REJECTED | `bg-red-50 text-red-800 border-red-300` |
+| LEASER_REVIEW/INTRODUCED | `bg-slate-100 text-slate-700 border-slate-300` |
+| SCORING_REVIEW | `bg-slate-100 text-slate-700 border-slate-300` |
+| LEASER_APPROVED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
+| LEASER_REJECTED | `bg-red-50 text-red-800 border-red-300` |
+| OFFER_ACCEPTED/ACCEPTED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
+| VALIDATED | `bg-blue-50 text-blue-800 border-blue-300` |
+| FINANCED | `bg-emerald-50 text-emerald-800 border-emerald-300` |
+| REJECTED | `bg-red-50 text-red-800 border-red-300` |
+
+### 3. `src/components/offers/OfferTypeTag.tsx`
+Mettre à jour les couleurs des types d'offres :
+
+| Type | Nouvelle couleur |
+|------|------------------|
+| web_request | `bg-slate-100 text-slate-700 border-slate-300` |
+| custom_pack_request | `bg-slate-200 text-slate-700 border-slate-400` |
+| ambassador_offer | `bg-amber-50 text-amber-800 border-amber-300` |
+| client_request | `bg-blue-50 text-blue-700 border-blue-200` |
+| partner_offer | `bg-slate-100 text-slate-700 border-slate-300` |
+| internal_offer | `bg-slate-200 text-slate-700 border-slate-400` |
+| admin_offer | `bg-slate-200 text-slate-700 border-slate-400` |
+| self_leasing | `bg-slate-100 text-slate-700 border-slate-300` |
+
+### 4. `src/utils/offerSourceTranslator.ts`
+Mettre à jour les couleurs des sources :
+
+| Source | Nouvelle couleur |
+|--------|------------------|
+| recommendation | `bg-slate-100 text-slate-700 border-slate-300` |
+| google | `bg-slate-100 text-slate-700 border-slate-300` |
+| meta | `bg-blue-50 text-blue-700 border-blue-200` |
+| linkedin | `bg-blue-50 text-blue-700 border-blue-200` |
+| existing_client | `bg-emerald-50 text-emerald-800 border-emerald-300` |
+| website | `bg-slate-100 text-slate-700 border-slate-300` |
+| event | `bg-slate-200 text-slate-700 border-slate-400` |
+
+### 5. `src/components/contracts/ContractStatusBadge.tsx`
+Harmoniser avec le même style :
+
+| Statut | Nouvelle couleur |
+|--------|------------------|
+| CONTRACT_SENT | `bg-blue-50 text-blue-700` |
+| CONTRACT_SIGNED | `bg-slate-100 text-slate-700` |
+| EQUIPMENT_ORDERED | `bg-slate-200 text-slate-700` |
+| DELIVERED | `bg-amber-50 text-amber-800` |
+| ACTIVE | `bg-emerald-50 text-emerald-800` |
+| EXTENDED | `bg-amber-50 text-amber-800` |
+| COMPLETED | `bg-slate-100 text-slate-600` |
+| CANCELLED | `bg-red-50 text-red-800` |
 
 ---
 
 ## Récapitulatif des modifications
 
-| Fichier | Ligne(s) | Modification |
-|---------|----------|--------------|
-| `src/components/catalog/VariantSelector.tsx` | 124 | Ajouter `text-foreground` pour les boutons non sélectionnés |
-| `src/components/offers/OfferCompleteHistory.tsx` | 49, 57 | Changer en `bg-primary/10 text-primary` |
-| `src/components/offers/OfferWorkflowSection.tsx` | 242 | Changer en `bg-primary/10 text-primary` |
-| `src/pages/Offers.tsx` | 155, 164 | Ajouter classes conditionnelles pour couleur du texte |
-| `src/pages/AmbassadorPages/AmbassadorOffersPage.tsx` | 292, 301 | Ajouter classes conditionnelles pour couleur du texte |
+| Fichier | Modification |
+|---------|--------------|
+| `src/components/ui/badge.tsx` | `rounded-full` → `rounded` (ligne 8) |
+| `src/components/offers/OfferStatusBadge.tsx` | Mise à jour palette couleurs (lignes 25-190) |
+| `src/components/offers/OfferTypeTag.tsx` | Mise à jour palette couleurs (lignes 54-90) |
+| `src/utils/offerSourceTranslator.ts` | Mise à jour palette couleurs (lignes 25-68) |
+| `src/components/contracts/ContractStatusBadge.tsx` | Mise à jour palette couleurs (lignes 12-76) |
 
 ---
 
 ## Résultat attendu
 
-- Le texte des boutons de sélection de variantes sera toujours lisible (texte sombre sur fond blanc)
-- Les compteurs dans les onglets auront un fond bleu clair avec texte bleu au lieu de blanc sur bleu
-- Les boutons "Liste" et "Kanban" auront toujours un texte visible (blanc quand actif sur fond bleu, sombre quand inactif)
-- Le bouton "Nouvelle demande" restera avec son style par défaut (fond bleu, texte blanc)
+- Tags avec coins légèrement arrondis (4px) au lieu de "pilules"
+- Palette sobre gris/bleu plus professionnelle
+- Distinction visuelle conservée grâce aux icônes et aux nuances de couleur
+- Lisibilité maintenue avec contraste suffisant
+- Cohérence visuelle sur toute l'application
