@@ -1,512 +1,217 @@
 
 
-# Plan : Interface Mobile Complète PWA pour Leazr
+# Plan : Interface Mobile Simplifiée pour Leazr
 
-## Résumé des Choix Utilisateur
+## Diagnostic du Probleme
 
-| Critère | Choix |
-|---------|-------|
-| Espaces prioritaires | **Tous** (Admin + Client + Ambassadeur + Public) |
-| Navigation | **Bottom Navigation** type app native |
-| Affichage données | **Cards avec swipe** (appeler, email, supprimer, traité) |
-| PWA | **Oui, complète** avec installation + offline |
-| Pages prioritaires | Dashboard, Offres, Clients, Contrats |
-| Actions rapides | Créer offre, Scanner, Recherche, Notifications |
-| Mode offline | **Consultation + Création** avec synchronisation |
+L'erreur `TypeError: null is not an object (evaluating 'dispatcher.useContext')` est causee par un conflit entre plusieurs librairies qui utilisent React de maniere incompatible :
+- `dexie-react-hooks` (v4.2.0) dans les dependances
+- `next-themes` pour la gestion du theme
+- Le lazy loading des composants mobiles
+
+Le probleme survient quand `MobileLayout` est charge avec ses dependances sur `dexie`.
+
+## Solution Simplifiee
+
+La solution consiste a :
+1. Supprimer les dependances problematiques (`dexie-react-hooks`)
+2. Simplifier les composants mobiles en evitant les imports circulaires
+3. Integrer le MobileLayout directement dans Layout.tsx sans lazy loading excessif
 
 ---
 
-## Architecture de la Solution
+## Fichiers a Modifier
 
-### Approche Technique
+### 1. Layout.tsx - Integration Mobile Directe
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          MOBILE LAYER                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  useIsMobile() → true                                                   │
-│       ↓                                                                 │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  MobileLayout                                                    │   │
-│  │  ├── MobileHeader (sticky top)                                   │   │
-│  │  ├── MobilePageContainer (contenu scrollable)                    │   │
-│  │  └── MobileBottomNav (fixed bottom)                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Composants Mobiles Réutilisables                                │   │
-│  │  ├── MobileSwipeCard (avec actions gauche/droite)                │   │
-│  │  ├── MobileFilterSheet (bottom drawer)                           │   │
-│  │  ├── MobileSearchSheet (recherche plein écran)                   │   │
-│  │  ├── MobileFAB (Floating Action Button)                          │   │
-│  │  └── MobilePullToRefresh                                         │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Cards Spécialisées avec Swipe                                   │   │
-│  │  ├── MobileOfferCard (swipe: appeler, email, supprimer)          │   │
-│  │  ├── MobileClientCard (swipe: appeler, email, supprimer)         │   │
-│  │  └── MobileContractCard (swipe: email, télécharger)              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+Modifier le composant Layout pour integrer directement la detection mobile et le rendu conditionnel, sans lazy loading qui cause des conflits de contexte.
+
+```typescript
+// Logique simplifiee
+const isMobile = useIsMobile();
+
+if (isMobile) {
+  return <MobileLayoutWrapper>{children}</MobileLayoutWrapper>;
+}
+return <DesktopLayout>{children}</DesktopLayout>;
 ```
 
+### 2. MobileLayout.tsx - Simplification
+
+Supprimer le lazy loading et les dependances sur dexie. Importer directement les composants mobiles.
+
+### 3. OfflineIndicator.tsx - Deja Simplifie
+
+Ce fichier utilise deja un hook reseau simple sans dexie - pas de modification necessaire.
+
+### 4. package.json - Supprimer dexie-react-hooks
+
+Retirer `dexie-react-hooks` des dependances car il cause le conflit React. Garder `dexie` pour le stockage offline (utilisation directe sans hooks React).
+
+### 5. offlineStorage.ts - Adaptation
+
+Modifier pour utiliser dexie directement sans les hooks React.
+
 ---
 
-## Phase 1 : Configuration PWA
-
-### Fichiers à Créer/Modifier
+## Fichiers Concernes
 
 | Fichier | Action |
 |---------|--------|
-| `vite.config.ts` | Ajouter plugin vite-plugin-pwa |
-| `public/manifest.json` | Manifest PWA avec icônes |
-| `public/sw.js` | Service Worker pour offline |
-| `public/icons/` | Icônes PWA (192x192, 512x512) |
-| `src/index.html` | Meta tags mobile + manifest link |
-| `src/hooks/useOfflineSync.ts` | Hook pour synchronisation offline |
-| `src/lib/offlineStorage.ts` | IndexedDB pour stockage local |
-
-### Configuration PWA
-
-**manifest.json** :
-```json
-{
-  "name": "Leazr - Gestion Leasing",
-  "short_name": "Leazr",
-  "description": "Gestion de leasing informatique",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#10b981",
-  "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
-}
-```
-
-**Service Worker Strategy** :
-- Cache First pour assets statiques
-- Network First pour API avec fallback offline
-- Background Sync pour créations offline
+| `src/components/layout/Layout.tsx` | Ajouter detection mobile et rendu conditionnel |
+| `src/components/mobile/MobileLayout.tsx` | Simplifier - supprimer lazy loading |
+| `package.json` | Retirer `dexie-react-hooks` |
+| `src/hooks/useOfflineSync.ts` | Adapter sans dexie-react-hooks |
 
 ---
 
-## Phase 2 : Infrastructure Mobile
+## Implementation Detaillee
 
-### Fichiers à Créer
-
-| Fichier | Description |
-|---------|-------------|
-| `src/components/mobile/MobileLayout.tsx` | Layout wrapper conditionnel |
-| `src/components/mobile/MobileHeader.tsx` | Header compact 56px |
-| `src/components/mobile/MobileBottomNav.tsx` | Bottom nav 64px + safe area |
-| `src/components/mobile/MobilePageContainer.tsx` | Container avec scroll |
-
-### MobileBottomNav - Navigation Principale
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│   🏠          📋          ➕          📁          👤                  │
-│  Accueil    Demandes    Créer     Contrats    Profil                   │
-│                                                                         │
-│━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
-│                       (safe area iPhone)                                │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-**Caractéristiques** :
-- 5 items maximum pour confort tactile
-- Badge de notification sur icônes
-- Animation de sélection active
-- Support safe-area-inset-bottom pour iPhone
-
-### MobileHeader - En-tête Compact
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  ≡    📷 Scanner          LEAZR           🔔 (2)     🔍              │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-**Actions** :
-- Menu hamburger (paramètres, déconnexion)
-- Bouton scanner document
-- Logo centré
-- Notifications avec badge
-- Recherche globale
-
----
-
-## Phase 3 : Composants Swipeable
-
-### MobileSwipeCard - Composant de Base
-
-```text
-                    ← SWIPE GAUCHE ←
-┌───────────────────────────────────────────────────┬─────────┬─────────┐
-│                                                   │  ✓      │  🗑️    │
-│  Contenu de la card                               │ Traité  │ Suppr.  │
-│                                                   │         │         │
-└───────────────────────────────────────────────────┴─────────┴─────────┘
-
-                    → SWIPE DROITE →
-┌─────────┬─────────┬───────────────────────────────────────────────────┐
-│  📞     │  ✉️     │                                                   │
-│ Appeler │ Email   │  Contenu de la card                               │
-│         │         │                                                   │
-└─────────┴─────────┴───────────────────────────────────────────────────┘
-```
-
-**Implementation avec Framer Motion** :
-- Seuil de déclenchement : 80px
-- Haptic feedback sur action
-- Animation spring pour retour
-- Couleurs : vert (appeler), bleu (email), rouge (supprimer), gris (traité)
-
-### MobileOfferCard - Card Offre
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│  #DEM-2024-001                              🟢 Score A                 │
-│  ─────────────────────────────────────────────────────────────────────  │
-│  👤 Jean Dupont                                                         │
-│  🏢 Entreprise SARL                                                     │
-│  📧 jean.dupont@entreprise.fr                                           │
-│  ─────────────────────────────────────────────────────────────────────  │
-│  💰 15 000 €        📅 36 mois        💳 450 €/mois                     │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│      📄 Envoyée            📋 En attente signature                     │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-← Swipe: [📞 Appeler] [✉️ Email]    Swipe: [✓ Traité] [🗑️ Suppr.] →
-```
-
-### MobileClientCard - Card Client
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│  👤 Marie Martin                                         🏷️ Premium    │
-│  ─────────────────────────────────────────────────────────────────────  │
-│  🏢 TechCorp SARL                                                       │
-│  📧 marie.martin@techcorp.be                                            │
-│  📞 +32 475 123 456                                                     │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│  📋 3 offres       📁 2 contrats actifs       💰 45 000 € CA           │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-← Swipe: [📞 Appeler] [✉️ Email]              Swipe: [🗑️ Suppr.] →
-```
-
----
-
-## Phase 4 : Composants Utilitaires
-
-### MobileFilterSheet - Filtres en Bottom Drawer
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│ ───────────────────────  (handle)  ─────────────────────────────────── │
-│                                                                         │
-│  🔍 Rechercher...                                            ✕ Clear   │
-│                                                                         │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│  Statut                                                                 │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                          │
-│  │  Tous  │ │ Envoyé │ │ Signé  │ │Approuvé│                          │
-│  └────────┘ └────────┘ └────────┘ └────────┘                          │
-│                                                                         │
-│  Type                                                                   │
-│  ○ Tous  ○ Leasing  ○ Vente directe  ○ Ambassadeur                     │
-│                                                                         │
-│  Score                                                                  │
-│  ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───────┐                                    │
-│  │ A │ │ B │ │ C │ │ D │ │ Tous  │                                    │
-│  └───┘ └───┘ └───┘ └───┘ └───────┘                                    │
-│                                                                         │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│       [Réinitialiser]                    [Appliquer (24 résultats)]    │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### MobileSearchSheet - Recherche Plein Écran
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  ←   🔍 Rechercher clients, offres, contrats...              Annuler   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Recherches récentes                                                    │
-│  ────────────────────                                                   │
-│  🕐 Jean Dupont                                                         │
-│  🕐 TechCorp                                                            │
-│  🕐 DEM-2024-001                                                        │
-│                                                                         │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│  Résultats                                                              │
-│  ────────────────────                                                   │
-│                                                                         │
-│  👤 Clients (3)                                                         │
-│  ├── Jean Dupont - Entreprise SARL                                     │
-│  ├── Marie Martin - TechCorp                                           │
-│  └── Paul Bernard - StartupXYZ                                         │
-│                                                                         │
-│  📋 Offres (5)                                                          │
-│  ├── DEM-2024-001 - Jean Dupont - 15 000 €                             │
-│  └── ...                                                                │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### MobileFAB - Bouton Action Flottant
-
-```text
-                                                    ┌─────────────────┐
-                                                    │ 📷 Scanner doc  │
-                                                    └─────────────────┘
-                                                    ┌─────────────────┐
-                                                    │ 📋 Nouvelle offre│
-                                                    └─────────────────┘
-                                                              ╔═══╗
-                                                              ║ + ║
-                                                              ╚═══╝
-```
-
-**Comportement** :
-- Position fixe bas droite (avant bottom nav)
-- Tap : expand menu d'actions
-- Long press : action principale (nouvelle offre)
-
----
-
-## Phase 5 : Mode Offline avec Synchronisation
-
-### Architecture Offline
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         MODE OFFLINE                                    │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────┐         ┌─────────────────┐                       │
-│  │   IndexedDB     │         │  Service Worker │                       │
-│  │  ─────────────  │         │  ─────────────  │                       │
-│  │  - Offres       │ ←sync→  │  - Cache assets │                       │
-│  │  - Clients      │         │  - Cache API    │                       │
-│  │  - Contrats     │         │  - Background   │                       │
-│  │  - Actions      │         │    Sync         │                       │
-│  │    en attente   │         │                 │                       │
-│  └─────────────────┘         └─────────────────┘                       │
-│           ↓                           ↓                                │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    RECONNEXION                                   │   │
-│  │  1. Récupérer actions en attente                                 │   │
-│  │  2. Synchroniser avec serveur (POST/PUT)                         │   │
-│  │  3. Rafraîchir données locales                                   │   │
-│  │  4. Notifier utilisateur                                         │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Fichiers à Créer
-
-| Fichier | Description |
-|---------|-------------|
-| `src/lib/offlineStorage.ts` | Wrapper IndexedDB (Dexie.js) |
-| `src/hooks/useOfflineSync.ts` | Hook de synchronisation |
-| `src/hooks/useNetworkStatus.ts` | Détection connexion |
-| `src/components/mobile/OfflineIndicator.tsx` | Bandeau "Mode hors ligne" |
-| `src/components/mobile/SyncStatus.tsx` | Indicateur synchronisation |
-
-### Indicateur Offline
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  ⚡ Mode hors ligne - 3 actions en attente de synchronisation          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Phase 6 : Adaptations par Espace
-
-### Espace Admin Mobile
-
-| Page | Composants Mobiles |
-|------|-------------------|
-| Dashboard | `MobileDashboardWidgets` (widgets empilés, swipe horizontal graphiques) |
-| Offres | `MobileOfferCard` + `MobileFilterSheet` + `MobileFAB` |
-| Clients | `MobileClientCard` + `MobileSearchSheet` |
-| Contrats | `MobileContractCard` + filtres inline |
-| Paramètres | Accordéons avec sections |
-
-### Espace Client Mobile
-
-| Page | Composants Mobiles |
-|------|-------------------|
-| Dashboard | Cards actions + timeline activité |
-| Équipements | Liste cards avec images |
-| Demandes | Timeline verticale badges |
-| Contrats | Cards avec téléchargement PDF |
-| Catalogue | Grille 2 colonnes + filtre drawer |
-
-### Espace Ambassadeur Mobile
-
-| Page | Composants Mobiles |
-|------|-------------------|
-| Dashboard | Stats commissions + dernières activités |
-| Filleuls | Cards clients référés |
-| Commissions | Historique avec filtres |
-
-### Catalogue Public Mobile
-
-| Page | Composants Mobiles |
-|------|-------------------|
-| Liste produits | Grille 2 colonnes + filtre drawer |
-| Détail produit | Carousel images + actions sticky |
-| Panier/Devis | Récapitulatif sticky bottom |
-
----
-
-## Phase 7 : Gestures et Animations
-
-### Gestures Supportées
-
-| Gesture | Action |
-|---------|--------|
-| Pull-to-refresh | Actualiser la liste |
-| Swipe horizontal card | Actions rapides |
-| Swipe bottom sheet | Ouvrir/fermer filtres |
-| Long press | Menu contextuel |
-| Pinch-to-zoom | Zoom images produits |
-
-### Animations Framer Motion
+### Etape 1 : Mise a jour de Layout.tsx
 
 ```typescript
-// Swipe card
-const swipeVariants = {
-  initial: { x: 0 },
-  swipeLeft: { x: -80, transition: { type: "spring" } },
-  swipeRight: { x: 80, transition: { type: "spring" } },
+import React from "react";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import Sidebar from "./Sidebar";
+import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
+import MobileLayout from "@/components/mobile/MobileLayout";
+
+const Layout = ({ children }) => {
+  const location = useLocation();
+  const { isSuperAdmin, isLoading } = useAuth();
+  const isMobile = useIsMobile();
+
+  const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
+  const isLeazrSaaSAdmin = !isLoading && isSuperAdmin?.() || false;
+  const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
+
+  // Rendu mobile
+  if (isMobile) {
+    return <MobileLayout>{children}</MobileLayout>;
+  }
+
+  // Rendu desktop
+  return (
+    <div className="h-screen bg-background flex w-full overflow-hidden">
+      {shouldUseLeazrSaaSSidebar ? <LeazrSaaSSidebar /> : <Sidebar />}
+      <main className="flex-1 overflow-y-auto">{children}</main>
+    </div>
+  );
+};
+```
+
+### Etape 2 : Simplification de MobileLayout.tsx
+
+```typescript
+import React from "react";
+import { useLocation } from "react-router-dom";
+import MobileHeader from "./MobileHeader";
+import MobileBottomNav from "./MobileBottomNav";
+import MobilePageContainer from "./MobilePageContainer";
+import OfflineIndicator from "./OfflineIndicator";
+
+const MobileLayout = ({ children }) => {
+  const location = useLocation();
+
+  // Extraction du slug et role depuis l'URL
+  const getCompanySlugAndRole = () => {
+    const pathMatch = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/);
+    return {
+      companySlug: pathMatch?.[1] || null,
+      userRole: pathMatch?.[2] || 'admin',
+    };
+  };
+
+  const { companySlug, userRole } = getCompanySlugAndRole();
+
+  return (
+    <div className="min-h-screen bg-background">
+      <OfflineIndicator />
+      <MobileHeader companySlug={companySlug} />
+      <MobilePageContainer hasHeader hasBottomNav>
+        {children}
+      </MobilePageContainer>
+      <MobileBottomNav companySlug={companySlug} userRole={userRole} />
+    </div>
+  );
 };
 
-// Bottom sheet
-const sheetVariants = {
-  hidden: { y: "100%" },
-  visible: { y: 0, transition: { type: "spring", damping: 25 } },
-};
+export default MobileLayout;
 ```
 
----
+### Etape 3 : Adaptation de useOfflineSync.ts
 
-## Fichiers à Créer - Récapitulatif
+Utiliser dexie directement au lieu de dexie-react-hooks :
 
-### Infrastructure (Phase 1-2)
-```text
-src/
-├── components/
-│   └── mobile/
-│       ├── MobileLayout.tsx
-│       ├── MobileHeader.tsx
-│       ├── MobileBottomNav.tsx
-│       ├── MobilePageContainer.tsx
-│       ├── MobileSwipeCard.tsx
-│       ├── MobileFilterSheet.tsx
-│       ├── MobileSearchSheet.tsx
-│       ├── MobileFAB.tsx
-│       ├── MobilePullToRefresh.tsx
-│       ├── OfflineIndicator.tsx
-│       └── SyncStatus.tsx
-├── hooks/
-│   ├── useOfflineSync.ts
-│   └── useNetworkStatus.ts
-└── lib/
-    └── offlineStorage.ts
+```typescript
+import { offlineDb } from "@/lib/offlineStorage";
+import { useState, useEffect, useCallback } from "react";
 
-public/
-├── manifest.json
-├── sw.js
-└── icons/
-    ├── icon-192.png
-    └── icon-512.png
-```
+export function useOfflineSync() {
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-### Cards Spécialisées (Phase 3)
-```text
-src/components/mobile/cards/
-├── MobileOfferCard.tsx
-├── MobileClientCard.tsx
-├── MobileContractCard.tsx
-├── MobileProductCard.tsx
-└── MobileEquipmentCard.tsx
-```
+  // Charger le compte des actions en attente
+  const loadPendingCount = useCallback(async () => {
+    try {
+      const count = await offlineDb.pendingActions.where('synced').equals(0).count();
+      setPendingCount(count);
+    } catch (error) {
+      console.warn('IndexedDB not available:', error);
+    }
+  }, []);
 
-### Pages Mobiles (Phase 6)
-```text
-src/components/mobile/pages/
-├── MobileDashboard.tsx
-├── MobileOffers.tsx
-├── MobileClients.tsx
-├── MobileContracts.tsx
-├── MobileClientDashboard.tsx
-├── MobileCatalog.tsx
-└── MobileSettings.tsx
-```
+  useEffect(() => {
+    loadPendingCount();
+  }, [loadPendingCount]);
 
----
-
-## Fichiers à Modifier
-
-| Fichier | Modification |
-|---------|--------------|
-| `vite.config.ts` | Ajouter vite-plugin-pwa |
-| `index.html` | Meta tags mobile + manifest |
-| `tailwind.config.ts` | Breakpoint xs + safe-area utilities |
-| `src/components/layout/Layout.tsx` | Conditionnel MobileLayout |
-| `src/pages/Dashboard.tsx` | Rendu conditionnel mobile |
-| `src/pages/Offers.tsx` | Rendu conditionnel mobile |
-| `src/pages/Clients.tsx` | Rendu conditionnel mobile |
-| Et autres pages... | Adaptation responsive |
-
----
-
-## Dépendances à Ajouter
-
-```json
-{
-  "vite-plugin-pwa": "^0.20.0",
-  "dexie": "^4.0.0",
-  "dexie-react-hooks": "^1.1.0"
+  return { pendingCount, isSyncing, sync: loadPendingCount };
 }
 ```
 
-Note : `framer-motion` est déjà installé (v12.6.5).
+---
+
+## Resultat Attendu
+
+Apres ces modifications :
+
+1. **Sur mobile (< 768px)** : L'application affiche automatiquement :
+   - Header compact avec menu hamburger, logo, notifications et recherche
+   - Contenu adapte avec padding pour header et bottom nav
+   - Bottom navigation avec 5 boutons (Accueil, Demandes, Creer, Contrats, Profil)
+   - Indicateur offline quand deconnecte
+
+2. **Sur desktop (>= 768px)** : L'application conserve son layout actuel avec sidebar
+
+3. **Pas d'erreur** : En evitant dexie-react-hooks et le lazy loading problematique
 
 ---
 
-## Ordre d'Implémentation Recommandé
+## Navigation Mobile
 
-1. **Phase 1** : Configuration PWA (manifest, icons, meta tags)
-2. **Phase 2** : Infrastructure mobile (MobileLayout, Header, BottomNav)
-3. **Phase 3** : MobileSwipeCard avec animations
-4. **Phase 4** : Cards spécialisées (Offer, Client, Contract)
-5. **Phase 5** : Filtres et recherche (Sheet, Search)
-6. **Phase 6** : Mode offline (IndexedDB, sync)
-7. **Phase 7** : Adaptations pages Admin
-8. **Phase 8** : Adaptations pages Client
-9. **Phase 9** : Catalogue public mobile
-10. **Phase 10** : Tests et polish
+```text
++--------------------------------------------------+
+|  ≡    📷          LEAZR           🔔  🔍        |  <- Header 56px
++--------------------------------------------------+
+|                                                   |
+|                                                   |
+|              Contenu de la page                   |
+|                                                   |
+|                                                   |
++--------------------------------------------------+
+|  🏠     📋     [+]     📁     👤                |  <- Bottom Nav 64px
+| Accueil Demandes Creer Contrats Profil          |
++--------------------------------------------------+
+```
+
+---
+
+## Points Techniques
+
+- **Pas de lazy loading** sur MobileLayout pour eviter les conflits de contexte React
+- **Imports directs** des composants mobiles
+- **dexie sans hooks** pour le stockage offline (utilisation directe de la base IndexedDB)
+- **Hook useIsMobile** existant reutilise sans modification
 
