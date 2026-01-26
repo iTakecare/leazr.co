@@ -18,7 +18,7 @@ export default {
 			}
 		},
 		extend: {
-			colors: {
+		colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -52,32 +52,14 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Couleurs spécifiques pour l'éditeur de PDF
-				pdf: {
-					field: '#dbeafe',
-					selected: '#3b82f6',
-					grid: '#e2e8f0'
+				// Sidebar colors - WinBroker style
+				sidebar: {
+					DEFAULT: 'hsl(var(--sidebar))',
+					foreground: 'hsl(var(--sidebar-foreground))',
+					border: 'hsl(var(--sidebar-border))',
+					accent: 'hsl(var(--sidebar-accent))',
+					muted: 'hsl(var(--sidebar-muted))',
 				},
-				// Couleurs spécifiques pour Leazr - mises à jour en bleu
-				leazr: {
-					primary: '#3b82f6',
-					secondary: '#1e40af',
-					turquoise: '#0ea5e9',
-				},
-				// Nouvelles couleurs de dégradé bleu
-				blue: {
-					50: '#eff6ff',
-					100: '#dbeafe',
-					200: '#bfdbfe',
-					300: '#93c5fd',
-					400: '#60a5fa',
-					500: '#3b82f6',
-					600: '#2563eb',
-					700: '#1d4ed8',
-					800: '#1e40af',
-					900: '#1e3a8a',
-					950: '#172554'
-				}
 			},
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],

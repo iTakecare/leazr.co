@@ -19,7 +19,6 @@ interface MenuItem {
   icon: LucideIcon;
   label: string;
   href: string;
-  color: string;
 }
 
 const BrokerSidebar: React.FC = () => {
@@ -34,44 +33,37 @@ const BrokerSidebar: React.FC = () => {
     { 
       icon: LayoutDashboard, 
       label: "Dashboard", 
-      href: `${basePrefix}/dashboard`, 
-      color: "blue" 
+      href: `${basePrefix}/dashboard`
     },
     { 
       icon: Users, 
       label: "Clients", 
-      href: `${basePrefix}/clients`, 
-      color: "green" 
+      href: `${basePrefix}/clients`
     },
     { 
       icon: Calculator, 
       label: "Calculateur", 
-      href: `${basePrefix}/create-offer`, 
-      color: "purple" 
+      href: `${basePrefix}/create-offer`
     },
     { 
       icon: FileText, 
       label: "Demandes", 
-      href: `${basePrefix}/offers`, 
-      color: "orange" 
+      href: `${basePrefix}/offers`
     },
     { 
       icon: FileCheck, 
       label: "Contrats", 
-      href: `${basePrefix}/contracts`, 
-      color: "red" 
+      href: `${basePrefix}/contracts`
     },
     { 
       icon: BarChart3, 
       label: "Analytics", 
-      href: `${basePrefix}/analytics`, 
-      color: "indigo" 
+      href: `${basePrefix}/analytics`
     },
     { 
       icon: Settings, 
       label: "Paramètres", 
-      href: `${basePrefix}/settings`, 
-      color: "gray" 
+      href: `${basePrefix}/settings`
     },
   ];
 
@@ -80,26 +72,36 @@ const BrokerSidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
-      <div className="p-6 border-b border-sidebar-border">
-        <CompanyLogo 
-          logoSize="md"
-          showText={true}
-        />
+    <aside className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <CompanyLogo logoSize="sm" className="w-8 h-8" />
+          <div>
+            <h1 className="text-sm font-semibold text-white">{broker.name || 'Broker'}</h1>
+            <p className="text-xs text-sidebar-foreground/60">Espace Courtier</p>
+          </div>
+        </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => (
-          <SidebarMenuItem
-            key={item.href}
-            item={{ icon: item.icon, label: item.label, href: item.href, color: item.color }}
-            isActive={isActive}
-            collapsed={false}
-          />
-        ))}
+      <nav className="flex-1 p-3 overflow-y-auto">
+        <p className="text-[10px] font-semibold uppercase text-sidebar-foreground/40 px-3 mb-2">
+          Navigation
+        </p>
+        <ul className="space-y-1">
+          {menuItems.map((item) => (
+            <SidebarMenuItem
+              key={item.href}
+              item={{ icon: item.icon, label: item.label, href: item.href }}
+              isActive={isActive}
+              collapsed={false}
+            />
+          ))}
+        </ul>
       </nav>
 
-      <SidebarUserSection />
+      <div className="border-t border-sidebar-border">
+        <SidebarUserSection darkMode />
+      </div>
     </aside>
   );
 };

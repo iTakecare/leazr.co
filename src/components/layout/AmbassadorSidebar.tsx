@@ -34,31 +34,26 @@ const AmbassadorSidebar = memo(() => {
       label: "Tableau de bord",
       icon: BarChart,
       href: `/${companySlug}/ambassador/dashboard`,
-      color: "blue",
     },
     {
       label: "Mes Clients", 
       icon: Users,
       href: `/${companySlug}/ambassador/clients`,
-      color: "emerald",
     },
     {
       label: "Calculateur",
       icon: Calculator,
       href: `/${companySlug}/ambassador/create-offer`,
-      color: "orange",
     },
     {
       label: "Demandes",
       icon: FileText,
       href: `/${companySlug}/ambassador/offers`,
-      color: "indigo",
     },
     {
       label: "Catalogue",
       icon: Package,
       href: `/${companySlug}/ambassador/catalog`,
-      color: "pink",
     },
   ];
 
@@ -74,27 +69,26 @@ const AmbassadorSidebar = memo(() => {
     <div 
       className={cn(
         "fixed inset-y-0 left-0 z-20 hidden h-full flex-col transition-all duration-300 md:flex",
-        "bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl",
+        "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
         isCollapsed ? "w-16" : "w-64"
       )}
     >
       {/* Header */}
       <div className={cn(
-        "flex h-16 items-center border-b border-gray-200/60 transition-all duration-300",
-        "bg-gradient-to-r from-blue-50/80 to-purple-50/80",
-        isCollapsed ? "justify-start px-2" : "justify-between px-6"
+        "flex items-center border-b border-sidebar-border transition-all duration-300",
+        isCollapsed ? "justify-center p-3" : "justify-between p-4"
       )}>
         {isCollapsed ? (
-          <CompanyLogo showText={false} logoSize="sm" />
+          <CompanyLogo showText={false} logoSize="sm" className="w-8 h-8" />
         ) : (
           <>
             <div className="flex items-center gap-3">
-              <CompanyLogo showText={false} logoSize="sm" />
+              <CompanyLogo showText={false} logoSize="sm" className="w-8 h-8" />
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900 leading-tight">
+                <span className="text-sm font-semibold text-white leading-tight">
                   {companyName}
                 </span>
-                <span className="text-xs text-gray-500 leading-tight">
+                <span className="text-xs text-sidebar-foreground/60 leading-tight">
                   Ambassadeur
                 </span>
               </div>
@@ -103,7 +97,7 @@ const AmbassadorSidebar = memo(() => {
               variant="ghost"
               size="sm"
               onClick={toggleCollapse}
-              className="h-8 w-8 p-0 hover:bg-white/60"
+              className="h-8 w-8 p-0 hover:bg-white/10 text-sidebar-foreground/70"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -114,10 +108,15 @@ const AmbassadorSidebar = memo(() => {
       {/* Navigation */}
       <div className={cn(
         "flex-1 transition-all duration-300",
-        isCollapsed ? "px-2 py-4" : "px-4 py-6"
+        isCollapsed ? "px-2 py-3" : "p-3"
       )}>
+        {!isCollapsed && (
+          <p className="text-[10px] font-semibold uppercase text-sidebar-foreground/40 px-3 mb-2">
+            Navigation
+          </p>
+        )}
         <nav>
-          <ul className="space-y-2 list-none">
+          <ul className="space-y-1 list-none">
             {menuItems.map((item) => (
               <SidebarMenuItem
                 key={item.href}
@@ -132,12 +131,12 @@ const AmbassadorSidebar = memo(() => {
 
       {/* Collapse button (when collapsed) */}
       {isCollapsed && (
-        <div className="p-2 border-t border-gray-200/60">
+        <div className="p-2 border-t border-sidebar-border">
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleCollapse}
-            className="w-full h-8 p-0 hover:bg-gray-100/60"
+            className="w-full h-8 p-0 hover:bg-white/10 text-sidebar-foreground/70"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -145,7 +144,9 @@ const AmbassadorSidebar = memo(() => {
       )}
       
       {/* User Section */}
-      <SidebarUserSection collapsed={isCollapsed} />
+      <div className="border-t border-sidebar-border">
+        <SidebarUserSection collapsed={isCollapsed} darkMode />
+      </div>
     </div>
   );
 });

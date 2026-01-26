@@ -24,30 +24,17 @@ export const StatCard = ({
   className
 }: StatCardProps) => {
   return (
-    <Card 
-      className={cn(
-        "overflow-hidden transition-all hover:shadow-lg rounded-xl border-0", 
-        trend === 'up' ? "bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10" : 
-        trend === 'down' ? "bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-900/20 dark:to-rose-800/10" : 
-        "bg-gradient-to-br from-blue-50 to-indigo-100/30 dark:from-blue-900/20 dark:to-indigo-800/10",
-        className
-      )}
-    >
+    <Card className={cn("transition-shadow hover:shadow-md", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center",
-          trend === 'up' ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" : 
-          trend === 'down' ? "bg-rose-100 text-rose-600 dark:bg-rose-900/30" : 
-          "bg-blue-100 text-blue-600 dark:bg-blue-900/30"
-        )}>
-          <Icon className="h-5 w-5" />
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Icon className="h-4 w-4 text-primary" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-semibold">{value}</div>
         {description && (
           <p className="text-xs text-muted-foreground mt-1">
             {description}
@@ -56,9 +43,9 @@ export const StatCard = ({
         {change && (
           <p className={cn(
             "text-xs mt-2 py-1 px-2 rounded-full inline-block",
-            trend === 'up' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : 
-            trend === 'down' ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400" : 
-            "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+            trend === 'up' ? "bg-emerald-100 text-emerald-700" : 
+            trend === 'down' ? "bg-rose-100 text-rose-700" : 
+            "bg-muted text-muted-foreground"
           )}>
             {change}
           </p>

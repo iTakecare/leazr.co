@@ -7,21 +7,15 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useLocation } from "react-router-dom";
 import { 
   BarChart3, 
-  Users, 
   FileText, 
-  Calendar, 
-  CreditCard, 
   Settings, 
   Menu, 
   X,
   ChevronRight,
-  Building2,
   UserCheck,
   ClipboardList,
   Calculator,
   Package,
-  TrendingUp,
-  HelpCircle,
   Mail
 } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
@@ -42,17 +36,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Get company slug for navigation links
   const getCompanySlugFromPath = () => {
-    // Extrait le slug même s'il y a des segments après /admin
-    // Ex: /itakecare/admin/contracts/123 → "itakecare"
     const pathMatch = location.pathname.match(/^\/([^\/]+)\/(admin|client|ambassador)/);
     return pathMatch?.[1] || null;
   };
 
   const companySlug = getCompanySlugFromPath();
 
-  // Mémoriser les éléments de menu avec des couleurs améliorées
   const menuItems = useMemo(() => {
     const basePrefix = companySlug ? `/${companySlug}` : '';
     
@@ -61,7 +51,6 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         icon: BarChart3, 
         label: "Dashboard", 
         href: `${basePrefix}/admin/dashboard`, 
-        color: "blue",
         moduleSlug: "dashboard",
         alwaysVisible: true 
       },
@@ -69,130 +58,115 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         icon: UserCheck, 
         label: "CRM", 
         href: `${basePrefix}/admin/clients`, 
-        color: "orange",
         moduleSlug: "crm" 
       },
       { 
         icon: FileText, 
         label: "Contrats", 
         href: `${basePrefix}/admin/contracts`, 
-        color: "red",
         moduleSlug: "contracts" 
       },
       { 
         icon: ClipboardList, 
         label: "Demandes", 
         href: `${basePrefix}/admin/offers`, 
-        color: "indigo",
         moduleSlug: "offers" 
       },
       { 
         icon: Calculator, 
         label: "Factures", 
         href: `${basePrefix}/admin/invoicing`, 
-        color: "pink",
         moduleSlug: "invoicing" 
       },
       { 
         icon: Package, 
         label: "Catalogue", 
         href: `${basePrefix}/admin/catalog`, 
-        color: "emerald",
         moduleSlug: "catalog" 
       },
       { 
         icon: Mail, 
         label: "Chat Admin", 
         href: `${basePrefix}/admin/chat`, 
-        color: "violet",
         moduleSlug: "chat" 
       },
       { 
         icon: Settings, 
         label: "Paramètres", 
         href: `${basePrefix}/admin/settings`, 
-        color: "gray",
         moduleSlug: "settings",
         alwaysVisible: true 
       },
     ];
 
-    // Filtrer les items selon l'accès aux modules
     return allMenuItems.filter(item => {
       if (item.alwaysVisible) return true;
       return hasModuleAccess(item.moduleSlug);
     });
   }, [companySlug, hasModuleAccess]);
 
-  // Mémoriser la fonction isActive
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
-
-  // Mémoriser les handlers
   const toggleCollapsed = useCallback(() => setIsCollapsed(prev => !prev), []);
   const toggleMobile = useCallback(() => setIsMobileOpen(prev => !prev), []);
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);
-
-  // Mémoriser le nom de l'entreprise
   const companyName = useMemo(() => settings?.company_name || "Leazr", [settings?.company_name]);
 
   if (!user || !companyId) return null;
 
   const SidebarContent = memo(() => (
-    <div className="flex flex-col h-full bg-white/95 backdrop-blur-xl border-r border-gray-200/60 shadow-xl">
-      {/* Header avec logo - layout adapté pour collapsed */}
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+      {/* Header */}
       <div className={cn(
-        "border-b border-gray-200/60 bg-gradient-to-r from-blue-50/80 to-purple-50/80",
-        isCollapsed ? "p-2" : "p-4"
+        "border-b border-sidebar-border",
+        isCollapsed ? "p-3" : "p-4"
       )}>
         {isCollapsed ? (
-          // Mode collapsed : logo + nom de l'entreprise en compact
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-center gap-2">
             <CompanyLogo 
               logoSize="sm"
-              className="transition-all duration-300 w-8 h-8"
+              className="w-8 h-8"
             />
-            {!settingsLoading && companyName && (
-              <div className="text-left">
-                <p className="text-xs font-bold text-gray-900 truncate max-w-12 leading-tight">
-                  {companyName}
-                </p>
-              </div>
-            )}
           </div>
         ) : (
-          // Mode étendu : layout complet avec logo d'entreprise
-          <div className="flex items-center gap-3">
-            <CompanyLogo 
-              logoSize="sm"
-              className="transition-all duration-300"
-            />
-            <div className="min-w-0 flex-1">
-              {!settingsLoading && (
-                <>
-                  <h1 className="text-lg font-bold text-gray-900 truncate">{companyName}</h1>
-                  <p className="text-xs text-gray-600 truncate font-medium">Administration</p>
-                </>
-              )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CompanyLogo 
+                logoSize="sm"
+                className="w-8 h-8"
+              />
+              <div className="min-w-0 flex-1">
+                {!settingsLoading && (
+                  <>
+                    <h1 className="text-sm font-semibold text-white truncate">{companyName}</h1>
+                    <p className="text-xs text-sidebar-foreground/60">Administration</p>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <AdminNotificationBadge />
               <button
                 onClick={toggleCollapsed}
-                className="hidden lg:flex p-1.5 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+                className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 transition-colors"
               >
-                <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200 rotate-180" />
+                <ChevronRight className="h-4 w-4 text-sidebar-foreground/70 rotate-180" />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Navigation avec espacement adapté */}
+      {/* Navigation */}
       <nav className={cn(
         "flex-1 overflow-y-auto",
-        isCollapsed ? "px-1 py-2" : "p-4"
+        isCollapsed ? "px-2 py-3" : "p-3"
       )}>
-        <ul className={cn("space-y-1", isCollapsed ? "" : "space-y-2")}>
+        {!isCollapsed && (
+          <p className="text-[10px] font-semibold uppercase text-sidebar-foreground/40 px-3 mb-2">
+            Navigation
+          </p>
+        )}
+        <ul className="space-y-1">
           {menuItems.map((item) => (
             <SidebarMenuItem
               key={item.href}
@@ -205,21 +179,21 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         </ul>
       </nav>
 
-      {/* Bouton de collapse en bas en mode collapsed */}
+      {/* Collapse button when collapsed */}
       {isCollapsed && (
-        <div className="p-2 border-t border-gray-200/60">
+        <div className="p-2 border-t border-sidebar-border">
           <button
             onClick={toggleCollapsed}
-            className="hidden lg:flex w-full justify-center p-2 bg-white/80 border border-gray-200/60 rounded-lg shadow-sm hover:shadow-md hover:bg-white transition-all duration-200"
+            className="hidden lg:flex w-full justify-center p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
-            <ChevronRight className="h-4 w-4 text-gray-600 transition-transform duration-200" />
+            <ChevronRight className="h-4 w-4 text-sidebar-foreground/70" />
           </button>
         </div>
       )}
 
-      {/* User Section avec meilleur contraste */}
-      <div className="border-t border-gray-200/60 bg-gradient-to-r from-gray-50/80 to-blue-50/80">
-        <SidebarUserSection collapsed={isCollapsed} />
+      {/* User Section */}
+      <div className="border-t border-sidebar-border">
+        <SidebarUserSection collapsed={isCollapsed} darkMode />
       </div>
     </div>
   ));
@@ -229,12 +203,12 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       {/* Mobile Toggle Button */}
       <button
         onClick={toggleMobile}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/60 hover:bg-gray-50 transition-all duration-200"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-card rounded-xl shadow-lg border border-border hover:bg-accent transition-colors"
       >
-        {isMobileOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
+        {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Desktop Sidebar avec largeurs fixes */}
+      {/* Desktop Sidebar */}
       <div className={cn(
         "hidden lg:flex flex-col transition-all duration-300 ease-in-out",
         isCollapsed ? "w-16" : "w-64",
@@ -247,7 +221,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
           <div 
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             onClick={closeMobile}
           />
           <div className="absolute left-0 top-0 bottom-0 w-64 transform transition-transform duration-300">
