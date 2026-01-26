@@ -13,7 +13,7 @@ import type { Leaser } from "@/types/equipment";
 import { sendOfferReadyEmail } from "@/services/emailService";
 import PageTransition from "@/components/layout/PageTransition";
 import Container from "@/components/layout/Container";
-import { AlertCircle, ArrowLeft, Edit, FileText } from "lucide-react";
+import { AlertCircle, ArrowLeft, Edit, FileText, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,7 +22,7 @@ import { useDocumentMonitoring } from "@/hooks/offers/useDocumentMonitoring";
 import OfferTypeTag from "@/components/offers/OfferTypeTag";
 
 // Import des composants améliorés
-import InteractiveWorkflowStepper from "@/components/offers/detail/InteractiveWorkflowStepper";
+import WinBrokerWorkflowStepper from "@/components/offers/detail/WinBrokerWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
 import NewEquipmentSection from "@/components/offers/detail/NewEquipmentSection";
 import FinancialSection from "@/components/offers/detail/FinancialSection";
@@ -940,40 +940,38 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
       <Container>
         <TooltipProvider>
           <div className="p-2 md:p-4 space-y-6 pb-8">
-            {/* En-tête avec navigation */}
-            <div className="flex items-center justify-between">
+            {/* Header épuré style WinBroker */}
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <Button 
                   variant="ghost" 
+                  size="sm"
                   onClick={() => navigateToAdmin("offers")}
-                  className="flex items-center gap-2"
+                  className="h-9 w-9 p-0"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Retour
                 </Button>
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-2xl font-bold">
-                        {offer.dossier_number || `Offre #${offer.id?.slice(0, 8)}`}
-                      </h1>
-                      <OfferReferenceEditor
-                        offerId={offer.id}
-                        currentReference={offer.dossier_number}
-                        onUpdate={fetchOfferDetails}
-                      />
-                    </div>
-                    {offer.type && <OfferTypeTag type={offer.type} size="md" />}
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-xl font-semibold">
+                      {offer.dossier_number || `Offre #${offer.id?.slice(0, 8)}`}
+                    </h1>
+                    <OfferReferenceEditor
+                      offerId={offer.id}
+                      currentReference={offer.dossier_number}
+                      onUpdate={fetchOfferDetails}
+                    />
+                    {offer.type && <OfferTypeTag type={offer.type} size="sm" />}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-gray-600 font-medium">{offer.client_name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">{offer.client_name}</p>
                     
                     {/* Lien vers le contrat si existant */}
                     {offer.linkedContract && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 text-xs gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                        className="h-6 text-xs gap-1 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
                         onClick={() => navigateToAdmin(`contracts/${offer.linkedContract.id}`)}
                       >
                         <FileText className="w-3 h-3" />
@@ -983,10 +981,13 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   </div>
                 </div>
               </div>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
             </div>
 
-            {/* Stepper de progression interactif */}
-            <InteractiveWorkflowStepper 
+            {/* Stepper de progression style WinBroker */}
+            <WinBrokerWorkflowStepper 
               currentStatus={offer.workflow_status || 'draft'}
               offerId={offer.id}
               onStatusChange={handleStatusChange}
