@@ -12,8 +12,10 @@ import {
   ExternalLink,
   Trash2,
   Eye,
-  Upload
+  Upload,
+  UserX
 } from "lucide-react";
+import ReactivateOfferButton from "./ReactivateOfferButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,8 @@ interface CompactActionsSidebarProps {
   onEditCreatedDate?: () => void;
   uploadLinks?: any[];
   onOpenUploadLink?: () => void;
+  onClassifyNoFollowUp?: () => void;
+  onStatusUpdated?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -51,7 +55,9 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   onEditRequestDate,
   onEditCreatedDate,
   uploadLinks,
-  onOpenUploadLink
+  onOpenUploadLink,
+  onClassifyNoFollowUp,
+  onStatusUpdated
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const getStatusColor = (status: string) => {
@@ -126,6 +132,18 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
     'leaser_introduced'
   ];
   const canEdit = editableStatuses.includes(offer.workflow_status?.toLowerCase());
+
+  // Statuts pour lesquels on ne peut pas classer sans suite
+  const canClassifyNoFollowUp = ![
+    'without_follow_up',
+    'internal_rejected',
+    'leaser_rejected',
+    'validated',
+    'financed',
+    'signed',
+    'completed',
+    'contract_sent'
+  ].includes(offer.workflow_status?.toLowerCase());
 
   return (
     <div className="space-y-4">
@@ -264,6 +282,29 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             <Trash2 className="w-4 h-4 mr-2" />
             <span>Supprimer</span>
           </Button>
+          
+          {/* Bouton Classer sans suite */}
+          {canClassifyNoFollowUp && onClassifyNoFollowUp && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start text-sm h-8 text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300" 
+              onClick={onClassifyNoFollowUp}
+            >
+              <UserX className="w-4 h-4 mr-2" />
+              <span>Classer sans suite</span>
+            </Button>
+          )}
+          
+          {/* Bouton Réactiver le dossier */}
+          {onStatusUpdated && (
+            <ReactivateOfferButton
+              offerId={offer.id}
+              currentStatus={offer.workflow_status}
+              onStatusUpdated={onStatusUpdated}
+              size="sm"
+            />
+          )}
         </CardContent>
       </Card>
       

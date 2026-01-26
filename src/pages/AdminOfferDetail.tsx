@@ -42,6 +42,7 @@ import AmbassadorOfferNotes from "@/components/offers/detail/AmbassadorOfferNote
 import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteCard";
 import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
+import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 
@@ -79,6 +80,7 @@ const [notesLoading, setNotesLoading] = useState(false);
 
   // États pour les nouvelles actions
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [noFollowUpModalOpen, setNoFollowUpModalOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   // Hook pour gérer les documents et upload links
@@ -1064,6 +1066,8 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   }}
                   uploadLinks={uploadLinks}
                   onOpenUploadLink={handleOpenUploadLink}
+                  onClassifyNoFollowUp={() => setNoFollowUpModalOpen(true)}
+                  onStatusUpdated={fetchOfferDetails}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -1213,6 +1217,15 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           clientEmail={offer.client_email}
           clientName={offer.client_name}
           validity={offer.content_blocks?.cover_validity}
+        />
+
+        {/* Modal de classification sans suite */}
+        <NoFollowUpModal
+          isOpen={noFollowUpModalOpen}
+          onClose={() => setNoFollowUpModalOpen(false)}
+          offerId={offer.id}
+          currentStatus={offer.workflow_status}
+          onStatusUpdated={fetchOfferDetails}
         />
       </Container>
     </PageTransition>
