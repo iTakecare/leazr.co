@@ -22,8 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileContractsPage } from "@/components/mobile/pages";
 
 const Contracts = () => {
+  const isMobile = useIsMobile();
   const {
     filteredContracts,
     loading,
@@ -73,6 +76,23 @@ const Contracts = () => {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   };
+
+  // Mobile rendering
+  if (isMobile) {
+    return (
+      <MobileContractsPage
+        contracts={filteredContracts}
+        loading={loading}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        activeStatusFilter={activeStatusFilter}
+        onStatusFilterChange={setActiveStatusFilter}
+        onRefresh={fetchContracts}
+        onStatusChange={handleUpdateContractStatus}
+        onDeleteContract={handleDeleteContract}
+      />
+    );
+  }
 
   if (loading) {
     return (
