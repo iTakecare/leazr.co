@@ -1,300 +1,251 @@
 
 
-# Plan : Refonte de la page "Détail de demande" style WinBroker
+# Plan : Refonte du stepper de workflow style WinBroker
 
 ## Objectif
 
-Adapter la page de détail d'offre de Leazr pour qu'elle ressemble à celle de WinBroker, avec un focus particulier sur le composant de progression du workflow.
+Refondre le composant `WinBrokerWorkflowStepper` pour qu'il corresponde exactement au design WinBroker de la deuxieme capture, avec des icones plus visibles et un design professionnel.
 
 ---
 
-## Analyse comparative
+## Analyse du design cible (WinBroker - 2e capture)
 
-### Design WinBroker (cible)
+### Elements visuels cles
 
-**En-tête :**
-- Titre avec ID court (REQ-MKV4XR1V)
-- Badge de statut coloré (Nouvelle demande - bleu)
-- Description sous le titre
-- Menu "..." à droite
+1. **Boites d'etapes** : 
+   - Fond blanc avec bordure grise legere
+   - Bordure bleue epaisse pour l'etape active
+   - Coins arrondis (rounded-xl)
+   - Taille plus grande (~100px x 80px)
 
-**Stepper de progression :**
-- Section "Progression du workflow" avec titre et nom du workflow
-- Etapes numérotées (1, 2, 3, 4, 5, 6, 7)
-- Icônes dans des cercles gris clair
-- Connecteurs en pointillés avec flèches (- - - →)
-- Etape active : cercle bleu avec popup/tooltip montrant :
-  - Badge "En cours"
-  - Bouton "Vers [prochaine étape] →"
-- Etapes futures : icône + titre + "À venir" en gris
-- Etapes complètes : cercle vert avec check
+2. **Numeros d'etapes** :
+   - Petit badge circulaire dans le coin superieur droit de la boite
+   - Fond gris clair pour les etapes a venir
+   - Check vert pour les etapes completees
 
-**Layout principal :**
-- Card "Informations" à gauche avec champs en grille
-- Card "Client" à droite en sidebar
+3. **Icones** :
+   - Grande taille (w-8 h-8)
+   - Centrees dans la boite
+   - Couleur grise pour les etapes a venir
+   - Couleur bleue pour l'etape active
 
-### Design Leazr actuel
+4. **Labels** :
+   - Nom de l'etape sous la boite
+   - Badge "En cours" / "Terminee" / "A venir" en dessous
 
-- Stepper horizontal avec boutons circulaires colorés (vert/bleu/gris)
-- Lignes de progression pleines
-- Badges sous chaque étape
-- Tabs pour la navigation (Vue d'ensemble, Financier, Documents...)
-- Sidebar à droite avec Statut, Actions, Détails
+5. **Connecteurs** :
+   - Fleches legeres entre les boites (`—→`)
+   - Style discret
+
+6. **Popup d'action** (etape active) :
+   - Attachee en bas de la boite active
+   - Contient les boutons d'action
+   - "Demander documents" avec icone
+   - "Retour a [etape precedente]" en lien orange/rouge
+   - "Vers [prochaine etape] →" en bouton bleu
 
 ---
 
-## Modifications à apporter
-
-### 1. Nouveau composant `WinBrokerWorkflowStepper`
-
-Créer un nouveau stepper qui reproduit le design WinBroker :
+## Structure du nouveau composant
 
 ```text
-Structure visuelle :
-
-  (1)  - - → (2) - - → (3) - - → (4) - - → (5) - - → (6) - - → (7)
-  [●]        ○          ○          ○          ○          ○          ○
-  📄        📋         📬         💼         ✍️         ✓          📞
-  Brouillon Collecte   Etude     Proposition Signature  Cloturé   Contact
-  En cours  À venir    À venir   À venir     À venir    À venir   À venir
-  ┌─────────────┐
-  │ En cours    │
-  │ Vers xxx →  │
-  └─────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ Progression du workflow  •  Workflow Winfinance                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐            │
+│  │    ✓    ●│  —→  │    [2]  ●│  —→  │    [3]  ●│  —→  │    [4]  ●│            │
+│  │    📄    │      │    📋    │      │    📬    │      │    ✍️    │            │
+│  │          │      │   ====   │      │          │      │          │            │
+│  └──────────┘      └══════════┘      └──────────┘      └──────────┘            │
+│   Nouvelle         Collecte          Etude du         Proposition              │
+│   demande          documents         dossier          client                   │
+│   Terminee         En cours          A venir          A venir                  │
+│                    ┌─────────────┐                                             │
+│                    │ 📄 Demander │                                             │
+│                    │   documents │                                             │
+│                    │─────────────│                                             │
+│                    │↩ Retour a   │                                             │
+│                    │   Nouvelle  │                                             │
+│                    │─────────────│                                             │
+│                    │Vers Etude→  │                                             │
+│                    └─────────────┘                                             │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
-
-**Caractéristiques :**
-- Numéros d'étapes dans des cercles
-- Connecteurs en pointillés avec flèches
-- Popup sur l'étape active avec :
-  - Badge de statut
-  - Bouton d'action vers l'étape suivante
-- Texte "À venir" pour les étapes futures
-- Style épuré, pas de couleurs vives sauf bleu pour l'étape active
-
-### 2. Refonte de l'en-tête de page
-
-Modifier la section header dans `AdminOfferDetail.tsx` :
-- Ajouter un bouton retour avec flèche (←)
-- Titre : ID de l'offre avec badge de statut à côté
-- Sous-titre : description/type de l'offre
-- Menu d'actions "..." à droite
-
-### 3. Réorganisation du layout
-
-**Section principale :**
-- Card "Informations client" avec design grille 2 colonnes
-- Formulaire propre avec labels en haut des champs
-
-**Sidebar droite :**
-- Card "Client" avec :
-  - Sélecteur de client
-  - Email cliquable
-  - Téléphone cliquable
-  - Bouton "Voir la fiche client"
-
-### 4. Mise à jour des styles de composants
-
-- Cards : bordures très subtiles, ombres légères
-- Titres de sections avec icônes
-- Espacements généreux
-- Typographie cohérente
 
 ---
 
-## Fichiers à créer/modifier
+## Modifications du code
 
-| Fichier | Action | Description |
-|---------|--------|-------------|
-| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Créer | Nouveau stepper style WinBroker |
-| `src/pages/AdminOfferDetail.tsx` | Modifier | Intégrer le nouveau stepper et refonte header |
-| `src/components/offers/detail/ClientSection.tsx` | Modifier | Design WinBroker pour la card client |
-| `src/components/offers/detail/CompactActionsSidebar.tsx` | Modifier | Simplifier et adapter au nouveau style |
+### Fichier : `src/components/offers/detail/WinBrokerWorkflowStepper.tsx`
 
----
+#### 1. Structure de chaque etape
 
-## Détails techniques
-
-### Composant `WinBrokerWorkflowStepper`
-
-```typescript
-interface WinBrokerWorkflowStepperProps {
-  currentStatus: string;
-  offerId: string;
-  onStatusChange?: (status: string) => void;
-  internalScore?: 'A' | 'B' | 'C' | null;
-  leaserScore?: 'A' | 'B' | 'C' | null;
-  onAnalysisClick?: (analysisType: 'internal' | 'leaser') => void;
-  offer?: any;
-}
-
-// Structure d'une étape
-interface WorkflowStep {
-  number: number;
-  key: string;
-  label: string;
-  icon: LucideIcon;
-  status: 'completed' | 'current' | 'upcoming';
-}
-```
-
-**Rendu visuel :**
+Remplacer la structure actuelle par des boites plus grandes avec badge de numero :
 
 ```tsx
-<div className="bg-white rounded-lg border p-6">
-  {/* Titre de section */}
-  <div className="flex items-center gap-2 mb-6">
-    <GitBranch className="w-5 h-5 text-primary" />
-    <h3 className="text-lg font-semibold">Progression du workflow</h3>
-    <span className="text-sm text-muted-foreground">• {workflowName}</span>
+{/* Step box */}
+<div className={cn(
+  "relative flex flex-col items-center justify-center p-4 rounded-xl border-2 bg-white transition-all min-w-[100px] min-h-[80px]",
+  isCompleted && "border-primary/30",
+  isActive && "border-primary shadow-md",
+  isUpcoming && "border-gray-200",
+  canClick && !updating && "cursor-pointer hover:shadow-sm"
+)}>
+  {/* Number badge in corner */}
+  <div className={cn(
+    "absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
+    isCompleted && "bg-primary text-white",
+    isActive && "bg-primary text-white",
+    isUpcoming && "bg-gray-100 text-gray-500"
+  )}>
+    {isCompleted ? <Check className="w-3 h-3" /> : step.number}
   </div>
 
-  {/* Stepper horizontal */}
-  <div className="relative flex items-start justify-between">
-    {steps.map((step, index) => (
-      <div key={step.key} className="flex flex-col items-center relative flex-1">
-        {/* Numéro dans cercle */}
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2",
-          step.status === 'completed' && "bg-green-500 border-green-500 text-white",
-          step.status === 'current' && "bg-primary border-primary text-white",
-          step.status === 'upcoming' && "bg-gray-50 border-gray-200 text-gray-400"
-        )}>
-          {step.status === 'completed' ? <Check className="w-4 h-4" /> : step.number}
-        </div>
-
-        {/* Connecteur pointillé */}
-        {index < steps.length - 1 && (
-          <div className="absolute left-1/2 top-4 w-full flex items-center">
-            <div className="flex-1 border-t-2 border-dashed border-gray-300" />
-            <ChevronRight className="w-4 h-4 text-gray-300" />
-          </div>
-        )}
-
-        {/* Icône de l'étape */}
-        <div className="mt-3 p-2 rounded-lg bg-gray-50">
-          <step.icon className="w-5 h-5 text-gray-500" />
-        </div>
-
-        {/* Label */}
-        <span className="mt-2 text-sm font-medium text-center">{step.label}</span>
-        
-        {/* Sous-label statut */}
-        <span className={cn(
-          "text-xs",
-          step.status === 'current' ? "text-primary" : "text-muted-foreground"
-        )}>
-          {step.status === 'completed' ? 'Terminé' : 
-           step.status === 'current' ? 'En cours' : 'À venir'}
-        </span>
-
-        {/* Popup pour étape active */}
-        {step.status === 'current' && (
-          <div className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-white border rounded-lg shadow-lg p-3 min-w-[180px] z-10">
-            <Badge className="mb-2">En cours</Badge>
-            <Button size="sm" className="w-full" onClick={() => goToNextStep()}>
-              Vers {nextStepLabel} <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
+  {/* Large icon */}
+  <Icon className={cn(
+    "w-8 h-8",
+    isCompleted && "text-primary",
+    isActive && "text-primary",
+    isUpcoming && "text-gray-400"
+  )} />
 </div>
 ```
 
-### Modification de `AdminOfferDetail.tsx`
+#### 2. Connecteurs entre etapes
 
-**Nouveau header :**
+Remplacer les connecteurs pointilles par des fleches simples :
 
 ```tsx
-{/* Header épuré style WinBroker */}
-<div className="flex items-center justify-between mb-6">
-  <div className="flex items-center gap-4">
-    <Button variant="ghost" size="sm" onClick={() => navigateToAdmin("offers")}>
-      <ArrowLeft className="w-4 h-4" />
-    </Button>
-    <div>
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold">
-          {offer.dossier_number || `Offre #${offer.id?.slice(0, 8)}`}
-        </h1>
-        <Badge className="bg-primary/10 text-primary border-primary/20">
-          {getStatusLabel(offer.workflow_status)}
-        </Badge>
-      </div>
-      <p className="text-sm text-muted-foreground mt-1">
-        {offer.client_name} • {translateOfferType(offer.type)}
-      </p>
-    </div>
+{/* Arrow connector */}
+{index < activeSteps.length - 1 && (
+  <div className="flex items-center px-2 text-gray-300">
+    <span className="text-lg">—</span>
+    <ChevronRight className="w-4 h-4 -ml-1" />
   </div>
-  <Button variant="ghost" size="icon">
-    <MoreHorizontal className="w-5 h-5" />
-  </Button>
-</div>
+)}
 ```
 
-### Modification de `ClientSection.tsx`
-
-Style WinBroker avec layout plus épuré :
+#### 3. Labels et badges de statut
 
 ```tsx
-<Card>
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2 text-base">
-      <User className="w-4 h-4" />
-      Client
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="space-y-4">
-    {/* Sélecteur/nom du client */}
-    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-      <Avatar className="h-8 w-8">
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-      <span className="font-medium">{offer.client_name}</span>
-    </div>
+{/* Step label */}
+<span className="mt-3 text-sm font-medium text-center text-foreground">
+  {step.label}
+</span>
 
-    {/* Email */}
-    <a href={`mailto:${offer.client_email}`} 
-       className="flex items-center gap-2 text-sm text-primary hover:underline">
-      <Mail className="w-4 h-4" />
-      {offer.client_email}
-    </a>
+{/* Status badge */}
+<Badge 
+  variant={isActive ? "default" : "secondary"}
+  className={cn(
+    "mt-1",
+    isCompleted && "bg-primary/10 text-primary",
+    isActive && "bg-primary text-white",
+    isUpcoming && "bg-gray-100 text-gray-500"
+  )}
+>
+  {isCompleted ? 'Terminee' : isActive ? 'En cours' : 'A venir'}
+</Badge>
+```
 
-    {/* Téléphone */}
-    <a href={`tel:${offer.client_phone}`}
-       className="flex items-center gap-2 text-sm text-primary hover:underline">
-      <Phone className="w-4 h-4" />
-      {offer.client_phone}
-    </a>
+#### 4. Popup d'action amelioree
 
-    {/* Bouton fiche client */}
-    <Button variant="outline" className="w-full" asChild>
-      <Link to={`/${companySlug}/admin/clients/${offer.client_id}`}>
-        <ExternalLink className="w-4 h-4 mr-2" />
-        Voir la fiche client
-      </Link>
-    </Button>
-  </CardContent>
-</Card>
+```tsx
+{/* Action popup for active step */}
+{isActive && (
+  <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px] z-20 overflow-hidden">
+    {/* Document request button */}
+    {step.enables_scoring && (
+      <button 
+        className="w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-gray-50 border-b border-gray-100"
+        onClick={() => onAnalysisClick?.(step.scoring_type)}
+      >
+        <FileText className="w-4 h-4 text-gray-500" />
+        Demander documents
+      </button>
+    )}
+
+    {/* Back to previous step */}
+    {currentIndex > 0 && (
+      <button 
+        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-orange-600 hover:bg-orange-50 border-b border-gray-100"
+        onClick={() => handleStepClick(activeSteps[currentIndex - 1].key, currentIndex - 1)}
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Retour a {activeSteps[currentIndex - 1].label}
+      </button>
+    )}
+
+    {/* Next step button */}
+    {nextStep && (
+      <button 
+        className="w-full flex items-center justify-between px-4 py-3 text-sm bg-primary text-white hover:bg-primary/90"
+        onClick={() => handleStepClick(nextStep.key, currentIndex + 1)}
+      >
+        <span>Vers {nextStep.label}</span>
+        <ArrowRight className="w-4 h-4" />
+      </button>
+    )}
+  </div>
+)}
+```
+
+#### 5. Layout horizontal responsive
+
+```tsx
+{/* Stepper container - horizontal scroll on mobile */}
+<div className="relative flex items-start justify-start gap-0 overflow-x-auto pb-20">
+  {activeSteps.map((step, index) => (
+    <React.Fragment key={step.key}>
+      {/* Step column */}
+      <div className="flex flex-col items-center relative min-w-[120px]">
+        {/* Step box + labels + popup */}
+      </div>
+      
+      {/* Arrow between steps */}
+      {index < activeSteps.length - 1 && (
+        <div className="flex items-center self-center mt-4 text-gray-300">
+          <span className="text-lg">—</span>
+          <ChevronRight className="w-4 h-4 -ml-1" />
+        </div>
+      )}
+    </React.Fragment>
+  ))}
+</div>
 ```
 
 ---
 
-## Résultat attendu
+## Resume des changements visuels
 
-Après ces modifications, la page de détail d'offre Leazr aura :
+| Element | Avant (Leazr) | Apres (WinBroker) |
+|---------|---------------|-------------------|
+| Boite d'etape | Petit cercle + icone separee | Grande boite avec bordure |
+| Numero | Dans le cercle | Badge dans le coin |
+| Icone | Petite (w-5 h-5) dans boite grise | Grande (w-8 h-8) centree |
+| Etape completee | Cercle vert avec check | Boite avec badge check vert |
+| Etape active | Cercle bleu | Boite avec bordure bleue epaisse + ombre |
+| Connecteurs | Ligne pointillee + chevron | Fleche simple `—→` |
+| Popup | Badge "En cours" + bouton | Menu complet avec 3 actions |
+| Statut | Texte simple | Badge colore |
 
-- **Header épuré** avec ID, badge de statut, et description
-- **Stepper de workflow style WinBroker** avec :
-  - Numéros d'étapes dans des cercles
-  - Connecteurs en pointillés avec flèches
-  - Popup sur l'étape active avec action rapide
-  - Labels "En cours" / "À venir" / "Terminé"
-- **Layout propre** avec cards blanches et ombres subtiles
-- **Card Client** dans la sidebar avec liens cliquables
-- **Design cohérent** avec le reste de la refonte WinBroker
+---
 
-Le design sera professionnel, moderne, et offrira une meilleure lisibilité de la progression du dossier.
+## Fichiers a modifier
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/offers/detail/WinBrokerWorkflowStepper.tsx` | Refonte complete du rendu visuel |
+
+---
+
+## Resultat attendu
+
+Apres cette refonte, le stepper de workflow aura :
+- Des boites d'etapes plus grandes et plus visibles
+- Des icones prominentes et claires
+- Un badge de numero dans le coin de chaque boite
+- Une bordure bleue bien visible pour l'etape active
+- Un menu d'actions complet attache a l'etape active
+- Un design professionnel et moderne alignee avec WinBroker
 
