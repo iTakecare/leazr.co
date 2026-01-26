@@ -46,7 +46,7 @@ const OfferCompleteHistory: React.FC<OfferCompleteHistoryProps> = ({ offerId }) 
         <TabsTrigger value="complete">
           Historique complet
           {completeHistory.length > 0 && (
-            <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
+            <span className="ml-1 text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
               {completeHistory.length}
             </span>
           )}
@@ -54,7 +54,7 @@ const OfferCompleteHistory: React.FC<OfferCompleteHistoryProps> = ({ offerId }) 
         <TabsTrigger value="workflow">
           Changements de statut
           {workflowHistory.length > 0 && (
-            <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
+            <span className="ml-1 text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
               {workflowHistory.length}
             </span>
           )}
