@@ -1,9 +1,10 @@
-
 import React from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Sidebar from "./Sidebar";
 import LeazrSaaSSidebar from "./LeazrSaaSSidebar";
+import MobileLayout from "@/components/mobile/MobileLayout";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,7 +12,8 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { user, isSuperAdmin, isLoading } = useAuth();
+  const { isSuperAdmin, isLoading } = useAuth();
+  const isMobile = useIsMobile();
 
   // Vérifier si on est sur une page SaaS Leazr (sous /admin/leazr-saas-*)
   const isLeazrSaaSPage = location.pathname.startsWith('/admin/leazr-saas-');
@@ -22,6 +24,12 @@ const Layout = ({ children }: LayoutProps) => {
   // Utiliser la sidebar SaaS si on est admin SaaS et sur une page SaaS
   const shouldUseLeazrSaaSSidebar = isLeazrSaaSAdmin && isLeazrSaaSPage;
 
+  // Rendu mobile
+  if (isMobile) {
+    return <MobileLayout>{children}</MobileLayout>;
+  }
+
+  // Rendu desktop
   return (
     <div className="h-screen bg-background flex w-full overflow-hidden">
       {shouldUseLeazrSaaSSidebar ? (
