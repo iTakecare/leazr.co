@@ -152,7 +152,7 @@ const Offers = () => {
                   variant={viewMode === 'list' ? 'default' : 'ghost'} 
                   size="sm"
                   onClick={() => setViewMode('list')} 
-                  className={`rounded-none px-3 ${viewMode === 'list' ? 'text-white' : 'text-foreground'}`}
+                  className={`rounded-none px-3 ${viewMode === 'list' ? '!text-white' : 'text-slate-700'}`}
                 >
                   <List className="h-4 w-4 mr-2" />
                   Liste
