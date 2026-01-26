@@ -146,11 +146,12 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               <Link
                 key={item.href}
                 to={item.href}
-                className="relative flex items-center justify-center -mt-6"
+                className="relative flex items-center justify-center -mt-8"
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-xl border-4 border-background"
+                  className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 text-white shadow-2xl border-[5px] border-white"
+                  style={{ boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)' }}
                 >
                   <Icon className="h-7 w-7" />
                 </motion.div>
