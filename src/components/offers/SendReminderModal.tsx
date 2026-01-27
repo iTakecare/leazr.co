@@ -609,7 +609,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           <Button variant="outline" onClick={onClose} disabled={loading || generatingPdf}>
             Annuler
           </Button>
-          <Button onClick={handleSend} disabled={loading || loadingTemplate || generatingPdf || !selectedReminder}>
+          <Button onClick={handleSend} disabled={loading || loadingTemplate || generatingPdf || !selectedReminder} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {generatingPdf ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
