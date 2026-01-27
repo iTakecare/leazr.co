@@ -1,139 +1,119 @@
 
-# Plan : Corriger le comportement de la checkbox "Déduire"
+# Plan : Ajouter une adresse email en copie (CC) pour les contrats
 
-## Problème Identifié
+## Objectif
 
-La checkbox "Déduire" a un comportement **inversé** et les totaux/moyennes ne se mettent pas à jour correctement.
+Permettre de spécifier deux adresses email lors de l'envoi d'un contrat en propre (self-leasing) :
+1. **Email principal** : destinataire pour la signature
+2. **Email en copie (CC)** : reçoit le contrat en copie (comptabilité, manager, etc.)
 
-### Contexte SQL
-La fonction `get_monthly_financial_data` calcule :
-- `margin` = CA - Notes de crédit - Achats → **Les NC sont déjà déduites**
-- `credit_notes_amount` = valeur positive des NC
+## État Actuel
 
-### Problème dans CompanyDashboard.tsx
-```tsx
-// Ligne 311 - Comportement actuel INVERSÉ
-{formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
+| Élément | Situation actuelle |
+|---------|-------------------|
+| Table `contracts` | 1 seul champ `client_email` |
+| Modal d'envoi | 1 seul champ destinataire |
+| Edge function | Envoie à 1 seul `to` |
+
+## Modifications Requises
+
+### 1. Migration Base de Données
+
+Ajouter un nouveau champ `cc_email` à la table `contracts` :
+
+```sql
+ALTER TABLE contracts 
+ADD COLUMN cc_email TEXT;
+
+COMMENT ON COLUMN contracts.cc_email IS 'Adresse email en copie lors de l''envoi du contrat';
 ```
 
-Quand `includeCreditNotes = true` (coché), on **ajoute** les NC à la marge...
-Mais la marge SQL a **déjà** les NC déduites !
+### 2. Modal d'envoi `SendContractEmailModal.tsx`
 
-**Résultat** : Cocher "Déduire" fait l'inverse → annule la déduction.
+**Fichier** : `src/components/offers/detail/SendContractEmailModal.tsx`
 
-## Solution
+Ajouter un second champ email pour la copie :
 
-### 1. Inverser la logique de la checkbox
-
-La checkbox cochée = afficher avec déduction (comportement SQL par défaut)
-La checkbox décochée = afficher sans déduction (ajouter les NC pour les "annuler")
-
-```tsx
-// AVANT (bugué)
-month.marge + (includeCreditNotes ? month.creditNotes : 0)
-
-// APRÈS (corrigé)
-includeCreditNotes ? month.marge : month.marge + month.creditNotes
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ 📧 Envoyer le contrat de location                      [x]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Email du destinataire (signature)                          │
+│  [client@example.com_____________________________]          │
+│                                                             │
+│  Email en copie (optionnel)                                 │
+│  [comptabilite@example.com_______________________]          │
+│  ℹ️ Cette personne recevra le contrat en copie              │
+│                                                             │
+│  Objet du mail                                              │
+│  [Contrat de location - REF-001__________________]          │
+│                                                             │
+│  Corps du message                                           │
+│  [________________________________________________]         │
+│  [________________________________________________]         │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                          [Annuler]  [Envoyer le contrat 📤] │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Corriger les totaux et moyennes
+**Modifications** :
+- Ajouter state `ccEmail` (ligne ~42)
+- Ajouter champ Input pour le CC (après ligne 233)
+- Passer `cc` au body de l'appel edge function (ligne 177)
+- Sauvegarder dans `contracts.cc_email` (ligne 151)
 
-Les objets `totals` et `moyennes` doivent aussi tenir compte de la checkbox.
+### 3. Edge Function `send-contract-email`
 
-## Fichier à Modifier
+**Fichier** : `supabase/functions/send-contract-email/index.ts`
+
+**Modifications** :
+- Ajouter `cc?: string` dans l'interface `ContractEmailRequest`
+- Utiliser le paramètre `cc` de Resend lors de l'envoi
+
+```typescript
+// Interface mise à jour
+interface ContractEmailRequest {
+  to: string;
+  cc?: string;  // Nouveau champ optionnel
+  subject: string;
+  body: string;
+  signatureLink: string;
+  contractId: string;
+  contractNumber?: string;
+  offerNumber?: string;
+}
+
+// Envoi avec CC
+const emailResponse = await resend.emails.send({
+  from: `${fromName} <${fromEmail}>`,
+  to: [to],
+  cc: cc ? [cc] : undefined,  // Ajouter CC si présent
+  subject: subject,
+  html: htmlContent,
+});
+```
+
+## Fichiers à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/dashboard/CompanyDashboard.tsx` | Inverser la logique et corriger les totaux |
+| Migration SQL | Ajouter colonne `cc_email` à `contracts` |
+| `src/components/offers/detail/SendContractEmailModal.tsx` | Ajouter champ CC + envoyer dans l'API |
+| `supabase/functions/send-contract-email/index.ts` | Supporter le paramètre `cc` dans Resend |
 
-## Modifications Détaillées
+## Comportement Final
 
-### A. Inverser le calcul dans les lignes mensuelles (lignes 310-317)
+1. L'utilisateur ouvre le modal d'envoi du contrat
+2. Il peut (optionnellement) ajouter une adresse en copie
+3. L'email est envoyé au destinataire principal ET à l'adresse CC
+4. Les deux adresses reçoivent le même email avec le bouton "Signer le contrat"
+5. Le champ `cc_email` est sauvegardé dans le contrat pour historique
 
-**Avant** :
-```tsx
-<TableCell className="text-right font-medium text-emerald-700">
-  {formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
-</TableCell>
-<TableCell className="text-right font-medium text-emerald-700">
-  {month.ca > 0 
-    ? (((month.marge + (includeCreditNotes ? month.creditNotes : 0)) / month.ca) * 100).toFixed(1)
-    : '0.0'}%
-</TableCell>
-```
+## Notes Techniques
 
-**Après** :
-```tsx
-<TableCell className="text-right font-medium text-emerald-700">
-  {formatCurrency(includeCreditNotes ? month.marge : month.marge + month.creditNotes)}
-</TableCell>
-<TableCell className="text-right font-medium text-emerald-700">
-  {month.ca > 0 
-    ? ((includeCreditNotes ? month.marge : month.marge + month.creditNotes) / month.ca * 100).toFixed(1)
-    : '0.0'}%
-</TableCell>
-```
-
-### B. Corriger le calcul des totaux (lignes 75-81)
-
-**Avant** :
-```tsx
-const totals = {
-  ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
-  directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
-  achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
-  marge: monthlyData.reduce((sum, month) => sum + month.marge, 0) + (includeCreditNotes ? totalCreditNotes : 0),
-  creditNotes: totalCreditNotes,
-};
-```
-
-**Après** :
-```tsx
-const margeBase = monthlyData.reduce((sum, month) => sum + month.marge, 0);
-const totals = {
-  ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
-  directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
-  achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
-  marge: includeCreditNotes ? margeBase : margeBase + totalCreditNotes,
-  creditNotes: totalCreditNotes,
-};
-```
-
-### C. Corriger le calcul des moyennes (lignes 83-89)
-
-Le calcul du `margePercent` dans moyennes dépend de `totals.marge` qui est maintenant correct, mais on doit s'assurer que le calcul est bien réactif.
-
-**Après** (inchangé car dépend de totals.marge) :
-```tsx
-const moyennes = {
-  ca: monthlyData.length ? totals.ca / monthlyData.length : 0,
-  directSales: monthlyData.length ? totals.directSales / monthlyData.length : 0,
-  achats: monthlyData.length ? totals.achats / monthlyData.length : 0,
-  marge: monthlyData.length ? totals.marge / monthlyData.length : 0,
-  margePercent: totals.ca > 0 ? (totals.marge / totals.ca) * 100 : 0
-};
-```
-
-### D. Vérifier que les lignes TOTAL et MOYENNE utilisent les bons objets
-
-Les lignes 338-348 affichent `totals.achats`, `totals.marge`, et `moyennes.margePercent` - ces valeurs seront maintenant correctement mises à jour quand la checkbox change.
-
-## Résumé des Changements
-
-| Élément | Avant (bugué) | Après (corrigé) |
-|---------|---------------|-----------------|
-| Marge ligne | `marge + (checked ? NC : 0)` | `checked ? marge : marge + NC` |
-| % ligne | `(marge + NC) / CA` | `(checked ? marge : marge+NC) / CA` |
-| Total marge | `sum(marge) + (checked ? totalNC : 0)` | `checked ? sum(marge) : sum(marge)+totalNC` |
-| Moyenne % | Calculé depuis totals.marge | Reste inchangé, sera réactif |
-
-## Comportement Attendu
-
-| Checkbox | Marge affichée | Explication |
-|----------|----------------|-------------|
-| ☑️ Déduire | Marge SQL (NC déjà déduites) | Affiche la marge nette |
-| ☐ Déduire | Marge + NC (annule la déduction) | Affiche la marge brute |
-
-Pour Janvier avec NC = -10 460,4€ :
-- ☑️ Coché : Marge = 18 780,5€ (comme dans votre capture)
-- ☐ Décoché : Marge = 18 780,5€ + 10 460,4€ = **29 240,9€**
+- Le champ CC est **optionnel** - pas de changement pour les utilisateurs actuels
+- L'API Resend supporte nativement le champ `cc`
+- L'email CC reçoit exactement le même contenu (pas de différenciation)
+- L'adresse CC est stockée pour pouvoir la réutiliser lors des relances
