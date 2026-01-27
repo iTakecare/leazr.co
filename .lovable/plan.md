@@ -1,175 +1,139 @@
 
-# Plan : Prévisualiser le PDF avant l'envoi du rappel
+# Plan : Corriger le comportement de la checkbox "Déduire"
 
-## Objectif
+## Problème Identifié
 
-Ajouter un bouton "Prévisualiser le PDF" dans le modal `SendReminderModal` pour permettre à l'utilisateur de voir le PDF de l'offre qui sera joint à l'email avant de l'envoyer.
+La checkbox "Déduire" a un comportement **inversé** et les totaux/moyennes ne se mettent pas à jour correctement.
 
-## Contexte Actuel
+### Contexte SQL
+La fonction `get_monthly_financial_data` calcule :
+- `margin` = CA - Notes de crédit - Achats → **Les NC sont déjà déduites**
+- `credit_notes_amount` = valeur positive des NC
 
-- Le modal génère déjà le PDF lors de l'envoi via `generateCommercialOfferPDF(offer.id)` (ligne 311)
-- Les composants `PDFViewer` et le hook `usePDFPreview` existent déjà dans le projet
-- Le bouton de prévisualisation ne doit apparaître que pour les rappels de type `offer_reminder` (qui incluent un PDF)
-
-## Design Proposé
-
-```text
-┌────────────────────────────────────────────────────────────────┐
-│  📧 Rappel Offre L1 - Jean Dupont                        [x]   │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  Destinataire: jean@example.com                                │
-│                                                                │
-│  Type de rappel: [Docs L1] [Docs L2] [Offre L1*] [Offre L2]   │
-│                                                                │
-│  Sujet: [_____________________________________]                │
-│                                                                │
-│  Message personnalisé (optionnel)                              │
-│  [Éditeur riche ________________________]                      │
-│                                                                │
-│  Signature de l'email: [Sélection ▼]                           │
-│                                                                │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ 📄 Pièce jointe PDF                                      │ │
-│  │                                                          │ │
-│  │ Offre_Jean_Dupont.pdf           [ 👁️ Prévisualiser ]    │ │
-│  │                                                          │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-│  Aperçu de l'email                                             │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ [Contenu HTML de l'email...]                             │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-├────────────────────────────────────────────────────────────────┤
-│                           [Annuler]  [Envoyer le rappel 📤]    │
-└────────────────────────────────────────────────────────────────┘
+### Problème dans CompanyDashboard.tsx
+```tsx
+// Ligne 311 - Comportement actuel INVERSÉ
+{formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
 ```
+
+Quand `includeCreditNotes = true` (coché), on **ajoute** les NC à la marge...
+Mais la marge SQL a **déjà** les NC déduites !
+
+**Résultat** : Cocher "Déduire" fait l'inverse → annule la déduction.
+
+## Solution
+
+### 1. Inverser la logique de la checkbox
+
+La checkbox cochée = afficher avec déduction (comportement SQL par défaut)
+La checkbox décochée = afficher sans déduction (ajouter les NC pour les "annuler")
+
+```tsx
+// AVANT (bugué)
+month.marge + (includeCreditNotes ? month.creditNotes : 0)
+
+// APRÈS (corrigé)
+includeCreditNotes ? month.marge : month.marge + month.creditNotes
+```
+
+### 2. Corriger les totaux et moyennes
+
+Les objets `totals` et `moyennes` doivent aussi tenir compte de la checkbox.
 
 ## Fichier à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/offers/SendReminderModal.tsx` | Ajouter le hook `usePDFPreview`, le composant `PDFViewer`, et un bouton de prévisualisation |
+| `src/components/dashboard/CompanyDashboard.tsx` | Inverser la logique et corriger les totaux |
 
-## Modifications Techniques
+## Modifications Détaillées
 
-### 1. Imports à ajouter
+### A. Inverser le calcul dans les lignes mensuelles (lignes 310-317)
 
-```typescript
-import { usePDFPreview } from "@/hooks/usePDFPreview";
-import { PDFViewer } from "@/components/pdf/PDFViewer";
-import { Eye } from "lucide-react";
+**Avant** :
+```tsx
+<TableCell className="text-right font-medium text-emerald-700">
+  {formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
+</TableCell>
+<TableCell className="text-right font-medium text-emerald-700">
+  {month.ca > 0 
+    ? (((month.marge + (includeCreditNotes ? month.creditNotes : 0)) / month.ca) * 100).toFixed(1)
+    : '0.0'}%
+</TableCell>
 ```
 
-### 2. État pour la prévisualisation
-
-Dans le composant, après les autres états (vers ligne 63-76) :
-
-```typescript
-// PDF Preview
-const { isOpen: isPdfPreviewOpen, pdfBlob: previewPdfBlob, filename: previewFilename, openPDFPreview, closePDFPreview } = usePDFPreview();
-const [generatingPreview, setGeneratingPreview] = useState(false);
+**Après** :
+```tsx
+<TableCell className="text-right font-medium text-emerald-700">
+  {formatCurrency(includeCreditNotes ? month.marge : month.marge + month.creditNotes)}
+</TableCell>
+<TableCell className="text-right font-medium text-emerald-700">
+  {month.ca > 0 
+    ? ((includeCreditNotes ? month.marge : month.marge + month.creditNotes) / month.ca * 100).toFixed(1)
+    : '0.0'}%
+</TableCell>
 ```
 
-### 3. Fonction de prévisualisation
+### B. Corriger le calcul des totaux (lignes 75-81)
 
-Ajouter une fonction pour générer et afficher le PDF :
-
-```typescript
-const handlePreviewPDF = async () => {
-  setGeneratingPreview(true);
-  try {
-    const pdfBlob = await generateCommercialOfferPDF(offer.id);
-    const filename = `Offre_${offer.client_name?.replace(/\s+/g, '_') || offer.id}.pdf`;
-    openPDFPreview(pdfBlob, filename);
-  } catch (error) {
-    console.error('Erreur génération PDF preview:', error);
-    toast.error("Erreur lors de la génération du PDF");
-  } finally {
-    setGeneratingPreview(false);
-  }
+**Avant** :
+```tsx
+const totals = {
+  ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
+  directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
+  achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
+  marge: monthlyData.reduce((sum, month) => sum + month.marge, 0) + (includeCreditNotes ? totalCreditNotes : 0),
+  creditNotes: totalCreditNotes,
 };
 ```
 
-### 4. Nouveau bloc UI - Section pièce jointe PDF
-
-Ajouter entre la sélection du signataire (ligne 529) et l'aperçu de l'email (ligne 531) :
-
+**Après** :
 ```tsx
-{/* PDF Attachment Preview - only for offer reminders */}
-{selectedReminder?.type === 'offer_reminder' && (
-  <div className="space-y-2">
-    <Label className="flex items-center gap-2">
-      <FileText className="h-4 w-4" />
-      Pièce jointe PDF
-    </Label>
-    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-blue-600" />
-        <span className="text-sm font-medium">
-          Offre_{offer.client_name?.replace(/\s+/g, '_') || offer.id}.pdf
-        </span>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handlePreviewPDF}
-        disabled={generatingPreview}
-      >
-        {generatingPreview ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Génération...
-          </>
-        ) : (
-          <>
-            <Eye className="h-4 w-4 mr-2" />
-            Prévisualiser
-          </>
-        )}
-      </Button>
-    </div>
-    <p className="text-xs text-muted-foreground">
-      Ce PDF sera automatiquement joint à l'email de rappel.
-    </p>
-  </div>
-)}
+const margeBase = monthlyData.reduce((sum, month) => sum + month.marge, 0);
+const totals = {
+  ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
+  directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
+  achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
+  marge: includeCreditNotes ? margeBase : margeBase + totalCreditNotes,
+  creditNotes: totalCreditNotes,
+};
 ```
 
-### 5. Composant PDFViewer
+### C. Corriger le calcul des moyennes (lignes 83-89)
 
-Ajouter le composant PDFViewer à la fin du return, avant le `</Dialog>` (après ligne 573) :
+Le calcul du `margePercent` dans moyennes dépend de `totals.marge` qui est maintenant correct, mais on doit s'assurer que le calcul est bien réactif.
 
+**Après** (inchangé car dépend de totals.marge) :
 ```tsx
-{/* PDF Preview Modal */}
-<PDFViewer
-  isOpen={isPdfPreviewOpen}
-  onClose={closePDFPreview}
-  pdfBlob={previewPdfBlob}
-  filename={previewFilename}
-/>
+const moyennes = {
+  ca: monthlyData.length ? totals.ca / monthlyData.length : 0,
+  directSales: monthlyData.length ? totals.directSales / monthlyData.length : 0,
+  achats: monthlyData.length ? totals.achats / monthlyData.length : 0,
+  marge: monthlyData.length ? totals.marge / monthlyData.length : 0,
+  margePercent: totals.ca > 0 ? (totals.marge / totals.ca) * 100 : 0
+};
 ```
 
-## Comportement
+### D. Vérifier que les lignes TOTAL et MOYENNE utilisent les bons objets
 
-1. L'utilisateur sélectionne un rappel de type "Offre L1/L2/L3"
-2. Une section "Pièce jointe PDF" apparaît avec le nom du fichier
-3. L'utilisateur clique sur "Prévisualiser"
-4. Le PDF est généré (loader visible)
-5. Un dialog s'ouvre avec le PDF affiché via `PDFViewer`
-6. L'utilisateur peut zoomer, naviguer entre les pages, ou télécharger
-7. L'utilisateur ferme l'aperçu et peut ensuite envoyer l'email
+Les lignes 338-348 affichent `totals.achats`, `totals.marge`, et `moyennes.margePercent` - ces valeurs seront maintenant correctement mises à jour quand la checkbox change.
 
-## Avantages
+## Résumé des Changements
 
-- Réutilise les composants existants (`PDFViewer`, `usePDFPreview`)
-- Ne bloque pas le flux d'envoi
-- Permet de vérifier le contenu avant envoi
-- Génération indépendante de l'envoi (preview ≠ envoi)
+| Élément | Avant (bugué) | Après (corrigé) |
+|---------|---------------|-----------------|
+| Marge ligne | `marge + (checked ? NC : 0)` | `checked ? marge : marge + NC` |
+| % ligne | `(marge + NC) / CA` | `(checked ? marge : marge+NC) / CA` |
+| Total marge | `sum(marge) + (checked ? totalNC : 0)` | `checked ? sum(marge) : sum(marge)+totalNC` |
+| Moyenne % | Calculé depuis totals.marge | Reste inchangé, sera réactif |
 
-## Note technique
+## Comportement Attendu
 
-La génération du PDF lors de la prévisualisation est **séparée** de celle lors de l'envoi. Cela signifie que le PDF sera généré deux fois si l'utilisateur prévisualise puis envoie. C'est voulu pour :
-- Garantir que le PDF envoyé est toujours à jour
-- Éviter de conserver un gros blob en mémoire pendant toute la session du modal
+| Checkbox | Marge affichée | Explication |
+|----------|----------------|-------------|
+| ☑️ Déduire | Marge SQL (NC déjà déduites) | Affiche la marge nette |
+| ☐ Déduire | Marge + NC (annule la déduction) | Affiche la marge brute |
+
+Pour Janvier avec NC = -10 460,4€ :
+- ☑️ Coché : Marge = 18 780,5€ (comme dans votre capture)
+- ☐ Décoché : Marge = 18 780,5€ + 10 460,4€ = **29 240,9€**
