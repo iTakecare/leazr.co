@@ -2610,6 +2610,7 @@ export type Database = {
       contracts: {
         Row: {
           billing_entity_id: string | null
+          cc_email: string | null
           client_bic: string | null
           client_email: string | null
           client_iban: string | null
@@ -2653,6 +2654,7 @@ export type Database = {
         }
         Insert: {
           billing_entity_id?: string | null
+          cc_email?: string | null
           client_bic?: string | null
           client_email?: string | null
           client_iban?: string | null
@@ -2696,6 +2698,7 @@ export type Database = {
         }
         Update: {
           billing_entity_id?: string | null
+          cc_email?: string | null
           client_bic?: string | null
           client_email?: string | null
           client_iban?: string | null
