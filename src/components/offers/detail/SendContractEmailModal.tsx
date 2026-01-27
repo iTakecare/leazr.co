@@ -40,6 +40,7 @@ const SendContractEmailModal: React.FC<SendContractEmailModalProps> = ({
   const { companySlug } = useParams<{ companySlug: string }>();
   const [isSending, setIsSending] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
+  const [ccEmail, setCcEmail] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
@@ -147,12 +148,13 @@ L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`;
       const contractId = existingContract.id;
       const signatureToken = existingContract.contract_signature_token;
 
-      // Update contract status to pending_signature and update client email
+      // Update contract status to pending_signature and update client email + cc_email
       await supabase
         .from('contracts')
         .update({
           signature_status: 'pending_signature',
           client_email: recipientEmail,
+          cc_email: ccEmail || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', contractId);
@@ -176,6 +178,7 @@ L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`;
       const { error: emailError } = await supabase.functions.invoke('send-contract-email', {
         body: {
           to: recipientEmail,
+          cc: ccEmail || undefined,
           subject: emailSubject,
           body: emailBody,
           signatureLink,
@@ -223,7 +226,7 @@ L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`;
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="recipient">Email du destinataire</Label>
+            <Label htmlFor="recipient">Email du destinataire (signature)</Label>
             <Input
               id="recipient"
               type="email"
@@ -231,6 +234,20 @@ L'équipe ${leaser?.company_name || leaser?.name || 'commerciale'}`;
               onChange={(e) => setRecipientEmail(e.target.value)}
               placeholder="client@example.com"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cc">Email en copie (optionnel)</Label>
+            <Input
+              id="cc"
+              type="email"
+              value={ccEmail}
+              onChange={(e) => setCcEmail(e.target.value)}
+              placeholder="comptabilite@example.com"
+            />
+            <p className="text-xs text-muted-foreground">
+              Cette personne recevra le contrat en copie
+            </p>
           </div>
 
           <div className="space-y-2">

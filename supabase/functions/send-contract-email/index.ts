@@ -12,6 +12,7 @@ const corsHeaders = {
 
 interface ContractEmailRequest {
   to: string;
+  cc?: string;
   subject: string;
   body: string;
   signatureLink: string;
@@ -27,11 +28,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, body, signatureLink, contractId, contractNumber, offerNumber }: ContractEmailRequest = await req.json();
+    const { to, cc, subject, body, signatureLink, contractId, contractNumber, offerNumber }: ContractEmailRequest = await req.json();
 
     // Use contract number if available, fallback to offer number
     const referenceNumber = contractNumber || offerNumber;
-    console.log("Send contract email request:", { to, subject, contractId, contractNumber, offerNumber, referenceNumber });
+    console.log("Send contract email request:", { to, cc, subject, contractId, contractNumber, offerNumber, referenceNumber });
 
     if (!to || !subject || !signatureLink) {
       throw new Error("Missing required fields: to, subject, signatureLink");
@@ -170,6 +171,7 @@ ${body.replace(/\n/g, '<br>')}
     const emailResponse = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: [to],
+      cc: cc ? [cc] : undefined,
       subject: subject,
       html: htmlContent,
     });
