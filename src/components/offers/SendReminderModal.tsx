@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +19,6 @@ import { generateCommercialOfferPDF } from "@/services/commercialOfferPdfService
 import DOMPurify from 'dompurify';
 import { usePDFPreview } from "@/hooks/usePDFPreview";
 import { PDFViewer } from "@/components/pdf/PDFViewer";
-
 interface AdminUser {
   id: string;
   first_name: string | null;
@@ -39,7 +26,6 @@ interface AdminUser {
   email: string | null;
   phone: string | null;
 }
-
 interface SendReminderModalProps {
   open: boolean;
   onClose: () => void;
@@ -49,10 +35,8 @@ interface SendReminderModalProps {
   sentReminders?: OfferReminderRecord[];
   onSuccess?: () => void;
 }
-
 const ALL_OFFER_LEVELS = [1, 2, 3];
 const ALL_DOCUMENT_LEVELS = [1, 2, 3];
-
 const SendReminderModal: React.FC<SendReminderModalProps> = ({
   open,
   onClose,
@@ -60,7 +44,7 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   reminder,
   allReminders,
   sentReminders = [],
-  onSuccess,
+  onSuccess
 }) => {
   const [loading, setLoading] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(true);
@@ -68,16 +52,22 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   const [subject, setSubject] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
-  
+
   // Selected reminder type and level
   const [selectedReminder, setSelectedReminder] = useState<ReminderStatus | null>(null);
-  
+
   // Signer selection
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [selectedSignerId, setSelectedSignerId] = useState<string>('');
-  
+
   // PDF Preview
-  const { isOpen: isPdfPreviewOpen, pdfBlob: previewPdfBlob, filename: previewFilename, openPDFPreview, closePDFPreview } = usePDFPreview();
+  const {
+    isOpen: isPdfPreviewOpen,
+    pdfBlob: previewPdfBlob,
+    filename: previewFilename,
+    openPDFPreview,
+    closePDFPreview
+  } = usePDFPreview();
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
 
@@ -88,42 +78,43 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   // Build all available reminder options
   const availableReminders: ReminderStatus[] = React.useMemo(() => {
     const reminders: ReminderStatus[] = [];
-    
     if (isDocumentStatus) {
       // 3 niveaux de rappels documents
       ALL_DOCUMENT_LEVELS.forEach(level => {
-        const sent = sentReminders.some(
-          r => r.reminder_type === 'document_reminder' && r.reminder_level === level && r.sent_at
-        );
-        const colorMap: Record<number, 'doc-l1' | 'doc-l2' | 'doc-l3'> = { 1: 'doc-l1', 2: 'doc-l2', 3: 'doc-l3' };
+        const sent = sentReminders.some(r => r.reminder_type === 'document_reminder' && r.reminder_level === level && r.sent_at);
+        const colorMap: Record<number, 'doc-l1' | 'doc-l2' | 'doc-l3'> = {
+          1: 'doc-l1',
+          2: 'doc-l2',
+          3: 'doc-l3'
+        };
         reminders.push({
           type: 'document_reminder',
           level,
           daysElapsed: 0,
           isActive: !sent,
           color: colorMap[level] || 'doc-l1',
-          label: `Docs L${level}`,
+          label: `Docs L${level}`
         });
       });
     }
-    
     if (isOfferStatus) {
       ALL_OFFER_LEVELS.forEach(level => {
-        const sent = sentReminders.some(
-          r => r.reminder_type === 'offer_reminder' && r.reminder_level === level && r.sent_at
-        );
-        const colorMap: Record<number, 'offer-l1' | 'offer-l2' | 'offer-l3'> = { 1: 'offer-l1', 2: 'offer-l2', 3: 'offer-l3' };
+        const sent = sentReminders.some(r => r.reminder_type === 'offer_reminder' && r.reminder_level === level && r.sent_at);
+        const colorMap: Record<number, 'offer-l1' | 'offer-l2' | 'offer-l3'> = {
+          1: 'offer-l1',
+          2: 'offer-l2',
+          3: 'offer-l3'
+        };
         reminders.push({
           type: 'offer_reminder',
           level,
           daysElapsed: 0,
           isActive: !sent,
           color: colorMap[level] || 'offer-l1',
-          label: `Offre L${level}`,
+          label: `Offre L${level}`
         });
       });
     }
-    
     return reminders;
   }, [isDocumentStatus, isOfferStatus, sentReminders]);
 
@@ -151,30 +142,30 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   useEffect(() => {
     const fetchAdminUsers = async () => {
       if (!open) return;
-      
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) return;
-      
       setCurrentUserId(user.id);
       setSelectedSignerId(user.id); // Default: current user
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
-
+      const {
+        data: profile
+      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
 
       // Fetch all admins/sales from same company with real emails from auth.users
-      const { data: admins } = await supabase
-        .rpc('get_company_signers', { p_company_id: profile.company_id });
-
+      const {
+        data: admins
+      } = await supabase.rpc('get_company_signers', {
+        p_company_id: profile.company_id
+      });
       if (admins) {
         setAdminUsers(admins);
       }
     };
-
     fetchAdminUsers();
   }, [open]);
 
@@ -182,46 +173,36 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   useEffect(() => {
     const fetchTemplate = async () => {
       if (!open || !selectedReminder) return;
-      
       setLoadingTemplate(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: {
+            user
+          }
+        } = await supabase.auth.getUser();
         if (!user) return;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', user.id)
-          .single();
-
+        const {
+          data: profile
+        } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
         if (!profile?.company_id) return;
-
-        const { data: customization } = await supabase
-          .from('company_customizations')
-          .select('company_name, company_email, company_phone')
-          .eq('company_id', profile.company_id)
-          .single();
+        const {
+          data: customization
+        } = await supabase.from('company_customizations').select('company_name, company_email, company_phone').eq('company_id', profile.company_id).single();
 
         // Fetch company data for logo and representative
-        const { data: companyData } = await supabase
-          .from('companies')
-          .select('logo_url, signature_representative_name')
-          .eq('id', profile.company_id)
-          .single();
-
+        const {
+          data: companyData
+        } = await supabase.from('companies').select('logo_url, signature_representative_name').eq('id', profile.company_id).single();
         const companyName = customization?.company_name || 'Notre équipe';
         const logoUrl = companyData?.logo_url || '';
-        
+
         // Get signer info - use selected signer or fall back to company default
         const selectedSigner = adminUsers.find(u => u.id === selectedSignerId);
-        const representativeName = selectedSigner 
-          ? `${selectedSigner.first_name || ''} ${selectedSigner.last_name || ''}`.trim() || 'L\'équipe commerciale'
-          : companyData?.signature_representative_name || 'L\'équipe commerciale';
-        
+        const representativeName = selectedSigner ? `${selectedSigner.first_name || ''} ${selectedSigner.last_name || ''}`.trim() || 'L\'équipe commerciale' : companyData?.signature_representative_name || 'L\'équipe commerciale';
+
         // Use signer's email and phone or fall back to company defaults
         const contactEmail = selectedSigner?.email || customization?.company_email || '';
         const contactPhone = selectedSigner?.phone || customization?.company_phone || '';
-        
         const offerLink = `https://www.leazr.co/offre/${offer.id}`;
 
         // Get client first name - either from clients table or extract from client_name
@@ -233,36 +214,13 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         } else {
           clientFirstName = 'Client';
         }
-
-        const templateName = selectedReminder.type === 'document_reminder'
-          ? `document_reminder_l${selectedReminder.level}`
-          : `offer_reminder_l${selectedReminder.level}`;
-
-        const { data: template } = await supabase
-          .from('email_templates')
-          .select('subject, html_content')
-          .eq('company_id', profile.company_id)
-          .eq('name', templateName)
-          .eq('active', true)
-          .single();
-
+        const templateName = selectedReminder.type === 'document_reminder' ? `document_reminder_l${selectedReminder.level}` : `offer_reminder_l${selectedReminder.level}`;
+        const {
+          data: template
+        } = await supabase.from('email_templates').select('subject, html_content').eq('company_id', profile.company_id).eq('name', templateName).eq('active', true).single();
         if (template) {
-          let previewSubject = template.subject
-            .replace(/\{\{\s*client_name\s*\}\}/g, clientFirstName)
-            .replace(/\{\{\s*company_name\s*\}\}/g, companyName);
-          
-          let previewContent = template.html_content
-            .replace(/\{\{\s*client_name\s*\}\}/g, clientFirstName)
-            .replace(/\{\{\s*company_name\s*\}\}/g, companyName)
-            .replace(/\{\{\s*contact_email\s*\}\}/g, contactEmail)
-            .replace(/\{\{\s*contact_phone\s*\}\}/g, contactPhone)
-            .replace(/\{\{\s*offer_amount\s*\}\}/g, (offer.financed_amount || offer.amount || 0).toLocaleString('fr-FR'))
-            .replace(/\{\{\s*monthly_payment\s*\}\}/g, (offer.monthly_payment || 0).toLocaleString('fr-FR'))
-            .replace(/\{\{\s*company_logo\s*\}\}/g, logoUrl)
-            .replace(/\{\{\s*representative_name\s*\}\}/g, representativeName)
-            .replace(/\{\{\s*offer_link\s*\}\}/g, offerLink)
-            .replace(/\{\{\s*custom_message\s*\}\}/g, customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '');
-
+          let previewSubject = template.subject.replace(/\{\{\s*client_name\s*\}\}/g, clientFirstName).replace(/\{\{\s*company_name\s*\}\}/g, companyName);
+          let previewContent = template.html_content.replace(/\{\{\s*client_name\s*\}\}/g, clientFirstName).replace(/\{\{\s*company_name\s*\}\}/g, companyName).replace(/\{\{\s*contact_email\s*\}\}/g, contactEmail).replace(/\{\{\s*contact_phone\s*\}\}/g, contactPhone).replace(/\{\{\s*offer_amount\s*\}\}/g, (offer.financed_amount || offer.amount || 0).toLocaleString('fr-FR')).replace(/\{\{\s*monthly_payment\s*\}\}/g, (offer.monthly_payment || 0).toLocaleString('fr-FR')).replace(/\{\{\s*company_logo\s*\}\}/g, logoUrl).replace(/\{\{\s*representative_name\s*\}\}/g, representativeName).replace(/\{\{\s*offer_link\s*\}\}/g, offerLink).replace(/\{\{\s*custom_message\s*\}\}/g, customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '');
           setSubject(previewSubject);
           setPreviewHtml(previewContent);
         }
@@ -272,7 +230,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
         setLoadingTemplate(false);
       }
     };
-
     fetchTemplate();
   }, [open, selectedReminder, offer, customMessage, selectedSignerId, adminUsers]);
 
@@ -280,28 +237,22 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   useEffect(() => {
     if (previewHtml) {
       setPreviewHtml(prev => {
-        const messageHtml = customMessage 
-          ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>`
-          : '';
-        
-        let updated = prev.replace(
-          /<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">[\s\S]*?<\/div>/g,
-          messageHtml
-        );
-        
+        const messageHtml = customMessage ? `<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">${customMessage}</div>` : '';
+        let updated = prev.replace(/<div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #2563eb;">[\s\S]*?<\/div>/g, messageHtml);
         updated = updated.replace(/\{\{\s*custom_message\s*\}\}/g, messageHtml);
-        
         return updated;
       });
     }
   }, [customMessage]);
-
   const handleSend = async () => {
     if (!selectedReminder) return;
-    
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (!session) {
         toast.error("Session expirée, veuillez vous reconnecter");
         return;
@@ -310,7 +261,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
       // Generate PDF for offer reminders only
       let pdfBase64: string | undefined;
       let pdfFilename: string | undefined;
-
       if (selectedReminder.type === 'offer_reminder') {
         setGeneratingPdf(true);
         try {
@@ -328,7 +278,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           setGeneratingPdf(false);
         }
       }
-
       const response = await supabase.functions.invoke('send-reminder-email', {
         body: {
           offerId: offer.id,
@@ -338,14 +287,12 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           customMessage: customMessage || undefined,
           pdfBase64,
           pdfFilename,
-          signerId: selectedSignerId || undefined,
-        },
+          signerId: selectedSignerId || undefined
+        }
       });
-
       if (response.error) {
         throw new Error(response.error.message || "Erreur lors de l'envoi");
       }
-
       if (response.data?.success) {
         toast.success("Email de rappel envoyé avec succès");
         onSuccess?.();
@@ -360,7 +307,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
       setLoading(false);
     }
   };
-
   const getReminderTitle = () => {
     if (!selectedReminder) return "Envoyer un rappel";
     if (selectedReminder.type === 'document_reminder') {
@@ -368,7 +314,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     }
     return `Rappel Offre L${selectedReminder.level}`;
   };
-
   const handlePreviewPDF = async () => {
     setGeneratingPreview(true);
     try {
@@ -382,7 +327,6 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
       setGeneratingPreview(false);
     }
   };
-
   const getColorClasses = (r: ReminderStatus, isSelected: boolean) => {
     const baseClasses = isSelected ? 'ring-2 ring-offset-2' : '';
     switch (r.color) {
@@ -406,12 +350,8 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   };
 
   // Get history of sent reminders for this offer
-  const reminderHistory = sentReminders
-    .filter(r => r.sent_at)
-    .sort((a, b) => new Date(b.sent_at!).getTime() - new Date(a.sent_at!).getTime());
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
+  const reminderHistory = sentReminders.filter(r => r.sent_at).sort((a, b) => new Date(b.sent_at!).getTime() - new Date(a.sent_at!).getTime());
+  return <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -433,98 +373,64 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Type de rappel</Label>
             <div className="flex flex-wrap gap-2">
-              {availableReminders.map((r) => {
-                const isSelected = selectedReminder?.type === r.type && selectedReminder?.level === r.level;
-                const isSuggested = suggestedReminder?.type === r.type && suggestedReminder?.level === r.level;
-                const alreadySent = !r.isActive;
-                const Icon = r.type === 'document_reminder' ? FileText : Bell;
-                
-                return (
-                  <Badge
-                    key={`${r.type}-${r.level}`}
-                    variant="outline"
-                    className={cn(
-                      "cursor-pointer gap-1.5 px-3 py-1.5 transition-all",
-                      getColorClasses(r, isSelected),
-                      isSuggested && !isSelected && "border-2 border-dashed"
-                    )}
-                    onClick={() => setSelectedReminder(r)}
-                  >
+              {availableReminders.map(r => {
+              const isSelected = selectedReminder?.type === r.type && selectedReminder?.level === r.level;
+              const isSuggested = suggestedReminder?.type === r.type && suggestedReminder?.level === r.level;
+              const alreadySent = !r.isActive;
+              const Icon = r.type === 'document_reminder' ? FileText : Bell;
+              return <Badge key={`${r.type}-${r.level}`} variant="outline" className={cn("cursor-pointer gap-1.5 px-3 py-1.5 transition-all", getColorClasses(r, isSelected), isSuggested && !isSelected && "border-2 border-dashed")} onClick={() => setSelectedReminder(r)}>
                     <Icon className="h-3.5 w-3.5" />
                     <span className="font-medium">{r.label}</span>
-                    {isSuggested && (
-                      <span className="text-[10px] opacity-70 ml-1">(suggéré)</span>
-                    )}
-                    {alreadySent && (
-                      <Check className="h-3 w-3 ml-1 text-green-600" />
-                    )}
-                  </Badge>
-                );
-              })}
+                    {isSuggested && <span className="text-[10px] opacity-70 ml-1">(suggéré)</span>}
+                    {alreadySent && <Check className="h-3 w-3 ml-1 text-green-600" />}
+                  </Badge>;
+            })}
             </div>
-            {selectedReminder && !selectedReminder.isActive && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
+            {selectedReminder && !selectedReminder.isActive && <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 Ce rappel a déjà été envoyé. Vous pouvez le renvoyer si nécessaire.
-              </p>
-            )}
+              </p>}
           </div>
 
           {/* Reminder history */}
-          {reminderHistory.length > 0 && (
-            <div className="space-y-2">
+          {reminderHistory.length > 0 && <div className="space-y-2">
               <Label className="text-sm font-medium">Historique des rappels</Label>
               <div className="bg-muted/50 rounded-lg p-3 space-y-2 max-h-32 overflow-y-auto">
-                {reminderHistory.map((r) => (
-                  <div key={r.id} className="flex items-center gap-2 text-sm">
+                {reminderHistory.map(r => <div key={r.id} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-xs">
                       {r.reminder_type === 'document_reminder' ? `Docs L${r.reminder_level}` : `Offre L${r.reminder_level}`}
                     </Badge>
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(r.sent_at!), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                      {format(new Date(r.sent_at!), "dd MMM yyyy 'à' HH:mm", {
+                  locale: fr
+                })}
                     </span>
-                    {r.recipient_email && (
-                      <span className="text-muted-foreground text-xs">
+                    {r.recipient_email && <span className="text-muted-foreground text-xs">
                         → {r.recipient_email}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                      </span>}
+                  </div>)}
               </div>
-            </div>
-          )}
+            </div>}
 
           {/* Subject */}
           <div className="space-y-2">
             <Label htmlFor="subject">Sujet</Label>
-            <Input
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Sujet de l'email"
-              disabled={loadingTemplate}
-            />
+            <Input id="subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Sujet de l'email" disabled={loadingTemplate} />
           </div>
 
           {/* Custom message */}
           <div className="space-y-2">
             <Label>Message personnalisé (optionnel)</Label>
-            <RichTextEditor
-              value={customMessage}
-              onChange={setCustomMessage}
-              placeholder="Ajoutez un message personnalisé qui sera inclus dans l'email..."
-              height={120}
-            />
+            <RichTextEditor value={customMessage} onChange={setCustomMessage} placeholder="Ajoutez un message personnalisé qui sera inclus dans l'email..." height={120} />
             <p className="text-xs text-muted-foreground">
               Ce message sera ajouté au contenu du template d'email.
             </p>
           </div>
 
           {/* Signer selection */}
-          {adminUsers.length > 0 && (
-            <div className="space-y-2">
+          {adminUsers.length > 0 && <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Signature de l'email
@@ -534,23 +440,19 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
                   <SelectValue placeholder="Sélectionner le signataire" />
                 </SelectTrigger>
                 <SelectContent className="bg-white z-50">
-                  {adminUsers.map((admin) => (
-                    <SelectItem key={admin.id} value={admin.id}>
+                  {adminUsers.map(admin => <SelectItem key={admin.id} value={admin.id}>
                       {admin.first_name} {admin.last_name}
                       {admin.id === currentUserId && " (vous)"}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 L'email sera signé par cette personne.
               </p>
-            </div>
-          )}
+            </div>}
 
           {/* PDF Attachment Preview - only for offer reminders */}
-          {selectedReminder?.type === 'offer_reminder' && (
-            <div className="space-y-2">
+          {selectedReminder?.type === 'offer_reminder' && <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Pièce jointe PDF
@@ -562,45 +464,30 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
                     Offre_{offer.client_name?.replace(/\s+/g, '_') || offer.id}.pdf
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePreviewPDF}
-                  disabled={generatingPreview}
-                >
-                  {generatingPreview ? (
-                    <>
+                <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={generatingPreview}>
+                  {generatingPreview ? <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Génération...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Eye className="h-4 w-4 mr-2" />
                       Prévisualiser
-                    </>
-                  )}
+                    </>}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 Ce PDF sera automatiquement joint à l'email de rappel.
               </p>
-            </div>
-          )}
+            </div>}
 
           {/* Preview */}
           <div className="space-y-2">
             <Label>Aperçu de l'email</Label>
             <div className="border rounded-lg p-4 bg-white max-h-48 overflow-y-auto">
-              {loadingTemplate ? (
-                <div className="flex items-center justify-center py-8">
+              {loadingTemplate ? <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div 
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml) }}
-                />
-              )}
+                </div> : <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(previewHtml)
+            }} />}
             </div>
           </div>
         </div>
@@ -609,36 +496,23 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           <Button variant="outline" onClick={onClose} disabled={loading || generatingPdf}>
             Annuler
           </Button>
-          <Button onClick={handleSend} disabled={loading || loadingTemplate || generatingPdf || !selectedReminder} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            {generatingPdf ? (
-              <>
+          <Button onClick={handleSend} disabled={loading || loadingTemplate || generatingPdf || !selectedReminder} className="text-primary-foreground bg-[#246e89]">
+            {generatingPdf ? <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Génération du PDF...
-              </>
-            ) : loading ? (
-              <>
+              </> : loading ? <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Envoi en cours...
-              </>
-            ) : (
-              <>
+              </> : <>
                 <Send className="h-4 w-4 mr-2" />
                 Envoyer le rappel
-              </>
-            )}
+              </>}
           </Button>
         </DialogFooter>
       </DialogContent>
 
       {/* PDF Preview Modal */}
-      <PDFViewer
-        isOpen={isPdfPreviewOpen}
-        onClose={closePDFPreview}
-        pdfBlob={previewPdfBlob}
-        filename={previewFilename}
-      />
-    </Dialog>
-  );
+      <PDFViewer isOpen={isPdfPreviewOpen} onClose={closePDFPreview} pdfBlob={previewPdfBlob} filename={previewFilename} />
+    </Dialog>;
 };
-
 export default SendReminderModal;
