@@ -72,11 +72,12 @@ const CompanyDashboard = () => {
 
   const totalCreditNotes = monthlyData.reduce((sum, m) => sum + m.creditNotes, 0);
 
+  const margeBase = monthlyData.reduce((sum, month) => sum + month.marge, 0);
   const totals = {
     ca: monthlyData.reduce((sum, month) => sum + month.ca, 0),
     directSales: monthlyData.reduce((sum, month) => sum + month.directSales, 0),
     achats: monthlyData.reduce((sum, month) => sum + month.achats, 0),
-    marge: monthlyData.reduce((sum, month) => sum + month.marge, 0) + (includeCreditNotes ? totalCreditNotes : 0),
+    marge: includeCreditNotes ? margeBase : margeBase + totalCreditNotes,
     creditNotes: totalCreditNotes,
   };
 
@@ -308,11 +309,11 @@ const CompanyDashboard = () => {
                             </TableCell>
                             <TableCell className="text-right font-normal">{formatCurrency(month.achats)}</TableCell>
                             <TableCell className="text-right font-medium text-emerald-700">
-                              {formatCurrency(month.marge + (includeCreditNotes ? month.creditNotes : 0))}
+                              {formatCurrency(includeCreditNotes ? month.marge : month.marge + month.creditNotes)}
                             </TableCell>
                             <TableCell className="text-right font-medium text-emerald-700">
                               {month.ca > 0 
-                                ? (((month.marge + (includeCreditNotes ? month.creditNotes : 0)) / month.ca) * 100).toFixed(1)
+                                ? (((includeCreditNotes ? month.marge : month.marge + month.creditNotes) / month.ca) * 100).toFixed(1)
                                 : '0.0'}%
                             </TableCell>
                           </TableRow>
