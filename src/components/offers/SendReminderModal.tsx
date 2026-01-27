@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Mail, AlertCircle, Check, Clock, FileText, Bell, User } from "lucide-react";
+import { Loader2, Send, Mail, AlertCircle, Check, Clock, FileText, Bell, User, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Offer } from "@/hooks/offers/useFetchOffers";
@@ -29,6 +29,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { generateCommercialOfferPDF } from "@/services/commercialOfferPdfService";
 import DOMPurify from 'dompurify';
+import { usePDFPreview } from "@/hooks/usePDFPreview";
+import { PDFViewer } from "@/components/pdf/PDFViewer";
 
 interface AdminUser {
   id: string;
@@ -73,6 +75,10 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
   // Signer selection
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [selectedSignerId, setSelectedSignerId] = useState<string>('');
+  
+  // PDF Preview
+  const { isOpen: isPdfPreviewOpen, pdfBlob: previewPdfBlob, filename: previewFilename, openPDFPreview, closePDFPreview } = usePDFPreview();
+  const [generatingPreview, setGeneratingPreview] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
 
   // Calculate available reminders based on offer status
@@ -363,6 +369,20 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
     return `Rappel Offre L${selectedReminder.level}`;
   };
 
+  const handlePreviewPDF = async () => {
+    setGeneratingPreview(true);
+    try {
+      const pdfBlob = await generateCommercialOfferPDF(offer.id);
+      const filename = `Offre_${offer.client_name?.replace(/\s+/g, '_') || offer.id}.pdf`;
+      openPDFPreview(pdfBlob, filename);
+    } catch (error) {
+      console.error('Erreur génération PDF preview:', error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
   const getColorClasses = (r: ReminderStatus, isSelected: boolean) => {
     const baseClasses = isSelected ? 'ring-2 ring-offset-2' : '';
     switch (r.color) {
@@ -528,6 +548,45 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
             </div>
           )}
 
+          {/* PDF Attachment Preview - only for offer reminders */}
+          {selectedReminder?.type === 'offer_reminder' && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Pièce jointe PDF
+              </Label>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">
+                    Offre_{offer.client_name?.replace(/\s+/g, '_') || offer.id}.pdf
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviewPDF}
+                  disabled={generatingPreview}
+                >
+                  {generatingPreview ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Génération...
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Prévisualiser
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Ce PDF sera automatiquement joint à l'email de rappel.
+              </p>
+            </div>
+          )}
+
           {/* Preview */}
           <div className="space-y-2">
             <Label>Aperçu de l'email</Label>
@@ -570,6 +629,14 @@ const SendReminderModal: React.FC<SendReminderModalProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* PDF Preview Modal */}
+      <PDFViewer
+        isOpen={isPdfPreviewOpen}
+        onClose={closePDFPreview}
+        pdfBlob={previewPdfBlob}
+        filename={previewFilename}
+      />
     </Dialog>
   );
 };
