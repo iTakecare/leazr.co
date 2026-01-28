@@ -73,7 +73,7 @@ const ClientSection: React.FC<ClientSectionProps> = ({ offer }) => {
         {/* View client button */}
         {offer.client_id && companySlug && (
           <Button variant="outline" className="w-full" asChild>
-            <Link to={`/${companySlug}/admin/clients/${offer.client_id}`}>
+            <Link to={`/${companySlug}/admin/clients/${offer.client_id}?from=offer&offerId=${offer.id}`}>
               <ExternalLink className="w-4 h-4 mr-2" />
               Voir la fiche client
             </Link>

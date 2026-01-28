@@ -26,6 +26,10 @@ export default function ClientDetail() {
 
   // Check if we should start in edit mode
   const shouldStartInEditMode = searchParams.get('edit') === 'true';
+  
+  // Check if coming from an offer
+  const fromOffer = searchParams.get('from') === 'offer';
+  const sourceOfferId = searchParams.get('offerId');
 
   const fetchClient = async () => {
     if (!id) {
@@ -146,11 +150,32 @@ export default function ClientDetail() {
 
   return (
     <div className="container py-8">
-      <div className="mb-6">
-        <Button variant="outline" onClick={() => navigateToAdmin("clients")} className="flex items-center">
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Retour à la liste
-        </Button>
+      <div className="mb-6 flex gap-2">
+        {fromOffer && sourceOfferId ? (
+          <>
+            <Button 
+              variant="default" 
+              onClick={() => navigateToAdmin(`offers/${sourceOfferId}`)}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Retour à la demande
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigateToAdmin("clients")}
+            >
+              Voir tous les clients
+            </Button>
+          </>
+        ) : (
+          <Button 
+            variant="outline" 
+            onClick={() => navigateToAdmin("clients")}
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Retour à la liste
+          </Button>
+        )}
       </div>
 
       <Card className="mb-6">
