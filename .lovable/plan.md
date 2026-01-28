@@ -1,110 +1,76 @@
 
-# Plan : Ajouter un bouton retour vers la demande depuis la fiche client
+# Plan : Corriger la lisibilité des boutons "default"
 
-## Problème
+## Probleme identifie
 
-Quand vous naviguez depuis une demande vers la fiche client via "Voir la fiche client", le seul bouton retour disponible ramène à la liste des clients, pas à la demande d'origine.
+Le bouton "Retour a la demande" (variant `default`) est illisible car le texte blanc ne contraste pas suffisamment avec le fond bleu primaire. Ce probleme affecte tous les boutons utilisant `variant="default"`.
 
-```text
-[Demande #123] → [Fiche Client] → ❌ [Liste Clients]
-                                  ✅ [Demande #123] (souhaité)
+## Analyse Technique
+
+### Configuration actuelle dans `button.tsx`
+```tsx
+default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
 ```
+
+### Variables CSS dans `index.css`
+```css
+--primary: 228 76% 52%;           /* Bleu sature */
+--primary-foreground: 0 0% 100%;  /* Blanc */
+```
+
+Le probleme peut venir de :
+1. La saturation elevee du bleu (76%) qui peut creer des problemes de rendu
+2. Le format HSL qui parfois n'est pas correctement interprete
 
 ## Solution
 
-Passer un paramètre d'origine dans l'URL (`?from=offer&offerId=XXX`) pour permettre au client de revenir à la demande source.
+Remplacer les classes CSS dynamiques par des couleurs Tailwind explicites pour garantir un contraste optimal :
 
-## Fichiers à Modifier
+| Avant | Apres |
+|-------|-------|
+| `bg-primary text-primary-foreground` | `bg-blue-600 text-white` |
+
+## Fichier a Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/offers/detail/ClientSection.tsx` | Ajouter `?from=offer&offerId=XXX` au lien |
-| `src/pages/ClientDetail.tsx` | Détecter le paramètre et afficher un bouton retour conditionnel |
+| `src/components/ui/button.tsx` | Changer le variant `default` pour utiliser des couleurs explicites |
 
-## Modifications Détaillées
+## Modification Detaillee
 
-### 1. ClientSection.tsx - Passer l'origine dans l'URL
+### button.tsx (ligne 13)
 
-**Avant** (ligne 76) :
+**Avant** :
 ```tsx
-<Link to={`/${companySlug}/admin/clients/${offer.client_id}`}>
+default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
 ```
 
-**Après** :
+**Apres** :
 ```tsx
-<Link to={`/${companySlug}/admin/clients/${offer.client_id}?from=offer&offerId=${offer.id}`}>
-```
-
-### 2. ClientDetail.tsx - Bouton retour intelligent
-
-**Modifications** :
-
-a) Lire les paramètres `from` et `offerId` depuis l'URL (ligne 17) :
-```tsx
-const fromOffer = searchParams.get('from') === 'offer';
-const sourceOfferId = searchParams.get('offerId');
-```
-
-b) Remplacer le bouton retour (lignes 149-154) :
-```tsx
-<div className="mb-6 flex gap-2">
-  {fromOffer && sourceOfferId ? (
-    <>
-      <Button 
-        variant="default" 
-        onClick={() => navigateToAdmin(`offers/${sourceOfferId}`)}
-      >
-        <ChevronLeft className="mr-1 h-4 w-4" />
-        Retour à la demande
-      </Button>
-      <Button 
-        variant="outline" 
-        onClick={() => navigateToAdmin("clients")}
-      >
-        Voir tous les clients
-      </Button>
-    </>
-  ) : (
-    <Button 
-      variant="outline" 
-      onClick={() => navigateToAdmin("clients")}
-    >
-      <ChevronLeft className="mr-1 h-4 w-4" />
-      Retour à la liste
-    </Button>
-  )}
-</div>
-```
-
-## Comportement Final
-
-### Depuis une demande :
-```text
-URL: /company/admin/clients/abc?from=offer&offerId=123
-
-┌─────────────────────────────────────────────────┐
-│ [← Retour à la demande]  [Voir tous les clients]│
-│                                                 │
-│ Fiche client : Jean Dupont                      │
-│ ...                                             │
-└─────────────────────────────────────────────────┘
-```
-
-### Depuis la liste des clients (comportement inchangé) :
-```text
-URL: /company/admin/clients/abc
-
-┌─────────────────────────────────────────────────┐
-│ [← Retour à la liste]                           │
-│                                                 │
-│ Fiche client : Jean Dupont                      │
-│ ...                                             │
-└─────────────────────────────────────────────────┘
+default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
 ```
 
 ## Avantages
 
-- Préserve le contexte de navigation
-- Propose les deux options (retour demande ET accès liste clients)
-- Le bouton principal (bleu) est le retour à la demande
-- Pas de changement pour les autres flux de navigation
+- Couleurs explicites = garantie de contraste
+- `bg-blue-600` est un bleu standard avec excellent contraste sur texte blanc
+- Coherence avec les autres variants (`success`, `warning`) qui utilisent deja des couleurs Tailwind explicites
+- Correction globale pour TOUS les boutons `default` de l'application
+
+## Impact
+
+Cette modification affecte tous les boutons sans variant specifie ou avec `variant="default"` :
+- Bouton "Retour a la demande" (ClientDetail.tsx)
+- Bouton "Reessayer" (ClientDetail.tsx)
+- Boutons dans SelfLeasingContractCard.tsx
+- Bouton sur la page NotFound.tsx
+- Et tous les autres boutons primaires de l'application
+
+## Alternative (si necessaire)
+
+Si vous preferez conserver les variables CSS, on peut aussi corriger le fichier `index.css` pour utiliser une teinte moins saturee :
+```css
+--primary: 221 83% 53%;  /* Equivalent de blue-600 */
+```
+
+Mais la solution avec les classes Tailwind explicites est plus fiable.
