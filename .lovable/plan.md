@@ -1,119 +1,110 @@
 
-# Plan : Ajouter une adresse email en copie (CC) pour les contrats
+# Plan : Ajouter un bouton retour vers la demande depuis la fiche client
 
-## Objectif
+## Problème
 
-Permettre de spécifier deux adresses email lors de l'envoi d'un contrat en propre (self-leasing) :
-1. **Email principal** : destinataire pour la signature
-2. **Email en copie (CC)** : reçoit le contrat en copie (comptabilité, manager, etc.)
-
-## État Actuel
-
-| Élément | Situation actuelle |
-|---------|-------------------|
-| Table `contracts` | 1 seul champ `client_email` |
-| Modal d'envoi | 1 seul champ destinataire |
-| Edge function | Envoie à 1 seul `to` |
-
-## Modifications Requises
-
-### 1. Migration Base de Données
-
-Ajouter un nouveau champ `cc_email` à la table `contracts` :
-
-```sql
-ALTER TABLE contracts 
-ADD COLUMN cc_email TEXT;
-
-COMMENT ON COLUMN contracts.cc_email IS 'Adresse email en copie lors de l''envoi du contrat';
-```
-
-### 2. Modal d'envoi `SendContractEmailModal.tsx`
-
-**Fichier** : `src/components/offers/detail/SendContractEmailModal.tsx`
-
-Ajouter un second champ email pour la copie :
+Quand vous naviguez depuis une demande vers la fiche client via "Voir la fiche client", le seul bouton retour disponible ramène à la liste des clients, pas à la demande d'origine.
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 📧 Envoyer le contrat de location                      [x]  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Email du destinataire (signature)                          │
-│  [client@example.com_____________________________]          │
-│                                                             │
-│  Email en copie (optionnel)                                 │
-│  [comptabilite@example.com_______________________]          │
-│  ℹ️ Cette personne recevra le contrat en copie              │
-│                                                             │
-│  Objet du mail                                              │
-│  [Contrat de location - REF-001__________________]          │
-│                                                             │
-│  Corps du message                                           │
-│  [________________________________________________]         │
-│  [________________________________________________]         │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                          [Annuler]  [Envoyer le contrat 📤] │
-└─────────────────────────────────────────────────────────────┘
+[Demande #123] → [Fiche Client] → ❌ [Liste Clients]
+                                  ✅ [Demande #123] (souhaité)
 ```
 
-**Modifications** :
-- Ajouter state `ccEmail` (ligne ~42)
-- Ajouter champ Input pour le CC (après ligne 233)
-- Passer `cc` au body de l'appel edge function (ligne 177)
-- Sauvegarder dans `contracts.cc_email` (ligne 151)
+## Solution
 
-### 3. Edge Function `send-contract-email`
-
-**Fichier** : `supabase/functions/send-contract-email/index.ts`
-
-**Modifications** :
-- Ajouter `cc?: string` dans l'interface `ContractEmailRequest`
-- Utiliser le paramètre `cc` de Resend lors de l'envoi
-
-```typescript
-// Interface mise à jour
-interface ContractEmailRequest {
-  to: string;
-  cc?: string;  // Nouveau champ optionnel
-  subject: string;
-  body: string;
-  signatureLink: string;
-  contractId: string;
-  contractNumber?: string;
-  offerNumber?: string;
-}
-
-// Envoi avec CC
-const emailResponse = await resend.emails.send({
-  from: `${fromName} <${fromEmail}>`,
-  to: [to],
-  cc: cc ? [cc] : undefined,  // Ajouter CC si présent
-  subject: subject,
-  html: htmlContent,
-});
-```
+Passer un paramètre d'origine dans l'URL (`?from=offer&offerId=XXX`) pour permettre au client de revenir à la demande source.
 
 ## Fichiers à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| Migration SQL | Ajouter colonne `cc_email` à `contracts` |
-| `src/components/offers/detail/SendContractEmailModal.tsx` | Ajouter champ CC + envoyer dans l'API |
-| `supabase/functions/send-contract-email/index.ts` | Supporter le paramètre `cc` dans Resend |
+| `src/components/offers/detail/ClientSection.tsx` | Ajouter `?from=offer&offerId=XXX` au lien |
+| `src/pages/ClientDetail.tsx` | Détecter le paramètre et afficher un bouton retour conditionnel |
+
+## Modifications Détaillées
+
+### 1. ClientSection.tsx - Passer l'origine dans l'URL
+
+**Avant** (ligne 76) :
+```tsx
+<Link to={`/${companySlug}/admin/clients/${offer.client_id}`}>
+```
+
+**Après** :
+```tsx
+<Link to={`/${companySlug}/admin/clients/${offer.client_id}?from=offer&offerId=${offer.id}`}>
+```
+
+### 2. ClientDetail.tsx - Bouton retour intelligent
+
+**Modifications** :
+
+a) Lire les paramètres `from` et `offerId` depuis l'URL (ligne 17) :
+```tsx
+const fromOffer = searchParams.get('from') === 'offer';
+const sourceOfferId = searchParams.get('offerId');
+```
+
+b) Remplacer le bouton retour (lignes 149-154) :
+```tsx
+<div className="mb-6 flex gap-2">
+  {fromOffer && sourceOfferId ? (
+    <>
+      <Button 
+        variant="default" 
+        onClick={() => navigateToAdmin(`offers/${sourceOfferId}`)}
+      >
+        <ChevronLeft className="mr-1 h-4 w-4" />
+        Retour à la demande
+      </Button>
+      <Button 
+        variant="outline" 
+        onClick={() => navigateToAdmin("clients")}
+      >
+        Voir tous les clients
+      </Button>
+    </>
+  ) : (
+    <Button 
+      variant="outline" 
+      onClick={() => navigateToAdmin("clients")}
+    >
+      <ChevronLeft className="mr-1 h-4 w-4" />
+      Retour à la liste
+    </Button>
+  )}
+</div>
+```
 
 ## Comportement Final
 
-1. L'utilisateur ouvre le modal d'envoi du contrat
-2. Il peut (optionnellement) ajouter une adresse en copie
-3. L'email est envoyé au destinataire principal ET à l'adresse CC
-4. Les deux adresses reçoivent le même email avec le bouton "Signer le contrat"
-5. Le champ `cc_email` est sauvegardé dans le contrat pour historique
+### Depuis une demande :
+```text
+URL: /company/admin/clients/abc?from=offer&offerId=123
 
-## Notes Techniques
+┌─────────────────────────────────────────────────┐
+│ [← Retour à la demande]  [Voir tous les clients]│
+│                                                 │
+│ Fiche client : Jean Dupont                      │
+│ ...                                             │
+└─────────────────────────────────────────────────┘
+```
 
-- Le champ CC est **optionnel** - pas de changement pour les utilisateurs actuels
-- L'API Resend supporte nativement le champ `cc`
-- L'email CC reçoit exactement le même contenu (pas de différenciation)
-- L'adresse CC est stockée pour pouvoir la réutiliser lors des relances
+### Depuis la liste des clients (comportement inchangé) :
+```text
+URL: /company/admin/clients/abc
+
+┌─────────────────────────────────────────────────┐
+│ [← Retour à la liste]                           │
+│                                                 │
+│ Fiche client : Jean Dupont                      │
+│ ...                                             │
+└─────────────────────────────────────────────────┘
+```
+
+## Avantages
+
+- Préserve le contexte de navigation
+- Propose les deux options (retour demande ET accès liste clients)
+- Le bouton principal (bleu) est le retour à la demande
+- Pas de changement pour les autres flux de navigation
