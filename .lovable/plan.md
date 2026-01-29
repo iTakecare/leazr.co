@@ -1,5 +1,4 @@
-
-# Implémentation GoCardless - Prêt à exécuter
+# Implémentation GoCardless - TERMINÉE ✅
 
 ## Statut des prérequis
 
@@ -7,61 +6,55 @@
 |---------|--------|
 | Secrets Supabase | ✅ Configurés |
 | Plan approuvé | ✅ Validé |
+| Migration DB | ✅ Exécutée |
+| Edge Functions | ✅ Créées |
+| Pages Frontend | ✅ Créées |
+| Composant Admin | ✅ Créé |
+| Intégration | ✅ Terminée |
 
-## Étapes d'implémentation
+## Colonnes ajoutées à `contracts`
 
-### Étape 1 : Migration Base de Données
+- `gocardless_customer_id` - ID client GoCardless
+- `gocardless_mandate_id` - ID mandat SEPA
+- `gocardless_subscription_id` - ID abonnement mensuel
+- `gocardless_mandate_status` - Statut du mandat
+- `gocardless_mandate_created_at` - Date création mandat
+- `gocardless_billing_request_id` - ID demande de facturation
 
-Ajouter les colonnes GoCardless à la table `contracts` :
+## Edge Functions créées
 
-```sql
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_customer_id TEXT;
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_mandate_id TEXT;
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_subscription_id TEXT;
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_mandate_status TEXT;
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_mandate_created_at TIMESTAMPTZ;
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_billing_request_id TEXT;
-```
+| Fonction | Rôle | verify_jwt |
+|----------|------|------------|
+| `gocardless-create-mandate` | Création Billing Request + Flow | true |
+| `gocardless-complete-flow` | Finalisation après redirection | false |
+| `gocardless-webhook` | Réception événements GoCardless | false |
 
-### Étape 2 : Configuration config.toml
+## Fichiers créés
 
-Ajouter la configuration des 3 edge functions avec `verify_jwt = false` pour webhook et complete-flow.
+- `supabase/functions/gocardless-create-mandate/index.ts`
+- `supabase/functions/gocardless-complete-flow/index.ts`
+- `supabase/functions/gocardless-webhook/index.ts`
+- `src/pages/client/GoCardlessCompletePage.tsx`
+- `src/pages/client/GoCardlessSuccessPage.tsx`
+- `src/components/contracts/GoCardlessStatusCard.tsx`
 
-### Étape 3 : Edge Functions
+## Fichiers modifiés
 
-1. **gocardless-create-mandate** - Création du Billing Request + Flow
-2. **gocardless-complete-flow** - Finalisation après redirection client
-3. **gocardless-webhook** - Réception des événements (mandats, paiements)
+- `supabase/config.toml` - Configuration des 3 edge functions
+- `src/App.tsx` - Routes `/:companySlug/gocardless/complete` et `/success`
+- `src/pages/ContractDetail.tsx` - Import et ajout GoCardlessStatusCard
 
-### Étape 4 : Pages Frontend
+## Configuration Webhook GoCardless
 
-1. **GoCardlessCompletePage.tsx** - Page callback après GoCardless
-2. **GoCardlessSuccessPage.tsx** - Page de confirmation finale
+Pour recevoir les événements, configurer dans le dashboard GoCardless :
+- **URL webhook** : `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/gocardless-webhook`
+- **Secret** : Utiliser la valeur de `GOCARDLESS_WEBHOOK_SECRET`
 
-### Étape 5 : Composant Admin
+## Flux utilisateur
 
-**GoCardlessStatusCard.tsx** - Carte de statut dans le détail contrat
-
-### Étape 6 : Intégration
-
-1. Ajouter les routes dans `App.tsx`
-2. Intégrer `GoCardlessStatusCard` dans `ContractDetail.tsx`
-
-## Fichiers à créer
-
-| Fichier | Description |
-|---------|-------------|
-| `supabase/functions/gocardless-create-mandate/index.ts` | Création billing request |
-| `supabase/functions/gocardless-complete-flow/index.ts` | Finalisation flow |
-| `supabase/functions/gocardless-webhook/index.ts` | Réception webhooks |
-| `src/pages/client/GoCardlessCompletePage.tsx` | Page après redirection |
-| `src/pages/client/GoCardlessSuccessPage.tsx` | Page succès |
-| `src/components/contracts/GoCardlessStatusCard.tsx` | Carte statut admin |
-
-## Fichiers à modifier
-
-| Fichier | Modification |
-|---------|--------------|
-| `src/App.tsx` | Ajout routes `/:companySlug/gocardless/*` |
-| `src/pages/ContractDetail.tsx` | Import et ajout GoCardlessStatusCard |
-| `supabase/config.toml` | Configuration edge functions |
+1. Admin clique sur "Configurer la domiciliation" dans le détail contrat
+2. Redirection vers GoCardless (saisie IBAN, confirmation mandat)
+3. Retour sur `/:companySlug/gocardless/complete`
+4. Création automatique de la subscription mensuelle
+5. Affichage page de succès
+6. Webhooks mettent à jour le statut en temps réel
