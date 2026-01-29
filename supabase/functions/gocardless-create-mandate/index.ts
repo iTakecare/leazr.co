@@ -3,12 +3,34 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GOCARDLESS_BASE_URL = Deno.env.get('GOCARDLESS_ENVIRONMENT') === 'live' 
+const GOCARDLESS_ENVIRONMENT = (Deno.env.get('GOCARDLESS_ENVIRONMENT') ?? 'sandbox').toLowerCase();
+
+const GOCARDLESS_BASE_URL = GOCARDLESS_ENVIRONMENT === 'live'
   ? 'https://api.gocardless.com'
   : 'https://api-sandbox.gocardless.com';
+
+// Permet de corriger facilement un mismatch token/environnement
+const GOCARDLESS_FALLBACK_BASE_URL = GOCARDLESS_ENVIRONMENT === 'live'
+  ? 'https://api-sandbox.gocardless.com'
+  : 'https://api.gocardless.com';
+
+async function readGoCardlessError(response: Response): Promise<{
+  status: number;
+  requestId?: string;
+  raw: string;
+}> {
+  const raw = await response.text();
+  try {
+    const parsed = JSON.parse(raw);
+    const requestId = parsed?.error?.request_id;
+    return { status: response.status, requestId, raw };
+  } catch {
+    return { status: response.status, raw };
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -96,6 +118,9 @@ serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
+    // Base URL réellement utilisée (peut basculer sur fallback en cas de 403)
+    let gocardlessBaseUrl = GOCARDLESS_BASE_URL;
+
     let customerId = contract.gocardless_customer_id;
 
     // Créer un customer GoCardless si nécessaire
@@ -119,17 +144,53 @@ serve(async (req) => {
 
       console.log('Création customer GoCardless:', JSON.stringify(customerPayload));
 
-      const customerResponse = await fetch(`${GOCARDLESS_BASE_URL}/customers`, {
-        method: 'POST',
-        headers: gcHeaders,
-        body: JSON.stringify(customerPayload)
-      });
+      const createCustomer = async (baseUrl: string) => {
+        return await fetch(`${baseUrl}/customers`, {
+          method: 'POST',
+          headers: gcHeaders,
+          body: JSON.stringify(customerPayload)
+        });
+      };
+
+      let customerResponse = await createCustomer(gocardlessBaseUrl);
+
+      // 403 “Forbidden request” => token live/sandbox souvent inversé ou token sans permissions
+      if (!customerResponse.ok && customerResponse.status === 403) {
+        const primaryErr = await readGoCardlessError(customerResponse);
+        console.error('Erreur création customer (env primaire):', primaryErr.raw);
+
+        console.warn('[GoCardless] Retentative sur environnement fallback', {
+          env: GOCARDLESS_ENVIRONMENT,
+          primaryBaseUrl: gocardlessBaseUrl,
+          fallbackBaseUrl: GOCARDLESS_FALLBACK_BASE_URL,
+          requestId: primaryErr.requestId,
+        });
+
+        const fallbackResponse = await createCustomer(GOCARDLESS_FALLBACK_BASE_URL);
+        if (fallbackResponse.ok) {
+          gocardlessBaseUrl = GOCARDLESS_FALLBACK_BASE_URL;
+          customerResponse = fallbackResponse;
+        } else {
+          const fallbackErr = await readGoCardlessError(fallbackResponse);
+          console.error('Erreur création customer (env fallback):', fallbackErr.raw);
+          return new Response(
+            JSON.stringify({
+              error: 'Erreur GoCardless (403) : accès refusé. Vérifiez que le token correspond à l’environnement (live/sandbox) et qu’il a les permissions nécessaires.',
+              gocardless_request_id: fallbackErr.requestId ?? primaryErr.requestId ?? null,
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
 
       if (!customerResponse.ok) {
-        const errorText = await customerResponse.text();
-        console.error('Erreur création customer:', errorText);
+        const err = await readGoCardlessError(customerResponse);
+        console.error('Erreur création customer:', err.raw);
         return new Response(
-          JSON.stringify({ error: 'Erreur lors de la création du client GoCardless' }),
+          JSON.stringify({
+            error: 'Erreur lors de la création du client GoCardless',
+            gocardless_request_id: err.requestId ?? null,
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -159,7 +220,7 @@ serve(async (req) => {
 
     console.log('Création billing request:', JSON.stringify(billingRequestPayload));
 
-    const billingRequestResponse = await fetch(`${GOCARDLESS_BASE_URL}/billing_requests`, {
+    const billingRequestResponse = await fetch(`${gocardlessBaseUrl}/billing_requests`, {
       method: 'POST',
       headers: gcHeaders,
       body: JSON.stringify(billingRequestPayload)
@@ -195,7 +256,7 @@ serve(async (req) => {
 
     console.log('Création billing request flow:', JSON.stringify(flowPayload));
 
-    const flowResponse = await fetch(`${GOCARDLESS_BASE_URL}/billing_request_flows`, {
+    const flowResponse = await fetch(`${gocardlessBaseUrl}/billing_request_flows`, {
       method: 'POST',
       headers: gcHeaders,
       body: JSON.stringify(flowPayload)
