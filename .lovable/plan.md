@@ -1,79 +1,42 @@
 
-# Plan : Intégration GoCardless pour les domiciliations SEPA
+# Plan d'Implementation : Integration GoCardless pour Domiciliations SEPA
 
-## Objectif
+## Resume
 
-Automatiser la mise en place des mandats de domiciliation SEPA pour les contrats en propre (self-leasing) via GoCardless, afin de prélever automatiquement les mensualités.
+Ce plan detaille l'implementation complete de l'integration GoCardless pour automatiser les prelevements SEPA sur les contrats self-leasing. L'integration comprend 3 edge functions, 2 pages publiques, 1 composant admin, et une migration de base de donnees.
 
-## Architecture Globale
+## Secrets a Configurer dans Supabase
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                            FLUX GOCARDLESS                                       │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                  │
-│  1. CONTRAT SIGNÉ                                                                │
-│     │                                                                            │
-│     ▼                                                                            │
-│  2. EDGE FUNCTION: gocardless-create-mandate                                     │
-│     │   - Crée un Billing Request                                                │
-│     │   - Crée un Billing Request Flow                                           │
-│     │   - Retourne authorisation_url                                             │
-│     ▼                                                                            │
-│  3. CLIENT REDIRIGÉ VERS GOCARDLESS                                              │
-│     │   - Page hébergée par GoCardless                                           │
-│     │   - Confirmation coordonnées bancaires                                     │
-│     │   - Signature du mandat SEPA                                               │
-│     ▼                                                                            │
-│  4. REDIRECTION VERS: /{companySlug}/gocardless/complete?flow_id=BRF123          │
-│     │   - Page de confirmation côté Leazr                                        │
-│     │   - Edge function complète le flow                                         │
-│     │   - Crée la subscription mensuelle                                         │
-│     ▼                                                                            │
-│  5. WEBHOOKS GOCARDLESS                                                          │
-│        - mandate.created / mandate.active                                        │
-│        - payment.created / payment.confirmed / payment.failed                    │
-│        - Mise à jour statut contrat                                              │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
+Les secrets suivants doivent etre ajoutes dans Supabase Edge Functions Settings :
+
+| Secret | Valeur |
+|--------|--------|
+| GOCARDLESS_ACCESS_TOKEN | live_UC4OP8KRQ_62OpXW2rtN_b6eDrAug0t3gCjqVbs5 |
+| GOCARDLESS_WEBHOOK_SECRET | gc_webhook_leazr_itakecare_2026_Xk9mP4nQ7rW2vBc8 |
+| GOCARDLESS_ENVIRONMENT | live |
+
+## 1. Migration Base de Donnees
+
+### Table `contracts` - Nouvelles colonnes
+
+```sql
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_customer_id TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_mandate_id TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_subscription_id TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_mandate_status TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_mandate_created_at TIMESTAMPTZ;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS gocardless_billing_request_id TEXT;
 ```
 
-## Informations pour GoCardless (screenshot)
+## 2. Edge Functions
 
-Voici les informations à renseigner dans le formulaire GoCardless "Créer une application partenaire" :
+### 2.1 `gocardless-create-mandate`
 
-| Champ | Valeur |
-|-------|--------|
-| **Nom de l'application** | iTakecare / Leazr |
-| **Logo de l'application** | Logo iTakecare (PNG, max 500ko) |
-| **Description** | Solution de leasing d'équipements informatiques reconditionnés |
-| **URL de la page d'accueil** | `https://leazr.co` ou `https://itakecare.leazr.co` |
-| **URL de redirection** | `https://leazr.co/{companySlug}/gocardless/complete` |
-| **URL de destination après intégration** | `https://leazr.co/{companySlug}/gocardless/success` |
-| **URL du webhook** | `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/gocardless-webhook` |
+**Fichier:** `supabase/functions/gocardless-create-mandate/index.ts`
 
-## Composants à créer
+**Role:** Cree un Billing Request + Flow pour rediriger le client vers GoCardless.
 
-### 1. Base de données - Nouvelles colonnes
-
-**Table `contracts`** - Ajout de colonnes GoCardless :
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| `gocardless_customer_id` | TEXT | ID client GoCardless (CU...) |
-| `gocardless_mandate_id` | TEXT | ID mandat SEPA (MD...) |
-| `gocardless_subscription_id` | TEXT | ID subscription (SB...) |
-| `gocardless_mandate_status` | TEXT | Statut: pending/submitted/active/failed/cancelled |
-| `gocardless_mandate_created_at` | TIMESTAMPTZ | Date création mandat |
-| `gocardless_billing_request_id` | TEXT | ID Billing Request (BRQ...) |
-
-### 2. Edge Functions
-
-#### A. `gocardless-create-mandate`
-
-Crée un Billing Request + Flow pour un contrat signé.
-
-**Input:**
+**Entree:**
 ```json
 {
   "contractId": "uuid",
@@ -81,196 +44,247 @@ Crée un Billing Request + Flow pour un contrat signé.
 }
 ```
 
-**Output:**
+**Sortie:**
 ```json
 {
   "success": true,
-  "authorisationUrl": "https://pay.gocardless.com/billing/static/flow?id=BRF123",
-  "billingRequestId": "BRQ123",
-  "flowId": "BRF123"
+  "authorisationUrl": "https://pay.gocardless.com/...",
+  "billingRequestId": "BRQ...",
+  "flowId": "BRF..."
 }
 ```
 
-#### B. `gocardless-complete-flow`
+**Logique:**
+1. Recuperer le contrat et les informations client
+2. Creer un customer GoCardless (ou reutiliser existant)
+3. Creer un Billing Request avec scheme SEPA
+4. Creer un Billing Request Flow
+5. Stocker le billing_request_id dans le contrat
+6. Retourner l'URL d'autorisation
 
-Appelé après redirection depuis GoCardless pour finaliser le mandat et créer la subscription.
+---
 
-**Input:**
+### 2.2 `gocardless-complete-flow`
+
+**Fichier:** `supabase/functions/gocardless-complete-flow/index.ts`
+
+**Role:** Finalise le flow apres redirection, cree la subscription.
+
+**Entree:**
 ```json
 {
-  "flowId": "BRF123",
+  "billingRequestFlowId": "BRF...",
   "contractId": "uuid"
 }
 ```
 
-**Actions:**
-1. Appelle `billingRequestFlows.complete()`
-2. Récupère le `mandate_id`
-3. Crée une subscription mensuelle
-4. Met à jour le contrat avec les IDs
+**Logique:**
+1. Recuperer le Billing Request associe
+2. Extraire customer_id et mandate_id
+3. Creer une subscription mensuelle
+4. Mettre a jour le contrat avec tous les IDs GoCardless
+5. Mettre a jour le statut du mandat
 
-#### C. `gocardless-webhook`
+---
 
-Reçoit les événements GoCardless.
+### 2.3 `gocardless-webhook`
 
-**Événements traités:**
-- `mandates` : created, submitted, active, failed, cancelled
-- `payments` : created, confirmed, paid_out, failed, late_failure
+**Fichier:** `supabase/functions/gocardless-webhook/index.ts`
+
+**Role:** Recevoir et traiter les evenements GoCardless.
+
+**Evenements geres:**
+- `mandates` : submitted, active, failed, cancelled, expired
+- `payments` : created, confirmed, paid_out, failed, late_failure, charged_back
 - `subscriptions` : created, cancelled, finished
 
-#### D. `gocardless-create-payment` (optionnel)
+**Securite:**
+- Validation de la signature webhook via HMAC-SHA256
+- verify_jwt = false (appel externe)
 
-Pour créer un paiement ponctuel (par ex. premier paiement ou régularisation).
+---
 
-### 3. Pages Frontend
+## 3. Pages Frontend
 
-#### A. `GoCardlessCompletePage.tsx`
+### 3.1 `GoCardlessCompletePage.tsx`
+
+**Fichier:** `src/pages/client/GoCardlessCompletePage.tsx`
 
 **Route:** `/:companySlug/gocardless/complete`
 
-Page de destination après validation du mandat sur GoCardless.
-
-**Fonctionnalités:**
-- Récupère `flow_id` depuis URL
-- Appelle edge function `gocardless-complete-flow`
+**Fonctionnalites:**
+- Recupere `billing_request_flow_id` depuis les query params
+- Affiche un loader pendant le traitement
+- Appelle `gocardless-complete-flow`
 - Affiche confirmation ou erreur
-- Redirige vers page de succès
+- Redirige vers success ou affiche message d'erreur
 
-#### B. `GoCardlessSuccessPage.tsx`
+---
+
+### 3.2 `GoCardlessSuccessPage.tsx`
+
+**Fichier:** `src/pages/client/GoCardlessSuccessPage.tsx`
 
 **Route:** `/:companySlug/gocardless/success`
 
-Page de confirmation finale.
-
 **Contenu:**
-- Message de confirmation
-- Récapitulatif du mandat
-- Dates prévisionnelles des prélèvements
-- Lien vers espace client
+- Message de confirmation avec icone succes
+- Recapitulatif : montant mensuel, prochaine echeance
+- Informations sur le mandat SEPA
+- Lien de retour ou fermeture
 
-#### C. `GoCardlessStatusCard.tsx`
+---
 
-Composant dans la page ContractDetail pour :
-- Voir le statut du mandat
-- Initier la mise en place du mandat si absent
-- Voir l'historique des paiements
+## 4. Composant Admin
 
-### 4. Intégration dans le flux existant
+### 4.1 `GoCardlessStatusCard.tsx`
 
-**Option A - Automatique après signature:**
-Modifier `PublicContractSignature.tsx` pour rediriger automatiquement vers GoCardless après signature.
+**Fichier:** `src/components/contracts/GoCardlessStatusCard.tsx`
 
-**Option B - Manuel depuis l'admin:**
-Bouton dans `ContractSelfLeasingCard.tsx` pour initier le mandat GoCardless.
+**Integration:** Ajoute dans `ContractDetail.tsx` (sidebar, apres ContractSelfLeasingCard)
 
-## Secrets à configurer
+**Fonctionnalites:**
+- Affiche le statut du mandat GoCardless
+- Badge colore selon le statut (pending/active/failed)
+- Bouton "Mettre en place la domiciliation" si pas de mandat
+- Informations sur la subscription si active
+- Historique des derniers paiements (futur)
 
-| Secret | Description |
-|--------|-------------|
-| `GOCARDLESS_ACCESS_TOKEN` | Token API GoCardless (live ou sandbox) |
-| `GOCARDLESS_WEBHOOK_SECRET` | Secret pour valider les signatures webhook |
-| `GOCARDLESS_ENVIRONMENT` | `sandbox` ou `live` |
+---
 
-## Fichiers à créer/modifier
+## 5. Modifications de Fichiers Existants
 
-### Nouveaux fichiers
+### 5.1 `src/App.tsx`
+
+Ajouter les routes GoCardless :
+
+```tsx
+// Apres les routes contract/:token/sign (ligne ~200)
+<Route path="/:companySlug/gocardless/complete" element={<GoCardlessCompletePage />} />
+<Route path="/:companySlug/gocardless/success" element={<GoCardlessSuccessPage />} />
+```
+
+---
+
+### 5.2 `supabase/config.toml`
+
+Ajouter la configuration des 3 edge functions :
+
+```toml
+[functions.gocardless-create-mandate]
+verify_jwt = true
+
+[functions.gocardless-complete-flow]
+verify_jwt = false
+
+[functions.gocardless-webhook]
+verify_jwt = false
+```
+
+---
+
+### 5.3 `src/pages/ContractDetail.tsx`
+
+Importer et ajouter le composant GoCardlessStatusCard dans la sidebar :
+
+```tsx
+import GoCardlessStatusCard from "@/components/contracts/GoCardlessStatusCard";
+
+// Dans la sidebar, apres ContractSelfLeasingCard
+{contract.is_self_leasing && (
+  <GoCardlessStatusCard 
+    contract={contract}
+    onUpdate={refetch}
+  />
+)}
+```
+
+---
+
+## 6. Flux Utilisateur
+
+```text
+ADMIN                          CLIENT                         GOCARDLESS
+  |                              |                                |
+  |-- Clique "Domiciliation" --->|                                |
+  |                              |                                |
+  |<-- gocardless-create-mandate |                                |
+  |        (authorisationUrl) ---|                                |
+  |                              |                                |
+  |                              |-- Redirige vers GC ----------->|
+  |                              |                                |
+  |                              |   Page hebergee GoCardless     |
+  |                              |   - Saisie IBAN                |
+  |                              |   - Confirmation mandat        |
+  |                              |                                |
+  |                              |<-- Redirection complete -------|
+  |                              |                                |
+  |                              |-- GoCardlessCompletePage       |
+  |                              |   (appelle complete-flow)      |
+  |                              |                                |
+  |                              |<-- GoCardlessSuccessPage       |
+  |                              |                                |
+  |<-- Webhook: mandate.active --|--------------------------------|
+  |                              |                                |
+  |-- Statut mis a jour          |                                |
+  |   dans ContractDetail        |                                |
+```
+
+---
+
+## 7. Structure des Fichiers
+
+### Nouveaux fichiers a creer
 
 | Fichier | Description |
 |---------|-------------|
-| `supabase/functions/gocardless-create-mandate/index.ts` | Création billing request |
-| `supabase/functions/gocardless-complete-flow/index.ts` | Finalisation du flow |
-| `supabase/functions/gocardless-webhook/index.ts` | Réception webhooks |
-| `src/pages/client/GoCardlessCompletePage.tsx` | Page après redirection GC |
-| `src/pages/client/GoCardlessSuccessPage.tsx` | Page succès finale |
-| `src/components/contracts/GoCardlessStatusCard.tsx` | Statut dans admin |
+| `supabase/functions/gocardless-create-mandate/index.ts` | Creation du billing request |
+| `supabase/functions/gocardless-complete-flow/index.ts` | Finalisation et creation subscription |
+| `supabase/functions/gocardless-webhook/index.ts` | Reception des evenements |
+| `src/pages/client/GoCardlessCompletePage.tsx` | Page callback apres GC |
+| `src/pages/client/GoCardlessSuccessPage.tsx` | Page de confirmation |
+| `src/components/contracts/GoCardlessStatusCard.tsx` | Carte statut dans admin |
 
-### Fichiers à modifier
+### Fichiers a modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/App.tsx` | Ajouter routes `/gocardless/*` |
-| `src/pages/ContractDetail.tsx` | Intégrer GoCardlessStatusCard |
-| `supabase/config.toml` | Ajouter config edge functions |
-| Migration SQL | Nouvelles colonnes `gocardless_*` |
+| `src/App.tsx` | Ajout des 2 routes GoCardless |
+| `src/pages/ContractDetail.tsx` | Import et ajout GoCardlessStatusCard |
+| `supabase/config.toml` | Configuration des 3 edge functions |
 
-## Exemple de code Edge Function
+---
 
-```typescript
-// gocardless-create-mandate/index.ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+## 8. Considerations Techniques
 
-const GC_BASE_URL = Deno.env.get("GOCARDLESS_ENVIRONMENT") === "live"
-  ? "https://api.gocardless.com"
-  : "https://api-sandbox.gocardless.com";
+### API GoCardless
+- **Environnement:** Production (live)
+- **Base URL:** `https://api.gocardless.com`
+- **Version API:** 2015-07-06
+- **Schema SEPA:** sepa_core (Europe)
+- **Devise:** EUR
 
-serve(async (req) => {
-  // ... CORS handling ...
-  
-  const { contractId, returnUrl } = await req.json();
-  const accessToken = Deno.env.get("GOCARDLESS_ACCESS_TOKEN");
-  
-  // 1. Récupérer le contrat et client
-  const contract = await supabase.from("contracts").select("*, clients(*)").eq("id", contractId).single();
-  
-  // 2. Créer Billing Request
-  const billingRequest = await fetch(`${GC_BASE_URL}/billing_requests`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "GoCardless-Version": "2015-07-06",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      billing_requests: {
-        mandate_request: {
-          scheme: "sepa_core",
-          currency: "EUR"
-        },
-        metadata: {
-          contract_id: contractId
-        }
-      }
-    })
-  });
-  
-  // 3. Créer Billing Request Flow
-  const flow = await fetch(`${GC_BASE_URL}/billing_request_flows`, {
-    method: "POST",
-    headers: { /* ... */ },
-    body: JSON.stringify({
-      billing_request_flows: {
-        redirect_uri: returnUrl,
-        exit_uri: returnUrl + "?cancelled=true",
-        links: {
-          billing_request: billingRequest.id
-        }
-      }
-    })
-  });
-  
-  // 4. Retourner l'URL d'autorisation
-  return new Response(JSON.stringify({
-    success: true,
-    authorisationUrl: flow.authorisation_url,
-    billingRequestId: billingRequest.id,
-    flowId: flow.id
-  }));
-});
-```
+### Securite Webhook
+- Signature HMAC-SHA256 dans le header `Webhook-Signature`
+- Format: `{timestamp}-{signature}`
+- Verification obligatoire avant traitement
 
-## Prochaines étapes
+### Gestion des Erreurs
+- Retry automatique pour les erreurs reseau
+- Logs detailles dans les edge functions
+- Messages utilisateur conviviaux en francais
 
-1. **Création compte GoCardless** : Créer l'application partenaire avec les URLs ci-dessus
-2. **Migration DB** : Ajouter les colonnes `gocardless_*` à la table contracts
-3. **Secrets** : Configurer `GOCARDLESS_ACCESS_TOKEN` et `GOCARDLESS_WEBHOOK_SECRET`
-4. **Edge Functions** : Implémenter les 3 edge functions
-5. **Frontend** : Créer les pages de callback et le composant de statut
-6. **Tests** : Tester en sandbox avant passage en production
+---
 
-## Notes importantes
+## 9. Ordre d'Implementation
 
-- **Schéma SEPA** : Pour la Belgique, utiliser `sepa_core` (pas `bacs` qui est UK)
-- **Devise** : EUR (pas GBP)
-- **Webhooks** : Essentiels pour suivre les statuts des paiements en temps réel
-- **Sandbox** : Toujours tester en sandbox d'abord avec des IBAN de test
+1. **Migration DB** - Ajouter les colonnes gocardless_*
+2. **Config.toml** - Declarer les 3 edge functions
+3. **Edge functions** - Implementer dans l'ordre :
+   - gocardless-create-mandate
+   - gocardless-complete-flow
+   - gocardless-webhook
+4. **Pages frontend** - GoCardlessCompletePage, GoCardlessSuccessPage
+5. **Composant admin** - GoCardlessStatusCard
+6. **Integration** - Modifier App.tsx et ContractDetail.tsx
+7. **Tests** - Tester le flux complet en sandbox puis production
