@@ -128,3 +128,12 @@ verify_jwt = true
 
 [functions.update-extended-contracts]
 verify_jwt = false
+
+[functions.gocardless-create-mandate]
+verify_jwt = true
+
+[functions.gocardless-complete-flow]
+verify_jwt = false
+
+[functions.gocardless-webhook]
+verify_jwt = false

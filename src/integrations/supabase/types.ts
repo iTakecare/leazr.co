@@ -2633,6 +2633,12 @@ export type Database = {
           dossier_date: string | null
           equipment_description: string | null
           estimated_delivery: string | null
+          gocardless_billing_request_id: string | null
+          gocardless_customer_id: string | null
+          gocardless_mandate_created_at: string | null
+          gocardless_mandate_id: string | null
+          gocardless_mandate_status: string | null
+          gocardless_subscription_id: string | null
           id: string
           invoice_date: string | null
           invoice_generated: boolean
@@ -2677,6 +2683,12 @@ export type Database = {
           dossier_date?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
+          gocardless_billing_request_id?: string | null
+          gocardless_customer_id?: string | null
+          gocardless_mandate_created_at?: string | null
+          gocardless_mandate_id?: string | null
+          gocardless_mandate_status?: string | null
+          gocardless_subscription_id?: string | null
           id?: string
           invoice_date?: string | null
           invoice_generated?: boolean
@@ -2721,6 +2733,12 @@ export type Database = {
           dossier_date?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
+          gocardless_billing_request_id?: string | null
+          gocardless_customer_id?: string | null
+          gocardless_mandate_created_at?: string | null
+          gocardless_mandate_id?: string | null
+          gocardless_mandate_status?: string | null
+          gocardless_subscription_id?: string | null
           id?: string
           invoice_date?: string | null
           invoice_generated?: boolean
