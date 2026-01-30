@@ -97,19 +97,18 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verify user using getClaims
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    // Verify user - getUser() uses the Authorization header from the client config
+    const { data: userData, error: userError } = await supabase.auth.getUser();
     
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error("[Mollie SEPA] Auth error:", claimsError);
+    if (userError || !userData?.user) {
+      console.error("[Mollie SEPA] Auth error:", userError);
       return new Response(
         JSON.stringify({ success: false, error: "Token invalide" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
     console.log("[Mollie SEPA] Authenticated user:", userId);
 
     const body: MollieSepaRequest = await req.json();
