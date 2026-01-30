@@ -1,115 +1,134 @@
 
 
-# Plan de correction : Affichage du statut Mollie existant
+# Plan : Création du mandat ET de l'abonnement en une seule opération
 
-## Problème
+## Objectif
+Quand l'administrateur soumet le formulaire SEPA avec l'IBAN, le système doit automatiquement :
+1. Créer le client Mollie
+2. Créer le mandat SEPA direct (avec l'IBAN)
+3. **Créer l'abonnement de prélèvement récurrent** (subscription)
 
-Le mandat SEPA est créé avec succès chez Mollie et la base de données est correctement mise à jour (confirmé : `mollie_mandate_id: mdt_MzmirpaJkR`, `mollie_mandate_status: valid`). Cependant, l'interface ne se rafraîchit pas et ne montre pas l'état du mandat existant après création ou rechargement de la page.
+Le tout en une seule action, sans étapes supplémentaires.
 
-## Cause racine
+## Solution technique
 
-Le composant `MollieSepaCard` ne reçoit pas les informations Mollie depuis les props du contrat car :
-1. L'interface TypeScript `Contract` ne déclare pas les champs Mollie
-2. Les props passées au composant n'incluent pas ces champs
-3. Le composant ne vérifie pas si un mandat existe déjà au chargement
+### Nouvelle action Edge Function : `setup_sepa_complete`
+
+Créer une action unifiée dans l'Edge Function `mollie-sepa/index.ts` qui enchaîne les 3 étapes :
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Action: setup_sepa_complete                                    │
+├─────────────────────────────────────────────────────────────────┤
+│  1. POST /customers          → Créer client Mollie              │
+│  2. POST /customers/{id}/mandates → Créer mandat SEPA direct    │
+│  3. POST /customers/{id}/subscriptions → Créer abonnement       │
+│  4. UPDATE contracts         → Sauvegarder tous les IDs         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Paramètres requis
+
+| Paramètre | Description |
+|-----------|-------------|
+| `name` | Nom complet du client |
+| `email` | Email du client |
+| `consumer_name` | Nom du titulaire du compte (pour le mandat) |
+| `iban` | IBAN du compte bancaire |
+| `bic` | BIC (optionnel) |
+| `amount` | Montant mensuel en euros |
+| `times` | Nombre de mois de prélèvement |
+| `start_date` | Date de début (optionnel, défaut : mois suivant) |
+| `description` | Description du prélèvement |
+| `contract_id` | ID du contrat |
+| `company_id` | ID de la société |
+
+### Résultat retourné
+
+```json
+{
+  "success": true,
+  "data": {
+    "customer_id": "cst_xxx",
+    "mandate_id": "mdt_xxx",
+    "mandate_status": "valid",
+    "subscription_id": "sub_xxx",
+    "subscription_status": "active",
+    "first_payment_date": "2026-03-01"
+  }
+}
+```
 
 ## Modifications à effectuer
 
-### 1. Interface `Contract` dans `src/services/contractService.ts`
+### 1. Edge Function `supabase/functions/mollie-sepa/index.ts`
 
-Ajouter les champs Mollie à l'interface :
+Ajouter une nouvelle action `setup_sepa_complete` qui :
+- Crée le client Mollie
+- Crée le mandat SEPA directement avec l'IBAN
+- Si le mandat est `valid`, crée immédiatement l'abonnement
+- Met à jour le contrat avec `mollie_customer_id`, `mollie_mandate_id`, `mollie_mandate_status`, et `mollie_subscription_id`
 
-```typescript
-export interface Contract {
-  // ... champs existants ...
-  mollie_customer_id?: string;
-  mollie_mandate_id?: string;
-  mollie_mandate_status?: string;
-  mollie_subscription_id?: string;
-}
+Calcul automatique de la date de début : si non fournie, utiliser le 1er du mois suivant (pour laisser le temps au mandat d'être pleinement actif).
+
+### 2. Utilitaire frontend `src/utils/mollie.ts`
+
+Créer une nouvelle fonction `setupMollieSepaComplete()` qui :
+- Appelle l'action `setup_sepa_complete`
+- Retourne tous les IDs créés (customer, mandate, subscription)
+
+### 3. Composant `MollieSepaCard.tsx`
+
+Modifier `handleSubmit` pour :
+- Appeler `setupMollieSepaComplete()` au lieu de `setupMollieSepaWithIban()`
+- Afficher les informations de l'abonnement créé (ID, date de début, montant)
+- Mettre à jour le message de succès pour confirmer les prélèvements récurrents
+
+### 4. Interface de succès améliorée
+
+Après création, afficher :
+- ID du mandat + statut
+- ID de l'abonnement + statut
+- Montant mensuel × nombre de mois
+- Date du premier prélèvement
+
+## Exemple de flux complet
+
+```text
+Admin remplit le formulaire :
+├── Prénom: Jean
+├── Nom: Dupont
+├── Email: jean@example.com
+├── IBAN: BE68539007547034
+├── Montant: 150.00€
+├── Durée: 36 mois
+└── [Clique sur "Créer le mandat SEPA"]
+
+Edge Function exécute :
+├── 1. Créer client → cst_abc123
+├── 2. Créer mandat → mdt_xyz789 (status: valid)
+├── 3. Créer abonnement → sub_def456 (150€/mois × 36)
+└── 4. Update contrat avec tous les IDs
+
+UI affiche :
+├── ✅ Mandat SEPA créé (mdt_xyz789) - Valide
+├── ✅ Abonnement actif (sub_def456)
+├── 💶 150.00€ × 36 mois = 5 400.00€
+└── 📅 Premier prélèvement : 1er mars 2026
 ```
 
-### 2. Props du composant `MollieSepaCard`
+## Gestion des erreurs
 
-Modifier l'interface pour accepter les données Mollie existantes :
-
-```typescript
-interface MollieSepaCardProps {
-  contract: {
-    id: string;
-    client_name: string;
-    client_email?: string | null;
-    monthly_payment: number | null;
-    contract_duration?: number | null;
-    lease_duration?: number | null;
-    // Nouveaux champs Mollie
-    mollie_customer_id?: string | null;
-    mollie_mandate_id?: string | null;
-    mollie_mandate_status?: string | null;
-  };
-  companyId: string;
-  onSuccess?: (customerId: string) => void;
-}
-```
-
-### 3. Page `ContractDetail.tsx`
-
-Passer les champs Mollie au composant :
-
-```typescript
-<MollieSepaCard 
-  contract={{
-    id: contract.id,
-    client_name: contract.client_name,
-    client_email: contract.client_email,
-    monthly_payment: contract.monthly_payment,
-    contract_duration: contract.contract_duration,
-    lease_duration: contract.lease_duration,
-    // Ajouter les champs Mollie
-    mollie_customer_id: contract.mollie_customer_id,
-    mollie_mandate_id: contract.mollie_mandate_id,
-    mollie_mandate_status: contract.mollie_mandate_status,
-  }}
-  companyId={companyId}
-  onSuccess={() => refetch()}
-/>
-```
-
-### 4. Composant `MollieSepaCard.tsx`
-
-Modifier le composant pour :
-- Détecter si un mandat existe déjà au chargement
-- Afficher l'état existant au lieu du formulaire de création
-- Permettre de créer un abonnement si le mandat est valide
-
-```typescript
-// Ajouter au début du composant
-const hasExistingMandate = contract.mollie_mandate_id && contract.mollie_mandate_status;
-
-// Initialiser l'état avec les données existantes
-useEffect(() => {
-  if (hasExistingMandate) {
-    setMandateInfo({
-      id: contract.mollie_mandate_id!,
-      status: contract.mollie_mandate_status!
-    });
-    setSuccess(true);
-  }
-}, [contract.mollie_mandate_id, contract.mollie_mandate_status]);
-```
-
-## Résultat attendu
-
-Après ces modifications :
-1. Le composant affichera immédiatement le mandat existant si `mollie_mandate_id` est présent
-2. Après création d'un nouveau mandat, le callback `refetch()` rechargera les données
-3. Au rechargement de la page, l'état du mandat sera correctement affiché
+Si l'abonnement échoue après création du mandat :
+- Le mandat reste valide
+- L'erreur est loggée mais pas bloquante
+- L'UI indique que le mandat est créé mais l'abonnement doit être créé manuellement
 
 ## Fichiers à modifier
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/services/contractService.ts` | Ajouter champs Mollie à l'interface `Contract` |
-| `src/pages/ContractDetail.tsx` | Passer les champs Mollie au composant |
-| `src/components/contracts/MollieSepaCard.tsx` | Gérer l'affichage du mandat existant |
+| `supabase/functions/mollie-sepa/index.ts` | Ajouter action `setup_sepa_complete` |
+| `src/utils/mollie.ts` | Ajouter fonction `setupMollieSepaComplete()` |
+| `src/components/contracts/MollieSepaCard.tsx` | Utiliser la nouvelle fonction et afficher l'abonnement |
 
