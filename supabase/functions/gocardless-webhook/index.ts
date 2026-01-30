@@ -6,30 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-signature',
 };
 
-// Fonction pour vérifier la signature HMAC du webhook
+// Fonction pour vérifier la signature HMAC du webhook GoCardless
+// GoCardless envoie un simple hash HMAC-SHA256 du body (pas de timestamp comme Stripe)
 async function verifyWebhookSignature(body: string, signature: string, secret: string): Promise<boolean> {
   try {
-    const parts = signature.split(',');
-    const signatureMap: Record<string, string> = {};
-    
-    for (const part of parts) {
-      const [key, value] = part.split('=');
-      if (key && value) {
-        signatureMap[key.trim()] = value.trim();
-      }
-    }
-
-    const timestamp = signatureMap['t'];
-    const signatures = Object.entries(signatureMap)
-      .filter(([key]) => key.startsWith('s'))
-      .map(([, value]) => value);
-
-    if (!timestamp || signatures.length === 0) {
-      console.error('Format de signature invalide');
-      return false;
-    }
-
     const encoder = new TextEncoder();
+    
+    // Importer la clé secrète
     const key = await crypto.subtle.importKey(
       'raw',
       encoder.encode(secret),
@@ -38,18 +21,27 @@ async function verifyWebhookSignature(body: string, signature: string, secret: s
       ['sign']
     );
 
-    const signaturePayload = `${timestamp}.${body}`;
+    // Calculer le HMAC-SHA256 du body directement (format GoCardless)
     const signatureBytes = await crypto.subtle.sign(
       'HMAC',
       key,
-      encoder.encode(signaturePayload)
+      encoder.encode(body)
     );
 
+    // Convertir en hex
     const expectedSignature = Array.from(new Uint8Array(signatureBytes))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    return signatures.some(sig => sig === expectedSignature);
+    // Comparaison directe avec la signature reçue
+    const isValid = signature === expectedSignature;
+    
+    if (!isValid) {
+      console.log('Signature reçue:', signature);
+      console.log('Signature attendue:', expectedSignature);
+    }
+    
+    return isValid;
   } catch (error) {
     console.error('Erreur vérification signature:', error);
     return false;
