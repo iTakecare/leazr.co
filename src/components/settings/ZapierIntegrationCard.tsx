@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { testZapierWebhook } from "@/utils/zapier";
 
 interface ZapierConfig {
   id: string;
@@ -168,15 +169,12 @@ export default function ZapierIntegrationCard() {
       return;
     }
 
-    // Validation stricte de l'URL
+    // Basic URL validation
     try {
       const url = new URL(trimmedUrl);
       if (url.protocol !== "https:") {
         toast.error("L'URL doit commencer par https://");
         return;
-      }
-      if (!url.hostname.includes("zapier.com")) {
-        toast.warning("L'URL ne semble pas être un webhook Zapier valide");
       }
     } catch {
       toast.error("L'URL du webhook n'est pas valide");
@@ -186,60 +184,32 @@ export default function ZapierIntegrationCard() {
     try {
       setTesting(true);
 
-      const testPayload = {
-        event_type: "test",
-        timestamp: new Date().toISOString(),
-        triggered_from: window.location.origin,
-        data: {
-          message: "Test de connexion Zapier depuis Leazr",
-          test: true,
-        },
-      };
-
-      // Créer un AbortController pour le timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      try {
-        await fetch(trimmedUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          mode: "no-cors",
-          body: JSON.stringify(testPayload),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        // En mode no-cors, certaines erreurs sont "normales"
-        // car on ne peut pas lire la réponse
-        console.warn("Fetch warning (peut être normal en no-cors):", fetchError);
-      }
-
-      // Avec no-cors, on ne peut pas savoir si ça a vraiment fonctionné
-      // Donc on affiche toujours un message informatif
+      // Use the Edge Function proxy for reliable testing
+      const result = await testZapierWebhook(trimmedUrl);
       
-      if (config?.id) {
-        await supabase
-          .from("zapier_integrations")
-          .update({ last_triggered_at: new Date().toISOString() })
-          .eq("id", config.id);
-      }
+      await fetchConfig(); // Refresh to get updated last_triggered_at
 
-      toast.info(
-        "Requête envoyée vers Zapier. Vérifiez l'historique de votre Zap pour confirmer la réception. Si le Zap est en Draft, publiez-le d'abord.",
-        { duration: 6000 }
-      );
-      
-      await fetchConfig();
+      if (result.success) {
+        toast.success(
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <span>{result.message}</span>
+          </div>,
+          { duration: 5000 }
+        );
+      } else {
+        toast.error(
+          <div>
+            <strong>Échec du test</strong>
+            <p className="text-sm mt-1">{result.message}</p>
+            {result.status && <p className="text-xs text-muted-foreground">Code: {result.status}</p>}
+          </div>,
+          { duration: 8000 }
+        );
+      }
     } catch (error) {
       console.error("Error testing webhook:", error);
-      toast.error(
-        "Erreur inattendue. Vérifiez que votre Zap est publié (pas en Draft).",
-        { duration: 6000 }
-      );
+      toast.error("Erreur inattendue lors du test");
     } finally {
       setTesting(false);
     }
