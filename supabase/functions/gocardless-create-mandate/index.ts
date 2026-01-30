@@ -128,15 +128,45 @@ serve(async (req) => {
       );
     }
 
+    // Get GoCardless connection and verify KYC status
+    const { data: connection, error: connectionError } = await supabaseAdmin
+      .from('gocardless_connections')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (connectionError || !connection) {
+      console.error('[CreateMandate] No GoCardless connection', { error: connectionError?.message });
+      return new Response(
+        JSON.stringify({ error: 'Aucune connexion GoCardless active pour cette entreprise' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify KYC status - mandate creation requires successful verification
+    if (connection.verification_status !== 'successful') {
+      console.error('[CreateMandate] Tenant KYC not complete', { 
+        verification_status: connection.verification_status 
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'La vérification GoCardless n\'est pas complète. Veuillez finaliser la vérification dans les paramètres d\'intégration.',
+          code: 'KYC_REQUIRED'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get GoCardless client for this tenant
     let gcClient: GoCardlessClient;
     try {
       gcClient = await GoCardlessClient.fromConnection(supabaseAdmin, companyId);
     } catch (error) {
-      console.error('[CreateMandate] No GoCardless connection', { error: error instanceof Error ? error.message : 'Unknown' });
+      console.error('[CreateMandate] Failed to initialize client', { error: error instanceof Error ? error.message : 'Unknown' });
       return new Response(
-        JSON.stringify({ error: 'Aucune connexion GoCardless active pour cette entreprise' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Erreur de connexion à GoCardless' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -261,7 +291,7 @@ serve(async (req) => {
       );
     }
 
-    // Store billing request flow in dedicated table
+    // Store billing request flow in dedicated table with flow_url
     await supabaseAdmin
       .from('gocardless_billing_request_flows')
       .insert({
@@ -270,15 +300,19 @@ serve(async (req) => {
         end_customer_id: endCustomerId,
         billing_request_id: billingRequestId,
         flow_id: flowId,
+        flow_url: authorisationUrl,
         status: 'pending'
       });
 
-    // Update contract for backward compatibility
+    // Update contract with all SEPA fields
     await supabaseAdmin
       .from('contracts')
       .update({ 
         gocardless_billing_request_id: billingRequestId,
-        gocardless_mandate_status: 'pending_submission'
+        gocardless_mandate_status: 'pending_submission',
+        sepa_status: 'pending',
+        gocardless_billing_request_flow_id: flowId,
+        gocardless_billing_request_flow_url: authorisationUrl
       })
       .eq('id', contractId);
 

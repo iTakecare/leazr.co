@@ -152,3 +152,9 @@ verify_jwt = false
 
 [functions.gocardless-reconcile]
 verify_jwt = false
+
+[functions.gocardless-cancel-billing-request]
+verify_jwt = false
+
+[functions.gocardless-resend-mandate-link]
+verify_jwt = false
