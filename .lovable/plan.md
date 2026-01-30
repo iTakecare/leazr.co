@@ -1,230 +1,168 @@
 
-# Remplacement de GoCardless par Zapier
 
-## Vue d'ensemble
+# Correction de l'erreur de test du webhook Zapier
 
-Suppression complète de l'intégration GoCardless (OAuth Partner, Edge Functions, webhooks, etc.) et remplacement par une intégration Zapier simple dans le panneau Intégrations.
+## Problème identifié
 
----
+L'erreur "TypeError: Load failed" dans la console indique que la requête `fetch` échoue avant même d'atteindre le serveur Zapier. Cela peut arriver pour plusieurs raisons :
 
-## Éléments à supprimer
+1. **URL malformée** - L'URL contient des caractères invalides ou des espaces
+2. **Problème de protocole** - L'URL ne commence pas par `https://`
+3. **Blocage du navigateur** - Certaines extensions ou paramètres de sécurité bloquent les requêtes sortantes
 
-### Edge Functions (11 fonctions)
+## Analyse du code actuel
 
-| Fonction | Description |
-|----------|-------------|
-| `gocardless-oauth-start` | Démarrage OAuth |
-| `gocardless-oauth-callback` | Callback OAuth |
-| `gocardless-create-mandate` | Création de mandat SEPA |
-| `gocardless-complete-flow` | Finalisation du flux client |
-| `gocardless-cancel-billing-request` | Annulation de demande |
-| `gocardless-resend-mandate-link` | Renvoi du lien de signature |
-| `gocardless-verification-status` | Vérification du statut |
-| `gocardless-disconnect` | Déconnexion |
-| `gocardless-reconcile` | Réconciliation des données |
-| `gocardless-webhook` | Réception des webhooks |
-| `_shared/gocardless/*` | Utilitaires partagés (5 fichiers) |
-
-### Pages Frontend (5 pages)
-
-| Page | Chemin |
-|------|--------|
-| `GoCardlessOAuthCallbackPage.tsx` | OAuth callback admin |
-| `GoCardlessCompletePage.tsx` | Complétion flux client |
-| `GoCardlessSuccessPage.tsx` | Page de succès client |
-| `GoCardlessIntegrationCard.tsx` | Carte configuration |
-| `GoCardlessStatusCard.tsx` | Statut dans détail contrat |
-
-### Routes à supprimer (App.tsx)
-
-- `/:companySlug/gocardless/complete`
-- `/:companySlug/gocardless/success`
-- `/:companySlug/gocardless/oauth/callback`
-
-### Tables de base de données concernées
-
-Les colonnes GoCardless dans la table `contracts` et les tables dédiées (`gocardless_connections`, `gocardless_oauth_states`, `gocardless_webhook_events`) devront être conservées pour l'historique, mais ne seront plus utilisées.
-
----
-
-## Nouvelle intégration Zapier
-
-### Composant : `ZapierIntegrationCard.tsx`
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ ⚡ Zapier                                               [Config] │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Automatisez vos workflows avec Zapier                           │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │ URL du Webhook Zapier                                       │ │
-│  │ [https://hooks.zapier.com/hooks/catch/...              ]    │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │ Événements à déclencher:                                    │ │
-│  │ ☑ Nouveau contrat signé                                     │ │
-│  │ ☑ Nouveau client créé                                       │ │
-│  │ ☑ Nouvelle offre acceptée                                   │ │
-│  │ ☐ Rappel de paiement                                        │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  [Tester le webhook]                    [Sauvegarder]           │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Fonctionnalités
-
-1. **Configuration simple** : Saisie de l'URL webhook Zapier
-2. **Sélection d'événements** : Choix des événements déclencheurs
-3. **Test du webhook** : Envoi d'un payload de test
-4. **Stockage** : URL et configuration en base de données
-
-### Stockage de la configuration
-
-Nouvelle table `zapier_integrations` :
-- `id` (uuid)
-- `company_id` (uuid, FK)
-- `webhook_url` (text)
-- `enabled_events` (jsonb) - liste des événements activés
-- `is_active` (boolean)
-- `last_triggered_at` (timestamp)
-- `created_at` / `updated_at`
-
-### Hook d'envoi vers Zapier
-
-Fonction utilitaire côté client pour envoyer des événements :
+Le code actuel (lignes 163-208 de `ZapierIntegrationCard.tsx`) :
 
 ```typescript
-// src/utils/zapier.ts
-export async function triggerZapierWebhook(
-  companyId: string,
-  eventType: string,
-  payload: Record<string, unknown>
-) {
-  // Récupérer la config Zapier de la company
-  // Vérifier si l'événement est activé
-  // Envoyer le payload au webhook (mode no-cors)
-}
-```
-
----
-
-## Modifications dans IntegrationsManager
-
-L'entrée GoCardless sera remplacée par Zapier dans la catégorie "Automation" :
-
-```typescript
-{
-  id: 'zapier',
-  name: 'Zapier',
-  description: 'Automatisez vos workflows avec 5000+ applications',
-  logoUrl: 'https://logo.clearbit.com/zapier.com',
-  status: 'available',
-  category: 'Automation'
-}
-```
-
----
-
-## Plan d'exécution
-
-### Phase 1 : Suppression GoCardless
-
-1. Supprimer les 11 dossiers Edge Functions GoCardless
-2. Supprimer les 5 pages/composants Frontend
-3. Retirer les 3 routes de `App.tsx`
-4. Retirer l'import et l'entrée GoCardless de `IntegrationsManager.tsx`
-5. Nettoyer les références dans `ContractDetail.tsx` et `CompanySettingsPage.tsx`
-
-### Phase 2 : Création intégration Zapier
-
-1. Créer la migration pour la table `zapier_integrations`
-2. Créer `ZapierIntegrationCard.tsx`
-3. Ajouter l'entrée Zapier dans `IntegrationsManager.tsx`
-4. Créer l'utilitaire `triggerZapierWebhook`
-
-### Phase 3 : Nettoyage
-
-1. Supprimer les secrets Supabase liés à GoCardless (manuellement)
-2. Conserver les tables GoCardless pour l'historique
-
----
-
-## Détails techniques
-
-### Structure des fichiers à créer
-
-```
-src/
-├── components/settings/
-│   └── ZapierIntegrationCard.tsx     # Nouvelle carte de config
-├── utils/
-│   └── zapier.ts                      # Utilitaire d'envoi webhook
-```
-
-### Structure des fichiers à supprimer
-
-```
-supabase/functions/
-├── gocardless-oauth-start/
-├── gocardless-oauth-callback/
-├── gocardless-create-mandate/
-├── gocardless-complete-flow/
-├── gocardless-cancel-billing-request/
-├── gocardless-resend-mandate-link/
-├── gocardless-verification-status/
-├── gocardless-disconnect/
-├── gocardless-reconcile/
-├── gocardless-webhook/
-└── _shared/gocardless/
-
-src/
-├── components/
-│   ├── settings/GoCardlessIntegrationCard.tsx
-│   └── contracts/GoCardlessStatusCard.tsx
-└── pages/
-    ├── admin/GoCardlessOAuthCallbackPage.tsx
-    └── client/
-        ├── GoCardlessCompletePage.tsx
-        └── GoCardlessSuccessPage.tsx
-```
-
-### Payload Zapier (exemple)
-
-```json
-{
-  "event_type": "contract_signed",
-  "timestamp": "2026-01-30T10:30:00Z",
-  "company_id": "xxx",
-  "data": {
-    "contract_id": "xxx",
-    "client_name": "Entreprise ABC",
-    "monthly_payment": 299.00,
-    "contract_start_date": "2026-02-01"
+const handleTest = async () => {
+  // ...
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      mode: "no-cors",
+      body: JSON.stringify(testPayload),
+    });
+    
+    // Si aucune erreur n'est levée, on considère que c'est un succès
+    toast.success("Test envoyé !");
+  } catch (error) {
+    // "Load failed" est capturé ici
+    toast.error("Erreur lors du test du webhook");
   }
-}
+};
+```
+
+Le problème est que le code traite toute exception comme une erreur, mais ne valide pas suffisamment l'URL avant l'envoi.
+
+## Solution proposée
+
+### 1. Améliorer la validation de l'URL avant l'envoi
+
+Ajouter une validation plus stricte de l'URL :
+- Vérifier que c'est une URL valide avec `new URL()`
+- S'assurer qu'elle commence par `https://`
+- Supprimer les espaces et caractères invisibles
+
+### 2. Améliorer la gestion des erreurs
+
+Distinguer les différents types d'erreurs pour donner un message plus utile à l'utilisateur :
+- Erreur de réseau (Load failed)
+- URL invalide
+- Timeout
+
+### 3. Afficher un message plus informatif
+
+Au lieu de juste "Erreur lors du test", afficher un message qui aide à diagnostiquer le problème.
+
+---
+
+## Modifications du fichier
+
+### `src/components/settings/ZapierIntegrationCard.tsx`
+
+```typescript
+const handleTest = async () => {
+  const trimmedUrl = webhookUrl.trim();
+  
+  if (!trimmedUrl) {
+    toast.error("Veuillez d'abord entrer une URL de webhook");
+    return;
+  }
+
+  // Validation stricte de l'URL
+  try {
+    const url = new URL(trimmedUrl);
+    if (url.protocol !== "https:") {
+      toast.error("L'URL doit commencer par https://");
+      return;
+    }
+    if (!url.hostname.includes("zapier.com")) {
+      toast.warning("L'URL ne semble pas être un webhook Zapier valide");
+    }
+  } catch {
+    toast.error("L'URL du webhook n'est pas valide");
+    return;
+  }
+
+  try {
+    setTesting(true);
+
+    const testPayload = {
+      event_type: "test",
+      timestamp: new Date().toISOString(),
+      triggered_from: window.location.origin,
+      data: {
+        message: "Test de connexion Zapier depuis Leazr",
+        test: true,
+      },
+    };
+
+    // Note: avec mode: "no-cors", on ne peut pas vérifier la réponse
+    // Une absence d'erreur signifie que la requête est partie
+    const response = await fetch(trimmedUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      mode: "no-cors",
+      body: JSON.stringify(testPayload),
+    });
+
+    // Si on arrive ici sans exception, la requête a été envoyée
+    // Note: response.type sera "opaque" avec no-cors
+    
+    // Mettre à jour last_triggered_at
+    if (config?.id) {
+      await supabase
+        .from("zapier_integrations")
+        .update({ last_triggered_at: new Date().toISOString() })
+        .eq("id", config.id);
+    }
+
+    toast.success(
+      "Requête envoyée ! Vérifiez l'historique de votre Zap dans Zapier pour confirmer la réception.",
+      { duration: 5000 }
+    );
+    
+    await fetchConfig();
+  } catch (error) {
+    console.error("Error testing webhook:", error);
+    
+    // Message d'erreur plus informatif
+    if (error instanceof TypeError && error.message === "Load failed") {
+      toast.error(
+        "Impossible de contacter le webhook. Vérifiez que l'URL est correcte et que votre Zap est publié.",
+        { duration: 6000 }
+      );
+    } else {
+      toast.error(
+        `Erreur lors du test: ${error instanceof Error ? error.message : "Erreur inconnue"}`
+      );
+    }
+  } finally {
+    setTesting(false);
+  }
+};
 ```
 
 ---
 
-## Impact sur les fonctionnalités existantes
+## Résumé des changements
 
-| Fonctionnalité | Avant (GoCardless) | Après (Zapier) |
-|----------------|--------------------| ---------------|
-| Prélèvements SEPA | Automatiques via mandat | Manuel ou via Zap externe |
-| Création mandat | Dans l'app | Via GoCardless Dashboard + Zap |
-| Webhooks | Réception sécurisée HMAC | N/A (envoi uniquement) |
-| Notifications | Via webhook GoCardless | Via Zap configurable |
+| Aspect | Avant | Après |
+|--------|-------|-------|
+| Validation URL | Basique (contient `hooks.zapier.com`) | Validation avec `new URL()` + protocole https |
+| Nettoyage URL | Aucun | `trim()` pour supprimer espaces |
+| Message d'erreur | Générique | Spécifique selon le type d'erreur |
+| Durée du toast | Par défaut | 5-6 secondes pour les messages importants |
 
-## Secrets à supprimer (manuellement dans Supabase Dashboard)
+---
 
-- `GOCARDLESS_CLIENT_ID`
-- `GOCARDLESS_CLIENT_SECRET`
-- `GOCARDLESS_REDIRECT_URI`
-- `GOCARDLESS_WEBHOOK_SECRET`
-- `LEAZR_ENCRYPTION_KEY_32B`
+## Impact
+
+- Meilleure UX avec des messages d'erreur explicites
+- Validation préventive avant l'envoi
+- Pas de changement de fonctionnalité si l'URL est valide
 
