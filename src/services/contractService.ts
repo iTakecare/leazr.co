@@ -62,6 +62,11 @@ export interface Contract {
   delivery_date?: string;
   is_self_leasing?: boolean;
   special_provisions?: string;
+  // Mollie SEPA fields
+  mollie_customer_id?: string;
+  mollie_mandate_id?: string;
+  mollie_mandate_status?: string;
+  mollie_subscription_id?: string;
 }
 
 export interface ContractEquipment {
