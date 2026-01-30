@@ -1,179 +1,230 @@
 
-# Correction du flux OAuth GoCardless
+# Remplacement de GoCardless par Zapier
 
-## Problème identifié
+## Vue d'ensemble
 
-L'erreur "something went wrong... contact partner software" dans GoCardless est causée par une **confusion entre deux URLs de redirection** :
-
-| Flux | Description | URL requise |
-|------|-------------|-------------|
-| **OAuth Callback** | Quand l'admin connecte son compte GoCardless | Doit être une page qui reçoit `code` et `state` et appelle `gocardless-oauth-callback` |
-| **Billing Request Flow** | Quand le client signe son mandat SEPA | `https://leazr.co/itakecare/gocardless/complete` (déjà en place) |
-
-Actuellement, le secret `GOCARDLESS_REDIRECT_URI` pointe vers la page du Billing Request Flow, qui ne sait pas traiter le callback OAuth.
+Suppression complète de l'intégration GoCardless (OAuth Partner, Edge Functions, webhooks, etc.) et remplacement par une intégration Zapier simple dans le panneau Intégrations.
 
 ---
 
-## Solution
+## Éléments à supprimer
 
-Créer une page dédiée pour le **OAuth Callback** et mettre à jour la configuration.
+### Edge Functions (11 fonctions)
+
+| Fonction | Description |
+|----------|-------------|
+| `gocardless-oauth-start` | Démarrage OAuth |
+| `gocardless-oauth-callback` | Callback OAuth |
+| `gocardless-create-mandate` | Création de mandat SEPA |
+| `gocardless-complete-flow` | Finalisation du flux client |
+| `gocardless-cancel-billing-request` | Annulation de demande |
+| `gocardless-resend-mandate-link` | Renvoi du lien de signature |
+| `gocardless-verification-status` | Vérification du statut |
+| `gocardless-disconnect` | Déconnexion |
+| `gocardless-reconcile` | Réconciliation des données |
+| `gocardless-webhook` | Réception des webhooks |
+| `_shared/gocardless/*` | Utilitaires partagés (5 fichiers) |
+
+### Pages Frontend (5 pages)
+
+| Page | Chemin |
+|------|--------|
+| `GoCardlessOAuthCallbackPage.tsx` | OAuth callback admin |
+| `GoCardlessCompletePage.tsx` | Complétion flux client |
+| `GoCardlessSuccessPage.tsx` | Page de succès client |
+| `GoCardlessIntegrationCard.tsx` | Carte configuration |
+| `GoCardlessStatusCard.tsx` | Statut dans détail contrat |
+
+### Routes à supprimer (App.tsx)
+
+- `/:companySlug/gocardless/complete`
+- `/:companySlug/gocardless/success`
+- `/:companySlug/gocardless/oauth/callback`
+
+### Tables de base de données concernées
+
+Les colonnes GoCardless dans la table `contracts` et les tables dédiées (`gocardless_connections`, `gocardless_oauth_states`, `gocardless_webhook_events`) devront être conservées pour l'historique, mais ne seront plus utilisées.
 
 ---
 
-## Fichiers à créer
+## Nouvelle intégration Zapier
 
-### 1. `src/pages/admin/GoCardlessOAuthCallbackPage.tsx`
-
-Page qui traite le retour OAuth après que l'admin a autorisé la connexion GoCardless :
+### Composant : `ZapierIntegrationCard.tsx`
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Connexion GoCardless                          │
+│ ⚡ Zapier                                               [Config] │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  [Loading] Connexion en cours...                                 │
+│  Automatisez vos workflows avec Zapier                           │
 │                                                                  │
-│  OU                                                              │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │ URL du Webhook Zapier                                       │ │
+│  │ [https://hooks.zapier.com/hooks/catch/...              ]    │ │
+│  └─────────────────────────────────────────────────────────────┘ │
 │                                                                  │
-│  [✅] Connexion réussie !                                        │
-│  Votre compte GoCardless est maintenant connecté.                │
-│  Redirection vers les paramètres...                              │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │ Événements à déclencher:                                    │ │
+│  │ ☑ Nouveau contrat signé                                     │ │
+│  │ ☑ Nouveau client créé                                       │ │
+│  │ ☑ Nouvelle offre acceptée                                   │ │
+│  │ ☐ Rappel de paiement                                        │ │
+│  └─────────────────────────────────────────────────────────────┘ │
 │                                                                  │
-│  OU                                                              │
-│                                                                  │
-│  [❌] Erreur de connexion                                        │
-│  [Message d'erreur]                                              │
-│  [Retour aux paramètres]                                         │
+│  [Tester le webhook]                    [Sauvegarder]           │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Fonctionnement :**
-1. Récupère `code` et `state` depuis les query params
-2. Appelle `gocardless-oauth-callback` avec ces paramètres
-3. Affiche le résultat (succès ou erreur)
-4. Redirige vers `/admin/settings` après succès
+### Fonctionnalités
 
----
+1. **Configuration simple** : Saisie de l'URL webhook Zapier
+2. **Sélection d'événements** : Choix des événements déclencheurs
+3. **Test du webhook** : Envoi d'un payload de test
+4. **Stockage** : URL et configuration en base de données
 
-## Fichiers à modifier
+### Stockage de la configuration
 
-### 2. `src/App.tsx`
+Nouvelle table `zapier_integrations` :
+- `id` (uuid)
+- `company_id` (uuid, FK)
+- `webhook_url` (text)
+- `enabled_events` (jsonb) - liste des événements activés
+- `is_active` (boolean)
+- `last_triggered_at` (timestamp)
+- `created_at` / `updated_at`
 
-Ajouter la route pour le callback OAuth :
+### Hook d'envoi vers Zapier
 
-```tsx
-// Importer la nouvelle page
-import GoCardlessOAuthCallbackPage from "@/pages/admin/GoCardlessOAuthCallbackPage";
-
-// Dans les routes admin (après les autres routes admin)
-<Route path="/:companySlug/admin/settings/gocardless/callback" element={<GoCardlessOAuthCallbackPage />} />
-
-// OU une route publique si nécessaire (l'utilisateur peut ne plus avoir de session active après la redirection)
-<Route path="/:companySlug/gocardless/oauth/callback" element={<GoCardlessOAuthCallbackPage />} />
-```
-
----
-
-## Configuration à mettre à jour
-
-### 3. Secret Supabase : `GOCARDLESS_REDIRECT_URI`
-
-Doit être mis à jour vers l'URL de la nouvelle page OAuth callback :
-
-**Valeur actuelle (incorrecte pour OAuth) :**
-```
-https://leazr.co/itakecare/gocardless/complete
-```
-
-**Nouvelle valeur à configurer :**
-```
-https://leazr.co/itakecare/gocardless/oauth/callback
-```
-
-### 4. Dashboard GoCardless Partner
-
-Dans **Developer → OAuth apps**, mettre à jour le Redirect URI pour correspondre exactement à la nouvelle valeur du secret.
-
----
-
-## Flux complet après correction
-
-```text
-[Admin clique "Connecter GoCardless"]
-           │
-           ▼
-[Edge Function: gocardless-oauth-start]
-  └── Génère authorizeUrl avec redirect_uri
-           │
-           ▼
-[GoCardless OAuth Page]
-  └── L'admin autorise l'accès
-           │
-           ▼
-[Redirection vers redirect_uri]
-  └── https://leazr.co/itakecare/gocardless/oauth/callback?code=XXX&state=YYY
-           │
-           ▼
-[GoCardlessOAuthCallbackPage.tsx]
-  └── Appelle gocardless-oauth-callback
-  └── Affiche succès/erreur
-  └── Redirige vers /admin/settings
-```
-
----
-
-## Détails techniques de la page OAuth Callback
+Fonction utilitaire côté client pour envoyer des événements :
 
 ```typescript
-// Fonctionnement simplifié
-const GoCardlessOAuthCallbackPage = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { companySlug } = useParams();
-  
-  useEffect(() => {
-    const processCallback = async () => {
-      const code = searchParams.get('code');
-      const state = searchParams.get('state');
-      
-      if (!code || !state) {
-        setError("Paramètres OAuth manquants");
-        return;
-      }
-      
-      // Pas besoin de session active car gocardless-oauth-callback
-      // valide via le state token stocké en base
-      const { data, error } = await supabase.functions.invoke(
-        'gocardless-oauth-callback',
-        { body: { code, state } }
-      );
-      
-      if (error || !data?.success) {
-        setError(data?.error || "Erreur de connexion");
-        return;
-      }
-      
-      setSuccess(true);
-      setTimeout(() => {
-        navigate(`/${companySlug}/admin/settings`);
-      }, 2000);
-    };
-    
-    processCallback();
-  }, []);
-};
+// src/utils/zapier.ts
+export async function triggerZapierWebhook(
+  companyId: string,
+  eventType: string,
+  payload: Record<string, unknown>
+) {
+  // Récupérer la config Zapier de la company
+  // Vérifier si l'événement est activé
+  // Envoyer le payload au webhook (mode no-cors)
+}
 ```
 
 ---
 
-## Résumé des actions
+## Modifications dans IntegrationsManager
 
-| Ordre | Action | Responsable |
-|-------|--------|-------------|
-| 1 | Créer `GoCardlessOAuthCallbackPage.tsx` | Lovable |
-| 2 | Ajouter la route dans `App.tsx` | Lovable |
-| 3 | Mettre à jour le secret `GOCARDLESS_REDIRECT_URI` | Utilisateur via Supabase Dashboard |
-| 4 | Mettre à jour le Redirect URI dans GoCardless Partner Dashboard | Utilisateur |
+L'entrée GoCardless sera remplacée par Zapier dans la catégorie "Automation" :
 
-Une fois approuvé, je créerai la page et la route. Vous devrez ensuite mettre à jour le secret et la configuration GoCardless avec la nouvelle URL.
+```typescript
+{
+  id: 'zapier',
+  name: 'Zapier',
+  description: 'Automatisez vos workflows avec 5000+ applications',
+  logoUrl: 'https://logo.clearbit.com/zapier.com',
+  status: 'available',
+  category: 'Automation'
+}
+```
+
+---
+
+## Plan d'exécution
+
+### Phase 1 : Suppression GoCardless
+
+1. Supprimer les 11 dossiers Edge Functions GoCardless
+2. Supprimer les 5 pages/composants Frontend
+3. Retirer les 3 routes de `App.tsx`
+4. Retirer l'import et l'entrée GoCardless de `IntegrationsManager.tsx`
+5. Nettoyer les références dans `ContractDetail.tsx` et `CompanySettingsPage.tsx`
+
+### Phase 2 : Création intégration Zapier
+
+1. Créer la migration pour la table `zapier_integrations`
+2. Créer `ZapierIntegrationCard.tsx`
+3. Ajouter l'entrée Zapier dans `IntegrationsManager.tsx`
+4. Créer l'utilitaire `triggerZapierWebhook`
+
+### Phase 3 : Nettoyage
+
+1. Supprimer les secrets Supabase liés à GoCardless (manuellement)
+2. Conserver les tables GoCardless pour l'historique
+
+---
+
+## Détails techniques
+
+### Structure des fichiers à créer
+
+```
+src/
+├── components/settings/
+│   └── ZapierIntegrationCard.tsx     # Nouvelle carte de config
+├── utils/
+│   └── zapier.ts                      # Utilitaire d'envoi webhook
+```
+
+### Structure des fichiers à supprimer
+
+```
+supabase/functions/
+├── gocardless-oauth-start/
+├── gocardless-oauth-callback/
+├── gocardless-create-mandate/
+├── gocardless-complete-flow/
+├── gocardless-cancel-billing-request/
+├── gocardless-resend-mandate-link/
+├── gocardless-verification-status/
+├── gocardless-disconnect/
+├── gocardless-reconcile/
+├── gocardless-webhook/
+└── _shared/gocardless/
+
+src/
+├── components/
+│   ├── settings/GoCardlessIntegrationCard.tsx
+│   └── contracts/GoCardlessStatusCard.tsx
+└── pages/
+    ├── admin/GoCardlessOAuthCallbackPage.tsx
+    └── client/
+        ├── GoCardlessCompletePage.tsx
+        └── GoCardlessSuccessPage.tsx
+```
+
+### Payload Zapier (exemple)
+
+```json
+{
+  "event_type": "contract_signed",
+  "timestamp": "2026-01-30T10:30:00Z",
+  "company_id": "xxx",
+  "data": {
+    "contract_id": "xxx",
+    "client_name": "Entreprise ABC",
+    "monthly_payment": 299.00,
+    "contract_start_date": "2026-02-01"
+  }
+}
+```
+
+---
+
+## Impact sur les fonctionnalités existantes
+
+| Fonctionnalité | Avant (GoCardless) | Après (Zapier) |
+|----------------|--------------------| ---------------|
+| Prélèvements SEPA | Automatiques via mandat | Manuel ou via Zap externe |
+| Création mandat | Dans l'app | Via GoCardless Dashboard + Zap |
+| Webhooks | Réception sécurisée HMAC | N/A (envoi uniquement) |
+| Notifications | Via webhook GoCardless | Via Zap configurable |
+
+## Secrets à supprimer (manuellement dans Supabase Dashboard)
+
+- `GOCARDLESS_CLIENT_ID`
+- `GOCARDLESS_CLIENT_SECRET`
+- `GOCARDLESS_REDIRECT_URI`
+- `GOCARDLESS_WEBHOOK_SECRET`
+- `LEAZR_ENCRYPTION_KEY_32B`
+
