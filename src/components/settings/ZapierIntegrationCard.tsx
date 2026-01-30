@@ -161,8 +161,25 @@ export default function ZapierIntegrationCard() {
   };
 
   const handleTest = async () => {
-    if (!webhookUrl.trim()) {
+    const trimmedUrl = webhookUrl.trim();
+    
+    if (!trimmedUrl) {
       toast.error("Veuillez d'abord entrer une URL de webhook");
+      return;
+    }
+
+    // Validation stricte de l'URL
+    try {
+      const url = new URL(trimmedUrl);
+      if (url.protocol !== "https:") {
+        toast.error("L'URL doit commencer par https://");
+        return;
+      }
+      if (!url.hostname.includes("zapier.com")) {
+        toast.warning("L'URL ne semble pas être un webhook Zapier valide");
+      }
+    } catch {
+      toast.error("L'URL du webhook n'est pas valide");
       return;
     }
 
@@ -180,7 +197,7 @@ export default function ZapierIntegrationCard() {
       };
 
       // Using no-cors mode since Zapier doesn't return proper CORS headers
-      await fetch(webhookUrl, {
+      await fetch(trimmedUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -197,11 +214,25 @@ export default function ZapierIntegrationCard() {
           .eq("id", config.id);
       }
 
-      toast.success("Test envoyé ! Vérifiez l'historique de votre Zap pour confirmer la réception.");
+      toast.success(
+        "Requête envoyée ! Vérifiez l'historique de votre Zap dans Zapier pour confirmer la réception.",
+        { duration: 5000 }
+      );
       await fetchConfig();
     } catch (error) {
       console.error("Error testing webhook:", error);
-      toast.error("Erreur lors du test du webhook");
+      
+      // Message d'erreur plus informatif
+      if (error instanceof TypeError && error.message === "Load failed") {
+        toast.error(
+          "Impossible de contacter le webhook. Vérifiez que l'URL est correcte et que votre Zap est publié.",
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(
+          `Erreur lors du test: ${error instanceof Error ? error.message : "Erreur inconnue"}`
+        );
+      }
     } finally {
       setTesting(false);
     }
