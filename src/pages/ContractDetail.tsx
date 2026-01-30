@@ -13,7 +13,7 @@ import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
-import SepaPaymentCard from "@/components/contracts/SepaPaymentCard";
+import MollieSepaCard from "@/components/contracts/MollieSepaCard";
 import ContractBreakevenCard from "@/components/contracts/ContractBreakevenCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
@@ -163,9 +163,9 @@ const ContractDetail = () => {
                 onContractUpdated={refetch}
               />
 
-              {/* Carte prélèvement SEPA - self-leasing uniquement */}
+              {/* Carte prélèvement SEPA Mollie - self-leasing uniquement */}
               {contract.is_self_leasing && companyId && (
-                <SepaPaymentCard 
+                <MollieSepaCard 
                   contract={{
                     id: contract.id,
                     client_name: contract.client_name,
@@ -175,7 +175,7 @@ const ContractDetail = () => {
                     lease_duration: contract.lease_duration,
                   }}
                   companyId={companyId}
-                  onSuccess={refetch}
+                  onSuccess={() => refetch()}
                 />
               )}
 
