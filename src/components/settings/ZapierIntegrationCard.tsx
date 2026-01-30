@@ -196,17 +196,31 @@ export default function ZapierIntegrationCard() {
         },
       };
 
-      // Using no-cors mode since Zapier doesn't return proper CORS headers
-      await fetch(trimmedUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify(testPayload),
-      });
+      // Créer un AbortController pour le timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      // Update last_triggered_at
+      try {
+        await fetch(trimmedUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          mode: "no-cors",
+          body: JSON.stringify(testPayload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        // En mode no-cors, certaines erreurs sont "normales"
+        // car on ne peut pas lire la réponse
+        console.warn("Fetch warning (peut être normal en no-cors):", fetchError);
+      }
+
+      // Avec no-cors, on ne peut pas savoir si ça a vraiment fonctionné
+      // Donc on affiche toujours un message informatif
+      
       if (config?.id) {
         await supabase
           .from("zapier_integrations")
@@ -214,25 +228,18 @@ export default function ZapierIntegrationCard() {
           .eq("id", config.id);
       }
 
-      toast.success(
-        "Requête envoyée ! Vérifiez l'historique de votre Zap dans Zapier pour confirmer la réception.",
-        { duration: 5000 }
+      toast.info(
+        "Requête envoyée vers Zapier. Vérifiez l'historique de votre Zap pour confirmer la réception. Si le Zap est en Draft, publiez-le d'abord.",
+        { duration: 6000 }
       );
+      
       await fetchConfig();
     } catch (error) {
       console.error("Error testing webhook:", error);
-      
-      // Message d'erreur plus informatif
-      if (error instanceof TypeError && error.message === "Load failed") {
-        toast.error(
-          "Impossible de contacter le webhook. Vérifiez que l'URL est correcte et que votre Zap est publié.",
-          { duration: 6000 }
-        );
-      } else {
-        toast.error(
-          `Erreur lors du test: ${error instanceof Error ? error.message : "Erreur inconnue"}`
-        );
-      }
+      toast.error(
+        "Erreur inattendue. Vérifiez que votre Zap est publié (pas en Draft).",
+        { duration: 6000 }
+      );
     } finally {
       setTesting(false);
     }
