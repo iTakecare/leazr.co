@@ -9,7 +9,9 @@ const corsHeaders = {
 const MOLLIE_API_URL = "https://api.mollie.com/v2";
 
 interface MollieSepaRequest {
-  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete";
+  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete" | "update_subscription";
+  subscription_id?: string;
+  new_start_date?: string;
   customer_id?: string;
   mandate_id?: string;
   // Customer data
@@ -463,6 +465,123 @@ serve(async (req) => {
             subscription_status: subscription?.status || null,
             first_payment_date: subscription?.nextPaymentDate || null,
             subscription_error: subscriptionError,
+          },
+        };
+        break;
+      }
+
+      case "update_subscription": {
+        // Update subscription billing day by canceling and recreating
+        // Mollie doesn't support direct subscription date updates, so we need to:
+        // 1. Get current subscription details
+        // 2. Cancel it
+        // 3. Create a new one with the new start date
+        
+        if (!body.customer_id || !body.subscription_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: "customer_id et subscription_id requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log(`[Mollie] Updating subscription ${body.subscription_id} for customer ${body.customer_id}`);
+        
+        // Get current subscription details
+        const getResult = await mollieRequest(`/customers/${body.customer_id}/subscriptions/${body.subscription_id}`);
+        
+        if (!getResult.success || !getResult.data) {
+          console.error("[Mollie] Failed to get subscription:", getResult.error);
+          result = { success: false, error: getResult.error || "Abonnement non trouvé" };
+          break;
+        }
+        
+        const currentSub = getResult.data as { 
+          amount: { value: string; currency: string };
+          interval: string;
+          description: string;
+          times?: number;
+          metadata?: Record<string, unknown>;
+          nextPaymentDate?: string;
+        };
+        
+        console.log(`[Mollie] Current subscription:`, currentSub);
+        
+        // Cancel current subscription
+        const cancelResult = await mollieRequest(
+          `/customers/${body.customer_id}/subscriptions/${body.subscription_id}`,
+          "DELETE"
+        );
+        
+        if (!cancelResult.success && cancelResult.status !== 200) {
+          console.error("[Mollie] Failed to cancel subscription:", cancelResult.error);
+          result = { success: false, error: cancelResult.error || "Impossible d'annuler l'abonnement" };
+          break;
+        }
+        
+        console.log(`[Mollie] Subscription cancelled, creating new one`);
+        
+        // Get payment day from company settings or use provided date
+        let newStartDate = body.new_start_date;
+        
+        if (!newStartDate && body.company_id) {
+          const { data: companySettings } = await supabase
+            .from("company_customizations")
+            .select("payment_day")
+            .eq("company_id", body.company_id)
+            .single();
+          
+          const paymentDay = companySettings?.payment_day || 1;
+          const now = new Date();
+          const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, paymentDay);
+          newStartDate = nextMonth.toISOString().split("T")[0];
+          console.log(`[Mollie] Using payment day ${paymentDay}, new start date: ${newStartDate}`);
+        }
+        
+        // Create new subscription with updated billing date
+        const newSubResult = await mollieRequest(`/customers/${body.customer_id}/subscriptions`, "POST", {
+          amount: currentSub.amount,
+          interval: currentSub.interval,
+          description: currentSub.description,
+          startDate: newStartDate,
+          times: body.times || currentSub.times,
+          webhookUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mollie-webhook`,
+          metadata: currentSub.metadata || {
+            contract_id: body.contract_id,
+            company_id: body.company_id,
+          },
+        });
+        
+        if (!newSubResult.success || !newSubResult.data) {
+          console.error("[Mollie] Failed to create new subscription:", newSubResult.error);
+          result = { success: false, error: newSubResult.error || "Impossible de créer le nouvel abonnement" };
+          break;
+        }
+        
+        const newSub = newSubResult.data as { id: string; status: string; nextPaymentDate?: string };
+        console.log(`[Mollie] New subscription created: ${newSub.id}`);
+        
+        // Update contract with new subscription ID
+        if (body.contract_id) {
+          const { error: updateError } = await supabase
+            .from("contracts")
+            .update({ mollie_subscription_id: newSub.id })
+            .eq("id", body.contract_id);
+          
+          if (updateError) {
+            console.error("[Mollie] Failed to update contract:", updateError);
+          } else {
+            console.log(`[Mollie] Contract ${body.contract_id} updated with new subscription ID`);
+          }
+        }
+        
+        result = {
+          success: true,
+          data: {
+            old_subscription_id: body.subscription_id,
+            new_subscription_id: newSub.id,
+            new_subscription_status: newSub.status,
+            new_start_date: newStartDate,
+            next_payment_date: newSub.nextPaymentDate,
           },
         };
         break;

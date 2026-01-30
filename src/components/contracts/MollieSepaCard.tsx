@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   CreditCard, 
   Send, 
@@ -13,11 +15,12 @@ import {
   RefreshCw,
   Euro,
   Landmark,
-  Calendar
+  Calendar,
+  Pencil
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { setupMollieSepaComplete } from "@/utils/mollie";
+import { setupMollieSepaComplete, updateMollieSubscription } from "@/utils/mollie";
 import IBANInput from "./IBANInput";
 
 interface MollieSepaCardProps {
@@ -52,6 +55,9 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [success, setSuccess] = useState(false);
   const [sepaInfo, setSepaInfo] = useState<SepaInfo | null>(null);
   const [paymentDay, setPaymentDay] = useState<number>(1);
+  const [editPaymentDayOpen, setEditPaymentDayOpen] = useState(false);
+  const [newPaymentDay, setNewPaymentDay] = useState<number>(1);
+  const [updatingPaymentDay, setUpdatingPaymentDay] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -78,6 +84,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           .maybeSingle();
         if (data?.payment_day) {
           setPaymentDay(data.payment_day);
+          setNewPaymentDay(data.payment_day);
         }
       } catch (error) {
         console.error('Error fetching payment day:', error);
@@ -85,6 +92,49 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     };
     fetchPaymentDay();
   }, [companyId]);
+
+  const handleUpdatePaymentDay = async () => {
+    if (!contract.mollie_customer_id || !contract.mollie_subscription_id) {
+      toast.error("Aucun abonnement Mollie configuré");
+      return;
+    }
+
+    try {
+      setUpdatingPaymentDay(true);
+
+      // Calculate new start date based on new payment day
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, newPaymentDay);
+      const newStartDate = nextMonth.toISOString().split("T")[0];
+
+      const result = await updateMollieSubscription({
+        customer_id: contract.mollie_customer_id,
+        subscription_id: contract.mollie_subscription_id,
+        new_start_date: newStartDate,
+        contract_id: contract.id,
+        company_id: companyId,
+      });
+
+      if (result.success) {
+        // Update company settings with new payment day
+        await supabase
+          .from('company_customizations')
+          .update({ payment_day: newPaymentDay })
+          .eq('company_id', companyId);
+
+        setPaymentDay(newPaymentDay);
+        setEditPaymentDayOpen(false);
+        toast.success(`Jour de prélèvement modifié au ${newPaymentDay === 1 ? '1er' : newPaymentDay} du mois`);
+      } else {
+        toast.error(result.error || "Erreur lors de la modification");
+      }
+    } catch (error) {
+      console.error("Error updating payment day:", error);
+      toast.error("Erreur lors de la modification du jour de prélèvement");
+    } finally {
+      setUpdatingPaymentDay(false);
+    }
+  };
 
   // Check for existing mandate on load
   React.useEffect(() => {
@@ -249,7 +299,19 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                 <Calendar className="h-3 w-3" />
                 Jour de prélèvement
               </span>
-              <span className="font-medium">{paymentDay === 1 ? '1er' : paymentDay} du mois</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{paymentDay === 1 ? '1er' : paymentDay} du mois</span>
+                {(sepaInfo.subscriptionId || contract.mollie_subscription_id) && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6"
+                    onClick={() => setEditPaymentDayOpen(true)}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
             {formData.iban && (
               <div className="flex items-center justify-between">
@@ -303,6 +365,52 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           <Button variant="ghost" onClick={() => { setSuccess(false); setIsOpen(false); }}>
             Fermer
           </Button>
+
+          {/* Dialog for editing payment day */}
+          <Dialog open={editPaymentDayOpen} onOpenChange={setEditPaymentDayOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifier le jour de prélèvement</DialogTitle>
+                <DialogDescription>
+                  Choisissez le nouveau jour de prélèvement mensuel. L'abonnement Mollie sera mis à jour.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label htmlFor="payment-day-select">Jour du mois</Label>
+                <Select 
+                  value={newPaymentDay.toString()} 
+                  onValueChange={(val) => setNewPaymentDay(parseInt(val))}
+                >
+                  <SelectTrigger id="payment-day-select" className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                      <SelectItem key={day} value={day.toString()}>
+                        {day === 1 ? '1er' : day} du mois
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Le prochain prélèvement sera effectué le {newPaymentDay === 1 ? '1er' : newPaymentDay} du mois suivant.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditPaymentDayOpen(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={handleUpdatePaymentDay} disabled={updatingPaymentDay}>
+                  {updatingPaymentDay ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Calendar className="h-4 w-4 mr-2" />
+                  )}
+                  Mettre à jour
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     );
