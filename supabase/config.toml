@@ -130,10 +130,25 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.gocardless-create-mandate]
-verify_jwt = true
+verify_jwt = false
 
 [functions.gocardless-complete-flow]
 verify_jwt = false
 
 [functions.gocardless-webhook]
+verify_jwt = false
+
+[functions.gocardless-oauth-start]
+verify_jwt = false
+
+[functions.gocardless-oauth-callback]
+verify_jwt = false
+
+[functions.gocardless-disconnect]
+verify_jwt = false
+
+[functions.gocardless-verification-status]
+verify_jwt = false
+
+[functions.gocardless-reconcile]
 verify_jwt = false
