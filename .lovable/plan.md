@@ -1,108 +1,86 @@
 
-# Création d'une Edge Function proxy pour Zapier
+# Plan : Mandat SEPA avec saisie directe de l'IBAN
 
-## Problème actuel
+## Objectif
+Permettre la création d'un mandat SEPA en saisissant directement l'IBAN du client, au lieu de rediriger vers un checkout Mollie (carte de crédit, iDEAL, etc.).
 
-Le navigateur ne peut pas confirmer que la requête vers Zapier a abouti car :
-1. Zapier ne supporte pas CORS correctement
-2. Le mode `no-cors` empêche de lire la réponse
-3. Certains navigateurs (Safari) lèvent une erreur "Load failed" même si la requête part
+## Solution technique
+Mollie permet de créer un mandat SEPA **directement via l'API Mandates** avec les paramètres :
+- `method: "directdebit"`
+- `consumerName` : nom du titulaire du compte
+- `consumerAccount` : l'IBAN
+- `consumerBic` : le BIC (optionnel)
 
-## Solution
+Cela crée instantanément un mandat valide sans redirection vers un checkout.
 
-Créer une **Edge Function `zapier-proxy`** qui :
-1. Reçoit les requêtes du frontend
-2. Envoie les données à Zapier côté serveur (pas de problème CORS)
-3. Retourne un vrai statut de succès/échec au frontend
+## Modifications à effectuer
 
-## Architecture
+### 1. Edge Function `mollie-sepa/index.ts`
+Ajouter une nouvelle action `create_direct_mandate` qui appelle directement l'API Mandates Mollie :
 
-```text
-┌──────────────┐        ┌─────────────────────┐        ┌────────────────┐
-│   Frontend   │ ──────▶│  Edge Function      │ ──────▶│    Zapier      │
-│  (Browser)   │        │  zapier-proxy       │        │   Webhook      │
-└──────────────┘        └─────────────────────┘        └────────────────┘
-                               │                               │
-                               ▼                               ▼
-                        Vraie réponse              Vraie confirmation
-                        HTTP 200/4xx/5xx           que Zapier a reçu
 ```
-
-## Fichiers à créer/modifier
-
-| Fichier | Action | Description |
-|---------|--------|-------------|
-| `supabase/functions/zapier-proxy/index.ts` | Créer | Edge Function proxy |
-| `supabase/config.toml` | Modifier | Ajouter config pour `zapier-proxy` |
-| `src/utils/zapier.ts` | Modifier | Utiliser la Edge Function au lieu de fetch direct |
-| `src/components/settings/ZapierIntegrationCard.tsx` | Modifier | Utiliser la nouvelle fonction pour le test |
-
-## Edge Function `zapier-proxy`
-
-Cette fonction acceptera :
-- `action`: `"test"` ou `"trigger"`
-- `webhook_url`: URL du webhook Zapier
-- `payload`: Données à envoyer
-
-Elle fera un vrai `fetch` vers Zapier et retournera :
-- `success: true/false`
-- `status`: Code HTTP de Zapier (200, 4xx, 5xx)
-- `message`: Message pour l'utilisateur
-
-## Avantages
-
-1. **Vraie confirmation** : On saura si Zapier a reçu la requête
-2. **Pas de problème CORS** : Le serveur n'a pas ces restrictions
-3. **Meilleurs logs** : On peut logger les erreurs côté serveur
-4. **Compatible tous navigateurs** : Fonctionne sur Safari, Chrome, Firefox...
-5. **Traçabilité** : Les requêtes passent par notre infrastructure
-
-## Sécurité
-
-- Authentification requise (l'utilisateur doit être connecté)
-- Validation de l'URL (doit être un webhook Zapier valide)
-- Vérification que l'utilisateur appartient à la company concernée
-
-## Modifications du code frontend
-
-### `src/utils/zapier.ts`
-
-Remplacer les appels `fetch` directs par des appels à la Edge Function :
-
-```typescript
-export async function triggerZapierWebhook(
-  companyId: string,
-  eventType: string,
-  data: Record<string, unknown>
-): Promise<boolean> {
-  // Appeler la Edge Function au lieu de fetch direct
-  const { data: result, error } = await supabase.functions.invoke('zapier-proxy', {
-    body: {
-      action: 'trigger',
-      company_id: companyId,
-      event_type: eventType,
-      payload: data,
-    },
-  });
-
-  if (error) {
-    console.error('[Zapier] Error:', error);
-    return false;
-  }
-
-  return result?.success === true;
+POST /v2/customers/{customerId}/mandates
+{
+  "method": "directdebit",
+  "consumerName": "Jean Dupont",
+  "consumerAccount": "BE68539007547034",
+  "consumerBic": "GEBABEBB" (optionnel)
 }
 ```
 
-### `ZapierIntegrationCard.tsx`
+Cette action retournera directement le mandat créé avec son statut (`valid` ou `pending`).
 
-Le bouton "Tester" appellera aussi la Edge Function et pourra afficher un vrai message de succès ou d'erreur.
+### 2. Utilitaire frontend `src/utils/mollie.ts`
+Ajouter une nouvelle fonction `createDirectMollieMandate()` qui :
+- Prend l'IBAN et le nom du consommateur
+- Appelle la nouvelle action `create_direct_mandate`
+- Retourne le mandat créé
 
-## Résultat attendu
+Modifier `setupMollieSepa()` pour supporter les deux flux :
+- **Flux IBAN direct** : si l'IBAN est fourni, créer le mandat directement
+- **Flux checkout** : sinon, générer un lien de checkout (comportement actuel)
 
-1. Le bouton "Tester le webhook" affichera :
-   - ✅ "Succès ! Zapier a bien reçu la requête." (si HTTP 200)
-   - ❌ "Erreur : Zapier a répondu avec le code XXX" (si erreur)
-   - ❌ "Impossible de contacter Zapier. Vérifiez l'URL." (si timeout/erreur réseau)
+### 3. Composant `MollieSepaCard.tsx`
+Modifier le formulaire pour :
+- Ajouter un champ IBAN utilisant le composant `IBANInput` existant (avec validation MOD 97-10)
+- Ajouter un champ BIC optionnel
+- Changer le comportement du submit :
+  - Créer le client Mollie
+  - Créer le mandat directement avec l'IBAN
+  - Afficher le succès immédiat (pas de lien de redirection)
 
-2. Les déclenchements en production (contrat signé, etc.) passeront aussi par le proxy et seront plus fiables.
+### 4. Interface utilisateur après création
+Après la création réussie du mandat avec IBAN :
+- Afficher un message de succès avec le statut du mandat
+- Permettre de créer l'abonnement de prélèvement automatique
+- Supprimer l'étape de "lien à envoyer au client"
+
+## Flux utilisateur final
+
+```text
+1. Admin ouvre la fiche contrat
+2. Clique sur "Configurer le prélèvement SEPA"
+3. Remplit le formulaire :
+   - Nom, Prénom, Email (pré-remplis)
+   - IBAN du client (avec validation temps réel)
+   - BIC (optionnel)
+   - Montant mensuel, durée
+4. Clique sur "Créer le mandat SEPA"
+5. Le mandat est créé instantanément
+6. Le contrat est mis à jour avec les IDs Mollie
+7. L'admin peut lancer les prélèvements récurrents
+```
+
+## Avantages de cette approche
+- Pas de redirection externe pour le client
+- Création instantanée du mandat
+- L'admin contrôle entièrement le processus
+- Validation de l'IBAN côté frontend avec le composant existant
+- Le composant `IBANInput` avec validation MOD 97-10 est déjà prêt
+
+## Fichiers à modifier
+| Fichier | Modification |
+|---------|-------------|
+| `supabase/functions/mollie-sepa/index.ts` | Ajouter action `create_direct_mandate` |
+| `src/utils/mollie.ts` | Ajouter `createDirectMollieMandate()` et modifier `setupMollieSepa()` |
+| `src/components/contracts/MollieSepaCard.tsx` | Ajouter champs IBAN/BIC, modifier le flux de soumission |
