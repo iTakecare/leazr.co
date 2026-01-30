@@ -2649,6 +2649,10 @@ export type Database = {
           leaser_id: string | null
           leaser_logo: string | null
           leaser_name: string
+          mollie_customer_id: string | null
+          mollie_mandate_id: string | null
+          mollie_mandate_status: string | null
+          mollie_subscription_id: string | null
           monthly_payment: number
           offer_id: string
           payment_date: string | null
@@ -2703,6 +2707,10 @@ export type Database = {
           leaser_id?: string | null
           leaser_logo?: string | null
           leaser_name: string
+          mollie_customer_id?: string | null
+          mollie_mandate_id?: string | null
+          mollie_mandate_status?: string | null
+          mollie_subscription_id?: string | null
           monthly_payment?: number
           offer_id: string
           payment_date?: string | null
@@ -2757,6 +2765,10 @@ export type Database = {
           leaser_id?: string | null
           leaser_logo?: string | null
           leaser_name?: string
+          mollie_customer_id?: string | null
+          mollie_mandate_id?: string | null
+          mollie_mandate_status?: string | null
+          mollie_subscription_id?: string | null
           monthly_payment?: number
           offer_id?: string
           payment_date?: string | null
@@ -4491,6 +4503,57 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      mollie_payment_events: {
+        Row: {
+          amount: number
+          company_id: string | null
+          contract_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          metadata: Json | null
+          payment_id: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          company_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          payment_id: string
+          status: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          payment_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mollie_payment_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mollie_payment_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       netlify_configurations: {
         Row: {
