@@ -161,3 +161,9 @@ verify_jwt = false
 
 [functions.zapier-proxy]
 verify_jwt = false
+
+[functions.mollie-sepa]
+verify_jwt = false
+
+[functions.mollie-webhook]
+verify_jwt = false
