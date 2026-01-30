@@ -9,13 +9,14 @@ const corsHeaders = {
 const MOLLIE_API_URL = "https://api.mollie.com/v2";
 
 interface MollieSepaRequest {
-  action: "create_customer" | "create_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates";
+  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates";
   customer_id?: string;
   mandate_id?: string;
   // Customer data
   name?: string;
   email?: string;
-  // Mandate data (for first payment flow)
+  // Mandate data (for direct IBAN mandate creation)
+  consumer_name?: string;
   iban?: string;
   bic?: string;
   // Subscription/payment data
@@ -191,6 +192,69 @@ serve(async (req) => {
           );
         }
         result = await mollieRequest(`/customers/${body.customer_id}/mandates`);
+        break;
+      }
+
+      case "create_direct_mandate": {
+        // Create a SEPA Direct Debit mandate directly with IBAN (no checkout redirect)
+        // Requires: customer_id, consumer_name (account holder), iban
+        if (!body.customer_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: "customer_id requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (!body.consumer_name) {
+          return new Response(
+            JSON.stringify({ success: false, error: "consumer_name (nom du titulaire) requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (!body.iban) {
+          return new Response(
+            JSON.stringify({ success: false, error: "iban requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log(`[Mollie] Creating direct mandate for customer ${body.customer_id} with IBAN ${body.iban.substring(0, 4)}****`);
+
+        const mandatePayload: Record<string, unknown> = {
+          method: "directdebit",
+          consumerName: body.consumer_name,
+          consumerAccount: body.iban.replace(/\s/g, "").toUpperCase(),
+        };
+
+        // BIC is optional - Mollie can often derive it from IBAN
+        if (body.bic) {
+          mandatePayload.consumerBic = body.bic.replace(/\s/g, "").toUpperCase();
+        }
+
+        result = await mollieRequest(`/customers/${body.customer_id}/mandates`, "POST", mandatePayload);
+
+        // If mandate created successfully, update the contract in DB
+        if (result.success && result.data) {
+          const mandate = result.data as { id: string; status: string };
+          console.log(`[Mollie] Mandate created: ${mandate.id} with status ${mandate.status}`);
+          
+          // Update contract with mandate info
+          if (body.contract_id) {
+            const { error: updateError } = await supabase
+              .from("contracts")
+              .update({
+                mollie_customer_id: body.customer_id,
+                mollie_mandate_id: mandate.id,
+                mollie_mandate_status: mandate.status,
+              })
+              .eq("id", body.contract_id);
+
+            if (updateError) {
+              console.error("[Mollie] Failed to update contract:", updateError);
+            } else {
+              console.log(`[Mollie] Contract ${body.contract_id} updated with mandate ${mandate.id}`);
+            }
+          }
+        }
         break;
       }
 

@@ -16,6 +16,15 @@ export interface MollieMandateData {
   company_id?: string;
 }
 
+export interface MollieDirectMandateData {
+  customer_id: string;
+  consumer_name: string;
+  iban: string;
+  bic?: string;
+  contract_id?: string;
+  company_id?: string;
+}
+
 export interface MollieSubscriptionData {
   customer_id: string;
   amount: number;
@@ -151,6 +160,86 @@ export async function listMollieMandates(customerId: string): Promise<MollieResp
   } catch (error) {
     console.error("[Mollie] List mandates exception:", error);
     return { success: false, error: "Erreur lors de la récupération des mandats" };
+  }
+}
+
+/**
+ * Create a direct SEPA mandate with IBAN (no checkout redirect)
+ * This creates the mandate immediately without customer interaction
+ */
+export async function createDirectMollieMandate(
+  data: MollieDirectMandateData
+): Promise<MollieResponse> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("mollie-sepa", {
+      body: {
+        action: "create_direct_mandate",
+        customer_id: data.customer_id,
+        consumer_name: data.consumer_name,
+        iban: data.iban,
+        bic: data.bic,
+        contract_id: data.contract_id,
+        company_id: data.company_id,
+      },
+    });
+
+    if (error) {
+      console.error("[Mollie] Create direct mandate error:", error);
+      return { success: false, error: error.message };
+    }
+
+    return result;
+  } catch (error) {
+    console.error("[Mollie] Create direct mandate exception:", error);
+    return { success: false, error: "Erreur lors de la création du mandat SEPA" };
+  }
+}
+
+/**
+ * Full SEPA setup flow with direct IBAN:
+ * 1. Create customer
+ * 2. Create direct mandate with IBAN
+ * Returns the mandate immediately (no redirect needed)
+ */
+export async function setupMollieSepaWithIban(
+  customerData: MollieCustomerData,
+  mandateData: { consumer_name: string; iban: string; bic?: string; contract_id?: string; company_id?: string }
+): Promise<{ success: boolean; customerId?: string; mandateId?: string; mandateStatus?: string; error?: string }> {
+  try {
+    // Step 1: Create customer
+    const customerResult = await createMollieCustomer(customerData);
+    if (!customerResult.success || !customerResult.data) {
+      return { success: false, error: customerResult.error || "Erreur création client" };
+    }
+
+    const customer = customerResult.data as { id: string };
+    const customerId = customer.id;
+
+    // Step 2: Create direct mandate with IBAN
+    const mandateResult = await createDirectMollieMandate({
+      customer_id: customerId,
+      consumer_name: mandateData.consumer_name,
+      iban: mandateData.iban,
+      bic: mandateData.bic,
+      contract_id: mandateData.contract_id,
+      company_id: mandateData.company_id,
+    });
+
+    if (!mandateResult.success || !mandateResult.data) {
+      return { success: false, error: mandateResult.error || "Erreur création mandat" };
+    }
+
+    const mandate = mandateResult.data as { id: string; status: string };
+
+    return { 
+      success: true, 
+      customerId, 
+      mandateId: mandate.id,
+      mandateStatus: mandate.status
+    };
+  } catch (error) {
+    console.error("[Mollie] Setup SEPA with IBAN error:", error);
+    return { success: false, error: "Erreur lors de la configuration SEPA" };
   }
 }
 

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { 
   CreditCard, 
   Send, 
@@ -11,10 +12,11 @@ import {
   AlertCircle,
   RefreshCw,
   Euro,
-  ExternalLink
+  Landmark
 } from "lucide-react";
 import { toast } from "sonner";
-import { setupMollieSepa } from "@/utils/mollie";
+import { setupMollieSepaWithIban } from "@/utils/mollie";
+import IBANInput from "./IBANInput";
 
 interface MollieSepaCardProps {
   contract: {
@@ -33,17 +35,20 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [isOpen, setIsOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [mandateInfo, setMandateInfo] = useState<{ id: string; status: string } | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
     email: contract.client_email || "",
+    iban: "",
+    bic: "",
     montant: contract.monthly_payment || 0,
     nombre_mois: contract.contract_duration || contract.lease_duration || 12,
     description: `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
   });
+  const [ibanValid, setIbanValid] = useState(false);
 
   // Extract first/last name from client_name
   React.useEffect(() => {
@@ -68,6 +73,11 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleIbanChange = (value: string, isValid: boolean) => {
+    setFormData(prev => ({ ...prev, iban: value }));
+    setIbanValid(isValid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -80,6 +90,10 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       toast.error("Veuillez renseigner l'email");
       return;
     }
+    if (!formData.iban.trim() || !ibanValid) {
+      toast.error("Veuillez saisir un IBAN valide");
+      return;
+    }
     if (formData.montant <= 0) {
       toast.error("Le montant mensuel doit être positif");
       return;
@@ -88,7 +102,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     try {
       setSending(true);
 
-      const result = await setupMollieSepa(
+      const result = await setupMollieSepaWithIban(
         {
           name: `${formData.prenom} ${formData.nom}`,
           email: formData.email.trim(),
@@ -96,22 +110,26 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           company_id: companyId,
         },
         {
-          amount: 0.01, // First payment for mandate authorization
-          description: "Autorisation mandat SEPA - " + formData.description,
+          consumer_name: `${formData.prenom} ${formData.nom}`,
+          iban: formData.iban,
+          bic: formData.bic || undefined,
           contract_id: contract.id,
           company_id: companyId,
         }
       );
 
-      if (result.success && result.redirectUrl) {
+      if (result.success && result.mandateId) {
         setSuccess(true);
-        setRedirectUrl(result.redirectUrl);
-        toast.success("Client créé ! Envoyez le lien d'autorisation au client.");
+        setMandateInfo({
+          id: result.mandateId,
+          status: result.mandateStatus || "pending"
+        });
+        toast.success("Mandat SEPA créé avec succès !");
         if (result.customerId) {
           onSuccess?.(result.customerId);
         }
       } else {
-        toast.error(result.error || "Erreur lors de la configuration");
+        toast.error(result.error || "Erreur lors de la création du mandat");
       }
     } catch (error) {
       console.error("Error setting up SEPA:", error);
@@ -121,54 +139,58 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     }
   };
 
-  const handleOpenMollie = () => {
-    if (redirectUrl) {
-      window.open(redirectUrl, "_blank");
+  const getMandateStatusBadge = (status: string) => {
+    switch (status) {
+      case "valid":
+        return <Badge className="bg-green-600">Valide</Badge>;
+      case "pending":
+        return <Badge className="bg-yellow-600">En attente</Badge>;
+      case "invalid":
+        return <Badge variant="destructive">Invalide</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const handleCopyLink = async () => {
-    if (redirectUrl) {
-      await navigator.clipboard.writeText(redirectUrl);
-      toast.success("Lien copié dans le presse-papier !");
-    }
-  };
-
-  if (success && redirectUrl) {
+  if (success && mandateInfo) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            Mandat SEPA prêt
+            Mandat SEPA créé
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Le client Mollie a été créé. Envoyez le lien ci-dessous au client pour qu'il autorise le prélèvement SEPA.
-          </p>
-          
-          <div className="p-3 bg-muted rounded-md">
-            <p className="text-xs text-muted-foreground mb-1">Lien d'autorisation :</p>
-            <p className="text-sm break-all font-mono">{redirectUrl}</p>
+          <div className="p-4 bg-muted rounded-md space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">ID du mandat</span>
+              <span className="font-mono text-sm">{mandateInfo.id}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Statut</span>
+              {getMandateStatusBadge(mandateInfo.status)}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">IBAN</span>
+              <span className="font-mono text-sm">{formData.iban.substring(0, 4)}****{formData.iban.slice(-4)}</span>
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleCopyLink} variant="outline" className="flex-1">
-              Copier le lien
-            </Button>
-            <Button onClick={handleOpenMollie} className="flex-1">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Ouvrir Mollie
-            </Button>
-          </div>
-
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Une fois le client autorisé, vous pourrez créer les prélèvements récurrents.
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              {mandateInfo.status === "valid" 
+                ? "Le mandat est valide. Vous pouvez maintenant créer des prélèvements récurrents."
+                : "Le mandat est en attente de validation. Les prélèvements pourront être créés une fois le mandat validé."
+              }
             </AlertDescription>
           </Alert>
+
+          <div className="text-sm text-muted-foreground">
+            <p><strong>Client :</strong> {formData.prenom} {formData.nom}</p>
+            <p><strong>Prélèvement :</strong> {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois</p>
+          </div>
 
           <Button variant="ghost" onClick={() => { setSuccess(false); setIsOpen(false); }}>
             Fermer
@@ -185,7 +207,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <CreditCard className="h-5 w-5 text-primary" />
+                <Landmark className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-base">Prélèvement SEPA (Mollie)</CardTitle>
@@ -198,7 +220,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
         </CardHeader>
         <CardContent>
           <Button onClick={() => setIsOpen(true)} className="w-full">
-            <CreditCard className="h-4 w-4 mr-2" />
+            <Landmark className="h-4 w-4 mr-2" />
             Configurer le prélèvement SEPA
           </Button>
         </CardContent>
@@ -210,11 +232,11 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
+          <Landmark className="h-5 w-5" />
           Configuration du prélèvement SEPA
         </CardTitle>
         <CardDescription>
-          Créez un client Mollie et générez un lien d'autorisation de mandat SEPA
+          Saisissez l'IBAN du client pour créer le mandat de prélèvement SEPA
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -254,6 +276,17 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
               required
             />
           </div>
+
+          {/* IBAN Input with validation */}
+          <IBANInput
+            value={formData.iban}
+            onChange={handleIbanChange}
+            label="IBAN du client"
+            required
+            showBIC
+            bicValue={formData.bic}
+            onBICChange={(value) => handleChange("bic", value)}
+          />
 
           {/* Payment info */}
           <div className="grid grid-cols-2 gap-4">
@@ -306,8 +339,8 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           <Alert variant="default">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Cette action crée un client Mollie et génère un lien d'autorisation.
-              Le client devra cliquer sur ce lien pour autoriser le prélèvement SEPA.
+              Le mandat SEPA sera créé directement avec l'IBAN fourni.
+              Le client n'aura pas besoin de confirmer via un lien externe.
             </AlertDescription>
           </Alert>
 
@@ -324,14 +357,14 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             <Button 
               type="submit" 
               className="flex-1"
-              disabled={sending}
+              disabled={sending || !ibanValid}
             >
               {sending ? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}
-              Créer le client Mollie
+              Créer le mandat SEPA
             </Button>
           </div>
         </form>
