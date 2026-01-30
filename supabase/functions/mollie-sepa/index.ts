@@ -150,7 +150,8 @@ serve(async (req) => {
 
       case "create_mandate": {
         // Create a SEPA Direct Debit mandate via first payment
-        // Mollie requires a "first payment" to create a mandate
+        // Mollie requires a "first payment" with a method that supports recurring
+        // The mandate is created automatically after successful first payment
         if (!body.customer_id) {
           return new Response(
             JSON.stringify({ success: false, error: "customer_id requis" }),
@@ -158,8 +159,9 @@ serve(async (req) => {
           );
         }
 
-        // For SEPA, we create a payment with sequenceType=first
-        // The customer will be redirected to their bank to authorize
+        // For recurring payments, we create a first payment WITHOUT specifying directdebit
+        // Mollie will show available methods that support recurring (iDEAL, Bancontact, etc.)
+        // After successful payment, a mandate is created automatically
         const amount = body.amount || 0.01; // Minimum test amount
         result = await mollieRequest("/payments", "POST", {
           amount: {
@@ -171,7 +173,7 @@ serve(async (req) => {
           webhookUrl: `${supabaseUrl}/functions/v1/mollie-webhook`,
           customerId: body.customer_id,
           sequenceType: "first",
-          method: "directdebit",
+          // Don't specify method - let Mollie show recurring-compatible methods (iDEAL, Bancontact, etc.)
           metadata: {
             type: "mandate_creation",
             contract_id: body.contract_id,
