@@ -352,3 +352,96 @@ export async function setupMollieSepa(
     return { success: false, error: "Erreur lors de la configuration SEPA" };
   }
 }
+
+export interface MollieSepaCompleteData {
+  name: string;
+  email: string;
+  consumer_name: string;
+  iban: string;
+  bic?: string;
+  amount: number;
+  times: number;
+  currency?: string;
+  interval?: string;
+  start_date?: string;
+  description?: string;
+  contract_id?: string;
+  company_id?: string;
+}
+
+export interface MollieSepaCompleteResponse {
+  success: boolean;
+  customerId?: string;
+  mandateId?: string;
+  mandateStatus?: string;
+  subscriptionId?: string | null;
+  subscriptionStatus?: string | null;
+  firstPaymentDate?: string | null;
+  subscriptionError?: string | null;
+  error?: string;
+}
+
+/**
+ * Complete SEPA setup flow with direct IBAN:
+ * 1. Create customer
+ * 2. Create direct mandate with IBAN
+ * 3. Create recurring subscription
+ * All in a single API call - no redirect needed
+ */
+export async function setupMollieSepaComplete(
+  data: MollieSepaCompleteData
+): Promise<MollieSepaCompleteResponse> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("mollie-sepa", {
+      body: {
+        action: "setup_sepa_complete",
+        name: data.name,
+        email: data.email,
+        consumer_name: data.consumer_name,
+        iban: data.iban,
+        bic: data.bic,
+        amount: data.amount,
+        times: data.times,
+        currency: data.currency,
+        interval: data.interval,
+        start_date: data.start_date,
+        description: data.description,
+        contract_id: data.contract_id,
+        company_id: data.company_id,
+      },
+    });
+
+    if (error) {
+      console.error("[Mollie] Setup SEPA complete error:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Erreur configuration SEPA" };
+    }
+
+    const responseData = result.data as {
+      customer_id: string;
+      mandate_id: string;
+      mandate_status: string;
+      subscription_id: string | null;
+      subscription_status: string | null;
+      first_payment_date: string | null;
+      subscription_error: string | null;
+    };
+
+    return {
+      success: true,
+      customerId: responseData.customer_id,
+      mandateId: responseData.mandate_id,
+      mandateStatus: responseData.mandate_status,
+      subscriptionId: responseData.subscription_id,
+      subscriptionStatus: responseData.subscription_status,
+      firstPaymentDate: responseData.first_payment_date,
+      subscriptionError: responseData.subscription_error,
+    };
+  } catch (error) {
+    console.error("[Mollie] Setup SEPA complete exception:", error);
+    return { success: false, error: "Erreur lors de la configuration SEPA complète" };
+  }
+}
