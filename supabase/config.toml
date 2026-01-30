@@ -158,3 +158,6 @@ verify_jwt = false
 
 [functions.gocardless-resend-mandate-link]
 verify_jwt = false
+
+[functions.zapier-proxy]
+verify_jwt = false

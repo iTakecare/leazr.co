@@ -1,13 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
-interface ZapierPayload {
-  event_type: string;
-  timestamp: string;
-  company_id: string;
-  data: Record<string, unknown>;
-}
-
 // Schema de validation pour les paiements SEPA GoCardless
 const sepaPaymentSchema = z.object({
   nom: z.string().trim().min(1, "Le nom est requis").max(100, "Le nom est trop long"),
@@ -25,7 +18,56 @@ const sepaPaymentSchema = z.object({
 export type SepaPaymentData = z.infer<typeof sepaPaymentSchema>;
 
 /**
- * Triggers a Zapier webhook for a specific event type
+ * Test a Zapier webhook URL via the Edge Function proxy
+ * Returns actual confirmation from Zapier (not just "request sent")
+ */
+export async function testZapierWebhook(
+  webhookUrl: string,
+  testPayload?: Record<string, unknown>
+): Promise<{ success: boolean; message: string; status?: number }> {
+  try {
+    const payload = testPayload || {
+      event_type: "test",
+      timestamp: new Date().toISOString(),
+      triggered_from: typeof window !== "undefined" ? window.location.origin : "server",
+      data: {
+        message: "Test de connexion Zapier depuis Leazr",
+        test: true,
+      },
+    };
+
+    const { data, error } = await supabase.functions.invoke("zapier-proxy", {
+      body: {
+        action: "test",
+        webhook_url: webhookUrl,
+        payload,
+      },
+    });
+
+    if (error) {
+      console.error("[Zapier] Edge function error:", error);
+      return { 
+        success: false, 
+        message: error.message || "Erreur de connexion au serveur" 
+      };
+    }
+
+    return {
+      success: data?.success === true,
+      message: data?.message || data?.error || "Réponse inattendue",
+      status: data?.status,
+    };
+  } catch (error) {
+    console.error("[Zapier] Test error:", error);
+    return { 
+      success: false, 
+      message: "Erreur inattendue lors du test" 
+    };
+  }
+}
+
+/**
+ * Triggers a Zapier webhook for a specific event type via Edge Function proxy
  * Only triggers if the company has Zapier configured and the event is enabled
  */
 export async function triggerZapierWebhook(
@@ -34,54 +76,24 @@ export async function triggerZapierWebhook(
   data: Record<string, unknown>
 ): Promise<boolean> {
   try {
-    // Fetch the Zapier config for this company
-    const { data: zapierConfig, error } = await supabase
-      .from("zapier_integrations")
-      .select("webhook_url, enabled_events, is_active")
-      .eq("company_id", companyId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[Zapier] Error fetching config:", error);
-      return false;
-    }
-
-    // Check if Zapier is configured and active
-    if (!zapierConfig || !zapierConfig.is_active || !zapierConfig.webhook_url) {
-      console.log("[Zapier] Not configured or inactive for company:", companyId);
-      return false;
-    }
-
-    // Check if this event type is enabled
-    const enabledEvents = zapierConfig.enabled_events as string[];
-    if (!enabledEvents.includes(eventType)) {
-      console.log("[Zapier] Event type not enabled:", eventType);
-      return false;
-    }
-
-    // Prepare the payload
-    const payload: ZapierPayload = {
-      event_type: eventType,
-      timestamp: new Date().toISOString(),
-      company_id: companyId,
-      data,
-    };
-
-    // Send to Zapier webhook (no-cors mode since Zapier doesn't return proper CORS headers)
-    await fetch(zapierConfig.webhook_url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const { data: result, error } = await supabase.functions.invoke("zapier-proxy", {
+      body: {
+        action: "trigger",
+        company_id: companyId,
+        event_type: eventType,
+        payload: data,
       },
-      mode: "no-cors",
-      body: JSON.stringify(payload),
     });
 
-    // Update last_triggered_at
-    await supabase
-      .from("zapier_integrations")
-      .update({ last_triggered_at: new Date().toISOString() })
-      .eq("company_id", companyId);
+    if (error) {
+      console.error("[Zapier] Error triggering webhook:", error);
+      return false;
+    }
+
+    if (!result?.success) {
+      console.log("[Zapier] Webhook not triggered:", result?.error);
+      return false;
+    }
 
     console.log("[Zapier] Webhook triggered successfully for event:", eventType);
     return true;
@@ -110,28 +122,7 @@ export async function triggerSepaPayment(
 
     const validatedData = validationResult.data;
 
-    // Fetch the Zapier config for this company
-    const { data: zapierConfig, error } = await supabase
-      .from("zapier_integrations")
-      .select("webhook_url, enabled_events, is_active")
-      .eq("company_id", companyId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[Zapier SEPA] Error fetching config:", error);
-      return { success: false, error: "Erreur de configuration Zapier" };
-    }
-
-    if (!zapierConfig || !zapierConfig.is_active || !zapierConfig.webhook_url) {
-      return { success: false, error: "Zapier n'est pas configuré pour cette entreprise" };
-    }
-
-    const enabledEvents = zapierConfig.enabled_events as string[];
-    if (!enabledEvents.includes("sepa_payment_created")) {
-      return { success: false, error: "L'événement SEPA n'est pas activé dans Zapier" };
-    }
-
-    // Send the SEPA-specific payload format
+    // Send the SEPA-specific payload format via proxy
     const sepaPayload = {
       nom: validatedData.nom,
       prenom: validatedData.prenom,
@@ -144,20 +135,11 @@ export async function triggerSepaPayment(
       assurance_materiel: validatedData.assurance_materiel,
     };
 
-    await fetch(zapierConfig.webhook_url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      mode: "no-cors",
-      body: JSON.stringify(sepaPayload),
-    });
-
-    // Update last_triggered_at
-    await supabase
-      .from("zapier_integrations")
-      .update({ last_triggered_at: new Date().toISOString() })
-      .eq("company_id", companyId);
+    const success = await triggerZapierWebhook(companyId, "sepa_payment_created", sepaPayload);
+    
+    if (!success) {
+      return { success: false, error: "Échec de l'envoi vers Zapier" };
+    }
 
     console.log("[Zapier SEPA] Payment request sent successfully");
     return { success: true };
