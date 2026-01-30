@@ -26,6 +26,10 @@ interface MollieSepaCardProps {
     monthly_payment: number | null;
     contract_duration?: number | null;
     lease_duration?: number | null;
+    // Mollie SEPA fields
+    mollie_customer_id?: string | null;
+    mollie_mandate_id?: string | null;
+    mollie_mandate_status?: string | null;
   };
   companyId: string;
   onSuccess?: (customerId: string) => void;
@@ -49,6 +53,17 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     description: `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
   });
   const [ibanValid, setIbanValid] = useState(false);
+
+  // Check for existing mandate on load
+  React.useEffect(() => {
+    if (contract.mollie_mandate_id && contract.mollie_mandate_status) {
+      setMandateInfo({
+        id: contract.mollie_mandate_id,
+        status: contract.mollie_mandate_status
+      });
+      setSuccess(true);
+    }
+  }, [contract.mollie_mandate_id, contract.mollie_mandate_status]);
 
   // Extract first/last name from client_name
   React.useEffect(() => {

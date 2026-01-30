@@ -173,6 +173,9 @@ const ContractDetail = () => {
                     monthly_payment: contract.monthly_payment,
                     contract_duration: contract.contract_duration,
                     lease_duration: contract.lease_duration,
+                    mollie_customer_id: contract.mollie_customer_id,
+                    mollie_mandate_id: contract.mollie_mandate_id,
+                    mollie_mandate_status: contract.mollie_mandate_status,
                   }}
                   companyId={companyId}
                   onSuccess={() => refetch()}
