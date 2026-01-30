@@ -6,45 +6,77 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-signature',
 };
 
+// Comparaison constant-time pour éviter timing attacks
+function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
+}
+
+// Convertir une string hex en Uint8Array
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
 // Fonction pour vérifier la signature HMAC du webhook GoCardless
 // GoCardless envoie un simple hash HMAC-SHA256 du body (pas de timestamp comme Stripe)
-async function verifyWebhookSignature(body: string, signature: string, secret: string): Promise<boolean> {
+async function verifyWebhookSignature(bodyBytes: Uint8Array, signature: string, secret: string): Promise<{ valid: boolean; debug: string }> {
   try {
+    // Normaliser les entrées
+    const cleanSignature = signature.trim().toLowerCase();
+    const cleanSecret = secret.trim();
+
+    // Valider le format de la signature (64 chars hex = 32 bytes SHA-256)
+    if (cleanSignature.length !== 64 || !/^[a-f0-9]+$/.test(cleanSignature)) {
+      return { 
+        valid: false, 
+        debug: `Format signature invalide: length=${cleanSignature.length}, pattern=${/^[a-f0-9]+$/.test(cleanSignature)}` 
+      };
+    }
+
     const encoder = new TextEncoder();
     
     // Importer la clé secrète
     const key = await crypto.subtle.importKey(
       'raw',
-      encoder.encode(secret),
+      encoder.encode(cleanSecret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     );
 
-    // Calculer le HMAC-SHA256 du body directement (format GoCardless)
+    // Calculer le HMAC-SHA256 directement sur les bytes bruts du body
     const signatureBytes = await crypto.subtle.sign(
       'HMAC',
       key,
-      encoder.encode(body)
+      bodyBytes
     );
 
-    // Convertir en hex
-    const expectedSignature = Array.from(new Uint8Array(signatureBytes))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const expectedBytes = new Uint8Array(signatureBytes);
+    const receivedBytes = hexToBytes(cleanSignature);
 
-    // Comparaison directe avec la signature reçue
-    const isValid = signature === expectedSignature;
+    // Comparaison constant-time
+    const isValid = constantTimeEqual(expectedBytes, receivedBytes);
     
     if (!isValid) {
-      console.log('Signature reçue:', signature);
-      console.log('Signature attendue:', expectedSignature);
+      // Logs diagnostics (sans exposer le secret ni la signature complète)
+      const expectedHex = Array.from(expectedBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      return { 
+        valid: false, 
+        debug: `Mismatch: reçu=${cleanSignature.substring(0, 12)}..., attendu=${expectedHex.substring(0, 12)}..., bodyLen=${bodyBytes.length}` 
+      };
     }
     
-    return isValid;
+    return { valid: true, debug: 'OK' };
   } catch (error) {
-    console.error('Erreur vérification signature:', error);
-    return false;
+    return { valid: false, debug: `Erreur: ${error.message}` };
   }
 }
 
@@ -55,22 +87,48 @@ serve(async (req) => {
 
   try {
     const webhookSecret = Deno.env.get('GOCARDLESS_WEBHOOK_SECRET');
-    const signature = req.headers.get('Webhook-Signature');
-    const body = await req.text();
+    const signatureHeader = req.headers.get('Webhook-Signature');
 
-    // Vérifier la signature en production
-    if (webhookSecret && signature) {
-      const isValid = await verifyWebhookSignature(body, signature, webhookSecret);
-      if (!isValid) {
-        console.error('Signature webhook invalide');
-        return new Response(
-          JSON.stringify({ error: 'Signature invalide' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Vérifier que le secret est configuré
+    if (!webhookSecret || webhookSecret.trim() === '') {
+      console.error('GOCARDLESS_WEBHOOK_SECRET non configuré');
+      return new Response(
+        JSON.stringify({ error: 'Webhook secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const payload = JSON.parse(body);
+    // Vérifier que la signature est présente
+    if (!signatureHeader) {
+      console.error('Header Webhook-Signature manquant');
+      return new Response(
+        JSON.stringify({ error: 'Missing signature header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Lire le body en bytes bruts (évite tout problème d'encodage)
+    const bodyBuffer = await req.arrayBuffer();
+    const bodyBytes = new Uint8Array(bodyBuffer);
+    
+    // Convertir en string pour JSON.parse
+    const decoder = new TextDecoder('utf-8');
+    const bodyText = decoder.decode(bodyBytes);
+
+    // Vérifier la signature
+    const { valid, debug } = await verifyWebhookSignature(bodyBytes, signatureHeader, webhookSecret);
+    
+    if (!valid) {
+      console.error('Signature webhook invalide:', debug);
+      return new Response(
+        JSON.stringify({ error: 'Signature invalide' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Signature webhook validée avec succès');
+
+    const payload = JSON.parse(bodyText);
     const events = payload.events || [];
 
     console.log(`Réception de ${events.length} événement(s) GoCardless`);
