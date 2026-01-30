@@ -15,7 +15,7 @@ import {
   Landmark
 } from "lucide-react";
 import { toast } from "sonner";
-import { setupMollieSepaWithIban } from "@/utils/mollie";
+import { setupMollieSepaComplete } from "@/utils/mollie";
 import IBANInput from "./IBANInput";
 
 interface MollieSepaCardProps {
@@ -30,16 +30,25 @@ interface MollieSepaCardProps {
     mollie_customer_id?: string | null;
     mollie_mandate_id?: string | null;
     mollie_mandate_status?: string | null;
+    mollie_subscription_id?: string | null;
   };
   companyId: string;
   onSuccess?: (customerId: string) => void;
+}
+
+interface SepaInfo {
+  mandateId: string;
+  mandateStatus: string;
+  subscriptionId?: string | null;
+  subscriptionStatus?: string | null;
+  firstPaymentDate?: string | null;
 }
 
 export default function MollieSepaCard({ contract, companyId, onSuccess }: MollieSepaCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [mandateInfo, setMandateInfo] = useState<{ id: string; status: string } | null>(null);
+  const [sepaInfo, setSepaInfo] = useState<SepaInfo | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -57,13 +66,15 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   // Check for existing mandate on load
   React.useEffect(() => {
     if (contract.mollie_mandate_id && contract.mollie_mandate_status) {
-      setMandateInfo({
-        id: contract.mollie_mandate_id,
-        status: contract.mollie_mandate_status
+      setSepaInfo({
+        mandateId: contract.mollie_mandate_id,
+        mandateStatus: contract.mollie_mandate_status,
+        subscriptionId: contract.mollie_subscription_id,
+        subscriptionStatus: contract.mollie_subscription_id ? "active" : null,
       });
       setSuccess(true);
     }
-  }, [contract.mollie_mandate_id, contract.mollie_mandate_status]);
+  }, [contract.mollie_mandate_id, contract.mollie_mandate_status, contract.mollie_subscription_id]);
 
   // Extract first/last name from client_name
   React.useEffect(() => {
@@ -117,29 +128,37 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     try {
       setSending(true);
 
-      const result = await setupMollieSepaWithIban(
-        {
-          name: `${formData.prenom} ${formData.nom}`,
-          email: formData.email.trim(),
-          contract_id: contract.id,
-          company_id: companyId,
-        },
-        {
-          consumer_name: `${formData.prenom} ${formData.nom}`,
-          iban: formData.iban,
-          bic: formData.bic || undefined,
-          contract_id: contract.id,
-          company_id: companyId,
-        }
-      );
+      const result = await setupMollieSepaComplete({
+        name: `${formData.prenom} ${formData.nom}`,
+        email: formData.email.trim(),
+        consumer_name: `${formData.prenom} ${formData.nom}`,
+        iban: formData.iban,
+        bic: formData.bic || undefined,
+        amount: formData.montant,
+        times: formData.nombre_mois,
+        description: formData.description,
+        contract_id: contract.id,
+        company_id: companyId,
+      });
 
       if (result.success && result.mandateId) {
         setSuccess(true);
-        setMandateInfo({
-          id: result.mandateId,
-          status: result.mandateStatus || "pending"
+        setSepaInfo({
+          mandateId: result.mandateId,
+          mandateStatus: result.mandateStatus || "pending",
+          subscriptionId: result.subscriptionId,
+          subscriptionStatus: result.subscriptionStatus,
+          firstPaymentDate: result.firstPaymentDate,
         });
-        toast.success("Mandat SEPA créé avec succès !");
+        
+        if (result.subscriptionId) {
+          toast.success("Mandat SEPA et abonnement créés avec succès !");
+        } else if (result.subscriptionError) {
+          toast.warning(`Mandat créé, mais l'abonnement a échoué : ${result.subscriptionError}`);
+        } else {
+          toast.success("Mandat SEPA créé avec succès !");
+        }
+        
         if (result.customerId) {
           onSuccess?.(result.customerId);
         }
@@ -167,44 +186,83 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     }
   };
 
-  if (success && mandateInfo) {
+  if (success && sepaInfo) {
+    const totalAmount = formData.montant * formData.nombre_mois;
+    
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            Mandat SEPA créé
+            Prélèvement SEPA configuré
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Mandate info */}
           <div className="p-4 bg-muted rounded-md space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">ID du mandat</span>
-              <span className="font-mono text-sm">{mandateInfo.id}</span>
+              <span className="text-sm text-muted-foreground">Mandat</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm">{sepaInfo.mandateId}</span>
+                {getMandateStatusBadge(sepaInfo.mandateStatus)}
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Statut</span>
-              {getMandateStatusBadge(mandateInfo.status)}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">IBAN</span>
-              <span className="font-mono text-sm">{formData.iban.substring(0, 4)}****{formData.iban.slice(-4)}</span>
-            </div>
+            {sepaInfo.subscriptionId && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Abonnement</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm">{sepaInfo.subscriptionId}</span>
+                  <Badge className="bg-blue-600">Actif</Badge>
+                </div>
+              </div>
+            )}
+            {formData.iban && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">IBAN</span>
+                <span className="font-mono text-sm">{formData.iban.substring(0, 4)}****{formData.iban.slice(-4)}</span>
+              </div>
+            )}
           </div>
 
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {mandateInfo.status === "valid" 
-                ? "Le mandat est valide. Vous pouvez maintenant créer des prélèvements récurrents."
-                : "Le mandat est en attente de validation. Les prélèvements pourront être créés une fois le mandat validé."
-              }
-            </AlertDescription>
-          </Alert>
+          {/* Subscription details */}
+          {sepaInfo.subscriptionId && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <p className="font-medium">Prélèvements récurrents activés</p>
+                <p className="mt-1">
+                  {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois = {totalAmount.toFixed(2)}€
+                </p>
+                {sepaInfo.firstPaymentDate && (
+                  <p className="mt-1">
+                    Premier prélèvement : {new Date(sepaInfo.firstPaymentDate).toLocaleDateString("fr-FR")}
+                  </p>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!sepaInfo.subscriptionId && sepaInfo.mandateStatus === "valid" && (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                Le mandat est valide mais l'abonnement n'a pas pu être créé automatiquement.
+                Veuillez créer l'abonnement manuellement.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!sepaInfo.subscriptionId && sepaInfo.mandateStatus !== "valid" && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Le mandat est en attente de validation. Les prélèvements seront activés une fois le mandat validé.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="text-sm text-muted-foreground">
             <p><strong>Client :</strong> {formData.prenom} {formData.nom}</p>
-            <p><strong>Prélèvement :</strong> {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois</p>
           </div>
 
           <Button variant="ghost" onClick={() => { setSuccess(false); setIsOpen(false); }}>

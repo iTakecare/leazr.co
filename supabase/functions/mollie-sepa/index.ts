@@ -9,7 +9,7 @@ const corsHeaders = {
 const MOLLIE_API_URL = "https://api.mollie.com/v2";
 
 interface MollieSepaRequest {
-  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates";
+  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete";
   customer_id?: string;
   mandate_id?: string;
   // Customer data
@@ -309,6 +309,148 @@ serve(async (req) => {
             company_id: body.company_id,
           },
         });
+        break;
+      }
+
+      case "setup_sepa_complete": {
+        // Complete SEPA setup: create customer + mandate + subscription in one call
+        if (!body.name || !body.email) {
+          return new Response(
+            JSON.stringify({ success: false, error: "name et email requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (!body.consumer_name || !body.iban) {
+          return new Response(
+            JSON.stringify({ success: false, error: "consumer_name et iban requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (!body.amount || body.amount <= 0) {
+          return new Response(
+            JSON.stringify({ success: false, error: "amount doit être positif" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log(`[Mollie] Starting complete SEPA setup for ${body.name}`);
+
+        // Step 1: Create customer
+        const customerResult = await mollieRequest("/customers", "POST", {
+          name: body.name,
+          email: body.email,
+          metadata: {
+            contract_id: body.contract_id,
+            company_id: body.company_id,
+          },
+        });
+
+        if (!customerResult.success || !customerResult.data) {
+          console.error("[Mollie] Customer creation failed:", customerResult.error);
+          result = { success: false, error: customerResult.error || "Erreur création client" };
+          break;
+        }
+
+        const customer = customerResult.data as { id: string };
+        console.log(`[Mollie] Customer created: ${customer.id}`);
+
+        // Step 2: Create direct mandate with IBAN
+        const mandatePayload: Record<string, unknown> = {
+          method: "directdebit",
+          consumerName: body.consumer_name,
+          consumerAccount: body.iban.replace(/\s/g, "").toUpperCase(),
+        };
+        if (body.bic) {
+          mandatePayload.consumerBic = body.bic.replace(/\s/g, "").toUpperCase();
+        }
+
+        const mandateResult = await mollieRequest(`/customers/${customer.id}/mandates`, "POST", mandatePayload);
+
+        if (!mandateResult.success || !mandateResult.data) {
+          console.error("[Mollie] Mandate creation failed:", mandateResult.error);
+          result = { success: false, error: mandateResult.error || "Erreur création mandat" };
+          break;
+        }
+
+        const mandate = mandateResult.data as { id: string; status: string };
+        console.log(`[Mollie] Mandate created: ${mandate.id} with status ${mandate.status}`);
+
+        // Step 3: Create subscription (only if mandate is valid or pending)
+        let subscription: { id: string; status: string; nextPaymentDate?: string } | null = null;
+        let subscriptionError: string | null = null;
+
+        if (mandate.status === "valid" || mandate.status === "pending") {
+          // Calculate start date: first of next month
+          const startDate = body.start_date || (() => {
+            const now = new Date();
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            return nextMonth.toISOString().split("T")[0]; // YYYY-MM-DD
+          })();
+
+          const subscriptionResult = await mollieRequest(`/customers/${customer.id}/subscriptions`, "POST", {
+            amount: {
+              currency: body.currency || "EUR",
+              value: body.amount.toFixed(2),
+            },
+            interval: body.interval || "1 month",
+            description: body.description || "Loyer mensuel",
+            startDate: startDate,
+            times: body.times, // Number of payments
+            webhookUrl: `${supabaseUrl}/functions/v1/mollie-webhook`,
+            metadata: {
+              contract_id: body.contract_id,
+              company_id: body.company_id,
+            },
+          });
+
+          if (subscriptionResult.success && subscriptionResult.data) {
+            subscription = subscriptionResult.data as { id: string; status: string; nextPaymentDate?: string };
+            console.log(`[Mollie] Subscription created: ${subscription.id}`);
+          } else {
+            subscriptionError = subscriptionResult.error || "Erreur création abonnement";
+            console.error("[Mollie] Subscription creation failed:", subscriptionError);
+          }
+        } else {
+          subscriptionError = `Mandat non valide (${mandate.status}), abonnement non créé`;
+          console.warn(`[Mollie] ${subscriptionError}`);
+        }
+
+        // Step 4: Update contract with all IDs
+        if (body.contract_id) {
+          const updateData: Record<string, unknown> = {
+            mollie_customer_id: customer.id,
+            mollie_mandate_id: mandate.id,
+            mollie_mandate_status: mandate.status,
+          };
+          if (subscription) {
+            updateData.mollie_subscription_id = subscription.id;
+          }
+
+          const { error: updateError } = await supabase
+            .from("contracts")
+            .update(updateData)
+            .eq("id", body.contract_id);
+
+          if (updateError) {
+            console.error("[Mollie] Failed to update contract:", updateError);
+          } else {
+            console.log(`[Mollie] Contract ${body.contract_id} updated with all Mollie IDs`);
+          }
+        }
+
+        // Build response data
+        result = {
+          success: true,
+          data: {
+            customer_id: customer.id,
+            mandate_id: mandate.id,
+            mandate_status: mandate.status,
+            subscription_id: subscription?.id || null,
+            subscription_status: subscription?.status || null,
+            first_payment_date: subscription?.nextPaymentDate || null,
+            subscription_error: subscriptionError,
+          },
+        };
         break;
       }
 
