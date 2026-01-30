@@ -13,10 +13,11 @@ import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
-
+import SepaPaymentCard from "@/components/contracts/SepaPaymentCard";
 import ContractBreakevenCard from "@/components/contracts/ContractBreakevenCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/utils";
@@ -27,6 +28,7 @@ const ContractDetail = () => {
   const navigate = useNavigate();
   const { navigateToAdmin } = useRoleNavigation();
   const { user, isLoading: authLoading } = useAuth();
+  const { companyId } = useMultiTenant();
   
   const {
     contract,
@@ -160,6 +162,22 @@ const ContractDetail = () => {
                 contract={contract}
                 onContractUpdated={refetch}
               />
+
+              {/* Carte prélèvement SEPA - self-leasing uniquement */}
+              {contract.is_self_leasing && companyId && (
+                <SepaPaymentCard 
+                  contract={{
+                    id: contract.id,
+                    client_name: contract.client_name,
+                    client_email: contract.client_email,
+                    monthly_payment: contract.monthly_payment,
+                    contract_duration: contract.contract_duration,
+                    lease_duration: contract.lease_duration,
+                  }}
+                  companyId={companyId}
+                  onSuccess={refetch}
+                />
+              )}
 
               {/* Carte rentabilité breakeven - self-leasing uniquement */}
               {contract.is_self_leasing && (

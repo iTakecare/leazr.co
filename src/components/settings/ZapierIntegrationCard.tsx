@@ -36,6 +36,7 @@ const AVAILABLE_EVENTS = [
   { id: "offer_accepted", label: "Nouvelle offre acceptée", description: "Déclenché quand une offre est acceptée" },
   { id: "offer_sent", label: "Offre envoyée", description: "Déclenché quand une offre est envoyée au client" },
   { id: "document_uploaded", label: "Document téléversé", description: "Déclenché quand un document est uploadé" },
+  { id: "sepa_payment_created", label: "Paiement SEPA créé", description: "Déclenché pour créer un prélèvement SEPA via GoCardless" },
 ];
 
 export default function ZapierIntegrationCard() {
