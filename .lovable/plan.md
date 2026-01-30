@@ -1,93 +1,127 @@
 
+Objectif
+- Corriger définitivement le 401 “Signature invalide” reçu par GoCardless sur l’URL webhook Supabase.
+- Te guider pour retrouver (ou régénérer) le bon secret côté GoCardless et le mettre au bon endroit côté Supabase.
+- Rendre la vérification de signature plus robuste (trim/casse/bytes bruts/comparaison sûre) + logs utiles.
 
-# Plan de correction finale - GoCardless Webhook Signature
+Constat (à partir de tes captures + payload)
+- GoCardless appelle bien : https://cifbetjefyfocafanlhv.supabase.co/functions/v1/gocardless-webhook
+- Le header est : Webhook-signature: c6c3…6d70 (hex 64 chars, donc SHA-256)
+- Notre fonction répond 401 avec {"error":"Signature invalide"}
+- Le payload test est un événement “creditors.updated” (non géré dans le switch), mais ça ne devrait pas empêcher un 200 : même si “non géré”, on renvoie 200 tant que la signature est valide.
 
-## Diagnostic confirme
+Hypothèses racines probables
+1) Mauvais secret utilisé dans SUPABASE (le plus fréquent)
+   - GoCardless a plusieurs “secrets” dans l’interface (Partner App / OAuth / Webhook endpoint).
+   - Le webhook se vérifie avec le secret du “point de terminaison webhook” (Webhook endpoint secret), pas le Client Secret OAuth.
+   - Si tu ne “vois pas” le secret aujourd’hui, il est probable qu’il n’est visible qu’à la création, ou bien qu’il faut le “Rotate/Regenerate”.
 
-J'ai analyse le code source officiel de GoCardless Node.js (https://github.com/gocardless/gocardless-nodejs/blob/master/src/webhooks.ts) et confirme que :
+2) Secret copié avec un espace / retour ligne
+   - Très courant : un espace avant/après, ou une fin de ligne copiée.
+   - Le code actuel ne fait pas .trim().
 
-1. La signature est un HMAC-SHA256 du body brut
-2. Le secret utilise est le "Webhook endpoint secret" (pas le OAuth secret)
-3. La signature est comparee en hex
+3) Mismatch “bytes bruts”
+   - GoCardless signe le corps brut (bytes). On utilise req.text() puis on ré-encode.
+   - En UTF-8 “propre”, ça colle normalement, mais pour éliminer tout doute, on peut hasher directement sur l’ArrayBuffer brut reçu.
 
-## Probleme identifie
+Ce que je vais proposer de faire (approche)
+A) Côté GoCardless : retrouver ou régénérer le “Webhook endpoint secret”
+B) Côté Supabase : mettre à jour GOCARDLESS_WEBHOOK_SECRET de façon sûre
+C) Côté code : durcir verifyWebhookSignature pour éviter les cas limites + logs clairs
+D) Tester : “Retenter” dans GoCardless + vérifier logs Supabase
 
-Tu as probablement utilise le mauvais secret. Dans GoCardless, il y a **deux types de secrets** :
+Étapes détaillées
 
-| Type | Ou le trouver | Usage |
-|------|---------------|-------|
-| **OAuth Client Secret** | Partners > App > Client Secret | Authentification OAuth (pas pour webhooks) |
-| **Webhook Endpoint Secret** | Developers > Webhooks > (ton endpoint) > Secret | **Verification des signatures webhook** |
+1) Retrouver / régénérer le bon secret dans GoCardless (Live)
+Tu es déjà au bon endroit (Développeurs > Paramètres de l’API), mais tu ne vois pas le secret.
+On va donc chercher la page “détails du point de terminaison” :
 
-Tu dois utiliser le **Webhook Endpoint Secret** pour `GOCARDLESS_WEBHOOK_SECRET`.
+Sur Desktop (comme tes captures)
+1. Dans GoCardless, menu gauche : Développeurs → Paramètres de l’API
+2. Dans la section “Points de terminaison de webhook”, clique sur la ligne/nom “Leazr - iTakecare”
+   - Selon l’UI, c’est parfois un lien, parfois il faut cliquer sur un menu “…” à droite.
+3. Sur la page de détail, cherche un champ “Webhook endpoint secret” / “Secret”
+   - S’il est masqué : bouton “Reveal” / “Afficher”
+   - Si rien n’apparaît : cherche un bouton “Rotate secret / Regenerate secret / Generate new secret”
+4. Si tu dois régénérer :
+   - Regenerate/Rotate → copie immédiatement le nouveau secret (souvent affiché une seule fois)
 
----
+Sur Mobile (si tu testes depuis téléphone)
+- Même logique : Développeurs → Paramètres de l’API → “Points de terminaison de webhook” → ouvrir “Leazr - iTakecare”
+- Si le clic ne marche pas sur mobile, fais-le sur desktop (plus fiable pour l’admin GoCardless).
 
-## Actions requises
+Si GoCardless ne te donne jamais accès au secret
+- Alors la seule solution est généralement “Rotate/Regenerate secret”.
+- Si même ça n’existe pas, il est possible que ton compte GoCardless soit en mode “verification in progress” (bannière en haut) et limite certaines infos : dans ce cas, on peut créer un NOUVEL endpoint webhook (nouvelle entrée) et récupérer le secret lors de la création.
 
-### Etape 1 : Recuperer le bon secret
+2) Mettre à jour le secret dans Supabase (je te guide pas à pas)
+Deux façons possibles (on fera la plus simple au moment d’implémenter) :
 
-1. Va dans GoCardless Dashboard (Live) : https://manage.gocardless.com
-2. Clique sur **Developers** dans le menu
-3. Clique sur **Webhooks** (pas sur Partners)
-4. Clique sur ton webhook endpoint (celui qui pointe vers `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/gocardless-webhook`)
-5. Tu verras un **"Webhook endpoint secret"** - copie cette valeur
+Option A (recommandée) : via Lovable (modal sécurisé)
+- Je déclenche une demande de mise à jour de secret “GOCARDLESS_WEBHOOK_SECRET”
+- Tu colles le secret dans la fenêtre Lovable (il n’est pas affiché publiquement)
+- Lovable le stocke côté Supabase Secrets
 
-### Etape 2 : Mettre a jour le secret dans Supabase
+Option B : via dashboard Supabase
+- Ouvre : https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/settings/functions
+- Cherche “GOCARDLESS_WEBHOOK_SECRET”
+- Remplace la valeur par le secret GoCardless (sans espaces/retours ligne)
+- Sauvegarde
 
-Une fois que tu as le bon secret, fournis-le moi et je mettrai a jour `GOCARDLESS_WEBHOOK_SECRET`.
+Important
+- Le secret doit être collé “exactement” : pas d’espace avant/après, pas de guillemets.
 
----
+3) Ajuster le code du webhook pour être robuste (changements ciblés uniquement)
+Fichier concerné uniquement : supabase/functions/gocardless-webhook/index.ts
 
-## Verification du code
+3.1 Lecture du body en bytes bruts
+- Remplacer `const body = await req.text();` par une lecture en ArrayBuffer (raw bytes).
+- Garder une version string via TextDecoder pour JSON.parse.
+Bénéfice : élimine tout doute sur l’encodage / normalisation.
 
-Le code actuel dans `gocardless-webhook/index.ts` est **deja correct** :
+3.2 Normalisation des entrées
+- `const signature = (header ?? '').trim().toLowerCase()`
+- `const secret = (webhookSecret ?? '').trim()`
+Bénéfice : évite erreurs dues aux espaces / casse hex.
 
-```typescript
-async function verifyWebhookSignature(body: string, signature: string, secret: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
+3.3 Comparaison “safe” et diagnostics sans fuite
+- Au lieu d’une comparaison directe string === string, utiliser une comparaison constant-time (ou équivalent) sur bytes
+- Logs en cas d’échec :
+  - longueur du body
+  - les 8–12 premiers chars de signature attendue/reçue (pas toute la valeur, pour éviter de trop exposer)
+  - s’assurer de NE PAS logger le secret
 
-  const signatureBytes = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(body)
-  );
+3.4 Comportement si secret manquant
+- Aujourd’hui : si secret ou signature absents, on skip la vérification.
+- Proposition : si `GOCARDLESS_WEBHOOK_SECRET` est absent, répondre 500 “Webhook secret not configured” (c’est une vraie erreur de config).
+- Ça évite de “croire” que tout marche alors que ce n’est pas sécurisé.
 
-  const expectedSignature = Array.from(new Uint8Array(signatureBytes))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+4) Vérification / Test end-to-end
+4.1 Logs Supabase (où regarder)
+- Edge Function logs : https://supabase.com/dashboard/project/cifbetjefyfocafanlhv/functions/gocardless-webhook/logs
+Tu pourras y voir :
+- soit “Signature webhook invalide” + mini diagnostics (si ça échoue encore)
+- soit “Réception de X événement(s) GoCardless” (si OK)
 
-  return signature === expectedSignature;
-}
-```
+4.2 Re-test GoCardless
+- Dans GoCardless → Webhooks → ouvrir WB01KG4H5P4JAB → “Retenter”
+Attendu :
+- Code de réponse 200
+- “Test” devient vrai
 
-Cette implementation est equivalente a la version officielle :
-```javascript
-// Version officielle Node.js
-crypto.createHmac('sha256', webhookSecret).update(body).digest('hex')
-```
+4.3 Résultat fonctionnel attendu
+- Même si l’événement est “creditors.updated”, on doit répondre 200 (et juste logguer “Type d’événement non géré: creditors”).
+- Les mises à jour DB (contracts) ne se font que pour mandates/payments/subscriptions (c’est normal).
 
----
+Points de vigilance
+- Le problème actuel est quasi-certainement le secret (pas l’algo). Les changements code (trim/raw bytes) servent à éliminer les causes “subtiles” et à rendre le debug beaucoup plus simple.
+- Je ne modifierai aucun autre composant UI que celui concerné si on doit afficher quelque chose (mais ici, la correction est uniquement côté edge function + secrets).
 
-## Resume
+Ce que j’aurai besoin de toi pendant l’implémentation (très concret)
+- Soit tu me donnes le “Webhook endpoint secret” (le bon, celui du point de terminaison webhook),
+- Soit tu le colles directement dans la fenêtre de mise à jour de secret Lovable quand je la déclencherai.
 
-| Element | Statut |
-|---------|--------|
-| Algorithme de signature | Correct (HMAC-SHA256 hex) |
-| Format du body | Correct (raw body direct) |
-| Secret utilise | A VERIFIER - doit etre le "Webhook endpoint secret" |
-
----
-
-## Prochaine action
-
-Fournis-moi le **Webhook endpoint secret** depuis GoCardless Dashboard > Developers > Webhooks > (ton endpoint) > Secret, et je mettrai a jour le secret Supabase.
-
+Livrables
+- Code edge function gocardless-webhook durci (raw bytes + trim + comparaison safe + logs)
+- Secret Supabase GOCARDLESS_WEBHOOK_SECRET mis à jour avec le bon “Webhook endpoint secret”
+- Procédure de test confirmée (GoCardless retry + logs Supabase)
