@@ -1,43 +1,39 @@
+/**
+ * GoCardless Create Mandate
+ * 
+ * Multi-tenant aware mandate creation flow
+ * Uses tenant's encrypted access token from gocardless_connections
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { 
+  GoCardlessClient,
+  checkRateLimit, 
+  getRateLimitIdentifier, 
+  rateLimitHeaders,
+  GOCARDLESS_RATE_LIMITS 
+} from "../_shared/gocardless/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GOCARDLESS_ENVIRONMENT = (Deno.env.get('GOCARDLESS_ENVIRONMENT') ?? 'sandbox').toLowerCase();
-
-const GOCARDLESS_BASE_URL = GOCARDLESS_ENVIRONMENT === 'live'
-  ? 'https://api.gocardless.com'
-  : 'https://api-sandbox.gocardless.com';
-
-// Permet de corriger facilement un mismatch token/environnement
-const GOCARDLESS_FALLBACK_BASE_URL = GOCARDLESS_ENVIRONMENT === 'live'
-  ? 'https://api-sandbox.gocardless.com'
-  : 'https://api.gocardless.com';
-
-async function readGoCardlessError(response: Response): Promise<{
-  status: number;
-  requestId?: string;
-  raw: string;
-}> {
-  const raw = await response.text();
-  try {
-    const parsed = JSON.parse(raw);
-    const requestId = parsed?.error?.request_id;
-    return { status: response.status, requestId, raw };
-  } catch {
-    return { status: response.status, raw };
-  }
-}
+const SUPABASE_URL = 'https://cifbetjefyfocafanlhv.supabase.co';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseAdmin = createClient(
+    SUPABASE_URL,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+
   try {
+    // Auth check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -47,17 +43,39 @@ serve(async (req) => {
     }
 
     const supabase = createClient(
-      'https://cifbetjefyfocafanlhv.supabase.co',
+      SUPABASE_URL,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Session invalide' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting
+    const identifier = getRateLimitIdentifier(req, user.id);
+    const rateLimitResult = await checkRateLimit(
+      supabaseAdmin, 
+      identifier, 
+      'gocardless-create-mandate',
+      GOCARDLESS_RATE_LIMITS.createMandate
+    );
+
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de requêtes. Réessayez plus tard.' }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            ...rateLimitHeaders(rateLimitResult, GOCARDLESS_RATE_LIMITS.createMandate),
+            'Content-Type': 'application/json' 
+          } 
+        }
       );
     }
 
@@ -70,11 +88,12 @@ serve(async (req) => {
       );
     }
 
-    // Récupérer le contrat avec les informations client
+    // Get contract with client info AND company_id for tenant scoping
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
       .select(`
         id,
+        company_id,
         client_name,
         client_id,
         monthly_payment,
@@ -94,189 +113,168 @@ serve(async (req) => {
       .maybeSingle();
 
     if (contractError || !contract) {
-      console.error('Erreur contrat:', contractError);
+      console.error('[CreateMandate] Contract not found', { error: contractError?.message });
       return new Response(
         JSON.stringify({ error: 'Contrat non trouvé' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const client = contract.clients;
-    const accessToken = Deno.env.get('GOCARDLESS_ACCESS_TOKEN');
-
-    if (!accessToken) {
-      console.error('GOCARDLESS_ACCESS_TOKEN non configuré');
+    const companyId = contract.company_id;
+    if (!companyId) {
       return new Response(
-        JSON.stringify({ error: 'Configuration GoCardless manquante' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Contrat sans entreprise associée' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const gcHeaders = {
-      'Authorization': `Bearer ${accessToken}`,
-      'GoCardless-Version': '2015-07-06',
-      'Content-Type': 'application/json',
-    };
+    // Get GoCardless client for this tenant
+    let gcClient: GoCardlessClient;
+    try {
+      gcClient = await GoCardlessClient.fromConnection(supabaseAdmin, companyId);
+    } catch (error) {
+      console.error('[CreateMandate] No GoCardless connection', { error: error instanceof Error ? error.message : 'Unknown' });
+      return new Response(
+        JSON.stringify({ error: 'Aucune connexion GoCardless active pour cette entreprise' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Base URL réellement utilisée (peut basculer sur fallback en cas de 403)
-    let gocardlessBaseUrl = GOCARDLESS_BASE_URL;
-
+    const client = contract.clients;
     let customerId = contract.gocardless_customer_id;
+    let endCustomerId: string | null = null;
 
-    // Créer un customer GoCardless si nécessaire
-    if (!customerId) {
-      const customerPayload = {
-        customers: {
-          email: client?.email || `contract-${contractId}@placeholder.com`,
-          given_name: client?.name?.split(' ')[0] || contract.client_name?.split(' ')[0] || 'Client',
-          family_name: client?.name?.split(' ').slice(1).join(' ') || contract.client_name?.split(' ').slice(1).join(' ') || '',
-          company_name: client?.company || contract.client_name,
-          address_line1: client?.address || '',
-          city: client?.city || '',
-          postal_code: client?.postal_code || '',
-          country_code: client?.country || 'BE',
-          metadata: {
-            contract_id: contractId,
-            client_id: contract.client_id || ''
-          }
-        }
-      };
+    // Check for existing end customer in our database
+    if (contract.client_id) {
+      const { data: existingEndCustomer } = await supabaseAdmin
+        .from('gocardless_end_customers')
+        .select('id, gocardless_customer_id')
+        .eq('client_id', contract.client_id)
+        .eq('company_id', companyId)
+        .maybeSingle();
 
-      console.log('Création customer GoCardless:', JSON.stringify(customerPayload));
-
-      const createCustomer = async (baseUrl: string) => {
-        return await fetch(`${baseUrl}/customers`, {
-          method: 'POST',
-          headers: gcHeaders,
-          body: JSON.stringify(customerPayload)
-        });
-      };
-
-      let customerResponse = await createCustomer(gocardlessBaseUrl);
-
-      // 403 “Forbidden request” => token live/sandbox souvent inversé ou token sans permissions
-      if (!customerResponse.ok && customerResponse.status === 403) {
-        const primaryErr = await readGoCardlessError(customerResponse);
-        console.error('Erreur création customer (env primaire):', primaryErr.raw);
-
-        console.warn('[GoCardless] Retentative sur environnement fallback', {
-          env: GOCARDLESS_ENVIRONMENT,
-          primaryBaseUrl: gocardlessBaseUrl,
-          fallbackBaseUrl: GOCARDLESS_FALLBACK_BASE_URL,
-          requestId: primaryErr.requestId,
-        });
-
-        const fallbackResponse = await createCustomer(GOCARDLESS_FALLBACK_BASE_URL);
-        if (fallbackResponse.ok) {
-          gocardlessBaseUrl = GOCARDLESS_FALLBACK_BASE_URL;
-          customerResponse = fallbackResponse;
-        } else {
-          const fallbackErr = await readGoCardlessError(fallbackResponse);
-          console.error('Erreur création customer (env fallback):', fallbackErr.raw);
-          return new Response(
-            JSON.stringify({
-              error: 'Erreur GoCardless (403) : accès refusé. Vérifiez que le token correspond à l’environnement (live/sandbox) et qu’il a les permissions nécessaires.',
-              gocardless_request_id: fallbackErr.requestId ?? primaryErr.requestId ?? null,
-            }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+      if (existingEndCustomer?.gocardless_customer_id) {
+        customerId = existingEndCustomer.gocardless_customer_id;
+        endCustomerId = existingEndCustomer.id;
       }
+    }
 
-      if (!customerResponse.ok) {
-        const err = await readGoCardlessError(customerResponse);
-        console.error('Erreur création customer:', err.raw);
+    // Create GoCardless customer if needed
+    if (!customerId) {
+      console.log('[CreateMandate] Creating new GoCardless customer');
+      
+      const customerData = {
+        email: client?.email || `contract-${contractId}@placeholder.com`,
+        given_name: client?.name?.split(' ')[0] || contract.client_name?.split(' ')[0] || 'Client',
+        family_name: client?.name?.split(' ').slice(1).join(' ') || contract.client_name?.split(' ').slice(1).join(' ') || '',
+        company_name: client?.company || contract.client_name,
+        address_line1: client?.address || '',
+        city: client?.city || '',
+        postal_code: client?.postal_code || '',
+        country_code: client?.country || 'BE',
+        metadata: {
+          contract_id: contractId,
+          client_id: contract.client_id || '',
+          company_id: companyId
+        }
+      };
+
+      try {
+        const customerResponse = await gcClient.createCustomer(customerData);
+        customerId = customerResponse.customers.id as string;
+        
+        // Store in gocardless_end_customers for future use
+        if (contract.client_id) {
+          const { data: newEndCustomer } = await supabaseAdmin
+            .from('gocardless_end_customers')
+            .insert({
+              company_id: companyId,
+              client_id: contract.client_id,
+              gocardless_customer_id: customerId,
+              email: customerData.email
+            })
+            .select('id')
+            .single();
+          
+          endCustomerId = newEndCustomer?.id || null;
+        }
+
+        // Update contract with customer ID
+        await supabaseAdmin
+          .from('contracts')
+          .update({ gocardless_customer_id: customerId })
+          .eq('id', contractId);
+          
+      } catch (error) {
+        console.error('[CreateMandate] Customer creation failed', { 
+          error: error instanceof Error ? error.message : 'Unknown'
+        });
         return new Response(
-          JSON.stringify({
-            error: 'Erreur lors de la création du client GoCardless',
-            gocardless_request_id: err.requestId ?? null,
-          }),
+          JSON.stringify({ error: 'Erreur lors de la création du client GoCardless' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const customerData = await customerResponse.json();
-      customerId = customerData.customers.id;
-
-      // Sauvegarder le customer_id dans le contrat
-      await supabase
-        .from('contracts')
-        .update({ gocardless_customer_id: customerId })
-        .eq('id', contractId);
     }
 
-    // Créer un Billing Request
-    const billingRequestPayload = {
-      billing_requests: {
-        mandate_request: {
-          scheme: 'sepa_core',
-          currency: 'EUR'
-        },
-        metadata: {
-          contract_id: contractId
-        }
-      }
-    };
-
-    console.log('Création billing request:', JSON.stringify(billingRequestPayload));
-
-    const billingRequestResponse = await fetch(`${gocardlessBaseUrl}/billing_requests`, {
-      method: 'POST',
-      headers: gcHeaders,
-      body: JSON.stringify(billingRequestPayload)
-    });
-
-    if (!billingRequestResponse.ok) {
-      const errorText = await billingRequestResponse.text();
-      console.error('Erreur création billing request:', errorText);
+    // Create Billing Request
+    console.log('[CreateMandate] Creating billing request');
+    let billingRequestId: string;
+    
+    try {
+      const brResponse = await gcClient.createBillingRequest(
+        { scheme: 'sepa_core', currency: 'EUR' },
+        { contract_id: contractId, company_id: companyId }
+      );
+      billingRequestId = brResponse.billing_requests.id as string;
+    } catch (error) {
+      console.error('[CreateMandate] Billing request creation failed', { 
+        error: error instanceof Error ? error.message : 'Unknown'
+      });
       return new Response(
         JSON.stringify({ error: 'Erreur lors de la création de la demande de mandat' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const billingRequestData = await billingRequestResponse.json();
-    const billingRequestId = billingRequestData.billing_requests.id;
-
-    // Créer un Billing Request Flow
-    const flowPayload = {
-      billing_request_flows: {
-        redirect_uri: returnUrl,
-        exit_uri: returnUrl,
-        links: {
-          billing_request: billingRequestId,
-          customer: customerId
-        },
-        lock_customer_details: false,
-        lock_bank_account: false,
-        show_redirect_buttons: true,
-        show_success_redirect_button: true
-      }
-    };
-
-    console.log('Création billing request flow:', JSON.stringify(flowPayload));
-
-    const flowResponse = await fetch(`${gocardlessBaseUrl}/billing_request_flows`, {
-      method: 'POST',
-      headers: gcHeaders,
-      body: JSON.stringify(flowPayload)
-    });
-
-    if (!flowResponse.ok) {
-      const errorText = await flowResponse.text();
-      console.error('Erreur création flow:', errorText);
+    // Create Billing Request Flow
+    console.log('[CreateMandate] Creating billing request flow');
+    let flowId: string;
+    let authorisationUrl: string;
+    
+    try {
+      const flowResponse = await gcClient.createBillingRequestFlow(
+        billingRequestId,
+        customerId,
+        returnUrl,
+        returnUrl
+      );
+      
+      flowId = flowResponse.billing_request_flows.id as string;
+      authorisationUrl = flowResponse.billing_request_flows.authorisation_url as string;
+    } catch (error) {
+      console.error('[CreateMandate] Flow creation failed', { 
+        error: error instanceof Error ? error.message : 'Unknown'
+      });
       return new Response(
         JSON.stringify({ error: 'Erreur lors de la création du flux de paiement' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const flowData = await flowResponse.json();
-    const flowId = flowData.billing_request_flows.id;
-    const authorisationUrl = flowData.billing_request_flows.authorisation_url;
+    // Store billing request flow in dedicated table
+    await supabaseAdmin
+      .from('gocardless_billing_request_flows')
+      .insert({
+        company_id: companyId,
+        contract_id: contractId,
+        end_customer_id: endCustomerId,
+        billing_request_id: billingRequestId,
+        flow_id: flowId,
+        status: 'pending'
+      });
 
-    // Sauvegarder le billing_request_id dans le contrat
-    await supabase
+    // Update contract for backward compatibility
+    await supabaseAdmin
       .from('contracts')
       .update({ 
         gocardless_billing_request_id: billingRequestId,
@@ -284,7 +282,11 @@ serve(async (req) => {
       })
       .eq('id', contractId);
 
-    console.log('Flow créé avec succès:', { flowId, billingRequestId, authorisationUrl });
+    console.log('[CreateMandate] Flow created successfully', { 
+      flowId, 
+      billingRequestId,
+      companyId: companyId.substring(0, 8)
+    });
 
     return new Response(
       JSON.stringify({
@@ -297,7 +299,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erreur inattendue:', error);
+    console.error('[CreateMandate] Unexpected error', { error: error instanceof Error ? error.message : 'Unknown' });
     return new Response(
       JSON.stringify({ error: 'Erreur interne du serveur' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

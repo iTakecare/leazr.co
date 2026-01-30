@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanyCustomizationManager from "@/components/settings/CompanyCustomizationManager";
+import GoCardlessIntegrationCard from "@/components/settings/GoCardlessIntegrationCard";
 import { 
   Settings as SettingsIcon, 
   Palette, 
@@ -72,26 +73,30 @@ const CompanySettingsPage = () => {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Intégrations
-              </CardTitle>
-              <CardDescription>
-                Connectez votre système à des services externes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Intégrations</h3>
-                <p className="text-muted-foreground">
-                  Les intégrations tierces seront disponibles prochainement
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid gap-6 md:grid-cols-2">
+            <GoCardlessIntegrationCard />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Autres intégrations
+                </CardTitle>
+                <CardDescription>
+                  Connectez votre système à des services externes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Plus d'intégrations</h3>
+                  <p className="text-muted-foreground">
+                    D'autres intégrations seront disponibles prochainement
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-6">

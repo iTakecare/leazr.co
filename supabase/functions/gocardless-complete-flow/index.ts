@@ -1,25 +1,61 @@
+/**
+ * GoCardless Complete Flow
+ * 
+ * Called after customer completes the billing request flow
+ * Creates subscription and stores mandate in dedicated tables
+ * Multi-tenant aware with idempotency support
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { 
+  GoCardlessClient,
+  checkRateLimit, 
+  getRateLimitIdentifier, 
+  rateLimitHeaders,
+  GOCARDLESS_RATE_LIMITS 
+} from "../_shared/gocardless/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GOCARDLESS_BASE_URL = Deno.env.get('GOCARDLESS_ENVIRONMENT') === 'live' 
-  ? 'https://api.gocardless.com'
-  : 'https://api-sandbox.gocardless.com';
+const SUPABASE_URL = 'https://cifbetjefyfocafanlhv.supabase.co';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseAdmin = createClient(
+    SUPABASE_URL,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+
   try {
-    const supabase = createClient(
-      'https://cifbetjefyfocafanlhv.supabase.co',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    // Rate limiting (no auth required for this endpoint - called from redirect)
+    const identifier = getRateLimitIdentifier(req);
+    const rateLimitResult = await checkRateLimit(
+      supabaseAdmin, 
+      identifier, 
+      'gocardless-complete-flow',
+      GOCARDLESS_RATE_LIMITS.completeFlow
     );
+
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de requêtes. Réessayez plus tard.' }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            ...rateLimitHeaders(rateLimitResult, GOCARDLESS_RATE_LIMITS.completeFlow),
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
 
     const { billingRequestId, contractId } = await req.json();
 
@@ -30,58 +66,75 @@ serve(async (req) => {
       );
     }
 
-    const accessToken = Deno.env.get('GOCARDLESS_ACCESS_TOKEN');
+    // Get contract to determine company_id (tenant scoping)
+    const { data: contract, error: contractError } = await supabaseAdmin
+      .from('contracts')
+      .select('id, company_id, monthly_payment, contract_start_date, client_id')
+      .eq('id', contractId)
+      .maybeSingle();
 
-    if (!accessToken) {
-      console.error('GOCARDLESS_ACCESS_TOKEN non configuré');
+    if (contractError || !contract) {
+      console.error('[CompleteFlow] Contract not found', { error: contractError?.message });
       return new Response(
-        JSON.stringify({ error: 'Configuration GoCardless manquante' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Contrat non trouvé' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const gcHeaders = {
-      'Authorization': `Bearer ${accessToken}`,
-      'GoCardless-Version': '2015-07-06',
-      'Content-Type': 'application/json',
-    };
+    const companyId = contract.company_id;
+    if (!companyId) {
+      return new Response(
+        JSON.stringify({ error: 'Contrat sans entreprise associée' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Récupérer le Billing Request pour obtenir les IDs
-    console.log('Récupération billing request:', billingRequestId);
+    // Get GoCardless client for this tenant
+    let gcClient: GoCardlessClient;
+    try {
+      gcClient = await GoCardlessClient.fromConnection(supabaseAdmin, companyId);
+    } catch (error) {
+      console.error('[CompleteFlow] No GoCardless connection', { error: error instanceof Error ? error.message : 'Unknown' });
+      return new Response(
+        JSON.stringify({ error: 'Aucune connexion GoCardless active' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const brResponse = await fetch(`${GOCARDLESS_BASE_URL}/billing_requests/${billingRequestId}`, {
-      method: 'GET',
-      headers: gcHeaders
-    });
-
-    if (!brResponse.ok) {
-      const errorText = await brResponse.text();
-      console.error('Erreur récupération billing request:', errorText);
+    // Fetch billing request status
+    console.log('[CompleteFlow] Fetching billing request', { billingRequestId });
+    
+    let billingRequest: Record<string, unknown>;
+    try {
+      const brResponse = await gcClient.getBillingRequest(billingRequestId);
+      billingRequest = brResponse.billing_requests as Record<string, unknown>;
+    } catch (error) {
+      console.error('[CompleteFlow] Failed to fetch billing request', { 
+        error: error instanceof Error ? error.message : 'Unknown'
+      });
       return new Response(
         JSON.stringify({ error: 'Impossible de récupérer la demande de mandat' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const brData = await brResponse.json();
-    const billingRequest = brData.billing_requests;
+    const brStatus = billingRequest.status as string;
+    console.log('[CompleteFlow] Billing request status', { status: brStatus });
 
-    console.log('Billing request status:', billingRequest.status);
-    console.log('Billing request links:', billingRequest.links);
-
-    // Vérifier que le flow est complété
-    if (billingRequest.status !== 'fulfilled') {
+    // Check if flow is completed
+    if (brStatus !== 'fulfilled') {
       return new Response(
         JSON.stringify({ 
           error: 'Le mandat n\'est pas encore validé',
-          status: billingRequest.status 
+          status: brStatus 
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const mandateId = billingRequest.links?.mandate;
-    const customerId = billingRequest.links?.customer;
+    const brLinks = billingRequest.links as Record<string, string>;
+    const mandateId = brLinks?.mandate;
+    const customerId = brLinks?.customer;
 
     if (!mandateId) {
       return new Response(
@@ -90,77 +143,126 @@ serve(async (req) => {
       );
     }
 
-    // Récupérer le contrat pour avoir le montant mensuel
-    const { data: contract, error: contractError } = await supabase
-      .from('contracts')
-      .select('id, monthly_payment, contract_start_date')
-      .eq('id', contractId)
+    // Check idempotency - is this mandate already stored?
+    const { data: existingMandate } = await supabaseAdmin
+      .from('gocardless_mandates')
+      .select('id')
+      .eq('gocardless_mandate_id', mandateId)
+      .eq('company_id', companyId)
       .maybeSingle();
 
-    if (contractError || !contract) {
-      console.error('Erreur contrat:', contractError);
-      return new Response(
-        JSON.stringify({ error: 'Contrat non trouvé' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let localMandateId: string;
+
+    if (existingMandate) {
+      console.log('[CompleteFlow] Mandate already exists, skipping creation', { mandateId });
+      localMandateId = existingMandate.id;
+    } else {
+      // Find end_customer_id if client exists
+      let endCustomerId: string | null = null;
+      if (contract.client_id) {
+        const { data: endCustomer } = await supabaseAdmin
+          .from('gocardless_end_customers')
+          .select('id')
+          .eq('client_id', contract.client_id)
+          .eq('company_id', companyId)
+          .maybeSingle();
+        endCustomerId = endCustomer?.id || null;
+      }
+
+      // Store mandate in dedicated table
+      const { data: newMandate, error: mandateInsertError } = await supabaseAdmin
+        .from('gocardless_mandates')
+        .insert({
+          company_id: companyId,
+          end_customer_id: endCustomerId,
+          contract_id: contractId,
+          gocardless_mandate_id: mandateId,
+          status: 'submitted',
+          scheme: 'sepa_core'
+        })
+        .select('id')
+        .single();
+
+      if (mandateInsertError) {
+        console.error('[CompleteFlow] Failed to store mandate', { error: mandateInsertError.message });
+        // Continue anyway - subscription is more important
+      }
+
+      localMandateId = newMandate?.id || '';
     }
 
-    // Calculer la date de début pour la subscription (1er du mois suivant)
+    // Calculate subscription start date (1st of next month)
     const now = new Date();
-    const startDate = contract.contract_start_date 
+    let startDate = contract.contract_start_date 
       ? new Date(contract.contract_start_date)
       : new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    // S'assurer que la date est dans le futur
+    // Ensure start date is in the future
     if (startDate <= now) {
-      startDate.setMonth(startDate.getMonth() + 1);
-      startDate.setDate(1);
+      startDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     }
 
     const startDateStr = startDate.toISOString().split('T')[0];
+    const monthlyPaymentCents = Math.round((contract.monthly_payment || 0) * 100);
 
-    // Créer une subscription mensuelle
-    const subscriptionPayload = {
-      subscriptions: {
-        amount: Math.round((contract.monthly_payment || 0) * 100), // en centimes
-        currency: 'EUR',
-        name: `Contrat ${contractId.substring(0, 8)}`,
-        interval_unit: 'monthly',
-        interval: 1,
-        day_of_month: 1,
-        start_date: startDateStr,
-        links: {
-          mandate: mandateId
-        },
-        metadata: {
-          contract_id: contractId
-        }
+    // Create subscription with idempotency key
+    const idempotencyKey = `subscription-${contractId}-${mandateId}`;
+    let subscriptionId: string | null = null;
+
+    if (monthlyPaymentCents > 0) {
+      console.log('[CompleteFlow] Creating subscription', { 
+        amount: monthlyPaymentCents, 
+        startDate: startDateStr 
+      });
+
+      try {
+        const subResponse = await gcClient.createSubscription(
+          mandateId,
+          monthlyPaymentCents,
+          'EUR',
+          'monthly',
+          1, // day of month
+          startDateStr,
+          { contract_id: contractId, company_id: companyId },
+          idempotencyKey
+        );
+
+        subscriptionId = subResponse.subscriptions.id as string;
+        console.log('[CompleteFlow] Subscription created', { subscriptionId });
+
+        // Store subscription in dedicated table
+        await supabaseAdmin
+          .from('gocardless_subscriptions')
+          .insert({
+            company_id: companyId,
+            mandate_id: localMandateId || null,
+            contract_id: contractId,
+            gocardless_subscription_id: subscriptionId,
+            amount_cents: monthlyPaymentCents,
+            currency: 'EUR',
+            interval_unit: 'monthly',
+            day_of_month: 1,
+            start_date: startDateStr,
+            status: 'active'
+          });
+
+      } catch (error) {
+        // Log but don't fail - mandate is still valid
+        console.error('[CompleteFlow] Subscription creation failed', { 
+          error: error instanceof Error ? error.message : 'Unknown'
+        });
       }
-    };
-
-    console.log('Création subscription:', JSON.stringify(subscriptionPayload));
-
-    const subResponse = await fetch(`${GOCARDLESS_BASE_URL}/subscriptions`, {
-      method: 'POST',
-      headers: gcHeaders,
-      body: JSON.stringify(subscriptionPayload)
-    });
-
-    if (!subResponse.ok) {
-      const errorText = await subResponse.text();
-      console.error('Erreur création subscription:', errorText);
-      // On continue quand même pour mettre à jour le contrat avec le mandate_id
     }
 
-    let subscriptionId = null;
-    if (subResponse.ok) {
-      const subData = await subResponse.json();
-      subscriptionId = subData.subscriptions.id;
-      console.log('Subscription créée:', subscriptionId);
-    }
+    // Update billing request flow status
+    await supabaseAdmin
+      .from('gocardless_billing_request_flows')
+      .update({ status: 'completed' })
+      .eq('billing_request_id', billingRequestId)
+      .eq('company_id', companyId);
 
-    // Mettre à jour le contrat avec toutes les informations GoCardless
-    const updateData: Record<string, any> = {
+    // Update contract for backward compatibility
+    const contractUpdate: Record<string, unknown> = {
       gocardless_mandate_id: mandateId,
       gocardless_customer_id: customerId,
       gocardless_mandate_status: 'submitted',
@@ -168,19 +270,19 @@ serve(async (req) => {
     };
 
     if (subscriptionId) {
-      updateData.gocardless_subscription_id = subscriptionId;
+      contractUpdate.gocardless_subscription_id = subscriptionId;
     }
 
-    const { error: updateError } = await supabase
+    await supabaseAdmin
       .from('contracts')
-      .update(updateData)
+      .update(contractUpdate)
       .eq('id', contractId);
 
-    if (updateError) {
-      console.error('Erreur mise à jour contrat:', updateError);
-    }
-
-    console.log('Contrat mis à jour avec succès');
+    console.log('[CompleteFlow] Complete', { 
+      mandateId, 
+      subscriptionId,
+      companyId: companyId.substring(0, 8)
+    });
 
     return new Response(
       JSON.stringify({
@@ -193,7 +295,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erreur inattendue:', error);
+    console.error('[CompleteFlow] Unexpected error', { error: error instanceof Error ? error.message : 'Unknown' });
     return new Response(
       JSON.stringify({ error: 'Erreur interne du serveur' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
