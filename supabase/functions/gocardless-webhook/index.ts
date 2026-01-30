@@ -224,6 +224,9 @@ async function processEvent(
   const links = event.links as Record<string, string> | undefined;
 
   switch (resourceType) {
+    case 'billing_requests':
+      await handleBillingRequestEvent(supabase, action, links, event, companyId);
+      break;
     case 'mandates':
       await handleMandateEvent(supabase, action, links, companyId);
       break;
@@ -236,6 +239,56 @@ async function processEvent(
     default:
       console.log('[Webhook] Unhandled resource type', { resourceType, action });
   }
+}
+
+/**
+ * Handle billing request lifecycle events
+ */
+async function handleBillingRequestEvent(
+  supabase: ReturnType<typeof createClient>,
+  action: string,
+  links: Record<string, string> | undefined,
+  event: Record<string, unknown>,
+  companyId: string | null
+): Promise<void> {
+  const billingRequestId = links?.billing_request;
+  if (!billingRequestId) return;
+
+  console.log('[Webhook] Processing billing_request event', { action, billingRequestId });
+
+  // Update gocardless_billing_request_flows
+  const flowStatusMap: Record<string, string> = {
+    'fulfilled': 'completed',
+    'cancelled': 'cancelled',
+    'failed': 'failed'
+  };
+
+  const flowStatus = flowStatusMap[action];
+  if (flowStatus) {
+    await supabase
+      .from('gocardless_billing_request_flows')
+      .update({ 
+        status: flowStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('billing_request_id', billingRequestId);
+  }
+
+  // Update contract sepa_status based on action
+  if (action === 'cancelled' || action === 'failed') {
+    // Mark contract as failed
+    await supabase
+      .from('contracts')
+      .update({ 
+        sepa_status: 'failed',
+        gocardless_mandate_status: action
+      })
+      .eq('gocardless_billing_request_id', billingRequestId);
+    
+    console.log('[Webhook] Billing request failed/cancelled, contract marked as failed');
+  }
+  // Note: When 'fulfilled', the mandate will be created separately 
+  // and the mandates.active event will set sepa_status to 'active'
 }
 
 /**
@@ -287,11 +340,79 @@ async function handleMandateEvent(
     console.error('[Webhook] Mandate update error', { error: mandateError.message });
   }
 
-  // Also update contracts table for backward compatibility
-  await supabase
+  // Determine sepa_status based on mandate action
+  let sepaStatus: string | null = null;
+  if (action === 'active' || action === 'reinstated') {
+    sepaStatus = 'active';
+  } else if (['failed', 'cancelled', 'expired', 'blocked'].includes(action)) {
+    sepaStatus = 'failed';
+  }
+
+  // Update contracts table with mandate status and sepa_status
+  const contractUpdate: Record<string, unknown> = { 
+    gocardless_mandate_status: newStatus 
+  };
+  
+  if (sepaStatus) {
+    contractUpdate.sepa_status = sepaStatus;
+    if (sepaStatus === 'active') {
+      contractUpdate.sepa_activated_at = new Date().toISOString();
+      contractUpdate.gocardless_mandate_created_at = new Date().toISOString();
+    }
+  }
+
+  // First try to find contract by mandate_id
+  let { data: contractByMandate } = await supabase
     .from('contracts')
-    .update({ gocardless_mandate_status: newStatus })
-    .eq('gocardless_mandate_id', mandateId);
+    .select('id')
+    .eq('gocardless_mandate_id', mandateId)
+    .maybeSingle();
+
+  if (contractByMandate) {
+    await supabase
+      .from('contracts')
+      .update(contractUpdate)
+      .eq('id', contractByMandate.id);
+    
+    console.log('[Webhook] Contract updated via mandate_id', { 
+      contractId: contractByMandate.id, 
+      sepaStatus, 
+      action 
+    });
+  } else {
+    // Try to find via billing_request_flows
+    const { data: flowData } = await supabase
+      .from('gocardless_billing_request_flows')
+      .select('contract_id')
+      .eq('company_id', companyId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (flowData?.contract_id) {
+      // Link the mandate to the contract
+      contractUpdate.gocardless_mandate_id = mandateId;
+      
+      await supabase
+        .from('contracts')
+        .update(contractUpdate)
+        .eq('id', flowData.contract_id);
+      
+      // Update the flow status
+      await supabase
+        .from('gocardless_billing_request_flows')
+        .update({ status: 'completed' })
+        .eq('contract_id', flowData.contract_id);
+
+      console.log('[Webhook] Contract linked to mandate via flow', { 
+        contractId: flowData.contract_id, 
+        mandateId,
+        sepaStatus, 
+        action 
+      });
+    }
+  }
 }
 
 /**

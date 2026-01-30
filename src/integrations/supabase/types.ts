@@ -2633,6 +2633,8 @@ export type Database = {
           dossier_date: string | null
           equipment_description: string | null
           estimated_delivery: string | null
+          gocardless_billing_request_flow_id: string | null
+          gocardless_billing_request_flow_url: string | null
           gocardless_billing_request_id: string | null
           gocardless_customer_id: string | null
           gocardless_mandate_created_at: string | null
@@ -2650,6 +2652,8 @@ export type Database = {
           monthly_payment: number
           offer_id: string
           payment_date: string | null
+          sepa_activated_at: string | null
+          sepa_status: string | null
           signature_status: string | null
           signed_contract_pdf_url: string | null
           special_provisions: string | null
@@ -2683,6 +2687,8 @@ export type Database = {
           dossier_date?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
+          gocardless_billing_request_flow_id?: string | null
+          gocardless_billing_request_flow_url?: string | null
           gocardless_billing_request_id?: string | null
           gocardless_customer_id?: string | null
           gocardless_mandate_created_at?: string | null
@@ -2700,6 +2706,8 @@ export type Database = {
           monthly_payment?: number
           offer_id: string
           payment_date?: string | null
+          sepa_activated_at?: string | null
+          sepa_status?: string | null
           signature_status?: string | null
           signed_contract_pdf_url?: string | null
           special_provisions?: string | null
@@ -2733,6 +2741,8 @@ export type Database = {
           dossier_date?: string | null
           equipment_description?: string | null
           estimated_delivery?: string | null
+          gocardless_billing_request_flow_id?: string | null
+          gocardless_billing_request_flow_url?: string | null
           gocardless_billing_request_id?: string | null
           gocardless_customer_id?: string | null
           gocardless_mandate_created_at?: string | null
@@ -2750,6 +2760,8 @@ export type Database = {
           monthly_payment?: number
           offer_id?: string
           payment_date?: string | null
+          sepa_activated_at?: string | null
+          sepa_status?: string | null
           signature_status?: string | null
           signed_contract_pdf_url?: string | null
           special_provisions?: string | null
