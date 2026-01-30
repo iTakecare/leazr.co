@@ -3610,6 +3610,461 @@ export type Database = {
           },
         ]
       }
+      gocardless_billing_request_flows: {
+        Row: {
+          billing_request_flow_id: string | null
+          billing_request_id: string
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          end_customer_id: string
+          expires_at: string | null
+          flow_url: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          billing_request_flow_id?: string | null
+          billing_request_id: string
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          end_customer_id: string
+          expires_at?: string | null
+          flow_url?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          billing_request_flow_id?: string | null
+          billing_request_id?: string
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          end_customer_id?: string
+          expires_at?: string | null
+          flow_url?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_billing_request_flows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_billing_request_flows_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_billing_request_flows_end_customer_id_fkey"
+            columns: ["end_customer_id"]
+            isOneToOne: false
+            referencedRelation: "gocardless_end_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_connections: {
+        Row: {
+          access_token_encrypted: string | null
+          company_id: string
+          connected_at: string | null
+          created_at: string
+          environment: string
+          id: string
+          organisation_id: string | null
+          status: string
+          updated_at: string
+          verification_checked_at: string | null
+          verification_status: string | null
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          company_id: string
+          connected_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          organisation_id?: string | null
+          status?: string
+          updated_at?: string
+          verification_checked_at?: string | null
+          verification_status?: string | null
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          company_id?: string
+          connected_at?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          organisation_id?: string | null
+          status?: string
+          updated_at?: string
+          verification_checked_at?: string | null
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_end_customers: {
+        Row: {
+          address_line1: string | null
+          city: string | null
+          client_id: string | null
+          company_id: string
+          country_code: string | null
+          created_at: string
+          email: string | null
+          gocardless_customer_id: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          postal_code: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id: string
+          country_code?: string | null
+          created_at?: string
+          email?: string | null
+          gocardless_customer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          postal_code?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string
+          country_code?: string | null
+          created_at?: string
+          email?: string | null
+          gocardless_customer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          postal_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_end_customers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_end_customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_mandates: {
+        Row: {
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          end_customer_id: string
+          gocardless_mandate_id: string | null
+          id: string
+          last_event_at: string | null
+          scheme: string | null
+          status: string
+        }
+        Insert: {
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          end_customer_id: string
+          gocardless_mandate_id?: string | null
+          id?: string
+          last_event_at?: string | null
+          scheme?: string | null
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          end_customer_id?: string
+          gocardless_mandate_id?: string | null
+          id?: string
+          last_event_at?: string | null
+          scheme?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_mandates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_mandates_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_mandates_end_customer_id_fkey"
+            columns: ["end_customer_id"]
+            isOneToOne: false
+            referencedRelation: "gocardless_end_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_oauth_states: {
+        Row: {
+          company_id: string
+          created_at: string
+          environment: string
+          expires_at: string
+          id: string
+          state_token: string
+          used_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          environment?: string
+          expires_at: string
+          id?: string
+          state_token: string
+          used_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          environment?: string
+          expires_at?: string
+          id?: string
+          state_token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_oauth_states_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_payments: {
+        Row: {
+          amount_cents: number
+          charge_date: string | null
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          end_customer_id: string
+          gocardless_payment_id: string | null
+          id: string
+          idempotency_key: string | null
+          mandate_id: string
+          metadata: Json | null
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          charge_date?: string | null
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          end_customer_id: string
+          gocardless_payment_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          mandate_id: string
+          metadata?: Json | null
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          charge_date?: string | null
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          end_customer_id?: string
+          gocardless_payment_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          mandate_id?: string
+          metadata?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_payments_end_customer_id_fkey"
+            columns: ["end_customer_id"]
+            isOneToOne: false
+            referencedRelation: "gocardless_end_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_payments_mandate_id_fkey"
+            columns: ["mandate_id"]
+            isOneToOne: false
+            referencedRelation: "gocardless_mandates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_subscriptions: {
+        Row: {
+          amount_cents: number
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          currency: string
+          day_of_month: number | null
+          gocardless_subscription_id: string | null
+          id: string
+          interval_unit: string
+          mandate_id: string
+          metadata: Json | null
+          start_date: string | null
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          day_of_month?: number | null
+          gocardless_subscription_id?: string | null
+          id?: string
+          interval_unit?: string
+          mandate_id: string
+          metadata?: Json | null
+          start_date?: string | null
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          currency?: string
+          day_of_month?: number | null
+          gocardless_subscription_id?: string | null
+          id?: string
+          interval_unit?: string
+          mandate_id?: string
+          metadata?: Json | null
+          start_date?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_subscriptions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gocardless_subscriptions_mandate_id_fkey"
+            columns: ["mandate_id"]
+            isOneToOne: false
+            referencedRelation: "gocardless_mandates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gocardless_webhook_events: {
+        Row: {
+          action: string
+          company_id: string | null
+          gocardless_event_id: string
+          id: string
+          payload: Json | null
+          received_at: string
+          resource_type: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          gocardless_event_id: string
+          id?: string
+          payload?: Json | null
+          received_at?: string
+          resource_type: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          gocardless_event_id?: string
+          id?: string
+          payload?: Json | null
+          received_at?: string
+          resource_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gocardless_webhook_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hero_cms: {
         Row: {
           buttontext: string
@@ -8229,6 +8684,10 @@ export type Database = {
       update_product_attributes: {
         Args: { p_product_id: string; p_variation_attributes: Json }
         Returns: undefined
+      }
+      user_belongs_to_company: {
+        Args: { _company_id: string }
+        Returns: boolean
       }
       user_has_permission: {
         Args: { p_permission_name: string; p_user_id: string }
