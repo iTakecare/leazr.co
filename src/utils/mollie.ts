@@ -445,3 +445,73 @@ export async function setupMollieSepaComplete(
     return { success: false, error: "Erreur lors de la configuration SEPA complète" };
   }
 }
+
+export interface MollieUpdateSubscriptionData {
+  customer_id: string;
+  subscription_id: string;
+  new_start_date?: string;
+  times?: number;
+  contract_id?: string;
+  company_id?: string;
+}
+
+export interface MollieUpdateSubscriptionResponse {
+  success: boolean;
+  oldSubscriptionId?: string;
+  newSubscriptionId?: string;
+  newSubscriptionStatus?: string;
+  newStartDate?: string;
+  nextPaymentDate?: string;
+  error?: string;
+}
+
+/**
+ * Update a Mollie subscription (change billing date)
+ * This cancels the current subscription and creates a new one with the updated date
+ */
+export async function updateMollieSubscription(
+  data: MollieUpdateSubscriptionData
+): Promise<MollieUpdateSubscriptionResponse> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("mollie-sepa", {
+      body: {
+        action: "update_subscription",
+        customer_id: data.customer_id,
+        subscription_id: data.subscription_id,
+        new_start_date: data.new_start_date,
+        times: data.times,
+        contract_id: data.contract_id,
+        company_id: data.company_id,
+      },
+    });
+
+    if (error) {
+      console.error("[Mollie] Update subscription error:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Erreur mise à jour abonnement" };
+    }
+
+    const responseData = result.data as {
+      old_subscription_id: string;
+      new_subscription_id: string;
+      new_subscription_status: string;
+      new_start_date: string;
+      next_payment_date: string | null;
+    };
+
+    return {
+      success: true,
+      oldSubscriptionId: responseData.old_subscription_id,
+      newSubscriptionId: responseData.new_subscription_id,
+      newSubscriptionStatus: responseData.new_subscription_status,
+      newStartDate: responseData.new_start_date,
+      nextPaymentDate: responseData.next_payment_date || undefined,
+    };
+  } catch (error) {
+    console.error("[Mollie] Update subscription exception:", error);
+    return { success: false, error: "Erreur lors de la mise à jour de l'abonnement" };
+  }
+}
