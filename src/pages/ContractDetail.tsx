@@ -176,6 +176,7 @@ const ContractDetail = () => {
                     mollie_customer_id: contract.mollie_customer_id,
                     mollie_mandate_id: contract.mollie_mandate_id,
                     mollie_mandate_status: contract.mollie_mandate_status,
+                    mollie_subscription_id: contract.mollie_subscription_id,
                   }}
                   companyId={companyId}
                   onSuccess={() => refetch()}
