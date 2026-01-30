@@ -187,7 +187,12 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   };
 
   if (success && sepaInfo) {
-    const totalAmount = formData.montant * formData.nombre_mois;
+    // Use contract values for display when loading existing data
+    const displayAmount = contract.monthly_payment || formData.montant;
+    const displayMonths = contract.contract_duration || contract.lease_duration || formData.nombre_mois;
+    const totalAmount = displayAmount * displayMonths;
+    const hasSubscription = sepaInfo.subscriptionId || contract.mollie_subscription_id;
+    const subscriptionIdToDisplay = sepaInfo.subscriptionId || contract.mollie_subscription_id;
     
     return (
       <Card>
@@ -207,11 +212,11 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                 {getMandateStatusBadge(sepaInfo.mandateStatus)}
               </div>
             </div>
-            {sepaInfo.subscriptionId && (
+            {hasSubscription && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Abonnement</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm">{sepaInfo.subscriptionId}</span>
+                  <span className="font-mono text-sm">{subscriptionIdToDisplay}</span>
                   <Badge className="bg-blue-600">Actif</Badge>
                 </div>
               </div>
@@ -225,13 +230,13 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           </div>
 
           {/* Subscription details */}
-          {sepaInfo.subscriptionId && (
+          {hasSubscription && (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
                 <p className="font-medium">Prélèvements récurrents activés</p>
                 <p className="mt-1">
-                  {formData.montant.toFixed(2)}€ × {formData.nombre_mois} mois = {totalAmount.toFixed(2)}€
+                  {displayAmount.toFixed(2)}€ × {displayMonths} mois = {totalAmount.toFixed(2)}€
                 </p>
                 {sepaInfo.firstPaymentDate && (
                   <p className="mt-1">
@@ -242,7 +247,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             </Alert>
           )}
 
-          {!sepaInfo.subscriptionId && sepaInfo.mandateStatus === "valid" && (
+          {!hasSubscription && sepaInfo.mandateStatus === "valid" && (
             <Alert className="border-yellow-200 bg-yellow-50">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800">
@@ -252,7 +257,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             </Alert>
           )}
 
-          {!sepaInfo.subscriptionId && sepaInfo.mandateStatus !== "valid" && (
+          {!hasSubscription && sepaInfo.mandateStatus !== "valid" && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
