@@ -380,10 +380,24 @@ serve(async (req) => {
         let subscriptionError: string | null = null;
 
         if (mandate.status === "valid" || mandate.status === "pending") {
-          // Calculate start date: first of next month
+          // Fetch payment_day from company_customizations
+          let paymentDay = 1;
+          if (body.company_id) {
+            const { data: companySettings } = await supabase
+              .from("company_customizations")
+              .select("payment_day")
+              .eq("company_id", body.company_id)
+              .single();
+            if (companySettings?.payment_day) {
+              paymentDay = companySettings.payment_day;
+            }
+            console.log(`[Mollie] Using payment day: ${paymentDay}`);
+          }
+
+          // Calculate start date: paymentDay of next month
           const startDate = body.start_date || (() => {
             const now = new Date();
-            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, paymentDay);
             return nextMonth.toISOString().split("T")[0]; // YYYY-MM-DD
           })();
 

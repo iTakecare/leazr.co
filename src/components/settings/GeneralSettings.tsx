@@ -156,7 +156,8 @@ const GeneralSettings = () => {
         logo_url: settings.logo_url || '',
         primary_color: settings.primary_color,
         secondary_color: settings.secondary_color,
-        accent_color: settings.accent_color
+        accent_color: settings.accent_color,
+        payment_day: settings.payment_day
       };
       
       const success = await updateSiteSettings(updatedSettings);
@@ -426,6 +427,40 @@ const GeneralSettings = () => {
             <div className="space-y-2">
               <Label htmlFor="company_email">Email</Label>
               <Input id="company_email" name="company_email" type="email" value={settings?.company_email || ''} onChange={handleInputChange} placeholder="contact@example.be" />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Facturation */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Building2 className="h-4 w-4" />
+            <span className="text-sm font-medium">Facturation & Prélèvements</span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="payment_day">Jour de prélèvement SEPA</Label>
+              <Select
+                value={String(settings?.payment_day || 1)}
+                onValueChange={(value) => setSettings(prev => prev ? {...prev, payment_day: parseInt(value)} : null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le jour..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={String(day)}>
+                      {day === 1 ? '1er' : day} du mois
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Jour du mois pour les prélèvements récurrents (1-28)
+              </p>
             </div>
           </div>
         </div>

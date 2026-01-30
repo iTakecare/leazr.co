@@ -1751,6 +1751,7 @@ export type Database = {
           iframe_height: string | null
           iframe_width: string | null
           logo_url: string | null
+          payment_day: number | null
           primary_color: string | null
           quote_request_url: string | null
           secondary_color: string | null
@@ -1781,6 +1782,7 @@ export type Database = {
           iframe_height?: string | null
           iframe_width?: string | null
           logo_url?: string | null
+          payment_day?: number | null
           primary_color?: string | null
           quote_request_url?: string | null
           secondary_color?: string | null
@@ -1811,6 +1813,7 @@ export type Database = {
           iframe_height?: string | null
           iframe_width?: string | null
           logo_url?: string | null
+          payment_day?: number | null
           primary_color?: string | null
           quote_request_url?: string | null
           secondary_color?: string | null

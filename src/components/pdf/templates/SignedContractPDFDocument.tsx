@@ -67,6 +67,8 @@ export interface SignedContractPDFData {
   primary_color?: string;
   // Special provisions (self-leasing only)
   special_provisions?: string;
+  // Payment day for SEPA (1-28)
+  payment_day?: number;
 }
 
 const createStyles = (primaryColor: string = '#33638e') => StyleSheet.create({
@@ -421,7 +423,7 @@ const replacePlaceholders = (text: string, contract: SignedContractPDFData, effe
     '{{client_bic}}': contract.client_bic || '',
     '{{duration}}': String(contract.contract_duration || 36),
     '{{monthly_payment}}': formatCurrency(monthlyPaymentToUse).replace('€', '').trim(),
-    '{{payment_day}}': '1er',
+    '{{payment_day}}': contract.payment_day === 1 ? '1er' : String(contract.payment_day || 1),
     '{{file_fee}}': formatCurrency(contract.file_fee || 0).replace('€', '').trim(),
     '{{admin_fee}}': formatCurrency(50).replace('€', '').trim(), // Default
     '{{residual_value}}': '1', // Default 1%

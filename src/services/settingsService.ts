@@ -33,6 +33,7 @@ export interface SiteSettings {
   quote_request_url?: string;
   iframe_width?: string;
   iframe_height?: string;
+  payment_day?: number; // 1-28, jour du prélèvement SEPA
   created_at?: string;
   updated_at?: string;
 }
@@ -142,6 +143,7 @@ export const updateSiteSettings = async (settings: Partial<SiteSettings>, userId
         quote_request_url: settings.quote_request_url,
         iframe_width: settings.iframe_width,
         iframe_height: settings.iframe_height,
+        payment_day: settings.payment_day,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'company_id'
