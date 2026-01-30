@@ -1,118 +1,108 @@
 
+# Création d'une Edge Function proxy pour Zapier
 
-# Correction de l'erreur "Load failed" pour le webhook Zapier
+## Problème actuel
 
-## Problème identifié
-
-L'erreur "Load failed" sur la requête POST vers Zapier a **deux causes possibles** :
-
-### Cause 1 : Zap non publié (PROBABLE)
-Dans la capture d'écran Zapier, le Zap est en mode **"Draft"**. Un Zap doit être **publié** pour recevoir des requêtes externes.
-
-### Cause 2 : Comportement de Safari
-Safari est plus strict que Chrome concernant les requêtes `no-cors`. Même si la requête est envoyée, Safari peut lever une exception si le serveur ne répond pas de manière attendue.
-
----
+Le navigateur ne peut pas confirmer que la requête vers Zapier a abouti car :
+1. Zapier ne supporte pas CORS correctement
+2. Le mode `no-cors` empêche de lire la réponse
+3. Certains navigateurs (Safari) lèvent une erreur "Load failed" même si la requête part
 
 ## Solution
 
-### Étape 1 : Action utilisateur (publier le Zap)
-1. Dans Zapier, cliquez sur **"Publish"** en haut à droite
-2. Le Zap passera de "Draft" à "On"
-3. Retestez depuis Lovable
+Créer une **Edge Function `zapier-proxy`** qui :
+1. Reçoit les requêtes du frontend
+2. Envoie les données à Zapier côté serveur (pas de problème CORS)
+3. Retourne un vrai statut de succès/échec au frontend
 
-### Étape 2 : Amélioration du code (résilience Safari)
+## Architecture
 
-Modifier la gestion du fetch pour être plus tolérant aux particularités de Safari :
-
-```typescript
-const handleTest = async () => {
-  // ... validation existante ...
-
-  try {
-    setTesting(true);
-
-    const testPayload = {
-      event_type: "test",
-      timestamp: new Date().toISOString(),
-      triggered_from: window.location.origin,
-      data: {
-        message: "Test de connexion Zapier depuis Leazr",
-        test: true,
-      },
-    };
-
-    // Créer un AbortController pour le timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    try {
-      await fetch(trimmedUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify(testPayload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      // En mode no-cors, certaines erreurs sont "normales"
-      // car on ne peut pas lire la réponse
-      console.warn("Fetch warning (peut être normal en no-cors):", fetchError);
-    }
-
-    // Avec no-cors, on ne peut pas savoir si ça a vraiment fonctionné
-    // Donc on affiche toujours un message informatif
-    
-    if (config?.id) {
-      await supabase
-        .from("zapier_integrations")
-        .update({ last_triggered_at: new Date().toISOString() })
-        .eq("id", config.id);
-    }
-
-    toast.info(
-      "Requête envoyée vers Zapier. Vérifiez l'historique de votre Zap pour confirmer la réception. Si le Zap est en Draft, publiez-le d'abord.",
-      { duration: 6000 }
-    );
-    
-    await fetchConfig();
-  } catch (error) {
-    console.error("Error testing webhook:", error);
-    toast.error(
-      "Erreur inattendue. Vérifiez que votre Zap est publié (pas en Draft).",
-      { duration: 6000 }
-    );
-  } finally {
-    setTesting(false);
-  }
-};
+```text
+┌──────────────┐        ┌─────────────────────┐        ┌────────────────┐
+│   Frontend   │ ──────▶│  Edge Function      │ ──────▶│    Zapier      │
+│  (Browser)   │        │  zapier-proxy       │        │   Webhook      │
+└──────────────┘        └─────────────────────┘        └────────────────┘
+                               │                               │
+                               ▼                               ▼
+                        Vraie réponse              Vraie confirmation
+                        HTTP 200/4xx/5xx           que Zapier a reçu
 ```
 
----
+## Fichiers à créer/modifier
 
-## Résumé des modifications
+| Fichier | Action | Description |
+|---------|--------|-------------|
+| `supabase/functions/zapier-proxy/index.ts` | Créer | Edge Function proxy |
+| `supabase/config.toml` | Modifier | Ajouter config pour `zapier-proxy` |
+| `src/utils/zapier.ts` | Modifier | Utiliser la Edge Function au lieu de fetch direct |
+| `src/components/settings/ZapierIntegrationCard.tsx` | Modifier | Utiliser la nouvelle fonction pour le test |
 
-| Fichier | Modification |
-|---------|--------------|
-| `ZapierIntegrationCard.tsx` | Ajout d'un try/catch interne pour le fetch avec message informatif au lieu d'une erreur |
+## Edge Function `zapier-proxy`
 
----
+Cette fonction acceptera :
+- `action`: `"test"` ou `"trigger"`
+- `webhook_url`: URL du webhook Zapier
+- `payload`: Données à envoyer
+
+Elle fera un vrai `fetch` vers Zapier et retournera :
+- `success: true/false`
+- `status`: Code HTTP de Zapier (200, 4xx, 5xx)
+- `message`: Message pour l'utilisateur
+
+## Avantages
+
+1. **Vraie confirmation** : On saura si Zapier a reçu la requête
+2. **Pas de problème CORS** : Le serveur n'a pas ces restrictions
+3. **Meilleurs logs** : On peut logger les erreurs côté serveur
+4. **Compatible tous navigateurs** : Fonctionne sur Safari, Chrome, Firefox...
+5. **Traçabilité** : Les requêtes passent par notre infrastructure
+
+## Sécurité
+
+- Authentification requise (l'utilisateur doit être connecté)
+- Validation de l'URL (doit être un webhook Zapier valide)
+- Vérification que l'utilisateur appartient à la company concernée
+
+## Modifications du code frontend
+
+### `src/utils/zapier.ts`
+
+Remplacer les appels `fetch` directs par des appels à la Edge Function :
+
+```typescript
+export async function triggerZapierWebhook(
+  companyId: string,
+  eventType: string,
+  data: Record<string, unknown>
+): Promise<boolean> {
+  // Appeler la Edge Function au lieu de fetch direct
+  const { data: result, error } = await supabase.functions.invoke('zapier-proxy', {
+    body: {
+      action: 'trigger',
+      company_id: companyId,
+      event_type: eventType,
+      payload: data,
+    },
+  });
+
+  if (error) {
+    console.error('[Zapier] Error:', error);
+    return false;
+  }
+
+  return result?.success === true;
+}
+```
+
+### `ZapierIntegrationCard.tsx`
+
+Le bouton "Tester" appellera aussi la Edge Function et pourra afficher un vrai message de succès ou d'erreur.
 
 ## Résultat attendu
 
-1. **Après publication du Zap** : La requête arrivera bien dans Zapier
-2. **Meilleure UX** : Le message indique clairement que :
-   - La requête a été envoyée (même si on ne peut pas confirmer la réception en `no-cors`)
-   - L'utilisateur doit vérifier côté Zapier
-   - Si ça ne fonctionne pas, il faut publier le Zap
+1. Le bouton "Tester le webhook" affichera :
+   - ✅ "Succès ! Zapier a bien reçu la requête." (si HTTP 200)
+   - ❌ "Erreur : Zapier a répondu avec le code XXX" (si erreur)
+   - ❌ "Impossible de contacter Zapier. Vérifiez l'URL." (si timeout/erreur réseau)
 
----
-
-## Note importante
-
-Avec le mode `no-cors`, il est **techniquement impossible** de savoir si Zapier a bien reçu la requête depuis le navigateur. C'est une limitation de sécurité des navigateurs. La seule façon de confirmer est de vérifier l'historique du Zap dans Zapier.
-
+2. Les déclenchements en production (contrat signé, etc.) passeront aussi par le proxy et seront plus fiables.
