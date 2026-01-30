@@ -1,149 +1,93 @@
 
 
-# Plan de correction GoCardless - Webhook et Token
+# Plan de correction finale - GoCardless Webhook Signature
 
-## Diagnostic
+## Diagnostic confirme
 
-### Probleme 1 : Format de signature webhook incorrect
+J'ai analyse le code source officiel de GoCardless Node.js (https://github.com/gocardless/gocardless-nodejs/blob/master/src/webhooks.ts) et confirme que :
 
-Le code actuel dans `gocardless-webhook/index.ts` attend un format Stripe-like :
-```
-t=timestamp,s0=signature,s1=signature...
-```
+1. La signature est un HMAC-SHA256 du body brut
+2. Le secret utilise est le "Webhook endpoint secret" (pas le OAuth secret)
+3. La signature est comparee en hex
 
-Mais GoCardless envoie simplement :
-```
-Webhook-Signature: c6c361a11d7802042df31f7b27f2a44cea7a68eed3c429ed8c579aa9db3a6d70
-```
+## Probleme identifie
 
-C'est un hash HMAC-SHA256 direct du body, sans timestamp.
+Tu as probablement utilise le mauvais secret. Dans GoCardless, il y a **deux types de secrets** :
 
-### Probleme 2 : Secret webhook manquant
+| Type | Ou le trouver | Usage |
+|------|---------------|-------|
+| **OAuth Client Secret** | Partners > App > Client Secret | Authentification OAuth (pas pour webhooks) |
+| **Webhook Endpoint Secret** | Developers > Webhooks > (ton endpoint) > Secret | **Verification des signatures webhook** |
 
-Le secret `GOCARDLESS_WEBHOOK_SECRET` n'existe pas dans Supabase. Il doit etre recupere depuis le dashboard GoCardless et ajoute.
-
-### Probleme 3 : Token d'acces bloque
-
-Le token "Leazr" compromis n'a pas ete revoque. GoCardless l'a probablement desactive automatiquement (erreur 403).
+Tu dois utiliser le **Webhook Endpoint Secret** pour `GOCARDLESS_WEBHOOK_SECRET`.
 
 ---
 
-## Corrections techniques
+## Actions requises
 
-### Modification de l'edge function `gocardless-webhook/index.ts`
+### Etape 1 : Recuperer le bon secret
 
-La fonction `verifyWebhookSignature` doit etre reecrite pour utiliser le format GoCardless :
+1. Va dans GoCardless Dashboard (Live) : https://manage.gocardless.com
+2. Clique sur **Developers** dans le menu
+3. Clique sur **Webhooks** (pas sur Partners)
+4. Clique sur ton webhook endpoint (celui qui pointe vers `https://cifbetjefyfocafanlhv.supabase.co/functions/v1/gocardless-webhook`)
+5. Tu verras un **"Webhook endpoint secret"** - copie cette valeur
+
+### Etape 2 : Mettre a jour le secret dans Supabase
+
+Une fois que tu as le bon secret, fournis-le moi et je mettrai a jour `GOCARDLESS_WEBHOOK_SECRET`.
+
+---
+
+## Verification du code
+
+Le code actuel dans `gocardless-webhook/index.ts` est **deja correct** :
 
 ```typescript
-// AVANT (format Stripe incorrect)
-const parts = signature.split(',');
-const timestamp = signatureMap['t'];
-const signaturePayload = `${timestamp}.${body}`;
+async function verifyWebhookSignature(body: string, signature: string, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
 
-// APRES (format GoCardless correct)
-// La signature est un simple HMAC-SHA256 du body
-const expectedSignature = HMAC-SHA256(body, secret);
-return signature === expectedSignature;
-```
+  const signatureBytes = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(body)
+  );
 
-### Ajout du secret webhook
+  const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 
-Recuperer le secret depuis GoCardless Dashboard :
-1. Developers → Webhooks
-2. Cliquer sur le webhook existant
-3. Copier le "Webhook endpoint secret"
-
-### Nouveau token d'acces
-
-1. Revoquer le token "Leazr" compromis
-2. Creer un nouveau Personal Access Token avec toutes les permissions
-3. Mettre a jour `GOCARDLESS_ACCESS_TOKEN` dans Supabase
-
----
-
-## Fichiers a modifier
-
-| Fichier | Modification |
-|---------|--------------|
-| `supabase/functions/gocardless-webhook/index.ts` | Reecrire `verifyWebhookSignature()` pour le format GoCardless |
-
-## Secrets a configurer
-
-| Secret | Action |
-|--------|--------|
-| `GOCARDLESS_ACCESS_TOKEN` | Mettre a jour avec nouveau token Live |
-| `GOCARDLESS_WEBHOOK_SECRET` | Creer avec le secret du webhook |
-
----
-
-## Nouvelle implementation de la verification de signature
-
-```typescript
-async function verifyWebhookSignature(
-  body: string, 
-  signature: string, 
-  secret: string
-): Promise<boolean> {
-  try {
-    const encoder = new TextEncoder();
-    
-    // Importer la cle secrete
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-
-    // Calculer le HMAC-SHA256 du body directement
-    const signatureBytes = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(body)
-    );
-
-    // Convertir en hex
-    const expectedSignature = Array.from(new Uint8Array(signatureBytes))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    // Comparaison directe
-    return signature === expectedSignature;
-  } catch (error) {
-    console.error('Erreur verification signature:', error);
-    return false;
-  }
+  return signature === expectedSignature;
 }
 ```
 
----
-
-## Actions utilisateur requises
-
-### Dans GoCardless Dashboard (Live)
-
-1. **Developers → Personal access tokens**
-   - Revoquer le token "Leazr"
-   - Creer un nouveau token "Leazr-Prod-2026" avec toutes les permissions
-   - Copier la valeur
-
-2. **Developers → Webhooks**
-   - Cliquer sur le webhook configure
-   - Copier le "Webhook endpoint secret"
-
-### Dans Lovable
-
-Fournir les deux valeurs pour que je puisse :
-1. Mettre a jour `GOCARDLESS_ACCESS_TOKEN`
-2. Creer `GOCARDLESS_WEBHOOK_SECRET`
-3. Corriger le code de verification de signature
+Cette implementation est equivalente a la version officielle :
+```javascript
+// Version officielle Node.js
+crypto.createHmac('sha256', webhookSecret).update(body).digest('hex')
+```
 
 ---
 
-## Resultat attendu
+## Resume
 
-- Les webhooks GoCardless seront valides (plus de 401)
-- La creation de mandat fonctionnera (plus de 403)
-- Les statuts de mandat seront synchronises automatiquement
+| Element | Statut |
+|---------|--------|
+| Algorithme de signature | Correct (HMAC-SHA256 hex) |
+| Format du body | Correct (raw body direct) |
+| Secret utilise | A VERIFIER - doit etre le "Webhook endpoint secret" |
+
+---
+
+## Prochaine action
+
+Fournis-moi le **Webhook endpoint secret** depuis GoCardless Dashboard > Developers > Webhooks > (ton endpoint) > Secret, et je mettrai a jour le secret Supabase.
 
