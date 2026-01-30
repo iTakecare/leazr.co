@@ -7,6 +7,7 @@ import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, Cr
 import BillitIntegrationSettings from './BillitIntegrationSettings';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
+import GoCardlessIntegrationCard from './GoCardlessIntegrationCard';
 
 interface Integration {
   id: string;
@@ -19,6 +20,16 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
+  // Paiements
+  {
+    id: 'gocardless',
+    name: 'GoCardless',
+    description: 'Prélèvements SEPA automatiques pour vos contrats de leasing',
+    logoUrl: 'https://logo.clearbit.com/gocardless.com',
+    status: 'available',
+    category: 'Paiements'
+  },
+  
   // E-commerce
   {
     id: 'woocommerce',
@@ -387,6 +398,8 @@ const getStatusIcon = (status: string) => {
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
+    case 'Paiements':
+      return <CreditCard className="h-6 w-6 text-blue-600" />;
     case 'E-commerce':
       return <ShoppingCart className="h-6 w-6 text-purple-600" />;
     case 'Facturation':
@@ -564,7 +577,11 @@ const IntegrationsManager = () => {
               <CompanyWebIntegrationSettings />
             )}
             
-            {selectedIntegration && !['woocommerce', 'billit', 'companyweb'].includes(selectedIntegration) && (
+            {selectedIntegration === 'gocardless' && (
+              <GoCardlessIntegrationCard />
+            )}
+            
+            {selectedIntegration && !['woocommerce', 'billit', 'companyweb', 'gocardless'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
