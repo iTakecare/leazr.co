@@ -135,6 +135,7 @@ import OfferDocumentUpload from "@/pages/OfferDocumentUpload";
 import RedirectToUpload from "@/components/RedirectToUpload";
 import GoCardlessCompletePage from "@/pages/client/GoCardlessCompletePage";
 import GoCardlessSuccessPage from "@/pages/client/GoCardlessSuccessPage";
+import GoCardlessOAuthCallbackPage from "@/pages/admin/GoCardlessOAuthCallbackPage";
 
 import ProductFormPage from "@/pages/ProductFormPage";
 import ContractDetail from "@/pages/ContractDetail";
@@ -204,6 +205,7 @@ const AppRoutes = () => (
     {/* GoCardless public callback routes */}
     <Route path="/:companySlug/gocardless/complete" element={<GoCardlessCompletePage />} />
     <Route path="/:companySlug/gocardless/success" element={<GoCardlessSuccessPage />} />
+    <Route path="/:companySlug/gocardless/oauth/callback" element={<GoCardlessOAuthCallbackPage />} />
     
     {/* Company-specific login route - must be before generic company slug routes */}
     <Route path="/:companySlug/login" element={<Login />} />
