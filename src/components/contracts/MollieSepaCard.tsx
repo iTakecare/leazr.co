@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,11 @@ import {
   AlertCircle,
   RefreshCw,
   Euro,
-  Landmark
+  Landmark,
+  Calendar
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { setupMollieSepaComplete } from "@/utils/mollie";
 import IBANInput from "./IBANInput";
 
@@ -49,6 +51,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [sepaInfo, setSepaInfo] = useState<SepaInfo | null>(null);
+  const [paymentDay, setPaymentDay] = useState<number>(1);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -62,6 +65,26 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     description: `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
   });
   const [ibanValid, setIbanValid] = useState(false);
+
+  // Fetch payment day from company settings
+  useEffect(() => {
+    const fetchPaymentDay = async () => {
+      if (!companyId) return;
+      try {
+        const { data } = await supabase
+          .from('company_customizations')
+          .select('payment_day')
+          .eq('company_id', companyId)
+          .maybeSingle();
+        if (data?.payment_day) {
+          setPaymentDay(data.payment_day);
+        }
+      } catch (error) {
+        console.error('Error fetching payment day:', error);
+      }
+    };
+    fetchPaymentDay();
+  }, [companyId]);
 
   // Check for existing mandate on load
   React.useEffect(() => {
@@ -221,6 +244,13 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                 </div>
               </div>
             )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Jour de prélèvement
+              </span>
+              <span className="font-medium">{paymentDay === 1 ? '1er' : paymentDay} du mois</span>
+            </div>
             {formData.iban && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">IBAN</span>
