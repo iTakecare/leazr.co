@@ -3,7 +3,6 @@ import { Routes, Route } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanyCustomizationManager from "@/components/settings/CompanyCustomizationManager";
-import GoCardlessIntegrationCard from "@/components/settings/GoCardlessIntegrationCard";
 import { 
   Settings as SettingsIcon, 
   Palette, 
@@ -74,8 +73,6 @@ const CompanySettingsPage = () => {
 
         <TabsContent value="integrations" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
-            <GoCardlessIntegrationCard />
-            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

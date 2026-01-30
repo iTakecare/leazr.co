@@ -7205,6 +7205,47 @@ export type Database = {
         }
         Relationships: []
       }
+      zapier_integrations: {
+        Row: {
+          company_id: string
+          created_at: string
+          enabled_events: Json
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          updated_at: string
+          webhook_url: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          enabled_events?: Json
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          updated_at?: string
+          webhook_url: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          enabled_events?: Json
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          updated_at?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       categories_with_product_count: {

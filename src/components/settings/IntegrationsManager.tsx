@@ -7,7 +7,7 @@ import { Settings, ExternalLink, Zap, Building2, Calculator, FileText, Users, Cr
 import BillitIntegrationSettings from './BillitIntegrationSettings';
 import CompanyWebIntegrationSettings from './CompanyWebIntegrationSettings';
 import WooCommerceConfigurationManager from './WooCommerceConfigurationManager';
-import GoCardlessIntegrationCard from './GoCardlessIntegrationCard';
+import ZapierIntegrationCard from './ZapierIntegrationCard';
 
 interface Integration {
   id: string;
@@ -20,14 +20,14 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
-  // Paiements
+  // Automation
   {
-    id: 'gocardless',
-    name: 'GoCardless',
-    description: 'Prélèvements SEPA automatiques pour vos contrats de leasing',
-    logoUrl: 'https://logo.clearbit.com/gocardless.com',
+    id: 'zapier',
+    name: 'Zapier',
+    description: 'Automatisez vos workflows avec 5000+ applications',
+    logoUrl: 'https://logo.clearbit.com/zapier.com',
     status: 'available',
-    category: 'Paiements'
+    category: 'Automation'
   },
   
   // E-commerce
@@ -577,11 +577,11 @@ const IntegrationsManager = () => {
               <CompanyWebIntegrationSettings />
             )}
             
-            {selectedIntegration === 'gocardless' && (
-              <GoCardlessIntegrationCard />
+            {selectedIntegration === 'zapier' && (
+              <ZapierIntegrationCard />
             )}
             
-            {selectedIntegration && !['woocommerce', 'billit', 'companyweb', 'gocardless'].includes(selectedIntegration) && (
+            {selectedIntegration && !['woocommerce', 'billit', 'companyweb', 'zapier'].includes(selectedIntegration) && (
               <div className="text-center py-8">
                 <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuration à venir</h3>
