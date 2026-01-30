@@ -13,7 +13,7 @@ import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
 import ContractTerminationToggle from "@/components/contracts/ContractTerminationToggle";
-import GoCardlessStatusCard from "@/components/contracts/GoCardlessStatusCard";
+
 import ContractBreakevenCard from "@/components/contracts/ContractBreakevenCard";
 import { useContractDetail } from "@/hooks/useContractDetail";
 import { useAuth } from "@/context/AuthContext";
@@ -161,11 +161,6 @@ const ContractDetail = () => {
                 onContractUpdated={refetch}
               />
 
-              {/* Carte domiciliation GoCardless - self-leasing uniquement */}
-              <GoCardlessStatusCard 
-                contract={contract}
-                onUpdate={refetch}
-              />
               {/* Carte rentabilité breakeven - self-leasing uniquement */}
               {contract.is_self_leasing && (
                 <ContractBreakevenCard 
