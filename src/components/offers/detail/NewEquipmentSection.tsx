@@ -282,73 +282,38 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return adjustedPrices;
     }
     
-    // MODE LEASING: Répartition proportionnelle basée sur le total Grenke
-    // Les selling_price stockés en BD sont ignorés SAUF s'ils ont été manuellement définis
-    // (écart > 1€ avec le prix proportionnel attendu)
+    // MODE LEASING: Répartition proportionnelle FORCÉE basée sur le total Grenke
+    // En mode leasing, on recalcule TOUJOURS les prix proportionnellement
+    // car le total doit correspondre à la formule Grenke (Mensualité × 100 / Coefficient)
+    // Les selling_price stockés en BD sont ignorés pour l'affichage
     
-    // Étape 1: Calculer le prix proportionnel attendu pour chaque équipement
-    const proportionalPrices: Record<string, number> = {};
-    equipmentList.forEach(item => {
+    // Répartir proportionnellement avec la méthode Largest Remainder
+    const rawPrices = equipmentList.map(item => {
       const equipmentTotal = item.purchase_price * item.quantity;
       const proportion = equipmentTotal / totalPurchasePrice;
-      proportionalPrices[item.id] = totalSellingPrice * proportion;
-    });
-    
-    // Étape 2: Identifier les équipements avec un prix manuellement défini (écart > 1€)
-    let totalManualSellingPrice = 0;
-    let totalManualPurchasePrice = 0;
-    
-    equipmentList.forEach(item => {
-      const equipmentPurchaseTotal = item.purchase_price * item.quantity;
-      const proportionalPrice = proportionalPrices[item.id];
-      
-      if (item.selling_price !== null && item.selling_price !== undefined && item.selling_price > 0) {
-        const storedTotal = item.selling_price * item.quantity;
-        const difference = Math.abs(storedTotal - proportionalPrice);
-        
-        // Si l'écart est > 1€, considérer comme prix manuel à préserver
-        if (difference > 1) {
-          adjustedPrices[item.id] = Math.round(storedTotal * 100) / 100;
-          totalManualSellingPrice += storedTotal;
-          totalManualPurchasePrice += equipmentPurchaseTotal;
-        }
-      }
+      const rawSellingPrice = totalSellingPrice * proportion;
+      const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
+      return {
+        id: item.id,
+        rawPrice: rawSellingPrice,
+        roundedPrice: roundedPrice,
+        remainder: rawSellingPrice - roundedPrice
+      };
     });
 
-    // Étape 3: Calculer le reste à répartir pour les équipements sans prix manuel
-    const remainingSellingPrice = totalSellingPrice - totalManualSellingPrice;
-    const remainingPurchasePrice = totalPurchasePrice - totalManualPurchasePrice;
-    
-    // Étape 4: Répartir proportionnellement le reste (méthode Largest Remainder)
-    const itemsToDistribute = equipmentList.filter(item => !adjustedPrices[item.id]);
-    
-    if (itemsToDistribute.length > 0 && remainingPurchasePrice > 0) {
-      const rawPrices = itemsToDistribute.map(item => {
-        const equipmentTotal = item.purchase_price * item.quantity;
-        const proportion = equipmentTotal / remainingPurchasePrice;
-        const rawSellingPrice = remainingSellingPrice * proportion;
-        const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
-        return {
-          id: item.id,
-          rawPrice: rawSellingPrice,
-          roundedPrice: roundedPrice,
-          remainder: rawSellingPrice - roundedPrice
-        };
-      });
+    // Correction des centimes avec Largest Remainder
+    const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
+    let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100);
+    const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
 
-      const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
-      let differenceInCents = Math.round((remainingSellingPrice - sumRounded) * 100);
-      const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
-      
-      rawPrices.forEach(p => {
-        adjustedPrices[p.id] = p.roundedPrice;
-      });
+    rawPrices.forEach(p => {
+      adjustedPrices[p.id] = p.roundedPrice;
+    });
 
-      for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
-        const id = sortedByRemainder[i].id;
-        adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
-        adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
-      }
+    for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+      const id = sortedByRemainder[i].id;
+      adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
+      adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
     }
 
     return adjustedPrices;
