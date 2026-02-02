@@ -529,10 +529,6 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             <p><strong>Client :</strong> {contract.client_name || `${formData.prenom} ${formData.nom}`}</p>
           </div>
 
-          <Button variant="ghost" onClick={() => { setSuccess(false); setIsOpen(false); }}>
-            Fermer
-          </Button>
-
           {/* Dialog for editing payment day */}
           <Dialog open={editPaymentDayOpen} onOpenChange={setEditPaymentDayOpen}>
             <DialogContent>
