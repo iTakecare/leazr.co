@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { 
   CreditCard, 
   Send, 
@@ -16,11 +17,21 @@ import {
   Euro,
   Landmark,
   Calendar,
-  Pencil
+  Pencil,
+  Clock,
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { setupMollieSepaComplete, updateMollieSubscription } from "@/utils/mollie";
+import { 
+  setupMollieSepaComplete, 
+  updateMollieSubscription, 
+  getMollieSubscription, 
+  getMolliePayments,
+  MollieSubscriptionDetails,
+  MolliePayment
+} from "@/utils/mollie";
 import IBANInput from "./IBANInput";
 
 interface MollieSepaCardProps {
@@ -58,6 +69,11 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [editPaymentDayOpen, setEditPaymentDayOpen] = useState(false);
   const [newPaymentDay, setNewPaymentDay] = useState<number>(1);
   const [updatingPaymentDay, setUpdatingPaymentDay] = useState(false);
+  
+  // NEW: State for subscription details and payments
+  const [subscriptionDetails, setSubscriptionDetails] = useState<MollieSubscriptionDetails | null>(null);
+  const [recentPayments, setRecentPayments] = useState<MolliePayment[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -148,6 +164,41 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       setSuccess(true);
     }
   }, [contract.mollie_mandate_id, contract.mollie_mandate_status, contract.mollie_subscription_id]);
+
+  // NEW: Fetch subscription details and payment history from Mollie
+  const fetchMollieDetails = async () => {
+    if (!contract.mollie_customer_id) return;
+    
+    setLoadingDetails(true);
+    try {
+      // Fetch subscription and payments in parallel
+      const [subResult, paymentsResult] = await Promise.all([
+        contract.mollie_subscription_id 
+          ? getMollieSubscription(contract.mollie_customer_id, contract.mollie_subscription_id)
+          : Promise.resolve({ success: false as const, data: undefined, error: undefined }),
+        getMolliePayments(contract.mollie_customer_id, 5)
+      ]);
+
+      if (subResult.success && subResult.data) {
+        setSubscriptionDetails(subResult.data);
+      }
+
+      if (paymentsResult.success && paymentsResult.data) {
+        setRecentPayments(paymentsResult.data);
+      }
+    } catch (error) {
+      console.error("Error fetching Mollie details:", error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  // Fetch details when subscription exists
+  useEffect(() => {
+    if (contract.mollie_customer_id && (contract.mollie_subscription_id || contract.mollie_mandate_id)) {
+      fetchMollieDetails();
+    }
+  }, [contract.mollie_customer_id, contract.mollie_subscription_id, contract.mollie_mandate_id]);
 
   // Extract first/last name from client_name
   React.useEffect(() => {
@@ -249,14 +300,53 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const getMandateStatusBadge = (status: string) => {
     switch (status) {
       case "valid":
-        return <Badge className="bg-green-600">Valide</Badge>;
+        return <Badge className="bg-emerald-600 hover:bg-emerald-600">Valide</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-600">En attente</Badge>;
+        return <Badge className="bg-amber-500 hover:bg-amber-500">En attente</Badge>;
       case "invalid":
         return <Badge variant="destructive">Invalide</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case "paid":
+        return (
+          <Badge className="bg-emerald-600 hover:bg-emerald-600 gap-1">
+            <CheckCircle2 className="h-3 w-3" />
+            Payé
+          </Badge>
+        );
+      case "pending":
+      case "open":
+        return (
+          <Badge className="bg-amber-500 hover:bg-amber-500 gap-1">
+            <Clock className="h-3 w-3" />
+            En cours
+          </Badge>
+        );
+      case "failed":
+      case "expired":
+      case "canceled":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <XCircle className="h-3 w-3" />
+            {status === "failed" ? "Échoué" : status === "expired" ? "Expiré" : "Annulé"}
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
   };
 
   if (success && sepaInfo) {
@@ -269,11 +359,22 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
     
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            Prélèvement SEPA configuré
-          </CardTitle>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              Prélèvement SEPA configuré
+            </CardTitle>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={fetchMollieDetails}
+              disabled={loadingDetails}
+              title="Rafraîchir les informations"
+            >
+              <RefreshCw className={`h-4 w-4 ${loadingDetails ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Mandate info */}
@@ -290,7 +391,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                 <span className="text-sm text-muted-foreground">Abonnement</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm">{subscriptionIdToDisplay}</span>
-                  <Badge className="bg-blue-600">Actif</Badge>
+                  <Badge className="bg-sky-600 hover:bg-sky-600">Actif</Badge>
                 </div>
               </div>
             )}
@@ -321,11 +422,77 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
             )}
           </div>
 
-          {/* Subscription details */}
-          {hasSubscription && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+          {/* NEW: Next payment section */}
+          {hasSubscription && (subscriptionDetails || loadingDetails) && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Prochain prélèvement
+                </h4>
+                {loadingDetails ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Chargement...</span>
+                  </div>
+                ) : subscriptionDetails?.nextPaymentDate ? (
+                  <div className="p-3 bg-muted/50 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        📅 {formatDate(subscriptionDetails.nextPaymentDate)}
+                      </span>
+                      <span className="font-semibold">
+                        {parseFloat(subscriptionDetails.amount?.value || displayAmount.toString()).toFixed(2)} €
+                      </span>
+                    </div>
+                    {subscriptionDetails.timesRemaining && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Prélèvements restants : {subscriptionDetails.timesRemaining}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Aucun prélèvement programmé</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* NEW: Recent payments history */}
+          {recentPayments.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Euro className="h-4 w-4" />
+                  Historique récent
+                </h4>
+                <div className="space-y-2">
+                  {recentPayments.slice(0, 5).map((payment) => (
+                    <div 
+                      key={payment.id} 
+                      className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm"
+                    >
+                      <span className="text-muted-foreground">
+                        {formatDate(payment.createdAt)}
+                      </span>
+                      <span className="font-medium">
+                        {parseFloat(payment.amount.value).toFixed(2)} €
+                      </span>
+                      {getPaymentStatusBadge(payment.status)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Subscription summary alert */}
+          {hasSubscription && !subscriptionDetails && !loadingDetails && (
+            <Alert className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <AlertDescription className="text-emerald-800 dark:text-emerald-200">
                 <p className="font-medium">Prélèvements récurrents activés</p>
                 <p className="mt-1">
                   {displayAmount.toFixed(2)}€ × {displayMonths} mois = {totalAmount.toFixed(2)}€
@@ -340,9 +507,9 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           )}
 
           {!hasSubscription && sepaInfo.mandateStatus === "valid" && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
                 Le mandat est valide mais l'abonnement n'a pas pu être créé automatiquement.
                 Veuillez créer l'abonnement manuellement.
               </AlertDescription>
@@ -359,7 +526,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
           )}
 
           <div className="text-sm text-muted-foreground">
-            <p><strong>Client :</strong> {formData.prenom} {formData.nom}</p>
+            <p><strong>Client :</strong> {contract.client_name || `${formData.prenom} ${formData.nom}`}</p>
           </div>
 
           <Button variant="ghost" onClick={() => { setSuccess(false); setIsOpen(false); }}>
