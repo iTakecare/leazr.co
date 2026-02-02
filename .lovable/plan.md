@@ -1,110 +1,185 @@
 
 
-# Plan : Ajouter le jour de prélèvement configurable
+# Plan : Afficher les informations de prélèvement Mollie en temps réel
 
 ## Contexte
 
-Actuellement, le jour de prélèvement SEPA est hardcodé :
-- Dans le PDF du contrat : `'{{payment_day}}': '1er'`
-- Dans l'Edge Function Mollie : date calculée au 1er du mois suivant
+Sur la capture d'écran Mollie, on voit deux prélèvements "En cours" pour les contrats iTakecare :
+- LOC-ITC-2026-01003 (Patrick Grasseels) : 131,85 €
+- LOC-ITC-2026-01001 (Frederic Veillard) : 67,69 €
 
-L'objectif est de rendre ce paramètre configurable par l'administrateur.
+Ces informations ne sont pas encore affichées dans Leazr. L'objectif est de récupérer et afficher :
+- La date du prochain prélèvement prévu
+- Le statut du dernier paiement (en cours, payé, expiré)
+- L'historique des paiements récents
 
-## Modifications a effectuer
+## Données disponibles via l'API Mollie
 
-### 1. Base de donnees : Ajouter la colonne
+### 1. Abonnement (`/customers/{id}/subscriptions/{id}`)
 
-Ajouter une colonne `payment_day` a la table `company_customizations` :
+| Champ | Description |
+|-------|-------------|
+| `nextPaymentDate` | Date du prochain prélèvement |
+| `status` | active, pending, canceled, suspended, completed |
+| `timesRemaining` | Nombre de prélèvements restants |
+| `startDate` | Date de début |
 
-```sql
-ALTER TABLE company_customizations 
-ADD COLUMN payment_day INTEGER DEFAULT 1 CHECK (payment_day >= 1 AND payment_day <= 28);
-```
+### 2. Paiements (`/customers/{id}/payments`)
 
-Note : Limite a 28 pour eviter les problemes avec les mois courts (fevrier).
+| Champ | Description |
+|-------|-------------|
+| `id` | ID du paiement |
+| `status` | open, pending, paid, failed, expired, canceled |
+| `amount` | Montant |
+| `createdAt` | Date de création |
+| `paidAt` | Date de paiement (si payé) |
+| `description` | Description |
 
-### 2. Interface TypeScript `SiteSettings`
+## Modifications à effectuer
 
-Fichier : `src/services/settingsService.ts`
-
-Ajouter le champ :
-
-```typescript
-export interface SiteSettings {
-  // ... champs existants ...
-  payment_day?: number; // 1-28
-}
-```
-
-### 3. Composant de configuration
-
-Fichier : `src/components/settings/GeneralSettings.tsx`
-
-Ajouter un champ de selection du jour de prelevement dans la section "Informations legales" ou creer une nouvelle section "Facturation / Paiements" :
-
-| Champ | Type | Valeurs |
-|-------|------|---------|
-| Jour de prelevement | Select | 1 a 28 |
-
-### 4. Service de sauvegarde
-
-Fichier : `src/services/settingsService.ts`
-
-Ajouter `payment_day` dans la fonction `updateSiteSettings()` lors de l'upsert.
-
-### 5. Edge Function Mollie
+### 1. Edge Function : Ajouter deux actions
 
 Fichier : `supabase/functions/mollie-sepa/index.ts`
 
-Modifier l'action `setup_sepa_complete` pour :
-1. Recuperer le `payment_day` depuis `company_customizations` via `company_id`
-2. Utiliser ce jour au lieu du 1er par defaut
+**Action `get_subscription`** : Récupérer les détails d'un abonnement
 
 ```typescript
-// Recuperer le payment_day de la company
-const { data: companySettings } = await supabase
-  .from("company_customizations")
-  .select("payment_day")
-  .eq("company_id", body.company_id)
-  .single();
-
-const paymentDay = companySettings?.payment_day || 1;
-
-// Calculer la date de debut avec le bon jour
-const now = new Date();
-const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, paymentDay);
-const startDate = body.start_date || nextMonth.toISOString().split("T")[0];
+case "get_subscription": {
+  if (!body.customer_id || !body.subscription_id) {
+    return error("customer_id et subscription_id requis");
+  }
+  result = await mollieRequest(
+    `/customers/${body.customer_id}/subscriptions/${body.subscription_id}`
+  );
+  break;
+}
 ```
 
-### 6. PDF du contrat
-
-Fichier : `src/components/pdf/templates/SignedContractPDFDocument.tsx`
-
-Modifier le remplacement de `{{payment_day}}` pour utiliser la valeur configuree :
+**Action `list_payments`** : Récupérer l'historique des paiements
 
 ```typescript
-'{{payment_day}}': formatPaymentDay(contract.payment_day || 1),
-// Exemple : 1 -> "1er", 2 -> "2", etc.
+case "list_payments": {
+  if (!body.customer_id) {
+    return error("customer_id requis");
+  }
+  result = await mollieRequest(
+    `/customers/${body.customer_id}/payments?limit=${body.limit || 10}`
+  );
+  break;
+}
 ```
 
-Cela necessite de :
-- Ajouter `payment_day` a l'interface `SignedContract`
-- Passer la valeur depuis les settings de la company lors de la generation du PDF
+### 2. Utilitaires client
 
-## Resume des fichiers a modifier
+Fichier : `src/utils/mollie.ts`
+
+Ajouter deux fonctions :
+
+```typescript
+// Récupérer les détails d'un abonnement
+export async function getMollieSubscription(
+  customerId: string, 
+  subscriptionId: string
+): Promise<MollieSubscriptionDetails>
+
+// Récupérer l'historique des paiements
+export async function getMolliePayments(
+  customerId: string, 
+  limit?: number
+): Promise<MolliePaymentHistory>
+```
+
+### 3. Interface MollieSepaCard
+
+Fichier : `src/components/contracts/MollieSepaCard.tsx`
+
+**Nouvelles données à afficher :**
+
+```
+┌────────────────────────────────────────────────┐
+│ ✓ Prélèvement SEPA configuré                   │
+├────────────────────────────────────────────────┤
+│ Mandat     mdt_hzFK9BtURr         [Valide]     │
+│ Abonnement sub_Hiswu8fBBH         [Actif]      │
+│ Jour       1er du mois            [✏️]         │
+├────────────────────────────────────────────────┤
+│ Prochain prélèvement                           │
+│ 📅 1 mars 2026 • 67,69 €                       │
+│ Prélèvements restants : 35                     │
+├────────────────────────────────────────────────┤
+│ Historique récent                              │
+│ ────────────────────────────────────────────── │
+│ 🔄 1 fév 2026   67,69 €   En cours             │
+│ ✓  1 jan 2026   67,69 €   Payé                 │
+└────────────────────────────────────────────────┘
+```
+
+**Modifications du composant :**
+
+1. Ajouter un état pour stocker les infos de l'abonnement et paiements :
+   ```typescript
+   const [subscriptionDetails, setSubscriptionDetails] = useState(null);
+   const [recentPayments, setRecentPayments] = useState([]);
+   const [loadingDetails, setLoadingDetails] = useState(false);
+   ```
+
+2. Ajouter un useEffect pour charger les données au montage :
+   ```typescript
+   useEffect(() => {
+     if (contract.mollie_customer_id && contract.mollie_subscription_id) {
+       fetchMollieDetails();
+     }
+   }, [contract.mollie_customer_id, contract.mollie_subscription_id]);
+   ```
+
+3. Ajouter une section "Prochain prélèvement" avec :
+   - Date du prochain prélèvement
+   - Montant
+   - Nombre de prélèvements restants
+
+4. Ajouter une section "Historique récent" (3-5 derniers paiements) avec :
+   - Date
+   - Montant
+   - Statut (badge coloré)
+
+5. Ajouter un bouton "Rafraîchir" pour recharger les données
+
+### 4. Interfaces TypeScript
+
+Ajouter les types pour les données Mollie :
+
+```typescript
+interface MollieSubscriptionDetails {
+  nextPaymentDate: string | null;
+  status: string;
+  timesRemaining?: number;
+  times?: number;
+  startDate: string;
+}
+
+interface MolliePayment {
+  id: string;
+  status: "open" | "pending" | "paid" | "failed" | "expired" | "canceled";
+  amount: { value: string; currency: string };
+  createdAt: string;
+  paidAt?: string;
+  description: string;
+}
+```
+
+## Résumé des fichiers à modifier
 
 | Fichier | Modification |
 |---------|-------------|
-| Base de donnees | `ALTER TABLE company_customizations ADD COLUMN payment_day` |
-| `src/services/settingsService.ts` | Ajouter `payment_day` a l'interface et a l'upsert |
-| `src/components/settings/GeneralSettings.tsx` | Ajouter le champ de selection |
-| `supabase/functions/mollie-sepa/index.ts` | Recuperer et utiliser le `payment_day` |
-| `src/components/pdf/templates/SignedContractPDFDocument.tsx` | Utiliser la valeur dynamique |
+| `supabase/functions/mollie-sepa/index.ts` | Ajouter actions `get_subscription` et `list_payments` |
+| `src/utils/mollie.ts` | Ajouter fonctions `getMollieSubscription` et `getMolliePayments` |
+| `src/components/contracts/MollieSepaCard.tsx` | Afficher prochain prélèvement + historique |
 
-## Resultat attendu
+## Résultat attendu
 
-1. L'administrateur peut configurer le jour de prelevement (1-28) dans les parametres
-2. Ce jour est utilise pour creer les abonnements Mollie
-3. Ce jour apparait dans les contrats PDF generes
-4. Par defaut, le systeme utilise le 1er du mois si non configure
+1. Au chargement de la page contrat, les informations sont récupérées depuis Mollie
+2. La date du prochain prélèvement est affichée clairement
+3. L'historique des 3-5 derniers paiements est visible avec leur statut
+4. Un bouton permet de rafraîchir les données à la demande
+5. Les prélèvements "En cours" visibles dans Mollie apparaissent dans Leazr
 
