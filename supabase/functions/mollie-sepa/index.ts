@@ -9,7 +9,7 @@ const corsHeaders = {
 const MOLLIE_API_URL = "https://api.mollie.com/v2";
 
 interface MollieSepaRequest {
-  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete" | "update_subscription";
+  action: "create_customer" | "create_mandate" | "create_direct_mandate" | "create_subscription" | "create_payment" | "get_customer" | "list_mandates" | "setup_sepa_complete" | "update_subscription" | "get_subscription" | "list_payments";
   subscription_id?: string;
   new_start_date?: string;
   customer_id?: string;
@@ -467,6 +467,35 @@ serve(async (req) => {
             subscription_error: subscriptionError,
           },
         };
+        break;
+      }
+
+      case "get_subscription": {
+        // Get subscription details from Mollie
+        if (!body.customer_id || !body.subscription_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: "customer_id et subscription_id requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log(`[Mollie] Getting subscription ${body.subscription_id} for customer ${body.customer_id}`);
+        result = await mollieRequest(`/customers/${body.customer_id}/subscriptions/${body.subscription_id}`);
+        break;
+      }
+
+      case "list_payments": {
+        // Get payment history for a customer
+        if (!body.customer_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: "customer_id requis" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const limit = (body as { limit?: number }).limit || 10;
+        console.log(`[Mollie] Getting payments for customer ${body.customer_id} (limit: ${limit})`);
+        result = await mollieRequest(`/customers/${body.customer_id}/payments?limit=${limit}`);
         break;
       }
 

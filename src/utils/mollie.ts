@@ -515,3 +515,99 @@ export async function updateMollieSubscription(
     return { success: false, error: "Erreur lors de la mise à jour de l'abonnement" };
   }
 }
+
+// ============ NEW: Subscription & Payment Details ============
+
+export interface MollieSubscriptionDetails {
+  id: string;
+  status: string;
+  amount: { value: string; currency: string };
+  interval: string;
+  startDate: string;
+  nextPaymentDate: string | null;
+  times?: number;
+  timesRemaining?: number;
+  description: string;
+}
+
+export interface MolliePayment {
+  id: string;
+  status: "open" | "pending" | "paid" | "failed" | "expired" | "canceled";
+  amount: { value: string; currency: string };
+  createdAt: string;
+  paidAt?: string;
+  description: string;
+  subscriptionId?: string;
+}
+
+export interface MolliePaymentsResponse {
+  count: number;
+  _embedded: {
+    payments: MolliePayment[];
+  };
+}
+
+/**
+ * Get subscription details from Mollie
+ */
+export async function getMollieSubscription(
+  customerId: string,
+  subscriptionId: string
+): Promise<{ success: boolean; data?: MollieSubscriptionDetails; error?: string }> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("mollie-sepa", {
+      body: {
+        action: "get_subscription",
+        customer_id: customerId,
+        subscription_id: subscriptionId,
+      },
+    });
+
+    if (error) {
+      console.error("[Mollie] Get subscription error:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Erreur récupération abonnement" };
+    }
+
+    return { success: true, data: result.data as MollieSubscriptionDetails };
+  } catch (error) {
+    console.error("[Mollie] Get subscription exception:", error);
+    return { success: false, error: "Erreur lors de la récupération de l'abonnement" };
+  }
+}
+
+/**
+ * Get payment history for a Mollie customer
+ */
+export async function getMolliePayments(
+  customerId: string,
+  limit: number = 5
+): Promise<{ success: boolean; data?: MolliePayment[]; error?: string }> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("mollie-sepa", {
+      body: {
+        action: "list_payments",
+        customer_id: customerId,
+        limit,
+      },
+    });
+
+    if (error) {
+      console.error("[Mollie] Get payments error:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Erreur récupération paiements" };
+    }
+
+    const paymentsData = result.data as MolliePaymentsResponse;
+    return { success: true, data: paymentsData._embedded?.payments || [] };
+  } catch (error) {
+    console.error("[Mollie] Get payments exception:", error);
+    return { success: false, error: "Erreur lors de la récupération des paiements" };
+  }
+}
