@@ -1,125 +1,62 @@
 
-# Plan : Corriger le calcul des prix de vente individuels avec le coefficient correct
+# Plan : Corriger la répartition des prix de vente - Forcer le recalcul proportionnel
 
-## Diagnostic du problème
+## Problème identifié
 
-### Données actuelles en base de données
-| Équipement | P.A. | selling_price stocké | monthly_payment |
-|------------|------|---------------------|-----------------|
-| iPad Air 13 Pouces | 870 € | 1536,86 € | 54,25 € |
-| Magic Keyboard | 232 € | 301,69 € | 10,65 € |
-| iPad 10,9 | 260,64 € | 650,14 € | 22,95 € |
-| Neomounts Support | 45,45 € | 83,57 € | 2,95 € |
-| **TOTAL** | 1408,09 € | **2572,26 €** | 90,80 € |
+La logique de détection de "prix manuel" (écart > 1€) ne fonctionne pas dans ce cas car **tous** les prix stockés en BD ont été calculés avec un ancien coefficient, créant un écart significatif avec les prix proportionnels attendus avec le nouveau coefficient.
 
-### Calcul du total affiché
-- Coefficient de l'offre : **3.24**
-- Formule Grenke : Montant financé = Mensualité × 100 / Coefficient
-- **2802,47 €** = 90,80 × 100 / 3.24 ✓
+Résultat : **Tous** les équipements sont considérés comme "manuels" et leurs prix sont préservés au lieu d'être recalculés.
 
-### Le problème identifié
-1. **Le total P.V. (2802,47 €)** est calculé correctement via la formule Grenke
-2. **Les P.V. individuels** utilisent les `selling_price` stockés en BD (total 2572,26 €)
-3. **Incohérence** : La somme des prix individuels (2572,26 €) ≠ Total affiché (2802,47 €)
+## Solution
 
-### Cause racine
-Dans `NewEquipmentSection.tsx`, ligne 563 :
-```typescript
-const adjustedSellingPrices = calculateAllSellingPrices(
-  equipment, 
-  totals.totalPrice, 
-  totals.totalSellingPrice  // ← Utilise la somme des selling_price stockés
-);
-```
+En mode leasing, **toujours** recalculer les prix proportionnellement au total Grenke, sans tenir compte des `selling_price` stockés. La préservation des prix manuels ne doit s'appliquer qu'en mode achat.
 
-Mais `totals.effectiveFinancedAmount` (calculé via Grenke) devrait être utilisé en mode leasing.
-
-De plus, la fonction `calculateAllSellingPrices` (lignes 290-299) utilise directement les `selling_price` stockés s'ils existent, sans les recalculer proportionnellement au total Grenke.
-
-## Solution proposée
-
-### Modification 1 : Utiliser le montant financé Grenke comme base de répartition
+### Modification du fichier
 
 **Fichier** : `src/components/offers/detail/NewEquipmentSection.tsx`
 
-**Ligne 563** : Changer le paramètre passé à `calculateAllSellingPrices`
+**Lignes 285-350** : Simplifier la logique pour le mode leasing
 
 ```typescript
-// AVANT
-const adjustedSellingPrices = calculateAllSellingPrices(equipment, totals.totalPrice, totals.totalSellingPrice);
+// MODE LEASING: Répartition proportionnelle basée sur le total Grenke
+// En mode leasing, on recalcule TOUJOURS les prix proportionnellement
+// car le total doit correspondre à la formule Grenke (Mensualité × 100 / Coefficient)
 
-// APRÈS - En mode leasing, utiliser le montant financé Grenke
-const adjustedSellingPrices = calculateAllSellingPrices(
-  equipment, 
-  totals.totalPrice, 
-  isPurchase ? totals.totalSellingPrice : totals.effectiveFinancedAmount
-);
-```
-
-### Modification 2 : Répartir proportionnellement en mode leasing
-
-Modifier `calculateAllSellingPrices` pour qu'en mode leasing, les prix soient **toujours** répartis proportionnellement au total Grenke, en ignorant les `selling_price` stockés (sauf s'ils ont été explicitement définis manuellement).
-
-Selon la memory `equipment-manual-selling-price-preservation`, un prix est considéré comme "manuel" si l'écart avec le prix proportionnel est > 1 €.
-
-**Nouvelle logique pour le mode leasing** (lignes 285-340) :
-
-```typescript
-// MODE LEASING: Toujours répartir proportionnellement pour équilibrer avec le total Grenke
-// Sauf pour les équipements avec un selling_price manuellement défini (écart > 1€)
-
-// Étape 1: Calculer le prix proportionnel attendu pour chaque équipement
-const proportionalPrices: Record<string, number> = {};
-equipmentList.forEach(item => {
+// Répartir proportionnellement avec la méthode Largest Remainder
+const rawPrices = equipmentList.map(item => {
   const equipmentTotal = item.purchase_price * item.quantity;
   const proportion = equipmentTotal / totalPurchasePrice;
-  proportionalPrices[item.id] = totalSellingPrice * proportion; // totalSellingPrice = effectiveFinancedAmount
+  const rawSellingPrice = totalSellingPrice * proportion;
+  const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
+  return {
+    id: item.id,
+    rawPrice: rawSellingPrice,
+    roundedPrice: roundedPrice,
+    remainder: rawSellingPrice - roundedPrice
+  };
 });
 
-// Étape 2: Identifier les équipements avec un prix manuellement défini (écart > 1€)
-let totalManualSellingPrice = 0;
-let totalManualPurchasePrice = 0;
+// Correction des centimes avec Largest Remainder
+const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
+let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100);
+const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
 
-equipmentList.forEach(item => {
-  const equipmentPurchaseTotal = item.purchase_price * item.quantity;
-  const proportionalPrice = proportionalPrices[item.id];
-  
-  if (item.selling_price !== null && item.selling_price !== undefined && item.selling_price > 0) {
-    const storedTotal = item.selling_price * item.quantity;
-    const difference = Math.abs(storedTotal - proportionalPrice);
-    
-    // Si l'écart est > 1€, considérer comme prix manuel à préserver
-    if (difference > 1) {
-      adjustedPrices[item.id] = Math.round(storedTotal * 100) / 100;
-      totalManualSellingPrice += storedTotal;
-      totalManualPurchasePrice += equipmentPurchaseTotal;
-    }
-  }
+rawPrices.forEach(p => {
+  adjustedPrices[p.id] = p.roundedPrice;
 });
 
-// Étape 3: Répartir le reste avec Largest Remainder
-// (même logique existante pour les items non manuels)
+for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+  const id = sortedByRemainder[i].id;
+  adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
+  adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
+}
+
+return adjustedPrices;
 ```
-
-## Résumé des fichiers à modifier
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/offers/detail/NewEquipmentSection.tsx` | Utiliser `effectiveFinancedAmount` et répartir proportionnellement |
 
 ## Résultat attendu
 
-### Avant correction
-| Équipement | P.V. unitaire affiché | P.V. total affiché |
-|------------|----------------------|-------------------|
-| iPad Air 13 Pouces | 1536,86 € | 1536,86 € |
-| Magic Keyboard | 301,69 € | 301,69 € |
-| iPad 10,9 | 650,14 € | 650,14 € |
-| Neomounts Support | 83,57 € | 83,57 € |
-| **TOTAL** | — | **2572,26 €** ≠ 2802,47 € |
-
-### Après correction
-Les prix de vente individuels seront recalculés proportionnellement pour que leur somme = 2802,47 € (total Grenke)
+Les prix de vente individuels seront recalculés proportionnellement :
 
 | Équipement | Proportion | P.V. total recalculé |
 |------------|------------|---------------------|
@@ -129,8 +66,6 @@ Les prix de vente individuels seront recalculés proportionnellement pour que le
 | Neomounts Support | 3.23% | ~90,49 € |
 | **TOTAL** | 100% | **2802,47 €** ✓ |
 
-## Notes techniques
+## Note technique
 
-- Cette modification respecte la memory `calcul-marge-grenke` : le montant financé total est calculé avec la formule Grenke
-- Elle respecte aussi `equipment-manual-selling-price-preservation` : les prix manuellement modifiés (écart > 1€) sont préservés
-- En mode achat (`is_purchase = true`), le comportement existant est conservé (pas de formule Grenke)
+La préservation des prix manuels (memory `equipment-manual-selling-price-preservation`) reste pertinente uniquement lors de l'édition interactive des équipements, pas lors de l'affichage où le total Grenke doit être respecté.
