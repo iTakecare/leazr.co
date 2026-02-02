@@ -282,28 +282,44 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return adjustedPrices;
     }
     
-    // MODE LEASING: Répartition proportionnelle (logique existante)
-    // Étape 1: Identifier les équipements avec un selling_price stocké en BD
+    // MODE LEASING: Répartition proportionnelle basée sur le total Grenke
+    // Les selling_price stockés en BD sont ignorés SAUF s'ils ont été manuellement définis
+    // (écart > 1€ avec le prix proportionnel attendu)
+    
+    // Étape 1: Calculer le prix proportionnel attendu pour chaque équipement
+    const proportionalPrices: Record<string, number> = {};
+    equipmentList.forEach(item => {
+      const equipmentTotal = item.purchase_price * item.quantity;
+      const proportion = equipmentTotal / totalPurchasePrice;
+      proportionalPrices[item.id] = totalSellingPrice * proportion;
+    });
+    
+    // Étape 2: Identifier les équipements avec un prix manuellement défini (écart > 1€)
     let totalManualSellingPrice = 0;
     let totalManualPurchasePrice = 0;
     
     equipmentList.forEach(item => {
       const equipmentPurchaseTotal = item.purchase_price * item.quantity;
+      const proportionalPrice = proportionalPrices[item.id];
       
-      // Si un selling_price est stocké en BD (non null et > 0), l'utiliser directement
       if (item.selling_price !== null && item.selling_price !== undefined && item.selling_price > 0) {
-        const totalSellingPriceForItem = item.selling_price * item.quantity;
-        adjustedPrices[item.id] = Math.round(totalSellingPriceForItem * 100) / 100;
-        totalManualSellingPrice += totalSellingPriceForItem;
-        totalManualPurchasePrice += equipmentPurchaseTotal;
+        const storedTotal = item.selling_price * item.quantity;
+        const difference = Math.abs(storedTotal - proportionalPrice);
+        
+        // Si l'écart est > 1€, considérer comme prix manuel à préserver
+        if (difference > 1) {
+          adjustedPrices[item.id] = Math.round(storedTotal * 100) / 100;
+          totalManualSellingPrice += storedTotal;
+          totalManualPurchasePrice += equipmentPurchaseTotal;
+        }
       }
     });
 
-    // Étape 2: Calculer le reste à répartir pour les équipements sans prix manuel
+    // Étape 3: Calculer le reste à répartir pour les équipements sans prix manuel
     const remainingSellingPrice = totalSellingPrice - totalManualSellingPrice;
     const remainingPurchasePrice = totalPurchasePrice - totalManualPurchasePrice;
     
-    // Étape 3: Répartir proportionnellement le reste (méthode Largest Remainder)
+    // Étape 4: Répartir proportionnellement le reste (méthode Largest Remainder)
     const itemsToDistribute = equipmentList.filter(item => !adjustedPrices[item.id]);
     
     if (itemsToDistribute.length > 0 && remainingPurchasePrice > 0) {
@@ -560,7 +576,10 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
   const totals = calculateTotals();
   
   // Pré-calculer les prix de vente et marges ajustés (méthode Largest Remainder)
-  const adjustedSellingPrices = calculateAllSellingPrices(equipment, totals.totalPrice, totals.totalSellingPrice);
+  // MODE LEASING: Utiliser effectiveFinancedAmount (formule Grenke) pour la répartition
+  // MODE ACHAT: Utiliser totalSellingPrice (somme des PV individuels)
+  const targetSellingPriceTotal = isPurchase ? totals.totalSellingPrice : totals.effectiveFinancedAmount;
+  const adjustedSellingPrices = calculateAllSellingPrices(equipment, totals.totalPrice, targetSellingPriceTotal);
   const adjustedMargins = calculateAllMargins(equipment, totals.totalPrice, totals.totalMargin, adjustedSellingPrices);
 
   return (
