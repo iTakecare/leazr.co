@@ -1,45 +1,42 @@
 
-# Plan : Résoudre les erreurs de déploiement Dokploy/Hostinger
 
-## Diagnostic
+# Plan : Corriger l'erreur de peer dependency dans le Dockerfile
 
-L'erreur provient de la commande `bun install --frozen-lockfile` qui échoue car :
+## Problème identifié
 
-1. **Lockfile désynchronisé** : Le fichier `bun.lockb` n'est pas à jour par rapport à `package.json`
-2. **Multiples lockfiles** : Votre projet contient 3 lockfiles différents :
-   - `bun.lockb` (binaire Bun)
-   - `bun.lock` (texte Bun)  
-   - `package-lock.json` (npm)
-3. **Warning peer dependency** : `zod@3.23.8` a une dépendance peer incorrecte (non bloquant)
+Le build Docker échoue à cause d'un conflit de peer dependencies :
+- **jspdf@4.0.0** est installé dans le projet
+- **jspdf-autotable@5.0.2** nécessite **jspdf@^2 || ^3**
 
-## Solution recommandée
+La commande `npm ci` est stricte et refuse d'installer avec ce conflit.
 
-### Option A : Utiliser npm au lieu de Bun (plus simple)
+## Solution
 
-Créer un fichier de configuration pour forcer Dokploy à utiliser npm :
+Modifier le Dockerfile pour utiliser `npm install --legacy-peer-deps` qui ignore les conflits de peer dependencies.
 
-**Créer `nixpacks.toml`** à la racine du projet :
+## Modifications à effectuer
 
-```toml
-[phases.setup]
-cmds = ["npm ci"]
-
-[phases.build]
-cmds = ["npm run build"]
-```
-
-**OU créer un `Dockerfile`** personnalisé pour plus de contrôle :
+### Dockerfile (ligne 6 et 9)
 
 ```dockerfile
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
-COPY package.json package-lock.json ./
+# Copier les fichiers de dépendances (optionnel pour package-lock.json)
+COPY package.json package-lock.json* ./
 
-# Installer les dépendances avec npm
-RUN npm ci
+# Installer les dépendances avec npm (legacy-peer-deps pour ignorer les conflits)
+RUN npm install --legacy-peer-deps
+
+# Variables d'environnement pour le build Vite
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_SUPABASE_PROJECT_ID
+
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
 
 # Copier le reste du code
 COPY . .
@@ -56,83 +53,27 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
-**Créer `nginx.conf`** pour le routing SPA :
+## Résumé des changements
 
-```nginx
-server {
-    listen 80;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    index index.html;
+| Élément | Avant | Après |
+|---------|-------|-------|
+| Commande d'installation | `npm ci` | `npm install --legacy-peer-deps` |
+| Copie du lockfile | `package-lock.json` | `package-lock.json*` (optionnel avec `*`) |
+| Variables d'env | Non présentes | Ajoutées avec `ARG` et `ENV` |
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+## Pourquoi ça fonctionne
 
-    location /assets {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
+- `--legacy-peer-deps` ignore les conflits de peer dependencies (comme jspdf/jspdf-autotable)
+- Le `*` rend `package-lock.json` optionnel, évitant une erreur si absent
+- Les `ARG` permettent de passer les variables Supabase au moment du build Docker
+
+## Configuration Dokploy requise
+
+Après le déploiement, dans Dokploy > Environment, ajouter ces **Build Args** :
+
+```
+VITE_SUPABASE_URL=https://cifbetjefyfocafanlhv.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw
+VITE_SUPABASE_PROJECT_ID=cifbetjefyfocafanlhv
 ```
 
-### Option B : Régénérer le lockfile Bun (si vous voulez garder Bun)
-
-1. Supprimer les lockfiles existants de votre repo GitHub
-2. Régénérer un lockfile Bun propre
-3. Commit et push
-
-**Étapes sur votre machine locale :**
-
-```bash
-# Supprimer tous les lockfiles
-rm bun.lockb bun.lock package-lock.json
-
-# Installer avec bun pour régénérer le lockfile
-bun install
-
-# Commit le nouveau lockfile
-git add bun.lockb
-git commit -m "chore: regenerate bun lockfile"
-git push
-```
-
-### Option C : Nettoyer et utiliser uniquement npm
-
-1. Supprimer les lockfiles Bun du repo
-2. Ne garder que `package-lock.json`
-
-```bash
-# Supprimer les lockfiles Bun
-rm bun.lockb bun.lock
-
-# Mettre à jour .gitignore pour ignorer bun
-echo "bun.lockb" >> .gitignore
-echo "bun.lock" >> .gitignore
-
-# Commit
-git add .gitignore
-git rm bun.lockb bun.lock
-git commit -m "chore: remove bun lockfiles, use npm only"
-git push
-```
-
-## Fichiers à créer/modifier
-
-| Fichier | Action |
-|---------|--------|
-| `Dockerfile` | Créer - Configuration Docker pour le build |
-| `nginx.conf` | Créer - Configuration Nginx pour SPA routing |
-| `bun.lockb` / `bun.lock` | Supprimer ou régénérer |
-
-## Solution recommandée
-
-**Option A (Dockerfile)** est la plus robuste car elle donne un contrôle total sur le processus de build et fonctionne avec tous les providers d'hébergement.
-
-## Variables d'environnement
-
-N'oubliez pas de configurer les variables d'environnement dans Dokploy :
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_PROJECT_ID`
