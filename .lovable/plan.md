@@ -1,71 +1,138 @@
 
-# Plan : Corriger la répartition des prix de vente - Forcer le recalcul proportionnel
+# Plan : Résoudre les erreurs de déploiement Dokploy/Hostinger
 
-## Problème identifié
+## Diagnostic
 
-La logique de détection de "prix manuel" (écart > 1€) ne fonctionne pas dans ce cas car **tous** les prix stockés en BD ont été calculés avec un ancien coefficient, créant un écart significatif avec les prix proportionnels attendus avec le nouveau coefficient.
+L'erreur provient de la commande `bun install --frozen-lockfile` qui échoue car :
 
-Résultat : **Tous** les équipements sont considérés comme "manuels" et leurs prix sont préservés au lieu d'être recalculés.
+1. **Lockfile désynchronisé** : Le fichier `bun.lockb` n'est pas à jour par rapport à `package.json`
+2. **Multiples lockfiles** : Votre projet contient 3 lockfiles différents :
+   - `bun.lockb` (binaire Bun)
+   - `bun.lock` (texte Bun)  
+   - `package-lock.json` (npm)
+3. **Warning peer dependency** : `zod@3.23.8` a une dépendance peer incorrecte (non bloquant)
 
-## Solution
+## Solution recommandée
 
-En mode leasing, **toujours** recalculer les prix proportionnellement au total Grenke, sans tenir compte des `selling_price` stockés. La préservation des prix manuels ne doit s'appliquer qu'en mode achat.
+### Option A : Utiliser npm au lieu de Bun (plus simple)
 
-### Modification du fichier
+Créer un fichier de configuration pour forcer Dokploy à utiliser npm :
 
-**Fichier** : `src/components/offers/detail/NewEquipmentSection.tsx`
+**Créer `nixpacks.toml`** à la racine du projet :
 
-**Lignes 285-350** : Simplifier la logique pour le mode leasing
+```toml
+[phases.setup]
+cmds = ["npm ci"]
 
-```typescript
-// MODE LEASING: Répartition proportionnelle basée sur le total Grenke
-// En mode leasing, on recalcule TOUJOURS les prix proportionnellement
-// car le total doit correspondre à la formule Grenke (Mensualité × 100 / Coefficient)
-
-// Répartir proportionnellement avec la méthode Largest Remainder
-const rawPrices = equipmentList.map(item => {
-  const equipmentTotal = item.purchase_price * item.quantity;
-  const proportion = equipmentTotal / totalPurchasePrice;
-  const rawSellingPrice = totalSellingPrice * proportion;
-  const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
-  return {
-    id: item.id,
-    rawPrice: rawSellingPrice,
-    roundedPrice: roundedPrice,
-    remainder: rawSellingPrice - roundedPrice
-  };
-});
-
-// Correction des centimes avec Largest Remainder
-const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
-let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100);
-const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
-
-rawPrices.forEach(p => {
-  adjustedPrices[p.id] = p.roundedPrice;
-});
-
-for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
-  const id = sortedByRemainder[i].id;
-  adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
-  adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
-}
-
-return adjustedPrices;
+[phases.build]
+cmds = ["npm run build"]
 ```
 
-## Résultat attendu
+**OU créer un `Dockerfile`** personnalisé pour plus de contrôle :
 
-Les prix de vente individuels seront recalculés proportionnellement :
+```dockerfile
+FROM node:20-alpine AS builder
 
-| Équipement | Proportion | P.V. total recalculé |
-|------------|------------|---------------------|
-| iPad Air 13 Pouces | 61.77% | ~1731,46 € |
-| Magic Keyboard | 16.47% | ~461,53 € |
-| iPad 10,9 | 18.51% | ~518,67 € |
-| Neomounts Support | 3.23% | ~90,49 € |
-| **TOTAL** | 100% | **2802,47 €** ✓ |
+WORKDIR /app
 
-## Note technique
+# Copier les fichiers de dépendances
+COPY package.json package-lock.json ./
 
-La préservation des prix manuels (memory `equipment-manual-selling-price-preservation`) reste pertinente uniquement lors de l'édition interactive des équipements, pas lors de l'affichage où le total Grenke doit être respecté.
+# Installer les dépendances avec npm
+RUN npm ci
+
+# Copier le reste du code
+COPY . .
+
+# Build l'application
+RUN npm run build
+
+# Phase de production
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+**Créer `nginx.conf`** pour le routing SPA :
+
+```nginx
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /assets {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### Option B : Régénérer le lockfile Bun (si vous voulez garder Bun)
+
+1. Supprimer les lockfiles existants de votre repo GitHub
+2. Régénérer un lockfile Bun propre
+3. Commit et push
+
+**Étapes sur votre machine locale :**
+
+```bash
+# Supprimer tous les lockfiles
+rm bun.lockb bun.lock package-lock.json
+
+# Installer avec bun pour régénérer le lockfile
+bun install
+
+# Commit le nouveau lockfile
+git add bun.lockb
+git commit -m "chore: regenerate bun lockfile"
+git push
+```
+
+### Option C : Nettoyer et utiliser uniquement npm
+
+1. Supprimer les lockfiles Bun du repo
+2. Ne garder que `package-lock.json`
+
+```bash
+# Supprimer les lockfiles Bun
+rm bun.lockb bun.lock
+
+# Mettre à jour .gitignore pour ignorer bun
+echo "bun.lockb" >> .gitignore
+echo "bun.lock" >> .gitignore
+
+# Commit
+git add .gitignore
+git rm bun.lockb bun.lock
+git commit -m "chore: remove bun lockfiles, use npm only"
+git push
+```
+
+## Fichiers à créer/modifier
+
+| Fichier | Action |
+|---------|--------|
+| `Dockerfile` | Créer - Configuration Docker pour le build |
+| `nginx.conf` | Créer - Configuration Nginx pour SPA routing |
+| `bun.lockb` / `bun.lock` | Supprimer ou régénérer |
+
+## Solution recommandée
+
+**Option A (Dockerfile)** est la plus robuste car elle donne un contrôle total sur le processus de build et fonctionne avec tous les providers d'hébergement.
+
+## Variables d'environnement
+
+N'oubliez pas de configurer les variables d'environnement dans Dokploy :
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_PROJECT_ID`
