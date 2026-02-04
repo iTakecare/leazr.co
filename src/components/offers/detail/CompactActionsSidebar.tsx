@@ -13,7 +13,8 @@ import {
   Trash2,
   Eye,
   Upload,
-  UserX
+  UserX,
+  Star
 } from "lucide-react";
 import ReactivateOfferButton from "./ReactivateOfferButton";
 import {
@@ -42,6 +43,7 @@ interface CompactActionsSidebarProps {
   onOpenUploadLink?: () => void;
   onClassifyNoFollowUp?: () => void;
   onStatusUpdated?: () => void;
+  onSendGoogleReview?: () => void;
 }
 
 const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
@@ -57,9 +59,14 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
   uploadLinks,
   onOpenUploadLink,
   onClassifyNoFollowUp,
-  onStatusUpdated
+  onStatusUpdated,
+  onSendGoogleReview
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Statuts pour lesquels on peut envoyer une demande d'avis Google
+  const googleReviewStatuses = ['validated', 'signed', 'completed', 'financed', 'contract_sent'];
+  const canSendGoogleReview = googleReviewStatuses.includes(offer.workflow_status?.toLowerCase());
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -293,6 +300,19 @@ const CompactActionsSidebar: React.FC<CompactActionsSidebarProps> = ({
             >
               <UserX className="w-4 h-4 mr-2" />
               <span>Classer sans suite</span>
+            </Button>
+          )}
+          
+          {/* Bouton Envoyer avis Google */}
+          {canSendGoogleReview && onSendGoogleReview && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full justify-start text-sm h-8 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-300" 
+              onClick={onSendGoogleReview}
+            >
+              <Star className="w-4 h-4 mr-2" />
+              <span>Envoyer avis Google</span>
             </Button>
           )}
           

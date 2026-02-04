@@ -44,6 +44,7 @@ import AmbassadorAddNoteCard from "@/components/offers/detail/AmbassadorAddNoteC
 import { OfferFinancialFeesEditor } from "@/components/offer/OfferFinancialFeesEditor";
 import { EmailOfferDialog } from "@/components/offers/EmailOfferDialog";
 import NoFollowUpModal from "@/components/offers/detail/NoFollowUpModal";
+import SendGoogleReviewModal from "@/components/offers/detail/SendGoogleReviewModal";
 import { createRoot } from 'react-dom/client';
 import CommercialOffer from '@/components/offers/CommercialOffer';
 import { MobileOfferDetailPage } from "@/components/mobile/pages";
@@ -85,6 +86,7 @@ const [notesLoading, setNotesLoading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [noFollowUpModalOpen, setNoFollowUpModalOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [googleReviewModalOpen, setGoogleReviewModalOpen] = useState(false);
 
   // Hook pour gérer les documents et upload links
   const { uploadLinks, generateUploadLink } = useOfferDocuments(id);
@@ -1096,6 +1098,7 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   onOpenUploadLink={handleOpenUploadLink}
                   onClassifyNoFollowUp={() => setNoFollowUpModalOpen(true)}
                   onStatusUpdated={fetchOfferDetails}
+                  onSendGoogleReview={() => setGoogleReviewModalOpen(true)}
                 />
                 
                 {/* Configuration de l'offre */}
@@ -1254,6 +1257,13 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
           offerId={offer.id}
           currentStatus={offer.workflow_status}
           onStatusUpdated={fetchOfferDetails}
+        />
+
+        {/* Modal d'envoi d'avis Google */}
+        <SendGoogleReviewModal
+          open={googleReviewModalOpen}
+          onOpenChange={setGoogleReviewModalOpen}
+          offer={offer}
         />
       </Container>
     </PageTransition>
