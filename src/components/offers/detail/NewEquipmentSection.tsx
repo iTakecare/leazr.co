@@ -129,9 +129,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     // If user edits selling_price directly, recalculate margin to match
     if (field === 'selling_price') {
       const purchasePrice = newValues.purchase_price || 0;
+    const quantity = newValues.quantity || 1;
       if (purchasePrice > 0) {
         newValues.margin = ((value / purchasePrice) - 1) * 100;
       }
+    // Recalculer la mensualité (Total ligne = P.V. unitaire × quantité × coefficient / 100)
+    const coefficient = offer.coefficient || 0;
+    if (!isPurchase && coefficient > 0) {
+      newValues.monthly_payment = Math.round((value * quantity * coefficient) / 100 * 100) / 100;
+    }
     }
     
     // Auto-calculate coefficient when monthly payment or purchase price changes
@@ -287,16 +293,46 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return adjustedPrices;
     }
     
-    // MODE LEASING: Répartition proportionnelle FORCÉE basée sur le total Grenke
-    // En mode leasing, on recalcule TOUJOURS les prix proportionnellement
-    // car le total doit correspondre à la formule Grenke (Mensualité × 100 / Coefficient)
-    // Les selling_price stockés en BD sont ignorés pour l'affichage
+  // MODE LEASING : Respecter les prix de vente stockés en BD
+  // et ne redistribuer que le reste aux équipements sans prix explicite
+  
+  let manualTotal = 0;
+  let manualPurchaseTotal = 0;
+  const itemsWithManualPrice: string[] = [];
+  const itemsWithoutManualPrice: any[] = [];
+  
+  // Étape 1: Identifier les équipements avec un selling_price manuel
+  equipmentList.forEach(item => {
+    const storedSellingPrice = item.selling_price;
+    const calculatedFromMargin = item.purchase_price * (1 + (item.margin || 0) / 100);
     
-    // Répartir proportionnellement avec la méthode Largest Remainder
-    const rawPrices = equipmentList.map(item => {
+    // Un prix est considéré "manuel" s'il diffère de plus de 1€ du calcul par marge
+    const isManualOverride = storedSellingPrice != null && 
+      storedSellingPrice > 0 && 
+      Math.abs(storedSellingPrice - calculatedFromMargin) > 1;
+    
+    if (isManualOverride) {
+      // Prix manuel : utiliser directement
+      const priceTotal = Math.round(storedSellingPrice * item.quantity * 100) / 100;
+      adjustedPrices[item.id] = priceTotal;
+      manualTotal += priceTotal;
+      manualPurchaseTotal += item.purchase_price * item.quantity;
+      itemsWithManualPrice.push(item.id);
+    } else {
+      itemsWithoutManualPrice.push(item);
+    }
+  });
+  
+  // Étape 2: Calculer le montant restant à répartir
+  const remainingTotal = totalSellingPrice - manualTotal;
+  const remainingPurchaseTotal = totalPurchasePrice - manualPurchaseTotal;
+  
+  // Étape 3: Répartir proportionnellement parmi les équipements sans prix manuel
+  if (itemsWithoutManualPrice.length > 0 && remainingPurchaseTotal > 0) {
+    const rawPrices = itemsWithoutManualPrice.map(item => {
       const equipmentTotal = item.purchase_price * item.quantity;
-      const proportion = equipmentTotal / totalPurchasePrice;
-      const rawSellingPrice = totalSellingPrice * proportion;
+      const proportion = equipmentTotal / remainingPurchaseTotal;
+      const rawSellingPrice = remainingTotal * proportion;
       const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
       return {
         id: item.id,
@@ -308,7 +344,7 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
     // Correction des centimes avec Largest Remainder
     const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
-    let differenceInCents = Math.round((totalSellingPrice - sumRounded) * 100);
+    let differenceInCents = Math.round((remainingTotal - sumRounded) * 100);
     const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
 
     rawPrices.forEach(p => {
@@ -320,8 +356,16 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
       adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
     }
+  } else if (itemsWithoutManualPrice.length > 0) {
+    // Fallback : calculer depuis la marge si pas de total à répartir
+    itemsWithoutManualPrice.forEach(item => {
+      const marginPercent = item.margin || 0;
+      const sellingPriceUnit = item.purchase_price * (1 + marginPercent / 100);
+      adjustedPrices[item.id] = Math.round(sellingPriceUnit * item.quantity * 100) / 100;
+    });
+  }
 
-    return adjustedPrices;
+  return adjustedPrices;
   };
 
   // Pré-calculer toutes les marges réparties avec ajustement (méthode Largest Remainder)
