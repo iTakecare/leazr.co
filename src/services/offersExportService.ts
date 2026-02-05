@@ -99,8 +99,21 @@ const calculateSellingPriceFromEquipment = (offer: any): number => {
 
 // CA potentiel - aligné avec la logique du dashboard RPC
 const calculateFinancedAmountForExcel = (offer: any): number => {
-  // Logique identique au dashboard: COALESCE(o.financed_amount, o.amount, 0)
-  return offer.financed_amount || offer.amount || calculateSellingPriceFromEquipment(offer) || 0;
+  // Priorité 1: Somme des prix de vente depuis les équipements
+  const sellingPriceFromEquipment = calculateSellingPriceFromEquipment(offer);
+  if (sellingPriceFromEquipment > 0) {
+    return sellingPriceFromEquipment;
+  }
+  // Fallback: financed_amount ou amount stocké en base
+  return offer.financed_amount || offer.amount || 0;
+};
+
+// Calcul du pourcentage de marge pour l'export Excel
+const calculateMarginPercentageForExcel = (offer: any): number => {
+  const financedAmount = calculateFinancedAmountForExcel(offer);
+  const purchasePrice = calculatePurchasePriceFromEquipment(offer);
+  if (purchasePrice <= 0) return 0;
+  return ((financedAmount - purchasePrice) / purchasePrice) * 100;
 };
 
 // Marge potentielle = CA potentiel - Prix d'achat
@@ -157,7 +170,7 @@ export const exportOffersToExcel = async (offers: any[], filename = 'demandes') 
       bailleur: offer.leaser_name || '-',
       montant_achat: calculatePurchasePriceFromEquipment(offer),
       ca_potentiel: calculateFinancedAmountForExcel(offer),
-      marge_percent: offer.margin_percentage ? Number(offer.margin_percentage).toFixed(2) : '0',
+      marge_percent: calculateMarginPercentageForExcel(offer).toFixed(2),
       marge_euros: calculateMarginAmountForExcel(offer),
       mensualite: offer.monthly_payment || 0,
       statut: getStatusLabel(offer.workflow_status),

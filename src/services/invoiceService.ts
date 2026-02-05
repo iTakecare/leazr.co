@@ -365,7 +365,8 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
     }
 
     // Calculer le total des mensualités pour la répartition proportionnelle
-    const totalMonthlyPayment = equipment.reduce((sum, item) => sum + ((item.monthly_payment || 0) * (item.quantity || 1)), 0);
+    // monthly_payment en BD est DÉJÀ le total pour cet équipement (pas unitaire)
+    const totalMonthlyPayment = equipment.reduce((sum, item) => sum + (item.monthly_payment || 0), 0);
 
     // Mapper les numéros de série du contrat sur les équipements
     // et calculer le selling_price proportionnellement au montant financé total
@@ -378,7 +379,8 @@ export const generateLocalInvoice = async (contractId: string, companyId: string
       let itemSellingPrice;
       if (totalMonthlyPayment > 0 && totalSellingPrice > 0 && offerItem.monthly_payment) {
         // Répartition proportionnelle basée sur la mensualité
-        const itemTotalMonthly = (offerItem.monthly_payment || 0) * (offerItem.quantity || 1);
+        // monthly_payment est déjà le total de la ligne
+        const itemTotalMonthly = offerItem.monthly_payment || 0;
         const proportion = itemTotalMonthly / totalMonthlyPayment;
         itemSellingPrice = (totalSellingPrice * proportion) / (offerItem.quantity || 1);
       } else {
@@ -1075,15 +1077,17 @@ export const recalculateInvoiceFromOffer = async (invoiceId: string): Promise<In
       .eq('offer_id', offerId);
 
     // Calculer le total des mensualités pour la répartition proportionnelle
+    // monthly_payment en BD est DÉJÀ le total pour cet équipement (pas unitaire)
     const totalMonthlyPayment = (equipment || []).reduce(
-      (sum, item) => sum + ((item.monthly_payment || 0) * (item.quantity || 1)), 0
+      (sum, item) => sum + (item.monthly_payment || 0), 0
     );
 
     // Recalculer les prix de vente des équipements proportionnellement
     const recalculatedEquipment = (equipment || []).map(item => {
       let itemSellingPrice;
       if (totalMonthlyPayment > 0 && item.monthly_payment) {
-        const itemTotalMonthly = (item.monthly_payment || 0) * (item.quantity || 1);
+        // monthly_payment est déjà le total de la ligne
+        const itemTotalMonthly = item.monthly_payment || 0;
         const proportion = itemTotalMonthly / totalMonthlyPayment;
         itemSellingPrice = (totalSellingPrice * proportion) / (item.quantity || 1);
       } else {

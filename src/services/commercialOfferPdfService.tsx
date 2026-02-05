@@ -118,8 +118,13 @@ async function fetchOfferDataForCommercialOffer(offerId: string): Promise<Commer
     );
 
     // Calculer le total prix de vente pour le mode achat
+    // selling_price est le prix unitaire - multiplier par quantity
     const totalSellingPrice = equipmentData.reduce(
-      (sum, eq) => sum + (Number((eq as any).selling_price) || 0),
+      (sum, eq) => {
+        const sellingPrice = Number((eq as any).selling_price) || 0;
+        const quantity = Number(eq.quantity) || 1;
+        return sum + (sellingPrice * quantity);
+      },
       0
     );
 
