@@ -1,60 +1,130 @@
 
-Objectif
-- Faire en sorte que, quand vous saisissez un P.V. unitaire (ex: 621,80 €) en mode édition et que vous enregistrez, la valeur affichée après sauvegarde soit exactement celle stockée en base (et pas une valeur “ré-ajustée” type 622,04).
-- Corriger aussi l’affichage “dans la ligne” pendant l’édition (actuellement, certaines cellules continuent d’afficher des valeurs recalculées au lieu des valeurs que vous venez de taper).
+# Plan : Bouton "Relancer le prélèvement" pour les paiements echoues
 
-Constat (cause racine)
-- La sauvegarde en base fonctionne : le réseau montre bien selling_price = 621.8.
-- L’affichage, lui, utilise equipmentSellingPrice = adjustedSellingPrices[item.id] (calculé via une répartition “Largest Remainder”).
-- En mode leasing, calculateAllSellingPrices “recalcule/répartit” encore les prix même quand selling_price est renseigné, à cause de la détection “manuel” basée sur l’écart vs (PA × (1+marge)). Or, quand vous éditez le P.V., on recalcule aussi la marge pour correspondre au P.V. → l’écart devient ~0 → la ligne n’est plus considérée “manuelle” → elle repasse dans la redistribution → 622,04.
+## Contexte
 
-Changements prévus (1 seul composant : src/components/offers/detail/NewEquipmentSection.tsx)
+Dans la section "Historique recent" de la carte SEPA Mollie, quand un paiement a le statut "Echoue" (failed), vous souhaitez avoir un bouton pour relancer manuellement une nouvelle demande de prelevement.
 
-1) Ne plus redistribuer un équipement qui a un selling_price en base (mode leasing)
-- Modifier calculateAllSellingPrices (branche leasing) pour considérer comme “fixe” toute ligne ayant selling_price > 0 (pas “si écart > 1€”).
-- Nouvelle règle :
-  - Si item.selling_price > 0 : adjustedPrices[item.id] = round2(item.selling_price * item.quantity)
-  - La redistribution ne s’applique que sur les lignes sans selling_price (null/0).
-- Cas “100% des lignes ont selling_price” :
-  - On retourne directement adjustedPrices (aucune redistribution).
-- Cas mixte (certaines lignes sans selling_price) :
-  - remainingTotal = targetTotalRounded - somme(des lignes fixes)
-  - Redistribution (Largest Remainder) uniquement sur items sans selling_price, proportionnellement à (PA * quantité).
-- Ajout d’un helper local round2 (arrondi centimes) pour éviter les micro-décimales (ex: 1839.9198999999999).
+## Solution technique
 
-Résultat attendu
-- Après sauvegarde, le P.V. affiché correspond strictement au selling_price stocké en base (donc 621,80 € restera 621,80 €).
+### Composant a modifier
 
-2) En mode édition, afficher les valeurs “éditées” dans la ligne (pas les valeurs adjusted)
-Problème actuel
-- Pendant l’édition, la cellule “P.V total” (et la marge €) affichent encore adjustedSellingPrices/adjustedMargins, donc vous voyez une valeur “622,04” même si l’input contient “621,80”.
+**`src/components/contracts/MollieSepaCard.tsx`**
 
-Correction
-- Dans le rendu de la ligne (equipment.map):
-  - Si isEditing :
-    - sellingTotalDisplayed = round2((editedValues.selling_price || 0) * (editedValues.quantity || 1))
-    - marginEuroDisplayed = round2(sellingTotalDisplayed - (editedValues.purchase_price * editedValues.quantity))
-    - marginPercentDisplayed (en lecture seule si on veut) = (sellingTotalDisplayed - purchaseTotal)/purchaseTotal * 100 (optionnel, sinon on garde l’input)
-  - Si !isEditing :
-    - sellingTotalDisplayed = adjustedSellingPrices[item.id]
-    - marginEuroDisplayed = adjustedMargins[item.id]
-- Ainsi, dès que vous tapez 621,80, la ligne montre immédiatement 621,80 (total) et la marge correspondante, puis après Save, la même valeur persiste.
+### Modifications a effectuer
 
-3) Vérifications ciblées (scénarios)
-- Scénario A (celui de votre capture) :
-  1. Modifier P.V unitaire Samsung à 621,80
-  2. En mode édition : P.V total doit afficher 621,80 (et non 622,04)
-  3. Cliquer Enregistrer
-  4. Après refresh : P.V unitaire doit afficher 621,80 (format monnaie), P.V total = 621,80
-- Scénario B (quantité > 1) :
-  - Mettre quantité = 3 et P.V unitaire = 100,00
-  - Affichage P.V total = 300,00 ; après Save, identique
-- Scénario C (ligne sans selling_price) :
-  - Si une ligne a selling_price null/0, elle seule peut être redistribuée ; les lignes avec selling_price restent inchangées.
+1. **Ajouter un etat pour le paiement en cours de relance**
+```typescript
+const [retryingPaymentId, setRetryingPaymentId] = useState<string | null>(null);
+```
 
-Risques / points d’attention
-- On supprime l’ancienne logique “manuel si écart > 1€” car elle est incompatible avec le recalcul automatique de la marge lors de l’édition du P.V.
-- La redistribution n’interviendra plus pour “corriger” des centimes sur des lignes qui ont déjà un selling_price explicite : c’est volontaire, car votre exigence est que le prix saisi et sauvegardé reste la source de vérité pour l’affichage.
+2. **Creer une fonction `handleRetryPayment`** qui :
+   - Appelle `createMolliePayment()` avec le meme montant et les infos du contrat
+   - Affiche un toast de confirmation ou d'erreur
+   - Rafraichit l'historique des paiements apres succes
 
-Livrable
-- 1 fichier modifié uniquement : src/components/offers/detail/NewEquipmentSection.tsx
+3. **Modifier le rendu de l'historique** (lignes 472-485) pour afficher le bouton "Relancer" a cote des paiements echoues :
+
+```text
++--------------------------------------------------+
+| 1 fevrier 2026     67.69 EUR  [Echoue] [Relancer]|
++--------------------------------------------------+
+```
+
+### Details du bouton
+
+- **Icone** : RefreshCw (deja importe)
+- **Texte** : "Relancer" (ou juste l'icone sur mobile)
+- **Variante** : `ghost` ou `outline` de couleur destructive
+- **Taille** : Petite (`size="sm"`)
+- **Etat de chargement** : Spinner pendant la requete
+
+### Logique de relance
+
+```typescript
+const handleRetryPayment = async (payment: MolliePayment) => {
+  if (!contract.mollie_customer_id) {
+    toast.error("Aucun client Mollie configure");
+    return;
+  }
+
+  try {
+    setRetryingPaymentId(payment.id);
+    
+    const result = await createMolliePayment({
+      customer_id: contract.mollie_customer_id,
+      mandate_id: contract.mollie_mandate_id || undefined,
+      amount: parseFloat(payment.amount.value),
+      description: payment.description || `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
+      contract_id: contract.id,
+      company_id: companyId,
+    });
+
+    if (result.success) {
+      toast.success("Prelevement relance avec succes");
+      // Rafraichir l'historique
+      await fetchMollieDetails();
+    } else {
+      toast.error(result.error || "Erreur lors de la relance");
+    }
+  } catch (error) {
+    console.error("Retry payment error:", error);
+    toast.error("Erreur lors de la relance du prelevement");
+  } finally {
+    setRetryingPaymentId(null);
+  }
+};
+```
+
+### Rendu dans l'historique
+
+```tsx
+{recentPayments.slice(0, 5).map((payment) => (
+  <div 
+    key={payment.id} 
+    className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm"
+  >
+    <span className="text-muted-foreground">
+      {formatDate(payment.createdAt)}
+    </span>
+    <span className="font-medium">
+      {parseFloat(payment.amount.value).toFixed(2)} EUR
+    </span>
+    <div className="flex items-center gap-2">
+      {getPaymentStatusBadge(payment.status)}
+      {/* Bouton Relancer pour les paiements echoues */}
+      {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled") && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleRetryPayment(payment)}
+          disabled={retryingPaymentId === payment.id}
+          className="h-6 px-2 text-xs"
+        >
+          {retryingPaymentId === payment.id ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <>
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Relancer
+            </>
+          )}
+        </Button>
+      )}
+    </div>
+  </div>
+))}
+```
+
+## Resume des changements
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/contracts/MollieSepaCard.tsx` | Ajouter bouton "Relancer" pour les paiements echoues |
+
+## Resultat attendu
+
+1. Dans l'historique des paiements, les paiements avec statut "Echoue", "Expire" ou "Annule" afficheront un bouton "Relancer"
+2. Cliquer sur ce bouton creera un nouveau prelevement SEPA via l'API Mollie
+3. Un toast confirmera le succes ou l'echec de la relance
+4. L'historique sera automatiquement rafraichi pour afficher le nouveau paiement
