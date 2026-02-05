@@ -1,130 +1,70 @@
 
-# Plan : Bouton "Relancer le prélèvement" pour les paiements echoues
+# Plan : Corriger le calcul de la mensualité après acompte dans la vue d'ensemble
 
-## Contexte
+## Problème identifié
 
-Dans la section "Historique recent" de la carte SEPA Mollie, quand un paiement a le statut "Echoue" (failed), vous souhaitez avoir un bouton pour relancer manuellement une nouvelle demande de prelevement.
+Dans la carte "Acompte versé" de la vue d'ensemble :
+- **Affiche** : Mensualité après acompte = **170,53 €** 
+- **Attendu** : Mensualité après acompte = **204,47 €** (comme dans le calculateur)
 
-## Solution technique
+### Cause racine
 
-### Composant a modifier
+Le calcul utilise la **somme des prix de vente des équipements** (8 454,94 €) au lieu du **montant financé Grenke** (9 676,99 €).
 
-**`src/components/contracts/MollieSepaCard.tsx`**
+| Calcul | Vue d'ensemble (incorrect) | Calculateur (correct) |
+|--------|---------------------------|----------------------|
+| Base | totalSellingPrice = 8 454,94 € | Grenke = 268,73 × 100 / 2.777 = 9 676,99 € |
+| Après acompte | 8 454,94 - 2 314,04 = 6 140,90 € | 9 676,99 - 2 314,04 = 7 362,95 € |
+| Mensualité | 6 140,90 × 2.777% = **170,53 €** | 7 362,95 × 2.777% = **204,47 €** |
 
-### Modifications a effectuer
+### Logique métier correcte
 
-1. **Ajouter un etat pour le paiement en cours de relance**
-```typescript
-const [retryingPaymentId, setRetryingPaymentId] = useState<string | null>(null);
-```
-
-2. **Creer une fonction `handleRetryPayment`** qui :
-   - Appelle `createMolliePayment()` avec le meme montant et les infos du contrat
-   - Affiche un toast de confirmation ou d'erreur
-   - Rafraichit l'historique des paiements apres succes
-
-3. **Modifier le rendu de l'historique** (lignes 472-485) pour afficher le bouton "Relancer" a cote des paiements echoues :
+En mode leasing (location propre ou via bailleur), le "montant total financé" est déterminé par la **formule Grenke inverse** :
 
 ```text
-+--------------------------------------------------+
-| 1 fevrier 2026     67.69 EUR  [Echoue] [Relancer]|
-+--------------------------------------------------+
+Montant financé = Mensualité totale × 100 / Coefficient
 ```
 
-### Details du bouton
+L'acompte doit réduire ce montant financé (pas le P.V. total des équipements).
 
-- **Icone** : RefreshCw (deja importe)
-- **Texte** : "Relancer" (ou juste l'icone sur mobile)
-- **Variante** : `ghost` ou `outline` de couleur destructive
-- **Taille** : Petite (`size="sm"`)
-- **Etat de chargement** : Spinner pendant la requete
+## Solution
 
-### Logique de relance
+Modifier `NewEquipmentSection.tsx` pour utiliser la **formule Grenke** comme base du calcul d'acompte au lieu de `totalSellingPrice`.
+
+## Modification à effectuer
+
+### Fichier : `src/components/offers/detail/NewEquipmentSection.tsx`
+
+**Lignes 246-251** - Changer le calcul de `financedAfterDownPayment` :
 
 ```typescript
-const handleRetryPayment = async (payment: MolliePayment) => {
-  if (!contract.mollie_customer_id) {
-    toast.error("Aucun client Mollie configure");
-    return;
-  }
+// Calculs avec acompte (seulement en mode leasing)
+const downPayment = isPurchase ? 0 : (offer.down_payment || 0);
 
-  try {
-    setRetryingPaymentId(payment.id);
-    
-    const result = await createMolliePayment({
-      customer_id: contract.mollie_customer_id,
-      mandate_id: contract.mollie_mandate_id || undefined,
-      amount: parseFloat(payment.amount.value),
-      description: payment.description || `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
-      contract_id: contract.id,
-      company_id: companyId,
-    });
+// Pour l'acompte, utiliser le montant financé Grenke (pas le P.V. total)
+// Grenke = Mensualité × 100 / Coefficient
+const grenkeFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
+  ? (totalMonthlyPayment * 100) / coefficient
+  : effectiveFinancedAmount;
 
-    if (result.success) {
-      toast.success("Prelevement relance avec succes");
-      // Rafraichir l'historique
-      await fetchMollieDetails();
-    } else {
-      toast.error(result.error || "Erreur lors de la relance");
-    }
-  } catch (error) {
-    console.error("Retry payment error:", error);
-    toast.error("Erreur lors de la relance du prelevement");
-  } finally {
-    setRetryingPaymentId(null);
-  }
-};
+const financedAfterDownPayment = Math.max(0, grenkeFinancedAmount - downPayment);
+const adjustedMonthlyPayment = !isPurchase && downPayment > 0 && coefficient > 0
+  ? (financedAfterDownPayment * coefficient) / 100
+  : totalMonthlyPayment;
 ```
 
-### Rendu dans l'historique
+## Résultat attendu
 
-```tsx
-{recentPayments.slice(0, 5).map((payment) => (
-  <div 
-    key={payment.id} 
-    className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm"
-  >
-    <span className="text-muted-foreground">
-      {formatDate(payment.createdAt)}
-    </span>
-    <span className="font-medium">
-      {parseFloat(payment.amount.value).toFixed(2)} EUR
-    </span>
-    <div className="flex items-center gap-2">
-      {getPaymentStatusBadge(payment.status)}
-      {/* Bouton Relancer pour les paiements echoues */}
-      {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled") && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleRetryPayment(payment)}
-          disabled={retryingPaymentId === payment.id}
-          className="h-6 px-2 text-xs"
-        >
-          {retryingPaymentId === payment.id ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <>
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Relancer
-            </>
-          )}
-        </Button>
-      )}
-    </div>
-  </div>
-))}
-```
+| Élément | Avant | Après |
+|---------|-------|-------|
+| Base pour l'acompte | 8 454,94 € (P.V. total) | 9 676,99 € (Grenke) |
+| Montant financé après acompte | 6 140,90 € | 7 362,95 € |
+| Mensualité après acompte | 170,53 € | **204,47 €** |
 
-## Resume des changements
+La mensualité après acompte sera cohérente entre le calculateur et la vue d'ensemble.
+
+## Fichier modifié
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/components/contracts/MollieSepaCard.tsx` | Ajouter bouton "Relancer" pour les paiements echoues |
-
-## Resultat attendu
-
-1. Dans l'historique des paiements, les paiements avec statut "Echoue", "Expire" ou "Annule" afficheront un bouton "Relancer"
-2. Cliquer sur ce bouton creera un nouveau prelevement SEPA via l'API Mollie
-3. Un toast confirmera le succes ou l'echec de la relance
-4. L'historique sera automatiquement rafraichi pour afficher le nouveau paiement
+| `src/components/offers/detail/NewEquipmentSection.tsx` | Utiliser Grenke pour le calcul d'acompte |
