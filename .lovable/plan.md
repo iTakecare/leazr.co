@@ -1,91 +1,98 @@
 
-# Plan : Ajouter un bouton "Envoyer avis Google" dans la carte Actions
 
-## Objectif
+# Plan : Corriger l'affichage de la marge globale
 
-Ajouter un bouton "Envoyer avis Google" dans le sidebar d'actions (CompactActionsSidebar) qui ouvre une modale permettant d'envoyer un email au client pour lui demander de laisser un avis sur la fiche Google My Business d'iTakecare.
+## Probleme identifie
 
-## Fichiers a creer
+La marge globale affichee (25.3%) ne correspond pas a la marge individuelle des equipements (20%) car :
 
-### 1. Nouvelle modale : `src/components/offers/detail/SendGoogleReviewModal.tsx`
+1. **Calcul actuel** : La fonction `calculateFinancedAmount()` utilise la formule inverse Grenke en priorite :
+   ```
+   Montant finance = (Mensualite totale × 100) / Coefficient
+   ```
 
-Creer une modale avec :
-- Champ email du destinataire (pre-rempli avec l'email du client)
-- Champ email en copie (optionnel)
-- Champ objet du mail (pre-rempli)
-- Champ corps du message (editeur texte avec template par defaut)
-- Bouton d'envoi
+2. **Resultat** : Cela donne un montant finance de **2 402.45 EUR** (base sur les mensualites), alors que la somme des prix de vente individuels est de **2 301.60 EUR** (base sur la marge de 20%).
 
-Le template par defaut contiendra :
-- Un message de remerciement pour la confiance accordee
-- Une invitation a laisser un avis Google
-- Un bouton/lien vers la fiche Google My Business d'iTakecare
+3. **Consequence** : La marge affichee est calculee sur le montant Grenke (plus eleve), ce qui donne 25.3% au lieu de 20%.
 
-## Fichiers a modifier
+## Solution
 
-### 2. CompactActionsSidebar.tsx
+Modifier la logique pour que la marge globale affichee soit basee sur la **somme des prix de vente individuels** (`totalSellingPrice`) plutot que sur le montant calcule via la formule inverse Grenke.
 
-Modifications :
-- Ajouter une nouvelle prop `onSendGoogleReview` 
-- Ajouter un bouton "Envoyer avis Google" avec une icone etoile (Star)
-- Le bouton sera visible uniquement pour les offres aux statuts avances (validated, signed, completed, financed)
+## Modifications a effectuer
 
-### 3. AdminOfferDetail.tsx
+### Fichier : `src/components/offers/detail/FinancialSection.tsx`
 
-Modifications :
-- Ajouter un state pour controler l'ouverture de la modale Google Review
-- Ajouter l'import du nouveau composant SendGoogleReviewModal
-- Passer le handler `onSendGoogleReview` au CompactActionsSidebar
-- Rendre la modale dans le JSX
+**Changement de la fonction `calculateFinancedAmount()`** (lignes 207-236) :
 
-## Details techniques
-
-### Template email par defaut
-
-```
-Bonjour {{client_name}},
-
-Nous tenons a vous remercier pour votre confiance dans le cadre de votre projet de leasing informatique avec iTakecare.
-
-Si vous etes satisfait de notre accompagnement, nous serions ravis que vous preniez quelques instants pour partager votre experience en laissant un avis sur notre fiche Google.
-
-[Bouton: Laisser un avis]
-
-Votre retour nous aide a ameliorer nos services et permet a d'autres entreprises de nous decouvrir.
-
-Merci d'avance pour votre temps !
-
-Cordialement,
-L'equipe iTakecare
+Avant (formule Grenke en priorite) :
+```typescript
+const calculateFinancedAmount = () => {
+  // MODE LEASING: Priorité 1 - Formule inverse Grenke
+  if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
+    return (totals.totalMonthlyPayment * 100) / offer.coefficient;
+  }
+  // ...
+};
 ```
 
-### Conditions d'affichage du bouton
+Apres (prix de vente en priorite) :
+```typescript
+const calculateFinancedAmount = () => {
+  // MODE ACHAT ou LEASING: Priorité 1 - Somme des prix de vente individuels
+  if (totals.totalSellingPrice > 0) {
+    return totals.totalSellingPrice;
+  }
+  // Fallback: formule inverse Grenke si pas de prix de vente
+  if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
+    return (totals.totalMonthlyPayment * 100) / offer.coefficient;
+  }
+  // ...
+};
+```
 
-Le bouton "Envoyer avis Google" sera affiche uniquement pour les statuts :
-- `validated` (offre validee)
-- `signed` (offre signee)
-- `completed` (offre finalisee)
-- `financed` (offre financee)
-- `contract_sent` (contrat envoye)
+### Fichier : `src/utils/marginCalculations.ts`
 
-### Flux d'envoi
+**Changement de la fonction `getEffectiveFinancedAmount()`** (lignes 73-95) :
 
-1. L'utilisateur clique sur "Envoyer avis Google"
-2. La modale s'ouvre avec les champs pre-remplis
-3. L'utilisateur peut personnaliser le message
-4. L'email est envoye via le service `sendEmail` existant
-5. Un toast confirme l'envoi
+Inverser les priorites pour utiliser `totalSellingPrice` en premier :
 
-## Resume des modifications
+```typescript
+export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentItems?: any[]): number => {
+  const totals = calculateEquipmentTotals(offer, equipmentItems);
+  
+  // Priorité 1: totalSellingPrice depuis les équipements (somme des prix de vente)
+  if (totals.totalSellingPrice > 0) {
+    return totals.totalSellingPrice;
+  }
+  
+  // Priorité 2: CALCUL INVERSE GRENKE (fallback si pas de prix de vente)
+  if ((offer.coefficient || 0) > 0 && totals.totalMonthlyPayment > 0) {
+    const computed = (totals.totalMonthlyPayment * 100) / (offer.coefficient as number);
+    return Math.round(computed * 100) / 100;
+  }
+  
+  // Priorité 3: financed_amount depuis l'offre
+  if (offer.financed_amount && offer.financed_amount > 0) {
+    return offer.financed_amount;
+  }
+  
+  // Priorité 4: Fallback sur offer.amount
+  return offer.amount || 0;
+};
+```
 
-| Fichier | Action |
-|---------|--------|
-| `src/components/offers/detail/SendGoogleReviewModal.tsx` | Creer |
-| `src/components/offers/detail/CompactActionsSidebar.tsx` | Modifier |
-| `src/pages/AdminOfferDetail.tsx` | Modifier |
+## Resultat attendu
 
-## Remarques
+| Avant | Apres |
+|-------|-------|
+| Marge globale : 25.3% | Marge globale : 20% |
+| Base sur formule Grenke | Base sur somme des prix de vente |
+| Incoherence avec marges individuelles | Coherence avec marges individuelles |
 
-- Le lien Google My Business d'iTakecare devra etre configure (soit en dur dans le code, soit recupere depuis les settings)
-- L'envoi utilise le service email existant `sendEmail` de `emailService.ts`
-- La modale suit le meme pattern que `SendContractEmailModal.tsx` pour la coherence UI
+## Impact
+
+- La marge globale affichee correspondra exactement a la moyenne ponderee des marges individuelles des equipements
+- Le "Montant finance" affiche sera la somme des prix de vente (2 301.60 EUR)
+- La formule Grenke reste utilisee comme fallback si aucun prix de vente n'est disponible
+
