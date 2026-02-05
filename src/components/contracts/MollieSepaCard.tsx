@@ -29,6 +29,7 @@ import {
   updateMollieSubscription, 
   getMollieSubscription, 
   getMolliePayments,
+  createMolliePayment,
   MollieSubscriptionDetails,
   MolliePayment
 } from "@/utils/mollie";
@@ -74,6 +75,7 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
   const [subscriptionDetails, setSubscriptionDetails] = useState<MollieSubscriptionDetails | null>(null);
   const [recentPayments, setRecentPayments] = useState<MolliePayment[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [retryingPaymentId, setRetryingPaymentId] = useState<string | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -199,6 +201,40 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
       fetchMollieDetails();
     }
   }, [contract.mollie_customer_id, contract.mollie_subscription_id, contract.mollie_mandate_id]);
+
+  // Handle retry payment for failed/expired/canceled payments
+  const handleRetryPayment = async (payment: MolliePayment) => {
+    if (!contract.mollie_customer_id) {
+      toast.error("Aucun client Mollie configuré");
+      return;
+    }
+
+    try {
+      setRetryingPaymentId(payment.id);
+      
+      const result = await createMolliePayment({
+        customer_id: contract.mollie_customer_id,
+        mandate_id: contract.mollie_mandate_id || undefined,
+        amount: parseFloat(payment.amount.value),
+        description: payment.description || `Loyer mensuel - Contrat ${contract.id.substring(0, 8)}`,
+        contract_id: contract.id,
+        company_id: companyId,
+      });
+
+      if (result.success) {
+        toast.success("Prélèvement relancé avec succès");
+        // Refresh history
+        await fetchMollieDetails();
+      } else {
+        toast.error(result.error || "Erreur lors de la relance");
+      }
+    } catch (error) {
+      console.error("Retry payment error:", error);
+      toast.error("Erreur lors de la relance du prélèvement");
+    } finally {
+      setRetryingPaymentId(null);
+    }
+  };
 
   // Extract first/last name from client_name
   React.useEffect(() => {
@@ -480,7 +516,28 @@ export default function MollieSepaCard({ contract, companyId, onSuccess }: Molli
                       <span className="font-medium">
                         {parseFloat(payment.amount.value).toFixed(2)} €
                       </span>
-                      {getPaymentStatusBadge(payment.status)}
+                      <div className="flex items-center gap-2">
+                        {getPaymentStatusBadge(payment.status)}
+                        {/* Retry button for failed payments */}
+                        {(payment.status === "failed" || payment.status === "expired" || payment.status === "canceled") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRetryPayment(payment)}
+                            disabled={retryingPaymentId === payment.id}
+                            className="h-6 px-2 text-xs"
+                          >
+                            {retryingPaymentId === payment.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Relancer
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
