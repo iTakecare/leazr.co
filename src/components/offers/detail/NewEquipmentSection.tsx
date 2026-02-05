@@ -245,7 +245,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
 
     // Calculs avec acompte (seulement en mode leasing)
     const downPayment = isPurchase ? 0 : (offer.down_payment || 0);
-    const financedAfterDownPayment = Math.max(0, effectiveFinancedAmount - downPayment);
+    
+    // Pour l'acompte, utiliser le montant financé Grenke (pas le P.V. total)
+    // Grenke = Mensualité × 100 / Coefficient
+    // C'est la base correcte pour calculer la nouvelle mensualité après acompte
+    const grenkeFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
+      ? (totalMonthlyPayment * 100) / coefficient
+      : effectiveFinancedAmount;
+    
+    const financedAfterDownPayment = Math.max(0, grenkeFinancedAmount - downPayment);
     const adjustedMonthlyPayment = !isPurchase && downPayment > 0 && coefficient > 0
       ? (financedAfterDownPayment * coefficient) / 100
       : totalMonthlyPayment;
