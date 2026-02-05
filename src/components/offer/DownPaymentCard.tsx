@@ -35,9 +35,12 @@ const DownPaymentCard: React.FC<DownPaymentCardProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    // Allow comma as decimal separator
     setInputValue(value);
     
-    const numValue = parseFloat(value) || 0;
+    // Parse with comma support
+    const normalizedValue = value.replace(',', '.');
+    const numValue = parseFloat(normalizedValue) || 0;
     // Ensure down payment doesn't exceed total
     const clampedValue = Math.min(numValue, totalSellingPrice);
     onDownPaymentChange(Math.max(0, clampedValue));
@@ -45,9 +48,11 @@ const DownPaymentCard: React.FC<DownPaymentCardProps> = ({
 
   const handleBlur = () => {
     // Ensure we have a valid value on blur
-    const numValue = parseFloat(inputValue) || 0;
+    const normalizedValue = inputValue.replace(',', '.');
+    const numValue = parseFloat(normalizedValue) || 0;
     const clampedValue = Math.min(Math.max(0, numValue), totalSellingPrice);
-    setInputValue(clampedValue.toString());
+    // Format with comma for display
+    setInputValue(clampedValue.toString().replace('.', ','));
     onDownPaymentChange(clampedValue);
   };
 
@@ -76,14 +81,12 @@ const DownPaymentCard: React.FC<DownPaymentCardProps> = ({
             <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               id="down-payment"
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={inputValue}
               onChange={handleInputChange}
               onBlur={handleBlur}
               placeholder="0"
-              min="0"
-              max={totalSellingPrice}
-              step="100"
               disabled={disabled}
               className="pl-9"
             />
