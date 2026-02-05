@@ -8,6 +8,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { Leaser } from "@/types/equipment";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { roundToTwoDecimals } from "@/utils/equipmentCalculations";
 
 interface GlobalMarginEditorProps {
   offer: any;
@@ -42,11 +43,13 @@ export const GlobalMarginEditor: React.FC<GlobalMarginEditorProps> = ({
   // Calculate new values based on margin percentage
   const calculateNewValues = (marginPercent: number) => {
     const newTotalSellingPrice = totalPurchasePrice * (1 + marginPercent / 100);
-    // Use a simpler coefficient calculation for now
-    const defaultCoefficient = 2.0;
-    const newTotalMonthlyPayment = newTotalSellingPrice / 36 * defaultCoefficient;
+    const coefficient = Number(offer?.coefficient) || 0;
+    const isPurchase = offer?.is_purchase === true;
+    const newTotalMonthlyPayment = !isPurchase && coefficient > 0
+      ? roundToTwoDecimals((newTotalSellingPrice * coefficient) / 100)
+      : 0;
     const newMargin = newTotalSellingPrice - totalPurchasePrice;
-    const newCoefficient = totalPurchasePrice > 0 ? (newTotalMonthlyPayment * 36) / totalPurchasePrice : 0;
+    const newCoefficient = coefficient;
     
     return {
       newTotalSellingPrice,
@@ -65,27 +68,82 @@ export const GlobalMarginEditor: React.FC<GlobalMarginEditorProps> = ({
 
     setIsSaving(true);
     try {
-      // Use the database function to update equipment with global margin
-      const { data, error } = await supabase.rpc('update_equipment_with_global_margin', {
-        p_offer_id: offer.id,
-        p_margin_percentage: newMarginPercent,
-        p_leaser_id: leaser?.id || 'd60b86d7-a129-4a17-a877-e8e5caa66949' // Default to Grenke
+      const isPurchase = offer?.is_purchase === true;
+      const coefficient = Number(offer?.coefficient) || 0;
+
+      // 1) Calculer les nouvelles valeurs par équipement
+      const computedById = new Map<
+        string,
+        { sellingPriceUnit: number; monthlyPaymentTotalLine: number }
+      >();
+
+      let computedTotalPurchase = 0;
+      let computedTotalSelling = 0;
+      let computedTotalMonthly = 0;
+
+      for (const eq of equipment || []) {
+        const id = String(eq.id);
+        const purchasePrice = Number(eq.purchase_price ?? eq.purchasePrice) || 0;
+        const qty = Number(eq.quantity) || 1;
+
+        const sellingUnit = roundToTwoDecimals(purchasePrice * (1 + newMarginPercent / 100));
+        const sellingTotal = sellingUnit * qty;
+
+        const monthlyLine = !isPurchase && coefficient > 0
+          ? roundToTwoDecimals((sellingTotal * coefficient) / 100)
+          : 0;
+
+        computedById.set(id, {
+          sellingPriceUnit: sellingUnit,
+          monthlyPaymentTotalLine: monthlyLine
+        });
+
+        computedTotalPurchase += purchasePrice * qty;
+        computedTotalSelling += sellingTotal;
+        computedTotalMonthly += monthlyLine;
+      }
+
+      // 2) Mettre à jour les équipements (marge + P.V. + mensualité)
+      const equipmentUpdates = (equipment || []).map((eq) => {
+        const id = String(eq.id);
+        const computed = computedById.get(id);
+        if (!computed) return Promise.resolve({ data: null, error: null });
+        return supabase
+          .from("offer_equipment")
+          .update({
+            margin: newMarginPercent,
+            selling_price: computed.sellingPriceUnit,
+            // IMPORTANT: monthly_payment en DB = TOTAL ligne (toutes quantités confondues)
+            monthly_payment: computed.monthlyPaymentTotalLine
+          })
+          .eq("id", id);
       });
-      
-      if (error) {
-        throw error;
+
+      const equipmentResults = await Promise.all(equipmentUpdates);
+      const equipmentErrors = equipmentResults
+        .map((r) => r.error)
+        .filter(Boolean);
+      if (equipmentErrors.length > 0) {
+        throw equipmentErrors[0];
       }
-      
-      if (data && data.length > 0) {
-        const result = data[0];
-        if (result.success) {
-          toast.success("Marge globale mise à jour avec succès");
-          setIsEditing(false);
-          onUpdate?.();
-        } else {
-          throw new Error(result.message);
-        }
-      }
+
+      // 3) Mettre à jour l'offre (financed_amount = somme P.V.)
+      const newOfferMarginEuro = computedTotalSelling - computedTotalPurchase;
+      const { error: offerError } = await supabase
+        .from("offers")
+        .update({
+          amount: roundToTwoDecimals(computedTotalPurchase),
+          financed_amount: roundToTwoDecimals(computedTotalSelling),
+          monthly_payment: roundToTwoDecimals(computedTotalMonthly),
+          margin: roundToTwoDecimals(newOfferMarginEuro)
+        })
+        .eq("id", offer.id);
+
+      if (offerError) throw offerError;
+
+      toast.success("Marge globale et mensualités mises à jour");
+      setIsEditing(false);
+      onUpdate?.();
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       toast.error("Erreur lors de la mise à jour de la marge");

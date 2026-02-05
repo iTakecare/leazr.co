@@ -212,8 +212,8 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return sum + (calculatedPrice * item.quantity);
     }, 0);
     
-    // MODE ACHAT: utiliser directement le prix de vente total, pas la formule Grenke
-    // MODE LEASING: Utiliser la formule inverse Grenke pour le montant financé
+    // MODE ACHAT: utiliser directement le prix de vente total
+    // MODE LEASING: Priorité au P.V. total (somme des prix de vente), fallback Grenke si indisponible
     const coefficient = offer.coefficient || 0;
     let effectiveFinancedAmount: number;
     
@@ -221,10 +221,15 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       // En mode achat, le montant financé = prix de vente total (pas de formule Grenke)
       effectiveFinancedAmount = totalSellingPrice;
     } else {
-      // En mode leasing: Montant financé = Mensualité × 100 / Coefficient
-      effectiveFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
-        ? (totalMonthlyPayment * 100) / coefficient
-        : totalSellingPrice;
+      // En mode leasing, on aligne l'affichage marge/montant financé sur la somme des P.V.
+      if (totalSellingPrice > 0) {
+        effectiveFinancedAmount = totalSellingPrice;
+      } else {
+        // Fallback: Montant financé = Mensualité × 100 / Coefficient
+        effectiveFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
+          ? (totalMonthlyPayment * 100) / coefficient
+          : 0;
+      }
     }
     
     // Marge = Montant financé - Prix d'achat total
