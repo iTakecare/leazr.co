@@ -218,19 +218,22 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     }
     
     // MODE LEASING: Priorité 1 - Formule inverse Grenke
-    if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
-      return (totals.totalMonthlyPayment * 100) / offer.coefficient;
-    }
     
-    // Priorité 2: financed_amount stocké en base
-    if (offer.financed_amount && offer.financed_amount > 0) {
-      return offer.financed_amount;
-    }
     
-    // Fallback: somme des prix de vente
+   // MODE LEASING: Priorité 1 - Somme des prix de vente individuels
     if (totals.totalSellingPrice > 0) {
       return totals.totalSellingPrice;
     }
+   
+   // Priorité 2: Formule inverse Grenke (fallback)
+   if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
+     return (totals.totalMonthlyPayment * 100) / offer.coefficient;
+   }
+   
+   // Priorité 3: financed_amount stocké en base
+   if (offer.financed_amount && offer.financed_amount > 0) {
+     return offer.financed_amount;
+   }
     
     return 0;
   };
