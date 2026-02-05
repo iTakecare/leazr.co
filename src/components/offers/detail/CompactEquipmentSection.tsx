@@ -78,10 +78,10 @@ const CompactEquipmentSection: React.FC<CompactEquipmentSectionProps> = ({ offer
   };
 
   const calculateTotalMonthly = () => {
-    const total = equipmentItems.reduce((total: number, item: any) => {
-      const monthly = parseFloat(item.monthlyPayment) || 0;
-      const qty = parseInt(item.quantity) || 1;
-      return total + (monthly * qty);
+    // monthly_payment en BD est DÉJÀ le total pour cet équipement (pas unitaire)
+    const total = equipmentItems.reduce((acc: number, item: any) => {
+      const monthly = parseFloat(item.monthlyPayment || item.monthly_payment) || 0;
+      return acc + monthly;
     }, 0);
     return Math.round(total * 100) / 100; // Arrondir correctement
   };
