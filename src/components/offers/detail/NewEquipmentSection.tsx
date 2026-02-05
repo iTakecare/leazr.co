@@ -293,77 +293,81 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       return adjustedPrices;
     }
     
-  // MODE LEASING : Respecter les prix de vente stockés en BD
-  // et ne redistribuer que le reste aux équipements sans prix explicite
-  
-  let manualTotal = 0;
-  let manualPurchaseTotal = 0;
-  const itemsWithManualPrice: string[] = [];
-  const itemsWithoutManualPrice: any[] = [];
-  
-  // Étape 1: Identifier les équipements avec un selling_price manuel
-  equipmentList.forEach(item => {
-    const storedSellingPrice = item.selling_price;
-    const calculatedFromMargin = item.purchase_price * (1 + (item.margin || 0) / 100);
+    // Helper pour arrondi centimes
+    const round2 = (n: number) => Math.round(n * 100) / 100;
     
-    // Un prix est considéré "manuel" s'il diffère de plus de 1€ du calcul par marge
-    const isManualOverride = storedSellingPrice != null && 
-      storedSellingPrice > 0 && 
-      Math.abs(storedSellingPrice - calculatedFromMargin) > 1;
+    // MODE LEASING : Respecter les prix de vente stockés en BD (selling_price > 0)
+    // et ne redistribuer que le reste aux équipements sans prix explicite (null/0)
     
-    if (isManualOverride) {
-      // Prix manuel : utiliser directement
-      const priceTotal = Math.round(storedSellingPrice * item.quantity * 100) / 100;
-      adjustedPrices[item.id] = priceTotal;
-      manualTotal += priceTotal;
-      manualPurchaseTotal += item.purchase_price * item.quantity;
-      itemsWithManualPrice.push(item.id);
-    } else {
-      itemsWithoutManualPrice.push(item);
+    let fixedTotal = 0;
+    let fixedPurchaseTotal = 0;
+    const itemsWithFixedPrice: any[] = [];
+    const itemsWithoutFixedPrice: any[] = [];
+    
+    // Étape 1: Identifier les équipements avec un selling_price en base
+    // NOUVEAU: Toute ligne avec selling_price > 0 est considérée comme "fixe"
+    // (on supprime l'ancienne logique "écart > 1€" qui ne fonctionnait pas)
+    equipmentList.forEach(item => {
+      const storedSellingPrice = item.selling_price;
+      
+      // Prix fixe si selling_price > 0 (peu importe la marge)
+      if (storedSellingPrice != null && storedSellingPrice > 0) {
+        const priceTotal = round2(storedSellingPrice * item.quantity);
+        adjustedPrices[item.id] = priceTotal;
+        fixedTotal += priceTotal;
+        fixedPurchaseTotal += item.purchase_price * item.quantity;
+        itemsWithFixedPrice.push(item);
+      } else {
+        itemsWithoutFixedPrice.push(item);
+      }
+    });
+    
+    // Cas 100% des lignes ont un selling_price : retourner directement
+    if (itemsWithoutFixedPrice.length === 0) {
+      return adjustedPrices;
     }
-  });
-  
-  // Étape 2: Calculer le montant restant à répartir
-  const remainingTotal = totalSellingPrice - manualTotal;
-  const remainingPurchaseTotal = totalPurchasePrice - manualPurchaseTotal;
-  
-  // Étape 3: Répartir proportionnellement parmi les équipements sans prix manuel
-  if (itemsWithoutManualPrice.length > 0 && remainingPurchaseTotal > 0) {
-    const rawPrices = itemsWithoutManualPrice.map(item => {
-      const equipmentTotal = item.purchase_price * item.quantity;
-      const proportion = equipmentTotal / remainingPurchaseTotal;
-      const rawSellingPrice = remainingTotal * proportion;
-      const roundedPrice = Math.round(rawSellingPrice * 100) / 100;
-      return {
-        id: item.id,
-        rawPrice: rawSellingPrice,
-        roundedPrice: roundedPrice,
-        remainder: rawSellingPrice - roundedPrice
-      };
-    });
+    
+    // Étape 2: Calculer le montant restant à répartir
+    const remainingTotal = round2(totalSellingPrice - fixedTotal);
+    const remainingPurchaseTotal = totalPurchasePrice - fixedPurchaseTotal;
+    
+    // Étape 3: Répartir proportionnellement parmi les équipements sans selling_price
+    if (itemsWithoutFixedPrice.length > 0 && remainingPurchaseTotal > 0) {
+      const rawPrices = itemsWithoutFixedPrice.map(item => {
+        const equipmentTotal = item.purchase_price * item.quantity;
+        const proportion = equipmentTotal / remainingPurchaseTotal;
+        const rawSellingPrice = remainingTotal * proportion;
+        const roundedPrice = round2(rawSellingPrice);
+        return {
+          id: item.id,
+          rawPrice: rawSellingPrice,
+          roundedPrice: roundedPrice,
+          remainder: rawSellingPrice - roundedPrice
+        };
+      });
 
-    // Correction des centimes avec Largest Remainder
-    const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
-    let differenceInCents = Math.round((remainingTotal - sumRounded) * 100);
-    const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
+      // Correction des centimes avec Largest Remainder
+      const sumRounded = rawPrices.reduce((sum, p) => sum + p.roundedPrice, 0);
+      let differenceInCents = Math.round((remainingTotal - sumRounded) * 100);
+      const sortedByRemainder = [...rawPrices].sort((a, b) => Math.abs(b.remainder) - Math.abs(a.remainder));
 
-    rawPrices.forEach(p => {
-      adjustedPrices[p.id] = p.roundedPrice;
-    });
+      rawPrices.forEach(p => {
+        adjustedPrices[p.id] = p.roundedPrice;
+      });
 
-    for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
-      const id = sortedByRemainder[i].id;
-      adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
-      adjustedPrices[id] = Math.round(adjustedPrices[id] * 100) / 100;
+      for (let i = 0; i < Math.abs(differenceInCents) && i < sortedByRemainder.length; i++) {
+        const id = sortedByRemainder[i].id;
+        adjustedPrices[id] += differenceInCents > 0 ? 0.01 : -0.01;
+        adjustedPrices[id] = round2(adjustedPrices[id]);
+      }
+    } else if (itemsWithoutFixedPrice.length > 0) {
+      // Fallback : calculer depuis la marge si pas de total à répartir
+      itemsWithoutFixedPrice.forEach(item => {
+        const marginPercent = item.margin || 0;
+        const sellingPriceUnit = item.purchase_price * (1 + marginPercent / 100);
+        adjustedPrices[item.id] = round2(sellingPriceUnit * item.quantity);
+      });
     }
-  } else if (itemsWithoutManualPrice.length > 0) {
-    // Fallback : calculer depuis la marge si pas de total à répartir
-    itemsWithoutManualPrice.forEach(item => {
-      const marginPercent = item.margin || 0;
-      const sellingPriceUnit = item.purchase_price * (1 + marginPercent / 100);
-      adjustedPrices[item.id] = Math.round(sellingPriceUnit * item.quantity * 100) / 100;
-    });
-  }
 
   return adjustedPrices;
   };
@@ -787,9 +791,18 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="text-green-600">
-                        {formatPrice(equipmentSellingPrice)}
-                      </span>
+                      {(() => {
+                        // En mode édition: afficher la valeur calculée depuis editedValues
+                        // Hors édition: afficher la valeur adjusted
+                        const sellingTotal = isEditing 
+                          ? Math.round((editedValues.selling_price || 0) * (editedValues.quantity || 1) * 100) / 100
+                          : equipmentSellingPrice;
+                        return (
+                          <span className="text-green-600">
+                            {formatPrice(sellingTotal)}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-right">
                       {isEditing ? (
@@ -820,9 +833,25 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="text-green-600">
-                        {formatPrice(equipmentMargin)}
-                      </span>
+                      {(() => {
+                        // En mode édition: calculer la marge depuis editedValues
+                        // Hors édition: afficher la valeur adjusted
+                        if (isEditing) {
+                          const sellingTotal = Math.round((editedValues.selling_price || 0) * (editedValues.quantity || 1) * 100) / 100;
+                          const purchaseTotal = Math.round((editedValues.purchase_price || 0) * (editedValues.quantity || 1) * 100) / 100;
+                          const marginEuro = Math.round((sellingTotal - purchaseTotal) * 100) / 100;
+                          return (
+                            <span className="text-green-600">
+                              {formatPrice(marginEuro)}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="text-green-600">
+                            {formatPrice(equipmentMargin)}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     {!isPurchase && (
                       <TableCell className="text-right">
