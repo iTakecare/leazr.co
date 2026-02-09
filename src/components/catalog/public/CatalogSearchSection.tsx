@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { useNavigate, useLocation } from "react-router-dom";
+import { safeRedirect } from "@/utils/fileUtils";
 
 interface CatalogSearchSectionProps {
   companyId?: string;
@@ -68,7 +69,7 @@ const CatalogSearchSection: React.FC<CatalogSearchSectionProps> = ({
               size="sm"
               onClick={() => {
                 if (quoteLink) {
-                  window.location.href = quoteLink;
+                  safeRedirect(quoteLink);
                 } else {
                   onRequestQuote?.();
                 }

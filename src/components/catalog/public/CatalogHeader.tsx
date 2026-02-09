@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import CatalogSearchSection from "./CatalogSearchSection";
 import { useParams } from "react-router-dom";
+import { safeRedirect } from "@/utils/fileUtils";
 
 interface CatalogHeaderProps {
   companyName?: string;
@@ -84,7 +85,7 @@ const CatalogHeader: React.FC<CatalogHeaderProps> = ({
               className="bg-[#d13157] hover:bg-[#b82a4d] border-0 text-xs md:text-sm group"
               onClick={() => {
                 if (quoteLink) {
-                  window.location.href = quoteLink;
+                  safeRedirect(quoteLink);
                 } else {
                   onRequestQuote?.();
                 }

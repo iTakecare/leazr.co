@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { sanitizeFileName } from "@/utils/fileUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,7 @@ export default function PDFTemplateEditor({
     if (!file) return;
 
     try {
-      const fileExt = file.name.split(".").pop();
+      const fileExt = sanitizeFileName(file.name).split(".").pop();
       const fileName = `${template.id}-logo-${Date.now()}.${fileExt}`;
       const filePath = `pdf-templates/${fileName}`;
 
