@@ -28,6 +28,20 @@ serve(async (req) => {
       );
     }
     
+    if (!/^[a-zA-Z0-9_]+$/.test(table_name)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid input" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!/^[a-zA-Z0-9_]+$/.test(column_name)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid input" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Direct query to check if column exists in table
     const { data, error } = await supabaseClient
       .rpc('execute_sql', { 
