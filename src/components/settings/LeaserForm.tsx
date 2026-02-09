@@ -1,5 +1,6 @@
 
 import React, { useState, useRef } from "react";
+import { sanitizeFileName } from "@/utils/fileUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -178,7 +179,7 @@ const LeaserForm = ({ currentLeaser, isEditMode, onSave, onCancel }: LeaserFormP
         return;
       }
       
-      const fileExt = file.name.split('.').pop();
+      const fileExt = sanitizeFileName(file.name).split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = fileName;
       

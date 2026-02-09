@@ -61,7 +61,7 @@ export const SUPABASE_CONFIG = {
   },
   
   // Remplacez par votre vraie clé API Leazr
-  API_KEY: 'lzr_015eaab80e2b45539d2551e237f22335', // Votre clé API
+  API_KEY: 'lzr_YOUR_API_KEY_HERE', // Remplacez par votre clé API
 };
 ```
 

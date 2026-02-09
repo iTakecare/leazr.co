@@ -58,10 +58,14 @@ export const simpleFileUpload = async (
     // Upload avec FormData via l'API REST de Supabase
     const uploadUrl = `https://cifbetjefyfocafanlhv.supabase.co/storage/v1/object/${bucketName}/${filePath}`;
     
+    // Récupérer le token de la session active
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw';
+
     const response = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZmJldGplZnlmb2NhZmFubGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NzgzODIsImV4cCI6MjA1NzQ1NDM4Mn0.B1-2XP0VVByxEq43KzoGml8W6z_XVtsh542BuiDm3Cw`
+        'Authorization': `Bearer ${token}`
       },
       body: formData
     });
