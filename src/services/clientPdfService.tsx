@@ -97,11 +97,12 @@ async function fetchOfferData(offerId: string): Promise<OfferPDFData | null> {
     );
 
     // Calculate financed amount (base amount before down payment)
-    const baseFinancedAmount = totalSellingPrice > 0 
-      ? totalSellingPrice 
-      : (coefficient > 0 && totalMonthlyPayment > 0 
-          ? (totalMonthlyPayment * 100) / coefficient 
-          : offerData.financed_amount || offerData.amount || 0);
+    // Priorité 1: Formule Grenke (source de vérité)
+    const baseFinancedAmount = (coefficient > 0 && totalMonthlyPayment > 0)
+      ? (totalMonthlyPayment * 100) / coefficient
+      : totalSellingPrice > 0 
+        ? totalSellingPrice 
+        : (offerData.financed_amount || offerData.amount || 0);
 
     // Calculate financed amount after down payment
     const financedAmountAfterDownPayment = Math.max(0, baseFinancedAmount - downPayment);
