@@ -146,9 +146,12 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
         } else {
           // MODE LEASING: Utiliser la formule Grenke
           newMonthlyPayment = currentTotals.totalMonthlyPayment;
-          newFinancedAmount = currentTotals.totalSellingPrice > 0 
-            ? currentTotals.totalSellingPrice 
-            : (currentTotals.totalMonthlyPayment * (offer.coefficient || 3.27));
+          // Grenke: Mensualité × 100 / Coefficient
+          newFinancedAmount = currentTotals.totalMonthlyPayment > 0 && (offer.coefficient || 0) > 0
+            ? (currentTotals.totalMonthlyPayment * 100) / offer.coefficient
+            : currentTotals.totalSellingPrice > 0
+              ? currentTotals.totalSellingPrice
+              : currentTotals.totalPurchasePrice;
         }
         
         const newTotalAmount = currentTotals.totalPurchasePrice;
@@ -220,14 +223,14 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     // MODE LEASING: Priorité 1 - Formule inverse Grenke
     
     
-   // MODE LEASING: Priorité 1 - Somme des prix de vente individuels
-    if (totals.totalSellingPrice > 0) {
-      return totals.totalSellingPrice;
-    }
-   
-   // Priorité 2: Formule inverse Grenke (fallback)
+   // MODE LEASING: Priorité 1 - Formule Grenke (source de vérité)
    if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
      return (totals.totalMonthlyPayment * 100) / offer.coefficient;
+   }
+   
+   // Priorité 2: Somme des prix de vente (fallback)
+   if (totals.totalSellingPrice > 0) {
+     return totals.totalSellingPrice;
    }
    
    // Priorité 3: financed_amount stocké en base
