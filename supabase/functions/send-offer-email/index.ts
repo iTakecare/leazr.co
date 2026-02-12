@@ -90,6 +90,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'iTakecare <noreply@itakecare.be>',
         to: [to],
+        reply_to: [user.email],
         subject,
         html: message,
         attachments: [
