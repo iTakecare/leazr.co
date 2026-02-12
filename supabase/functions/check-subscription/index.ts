@@ -49,17 +49,19 @@ serve(async (req) => {
       }
     )
 
-    // Get user from JWT
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    // Get user from JWT using getClaims
+    const token = authHeader.replace('Bearer ', '')
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token)
     
-    if (userError || !user) {
-      console.log('[CHECK-SUBSCRIPTION] ERROR in check-subscription -', { message: userError?.message || 'No user found' })
+    if (claimsError || !claimsData?.claims) {
+      console.log('[CHECK-SUBSCRIPTION] ERROR in check-subscription -', { message: claimsError?.message || 'No claims found' })
       return new Response(
         JSON.stringify({ error: 'Authentication failed. Please log in again.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    const user = { id: claimsData.claims.sub as string, email: claimsData.claims.email as string }
     console.log('[CHECK-SUBSCRIPTION] User authenticated -', { userId: user.id, email: user.email })
 
     // First, check if user has a company subscription (like iTakecare)
