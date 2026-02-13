@@ -100,6 +100,11 @@ const EquipmentOrders: React.FC = () => {
   const totalOrdered = items.filter(i => i.order_status === 'ordered').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
   const totalReceived = items.filter(i => i.order_status === 'received').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
 
+  const getSupplierType = (supplierId: string | null): string => {
+    if (!supplierId) return 'belgian';
+    return suppliers.find(s => s.id === supplierId)?.supplier_type || 'belgian';
+  };
+
   const calcTVAC = (itemsList: EquipmentOrderItem[]) =>
     itemsList.reduce((s, i) => {
       const priceHT = (i.supplier_price || i.purchase_price) * i.quantity;
@@ -138,11 +143,6 @@ const EquipmentOrders: React.FC = () => {
     } else {
       navigate(`/${slug}/admin/contracts/${item.source_id}`);
     }
-  };
-
-  const getSupplierType = (supplierId: string | null): string => {
-    if (!supplierId) return 'belgian';
-    return suppliers.find(s => s.id === supplierId)?.supplier_type || 'belgian';
   };
 
   const renderTable = (yearItems: EquipmentOrderItem[]) => (
