@@ -1,64 +1,58 @@
 
+# Ajout du type de fournisseur (Belge / EU) et colonnes TVA
 
-# Ajout de la gestion des fournisseurs dans les commandes
+## 1. Migration base de donnees
 
-## Contexte actuel
+Ajouter une colonne `supplier_type` a la table `suppliers` pour distinguer les fournisseurs belges des fournisseurs EU :
 
-- **Page globale (`EquipmentOrders.tsx`)** : la colonne "Fournisseur" affiche juste le nom, sans possibilite de le modifier.
-- **Tracker detail (`EquipmentOrderTracker.tsx`)** : le fournisseur est modifiable via un Select en mode edition (bouton crayon), mais on ne peut que choisir parmi les fournisseurs existants, pas en creer un nouveau.
+```sql
+ALTER TABLE suppliers 
+ADD COLUMN supplier_type text NOT NULL DEFAULT 'belgian' 
+CHECK (supplier_type IN ('belgian', 'eu'));
+```
 
-## Solution proposee
+- `belgian` = fournisseur belge, TVA applicable (21%)
+- `eu` = fournisseur intracommunautaire, pas de TVA
 
-### 1. Composant reutilisable `SupplierSelectOrCreate`
+## 2. Modification du composant `SupplierSelectOrCreate.tsx`
 
-Creer un composant qui combine :
-- Un **Select** avec la liste des fournisseurs existants
-- Un bouton **"+ Nouveau fournisseur"** en bas de la liste
-- Un **Dialog** qui s'ouvre pour creer rapidement un fournisseur (nom, email, telephone minimum)
-- Apres creation, le nouveau fournisseur est automatiquement selectionne
+Dans la modale de creation du fournisseur, ajouter un champ **Type de fournisseur** avec deux options (RadioGroup ou Select) :
+- **Fournisseur Belge** (defaut) - TVA applicable
+- **Fournisseur EU** - Achat intracommunautaire, pas de TVA
 
-Ce composant sera utilise dans les deux vues (globale et detail).
+Ce champ sera envoye lors de la creation via `createSupplier`.
 
-### 2. Modification de la page globale `EquipmentOrders.tsx`
+## 3. Modification du service `supplierService.ts`
 
-- Rendre la colonne "Fournisseur" cliquable/editable directement dans le tableau
-- Remplacer le texte statique par le composant `SupplierSelectOrCreate`
-- La selection/creation d'un fournisseur sauvegarde immediatement en base
+Ajouter `supplier_type` dans `CreateSupplierData` et `UpdateSupplierData` pour supporter le nouveau champ.
 
-### 3. Modification du tracker detail `EquipmentOrderTracker.tsx`
+## 4. Modification du service `equipmentOrderService.ts`
 
-- Remplacer le Select fournisseur existant (en mode edition) par le composant `SupplierSelectOrCreate`
-- Permet de creer un fournisseur sans quitter la page
+- Ajouter `supplier_type` dans les selects des fournisseurs (`fetchSuppliers`) pour que la page globale connaisse le type de chaque fournisseur.
+- Mettre a jour l'interface pour inclure cette info.
+
+## 5. Modification de la page `EquipmentOrders.tsx`
+
+Transformer la colonne **Prix** en trois colonnes :
+
+| Prix HTVA | TVA | Prix TVAC |
+|-----------|-----|-----------|
+| 1000 EUR  | 210 EUR | 1210 EUR | (fournisseur belge, 21%)
+| 500 EUR   | -   | 500 EUR  | (fournisseur EU)
+
+Logique :
+- Si le fournisseur est `belgian` : TVA = prix HTVA x 0.21, Prix TVAC = prix HTVA + TVA
+- Si le fournisseur est `eu` : TVA = "-", Prix TVAC = Prix HTVA
+- Si pas de fournisseur assigne : afficher le prix sans TVA (comme EU par defaut)
+
+Les cartes resumees en haut seront egalement mises a jour pour refleter les totaux HTVA.
 
 ## Fichiers concernes
 
-| Fichier | Action |
-|---------|--------|
-| `src/components/equipment/SupplierSelectOrCreate.tsx` | **Nouveau** - Composant reutilisable Select + creation |
-| `src/pages/admin/EquipmentOrders.tsx` | Rendre la colonne fournisseur editable avec le nouveau composant |
-| `src/components/contracts/EquipmentOrderTracker.tsx` | Remplacer le Select fournisseur par le nouveau composant |
-
-## Detail technique
-
-### `SupplierSelectOrCreate`
-
-```text
-Props:
-  - suppliers: { id, name }[]
-  - value: string | null
-  - onValueChange: (supplierId: string) => void
-  - onSupplierCreated: (newSupplier: { id, name }) => void
-  - companyId: string
-```
-
-Le composant utilise un Popover avec :
-- Une liste filtrable des fournisseurs (Command/Combobox)
-- Un separateur
-- Un bouton "+ Nouveau fournisseur" qui ouvre un Dialog
-- Le Dialog contient un formulaire rapide (nom obligatoire, email et telephone optionnels)
-- A la creation, appel a `createSupplier` du service existant, puis callback `onSupplierCreated`
-
-### Page globale - edition inline
-
-Chaque ligne du tableau affichera le `SupplierSelectOrCreate` directement (pas besoin de mode edition separe pour le fournisseur). Au changement, sauvegarde immediate via `updateOfferEquipmentOrder` ou `updateContractEquipmentOrder`.
-
+| Fichier | Modification |
+|---------|-------------|
+| Migration SQL | Ajouter colonne `supplier_type` a `suppliers` |
+| `src/services/supplierService.ts` | Ajouter `supplier_type` dans les interfaces |
+| `src/services/equipmentOrderService.ts` | Inclure `supplier_type` dans `fetchSuppliers` |
+| `src/components/equipment/SupplierSelectOrCreate.tsx` | Ajouter RadioGroup Belge/EU dans la modale |
+| `src/pages/admin/EquipmentOrders.tsx` | Remplacer colonne Prix par Prix HTVA / TVA / Prix TVAC |
