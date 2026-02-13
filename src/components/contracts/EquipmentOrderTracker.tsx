@@ -12,6 +12,7 @@ import { Truck, Package, Check, Ban, Save, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 import {
   OrderStatus,
   ORDER_STATUS_CONFIG,
@@ -222,19 +223,14 @@ const EquipmentOrderTracker: React.FC<EquipmentOrderTrackerProps> = ({
                     </TableCell>
                     <TableCell>
                       {isEditing ? (
-                        <Select
-                          value={editData.supplier_id || ''}
+                        <SupplierSelectOrCreate
+                          suppliers={suppliers}
+                          value={editData.supplier_id || null}
                           onValueChange={(v) => setEditData(prev => ({ ...prev, supplier_id: v || null }))}
-                        >
-                          <SelectTrigger className="w-40 h-8">
-                            <SelectValue placeholder="Choisir..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {suppliers.map(s => (
-                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onSupplierCreated={(newSupplier) => {
+                            setSuppliers(prev => [...prev, newSupplier].sort((a, b) => a.name.localeCompare(b.name)));
+                          }}
+                        />
                       ) : (
                         <span className="text-sm">{supplierName || '—'}</span>
                       )}

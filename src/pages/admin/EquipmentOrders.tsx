@@ -19,6 +19,7 @@ import {
   updateOfferEquipmentOrder,
   updateContractEquipmentOrder,
 } from "@/services/equipmentOrderService";
+import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
 
 const EquipmentOrders: React.FC = () => {
   const { companyId } = useMultiTenant();
@@ -71,6 +72,21 @@ const EquipmentOrders: React.FC = () => {
       fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour");
+    }
+  };
+
+  const handleSupplierChange = async (item: EquipmentOrderItem, supplierId: string) => {
+    try {
+      const update = { supplier_id: supplierId };
+      if (item.source_type === 'offer') {
+        await updateOfferEquipmentOrder(item.id, update);
+      } else {
+        await updateContractEquipmentOrder(item.id, update);
+      }
+      toast.success("Fournisseur mis à jour");
+      fetchData();
+    } catch {
+      toast.error("Erreur lors de la mise à jour du fournisseur");
     }
   };
 
@@ -150,7 +166,16 @@ const EquipmentOrders: React.FC = () => {
                     <div className="font-medium text-sm">{item.title}</div>
                     <div className="text-xs text-muted-foreground">Qté: {item.quantity}</div>
                   </TableCell>
-                  <TableCell className="text-sm">{supplierName || '—'}</TableCell>
+                  <TableCell>
+                    <SupplierSelectOrCreate
+                      suppliers={suppliers}
+                      value={item.supplier_id}
+                      onValueChange={(supplierId) => handleSupplierChange(item, supplierId)}
+                      onSupplierCreated={(newSupplier) => {
+                        setSuppliers(prev => [...prev, newSupplier].sort((a, b) => a.name.localeCompare(b.name)));
+                      }}
+                    />
+                  </TableCell>
                   <TableCell className="text-right text-sm font-medium">
                     {formatCurrency((item.supplier_price || item.purchase_price) * item.quantity)}
                   </TableCell>
