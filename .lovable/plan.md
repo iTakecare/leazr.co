@@ -1,58 +1,44 @@
 
-# Ajout du type de fournisseur (Belge / EU) et colonnes TVA
+# Correction de l'erreur de creation de fournisseur
 
-## 1. Migration base de donnees
+## Probleme identifie
 
-Ajouter une colonne `supplier_type` a la table `suppliers` pour distinguer les fournisseurs belges des fournisseurs EU :
+La fonction `createSupplier` dans `src/services/supplierService.ts` (ligne 77-80) fait une requete sur la table `profiles` sans filtre sur l'utilisateur connecte :
 
 ```sql
-ALTER TABLE suppliers 
-ADD COLUMN supplier_type text NOT NULL DEFAULT 'belgian' 
-CHECK (supplier_type IN ('belgian', 'eu'));
+SELECT company_id FROM profiles -- sans WHERE !
 ```
 
-- `belgian` = fournisseur belge, TVA applicable (21%)
-- `eu` = fournisseur intracommunautaire, pas de TVA
+Cela retourne plusieurs lignes (tous les profils), et `.single()` echoue car il attend exactement une ligne. D'ou l'erreur "User company not found".
 
-## 2. Modification du composant `SupplierSelectOrCreate.tsx`
+## Correction
 
-Dans la modale de creation du fournisseur, ajouter un champ **Type de fournisseur** avec deux options (RadioGroup ou Select) :
-- **Fournisseur Belge** (defaut) - TVA applicable
-- **Fournisseur EU** - Achat intracommunautaire, pas de TVA
+Modifier la fonction `createSupplier` pour recuperer d'abord l'utilisateur connecte via `supabase.auth.getUser()`, puis filtrer la requete profiles par son `user_id`.
 
-Ce champ sera envoye lors de la creation via `createSupplier`.
-
-## 3. Modification du service `supplierService.ts`
-
-Ajouter `supplier_type` dans `CreateSupplierData` et `UpdateSupplierData` pour supporter le nouveau champ.
-
-## 4. Modification du service `equipmentOrderService.ts`
-
-- Ajouter `supplier_type` dans les selects des fournisseurs (`fetchSuppliers`) pour que la page globale connaisse le type de chaque fournisseur.
-- Mettre a jour l'interface pour inclure cette info.
-
-## 5. Modification de la page `EquipmentOrders.tsx`
-
-Transformer la colonne **Prix** en trois colonnes :
-
-| Prix HTVA | TVA | Prix TVAC |
-|-----------|-----|-----------|
-| 1000 EUR  | 210 EUR | 1210 EUR | (fournisseur belge, 21%)
-| 500 EUR   | -   | 500 EUR  | (fournisseur EU)
-
-Logique :
-- Si le fournisseur est `belgian` : TVA = prix HTVA x 0.21, Prix TVAC = prix HTVA + TVA
-- Si le fournisseur est `eu` : TVA = "-", Prix TVAC = Prix HTVA
-- Si pas de fournisseur assigne : afficher le prix sans TVA (comme EU par defaut)
-
-Les cartes resumees en haut seront egalement mises a jour pour refleter les totaux HTVA.
-
-## Fichiers concernes
+### Fichier concerne
 
 | Fichier | Modification |
 |---------|-------------|
-| Migration SQL | Ajouter colonne `supplier_type` a `suppliers` |
-| `src/services/supplierService.ts` | Ajouter `supplier_type` dans les interfaces |
-| `src/services/equipmentOrderService.ts` | Inclure `supplier_type` dans `fetchSuppliers` |
-| `src/components/equipment/SupplierSelectOrCreate.tsx` | Ajouter RadioGroup Belge/EU dans la modale |
-| `src/pages/admin/EquipmentOrders.tsx` | Remplacer colonne Prix par Prix HTVA / TVA / Prix TVAC |
+| `src/services/supplierService.ts` | Ajouter `auth.getUser()` et filtrer `.eq('id', user.id)` dans `createSupplier` |
+
+### Code modifie (lignes 75-84)
+
+```typescript
+export async function createSupplier(supplierData: CreateSupplierData): Promise<Supplier> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.company_id) {
+    throw new Error('User company not found');
+  }
+  // ... reste inchange
+}
+```
+
+Aucun autre fichier n'est modifie.
