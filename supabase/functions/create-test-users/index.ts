@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,8 +15,29 @@ serve(async (req) => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['super_admin'],
+      rateLimit: {
+        endpoint: 'create-test-users',
+        maxRequests: 3,
+        windowSeconds: 60,
+        identifierPrefix: 'create-test-users',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
+    if (Deno.env.get("ALLOW_CREATE_TEST_USERS") !== "true") {
+      return new Response(JSON.stringify({ success: false, error: "create-test-users is disabled" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
     // Initialize Supabase client with service role key
-    const supabase = createClient(
+    const supabase = access.context.supabaseAdmin || createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );

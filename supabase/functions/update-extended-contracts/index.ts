@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp, requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,8 +18,61 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const cronSecret = Deno.env.get('UPDATE_EXTENDED_CONTRACTS_SECRET');
+    const providedCronSecret = req.headers.get('x-cron-secret');
+
+    let supabase = createClient(supabaseUrl, supabaseServiceKey);
+    let isAuthorized = false;
+
+    if (cronSecret && providedCronSecret && providedCronSecret === cronSecret) {
+      isAuthorized = true;
+
+      const clientIp = getClientIp(req);
+      const cronRateLimit = await checkRateLimit(
+        supabase,
+        `update-extended-contracts-cron:${clientIp}`,
+        'update-extended-contracts-cron',
+        { maxRequests: 10, windowSeconds: 60 }
+      );
+
+      if (!cronRateLimit.allowed) {
+        return new Response(
+          JSON.stringify({ error: 'Too many requests' }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'X-RateLimit-Remaining': cronRateLimit.remaining.toString(),
+            }
+          }
+        );
+      }
+    } else {
+      const access = await requireElevatedAccess(req, corsHeaders, {
+        allowedRoles: ['super_admin'],
+        rateLimit: {
+          endpoint: 'update-extended-contracts-admin',
+          maxRequests: 10,
+          windowSeconds: 60,
+          identifierPrefix: 'update-extended-contracts-admin',
+        },
+      });
+
+      if (!access.ok) {
+        return access.response;
+      }
+
+      isAuthorized = true;
+      supabase = access.context.supabaseAdmin;
+    }
+
+    if (!isAuthorized) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0];

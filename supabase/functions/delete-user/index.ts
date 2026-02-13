@@ -1,6 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { requireElevatedAccess } from '../_shared/security.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,20 @@ serve(async (req) => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['admin', 'super_admin'],
+      rateLimit: {
+        endpoint: 'delete-user',
+        maxRequests: 20,
+        windowSeconds: 60,
+        identifierPrefix: 'delete-user',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
@@ -27,7 +42,7 @@ serve(async (req) => {
     }
     
     // Initialize the Supabase client with the service role key for admin privileges
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = access.context.supabaseAdmin || createClient(supabaseUrl, supabaseServiceKey);
     
     // Parse request body
     const { user_id } = await req.json();
@@ -60,6 +75,25 @@ serve(async (req) => {
         userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
         companyId = profile.company_id;
         entityType = profile.role;
+
+        if (
+          !access.context.isServiceRole &&
+          access.context.role !== 'super_admin' &&
+          (!companyId || access.context.companyId !== companyId)
+        ) {
+          return new Response(
+            JSON.stringify({ error: 'Cross-company user deletion is forbidden' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          );
+        }
+      } else if (
+        !access.context.isServiceRole &&
+        access.context.role !== 'super_admin'
+      ) {
+        return new Response(
+          JSON.stringify({ error: 'Target user profile not found in your scope' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
       }
       
       // Récupérer l'email depuis auth.users

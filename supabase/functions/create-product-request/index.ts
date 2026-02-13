@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getAppUrl, getFromEmail, getFromName } from "../_shared/url-utils.ts";
 import { createProductRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp } from "../_shared/security.ts";
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 // Configuration CORS pour permettre les requêtes depuis n'importe quelle origine
@@ -47,6 +49,53 @@ serve(async (req) => {
         return createValidationErrorResponse(error, corsHeaders);
       }
       throw error;
+    }
+
+    // Rate limit public request creation to reduce spam/abuse.
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(
+      supabaseAdmin,
+      `create-product-request:${clientIp}`,
+      "create-product-request-ip",
+      { maxRequests: 10, windowSeconds: 60 }
+    );
+
+    if (!ipLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': ipLimit.remaining.toString(),
+          }
+        }
+      );
+    }
+
+    const requesterEmail = (data?.client?.email || data?.contact_info?.email || '').toString().trim().toLowerCase();
+    if (requesterEmail) {
+      const emailLimit = await checkRateLimit(
+        supabaseAdmin,
+        `create-product-request-email:${requesterEmail}`,
+        "create-product-request-email",
+        { maxRequests: 5, windowSeconds: 60 }
+      );
+
+      if (!emailLimit.allowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many requests" }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'X-RateLimit-Remaining': emailLimit.remaining.toString(),
+            }
+          }
+        );
+      }
     }
     
     console.log("Données reçues par la fonction Edge:", data);

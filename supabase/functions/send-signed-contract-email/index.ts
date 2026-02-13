@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp, getJwtRoleFromRequest, requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +11,8 @@ const corsHeaders = {
 };
 
 interface SendSignedContractRequest {
-  contractId: string;
+  contractId?: string;
+  signatureToken?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -19,38 +22,147 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { contractId }: SendSignedContractRequest = await req.json();
+    const { contractId, signatureToken }: SendSignedContractRequest = await req.json();
 
-    if (!contractId) {
-      throw new Error("Missing contractId parameter");
+    if (!contractId && !signatureToken) {
+      throw new Error("Missing contractId or signatureToken parameter");
     }
 
-    console.log("Processing signed contract email for:", contractId);
+    console.log("Processing signed contract email for:", contractId || "signature-token-flow");
 
     // Initialize Supabase client with service role for admin access
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    let supabase = createClient(supabaseUrl, supabaseServiceKey);
+    let authContext: any = null;
+
+    const hasAuthorizationHeader = !!req.headers.get("Authorization");
+    const jwtRole = getJwtRoleFromRequest(req);
+    const hasPrivilegedAuthorization = hasAuthorizationHeader && jwtRole !== null && jwtRole !== "anon";
+
+    if (hasPrivilegedAuthorization) {
+      if (!contractId) {
+        return new Response(
+          JSON.stringify({ error: "contractId is required for authenticated requests" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      const access = await requireElevatedAccess(req, corsHeaders, {
+        allowedRoles: ["admin", "super_admin", "broker"],
+        rateLimit: {
+          endpoint: "send-signed-contract-email-auth",
+          maxRequests: 25,
+          windowSeconds: 60,
+          identifierPrefix: "send-signed-contract-email-auth",
+        },
+      });
+
+      if (!access.ok) {
+        return access.response;
+      }
+
+      authContext = access.context;
+      supabase = authContext.supabaseAdmin;
+    } else {
+      if (!signatureToken) {
+        return new Response(
+          JSON.stringify({ error: "Authorization header or signatureToken is required" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      const clientIp = getClientIp(req);
+      const publicRateLimit = await checkRateLimit(
+        supabase,
+        `send-signed-contract-email-public:${clientIp}`,
+        "send-signed-contract-email-public",
+        { maxRequests: 5, windowSeconds: 60 }
+      );
+
+      if (!publicRateLimit.allowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many requests" }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+              "X-RateLimit-Remaining": publicRateLimit.remaining.toString(),
+            },
+          }
+        );
+      }
+    }
 
     // Fetch contract with all related data including client and offer (for down payment)
-    const { data: contract, error: contractError } = await supabase
+    let contractQuery = supabase
       .from("contracts")
       .select(`
         *,
         contract_equipment (*),
         clients (id, name, email, company, phone, address, city, postal_code, vat_number),
         offers!offer_id (down_payment, coefficient, monthly_payment, financed_amount, amount)
-      `)
-      .eq("id", contractId)
-      .single();
+      `);
+
+    if (signatureToken && !authContext) {
+      contractQuery = contractQuery.eq("contract_signature_token", signatureToken);
+    } else {
+      contractQuery = contractQuery.eq("id", contractId);
+    }
+
+    const { data: contract, error: contractError } = await contractQuery.single();
 
     if (contractError || !contract) {
       console.error("Contract fetch error:", contractError);
       throw new Error("Contrat non trouvé");
     }
 
+    if (
+      authContext &&
+      !authContext.isServiceRole &&
+      authContext.role !== "super_admin" &&
+      authContext.companyId !== contract.company_id
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Cross-company signed contract email is forbidden" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (!authContext) {
+      if (contract.signature_status !== "signed") {
+        return new Response(
+          JSON.stringify({ error: "Contract must be signed before sending email" }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      if (!contract.contract_signature_token || contract.contract_signature_token !== signatureToken) {
+        return new Response(
+          JSON.stringify({ error: "Invalid signature token" }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+    }
+
     // Resolve contract reference with fallback
-    const contractReference = contract.tracking_number || contract.contract_number || `CONTRAT-${contractId.substring(0, 8).toUpperCase()}`;
+    const contractReference = contract.tracking_number || contract.contract_number || `CONTRAT-${String(contract.id).substring(0, 8).toUpperCase()}`;
     console.log("Contract reference resolved:", contractReference, "(tracking_number:", contract.tracking_number, "contract_number:", contract.contract_number, ")");
 
     // Fetch company data with slug for PDF download URL
@@ -425,7 +537,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_email_sent_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq("id", contractId);
+      .eq("id", contract.id);
 
     return new Response(
       JSON.stringify({ 

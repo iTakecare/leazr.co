@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { createErrorResponse } from '../_shared/errorHandler.ts'
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +53,50 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`Login attempt for user: ${email.substring(0, 3)}***`);
+
+    // Rate limit to reduce brute-force and credential-stuffing attempts.
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(
+      supabase,
+      `custom-login:${clientIp}`,
+      "custom-login-ip",
+      { maxRequests: 25, windowSeconds: 60 }
+    );
+
+    if (!ipLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+            "X-RateLimit-Remaining": ipLimit.remaining.toString(),
+          },
+        }
+      );
+    }
+
+    const emailLimit = await checkRateLimit(
+      supabase,
+      `custom-login-email:${email.toLowerCase()}`,
+      "custom-login-email",
+      { maxRequests: 10, windowSeconds: 60 }
+    );
+
+    if (!emailLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+            "X-RateLimit-Remaining": emailLimit.remaining.toString(),
+          },
+        }
+      );
+    }
 
     // 1. Récupérer l'utilisateur par email
     const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);

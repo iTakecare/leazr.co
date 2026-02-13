@@ -1,7 +1,7 @@
 
 // Fonction Edge Supabase pour créer un bucket de paramètres du site
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,15 +17,39 @@ serve(async (req) => {
 
   // Extraire les informations de la requête
   try {
-    // Créer le client Supabase avec les clés d'environnement
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+    if (req.method !== "POST") {
+      return new Response(
+        JSON.stringify({ error: "Méthode non supportée" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 405 }
+      );
+    }
 
-    const body = await req.json();
-    const { bucketName = "site-settings" } = body;
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ["super_admin"],
+      rateLimit: {
+        endpoint: "create-site-settings-bucket",
+        maxRequests: 5,
+        windowSeconds: 60,
+        identifierPrefix: "create-site-settings-bucket",
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
+    const supabaseClient = access.context.supabaseAdmin;
+
+    const body = await req.json().catch(() => ({}));
+    const { bucketName = "site-settings" } = body || {};
+
+    // This function is only meant to manage the site-settings bucket.
+    if (bucketName !== "site-settings") {
+      return new Response(
+        JSON.stringify({ error: "Bucket non autorisé" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
 
     console.log(`Tentative de création du bucket: ${bucketName}`);
 

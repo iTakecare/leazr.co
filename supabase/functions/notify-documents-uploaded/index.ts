@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { corsHeaders } from "../_shared/cors.ts";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp, getJwtRoleFromRequest, requireElevatedAccess } from "../_shared/security.ts";
 import { getAppUrl, getFromEmail, getFromName } from "../_shared/url-utils.ts";
 
 const RESEND_API_KEY = Deno.env.get('ITAKECARE_RESEND_API');
@@ -11,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { offerId } = await req.json();
+    const { offerId, uploadToken } = await req.json();
 
     console.log('📧 [NOTIFY-DOCUMENTS] Début notification pour offre:', offerId);
 
@@ -24,8 +26,31 @@ serve(async (req) => {
       throw new Error('ITAKECARE_RESEND_API not configured');
     }
 
+    let authContext: any = null;
+    const hasAuthorizationHeader = !!req.headers.get('Authorization');
+    const jwtRole = getJwtRoleFromRequest(req);
+    const hasPrivilegedAuthorization = hasAuthorizationHeader && jwtRole !== null && jwtRole !== 'anon';
+
+    if (hasPrivilegedAuthorization) {
+      const access = await requireElevatedAccess(req, corsHeaders, {
+        allowedRoles: ['admin', 'super_admin', 'broker'],
+        rateLimit: {
+          endpoint: 'notify-documents-uploaded-auth',
+          maxRequests: 40,
+          windowSeconds: 60,
+          identifierPrefix: 'notify-documents-uploaded-auth',
+        },
+      });
+
+      if (!access.ok) {
+        return access.response;
+      }
+
+      authContext = access.context;
+    }
+
     // Initialiser le client Supabase avec service role
-    const supabaseAdmin = createClient(
+    const supabaseAdmin = authContext?.supabaseAdmin ?? createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
@@ -35,6 +60,67 @@ serve(async (req) => {
         }
       }
     );
+
+    if (!authContext) {
+      if (!uploadToken) {
+        return new Response(
+          JSON.stringify({ error: 'uploadToken is required for public access' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      const clientIp = getClientIp(req);
+      const rateLimit = await checkRateLimit(
+        supabaseAdmin,
+        `notify-documents-uploaded-public:${clientIp}`,
+        'notify-documents-uploaded-public',
+        { maxRequests: 10, windowSeconds: 60 }
+      );
+
+      if (!rateLimit.allowed) {
+        return new Response(
+          JSON.stringify({ error: 'Too many requests' }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            }
+          }
+        );
+      }
+
+      const { data: uploadLink, error: uploadLinkError } = await supabaseAdmin
+        .from('offer_upload_links')
+        .select('token, offer_id, expires_at')
+        .eq('token', uploadToken)
+        .eq('offer_id', offerId)
+        .maybeSingle();
+
+      if (uploadLinkError || !uploadLink) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid upload token' }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      if (new Date(uploadLink.expires_at).getTime() <= Date.now()) {
+        return new Response(
+          JSON.stringify({ error: 'Upload token has expired' }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    }
 
     // 1. Récupérer les documents NON notifiés pour cette offre
     const { data: documents, error: docsError } = await supabaseAdmin
@@ -79,6 +165,21 @@ serve(async (req) => {
     if (offerError || !offer) {
       console.error('❌ Erreur récupération offre:', offerError);
       throw new Error('Offer not found');
+    }
+
+    if (
+      authContext &&
+      !authContext.isServiceRole &&
+      authContext.role !== 'super_admin' &&
+      authContext.companyId !== offer.company_id
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Cross-company notification is forbidden' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('✓ Offre récupérée:', { 

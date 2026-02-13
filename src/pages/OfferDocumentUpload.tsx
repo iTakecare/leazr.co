@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { useMemo, useState, useEffect } from "react";
+import { useLocation, useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,6 +49,7 @@ interface DocumentStatus {
 
 const OfferDocumentUpload = () => {
   const { token } = useParams<{ token: string }>();
+  const location = useLocation();
   const [uploadLink, setUploadLink] = useState<OfferUploadLink | null>(null);
   const [existingDocuments, setExistingDocuments] = useState<OfferDocument[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
@@ -63,6 +64,20 @@ const OfferDocumentUpload = () => {
   
   const [error, setError] = useState<string | null>(null);
 
+  // Debug UI should never be visible to public users. If needed, enable locally with `?debug=1`.
+  const showDebug = useMemo(() => {
+    if (!import.meta.env.DEV) return false;
+    return new URLSearchParams(location.search).get('debug') === '1';
+  }, [location.search]);
+
+  const debugLog = (...args: unknown[]) => {
+    if (showDebug) console.log(...args);
+  };
+
+  const debugError = (...args: unknown[]) => {
+    if (showDebug) console.error(...args);
+  };
+
   useEffect(() => {
     const checkToken = async () => {
       if (!token) {
@@ -71,11 +86,11 @@ const OfferDocumentUpload = () => {
         return;
       }
 
-      console.log('Vérification du token:', token);
+      debugLog('[OfferDocumentUpload] Validating upload token');
       
       try {
         const link = await validateUploadToken(token);
-        console.log('Résultat de la validation:', link);
+        debugLog('[OfferDocumentUpload] Token validation result:', { ok: !!link });
         
         if (link) {
           setUploadLink(link);
@@ -88,17 +103,18 @@ const OfferDocumentUpload = () => {
           const company = await getCompanyByOfferId(link.offer_id);
           setCompanyInfo(company);
           
-          console.log('🔍 DEBUG - Lien d\'upload validé:', link);
-          console.log('🔍 DEBUG - Documents existants:', documents);
-          console.log('🔍 DEBUG - Informations entreprise:', company);
-          console.log('🔍 DEBUG - Company logo URL:', company?.logo_url);
-          console.log('🔍 DEBUG - Company logo URL exists?', !!company?.logo_url);
+          debugLog('[OfferDocumentUpload] Loaded offer context:', {
+            offerId: link.offer_id,
+            documentsCount: documents?.length ?? 0,
+            hasCompany: !!company,
+            hasCompanyLogoUrl: !!company?.logo_url,
+          });
         } else {
           setError("Lien invalide ou expiré");
-          console.error('Token invalide ou expiré');
+          debugLog('[OfferDocumentUpload] Invalid or expired token');
         }
       } catch (error) {
-        console.error('Erreur lors de la validation du token:', error);
+        debugError('[OfferDocumentUpload] Token validation error:', error);
         setError("Erreur lors de la validation du lien");
       } finally {
         setLoading(false);
@@ -165,7 +181,7 @@ const OfferDocumentUpload = () => {
     setUploading(documentType);
 
     try {
-      console.log('Début de l\'upload:', { 
+      debugLog('[OfferDocumentUpload] Upload start:', { 
         documentType, 
         fileName: file.name, 
         size: file.size,
@@ -181,14 +197,14 @@ const OfferDocumentUpload = () => {
         setExistingDocuments(updatedDocuments);
         setUploadedDocs(prev => new Set([...prev, documentType]));
         toast.success("Document uploadé avec succès");
-        console.log('Upload réussi pour:', documentType);
+        debugLog('[OfferDocumentUpload] Upload success:', { documentType });
       } else {
         // Afficher le message d'erreur détaillé
         toast.error(result.error || "Erreur lors de l'upload du document");
-        console.error('Échec de l\'upload pour:', documentType, result.error);
+        debugLog('[OfferDocumentUpload] Upload failed:', { documentType, error: result.error });
       }
     } catch (error) {
-      console.error("Erreur upload:", error);
+      debugError("[OfferDocumentUpload] Upload error:", error);
       toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setUploading(null);
@@ -222,7 +238,7 @@ const OfferDocumentUpload = () => {
       const docType = additionalDocType ? `additional:${additionalDocType}` : 'additional:other';
       const description = additionalDocDescription || file.name;
       
-      console.log('Upload document additionnel:', { 
+      debugLog('[OfferDocumentUpload] Additional upload start:', { 
         docType, 
         description,
         fileName: file.name, 
@@ -245,7 +261,7 @@ const OfferDocumentUpload = () => {
         toast.error(result.error || "Erreur lors de l'upload du document");
       }
     } catch (error) {
-      console.error("Erreur upload document additionnel:", error);
+      debugError("[OfferDocumentUpload] Additional upload error:", error);
       toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setUploadingAdditional(false);
@@ -279,9 +295,9 @@ const OfferDocumentUpload = () => {
           </CardHeader>
           <CardContent>
             <p>{error || "Ce lien d'upload est invalide ou a expiré."}</p>
-            {token && (
+            {showDebug && token && (
               <div className="mt-4 p-3 bg-gray-100 rounded text-sm">
-                <strong>Token:</strong> {token}
+                <strong>Token (debug):</strong> {token.slice(0, 8)}...
               </div>
             )}
           </CardContent>
@@ -306,8 +322,10 @@ const OfferDocumentUpload = () => {
                       alt={`Logo ${companyInfo.name}`}
                       className="h-20 w-auto max-w-xs object-contain"
                       onError={(e) => {
-                        console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
-                        console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
+                        debugError('[OfferDocumentUpload] Logo load error:', {
+                          url: companyInfo.logo_url,
+                          error: e,
+                        });
                         const target = e.currentTarget;
                         const parent = target.parentElement;
                         if (parent) {
@@ -330,7 +348,7 @@ const OfferDocumentUpload = () => {
                         }
                       }}
                       onLoad={() => {
-                        console.log('🔍 DEBUG - Logo chargé avec succès:', companyInfo.logo_url);
+                        debugLog('[OfferDocumentUpload] Logo loaded:', companyInfo.logo_url);
                       }}
                     />
                   ) : (
@@ -405,14 +423,16 @@ const OfferDocumentUpload = () => {
                   <img 
                     src={companyInfo.logo_url} 
                     alt={`Logo ${companyInfo.name}`}
-                    className="h-20 w-auto max-w-xs object-contain"
-                    onError={(e) => {
-                      console.error('🔍 DEBUG - Erreur de chargement du logo:', e);
-                      console.error('🔍 DEBUG - URL du logo qui a échoué:', companyInfo.logo_url);
-                      const target = e.currentTarget;
-                      const parent = target.parentElement;
-                      if (parent) {
-                        // ✅ SÉCURISÉ: Création d'éléments DOM sans innerHTML
+                      className="h-20 w-auto max-w-xs object-contain"
+                      onError={(e) => {
+                        debugError('[OfferDocumentUpload] Logo load error:', {
+                          url: companyInfo.logo_url,
+                          error: e,
+                        });
+                        const target = e.currentTarget;
+                        const parent = target.parentElement;
+                        if (parent) {
+                          // ✅ SÉCURISÉ: Création d'éléments DOM sans innerHTML
                         const fallbackDiv = document.createElement('div');
                         fallbackDiv.className = 'h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary';
                         
@@ -429,12 +449,12 @@ const OfferDocumentUpload = () => {
                         parent.innerHTML = '';
                         parent.appendChild(fallbackDiv);
                       }
-                    }}
-                    onLoad={() => {
-                      console.log('🔍 DEBUG - Logo chargé avec succès:', companyInfo.logo_url);
-                    }}
-                  />
-                ) : (
+                      }}
+                      onLoad={() => {
+                        debugLog('[OfferDocumentUpload] Logo loaded:', companyInfo.logo_url);
+                      }}
+                    />
+                  ) : (
                   <div className="h-20 w-32 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg flex flex-col items-center justify-center text-primary">
                     <div className="text-xl font-bold">{companyInfo.name.substring(0, 2).toUpperCase()}</div>
                     <div className="text-xs opacity-70">Logo</div>
@@ -733,11 +753,11 @@ const OfferDocumentUpload = () => {
               </CardContent>
             </Card>
 
-            {process.env.NODE_ENV === 'development' && (
+            {showDebug && (
               <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
                 <strong>Debug Info:</strong>
                 <pre>{JSON.stringify({ 
-                  token, 
+                  token: token ? `${token.slice(0, 8)}...` : null,
                   documentStatuses,
                   allApproved,
                   hasRejected,

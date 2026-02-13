@@ -1,6 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { requireElevatedAccess } from '../_shared/security.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +16,25 @@ serve(async (req) => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['super_admin'],
+      rateLimit: {
+        endpoint: 'get-all-users',
+        maxRequests: 20,
+        windowSeconds: 60,
+        identifierPrefix: 'get-all-users',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
     // Initialize the Supabase client with the service role key for admin privileges
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = access.context.supabaseAdmin || createClient(supabaseUrl, supabaseServiceKey);
     
     // Get all users with the admin client
     const { data, error } = await supabaseAdmin.auth.admin.listUsers();

@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp } from "../_shared/security.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -31,6 +33,52 @@ const handler = async (req: Request): Promise<Response> => {
     const { type, companyName, adminEmail, adminFirstName, adminLastName, companyId, confirmationToken }: TrialEmailRequest = await req.json();
 
     console.log(`Sending ${type} email to ${adminEmail} for company ${companyName}`);
+
+    // Rate limit this public endpoint to prevent email abuse.
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(
+      supabase,
+      `send-trial-welcome-email:${clientIp}`,
+      "send-trial-welcome-email-ip",
+      { maxRequests: 5, windowSeconds: 60 }
+    );
+
+    if (!ipLimit.allowed) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+            "X-RateLimit-Remaining": ipLimit.remaining.toString(),
+          },
+        }
+      );
+    }
+
+    if (adminEmail) {
+      const emailLimit = await checkRateLimit(
+        supabase,
+        `send-trial-welcome-email-email:${adminEmail.toLowerCase()}`,
+        "send-trial-welcome-email-email",
+        { maxRequests: 3, windowSeconds: 60 }
+      );
+
+      if (!emailLimit.allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Too many requests" }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+              "X-RateLimit-Remaining": emailLimit.remaining.toString(),
+            },
+          }
+        );
+      }
+    }
 
     // Récupérer les paramètres SMTP depuis la base de données
     const { data: smtpSettings, error: settingsError } = await supabase

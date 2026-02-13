@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,17 +74,52 @@ serve(async (req) => {
   }
 
   try {
-    const { companyId }: ImportRequest = await req.json();
-    console.log("📥 Début import factures Billit - companyId:", companyId);
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ["admin", "super_admin"],
+      rateLimit: {
+        endpoint: "billit-import-invoices",
+        maxRequests: 8,
+        windowSeconds: 60,
+        identifierPrefix: "billit-import-invoices",
+      },
+    });
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Variables d'environnement Supabase manquantes");
+    if (!access.ok) {
+      return access.response;
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    let payload: ImportRequest;
+    try {
+      payload = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ success: false, error: "Invalid JSON body" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    const { companyId } = payload;
+    console.log("📥 Début import factures Billit - companyId:", companyId);
+
+    if (!companyId) {
+      return new Response(JSON.stringify({ success: false, error: "companyId is required" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== "super_admin" &&
+      access.context.companyId !== companyId
+    ) {
+      return new Response(JSON.stringify({ success: false, error: "Cross-company access forbidden" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403
+      });
+    }
+
+    const supabase = access.context.supabaseAdmin;
 
     // Récupérer les identifiants Billit
     const { data: integration, error: integrationError } = await supabase

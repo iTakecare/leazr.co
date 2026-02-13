@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 // Headers CORS
 const corsHeaders = {
@@ -22,13 +22,48 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['admin', 'super_admin'],
+      rateLimit: {
+        endpoint: 'send-account-deleted-email',
+        maxRequests: 20,
+        windowSeconds: 60,
+        identifierPrefix: 'send-account-deleted-email',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     const { userEmail, userName, companyId, entityType }: DeletedEmailRequest = await req.json();
 
+    if (!userEmail || !userName || !companyId || !entityType) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields', success: false }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== 'super_admin' &&
+      access.context.companyId !== companyId
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Cross-company account deletion email is forbidden', success: false }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     // Initialiser le client Supabase
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabase = access.context.supabaseAdmin;
 
     // Récupérer les informations de l'entreprise
     const { data: companyData, error: companyError } = await supabase

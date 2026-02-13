@@ -31,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('🔍 get-ambassador-company: Validating token:', token);
+    console.log('🔍 get-ambassador-company: Validating token');
 
     // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
       .select('*')
       .eq('token', token);
 
-    console.log('🔍 get-ambassador-company: Token check result:', { tokenCheck, tokenCheckError });
+    console.log('🔍 get-ambassador-company: Token check completed:', { hasResult: !!tokenCheck?.length, hasError: !!tokenCheckError });
 
     // Verify the custom token
     const { data: tokenData, error: tokenError } = await supabase
@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
       .gt('expires_at', new Date().toISOString())
       .single();
 
-    console.log('🔍 get-ambassador-company: Full token validation result:', { tokenData, tokenError });
+    console.log('🔍 get-ambassador-company: Token validation completed:', { isValid: !!tokenData, hasError: !!tokenError });
 
     if (tokenError || !tokenData) {
       console.error('❌ get-ambassador-company: Invalid or expired token:', tokenError);

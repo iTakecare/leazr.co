@@ -27,7 +27,7 @@ const pendingNotifications = new Map<string, ReturnType<typeof setTimeout>>();
  * Si plusieurs documents sont uploadés en rafale, un seul email sera envoyé
  * 5 secondes après le dernier upload.
  */
-const scheduleDocumentNotification = (offerId: string) => {
+const scheduleDocumentNotification = (offerId: string, uploadToken?: string) => {
   // Annuler le timer précédent s'il existe
   if (pendingNotifications.has(offerId)) {
     clearTimeout(pendingNotifications.get(offerId));
@@ -39,7 +39,7 @@ const scheduleDocumentNotification = (offerId: string) => {
     console.log('📧 Envoi notification groupée pour offre:', offerId);
     try {
       const { data, error } = await supabase.functions.invoke('notify-documents-uploaded', {
-        body: { offerId }
+        body: { offerId, uploadToken }
       });
       
       if (error) {
@@ -213,7 +213,7 @@ export const createUploadLink = async (
 // Vérifier la validité d'un token via RPC sécurisé (pas d'accès direct à la table)
 export const validateUploadToken = async (token: string): Promise<OfferUploadLink | null> => {
   try {
-    console.log('Validation du token via RPC:', token);
+    console.log('Validation du token via RPC');
     
     // Use SECURITY DEFINER RPC function to validate token without exposing table data
     const { data, error } = await supabase
@@ -253,7 +253,6 @@ export const uploadDocument = async (
 ): Promise<UploadResult> => {
   try {
     console.log('=== DÉBUT UPLOAD DOCUMENT SIMPLIFIÉ ===');
-    console.log('Token:', token);
     console.log('Type de document:', documentType);
     console.log('Fichier original:', {
       name: file.name,
@@ -290,7 +289,7 @@ export const uploadDocument = async (
     const fileExtension = file.name.split('.').pop() || 'bin';
     const fileName = `${token}/${documentType}_${timestamp}_${randomId}.${fileExtension}`;
 
-    console.log('✓ Chemin de destination:', fileName);
+    console.log('✓ Chemin de destination construit');
 
     // Étape 5: Upload vers Supabase Storage avec le client dédié aux fichiers
     console.log('=== UPLOAD VERS SUPABASE STORAGE ===');
@@ -333,7 +332,7 @@ export const uploadDocument = async (
     };
 
     console.log('=== ENREGISTREMENT EN BASE ===');
-    console.log('Données à insérer:', documentData);
+    console.log('Données à insérer: offer_id/document_type/metadata');
 
     const { error: insertError, data: insertedData } = await supabase
       .from('offer_documents')
@@ -356,9 +355,8 @@ export const uploadDocument = async (
     }
 
     console.log('=== ✅ SUCCÈS COMPLET ===');
-    console.log('Document enregistré:', insertedData);
+    console.log('Document enregistré avec succès');
     console.log('MIME type final:', detectedMimeType);
-    console.log('Chemin final:', fileName);
     
     // Mettre à jour le timestamp de dernier upload sur l'offre
     try {
@@ -372,7 +370,7 @@ export const uploadDocument = async (
     }
     
     // Programmer la notification groupée (debounce de 5 secondes)
-    scheduleDocumentNotification(uploadLink.offer_id);
+    scheduleDocumentNotification(uploadLink.offer_id, token);
     
     return { success: true };
   } catch (error) {

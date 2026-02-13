@@ -1,19 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { sendDocumentRequestSchema, createValidationErrorResponse } from "../_shared/validationSchemas.ts";
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-// Créer un client Supabase
-const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface RequestDocumentsData {
   offerId: string;
@@ -38,17 +33,22 @@ serve(async (req) => {
   }
 
   try {
-    // Debug: Afficher les variables d'environnement disponibles
-    console.log("=== DEBUG VARIABLES D'ENVIRONNEMENT ===");
-    console.log("SUPABASE_URL présent:", !!Deno.env.get("SUPABASE_URL"));
-    console.log("SUPABASE_SERVICE_ROLE_KEY présent:", !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-    console.log("RESEND_API_KEY présent:", !!Deno.env.get("RESEND_API_KEY"));
-    console.log("APP_URL présent:", !!Deno.env.get("APP_URL"));
-    
-    // Lister toutes les variables d'environnement qui commencent par "RESEND"
-    const envKeys = Object.keys(Deno.env.toObject()).filter(key => key.includes("RESEND"));
-    console.log("Variables d'environnement contenant 'RESEND':", envKeys);
-    
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ["admin", "super_admin", "broker"],
+      rateLimit: {
+        endpoint: "send-document-request",
+        maxRequests: 25,
+        windowSeconds: 60,
+        identifierPrefix: "send-document-request",
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
+    const supabase = access.context.supabaseAdmin;
+
     // Récupérer et valider le corps de la requête
     let requestData: RequestDocumentsData;
     
@@ -98,7 +98,7 @@ serve(async (req) => {
       );
     }
     
-    console.log("Données de la requête validées:", JSON.stringify(requestData, null, 2));
+    console.log("Données de la requête validées pour offerId:", requestData.offerId);
     
     const { 
       offerId,
@@ -167,7 +167,7 @@ serve(async (req) => {
     
     console.log("Requête validée pour envoyer un email à:", clientEmail);
     console.log("Documents demandés:", requestedDocs);
-    console.log("Token d'upload:", uploadToken);
+    console.log("Token d'upload reçu pour l'offre:", offerId);
     
     // Fonction pour s'assurer que l'URL a le protocole https://
     const ensureHttpsUrl = (url: string): string => {
@@ -237,6 +237,23 @@ serve(async (req) => {
     }
     
     console.log("Company ID de l'offre:", offer.company_id);
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== "super_admin" &&
+      access.context.companyId !== offer.company_id
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Cross-company document request is forbidden",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
     // Récupérer le slug de l'entreprise séparément
     console.log("Récupération du company slug...");
@@ -257,7 +274,7 @@ serve(async (req) => {
     
      // Créer une URL de redirection courte pour éviter les problèmes Mac
      const shortUrl = `${appUrl.replace(/\/$/, '')}/r/${uploadToken}`;
-     console.log("URL courte générée:", shortUrl);
+     console.log("URL courte générée pour l'offre:", offerId);
     
     // Récupérer les paramètres email spécifiques à l'entreprise de l'offre
     console.log("Récupération de la configuration email pour company_id:", offer.company_id);

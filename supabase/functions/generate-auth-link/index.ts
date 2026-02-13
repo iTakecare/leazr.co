@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 // Set up Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
@@ -15,6 +16,20 @@ serve(async (req) => {
     // Handle CORS preflight requests
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
+    }
+
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ["admin", "super_admin"],
+      rateLimit: {
+        endpoint: "generate-auth-link",
+        maxRequests: 20,
+        windowSeconds: 60,
+        identifierPrefix: "generate-auth-link",
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
     }
     
     // Parse request
@@ -35,7 +50,33 @@ serve(async (req) => {
     }
     
     // Create Supabase client with admin privileges
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = access.context.supabaseAdmin || createClient(supabaseUrl, supabaseServiceKey);
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== "super_admin" &&
+      access.context.companyId
+    ) {
+      const { data: targetProfile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .ilike("email", email)
+        .maybeSingle();
+
+      if (type === "recovery" && !targetProfile) {
+        return new Response(
+          JSON.stringify({ error: "User not found for password recovery" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+        );
+      }
+
+      if (targetProfile && targetProfile.company_id !== access.context.companyId) {
+        return new Response(
+          JSON.stringify({ error: "Cross-company auth link generation is forbidden" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        );
+      }
+    }
     
     // Generate the auth link without sending an email
     const { data, error } = await supabase.auth.admin.generateLink({

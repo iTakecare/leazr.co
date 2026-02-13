@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,6 +39,38 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });
+
+    // Rate limit password reset attempts to prevent abuse.
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(
+      supabase,
+      `send-password-reset:${clientIp}`,
+      "send-password-reset-ip",
+      { maxRequests: 5, windowSeconds: 60 }
+    );
+
+    if (!ipLimit.allowed) {
+      return new Response(JSON.stringify({ success: false, error: "Too many requests" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-RateLimit-Remaining': ipLimit.remaining.toString() },
+        status: 429
+      });
+    }
+
+    if (email && typeof email === "string") {
+      const emailLimit = await checkRateLimit(
+        supabase,
+        `send-password-reset-email:${email.toLowerCase()}`,
+        "send-password-reset-email",
+        { maxRequests: 3, windowSeconds: 60 }
+      );
+
+      if (!emailLimit.allowed) {
+        return new Response(JSON.stringify({ success: false, error: "Too many requests" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-RateLimit-Remaining': emailLimit.remaining.toString() },
+          status: 429
+        });
+      }
+    }
 
     // Vérifier si l'utilisateur existe
     const { data: users, error: userError } = await supabase.auth.admin.listUsers();

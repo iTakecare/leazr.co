@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,6 +36,52 @@ const handler = async (req: Request): Promise<Response> => {
     const { token, password }: UpdatePasswordRequest = await req.json();
 
     console.log(`🔑 Token reçu: ${token.substring(0, 8)}...`);
+
+    // Rate limit password update attempts (public endpoint).
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(
+      supabase,
+      `update-password-custom:${clientIp}`,
+      "update-password-custom-ip",
+      { maxRequests: 10, windowSeconds: 60 }
+    );
+
+    if (!ipLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+            "X-RateLimit-Remaining": ipLimit.remaining.toString(),
+          },
+        }
+      );
+    }
+
+    if (token) {
+      const tokenLimit = await checkRateLimit(
+        supabase,
+        `update-password-custom-token:${token}`,
+        "update-password-custom-token",
+        { maxRequests: 10, windowSeconds: 60 }
+      );
+
+      if (!tokenLimit.allowed) {
+        return new Response(
+          JSON.stringify({ error: "Too many requests" }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+              "X-RateLimit-Remaining": tokenLimit.remaining.toString(),
+            },
+          }
+        );
+      }
+    }
 
     // 1. Vérifier le token
     const { data: tokenData, error: tokenError } = await supabase

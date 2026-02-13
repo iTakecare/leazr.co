@@ -422,7 +422,7 @@ const PublicContractSignature: React.FC = () => {
             
             // Send confirmation email
             supabase.functions.invoke('send-signed-contract-email', {
-              body: { contractId: data.contract_id }
+              body: { signatureToken: token }
             }).then(emailResponse => {
               if (emailResponse.error) {
                 console.error('Email sending error:', emailResponse.error);

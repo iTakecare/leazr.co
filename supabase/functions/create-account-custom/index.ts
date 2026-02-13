@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,15 +24,45 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['admin', 'super_admin'],
+      rateLimit: {
+        endpoint: 'create-account-custom',
+        maxRequests: 10,
+        windowSeconds: 60,
+        identifierPrefix: 'create-account-custom',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     // Créer un client Supabase avec la clé de service pour accès admin
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabase = access.context.supabaseAdmin;
 
     const { email, entityType, entityId, companyId, firstName, lastName, role }: CreateAccountRequest = await req.json();
 
+    if (!email || !entityType || !entityId || !companyId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: email, entityType, entityId, companyId' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     console.log(`Création d'un compte pour ${email} (${entityType})`);
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== 'super_admin'
+    ) {
+      if (!access.context.companyId || access.context.companyId !== companyId) {
+        return new Response(
+          JSON.stringify({ error: 'Cross-company account creation is forbidden' }),
+          { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+    }
 
     // 1. Vérifier si l'utilisateur existe déjà via la table profiles
     const { data: existingProfile } = await supabase
@@ -225,8 +255,7 @@ const handler = async (req: Request): Promise<Response> => {
     const encodedSlug = encodeURIComponent(companySlug);
     const activationUrl = `${BASE_URL}/update-password?token=${encodedToken}&type=${encodedType}&companySlug=${encodedSlug}`;
 
-    console.log('URL d\'activation générée:', activationUrl);
-    console.log('Token brut:', activationToken);
+    console.log('URL d\'activation générée pour', email);
 
     // Variables communes pour le rendu des templates
     const templateVars: Record<string, string> = {

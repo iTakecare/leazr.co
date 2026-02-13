@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get('ITAKECARE_RESEND_API');
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +20,30 @@ serve(async (req) => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['admin', 'super_admin', 'broker'],
+      rateLimit: {
+        endpoint: 'send-leasing-acceptance-email',
+        maxRequests: 20,
+        windowSeconds: 60,
+        identifierPrefix: 'send-leasing-acceptance-email',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     const { offerId, customContent, includePdfAttachment = true }: EmailRequest = await req.json();
+    if (!offerId) {
+      return new Response(
+        JSON.stringify({ error: 'offerId is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
     
     console.log('[LEASING-ACCEPTANCE] Custom content provided:', !!customContent);
     console.log('[LEASING-ACCEPTANCE] Include PDF attachment:', includePdfAttachment);
@@ -34,7 +55,7 @@ serve(async (req) => {
     console.log('[LEASING-ACCEPTANCE] Processing acceptance email for offer:', offerId);
 
     // Initialize Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = access.context.supabaseAdmin;
 
     // Fetch offer details with equipment
     const { data: offer, error: offerError } = await supabase
@@ -54,6 +75,20 @@ serve(async (req) => {
     if (offerError || !offer) {
       console.error('[LEASING-ACCEPTANCE] Offer not found:', offerError);
       throw new Error('Offer not found');
+    }
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== 'super_admin' &&
+      access.context.companyId !== offer.company_id
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Cross-company leasing acceptance email is forbidden' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     console.log('[LEASING-ACCEPTANCE] Offer company_id:', offer.company_id);

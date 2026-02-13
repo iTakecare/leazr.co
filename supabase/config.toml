@@ -1,5 +1,8 @@
 project_id = "cifbetjefyfocafanlhv"
 
+[db]
+major_version = 15
+
 [functions.render-offer-pdf]
 verify_jwt = true
 
@@ -28,10 +31,10 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.generate-auth-link]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-account-custom]
-verify_jwt = false
+verify_jwt = true
 
 [functions.custom-login]
 verify_jwt = false
@@ -43,7 +46,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-account-deleted-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-company-logo]
 verify_jwt = false
@@ -58,7 +61,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.send-document-request]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-secret]
 verify_jwt = true
@@ -85,10 +88,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-leasing-acceptance-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-leasing-rejection-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.import-contracts-2025]
 verify_jwt = true
@@ -118,7 +121,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-contract-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-reminder-email]
 verify_jwt = true
@@ -166,4 +169,49 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.mollie-webhook]
+verify_jwt = false
+
+[functions.create-admin-user]
+verify_jwt = true
+
+[functions.get-all-users]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.update-user-email]
+verify_jwt = true
+
+[functions.update-user-password]
+verify_jwt = true
+
+[functions.create-company-with-admin]
+verify_jwt = true
+
+[functions.create-test-users]
+verify_jwt = true
+
+[functions.create-storage-bucket]
+verify_jwt = true
+
+[functions.create-site-settings-bucket]
+verify_jwt = true
+
+[functions.create-blog-bucket]
+verify_jwt = true
+
+[functions.billit-sync-status]
+verify_jwt = true
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.create-prospect]
+verify_jwt = false
+
+[functions.activate-prospect]
+verify_jwt = false
+
+[functions.send-trial-welcome-email]
 verify_jwt = false

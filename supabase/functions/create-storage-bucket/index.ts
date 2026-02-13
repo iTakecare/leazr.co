@@ -1,14 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp, requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,8 +14,62 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { bucket_name } = await req.json();
+    if (req.method !== "POST") {
+      return new Response(
+        JSON.stringify({ error: "Method not allowed" }),
+        { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ["admin", "super_admin"],
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
+    const supabase = access.context.supabaseAdmin;
+
+    const body = await req.json().catch(() => ({}));
+    const bucket_name = String(body?.bucket_name ?? body?.bucketName ?? "").trim();
+
+    if (!bucket_name) {
+      return new Response(
+        JSON.stringify({ success: false, message: "bucket_name is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!/^[a-z0-9-]{3,63}$/.test(bucket_name)) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Invalid bucket_name format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Rate limit bucket creation attempts (also applies to service_role JWTs).
+    const clientIp = getClientIp(req);
+    const rl = await checkRateLimit(
+      supabase,
+      `create-storage-bucket:${access.context.userId || clientIp}`,
+      "create-storage-bucket",
+      { maxRequests: 10, windowSeconds: 60 }
+    );
+
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "X-RateLimit-Remaining": rl.remaining.toString(),
+          },
+        }
+      );
+    }
 
     console.log(`Creating bucket: ${bucket_name}`);
 

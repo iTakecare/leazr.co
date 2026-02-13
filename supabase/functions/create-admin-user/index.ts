@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,20 @@ serve(async (req) => {
   }
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['super_admin'],
+      rateLimit: {
+        endpoint: 'create-admin-user',
+        maxRequests: 10,
+        windowSeconds: 60,
+        identifierPrefix: 'create-admin-user',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     console.log('🚀 ULTRA-SIMPLE create-admin-user starting...');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -22,7 +37,7 @@ serve(async (req) => {
       throw new Error('Configuration manquante')
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    const supabaseAdmin = access.context.supabaseAdmin || createClient(supabaseUrl, supabaseServiceKey)
     const { email, password, first_name, last_name, role, company_id } = await req.json()
     
     console.log(`📧 Creating: ${email}`);

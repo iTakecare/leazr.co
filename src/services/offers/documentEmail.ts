@@ -32,7 +32,7 @@ export const sendDocumentRequestEmail = async ({
       throw new Error("Impossible de créer le lien d'upload");
     }
 
-    console.log("🔐 Token d'upload créé:", token);
+    console.log("🔐 Token d'upload créé pour l'offre:", offerId);
 
     // Préparer la liste des documents demandés
     const documentsList = requestedDocuments.map(doc => {

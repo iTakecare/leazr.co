@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1?target=deno&dts";
+import { requireElevatedAccess } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get('ITAKECARE_RESEND_API');
 
@@ -18,6 +18,20 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('Env check - ITAKECARE_RESEND_API:', RESEND_API_KEY ? 'true (length: ' + RESEND_API_KEY.length + ')' : 'false');
 
   try {
+    const access = await requireElevatedAccess(req, corsHeaders, {
+      allowedRoles: ['admin', 'super_admin', 'broker'],
+      rateLimit: {
+        endpoint: 'send-leasing-rejection-email',
+        maxRequests: 20,
+        windowSeconds: 60,
+        identifierPrefix: 'send-leasing-rejection-email',
+      },
+    });
+
+    if (!access.ok) {
+      return access.response;
+    }
+
     if (!RESEND_API_KEY) {
       console.error('❌ ITAKECARE_RESEND_API non configurée');
       throw new Error('ITAKECARE_RESEND_API non configurée');
@@ -32,9 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('📧 Traitement de l\'email de refus pour l\'offre:', offerId);
 
     // Initialiser le client Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = access.context.supabaseAdmin;
 
     // Récupérer les données de l'offre
     const { data: offer, error: offerError } = await supabase
@@ -46,6 +58,20 @@ const handler = async (req: Request): Promise<Response> => {
     if (offerError || !offer) {
       console.error('❌ Erreur lors de la récupération de l\'offre:', offerError);
       throw new Error('Offre introuvable');
+    }
+
+    if (
+      !access.context.isServiceRole &&
+      access.context.role !== 'super_admin' &&
+      access.context.companyId !== offer.company_id
+    ) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Cross-company leasing rejection email is forbidden' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     console.log('✅ Offre récupérée:', {

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { checkRateLimit } from "../_shared/rateLimit.ts";
+import { getClientIp } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +37,52 @@ const handler = async (req: Request): Promise<Response> => {
     }: ActivateProspectRequest = await req.json();
 
     console.log('Activation du prospect avec token:', activationToken);
+
+    // Rate limit activation attempts to reduce brute force.
+    const clientIp = getClientIp(req);
+    const ipLimit = await checkRateLimit(
+      supabaseAdmin,
+      `activate-prospect:${clientIp}`,
+      "activate-prospect-ip",
+      { maxRequests: 10, windowSeconds: 60 }
+    );
+
+    if (!ipLimit.allowed) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Too many requests" }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+            'X-RateLimit-Remaining': ipLimit.remaining.toString(),
+          },
+        }
+      );
+    }
+
+    if (activationToken) {
+      const tokenLimit = await checkRateLimit(
+        supabaseAdmin,
+        `activate-prospect-token:${activationToken}`,
+        "activate-prospect-token",
+        { maxRequests: 10, windowSeconds: 60 }
+      );
+
+      if (!tokenLimit.allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Too many requests" }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders,
+              'X-RateLimit-Remaining': tokenLimit.remaining.toString(),
+            },
+          }
+        );
+      }
+    }
 
     // Récupérer les informations du prospect
     const { data: prospectData, error: prospectError } = await supabaseAdmin
