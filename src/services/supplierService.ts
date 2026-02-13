@@ -73,10 +73,13 @@ export async function getSupplierById(supplierId: string): Promise<Supplier | nu
  * Crée un nouveau fournisseur
  */
 export async function createSupplier(supplierData: CreateSupplierData): Promise<Supplier> {
-  // Get user's company_id
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('company_id')
+    .eq('id', user.id)
     .single();
 
   if (!profile?.company_id) {
