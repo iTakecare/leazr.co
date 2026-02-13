@@ -1,92 +1,48 @@
 
+# Synchronisation des prix entre la carte Suivi des achats et les Commandes fournisseurs
 
-# Gestion des commandes partielles (unite par unite)
+## Probleme
 
-## Probleme actuel
+Les deux vues utilisent des champs differents pour le prix reel d'achat :
+- **Carte Suivi des achats** (ContractPurchaseTracking) : ecrit dans `actual_purchase_price`
+- **Commandes fournisseurs** (EquipmentOrders) : lit/ecrit dans `supplier_price`
 
-Aujourd'hui, une ligne d'equipement avec quantite=2 n'a qu'un seul fournisseur, un seul statut et un seul prix. Impossible de commander chaque unite separement.
+Quand on met a jour un prix dans une vue, l'autre vue ne le reflete pas car ce sont deux colonnes distinctes dans `contract_equipment`.
 
-## Solution : nouvelle table `equipment_order_units`
+## Solution
 
-Creer une table enfant qui stocke une ligne par unite, chacune avec son propre fournisseur, prix, statut et reference de commande.
+Synchroniser les deux champs a chaque mise a jour de prix, dans les deux sens :
 
-### Schema de la table
+### 1. ContractPurchaseTracking - handleSavePurchase
 
-```text
-equipment_order_units
-+--------------------+----------+------------------------------------------+
-| Colonne            | Type     | Description                              |
-+--------------------+----------+------------------------------------------+
-| id                 | uuid PK  | Identifiant unique                       |
-| source_type        | text     | 'offer' ou 'contract'                    |
-| source_equipment_id| uuid     | ID dans offer_equipment ou               |
-|                    |          | contract_equipment                       |
-| unit_index         | integer  | Numero de l'unite (1, 2, 3...)           |
-| order_status       | text     | to_order / ordered / received / cancelled|
-| supplier_id        | uuid FK  | Fournisseur pour cette unite             |
-| supplier_price     | numeric  | Prix d'achat chez ce fournisseur         |
-| order_date         | timestz  | Date de commande                         |
-| order_reference    | text     | Reference de commande                    |
-| reception_date     | timestz  | Date de reception                        |
-| order_notes        | text     | Notes                                    |
-| serial_number      | text     | Numero de serie (optionnel)              |
-| created_at         | timestz  | Date de creation                         |
-| updated_at         | timestz  | Date de mise a jour                      |
-+--------------------+----------+------------------------------------------+
-Contrainte unique : (source_type, source_equipment_id, unit_index)
-```
+Quand l'utilisateur enregistre un `actual_purchase_price`, mettre a jour aussi `supplier_price` avec la meme valeur.
 
-### Logique de fonctionnement
+### 2. EquipmentOrders - handleSupplierChange / prix unitaire
 
-1. **Initialisation** : Quand un equipement a quantite > 1, un bouton "Gerer par unite" cree N lignes dans `equipment_order_units` (une par unite).
+Quand un `supplier_price` est mis a jour (via les unites ou directement), synchroniser aussi `actual_purchase_price` sur le `contract_equipment` parent.
 
-2. **Mode simple vs detaille** :
-   - Quantite = 1 : comportement actuel inchange (pas de sous-lignes)
-   - Quantite > 1 sans sous-lignes : comportement actuel (un seul statut/fournisseur pour tout)
-   - Quantite > 1 avec sous-lignes : chaque unite est geree individuellement
+### 3. Unites (equipment_order_units)
 
-3. **Affichage** : Les equipements avec sous-lignes s'affichent en accordeon. La ligne principale montre un resume (ex: "1/2 recu"), et en deployant on voit chaque unite avec son propre Select de statut, fournisseur, prix.
+Quand un prix unitaire est modifie sur une unite, recalculer le prix moyen ou total et mettre a jour `supplier_price` et `actual_purchase_price` sur l'equipement parent.
 
-## Modifications prevues
+## Fichiers a modifier
 
-### 1. Migration SQL
-
-- Creer la table `equipment_order_units`
-- Ajouter les index et la contrainte unique
-- Ajouter les politiques RLS (acces via company_id de l'offre/contrat parent)
-
-### 2. Service (`src/services/equipmentOrderService.ts`)
-
-- Ajouter les fonctions CRUD pour `equipment_order_units`
-- `splitEquipmentIntoUnits(sourceType, equipmentId, quantity)` : cree les N lignes
-- `fetchEquipmentUnits(sourceType, equipmentId)` : recupere les sous-lignes
-- `updateEquipmentUnit(unitId, data)` : met a jour une unite
-- Adapter `fetchAllEquipmentOrders` pour inclure les informations des sous-lignes
-
-### 3. Page Commandes fournisseurs (`src/pages/admin/EquipmentOrders.tsx`)
-
-- Pour les equipements avec sous-lignes : afficher une ligne resume (avec un chevron pour deployer)
-- En deploye : afficher une sous-ligne par unite avec ses propres controles (statut, fournisseur, prix)
-- Bouton "Gerer par unite" sur les lignes avec quantite > 1 qui n'ont pas encore de sous-lignes
-- Adapter les totaux pour prendre en compte les prix individuels des unites
-
-### 4. Carte Suivi des achats (`src/components/contracts/ContractPurchaseTracking.tsx`)
-
-- Meme logique : ligne deployable pour les equipements avec sous-lignes
-- Bouton "Gerer par unite" pour activer le mode detaille
-- Chaque sous-unite a son propre statut, fournisseur, prix reel
-
-### 5. Types (`src/types/offerEquipment.ts` et service)
-
-- Ajouter l'interface `EquipmentOrderUnit`
-- Enrichir `EquipmentOrderItem` avec un champ optionnel `units?: EquipmentOrderUnit[]`
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/contracts/ContractPurchaseTracking.tsx` | Dans `handleSavePurchase` : ajouter `supplier_price: actualPrice` a l'update |
+| `src/services/equipmentOrderService.ts` | Ajouter une fonction `syncEquipmentPrices(sourceType, equipmentId)` qui recalcule et synchronise `supplier_price` et `actual_purchase_price` depuis les unites |
+| `src/pages/admin/EquipmentOrders.tsx` | Apres mise a jour d'un prix dans les unites ou sur la ligne principale, appeler la synchronisation vers `actual_purchase_price` |
 
 ## Details techniques
 
-| Element | Detail |
-|---------|--------|
-| Nouvelle table | `equipment_order_units` avec RLS |
-| Fichiers modifies | `equipmentOrderService.ts`, `EquipmentOrders.tsx`, `ContractPurchaseTracking.tsx`, `offerEquipment.ts` |
-| Retrocompatibilite | Les equipements sans sous-lignes continuent de fonctionner comme avant |
-| Declenchement | Manuel via bouton "Gerer par unite" (pas automatique) |
+### handleSavePurchase (ContractPurchaseTracking)
 
+Ajouter `supplier_price: actualPrice` dans l'objet `updateData` pour que le prix soit visible dans les deux vues.
+
+### Synchronisation depuis les unites
+
+Quand un `supplier_price` est mis a jour sur une unite, calculer la moyenne ou somme des prix des unites et mettre a jour les champs `supplier_price` et `actual_purchase_price` de l'equipement parent (`contract_equipment` ou `offer_equipment`).
+
+### Mise a jour directe depuis EquipmentOrders
+
+Quand le `supplier_price` est modifie directement sur un equipement de type `contract`, aussi mettre a jour `actual_purchase_price` avec la meme valeur pour rester synchronise.
