@@ -52,3 +52,20 @@ export interface OfferEquipmentSpecification {
   value: string;
   created_at?: string;
 }
+
+export interface EquipmentOrderUnit {
+  id: string;
+  source_type: 'offer' | 'contract';
+  source_equipment_id: string;
+  unit_index: number;
+  order_status: string;
+  supplier_id: string | null;
+  supplier_price: number | null;
+  order_date: string | null;
+  order_reference: string | null;
+  reception_date: string | null;
+  order_notes: string | null;
+  serial_number: string | null;
+  created_at?: string;
+  updated_at?: string;
+}

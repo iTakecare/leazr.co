@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { EquipmentOrderUnit } from "@/types/offerEquipment";
 
 export type OrderStatus = 'to_order' | 'ordered' | 'received' | 'cancelled';
 
@@ -25,12 +26,12 @@ export interface EquipmentOrderItem {
   reception_date: string | null;
   order_notes: string | null;
   product_id?: string | null;
-  // Context fields for global view
   source_type?: 'offer' | 'contract';
   source_id?: string;
   client_name?: string;
   source_reference?: string;
   source_date?: string;
+  units?: EquipmentOrderUnit[];
 }
 
 export const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
@@ -78,8 +79,55 @@ export const fetchPreferredSupplier = async (productId: string) => {
   return data;
 };
 
+// ===== Equipment Order Units CRUD =====
+
+export const splitEquipmentIntoUnits = async (
+  sourceType: 'offer' | 'contract',
+  equipmentId: string,
+  quantity: number,
+  defaultSupplierId?: string | null,
+  defaultSupplierPrice?: number | null
+) => {
+  const units = Array.from({ length: quantity }, (_, i) => ({
+    source_type: sourceType,
+    source_equipment_id: equipmentId,
+    unit_index: i + 1,
+    order_status: 'to_order',
+    supplier_id: defaultSupplierId || null,
+    supplier_price: defaultSupplierPrice || null,
+  }));
+
+  const { data, error } = await supabase
+    .from('equipment_order_units' as any)
+    .insert(units)
+    .select();
+  if (error) throw error;
+  return data;
+};
+
+export const fetchEquipmentUnits = async (
+  sourceType: 'offer' | 'contract',
+  equipmentId: string
+): Promise<EquipmentOrderUnit[]> => {
+  const { data, error } = await supabase
+    .from('equipment_order_units' as any)
+    .select('*')
+    .eq('source_type', sourceType)
+    .eq('source_equipment_id', equipmentId)
+    .order('unit_index');
+  if (error) throw error;
+  return (data || []) as EquipmentOrderUnit[];
+};
+
+export const updateEquipmentUnit = async (unitId: string, data: Partial<EquipmentOrderUnit>) => {
+  const { error } = await supabase
+    .from('equipment_order_units' as any)
+    .update(data as any)
+    .eq('id', unitId);
+  if (error) throw error;
+};
+
 export const fetchAllEquipmentOrders = async (companyId: string) => {
-  // Fetch offer equipment with order tracking
   const { data: offerEquipment, error: offerError } = await supabase
     .from('offer_equipment')
     .select(`
@@ -92,7 +140,6 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
 
   if (offerError) throw offerError;
 
-  // Fetch contract equipment with order tracking
   const { data: contractEquipment, error: contractError } = await supabase
     .from('contract_equipment')
     .select(`
@@ -103,6 +150,21 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     .eq('contracts.company_id', companyId);
 
   if (contractError) throw contractError;
+
+  // Fetch all units at once
+  const { data: allUnits, error: unitsError } = await supabase
+    .from('equipment_order_units' as any)
+    .select('*')
+    .order('unit_index');
+
+  if (unitsError) throw unitsError;
+
+  const unitsByKey = new Map<string, EquipmentOrderUnit[]>();
+  ((allUnits || []) as EquipmentOrderUnit[]).forEach(u => {
+    const key = `${u.source_type}-${u.source_equipment_id}`;
+    if (!unitsByKey.has(key)) unitsByKey.set(key, []);
+    unitsByKey.get(key)!.push(u);
+  });
 
   const items: EquipmentOrderItem[] = [
     ...(offerEquipment || []).map((eq: any) => ({
@@ -123,6 +185,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
       client_name: eq.offers?.client_name,
       source_reference: eq.offers?.dossier_number || 'N/A',
       source_date: eq.offers?.created_at,
+      units: unitsByKey.get(`offer-${eq.id}`) || undefined,
     })),
     ...(contractEquipment || []).map((eq: any) => ({
       id: eq.id,
@@ -142,6 +205,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
       client_name: eq.contracts?.client_name,
       source_reference: eq.contracts?.contract_number || 'N/A',
       source_date: eq.contracts?.created_at,
+      units: unitsByKey.get(`contract-${eq.id}`) || undefined,
     })),
   ];
 
