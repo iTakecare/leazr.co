@@ -86,7 +86,8 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
       offers!inner(id, dossier_number, client_name, company_id)
     `)
-    .eq('offers.company_id', companyId);
+    .eq('offers.company_id', companyId)
+    .eq('offers.workflow_status', 'accepted');
 
   if (offerError) throw offerError;
 
