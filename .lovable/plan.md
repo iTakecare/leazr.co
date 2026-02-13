@@ -1,79 +1,64 @@
 
 
-# Plan : Mise a jour des statuts + Accordeon par annee
+# Ajout de la gestion des fournisseurs dans les commandes
 
-## 1. Mise a jour en masse des statuts
+## Contexte actuel
 
-Passer tous les equipements (contrats + offres acceptees) au statut "received" **sauf** ceux des 8 contrats suivants :
+- **Page globale (`EquipmentOrders.tsx`)** : la colonne "Fournisseur" affiche juste le nom, sans possibilite de le modifier.
+- **Tracker detail (`EquipmentOrderTracker.tsx`)** : le fournisseur est modifiable via un Select en mode edition (bouton crayon), mais on ne peut que choisir parmi les fournisseurs existants, pas en creer un nouveau.
 
-| Contrat | ID |
-|---------|-----|
-| CON-6ec7a293 | 6ec7a293-880d-42ae-8a53-968d6edb6637 |
-| LOC-ITC-2026-02003 | 998d5bee-7fe1-4957-b4fe-fe514e127da0 |
-| LOC-ITC-2026-02005 | 6aca4456-6547-4946-bfa4-93784c905faf |
-| LOC-ITC-2026-02004 | c3e0ac85-33f4-4f13-85d7-72cf169f68f3 |
-| CON-3bb47d1e | 3bb47d1e-b6bf-42e3-af6b-a7a5f7f11471 |
-| 180-31458 | 752e4a02-ec92-474c-8562-300126ce1f99 |
-| LOC-ITC-2026-01004 | 8f778adf-ea02-4d2f-837d-dbf4cb888787 |
-| CON-a82d1ae5 | a82d1ae5-9a91-4a76-9896-7b11b1116c75 |
+## Solution proposee
 
-Cela concerne environ 280 equipements de contrats et 283 equipements d'offres acceptees a mettre a jour.
+### 1. Composant reutilisable `SupplierSelectOrCreate`
 
-**Requetes SQL (via insert tool, pas migration) :**
+Creer un composant qui combine :
+- Un **Select** avec la liste des fournisseurs existants
+- Un bouton **"+ Nouveau fournisseur"** en bas de la liste
+- Un **Dialog** qui s'ouvre pour creer rapidement un fournisseur (nom, email, telephone minimum)
+- Apres creation, le nouveau fournisseur est automatiquement selectionne
 
-```sql
--- Contract equipment : tout passer en received sauf les 8 contrats exclus
-UPDATE contract_equipment
-SET order_status = 'received', reception_date = NOW()
-WHERE contract_id NOT IN (
-  'a82d1ae5-9a91-4a76-9896-7b11b1116c75',
-  '3bb47d1e-b6bf-42e3-af6b-a7a5f7f11471',
-  '6ec7a293-880d-42ae-8a53-968d6edb6637',
-  '8f778adf-ea02-4d2f-837d-dbf4cb888787',
-  'c3e0ac85-33f4-4f13-85d7-72cf169f68f3',
-  '6aca4456-6547-4946-bfa4-93784c905faf',
-  '752e4a02-ec92-474c-8562-300126ce1f99',
-  '998d5bee-7fe1-4957-b4fe-fe514e127da0'
-)
-AND (order_status IS NULL OR order_status != 'received');
+Ce composant sera utilise dans les deux vues (globale et detail).
 
--- Offer equipment : tout passer en received (offres acceptees uniquement)
-UPDATE offer_equipment
-SET order_status = 'received', reception_date = NOW()
-WHERE offer_id IN (
-  SELECT id FROM offers WHERE workflow_status = 'accepted'
-)
-AND (order_status IS NULL OR order_status != 'received');
+### 2. Modification de la page globale `EquipmentOrders.tsx`
+
+- Rendre la colonne "Fournisseur" cliquable/editable directement dans le tableau
+- Remplacer le texte statique par le composant `SupplierSelectOrCreate`
+- La selection/creation d'un fournisseur sauvegarde immediatement en base
+
+### 3. Modification du tracker detail `EquipmentOrderTracker.tsx`
+
+- Remplacer le Select fournisseur existant (en mode edition) par le composant `SupplierSelectOrCreate`
+- Permet de creer un fournisseur sans quitter la page
+
+## Fichiers concernes
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/equipment/SupplierSelectOrCreate.tsx` | **Nouveau** - Composant reutilisable Select + creation |
+| `src/pages/admin/EquipmentOrders.tsx` | Rendre la colonne fournisseur editable avec le nouveau composant |
+| `src/components/contracts/EquipmentOrderTracker.tsx` | Remplacer le Select fournisseur par le nouveau composant |
+
+## Detail technique
+
+### `SupplierSelectOrCreate`
+
+```text
+Props:
+  - suppliers: { id, name }[]
+  - value: string | null
+  - onValueChange: (supplierId: string) => void
+  - onSupplierCreated: (newSupplier: { id, name }) => void
+  - companyId: string
 ```
 
-## 2. Accordeon par annee dans la page Commandes fournisseurs
+Le composant utilise un Popover avec :
+- Une liste filtrable des fournisseurs (Command/Combobox)
+- Un separateur
+- Un bouton "+ Nouveau fournisseur" qui ouvre un Dialog
+- Le Dialog contient un formulaire rapide (nom obligatoire, email et telephone optionnels)
+- A la creation, appel a `createSupplier` du service existant, puis callback `onSupplierCreated`
 
-### Modification de `src/pages/admin/EquipmentOrders.tsx`
+### Page globale - edition inline
 
-- Ajouter un champ `created_at` (ou `order_date`) dans les requetes de `fetchAllEquipmentOrders` pour connaitre l'annee
-- Grouper les equipements filtres par annee (basee sur la date de creation du contrat/offre parent)
-- Afficher chaque annee dans un `Accordion` avec le nombre d'items et le total
-- Annee la plus recente ouverte par defaut
-- Le reste du composant (filtres, cartes resume, statuts) reste inchange
-
-### Modification de `src/services/equipmentOrderService.ts`
-
-- Ajouter `created_at` dans les champs selectionnes depuis `offers` et `contracts`
-- Ajouter un champ `source_date` dans `EquipmentOrderItem` pour permettre le groupement par annee
-
-### Interface modifiee de `EquipmentOrderItem`
-
-```typescript
-export interface EquipmentOrderItem {
-  // ... champs existants
-  source_date?: string; // date de creation du contrat/offre pour groupement
-}
-```
-
-### Fichiers concernes
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/services/equipmentOrderService.ts` | Ajouter `created_at` dans les selects + `source_date` dans le type |
-| `src/pages/admin/EquipmentOrders.tsx` | Grouper par annee dans un Accordion, annee recente ouverte par defaut |
+Chaque ligne du tableau affichera le `SupplierSelectOrCreate` directement (pas besoin de mode edition separe pour le fournisseur). Au changement, sauvegarde immediate via `updateOfferEquipmentOrder` ou `updateContractEquipmentOrder`.
 
