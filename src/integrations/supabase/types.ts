@@ -3259,6 +3259,65 @@ export type Database = {
           },
         ]
       }
+      equipment_order_units: {
+        Row: {
+          created_at: string
+          id: string
+          order_date: string | null
+          order_notes: string | null
+          order_reference: string | null
+          order_status: string
+          reception_date: string | null
+          serial_number: string | null
+          source_equipment_id: string
+          source_type: string
+          supplier_id: string | null
+          supplier_price: number | null
+          unit_index: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_date?: string | null
+          order_notes?: string | null
+          order_reference?: string | null
+          order_status?: string
+          reception_date?: string | null
+          serial_number?: string | null
+          source_equipment_id: string
+          source_type: string
+          supplier_id?: string | null
+          supplier_price?: number | null
+          unit_index: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_date?: string | null
+          order_notes?: string | null
+          order_reference?: string | null
+          order_status?: string
+          reception_date?: string | null
+          serial_number?: string | null
+          source_equipment_id?: string
+          source_type?: string
+          supplier_id?: string | null
+          supplier_price?: number | null
+          unit_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_order_units_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_requests: {
         Row: {
           approved_at: string | null
@@ -7492,6 +7551,10 @@ export type Database = {
       }
       can_manage_users: { Args: never; Returns: boolean }
       check_bucket_exists: { Args: { bucket_name: string }; Returns: boolean }
+      check_equipment_unit_access: {
+        Args: { p_source_equipment_id: string; p_source_type: string }
+        Returns: boolean
+      }
       check_function_exists: {
         Args: { function_name: string }
         Returns: boolean
