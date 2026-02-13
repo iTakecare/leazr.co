@@ -9,6 +9,7 @@ import ContractEquipmentSection from "@/components/contracts/ContractEquipmentSe
 import ContractDocumentsSection from "@/components/contracts/ContractDocumentsSection";
 import ContractEquipmentSerialManager from "@/components/contracts/ContractEquipmentSerialManager";
 import ContractPurchaseTracking from "@/components/contracts/ContractPurchaseTracking";
+import EquipmentOrderTracker from "@/components/contracts/EquipmentOrderTracker";
 import ContractDatesManager from "@/components/contracts/ContractDatesManager";
 import ContractSelfLeasingCard from "@/components/contracts/ContractSelfLeasingCard";
 import ContractSpecialProvisionsCard from "@/components/contracts/ContractSpecialProvisionsCard";
@@ -142,6 +143,13 @@ const ContractDetail = () => {
               {/* Section Numéros de série */}
               <ContractEquipmentSerialManager 
                 contractId={contract.id}
+                onUpdate={refetch}
+              />
+
+              {/* Section Suivi commandes fournisseurs */}
+              <EquipmentOrderTracker
+                sourceType="contract"
+                sourceId={contract.id}
                 onUpdate={refetch}
               />
 
