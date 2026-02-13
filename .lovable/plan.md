@@ -1,44 +1,92 @@
 
-# Plan : Ajouter le Reply-To avec l'email de l'utilisateur connecte
 
-## Probleme
+# Plan : Suivi des commandes fournisseurs par equipement
 
-Quand un client recoit une offre par email et clique "Repondre", la reponse va a `noreply@itakecare.be` au lieu de l'adresse de l'utilisateur qui a envoye l'offre.
+## Objectif
 
-## Solution
+Permettre de savoir, pour chaque equipement de chaque demande/contrat, s'il a ete commande, chez quel fournisseur, a quel prix, et son statut actuel. Inclut une vue dans chaque contrat/demande + une vue globale centralisee.
 
-Ajouter le champ `reply_to` dans l'appel a l'API Resend avec l'email de l'utilisateur authentifie. L'utilisateur est deja verifie dans la fonction (ligne 43-54), son email est disponible via `user.email`.
+## Statuts de commande
 
-## Modification
+4 statuts : **A commander** / **Commande** / **Recu** / **Annule**
 
-### `supabase/functions/send-offer-email/index.ts`
+## Modifications en base de donnees
 
-Ajouter `reply_to: [user.email]` dans le body envoye a Resend (ligne 90-101) :
+### Nouveaux champs sur `offer_equipment`
 
-```typescript
-body: JSON.stringify({
-  from: 'iTakecare <noreply@itakecare.be>',
-  to: [to],
-  reply_to: [user.email],  // <-- AJOUT
-  subject,
-  html: message,
-  attachments: [
-    {
-      filename: pdfFilename || `offre-${offerId}.pdf`,
-      content: pdfBase64,
-    }
-  ],
-}),
-```
+| Champ | Type | Description |
+|-------|------|-------------|
+| `order_status` | text | Statut de commande (to_order, ordered, received, cancelled). Defaut: `to_order` |
+| `supplier_id` | uuid (FK suppliers) | Fournisseur choisi |
+| `supplier_price` | numeric | Prix d'achat fournisseur reel |
+| `order_date` | timestamptz | Date de commande |
+| `order_reference` | text | Reference de commande fournisseur |
+| `reception_date` | timestamptz | Date de reception |
+| `order_notes` | text | Notes libres |
 
-## Fichiers a modifier
+### Nouveaux champs sur `contract_equipment`
 
-| Fichier | Modification |
-|---------|-------------|
-| `supabase/functions/send-offer-email/index.ts` | Ajouter `reply_to: [user.email]` dans l'appel Resend |
+Memes champs que ci-dessus (symetrie offer/contract).
 
-## Resultat
+| Champ | Type | Description |
+|-------|------|-------------|
+| `order_status` | text | Defaut: `to_order` |
+| `supplier_id` | uuid (FK suppliers) | Fournisseur choisi |
+| `supplier_price` | numeric | Prix fournisseur |
+| `order_date` | timestamptz | Date de commande |
+| `order_reference` | text | Reference commande |
+| `reception_date` | timestamptz | Date de reception |
+| `order_notes` | text | Notes |
 
-Quand le client repond a l'email d'offre, la reponse sera adressee directement a l'utilisateur qui a envoye l'offre (ex: `commercial@entreprise.com`) au lieu de `noreply@itakecare.be`.
+### Pre-remplissage automatique
 
-Aucune modification cote frontend n'est necessaire car l'email de l'utilisateur est deja disponible dans la fonction via l'authentification JWT.
+Quand un equipement a un `product_id`, le systeme cherchera le fournisseur prefere dans `product_supplier_prices` (ou `is_preferred = true`) pour pre-remplir `supplier_id` et `supplier_price`. L'utilisateur pourra toujours modifier.
+
+## Composants a creer/modifier
+
+### 1. Composant `EquipmentOrderTracker` (nouveau)
+
+Composant reutilisable affichant le tableau de suivi pour un contrat ou une demande :
+
+- Tableau avec colonnes : Equipement, Fournisseur (dropdown), Prix fournisseur, Statut (badge cliquable), Date commande, Reference, Notes
+- Badges de couleur par statut : rouge (a commander), orange (commande), vert (recu), gris (annule)
+- Possibilite de changer le statut en un clic
+- Resume en haut : X/Y commandes, X/Y recu, total a commander
+
+### 2. Integration dans le detail contrat
+
+Remplacer ou completer le composant `ContractPurchaseTracking` existant avec le nouveau tracker. Le composant actuel gere deja le prix d'achat reel - on y ajoute fournisseur et statut de commande.
+
+### 3. Integration dans le detail offre
+
+Ajouter le tracker dans la page de detail d'une offre (pour les demandes qui necessitent deja du materiel).
+
+### 4. Page globale "Commandes fournisseurs" (nouvelle)
+
+Nouvelle page accessible depuis le menu admin, regroupant tous les equipements de tous les contrats et demandes :
+
+- Filtres : par statut (a commander / commande / recu / annule), par fournisseur, par contrat/demande
+- Tableau avec colonnes : Contrat/Demande, Client, Equipement, Fournisseur, Prix, Statut, Date commande
+- Totaux : montant total a commander, montant commande, montant recu
+- Lien direct vers le contrat/demande concerne
+- Onglet "A commander" par defaut pour voir immediatement ce qu'il reste a faire
+
+## Fichiers concernes
+
+| Fichier | Action |
+|---------|--------|
+| Migration SQL | Ajouter les colonnes sur `offer_equipment` et `contract_equipment` |
+| `src/components/contracts/EquipmentOrderTracker.tsx` | Creer - composant reutilisable |
+| `src/services/equipmentOrderService.ts` | Creer - service CRUD pour les commandes |
+| `src/pages/admin/EquipmentOrders.tsx` | Creer - page vue globale |
+| `src/components/contracts/ContractPurchaseTracking.tsx` | Modifier - integrer le suivi fournisseur |
+| `src/components/offers/detail/NewEquipmentSection.tsx` | Modifier - ajouter bouton/lien vers le suivi |
+| Routes et navigation admin | Ajouter la nouvelle page |
+
+## Resultat attendu
+
+- Chaque equipement de chaque contrat/demande a un statut de commande, un fournisseur et un prix fournisseur
+- Le fournisseur prefere est pre-rempli automatiquement depuis le catalogue
+- Une vue globale permet de voir d'un coup tout le materiel restant a commander, trie par fournisseur
+- Meme les contrats actifs peuvent avoir du materiel encore a commander ou en attente de reception
+
