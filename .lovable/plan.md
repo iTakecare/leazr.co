@@ -1,33 +1,42 @@
 
-# Afficher le statut de commande fournisseur dans le Suivi des achats
 
-## Objectif
+# Ajout fournisseur et changement de statut dans le Suivi des achats
 
-Ajouter le statut de commande fournisseur (A commander, Commande, Recu, Annule) dans chaque ligne du tableau "Suivi des achats" du detail contrat, pour synchroniser visuellement les deux systemes.
+## Modifications sur `src/components/contracts/ContractPurchaseTracking.tsx`
 
-## Modification
+### 1. Donnees supplementaires a recuperer
 
-### Fichier : `src/components/contracts/ContractPurchaseTracking.tsx`
+- Ajouter `supplier_id` et `order_status` dans l'interface `ContractEquipment` (order_status est deja present)
+- Ajouter `supplier_id` dans la requete Supabase (ligne 51)
+- Charger la liste des fournisseurs via `fetchSuppliers` (comme dans EquipmentOrderTracker)
 
-1. **Etendre la requete de donnees** (ligne 49) : ajouter `order_status` dans le SELECT de `contract_equipment`
-2. **Mettre a jour l'interface** `ContractEquipment` (ligne 15) : ajouter le champ `order_status`
-3. **Afficher un badge de statut** dans la colonne Equipement de chaque ligne, en utilisant les couleurs et labels deja definis dans `ORDER_STATUS_CONFIG` (importe depuis `equipmentOrderService`)
+### 2. Afficher le nom du fournisseur
 
-### Rendu visuel
+- Ajouter une colonne "Fournisseur" dans le tableau entre "Equipement" et "Qte"
+- Afficher le nom du fournisseur en croisant `supplier_id` avec la liste des fournisseurs
 
-Chaque ligne du tableau affichera, sous le nom de l'equipement, un petit badge colore indiquant le statut :
-- Rouge : "A commander"
-- Orange : "Commande"
-- Vert : "Recu"
-- Gris : "Annule"
+### 3. Permettre de changer le statut de commande
+
+- Remplacer le badge statique actuel par un `Select` (dropdown) identique a celui du EquipmentOrderTracker
+- Utiliser `updateContractEquipmentOrder` pour sauvegarder le changement de statut
+- Remplir automatiquement `order_date` quand on passe a "commande" et `reception_date` quand on passe a "recu"
+
+### 4. Imports necessaires
+
+- `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` (deja disponible)
+- `updateContractEquipmentOrder` depuis `equipmentOrderService`
+- `fetchSuppliers` depuis `equipmentOrderService`
+- `useMultiTenant` pour obtenir le `companyId`
 
 ### Details techniques
 
-| Etape | Detail |
-|-------|--------|
-| Import | Ajouter `ORDER_STATUS_CONFIG` et `OrderStatus` depuis `equipmentOrderService` |
-| Interface | Ajouter `order_status: string / null` a `ContractEquipment` |
-| Query | Ajouter `order_status` dans la requete Supabase (ligne 49) |
-| UI | Ajouter un `span` avec les classes de `ORDER_STATUS_CONFIG` sous le titre de chaque equipement |
+| Element | Detail |
+|---------|--------|
+| Fichier | `src/components/contracts/ContractPurchaseTracking.tsx` uniquement |
+| Interface | Ajouter `supplier_id: string / null` |
+| Query | Ajouter `supplier_id` dans le SELECT |
+| Fournisseurs | Charger via `fetchSuppliers(companyId)` dans le useEffect |
+| Colonne Fournisseur | Nouvelle colonne affichant le nom du fournisseur |
+| Colonne Statut | Select dropdown avec les 4 statuts, couleurs issues de ORDER_STATUS_CONFIG |
+| Sauvegarde statut | Via `updateContractEquipmentOrder` + refresh des donnees |
 
-Aucun autre fichier n'est modifie.
