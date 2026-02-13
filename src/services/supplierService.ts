@@ -18,6 +18,7 @@ export interface CreateSupplierData {
   country?: string;
   notes?: string;
   is_active?: boolean;
+  supplier_type?: 'belgian' | 'eu';
 }
 
 export interface UpdateSupplierData extends Partial<CreateSupplierData> {

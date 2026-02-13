@@ -7014,6 +7014,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           postal_code: string | null
+          supplier_type: string
           updated_at: string | null
           website: string | null
         }
@@ -7032,6 +7033,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          supplier_type?: string
           updated_at?: string | null
           website?: string | null
         }
@@ -7050,6 +7052,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          supplier_type?: string
           updated_at?: string | null
           website?: string | null
         }
