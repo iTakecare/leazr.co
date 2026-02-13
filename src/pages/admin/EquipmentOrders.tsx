@@ -100,6 +100,18 @@ const EquipmentOrders: React.FC = () => {
   const totalOrdered = items.filter(i => i.order_status === 'ordered').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
   const totalReceived = items.filter(i => i.order_status === 'received').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
 
+  const calcTVAC = (itemsList: EquipmentOrderItem[]) =>
+    itemsList.reduce((s, i) => {
+      const priceHT = (i.supplier_price || i.purchase_price) * i.quantity;
+      const supplierType = getSupplierType(i.supplier_id);
+      const tva = supplierType === 'belgian' ? priceHT * 0.21 : 0;
+      return s + priceHT + tva;
+    }, 0);
+
+  const totalToOrderTVAC = calcTVAC(items.filter(i => i.order_status === 'to_order'));
+  const totalOrderedTVAC = calcTVAC(items.filter(i => i.order_status === 'ordered'));
+  const totalReceivedTVAC = calcTVAC(items.filter(i => i.order_status === 'received'));
+
   // Group filtered items by year
   const groupedByYear = useMemo(() => {
     const groups: Record<string, EquipmentOrderItem[]> = {};
@@ -247,6 +259,7 @@ const EquipmentOrders: React.FC = () => {
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">À commander (HTVA)</p>
             <p className="text-2xl font-bold text-destructive">{formatCurrency(totalToOrder)}</p>
+            <p className="text-xs text-muted-foreground">TVAC : {formatCurrency(totalToOrderTVAC)}</p>
             <p className="text-xs text-muted-foreground">{items.filter(i => i.order_status === 'to_order').length} équipement(s)</p>
           </CardContent>
         </Card>
@@ -254,6 +267,7 @@ const EquipmentOrders: React.FC = () => {
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">Commandé (HTVA)</p>
             <p className="text-2xl font-bold text-warning">{formatCurrency(totalOrdered)}</p>
+            <p className="text-xs text-muted-foreground">TVAC : {formatCurrency(totalOrderedTVAC)}</p>
             <p className="text-xs text-muted-foreground">{items.filter(i => i.order_status === 'ordered').length} équipement(s)</p>
           </CardContent>
         </Card>
@@ -261,6 +275,7 @@ const EquipmentOrders: React.FC = () => {
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">Reçu (HTVA)</p>
             <p className="text-2xl font-bold text-primary">{formatCurrency(totalReceived)}</p>
+            <p className="text-xs text-muted-foreground">TVAC : {formatCurrency(totalReceivedTVAC)}</p>
             <p className="text-xs text-muted-foreground">{items.filter(i => i.order_status === 'received').length} équipement(s)</p>
           </CardContent>
         </Card>
