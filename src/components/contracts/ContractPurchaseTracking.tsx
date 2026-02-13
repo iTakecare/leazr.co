@@ -189,10 +189,12 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     try {
       const updateData: {
         actual_purchase_price: number;
+        supplier_price: number;
         purchase_notes: string | null;
         actual_purchase_date?: string | null;
       } = {
         actual_purchase_price: actualPrice,
+        supplier_price: actualPrice,
         purchase_notes: notes || null
       };
 

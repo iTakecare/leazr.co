@@ -50,9 +50,14 @@ export const updateOfferEquipmentOrder = async (equipmentId: string, data: Equip
 };
 
 export const updateContractEquipmentOrder = async (equipmentId: string, data: EquipmentOrderUpdate) => {
+  // Auto-sync supplier_price ↔ actual_purchase_price for contracts
+  const syncedData: Record<string, any> = { ...data };
+  if (data.supplier_price !== undefined) {
+    syncedData.actual_purchase_price = data.supplier_price;
+  }
   const { error } = await supabase
     .from('contract_equipment')
-    .update(data as any)
+    .update(syncedData)
     .eq('id', equipmentId);
   if (error) throw error;
 };
@@ -124,6 +129,33 @@ export const updateEquipmentUnit = async (unitId: string, data: Partial<Equipmen
     .from('equipment_order_units' as any)
     .update(data as any)
     .eq('id', unitId);
+  if (error) throw error;
+};
+
+// Sync prices from units back to the parent equipment row
+export const syncUnitPricesToParent = async (
+  sourceType: 'offer' | 'contract',
+  equipmentId: string
+) => {
+  const units = await fetchEquipmentUnits(sourceType, equipmentId);
+  if (units.length === 0) return;
+
+  // Calculate average supplier_price across units (only non-null)
+  const pricesWithValues = units.filter(u => u.supplier_price != null);
+  if (pricesWithValues.length === 0) return;
+
+  const avgPrice = pricesWithValues.reduce((s, u) => s + (u.supplier_price || 0), 0) / pricesWithValues.length;
+
+  const table = sourceType === 'offer' ? 'offer_equipment' : 'contract_equipment';
+  const updateData: Record<string, any> = { supplier_price: avgPrice };
+  if (sourceType === 'contract') {
+    updateData.actual_purchase_price = avgPrice;
+  }
+
+  const { error } = await supabase
+    .from(table)
+    .update(updateData)
+    .eq('id', equipmentId);
   if (error) throw error;
 };
 

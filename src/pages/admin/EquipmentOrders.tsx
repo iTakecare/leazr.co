@@ -21,6 +21,7 @@ import {
   updateContractEquipmentOrder,
   splitEquipmentIntoUnits,
   updateEquipmentUnit,
+  syncUnitPricesToParent,
 } from "@/services/equipmentOrderService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
@@ -82,10 +83,11 @@ const EquipmentOrders: React.FC = () => {
 
   const handleSupplierChange = async (item: EquipmentOrderItem, supplierId: string) => {
     try {
-      const update = { supplier_id: supplierId };
+      const update: Record<string, any> = { supplier_id: supplierId };
       if (item.source_type === 'offer') {
         await updateOfferEquipmentOrder(item.id, update);
       } else {
+        // Also sync actual_purchase_price for contracts
         await updateContractEquipmentOrder(item.id, update);
       }
       toast.success("Fournisseur mis à jour");
@@ -139,6 +141,8 @@ const EquipmentOrders: React.FC = () => {
   const handleUnitPriceChange = async (unit: EquipmentOrderUnit, price: number) => {
     try {
       await updateEquipmentUnit(unit.id, { supplier_price: price } as any);
+      // Sync average price back to parent equipment
+      await syncUnitPricesToParent(unit.source_type, unit.source_equipment_id);
       toast.success("Prix de l'unité mis à jour");
       fetchData();
     } catch {
