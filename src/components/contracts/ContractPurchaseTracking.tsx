@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { ShoppingCart, Check, TrendingUp, Save, Calendar } from "lucide-react";
+import { ORDER_STATUS_CONFIG, OrderStatus } from "@/services/equipmentOrderService";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -20,6 +21,7 @@ interface ContractEquipment {
   actual_purchase_price: number | null;
   actual_purchase_date: string | null;
   purchase_notes: string | null;
+  order_status: string | null;
 }
 
 interface ContractPurchaseTrackingProps {
@@ -46,7 +48,7 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     try {
       const { data, error } = await supabase
         .from('contract_equipment')
-        .select('id, title, quantity, purchase_price, actual_purchase_price, actual_purchase_date, purchase_notes')
+        .select('id, title, quantity, purchase_price, actual_purchase_price, actual_purchase_date, purchase_notes, order_status')
         .eq('contract_id', contractId)
         .order('created_at', { ascending: true });
 
@@ -215,6 +217,11 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                         {isPurchased && <Check className="h-4 w-4 text-green-600" />}
                         <span className="font-medium">{eq.title}</span>
                       </div>
+                      {eq.order_status && ORDER_STATUS_CONFIG[eq.order_status as OrderStatus] && (
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium border ${ORDER_STATUS_CONFIG[eq.order_status as OrderStatus].bgColor} ${ORDER_STATUS_CONFIG[eq.order_status as OrderStatus].color}`}>
+                          {ORDER_STATUS_CONFIG[eq.order_status as OrderStatus].label}
+                        </span>
+                      )}
                       {eq.actual_purchase_date && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                           <Calendar className="h-3 w-3" />
