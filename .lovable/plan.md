@@ -1,44 +1,36 @@
 
-# Correction de l'erreur de creation de fournisseur
+
+# Fix: Erreur "User not authenticated" lors de la creation de fournisseur
 
 ## Probleme identifie
 
-La fonction `createSupplier` dans `src/services/supplierService.ts` (ligne 77-80) fait une requete sur la table `profiles` sans filtre sur l'utilisateur connecte :
+`supabase.auth.getUser()` retourne `null` dans `createSupplier`. Cette methode fait un appel reseau au serveur Supabase pour valider le token, et peut echouer si le token est expire ou si la requete echoue silencieusement.
 
-```sql
-SELECT company_id FROM profiles -- sans WHERE !
-```
+## Solution
 
-Cela retourne plusieurs lignes (tous les profils), et `.single()` echoue car il attend exactement une ligne. D'ou l'erreur "User company not found".
-
-## Correction
-
-Modifier la fonction `createSupplier` pour recuperer d'abord l'utilisateur connecte via `supabase.auth.getUser()`, puis filtrer la requete profiles par son `user_id`.
+Utiliser `supabase.auth.getSession()` a la place, qui lit le token depuis le cache local (plus fiable cote client), puis extraire le `user` de la session.
 
 ### Fichier concerne
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/services/supplierService.ts` | Ajouter `auth.getUser()` et filtrer `.eq('id', user.id)` dans `createSupplier` |
+| `src/services/supplierService.ts` | Remplacer `getUser()` par `getSession()` dans `createSupplier` |
 
-### Code modifie (lignes 75-84)
+### Code modifie (lignes 75-77)
 
+Avant :
 ```typescript
-export async function createSupplier(supplierData: CreateSupplierData): Promise<Supplier> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('User not authenticated');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.company_id) {
-    throw new Error('User company not found');
-  }
-  // ... reste inchange
-}
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) throw new Error('User not authenticated');
 ```
+
+Apres :
+```typescript
+const { data: { session } } = await supabase.auth.getSession();
+if (!session?.user) throw new Error('User not authenticated');
+const user = session.user;
+```
+
+Le reste de la fonction reste identique (la variable `user` est toujours utilisee de la meme maniere apres).
 
 Aucun autre fichier n'est modifie.
