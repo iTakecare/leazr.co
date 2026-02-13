@@ -175,7 +175,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
   const { data: contractEquipment, error: contractError } = await supabase
     .from('contract_equipment')
     .select(`
-      id, title, quantity, purchase_price,
+      id, title, quantity, purchase_price, actual_purchase_price,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
       contracts!inner(id, contract_number, client_name, company_id, created_at)
     `)
@@ -226,7 +226,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
       purchase_price: eq.purchase_price,
       order_status: (eq.order_status || 'to_order') as OrderStatus,
       supplier_id: eq.supplier_id,
-      supplier_price: eq.supplier_price,
+      supplier_price: eq.supplier_price ?? eq.actual_purchase_price ?? null,
       order_date: eq.order_date,
       order_reference: eq.order_reference,
       reception_date: eq.reception_date,
