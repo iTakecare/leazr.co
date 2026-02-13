@@ -30,6 +30,7 @@ export interface EquipmentOrderItem {
   source_id?: string;
   client_name?: string;
   source_reference?: string;
+  source_date?: string;
 }
 
 export const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
@@ -84,7 +85,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     .select(`
       id, title, quantity, purchase_price, product_id,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
-      offers!inner(id, dossier_number, client_name, company_id)
+      offers!inner(id, dossier_number, client_name, company_id, created_at)
     `)
     .eq('offers.company_id', companyId)
     .eq('offers.workflow_status', 'accepted');
@@ -97,7 +98,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
     .select(`
       id, title, quantity, purchase_price,
       order_status, supplier_id, supplier_price, order_date, order_reference, reception_date, order_notes,
-      contracts!inner(id, contract_number, client_name, company_id)
+      contracts!inner(id, contract_number, client_name, company_id, created_at)
     `)
     .eq('contracts.company_id', companyId);
 
@@ -121,6 +122,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
       source_id: eq.offers?.id,
       client_name: eq.offers?.client_name,
       source_reference: eq.offers?.dossier_number || 'N/A',
+      source_date: eq.offers?.created_at,
     })),
     ...(contractEquipment || []).map((eq: any) => ({
       id: eq.id,
@@ -139,6 +141,7 @@ export const fetchAllEquipmentOrders = async (companyId: string) => {
       source_id: eq.contracts?.id,
       client_name: eq.contracts?.client_name,
       source_reference: eq.contracts?.contract_number || 'N/A',
+      source_date: eq.contracts?.created_at,
     })),
   ];
 

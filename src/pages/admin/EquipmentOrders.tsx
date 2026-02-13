@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { Truck, ExternalLink, Filter } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -85,6 +84,25 @@ const EquipmentOrders: React.FC = () => {
   const totalOrdered = items.filter(i => i.order_status === 'ordered').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
   const totalReceived = items.filter(i => i.order_status === 'received').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
 
+  // Group filtered items by year
+  const groupedByYear = useMemo(() => {
+    const groups: Record<string, EquipmentOrderItem[]> = {};
+    filteredItems.forEach(item => {
+      const year = item.source_date ? new Date(item.source_date).getFullYear().toString() : 'Inconnu';
+      if (!groups[year]) groups[year] = [];
+      groups[year].push(item);
+    });
+    // Sort years descending
+    const sorted = Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'Inconnu') return 1;
+      if (b === 'Inconnu') return -1;
+      return Number(b) - Number(a);
+    });
+    return sorted;
+  }, [filteredItems]);
+
+  const defaultOpenYear = groupedByYear.length > 0 ? groupedByYear[0][0] : undefined;
+
   const navigateToSource = (item: EquipmentOrderItem) => {
     const slug = getCompanySlug();
     if (item.source_type === 'offer') {
@@ -93,6 +111,79 @@ const EquipmentOrders: React.FC = () => {
       navigate(`/${slug}/admin/contracts/${item.source_id}`);
     }
   };
+
+  const renderTable = (yearItems: EquipmentOrderItem[]) => (
+    <div className="rounded-md border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Source</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Équipement</TableHead>
+            <TableHead>Fournisseur</TableHead>
+            <TableHead className="text-right">Prix</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {yearItems.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                Aucun équipement trouvé
+              </TableCell>
+            </TableRow>
+          ) : (
+            yearItems.map((item) => {
+              const statusConfig = ORDER_STATUS_CONFIG[item.order_status];
+              const supplierName = suppliers.find(s => s.id === item.supplier_id)?.name;
+              return (
+                <TableRow key={`${item.source_type}-${item.id}`}>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {item.source_type === 'offer' ? 'Demande' : 'Contrat'}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground mt-1">{item.source_reference}</div>
+                  </TableCell>
+                  <TableCell className="text-sm">{item.client_name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium text-sm">{item.title}</div>
+                    <div className="text-xs text-muted-foreground">Qté: {item.quantity}</div>
+                  </TableCell>
+                  <TableCell className="text-sm">{supplierName || '—'}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">
+                    {formatCurrency((item.supplier_price || item.purchase_price) * item.quantity)}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={item.order_status}
+                      onValueChange={(v) => handleStatusChange(item, v as OrderStatus)}
+                    >
+                      <SelectTrigger className={`w-36 h-8 text-xs font-semibold border ${statusConfig.bgColor} ${statusConfig.color}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(ORDER_STATUS_CONFIG).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            <span className={config.color}>{config.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="ghost" onClick={() => navigateToSource(item)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -161,81 +252,34 @@ const EquipmentOrders: React.FC = () => {
         </Select>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Équipement</TableHead>
-                  <TableHead>Fournisseur</TableHead>
-                  <TableHead className="text-right">Prix</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Aucun équipement trouvé
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredItems.map((item) => {
-                    const statusConfig = ORDER_STATUS_CONFIG[item.order_status];
-                    const supplierName = suppliers.find(s => s.id === item.supplier_id)?.name;
-                    return (
-                      <TableRow key={`${item.source_type}-${item.id}`}>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {item.source_type === 'offer' ? 'Demande' : 'Contrat'}
-                          </Badge>
-                          <div className="text-xs text-muted-foreground mt-1">{item.source_reference}</div>
-                        </TableCell>
-                        <TableCell className="text-sm">{item.client_name}</TableCell>
-                        <TableCell>
-                          <div className="font-medium text-sm">{item.title}</div>
-                          <div className="text-xs text-muted-foreground">Qté: {item.quantity}</div>
-                        </TableCell>
-                        <TableCell className="text-sm">{supplierName || '—'}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">
-                          {formatCurrency((item.supplier_price || item.purchase_price) * item.quantity)}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={item.order_status}
-                            onValueChange={(v) => handleStatusChange(item, v as OrderStatus)}
-                          >
-                            <SelectTrigger className={`w-36 h-8 text-xs font-semibold border ${statusConfig.bgColor} ${statusConfig.color}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(ORDER_STATUS_CONFIG).map(([key, config]) => (
-                                <SelectItem key={key} value={key}>
-                                  <span className={config.color}>{config.label}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" onClick={() => navigateToSource(item)}>
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Accordion by year */}
+      {groupedByYear.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Aucun équipement trouvé
+          </CardContent>
+        </Card>
+      ) : (
+        <Accordion type="single" collapsible defaultValue={defaultOpenYear}>
+          {groupedByYear.map(([year, yearItems]) => {
+            const yearTotal = yearItems.reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
+            return (
+              <AccordionItem key={year} value={year}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-semibold">{year}</span>
+                    <Badge variant="secondary">{yearItems.length} équipement(s)</Badge>
+                    <span className="text-sm text-muted-foreground">{formatCurrency(yearTotal)}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {renderTable(yearItems)}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
     </div>
   );
 };
