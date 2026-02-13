@@ -2,14 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { ShoppingCart, Check, TrendingUp, Save, Calendar } from "lucide-react";
-import { ORDER_STATUS_CONFIG, OrderStatus } from "@/services/equipmentOrderService";
+import { ORDER_STATUS_CONFIG, OrderStatus, updateContractEquipmentOrder, fetchSuppliers } from "@/services/equipmentOrderService";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -22,6 +23,13 @@ interface ContractEquipment {
   actual_purchase_date: string | null;
   purchase_notes: string | null;
   order_status: string | null;
+  supplier_id: string | null;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  supplier_type: string | null;
 }
 
 interface ContractPurchaseTrackingProps {
@@ -33,7 +41,9 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
   contractId,
   onUpdate
 }) => {
+  const { companyId } = useMultiTenant();
   const [equipment, setEquipment] = useState<ContractEquipment[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
@@ -44,11 +54,17 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     fetchEquipment();
   }, [contractId]);
 
+  useEffect(() => {
+    if (companyId) {
+      fetchSuppliers(companyId).then(setSuppliers).catch(console.error);
+    }
+  }, [companyId]);
+
   const fetchEquipment = async () => {
     try {
       const { data, error } = await supabase
         .from('contract_equipment')
-        .select('id, title, quantity, purchase_price, actual_purchase_price, actual_purchase_date, purchase_notes, order_status')
+        .select('id, title, quantity, purchase_price, actual_purchase_price, actual_purchase_date, purchase_notes, order_status, supplier_id')
         .eq('contract_id', contractId)
         .order('created_at', { ascending: true });
 
@@ -60,6 +76,30 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStatusChange = async (equipmentId: string, newStatus: OrderStatus) => {
+    try {
+      const updateData: Record<string, any> = { order_status: newStatus };
+      if (newStatus === 'ordered' && !equipment.find(e => e.id === equipmentId)?.actual_purchase_date) {
+        updateData.order_date = new Date().toISOString();
+      }
+      if (newStatus === 'received') {
+        updateData.reception_date = new Date().toISOString();
+      }
+      await updateContractEquipmentOrder(equipmentId, updateData);
+      toast.success("Statut mis à jour");
+      fetchEquipment();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur mise à jour statut:', error);
+      toast.error("Erreur lors de la mise à jour du statut");
+    }
+  };
+
+  const getSupplierName = (supplierId: string | null) => {
+    if (!supplierId) return null;
+    return suppliers.find(s => s.id === supplierId)?.name || null;
   };
 
   const handleSavePurchase = async (equipmentId: string) => {
@@ -80,7 +120,6 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
 
     setSaving(equipmentId);
     try {
-      // Ne pas remplir automatiquement la date - utiliser uniquement la date saisie manuellement
       const updateData: {
         actual_purchase_price: number;
         purchase_notes: string | null;
@@ -90,7 +129,6 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
         purchase_notes: notes || null
       };
 
-      // Ajouter la date uniquement si elle est renseignée manuellement
       if (dateStr) {
         updateData.actual_purchase_date = new Date(dateStr).toISOString();
       }
@@ -106,7 +144,6 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
       fetchEquipment();
       onUpdate?.();
       
-      // Clear editing state
       setEditingPrices(prev => {
         const { [equipmentId]: _, ...rest } = prev;
         return rest;
@@ -195,6 +232,8 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead>Équipement</TableHead>
+                <TableHead>Fournisseur</TableHead>
+                <TableHead>Statut commande</TableHead>
                 <TableHead className="text-center">Qté</TableHead>
                 <TableHead className="text-right">Prix estimé</TableHead>
                 <TableHead className="text-right">Prix réel</TableHead>
@@ -209,6 +248,8 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                 const savings = isPurchased 
                   ? (eq.purchase_price - eq.actual_purchase_price!) * eq.quantity 
                   : 0;
+                const supplierName = getSupplierName(eq.supplier_id);
+                const currentStatus = (eq.order_status || 'to_order') as OrderStatus;
 
                 return (
                   <TableRow key={eq.id}>
@@ -217,11 +258,6 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                         {isPurchased && <Check className="h-4 w-4 text-green-600" />}
                         <span className="font-medium">{eq.title}</span>
                       </div>
-                      {eq.order_status && ORDER_STATUS_CONFIG[eq.order_status as OrderStatus] && (
-                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium border ${ORDER_STATUS_CONFIG[eq.order_status as OrderStatus].bgColor} ${ORDER_STATUS_CONFIG[eq.order_status as OrderStatus].color}`}>
-                          {ORDER_STATUS_CONFIG[eq.order_status as OrderStatus].label}
-                        </span>
-                      )}
                       {eq.actual_purchase_date && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                           <Calendar className="h-3 w-3" />
@@ -231,6 +267,30 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                       {eq.purchase_notes && (
                         <p className="text-xs text-muted-foreground mt-1">{eq.purchase_notes}</p>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {supplierName ? (
+                        <span className="text-sm">{supplierName}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Non défini</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={currentStatus}
+                        onValueChange={(value) => handleStatusChange(eq.id, value as OrderStatus)}
+                      >
+                        <SelectTrigger className={`w-[140px] h-8 text-xs font-medium border ${ORDER_STATUS_CONFIG[currentStatus].bgColor} ${ORDER_STATUS_CONFIG[currentStatus].color}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(ORDER_STATUS_CONFIG).map(([key, config]) => (
+                            <SelectItem key={key} value={key}>
+                              <span className={config.color}>{config.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="text-center">{eq.quantity}</TableCell>
                     <TableCell className="text-right">
