@@ -2325,11 +2325,18 @@ export type Database = {
           is_individual: boolean | null
           margin: number
           monthly_payment: number | null
+          order_date: string | null
+          order_notes: string | null
+          order_reference: string | null
+          order_status: string
           parent_equipment_id: string | null
           purchase_notes: string | null
           purchase_price: number
           quantity: number
+          reception_date: string | null
           serial_number: string | null
+          supplier_id: string | null
+          supplier_price: number | null
           title: string
           updated_at: string
         }
@@ -2344,11 +2351,18 @@ export type Database = {
           is_individual?: boolean | null
           margin?: number
           monthly_payment?: number | null
+          order_date?: string | null
+          order_notes?: string | null
+          order_reference?: string | null
+          order_status?: string
           parent_equipment_id?: string | null
           purchase_notes?: string | null
           purchase_price?: number
           quantity?: number
+          reception_date?: string | null
           serial_number?: string | null
+          supplier_id?: string | null
+          supplier_price?: number | null
           title: string
           updated_at?: string
         }
@@ -2363,11 +2377,18 @@ export type Database = {
           is_individual?: boolean | null
           margin?: number
           monthly_payment?: number | null
+          order_date?: string | null
+          order_notes?: string | null
+          order_reference?: string | null
+          order_status?: string
           parent_equipment_id?: string | null
           purchase_notes?: string | null
           purchase_price?: number
           quantity?: number
+          reception_date?: string | null
           serial_number?: string | null
+          supplier_id?: string | null
+          supplier_price?: number | null
           title?: string
           updated_at?: string
         }
@@ -2391,6 +2412,13 @@ export type Database = {
             columns: ["parent_equipment_id"]
             isOneToOne: false
             referencedRelation: "contract_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_equipment_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -4805,13 +4833,20 @@ export type Database = {
           margin: number
           monthly_payment: number | null
           offer_id: string
+          order_date: string | null
+          order_notes: string | null
+          order_reference: string | null
+          order_status: string
           original_unit_price: number | null
           pack_discount_percentage: number | null
           product_id: string | null
           purchase_price: number
           quantity: number
+          reception_date: string | null
           selling_price: number | null
           serial_number: string | null
+          supplier_id: string | null
+          supplier_price: number | null
           title: string
           updated_at: string
           variant_id: string | null
@@ -4838,13 +4873,20 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           offer_id: string
+          order_date?: string | null
+          order_notes?: string | null
+          order_reference?: string | null
+          order_status?: string
           original_unit_price?: number | null
           pack_discount_percentage?: number | null
           product_id?: string | null
           purchase_price?: number
           quantity?: number
+          reception_date?: string | null
           selling_price?: number | null
           serial_number?: string | null
+          supplier_id?: string | null
+          supplier_price?: number | null
           title: string
           updated_at?: string
           variant_id?: string | null
@@ -4871,13 +4913,20 @@ export type Database = {
           margin?: number
           monthly_payment?: number | null
           offer_id?: string
+          order_date?: string | null
+          order_notes?: string | null
+          order_reference?: string | null
+          order_status?: string
           original_unit_price?: number | null
           pack_discount_percentage?: number | null
           product_id?: string | null
           purchase_price?: number
           quantity?: number
+          reception_date?: string | null
           selling_price?: number | null
           serial_number?: string | null
+          supplier_id?: string | null
+          supplier_price?: number | null
           title?: string
           updated_at?: string
           variant_id?: string | null
@@ -4923,6 +4972,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_equipment_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]

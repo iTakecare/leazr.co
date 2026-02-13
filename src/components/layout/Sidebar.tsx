@@ -17,7 +17,8 @@ import {
   ClipboardList,
   Calculator,
   Package,
-  Mail
+  Mail,
+  Truck
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
@@ -96,6 +97,13 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         label: "Catalogue", 
         href: `${basePrefix}/admin/catalog`, 
         moduleSlug: "catalog" 
+      },
+      { 
+        icon: Truck, 
+        label: "Commandes", 
+        href: `${basePrefix}/admin/equipment-orders`, 
+        moduleSlug: "contracts",
+        alwaysVisible: false 
       },
       { 
         icon: Mail, 

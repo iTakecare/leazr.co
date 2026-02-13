@@ -26,6 +26,7 @@ import OfferTypeTag from "@/components/offers/OfferTypeTag";
 import WinBrokerWorkflowStepper from "@/components/offers/detail/WinBrokerWorkflowStepper";
 import ClientSection from "@/components/offers/detail/ClientSection";
 import NewEquipmentSection from "@/components/offers/detail/NewEquipmentSection";
+import EquipmentOrderTracker from "@/components/contracts/EquipmentOrderTracker";
 import FinancialSection from "@/components/offers/detail/FinancialSection";
 import CompactActionsSidebar from "@/components/offers/detail/CompactActionsSidebar";
 import ImprovedOfferHistory from "@/components/offers/detail/ImprovedOfferHistory";
@@ -1047,6 +1048,11 @@ const getScoreFromStatus = (status: string): 'A' | 'B' | 'C' | null => {
                   <TabsContent value="overview" className="space-y-4 mt-4 overflow-visible">
                     <ClientSection offer={offer} />
                     <NewEquipmentSection offer={offer} onOfferUpdate={() => { setEquipmentRefreshKey((k) => k + 1); fetchOfferDetails(); }} />
+                    <EquipmentOrderTracker
+                      sourceType="offer"
+                      sourceId={offer.id}
+                      onUpdate={fetchOfferDetails}
+                    />
                   </TabsContent>
                   
                   <TabsContent value="financial" className="mt-4 overflow-visible">

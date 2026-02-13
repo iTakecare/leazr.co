@@ -25,6 +25,14 @@ export interface OfferEquipment {
   delivery_contact_phone?: string;
   created_at?: string;
   updated_at?: string;
+  // Order tracking fields
+  order_status?: string;
+  supplier_id?: string;
+  supplier_price?: number;
+  order_date?: string;
+  order_reference?: string;
+  reception_date?: string;
+  order_notes?: string;
   attributes?: OfferEquipmentAttribute[];
   specifications?: OfferEquipmentSpecification[];
 }
