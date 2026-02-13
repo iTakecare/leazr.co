@@ -59,7 +59,7 @@ export const updateContractEquipmentOrder = async (equipmentId: string, data: Eq
 export const fetchSuppliers = async (companyId: string) => {
   const { data, error } = await supabase
     .from('suppliers')
-    .select('id, name')
+    .select('id, name, supplier_type')
     .eq('company_id', companyId)
     .eq('is_active', true)
     .order('name');

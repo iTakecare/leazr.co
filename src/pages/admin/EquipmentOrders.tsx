@@ -26,7 +26,7 @@ const EquipmentOrders: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [items, setItems] = useState<EquipmentOrderItem[]>([]);
-  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; supplier_type?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('to_order');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
@@ -128,6 +128,11 @@ const EquipmentOrders: React.FC = () => {
     }
   };
 
+  const getSupplierType = (supplierId: string | null): string => {
+    if (!supplierId) return 'belgian';
+    return suppliers.find(s => s.id === supplierId)?.supplier_type || 'belgian';
+  };
+
   const renderTable = (yearItems: EquipmentOrderItem[]) => (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -137,7 +142,9 @@ const EquipmentOrders: React.FC = () => {
             <TableHead>Client</TableHead>
             <TableHead>Équipement</TableHead>
             <TableHead>Fournisseur</TableHead>
-            <TableHead className="text-right">Prix</TableHead>
+            <TableHead className="text-right">Prix HTVA</TableHead>
+            <TableHead className="text-right">TVA</TableHead>
+            <TableHead className="text-right">Prix TVAC</TableHead>
             <TableHead>Statut</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -145,14 +152,17 @@ const EquipmentOrders: React.FC = () => {
         <TableBody>
           {yearItems.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                 Aucun équipement trouvé
               </TableCell>
             </TableRow>
           ) : (
             yearItems.map((item) => {
               const statusConfig = ORDER_STATUS_CONFIG[item.order_status];
-              const supplierName = suppliers.find(s => s.id === item.supplier_id)?.name;
+              const priceHT = (item.supplier_price || item.purchase_price) * item.quantity;
+              const supplierType = getSupplierType(item.supplier_id);
+              const tvaAmount = supplierType === 'belgian' ? priceHT * 0.21 : 0;
+              const priceTVAC = priceHT + tvaAmount;
               return (
                 <TableRow key={`${item.source_type}-${item.id}`}>
                   <TableCell>
@@ -177,7 +187,13 @@ const EquipmentOrders: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell className="text-right text-sm font-medium">
-                    {formatCurrency((item.supplier_price || item.purchase_price) * item.quantity)}
+                    {formatCurrency(priceHT)}
+                  </TableCell>
+                  <TableCell className="text-right text-sm">
+                    {supplierType === 'belgian' ? formatCurrency(tvaAmount) : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-medium">
+                    {formatCurrency(priceTVAC)}
                   </TableCell>
                   <TableCell>
                     <Select
@@ -229,22 +245,22 @@ const EquipmentOrders: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">À commander</p>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(totalToOrder)}</p>
+            <p className="text-sm text-muted-foreground">À commander (HTVA)</p>
+            <p className="text-2xl font-bold text-destructive">{formatCurrency(totalToOrder)}</p>
             <p className="text-xs text-muted-foreground">{items.filter(i => i.order_status === 'to_order').length} équipement(s)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">Commandé</p>
-            <p className="text-2xl font-bold text-orange-600">{formatCurrency(totalOrdered)}</p>
+            <p className="text-sm text-muted-foreground">Commandé (HTVA)</p>
+            <p className="text-2xl font-bold text-warning">{formatCurrency(totalOrdered)}</p>
             <p className="text-xs text-muted-foreground">{items.filter(i => i.order_status === 'ordered').length} équipement(s)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">Reçu</p>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(totalReceived)}</p>
+            <p className="text-sm text-muted-foreground">Reçu (HTVA)</p>
+            <p className="text-2xl font-bold text-primary">{formatCurrency(totalReceived)}</p>
             <p className="text-xs text-muted-foreground">{items.filter(i => i.order_status === 'received').length} équipement(s)</p>
           </CardContent>
         </Card>

@@ -25,14 +25,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createSupplier } from "@/services/supplierService";
 import { toast } from "sonner";
 
 interface SupplierSelectOrCreateProps {
-  suppliers: { id: string; name: string }[];
+  suppliers: { id: string; name: string; supplier_type?: string }[];
   value: string | null;
   onValueChange: (supplierId: string) => void;
-  onSupplierCreated: (newSupplier: { id: string; name: string }) => void;
+  onSupplierCreated: (newSupplier: { id: string; name: string; supplier_type?: string }) => void;
   className?: string;
   disabled?: boolean;
 }
@@ -51,6 +52,7 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [newSupplierType, setNewSupplierType] = useState<'belgian' | 'eu'>('belgian');
 
   const selectedSupplier = suppliers.find((s) => s.id === value);
 
@@ -65,14 +67,16 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
         name: newName.trim(),
         email: newEmail.trim() || undefined,
         phone: newPhone.trim() || undefined,
+        supplier_type: newSupplierType,
       });
       toast.success(`Fournisseur "${created.name}" créé`);
-      onSupplierCreated({ id: created.id, name: created.name });
+      onSupplierCreated({ id: created.id, name: created.name, supplier_type: (created as any).supplier_type || newSupplierType });
       onValueChange(created.id);
       setDialogOpen(false);
       setNewName("");
       setNewEmail("");
       setNewPhone("");
+      setNewSupplierType('belgian');
     } catch (err) {
       console.error("Error creating supplier:", err);
       toast.error("Erreur lors de la création du fournisseur");
@@ -174,6 +178,27 @@ const SupplierSelectOrCreate: React.FC<SupplierSelectOrCreateProps> = ({
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder="+32 ..."
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Type de fournisseur</Label>
+              <RadioGroup
+                value={newSupplierType}
+                onValueChange={(v) => setNewSupplierType(v as 'belgian' | 'eu')}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="belgian" id="type-belgian" />
+                  <Label htmlFor="type-belgian" className="font-normal cursor-pointer">
+                    Fournisseur Belge <span className="text-xs text-muted-foreground">(TVA 21%)</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="eu" id="type-eu" />
+                  <Label htmlFor="type-eu" className="font-normal cursor-pointer">
+                    Fournisseur EU <span className="text-xs text-muted-foreground">(Intracommunautaire, pas de TVA)</span>
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
           </div>
           <DialogFooter>
