@@ -97,6 +97,19 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
     }
   };
 
+  const handleSupplierChange = async (equipmentId: string, supplierId: string) => {
+    try {
+      const newId = supplierId === '_none' ? null : supplierId;
+      await updateContractEquipmentOrder(equipmentId, { supplier_id: newId });
+      toast.success("Fournisseur mis à jour");
+      fetchEquipment();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Erreur mise à jour fournisseur:', error);
+      toast.error("Erreur lors de la mise à jour du fournisseur");
+    }
+  };
+
   const getSupplierName = (supplierId: string | null) => {
     if (!supplierId) return null;
     return suppliers.find(s => s.id === supplierId)?.name || null;
@@ -269,11 +282,22 @@ const ContractPurchaseTracking: React.FC<ContractPurchaseTrackingProps> = ({
                       )}
                     </TableCell>
                     <TableCell>
-                      {supplierName ? (
-                        <span className="text-sm">{supplierName}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">Non défini</span>
-                      )}
+                      <Select
+                        value={eq.supplier_id || '_none'}
+                        onValueChange={(value) => handleSupplierChange(eq.id, value)}
+                      >
+                        <SelectTrigger className="w-[160px] h-8 text-xs">
+                          <SelectValue placeholder="Non défini" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border shadow-md z-50">
+                          <SelectItem value="_none">
+                            <span className="text-muted-foreground italic">Non défini</span>
+                          </SelectItem>
+                          {suppliers.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Select
