@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal } from "lucide-react";
+import { Truck, ExternalLink, Filter, ChevronDown, SplitSquareHorizontal, Pencil, Check, X } from "lucide-react";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -25,6 +26,57 @@ import {
 } from "@/services/equipmentOrderService";
 import { EquipmentOrderUnit } from "@/types/offerEquipment";
 import SupplierSelectOrCreate from "@/components/equipment/SupplierSelectOrCreate";
+
+// Inline editable price component
+const EditablePrice: React.FC<{
+  value: number;
+  onSave: (newPrice: number) => void;
+}> = ({ value, onSave }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value.toString());
+
+  const handleSave = () => {
+    const parsed = parseFloat(draft);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onSave(parsed);
+      setEditing(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <button
+        className="inline-flex items-center gap-1 hover:text-primary transition-colors group"
+        onClick={(e) => { e.stopPropagation(); setDraft(value.toString()); setEditing(true); }}
+        title="Modifier le prix"
+      >
+        {formatCurrency(value)}
+        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 text-muted-foreground" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <Input
+        type="number"
+        step="0.01"
+        min="0"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+        className="h-7 w-24 text-xs"
+        autoFocus
+      />
+      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleSave}>
+        <Check className="h-3 w-3 text-green-600" />
+      </Button>
+      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(false)}>
+        <X className="h-3 w-3 text-destructive" />
+      </Button>
+    </div>
+  );
+};
 
 const EquipmentOrders: React.FC = () => {
   const { companyId } = useMultiTenant();
@@ -135,6 +187,21 @@ const EquipmentOrders: React.FC = () => {
       fetchData();
     } catch {
       toast.error("Erreur lors de la mise à jour");
+    }
+  };
+
+  const handleItemPriceChange = async (item: EquipmentOrderItem, newPrice: number) => {
+    try {
+      const update = { supplier_price: newPrice };
+      if (item.source_type === 'offer') {
+        await updateOfferEquipmentOrder(item.id, update);
+      } else {
+        await updateContractEquipmentOrder(item.id, update);
+      }
+      toast.success("Prix mis à jour");
+      fetchData();
+    } catch {
+      toast.error("Erreur lors de la mise à jour du prix");
     }
   };
 
@@ -270,7 +337,7 @@ const EquipmentOrders: React.FC = () => {
           />
         </TableCell>
         <TableCell className="text-right text-sm font-medium">
-          {formatCurrency(unitPrice)}
+          <EditablePrice value={unitPrice} onSave={(p) => handleUnitPriceChange(unit, p)} />
         </TableCell>
         <TableCell className="text-right text-sm">
           {supplierType === 'belgian' ? formatCurrency(tvaAmount) : <span className="text-muted-foreground">-</span>}
@@ -384,8 +451,18 @@ const EquipmentOrders: React.FC = () => {
                       )}
                       {hasUnits && <span className="text-xs text-muted-foreground italic">Voir unités</span>}
                     </TableCell>
-                    <TableCell className="text-right text-sm font-medium">
-                      {formatCurrency(priceHT)}
+                    <TableCell className="text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                      {!hasUnits ? (
+                        <EditablePrice
+                          value={(item.supplier_price || item.purchase_price)}
+                          onSave={(p) => handleItemPriceChange(item, p)}
+                        />
+                      ) : (
+                        formatCurrency(priceHT)
+                      )}
+                      {!hasUnits && item.quantity > 1 && (
+                        <div className="text-xs text-muted-foreground">× {item.quantity} = {formatCurrency((item.supplier_price || item.purchase_price) * item.quantity)}</div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-sm">
                       {supplierType === 'belgian' ? formatCurrency(tvaAmount) : <span className="text-muted-foreground">-</span>}
