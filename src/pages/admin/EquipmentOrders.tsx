@@ -28,7 +28,7 @@ const EquipmentOrders: React.FC = () => {
   const [items, setItems] = useState<EquipmentOrderItem[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string; supplier_type?: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('to_order');
+  const [statusFilters, setStatusFilters] = useState<OrderStatus[]>(['to_order']);
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
 
   const getCompanySlug = () => {
@@ -91,10 +91,19 @@ const EquipmentOrders: React.FC = () => {
   };
 
   const filteredItems = items.filter(item => {
-    if (statusFilter !== 'all' && item.order_status !== statusFilter) return false;
+    if (statusFilters.length > 0 && !statusFilters.includes(item.order_status as OrderStatus)) return false;
     if (supplierFilter !== 'all' && item.supplier_id !== supplierFilter) return false;
     return true;
   });
+
+  const toggleStatus = (status: OrderStatus) => {
+    setStatusFilters(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const allStatuses: OrderStatus[] = ['to_order', 'ordered', 'received', 'cancelled'];
+  const allSelected = statusFilters.length === 0 || statusFilters.length === allStatuses.length;
 
   const totalToOrder = items.filter(i => i.order_status === 'to_order').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
   const totalOrdered = items.filter(i => i.order_status === 'ordered').reduce((s, i) => s + (i.supplier_price || i.purchase_price) * i.quantity, 0);
@@ -282,19 +291,33 @@ const EquipmentOrders: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-wrap gap-4 items-center">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as OrderStatus | 'all')}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Statut" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les statuts</SelectItem>
-            {Object.entries(ORDER_STATUS_CONFIG).map(([key, config]) => (
-              <SelectItem key={key} value={key}>{config.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={allSelected ? "default" : "outline"}
+            onClick={() => setStatusFilters(allSelected ? ['to_order'] : [])}
+            className="text-xs"
+          >
+            Tous
+          </Button>
+          {allStatuses.map(status => {
+            const config = ORDER_STATUS_CONFIG[status];
+            const isActive = statusFilters.includes(status);
+            return (
+              <Button
+                key={status}
+                size="sm"
+                variant="outline"
+                onClick={() => toggleStatus(status)}
+                className={`text-xs border ${isActive ? `${config.bgColor} ${config.color} font-semibold` : 'opacity-60'}`}
+              >
+                {config.label}
+              </Button>
+            );
+          })}
+        </div>
         <Select value={supplierFilter} onValueChange={setSupplierFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Fournisseur" />
