@@ -18,12 +18,14 @@ import {
   Calculator,
   Package,
   Mail,
-  Truck
+  Truck,
+  CheckSquare
 } from "lucide-react";
 import SidebarIcon from "./SidebarIcon";
 import SidebarUserSection from "./SidebarUserSection";
 import SidebarMenuItem from "./SidebarMenuItem";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
+import { useTaskNotifications } from "@/hooks/useTaskNotifications";
 
 interface SidebarProps {
   className?: string;
@@ -34,6 +36,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
   const { companyId } = useMultiTenant();
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { hasModuleAccess } = useModuleAccess();
+  const { unreadCount: taskUnreadCount } = useTaskNotifications();
   const { preferences, updateSidebarCollapsed } = useUserPreferences();
   const location = useLocation();
   
@@ -106,6 +109,14 @@ const Sidebar = memo(({ className }: SidebarProps) => {
         alwaysVisible: false 
       },
       { 
+        icon: CheckSquare, 
+        label: "Tâches", 
+        href: `${basePrefix}/admin/tasks`, 
+        moduleSlug: "tasks",
+        alwaysVisible: true,
+        badge: taskUnreadCount > 0 ? String(taskUnreadCount) : undefined
+      },
+      { 
         icon: Mail, 
         label: "Chat Admin", 
         href: `${basePrefix}/admin/chat`, 
@@ -124,7 +135,7 @@ const Sidebar = memo(({ className }: SidebarProps) => {
       if (item.alwaysVisible) return true;
       return hasModuleAccess(item.moduleSlug);
     });
-  }, [companySlug, hasModuleAccess]);
+  }, [companySlug, hasModuleAccess, taskUnreadCount]);
 
   const isActive = useCallback((href: string) => location.pathname === href, [location.pathname]);
   
