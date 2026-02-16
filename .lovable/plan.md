@@ -1,30 +1,36 @@
 
-# Fix: Bouton "Générer la facture" grisé malgré le statut "Commandé"
 
-## Diagnostic
+# Afficher le statut "Attente paiement" pour les factures non payees (y compris les achats)
 
-La modification du statut (`equipment_ordered` accepté en plus de `active`) est bien en place dans le code. Le problème vient d'un **problème de timing entre deux useEffect** :
+## Probleme
 
-1. Le premier `useEffect` (ligne 44) charge l'état `billitEnabled` de maniere asynchrone
-2. Le second `useEffect` (ligne 73) calcule `canGenerateInvoice` en utilisant `billitEnabled`
-
-Le souci : la fonction `getInvoiceByContractId` dans les dependances du second effet n'est **pas memoizee** (pas de `useCallback`). Elle change de reference a chaque render, ce qui destabilise l'execution de l'effet et peut mener a un calcul fait avec `billitEnabled = false` (valeur initiale).
+La facture achat ITC-2026-0014 (statut "sent", echeance le 11/03/2026) n'affiche pas le badge "Attente paiement" avec le decompte des jours. Actuellement, ce badge ne s'affiche que lorsque la date d'echeance est **depassee** (facture en retard). Les factures non encore echues affichent simplement "Envoyee", sans indication du delai restant.
 
 ## Solution
 
-Fusionner la verification Billit et le calcul de `canGenerateInvoice` dans un **seul useEffect** pour eliminer la course (race condition).
+Modifier la fonction `getStatusBadge` dans `src/pages/InvoicingPage.tsx` pour afficher un badge "Attente paiement" avec un decompte pour **toute facture non payee ayant une date d'echeance**, qu'elle soit depassee ou non :
 
-### Fichier modifie
+- **Echeance depassee** : Badge rouge "Attente paiement" + "J-X" (jours de retard) -- comportement actuel, inchange
+- **Echeance a venir** : Badge orange "Attente paiement" + "J+X" (jours restants) -- nouveau comportement
 
-`src/components/contracts/ContractDetailHeader.tsx`
+## Fichier modifie
 
-### Changements
+`src/pages/InvoicingPage.tsx` -- fonction `getStatusBadge` (lignes 186-204)
 
-1. **Supprimer le useEffect Billit separe** (lignes 44-53)
-2. **Fusionner la logique** dans le useEffect principal (lignes 73-99) : verifier Billit, chercher la facture existante, verifier les numeros de serie, et calculer `canGenerate` -- le tout dans un seul bloc asynchrone
-3. **Retirer `getInvoiceByContractId`** de la dependance : utiliser directement `supabase` pour chercher la facture existante (plus stable)
-4. **Nettoyer les dependances** du useEffect : `[contract.id, contract.status, companyId]`
+## Detail technique
 
-### Resultat
+Apres la verification "credited" et apres la verification de retard existante, ajouter une condition pour les factures non payees dont la date d'echeance n'est pas encore atteinte :
 
-Le calcul de `canGenerateInvoice` se fera en une seule passe avec toutes les donnees fraiches, sans risque de race condition entre les effets.
+```
+if (invoice.due_date && !invoice.paid_at && invoice.status !== 'paid') {
+  const dueDate = new Date(invoice.due_date);
+  
+  if (dueDate <= today) {
+    // Existant : en retard, badge rouge J-X
+  } else {
+    // Nouveau : pas encore echue, badge orange J+X (jours restants)
+  }
+}
+```
+
+Cela s'applique a tous les types de factures (leasing et achat) de maniere uniforme.
