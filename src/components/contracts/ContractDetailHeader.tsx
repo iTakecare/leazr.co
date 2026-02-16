@@ -9,7 +9,7 @@ import { Contract, getContractEquipment } from "@/services/contractService";
 import ContractStatusBadge from "./ContractStatusBadge";
 import { areAllSerialNumbersComplete, generateLocalInvoice, getBillitIntegration } from "@/services/invoiceService";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
-import { useInvoices } from "@/hooks/useInvoices";
+
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useRoleNavigation } from "@/hooks/useRoleNavigation";
@@ -29,7 +29,6 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
   const navigate = useNavigate();
   const { navigateToAdmin } = useRoleNavigation();
   const { companyId } = useMultiTenant();
-  const { getInvoiceByContractId } = useInvoices();
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [billitEnabled, setBillitEnabled] = useState(false);
   const [canGenerateInvoice, setCanGenerateInvoice] = useState(false);
@@ -40,17 +39,6 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
     contract.contract_start_date ? new Date(contract.contract_start_date) : undefined
   );
   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
-
-  useEffect(() => {
-    const checkBillitIntegration = async () => {
-      if (!companyId) return;
-      
-      const integration = await getBillitIntegration(companyId);
-      setBillitEnabled(integration?.is_enabled || false);
-    };
-
-    checkBillitIntegration();
-  }, [companyId]);
 
   // Récupérer le nom du leaser depuis la DB si leaser_id existe
   useEffect(() => {
@@ -70,33 +58,40 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
     fetchLeaser();
   }, [contract.leaser_id]);
 
+  // Unified effect: check Billit, existing invoice, serials — all in one pass
   useEffect(() => {
-    const checkExistingInvoice = async () => {
+    const checkInvoiceEligibility = async () => {
       if (!companyId) return;
-      
-      const invoice = await getInvoiceByContractId(contract.id);
+
+      // 1. Check Billit integration
+      const integration = await getBillitIntegration(companyId);
+      const isBillitEnabled = integration?.is_enabled || false;
+      setBillitEnabled(isBillitEnabled);
+
+      // 2. Check existing invoice directly via supabase (stable, no hook dependency)
+      const { data: invoice } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('contract_id', contract.id)
+        .maybeSingle();
       setExistingInvoice(invoice);
-      
-      // Vérifier les numéros de série
+
+      // 3. Check serial numbers
       const equipment = await getContractEquipment(contract.id);
       const allSerialsComplete = areAllSerialNumbersComplete(equipment);
       setHasMissingSerials(!allSerialsComplete);
-      
-      // On peut générer une facture si :
-      // - L'intégration Billit est activée
-      // - Le contrat est actif
-      // - Il n'y a pas déjà de facture
-      // - Tous les numéros de série sont renseignés
-      const canGenerate = billitEnabled && 
-                         ['equipment_ordered', 'active'].includes(contract.status) && 
+
+      // 4. Calculate eligibility
+      const canGenerate = isBillitEnabled &&
+                         ['equipment_ordered', 'active'].includes(contract.status) &&
                          !invoice &&
                          allSerialsComplete;
-      
       setCanGenerateInvoice(canGenerate);
     };
 
-    checkExistingInvoice();
-  }, [billitEnabled, contract, companyId, getInvoiceByContractId]);
+    checkInvoiceEligibility();
+  }, [contract.id, contract.status, companyId]);
 
   const handleGenerateInvoice = async () => {
     if (!companyId) return;
