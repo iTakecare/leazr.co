@@ -183,12 +183,13 @@ const InvoicingPage = () => {
       );
     }
     
-    // Vérifier si la facture est en retard de paiement
-    if (invoice.due_date && !invoice.paid_at) {
+    // Vérifier si la facture est en attente de paiement (avec date d'échéance)
+    if (invoice.due_date && !invoice.paid_at && invoice.status !== 'paid') {
       const dueDate = new Date(invoice.due_date);
       dueDate.setHours(0, 0, 0, 0);
       
       if (dueDate <= today) {
+        // Échéance dépassée : badge rouge J-X
         const diffTime = today.getTime() - dueDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
@@ -198,6 +199,19 @@ const InvoicingPage = () => {
               Attente paiement
             </Badge>
             <span className="text-xs font-medium text-red-600 dark:text-red-400">J-{diffDays}</span>
+          </div>
+        );
+      } else {
+        // Échéance à venir : badge orange J+X
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return (
+          <div className="flex flex-col items-start gap-0.5">
+            <Badge className="bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900 dark:text-orange-100 dark:border-orange-800">
+              Attente paiement
+            </Badge>
+            <span className="text-xs font-medium text-orange-600 dark:text-orange-400">J+{diffDays}</span>
           </div>
         );
       }
