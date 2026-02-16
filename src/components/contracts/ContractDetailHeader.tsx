@@ -88,7 +88,7 @@ const ContractDetailHeader: React.FC<ContractDetailHeaderProps> = ({ contract, o
       // - Il n'y a pas déjà de facture
       // - Tous les numéros de série sont renseignés
       const canGenerate = billitEnabled && 
-                         contract.status === 'active' && 
+                         ['equipment_ordered', 'active'].includes(contract.status) && 
                          !invoice &&
                          allSerialsComplete;
       
