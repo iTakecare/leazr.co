@@ -15,12 +15,23 @@ serve(async (req) => {
   }
 
   try {
+    // Only accept POST
+    if (req.method !== "POST") {
+      return new Response("Method not allowed", { status: 405 });
+    }
+
     // Mollie sends POST with id in body
     const formData = await req.formData();
     const paymentId = formData.get("id") as string;
 
     if (!paymentId) {
       console.error("[Mollie Webhook] No payment ID received");
+      return new Response("OK", { status: 200 });
+    }
+
+    // Basic input validation: payment IDs should match Mollie format
+    if (!/^tr_[a-zA-Z0-9]+$/.test(paymentId)) {
+      console.error("[Mollie Webhook] Invalid payment ID format:", paymentId);
       return new Response("OK", { status: 200 });
     }
 
@@ -45,7 +56,7 @@ serve(async (req) => {
     }
 
     const payment = await response.json();
-    console.log(`[Mollie Webhook] Payment status: ${payment.status}`, payment.metadata);
+    console.log(`[Mollie Webhook] Payment status: ${payment.status}`);
 
     // Get Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -59,6 +70,19 @@ serve(async (req) => {
 
     if (!contractId) {
       console.log("[Mollie Webhook] No contract_id in metadata, skipping");
+      return new Response("OK", { status: 200 });
+    }
+
+    // Idempotency check: skip if we already processed this payment+status
+    const { data: existing } = await supabase
+      .from("mollie_payment_events")
+      .select("id")
+      .eq("payment_id", paymentId)
+      .eq("status", payment.status)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      console.log(`[Mollie Webhook] Already processed ${paymentId} with status ${payment.status}, skipping`);
       return new Response("OK", { status: 200 });
     }
 

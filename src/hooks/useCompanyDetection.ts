@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useMemo } from "react";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 
 export const useCompanyDetection = () => {
   const { companyId: urlCompanyId, companySlug } = useParams<{ 
@@ -104,7 +105,7 @@ export const useCompanyDetection = () => {
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('id')
-          .ilike('name', `%${identifier}%`)
+          .ilike('name', `%${sanitizeLikePattern(identifier!)}%`)
           .maybeSingle();
         
         console.log('🔍 COMPANY DETECTION - Company name lookup result:', { companyData, companyError });

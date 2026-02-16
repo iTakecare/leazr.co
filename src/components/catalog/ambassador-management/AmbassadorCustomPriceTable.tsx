@@ -28,6 +28,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { addMultipleProductsToAmbassadorCatalog } from "@/services/ambassadorCatalogService";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 
 interface AmbassadorCustomPriceTableProps {
   ambassadorId: string;
@@ -63,7 +64,7 @@ export const AmbassadorCustomPriceTable: React.FC<AmbassadorCustomPriceTableProp
         .eq('ambassador_custom_prices.ambassador_id', ambassadorId);
 
       if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
+        query = query.ilike('name', `%${sanitizeLikePattern(searchTerm)}%`);
       }
 
       const { data, error } = await query.order('name');
@@ -116,7 +117,7 @@ export const AmbassadorCustomPriceTable: React.FC<AmbassadorCustomPriceTableProp
         .eq('active', true);
 
       if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
+        query = query.ilike('name', `%${sanitizeLikePattern(searchTerm)}%`);
       }
 
       const { data, error } = await query.order('name');

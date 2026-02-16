@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 import { 
   OfferEquipment, 
   OfferEquipmentAttribute, 
@@ -80,7 +81,7 @@ const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: strin
           .from('products')
           .select('id, name, image_url, image_urls')
           .eq('company_id', companyId)
-          .ilike('name', `%${item.title}%`)
+          .ilike('name', `%${sanitizeLikePattern(item.title)}%`)
           .limit(1);
         
         // Si pas de résultat, recherche permissive avec titre nettoyé
@@ -98,7 +99,7 @@ const enrichEquipmentImages = async (equipment: OfferEquipment[], offerId: strin
               .from('products')
               .select('id, name, image_url, image_urls')
               .eq('company_id', companyId)
-              .ilike('name', `%${cleanTitle}%`)
+              .ilike('name', `%${sanitizeLikePattern(cleanTitle)}%`)
               .limit(1);
             
             if (!altError && altProducts && altProducts.length > 0) {
