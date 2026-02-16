@@ -1,6 +1,7 @@
-import React from "react";
-import { TaskFilters as TaskFiltersType } from "@/services/taskService";
+import React, { useEffect, useState } from "react";
+import { TaskFilters as TaskFiltersType, fetchCompanyTags, type TaskTag } from "@/services/taskService";
 import { useCompanyProfiles } from "@/hooks/useTasks";
+import { useMultiTenant } from "@/hooks/useMultiTenant";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -12,6 +13,14 @@ interface TaskFiltersProps {
 
 const TaskFilters = ({ filters, onFiltersChange }: TaskFiltersProps) => {
   const { data: profiles = [] } = useCompanyProfiles();
+  const { companyId } = useMultiTenant();
+  const [tags, setTags] = useState<TaskTag[]>([]);
+
+  useEffect(() => {
+    if (companyId) {
+      fetchCompanyTags(companyId).then(setTags);
+    }
+  }, [companyId]);
 
   const update = (key: string, value: string) => {
     onFiltersChange({ ...filters, [key]: value === 'all' ? undefined : value });
@@ -67,6 +76,25 @@ const TaskFilters = ({ filters, onFiltersChange }: TaskFiltersProps) => {
           ))}
         </SelectContent>
       </Select>
+
+      {tags.length > 0 && (
+        <Select value={filters.tag_id || 'all'} onValueChange={(v) => update('tag_id', v)}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder="Tag" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous tags</SelectItem>
+            {tags.map((tag) => (
+              <SelectItem key={tag.id} value={tag.id}>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                  {tag.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 };

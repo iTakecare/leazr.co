@@ -15,6 +15,7 @@ import {
 } from "@/services/taskService";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
+import { addDays, addWeeks, addMonths } from "date-fns";
 
 export function useTasks(filters?: TaskFilters) {
   const { companyId } = useMultiTenant();
@@ -97,7 +98,42 @@ export function useTaskMutations() {
 
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<CreateTaskInput> & { status?: TaskStatus }) => {
-      return updateTask(id, updates);
+      const task = await updateTask(id, updates);
+
+      // Recurrence: when a recurring task is marked done, create next occurrence
+      if (updates.status === 'done' && task.recurrence_type && task.due_date) {
+        const endDate = task.recurrence_end_date ? new Date(task.recurrence_end_date) : null;
+        const currentDue = new Date(task.due_date);
+        let nextDue: Date;
+
+        switch (task.recurrence_type) {
+          case 'daily': nextDue = addDays(currentDue, 1); break;
+          case 'weekly': nextDue = addWeeks(currentDue, 1); break;
+          case 'monthly': nextDue = addMonths(currentDue, 1); break;
+          default: nextDue = addDays(currentDue, 1);
+        }
+
+        // Only create next if not past end date
+        if (!endDate || nextDue <= endDate) {
+          await createTask({
+            company_id: task.company_id,
+            title: task.title,
+            description: task.description || undefined,
+            priority: task.priority,
+            created_by: task.created_by,
+            assigned_to: task.assigned_to || undefined,
+            due_date: nextDue.toISOString(),
+            related_client_id: task.related_client_id || undefined,
+            related_contract_id: task.related_contract_id || undefined,
+            related_offer_id: task.related_offer_id || undefined,
+            recurrence_type: task.recurrence_type,
+            recurrence_end_date: task.recurrence_end_date || undefined,
+          });
+          toast.info("Prochaine occurrence de la tâche récurrente créée");
+        }
+      }
+
+      return task;
     },
     onSuccess: () => {
       invalidate();
