@@ -1,37 +1,22 @@
 
-# Fix: Recherche client qui ne trouve rien
+# Permettre la generation de facture des le statut "Commande"
 
-## Probleme
+## Contexte
+Actuellement, le bouton "Generer la facture" n'est actif que lorsque le contrat atteint le statut **actif**. Vous souhaitez pouvoir generer la facture des que le statut **commande** (`equipment_ordered`) est atteint.
 
-Le composant `Command` (cmdk) applique son propre **filtre client-side** en plus du filtre serveur Supabase. Quand vous tapez "Ke", Supabase retourne bien les Kevin, mais cmdk les filtre a nouveau localement avec son propre algorithme et ne les trouve pas.
+## Modification
 
-## Solution
+Un seul fichier concerne : `src/components/contracts/ContractDetailHeader.tsx`
 
-Un seul changement dans `src/components/tasks/ClientSearchInput.tsx` :
+La condition a la ligne 90-93 sera modifiee pour accepter les deux statuts :
 
-1. **Ajouter `shouldFilter={false}`** sur le composant `<Command>` pour desactiver le filtrage interne de cmdk (puisque le filtrage est deja fait cote serveur par Supabase)
-2. **Ajouter un debounce de 300ms** sur la recherche pour eviter les appels API excessifs a chaque frappe
-3. **Ajouter `value={c.id}`** sur chaque `CommandItem` pour eviter les conflits de matching interne
+| Avant | Apres |
+|-------|-------|
+| `contract.status === 'active'` | `['equipment_ordered', 'active'].includes(contract.status)` |
 
-## Detail technique
+Les autres conditions restent identiques :
+- Integration Billit activee
+- Pas de facture existante
+- Tous les numeros de serie renseignes
 
-```
-// Ligne 111 - Avant :
-<Command>
-
-// Apres :
-<Command shouldFilter={false}>
-```
-
-C'est le correctif principal. Le `shouldFilter={false}` dit a cmdk : "ne filtre pas toi-meme, je gere le filtrage via l'API".
-
-En complement :
-- Debounce de 300ms via `setTimeout` + cleanup dans le `useEffect`
-- Remplacement de `.single()` par `.maybeSingle()` pour la resolution du nom
-- Ajout de `value={c.id}` sur les `CommandItem`
-
-## Fichier modifie
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/tasks/ClientSearchInput.tsx` | Ajout `shouldFilter={false}`, debounce 300ms, `.maybeSingle()` |
+Aucun autre fichier n'est modifie.
