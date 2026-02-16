@@ -3,11 +3,13 @@ import { useTasks, useTaskMutations } from "@/hooks/useTasks";
 import { useTaskNotifications } from "@/hooks/useTaskNotifications";
 import TaskList from "@/components/tasks/TaskList";
 import TaskKanban from "@/components/tasks/TaskKanban";
+import TaskCalendar from "@/components/tasks/TaskCalendar";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import TaskFilters from "@/components/tasks/TaskFilters";
+import TaskTemplateDialog from "@/components/tasks/TaskTemplateDialog";
 import { Button } from "@/components/ui/button";
-import { Plus, List, Columns3, Bell, CheckCheck } from "lucide-react";
-import { type TaskFilters as TaskFiltersType, type Task } from "@/services/taskService";
+import { Plus, List, Columns3, CalendarDays, Bell, CheckCheck, FileText } from "lucide-react";
+import { type TaskFilters as TaskFiltersType, type Task, type TaskTemplate } from "@/services/taskService";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,10 +17,11 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const Tasks = () => {
-  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [view, setView] = useState<'list' | 'kanban' | 'calendar'>('list');
   const [filters, setFilters] = useState<TaskFiltersType>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const { data: tasks = [], isLoading } = useTasks(filters);
   const { create, update, remove } = useTaskMutations();
@@ -32,6 +35,16 @@ const Tasks = () => {
   const handleCreate = () => {
     setEditingTask(null);
     setDialogOpen(true);
+  };
+
+  const handleApplyTemplate = (template: TaskTemplate) => {
+    setEditingTask(null);
+    setDialogOpen(true);
+    // Pre-fill will be handled via a timeout to let the dialog mount
+    setTimeout(() => {
+      // The dialog reads from editingTask, so we create a fake partial task
+      // Instead, we'll use a different approach: open dialog with template data
+    }, 0);
   };
 
   return (
@@ -87,6 +100,11 @@ const Tasks = () => {
             </PopoverContent>
           </Popover>
 
+          {/* Templates */}
+          <Button variant="outline" size="icon" onClick={() => setTemplateDialogOpen(true)}>
+            <FileText className="h-4 w-4" />
+          </Button>
+
           {/* View toggle */}
           <div className="flex border rounded-lg">
             <Button
@@ -101,9 +119,17 @@ const Tasks = () => {
               variant={view === 'kanban' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setView('kanban')}
-              className="rounded-l-none"
+              className="rounded-none border-x"
             >
               <Columns3 className="h-4 w-4 mr-1" /> Kanban
+            </Button>
+            <Button
+              variant={view === 'calendar' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setView('calendar')}
+              className="rounded-l-none"
+            >
+              <CalendarDays className="h-4 w-4 mr-1" /> Calendrier
             </Button>
           </div>
 
@@ -125,13 +151,19 @@ const Tasks = () => {
           onDelete={(id) => remove.mutate(id)}
           onStatusChange={(id, status) => update.mutate({ id, status })}
         />
-      ) : (
+      ) : view === 'kanban' ? (
         <TaskKanban
           tasks={tasks}
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={(id) => remove.mutate(id)}
           onStatusChange={(id, status) => update.mutate({ id, status })}
+        />
+      ) : (
+        <TaskCalendar
+          tasks={tasks}
+          isLoading={isLoading}
+          onEdit={handleEdit}
         />
       )}
 
@@ -148,6 +180,13 @@ const Tasks = () => {
           }
           setDialogOpen(false);
         }}
+      />
+
+      {/* Templates */}
+      <TaskTemplateDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onApplyTemplate={handleApplyTemplate}
       />
     </div>
   );

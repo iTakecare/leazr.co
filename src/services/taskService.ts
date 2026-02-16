@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type RecurrenceType = 'daily' | 'weekly' | 'monthly';
 
 export interface Task {
   id: string;
@@ -16,6 +17,10 @@ export interface Task {
   related_client_id: string | null;
   related_contract_id: string | null;
   related_offer_id: string | null;
+  recurrence_type: RecurrenceType | null;
+  recurrence_end_date: string | null;
+  parent_task_id: string | null;
+  template_id: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -25,6 +30,10 @@ export interface Task {
   client?: { name: string } | null;
   contract?: { id: string } | null;
   offer?: { id: string; equipment_description: string | null } | null;
+  // Virtual fields (loaded separately)
+  subtask_count?: number;
+  subtask_completed?: number;
+  tags?: TaskTag[];
 }
 
 export interface TaskFilters {
@@ -33,6 +42,7 @@ export interface TaskFilters {
   assigned_to?: string | 'all';
   related_client_id?: string;
   search?: string;
+  tag_id?: string;
 }
 
 export interface CreateTaskInput {
@@ -47,6 +57,48 @@ export interface CreateTaskInput {
   related_client_id?: string;
   related_contract_id?: string;
   related_offer_id?: string;
+  recurrence_type?: RecurrenceType;
+  recurrence_end_date?: string;
+  template_id?: string;
+}
+
+export interface TaskSubtask {
+  id: string;
+  task_id: string;
+  title: string;
+  is_completed: boolean;
+  position: number;
+  created_at: string;
+}
+
+export interface TaskTag {
+  id: string;
+  company_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface TaskTemplate {
+  id: string;
+  company_id: string;
+  name: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  subtasks: { title: string }[];
+  tags: string[];
+  created_by: string;
+  created_at: string;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user?: { first_name: string | null; last_name: string | null; avatar_url: string | null };
 }
 
 const TASK_SELECT = `
@@ -83,7 +135,62 @@ export async function fetchTasks(companyId: string, filters?: TaskFilters): Prom
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as unknown as Task[];
+
+  let tasks = (data || []) as unknown as Task[];
+
+  // Load subtask counts and tags for all tasks
+  if (tasks.length > 0) {
+    const taskIds = tasks.map(t => t.id);
+
+    // Subtask counts
+    const { data: subtasks } = await supabase
+      .from('task_subtasks')
+      .select('task_id, is_completed')
+      .in('task_id', taskIds);
+
+    const subtaskMap: Record<string, { total: number; completed: number }> = {};
+    (subtasks || []).forEach((s: any) => {
+      if (!subtaskMap[s.task_id]) subtaskMap[s.task_id] = { total: 0, completed: 0 };
+      subtaskMap[s.task_id].total++;
+      if (s.is_completed) subtaskMap[s.task_id].completed++;
+    });
+
+    // Tag assignments
+    const { data: tagAssignments } = await supabase
+      .from('task_tag_assignments')
+      .select('task_id, tag_id')
+      .in('task_id', taskIds);
+
+    const tagIds = [...new Set((tagAssignments || []).map((a: any) => a.tag_id))];
+    let tagsMap: Record<string, TaskTag> = {};
+    if (tagIds.length > 0) {
+      const { data: tags } = await supabase
+        .from('task_tags')
+        .select('*')
+        .in('id', tagIds);
+      (tags || []).forEach((t: any) => { tagsMap[t.id] = t; });
+    }
+
+    const taskTagsMap: Record<string, TaskTag[]> = {};
+    (tagAssignments || []).forEach((a: any) => {
+      if (!taskTagsMap[a.task_id]) taskTagsMap[a.task_id] = [];
+      if (tagsMap[a.tag_id]) taskTagsMap[a.task_id].push(tagsMap[a.tag_id]);
+    });
+
+    tasks = tasks.map(t => ({
+      ...t,
+      subtask_count: subtaskMap[t.id]?.total || 0,
+      subtask_completed: subtaskMap[t.id]?.completed || 0,
+      tags: taskTagsMap[t.id] || [],
+    }));
+
+    // Filter by tag if needed
+    if (filters?.tag_id) {
+      tasks = tasks.filter(t => t.tags?.some(tag => tag.id === filters.tag_id));
+    }
+  }
+
+  return tasks;
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
@@ -147,8 +254,9 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 export async function fetchCompanyProfiles(companyId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, email, avatar_url')
-    .eq('company_id', companyId);
+    .select('id, first_name, last_name, email, avatar_url, role')
+    .eq('company_id', companyId)
+    .in('role', ['admin', 'super_admin']);
   if (error) throw error;
   return data || [];
 }
@@ -174,4 +282,165 @@ export async function sendTaskAssignmentEmail(
     }
   });
   if (error) console.error('Failed to send task email:', error);
+}
+
+// === SUBTASKS ===
+
+export async function fetchSubtasks(taskId: string): Promise<TaskSubtask[]> {
+  const { data, error } = await supabase
+    .from('task_subtasks')
+    .select('*')
+    .eq('task_id', taskId)
+    .order('position', { ascending: true });
+  if (error) throw error;
+  return (data || []) as unknown as TaskSubtask[];
+}
+
+export async function addSubtask(taskId: string, title: string, position: number): Promise<TaskSubtask> {
+  const { data, error } = await supabase
+    .from('task_subtasks')
+    .insert({ task_id: taskId, title, position })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as TaskSubtask;
+}
+
+export async function toggleSubtask(id: string, isCompleted: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('task_subtasks')
+    .update({ is_completed: isCompleted })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteSubtask(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('task_subtasks')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// === TAGS ===
+
+export async function fetchCompanyTags(companyId: string): Promise<TaskTag[]> {
+  const { data, error } = await supabase
+    .from('task_tags')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('name');
+  if (error) throw error;
+  return (data || []) as unknown as TaskTag[];
+}
+
+export async function createTag(companyId: string, name: string, color: string): Promise<TaskTag> {
+  const { data, error } = await supabase
+    .from('task_tags')
+    .insert({ company_id: companyId, name, color })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as TaskTag;
+}
+
+export async function assignTagToTask(taskId: string, tagId: string): Promise<void> {
+  const { error } = await supabase
+    .from('task_tag_assignments')
+    .insert({ task_id: taskId, tag_id: tagId });
+  if (error && !error.message.includes('duplicate')) throw error;
+}
+
+export async function removeTagFromTask(taskId: string, tagId: string): Promise<void> {
+  const { error } = await supabase
+    .from('task_tag_assignments')
+    .delete()
+    .eq('task_id', taskId)
+    .eq('tag_id', tagId);
+  if (error) throw error;
+}
+
+export async function fetchTaskTagIds(taskId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('task_tag_assignments')
+    .select('tag_id')
+    .eq('task_id', taskId);
+  if (error) throw error;
+  return (data || []).map((d: any) => d.tag_id);
+}
+
+// === COMMENTS ===
+
+export async function fetchComments(taskId: string): Promise<TaskComment[]> {
+  const { data, error } = await supabase
+    .from('task_comments')
+    .select('*, user:profiles!task_comments_user_id_fkey(first_name, last_name, avatar_url)')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data || []) as unknown as TaskComment[];
+}
+
+export async function addComment(taskId: string, userId: string, content: string): Promise<TaskComment> {
+  const { data, error } = await supabase
+    .from('task_comments')
+    .insert({ task_id: taskId, user_id: userId, content })
+    .select('*, user:profiles!task_comments_user_id_fkey(first_name, last_name, avatar_url)')
+    .single();
+  if (error) throw error;
+  return data as unknown as TaskComment;
+}
+
+// === TEMPLATES ===
+
+export async function fetchTemplates(companyId: string): Promise<TaskTemplate[]> {
+  const { data, error } = await supabase
+    .from('task_templates')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('name');
+  if (error) throw error;
+  return (data || []) as unknown as TaskTemplate[];
+}
+
+export async function createTemplate(input: Omit<TaskTemplate, 'id' | 'created_at'>): Promise<TaskTemplate> {
+  const { data, error } = await supabase
+    .from('task_templates')
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as TaskTemplate;
+}
+
+export async function deleteTemplate(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('task_templates')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// === CLIENT DOSSIERS ===
+
+export async function fetchClientContracts(clientId: string) {
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('id, client_name, leaser_name, monthly_payment, status')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchClientOffers(clientId: string) {
+  const { data, error } = await supabase
+    .from('offers')
+    .select('id, equipment_description, amount, status')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data || [];
 }

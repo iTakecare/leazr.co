@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, CheckSquare } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import TaskRelatedLinks from "./TaskRelatedLinks";
@@ -16,12 +16,6 @@ const priorityConfig: Record<string, { label: string; className: string }> = {
   medium: { label: "Moyenne", className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
   high: { label: "Haute", className: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" },
   urgent: { label: "Urgente", className: "bg-destructive/10 text-destructive" },
-};
-
-const statusConfig: Record<string, { label: string }> = {
-  todo: { label: "À faire" },
-  in_progress: { label: "En cours" },
-  done: { label: "Terminée" },
 };
 
 interface TaskListProps {
@@ -76,7 +70,30 @@ const TaskList = ({ tasks, isLoading, onEdit, onDelete, onStatusChange }: TaskLi
         <TableBody>
           {tasks.map((task) => (
             <TableRow key={task.id} className="cursor-pointer" onClick={() => onEdit(task)}>
-              <TableCell className="font-medium max-w-[250px] truncate">{task.title}</TableCell>
+              <TableCell className="font-medium max-w-[250px]">
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{task.title}</span>
+                  {task.subtask_count != null && task.subtask_count > 0 && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0">
+                      <CheckSquare className="h-3 w-3" />
+                      {task.subtask_completed}/{task.subtask_count}
+                    </span>
+                  )}
+                </div>
+                {task.tags && task.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {task.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="text-[9px] px-1.5 py-0.5 rounded-full text-white"
+                        style={{ backgroundColor: tag.color }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </TableCell>
               <TableCell className="text-sm">{getAssigneeName(task)}</TableCell>
               <TableCell>
                 <Badge variant="secondary" className={priorityConfig[task.priority]?.className}>

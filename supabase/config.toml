@@ -215,3 +215,6 @@ verify_jwt = false
 
 [functions.send-trial-welcome-email]
 verify_jwt = false
+
+[functions.task-reminders]
+verify_jwt = false
