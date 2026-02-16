@@ -1,58 +1,37 @@
 
-# Remplacement du dropdown client par une modale de selection
+# Fix: Recherche client qui ne trouve rien
 
 ## Probleme
-Le dropdown inline pour la recherche client s'affiche mal dans la modale de tache (superposition, z-index, zone trop petite).
+
+Le composant `Command` (cmdk) applique son propre **filtre client-side** en plus du filtre serveur Supabase. Quand vous tapez "Ke", Supabase retourne bien les Kevin, mais cmdk les filtre a nouveau localement avec son propre algorithme et ne les trouve pas.
 
 ## Solution
-Remplacer `ClientSearchInput` par un pattern modal identique a `AmbassadorSelector` deja present dans le projet : un bouton qui ouvre une 2e modale (Dialog) avec un champ de recherche `cmdk` (Command) et une liste filtrable de clients.
 
-## Modifications
+Un seul changement dans `src/components/tasks/ClientSearchInput.tsx` :
 
-### `src/components/tasks/ClientSearchInput.tsx` -- Refonte complete
+1. **Ajouter `shouldFilter={false}`** sur le composant `<Command>` pour desactiver le filtrage interne de cmdk (puisque le filtrage est deja fait cote serveur par Supabase)
+2. **Ajouter un debounce de 300ms** sur la recherche pour eviter les appels API excessifs a chaque frappe
+3. **Ajouter `value={c.id}`** sur chaque `CommandItem` pour eviter les conflits de matching interne
 
-- Remplacer le dropdown custom par :
-  - Un bouton/champ affichant le client selectionne (ou "Selectionner un client...")
-  - Au clic, ouverture d'un `Dialog` contenant un `Command` (cmdk) avec :
-    - `CommandInput` pour la recherche avec autocompletion
-    - `CommandList` affichant les clients filtres
-    - `CommandEmpty` pour le message "Aucun resultat"
-    - Option "Aucun client" en tete de liste
-  - Bouton X pour dissocier le client selectionne
-
-- Pattern identique a `AmbassadorSelector.tsx` (Dialog + Command + CommandInput + CommandList + CommandItem)
-
-### Aucun autre fichier modifie
-- `TaskDialog.tsx` utilise deja `ClientSearchInput` avec les props `value` et `onChange` -- pas de changement necessaire.
-
-## Details techniques
+## Detail technique
 
 ```
-// Structure du nouveau composant
-<div>
-  <Label>Client lie</Label>
-  {value && selectedName ? (
-    // Affichage du client selectionne + bouton X
-  ) : (
-    // Bouton "Selectionner un client..." qui ouvre la modale
-  )}
-  <Dialog open={isOpen} onOpenChange={setIsOpen}>
-    <DialogContent>
-      <DialogHeader>Selectionner un client</DialogHeader>
-      <Command>
-        <CommandInput placeholder="Rechercher..." />
-        <CommandList>
-          <CommandEmpty>Aucun resultat</CommandEmpty>
-          <CommandGroup>
-            <CommandItem onSelect={handleClear}>Aucun client</CommandItem>
-            {clients.map(c => <CommandItem onSelect={() => handleSelect(c)}>{c.name}</CommandItem>)}
-          </CommandGroup>
-        </CommandList>
-      </Command>
-    </DialogContent>
-  </Dialog>
-</div>
+// Ligne 111 - Avant :
+<Command>
+
+// Apres :
+<Command shouldFilter={false}>
 ```
 
-- La recherche Supabase reste identique (filtre `ilike` sur le nom)
-- Le Dialog s'ouvre par-dessus la modale existante grace au z-index natif de Radix
+C'est le correctif principal. Le `shouldFilter={false}` dit a cmdk : "ne filtre pas toi-meme, je gere le filtrage via l'API".
+
+En complement :
+- Debounce de 300ms via `setTimeout` + cleanup dans le `useEffect`
+- Remplacement de `.single()` par `.maybeSingle()` pour la resolution du nom
+- Ajout de `value={c.id}` sur les `CommandItem`
+
+## Fichier modifie
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/tasks/ClientSearchInput.tsx` | Ajout `shouldFilter={false}`, debounce 300ms, `.maybeSingle()` |
