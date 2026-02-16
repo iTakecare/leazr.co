@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 import { Product, PublicPack } from "@/types/catalog";
 
 // Optimized service that loads only essential product data without variants
@@ -881,7 +882,7 @@ export const getUpsellProducts = async (
         .eq('company_id', companyId)
         .eq('active', true)
         .neq('id', currentProductId)
-        .ilike('name', `%${keyword}%`)
+        .ilike('name', `%${sanitizeLikePattern(keyword)}%`)
         .limit(3);
 
       if (keywordProducts) {
@@ -1043,7 +1044,7 @@ const getFallbackUpsellProducts = async (
         .eq('company_id', companyId)
         .eq('active', true)
         .neq('id', currentProductId)
-        .ilike('name', `%${keyword}%`)
+        .ilike('name', `%${sanitizeLikePattern(keyword)}%`)
         .limit(2);
 
       if (keywordProducts) {

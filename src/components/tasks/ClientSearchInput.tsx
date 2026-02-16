@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { useMultiTenant } from "@/hooks/useMultiTenant";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 
 interface Client {
   id: string;
@@ -36,7 +37,7 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
         .order('name')
         .limit(50);
       if (search.trim()) {
-        query = query.ilike('name', `%${search.trim()}%`);
+        query = query.ilike('name', `%${sanitizeLikePattern(search.trim())}%`);
       }
       const { data } = await query;
       setClients(data || []);

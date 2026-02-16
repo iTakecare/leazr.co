@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProductCustomPriceEditor } from "./ProductCustomPriceEditor";
 import { ClientVariantPricingManager } from "./ClientVariantPricingManager";
 import { addMultipleProductsToCustomCatalog } from "@/services/catalogService";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 
 interface ClientCustomPriceTableProps {
   clientId: string;
@@ -82,7 +83,7 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
         .eq('client_custom_prices.client_id', clientId);
 
       if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
+        query = query.ilike('name', `%${sanitizeLikePattern(searchTerm)}%`);
       }
 
       const { data, error } = await query.order('name');
@@ -136,7 +137,7 @@ export const ClientCustomPriceTable: React.FC<ClientCustomPriceTableProps> = ({
         .eq('active', true);
 
       if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
+        query = query.ilike('name', `%${sanitizeLikePattern(searchTerm)}%`);
       }
 
       const { data, error } = await query.order('name');

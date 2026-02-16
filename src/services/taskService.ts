@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeLikePattern } from "@/utils/sanitizeLikePattern";
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -130,7 +131,7 @@ export async function fetchTasks(companyId: string, filters?: TaskFilters): Prom
     query = query.eq('related_client_id', filters.related_client_id);
   }
   if (filters?.search) {
-    query = query.ilike('title', `%${filters.search}%`);
+    query = query.ilike('title', `%${sanitizeLikePattern(filters.search)}%`);
   }
 
   const { data, error } = await query;
