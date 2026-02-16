@@ -1,22 +1,30 @@
 
-# Permettre la generation de facture des le statut "Commande"
+# Fix: Bouton "Générer la facture" grisé malgré le statut "Commandé"
 
-## Contexte
-Actuellement, le bouton "Generer la facture" n'est actif que lorsque le contrat atteint le statut **actif**. Vous souhaitez pouvoir generer la facture des que le statut **commande** (`equipment_ordered`) est atteint.
+## Diagnostic
 
-## Modification
+La modification du statut (`equipment_ordered` accepté en plus de `active`) est bien en place dans le code. Le problème vient d'un **problème de timing entre deux useEffect** :
 
-Un seul fichier concerne : `src/components/contracts/ContractDetailHeader.tsx`
+1. Le premier `useEffect` (ligne 44) charge l'état `billitEnabled` de maniere asynchrone
+2. Le second `useEffect` (ligne 73) calcule `canGenerateInvoice` en utilisant `billitEnabled`
 
-La condition a la ligne 90-93 sera modifiee pour accepter les deux statuts :
+Le souci : la fonction `getInvoiceByContractId` dans les dependances du second effet n'est **pas memoizee** (pas de `useCallback`). Elle change de reference a chaque render, ce qui destabilise l'execution de l'effet et peut mener a un calcul fait avec `billitEnabled = false` (valeur initiale).
 
-| Avant | Apres |
-|-------|-------|
-| `contract.status === 'active'` | `['equipment_ordered', 'active'].includes(contract.status)` |
+## Solution
 
-Les autres conditions restent identiques :
-- Integration Billit activee
-- Pas de facture existante
-- Tous les numeros de serie renseignes
+Fusionner la verification Billit et le calcul de `canGenerateInvoice` dans un **seul useEffect** pour eliminer la course (race condition).
 
-Aucun autre fichier n'est modifie.
+### Fichier modifie
+
+`src/components/contracts/ContractDetailHeader.tsx`
+
+### Changements
+
+1. **Supprimer le useEffect Billit separe** (lignes 44-53)
+2. **Fusionner la logique** dans le useEffect principal (lignes 73-99) : verifier Billit, chercher la facture existante, verifier les numeros de serie, et calculer `canGenerate` -- le tout dans un seul bloc asynchrone
+3. **Retirer `getInvoiceByContractId`** de la dependance : utiliser directement `supabase` pour chercher la facture existante (plus stable)
+4. **Nettoyer les dependances** du useEffect : `[contract.id, contract.status, companyId]`
+
+### Resultat
+
+Le calcul de `canGenerateInvoice` se fera en une seule passe avec toutes les donnees fraiches, sans risque de race condition entre les effets.
