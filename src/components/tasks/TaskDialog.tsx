@@ -14,6 +14,51 @@ import TaskSubtasks from "./TaskSubtasks";
 import TaskTagManager from "./TaskTagManager";
 import TaskComments from "./TaskComments";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatCurrency, formatDateToFrench } from "@/utils/formatters";
+import { formatEquipmentForClient } from "@/utils/clientEquipmentFormatter";
+
+const WORKFLOW_STATUS_LABELS: Record<string, string> = {
+  draft: 'Brouillon',
+  sent: 'Envoyée',
+  requested_info: 'Info demandée',
+  client_waiting: 'Attente client',
+  signed: 'Signée',
+  archived: 'Archivée',
+  rejected: 'Rejetée',
+};
+
+const formatOfferLabel = (offer: any): string => {
+  const parts: string[] = [];
+  if (offer.created_at) {
+    parts.push(`Offre du ${formatDateToFrench(offer.created_at)}`);
+  } else {
+    parts.push('Offre');
+  }
+  if (offer.monthly_payment) {
+    parts.push(`${formatCurrency(offer.monthly_payment)}/mois`);
+  } else if (offer.amount) {
+    parts.push(formatCurrency(offer.amount));
+  }
+  const status = offer.workflow_status || offer.status;
+  if (status) {
+    parts.push(`(${WORKFLOW_STATUS_LABELS[status] || status})`);
+  }
+  return parts.join(' - ');
+};
+
+const formatContractLabel = (contract: any): string => {
+  const parts: string[] = [];
+  if (contract.leaser_name) {
+    parts.push(contract.leaser_name);
+  }
+  if (contract.monthly_payment) {
+    parts.push(`${formatCurrency(contract.monthly_payment)}/mois`);
+  }
+  if (contract.status) {
+    parts.push(`(${contract.status})`);
+  }
+  return parts.length > 0 ? `Contrat - ${parts.join(' - ')}` : `Contrat ${contract.id.slice(0, 8)}`;
+};
 
 interface TaskDialogProps {
   open: boolean;
@@ -183,7 +228,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit }: TaskDialogProps) => 
                           <SelectItem value="none">Aucun</SelectItem>
                           {contracts.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.client_name || c.id.slice(0, 8)} {c.status ? `(${c.status})` : ''}
+                              {formatContractLabel(c)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -197,7 +242,7 @@ const TaskDialog = ({ open, onOpenChange, task, onSubmit }: TaskDialogProps) => 
                           <SelectItem value="none">Aucune</SelectItem>
                           {offers.map((o) => (
                             <SelectItem key={o.id} value={o.id}>
-                              {o.equipment_description?.slice(0, 40) || o.id.slice(0, 8)}
+                              {formatOfferLabel(o)}
                             </SelectItem>
                           ))}
                         </SelectContent>

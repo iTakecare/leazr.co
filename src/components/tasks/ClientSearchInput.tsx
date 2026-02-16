@@ -112,10 +112,13 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
         />
       </div>
       {showDropdown && (
-        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-56 overflow-y-auto divide-y divide-border">
+          <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 sticky top-0">
+            Sélectionner un client
+          </div>
           <button
             type="button"
-            className="w-full text-left px-3 py-2 text-sm hover:bg-muted text-muted-foreground"
+            className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors"
             onClick={() => { handleClear(); setShowDropdown(false); }}
           >
             Aucun client
@@ -124,14 +127,14 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
             <button
               key={c.id}
               type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+              className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
               onClick={() => handleSelect(c)}
             >
               {c.name}
             </button>
           ))}
           {clients.length === 0 && search && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">Aucun résultat</div>
+            <div className="px-3 py-2.5 text-sm text-muted-foreground">Aucun résultat</div>
           )}
         </div>
       )}
