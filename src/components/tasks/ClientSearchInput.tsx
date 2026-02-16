@@ -27,7 +27,7 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
 
   useEffect(() => {
     if (!isOpen || !companyId) return;
-    const fetchClients = async () => {
+    const timer = setTimeout(async () => {
       setLoading(true);
       let query = supabase
         .from('clients')
@@ -41,8 +41,8 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
       const { data } = await query;
       setClients(data || []);
       setLoading(false);
-    };
-    fetchClients();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [companyId, search, isOpen]);
 
   // Resolve selected name on mount
@@ -52,7 +52,7 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
         .from('clients')
         .select('name')
         .eq('id', value)
-        .single()
+        .maybeSingle()
         .then(({ data }) => {
           if (data) setSelectedName(data.name);
         });
@@ -108,7 +108,7 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <Command>
+            <Command shouldFilter={false}>
               <CommandInput
                 placeholder="Rechercher un client..."
                 value={search}
@@ -132,6 +132,7 @@ const ClientSearchInput = ({ value, onChange }: ClientSearchInputProps) => {
                       {clients.map((c) => (
                         <CommandItem
                           key={c.id}
+                          value={c.id}
                           onSelect={() => handleSelect(c)}
                           className="flex items-center justify-between p-3 cursor-pointer"
                         >
