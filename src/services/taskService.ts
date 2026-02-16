@@ -437,7 +437,7 @@ export async function fetchClientContracts(clientId: string) {
 export async function fetchClientOffers(clientId: string) {
   const { data, error } = await supabase
     .from('offers')
-    .select('id, equipment_description, amount, status')
+    .select('id, equipment_description, amount, status, monthly_payment, created_at, workflow_status, client_name')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .limit(50);
