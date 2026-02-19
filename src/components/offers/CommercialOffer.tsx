@@ -512,49 +512,58 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                           const discountedTotal = item.monthlyPayment * discountRatio;
                           
                           return (
-                          <>
-                            <div style={{
-                              fontSize: styles.fontSize.xs,
-                              color: '#6B7280',
-                              fontWeight: '400',
-                            }}>
-                              {hasActiveDiscount && (
-                                <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: '4px' }}>
-                                  {formatCurrency(originalUnitPrice)}
-                                </span>
-                              )}
-                              {formatCurrency(hasActiveDiscount ? discountedUnitPrice : originalUnitPrice)} HTVA/mois
-                              <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
-                                • unitaire
-                              </span>
-                            </div>
-                            <div style={{
-                              fontSize: styles.fontSize.lg,
-                              fontWeight: '600',
-                              color: '#1E40AF',
-                            }}>
-                              {hasActiveDiscount && (
-                                <span style={{ 
-                                  textDecoration: 'line-through', 
-                                  opacity: 0.5, 
-                                  fontSize: styles.fontSize.sm, 
-                                  fontWeight: '400',
-                                  marginRight: '6px',
-                                  color: '#6B7280',
-                                }}>
-                                  {formatCurrency(originalTotal)}
-                                </span>
-                              )}
-                              {formatCurrency(hasActiveDiscount ? discountedTotal : originalTotal)}
-                              <span style={{
-                                fontSize: styles.fontSize.xs,
-                                color: '#6B7280',
-                                fontWeight: '400',
-                                marginLeft: styles.spacing.xs,
-                              }}>
-                                HTVA/mois
-                              </span>
-                            </div>
+                            <>
+                             {/* Prix unitaire */}
+                             {hasActiveDiscount && (
+                               <div style={{
+                                 fontSize: styles.fontSize.xs,
+                                 color: '#6B7280',
+                                 fontWeight: '400',
+                                 textDecoration: 'line-through',
+                                 opacity: 0.6,
+                                 lineHeight: '1.2',
+                               }}>
+                                 {formatCurrency(originalUnitPrice)}
+                               </div>
+                             )}
+                             <div style={{
+                               fontSize: styles.fontSize.xs,
+                               color: '#6B7280',
+                               fontWeight: '400',
+                             }}>
+                               {formatCurrency(hasActiveDiscount ? discountedUnitPrice : originalUnitPrice)} HTVA/mois
+                               <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
+                                 • unitaire
+                               </span>
+                             </div>
+                             {/* Prix total par équipement */}
+                             {hasActiveDiscount && (
+                               <div style={{
+                                 fontSize: styles.fontSize.sm,
+                                 color: '#6B7280',
+                                 fontWeight: '400',
+                                 textDecoration: 'line-through',
+                                 opacity: 0.5,
+                                 lineHeight: '1.2',
+                               }}>
+                                 {formatCurrency(originalTotal)}
+                               </div>
+                             )}
+                             <div style={{
+                               fontSize: styles.fontSize.lg,
+                               fontWeight: '600',
+                               color: '#1E40AF',
+                             }}>
+                               {formatCurrency(hasActiveDiscount ? discountedTotal : originalTotal)}
+                               <span style={{
+                                 fontSize: styles.fontSize.xs,
+                                 color: '#6B7280',
+                                 fontWeight: '400',
+                                 marginLeft: styles.spacing.xs,
+                               }}>
+                                 HTVA/mois
+                               </span>
+                             </div>
                           </>
                           );
                         })()
