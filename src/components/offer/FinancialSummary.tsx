@@ -176,14 +176,25 @@ const FinancialSummary = ({
             </div>
 
             {/* Montant total financé */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">
-                Montant total financé :
-              </span>
-              <span className="text-sm font-semibold text-gray-900">
-                {formatCurrency(totalFinancedAmount)}
-              </span>
-            </div>
+            {(() => {
+              const hasDiscount = discountData?.enabled && discountData.discountAmount > 0 && coefficient > 0;
+              const effectiveFinanced = hasDiscount
+                ? (discountData.monthlyPaymentAfterDiscount * 100) / coefficient
+                : totalFinancedAmount;
+              return (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">
+                    Montant total financé :
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {hasDiscount && (
+                      <span className="line-through text-muted-foreground mr-2">{formatCurrency(totalFinancedAmount)}</span>
+                    )}
+                    {formatCurrency(effectiveFinanced)}
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* Acompte (si présent) */}
             {downPayment > 0 && (
@@ -361,14 +372,25 @@ const FinancialSummary = ({
           </div>
 
           {/* Montant total financé */}
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-700">
-              Montant total financé :
-            </span>
-            <span className="text-sm font-semibold text-gray-900">
-              {formatCurrency(totalFinancedAmount)}
-            </span>
-          </div>
+          {(() => {
+            const hasDiscount = discountData?.enabled && discountData.discountAmount > 0 && globalCoefficient > 0;
+            const effectiveFinanced = hasDiscount
+              ? (discountData.monthlyPaymentAfterDiscount * 100) / globalCoefficient
+              : totalFinancedAmount;
+            return (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">
+                  Montant total financé :
+                </span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {hasDiscount && (
+                    <span className="line-through text-muted-foreground mr-2">{formatCurrency(totalFinancedAmount)}</span>
+                  )}
+                  {formatCurrency(effectiveFinanced)}
+                </span>
+              </div>
+            );
+          })()}
 
           {/* Acompte (si présent) */}
           {downPayment > 0 && (
@@ -434,12 +456,20 @@ const FinancialSummary = ({
                 </span>
               </div>
               {/* Impact marge */}
-              <div className="flex justify-between items-center text-xs text-amber-700">
-                <span>Marge après remise :</span>
-                <span className="font-medium">
-                  {formatCurrency(Math.max(0, displayedMarginAmount - discountData.discountAmount))}
-                </span>
-              </div>
+              {(() => {
+                const effectiveFinancedAfterDiscount = globalCoefficient > 0
+                  ? (discountData.monthlyPaymentAfterDiscount * 100) / globalCoefficient
+                  : totalFinancedAmount;
+                const marginAfterDiscount = effectiveFinancedAfterDiscount - totalPurchasePrice;
+                return (
+                  <div className="flex justify-between items-center text-xs text-amber-700">
+                    <span>Marge après remise :</span>
+                    <span className="font-medium">
+                      {formatCurrency(Math.max(0, marginAfterDiscount))}
+                    </span>
+                  </div>
+                );
+              })()}
             </>
           )}
 
