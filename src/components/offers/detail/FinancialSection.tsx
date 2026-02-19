@@ -309,12 +309,31 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
                 <span className="text-sm font-medium text-green-700">Mensualité totale</span>
               </div>
             </div>
-            <div className="text-2xl font-bold text-green-900 mb-1">
-              {formatCurrency(totals.totalMonthlyPayment)}
-            </div>
-            <div className="text-xs text-green-600">
-              Paiement mensuel client
-            </div>
+            {offer.discount_amount && offer.discount_amount > 0 ? (
+              <div className="space-y-1">
+                <div className="text-lg text-green-700 line-through opacity-60">
+                  {formatCurrency(offer.monthly_payment_before_discount || totals.totalMonthlyPayment)}
+                </div>
+                <div className="text-xs text-red-600 font-medium">
+                  🏷️ Remise {offer.discount_type === 'percentage' ? `(${offer.discount_value}%)` : ''} : -{formatCurrency(offer.discount_amount)}
+                </div>
+                <div className="text-2xl font-bold text-green-900">
+                  {formatCurrency(totals.totalMonthlyPayment)}
+                </div>
+                <div className="text-xs text-green-600">
+                  Mensualité après remise
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-900 mb-1">
+                  {formatCurrency(totals.totalMonthlyPayment)}
+                </div>
+                <div className="text-xs text-green-600">
+                  Paiement mensuel client
+                </div>
+              </>
+            )}
           </div>
           
           {/* Marge totale - Toujours affichée */}
@@ -325,13 +344,39 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
                 <span className="text-sm font-medium text-purple-700">Marge totale</span>
               </div>
             </div>
-            <div className="text-2xl font-bold text-purple-900 mb-1">
-              {formatCurrency(displayMargin)}
-            </div>
-            <div className="text-xs text-purple-600 flex items-center gap-1">
-              <Percent className="w-3 h-3" />
-              {marginPercentage.toFixed(1)}% du prix d'achat
-            </div>
+            {offer.discount_amount && offer.discount_amount > 0 && offer.coefficient > 0 ? (
+              <div className="space-y-1">
+                {(() => {
+                  const monthlyBeforeDiscount = offer.monthly_payment_before_discount || (totals.totalMonthlyPayment + offer.discount_amount);
+                  const marginBeforeDiscount = (monthlyBeforeDiscount * 100 / offer.coefficient) - totals.totalPurchasePrice;
+                  const marginBeforePercent = totals.totalPurchasePrice > 0 ? (marginBeforeDiscount / totals.totalPurchasePrice) * 100 : 0;
+                  return (
+                    <>
+                      <div className="text-sm text-purple-700 opacity-60 line-through">
+                        {formatCurrency(marginBeforeDiscount)} ({marginBeforePercent.toFixed(1)}%)
+                      </div>
+                      <div className="text-2xl font-bold text-purple-900">
+                        {formatCurrency(displayMargin)}
+                      </div>
+                      <div className="text-xs text-purple-600 flex items-center gap-1">
+                        <Percent className="w-3 h-3" />
+                        {marginPercentage.toFixed(1)}% du prix d'achat (après remise)
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-purple-900 mb-1">
+                  {formatCurrency(displayMargin)}
+                </div>
+                <div className="text-xs text-purple-600 flex items-center gap-1">
+                  <Percent className="w-3 h-3" />
+                  {marginPercentage.toFixed(1)}% du prix d'achat
+                </div>
+              </>
+            )}
           </div>
         </div>
 

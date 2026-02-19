@@ -624,10 +624,24 @@ const OffersTable: React.FC<OffersTableProps> = ({
                     </TableCell>
                   )}
                   <TableCell className="text-right font-medium text-[11px] py-2">
-                    <div className="flex items-center justify-end gap-1">
-                      {formatCurrency(offer.is_purchase ? 0 : offer.adjustedMonthlyPayment)}
-                      {offer.hasDownPayment && (
-                        <span className="text-amber-500 text-[9px]" title="Mensualité après acompte">●</span>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {offer.discount_amount && offer.discount_amount > 0 ? (
+                        <>
+                          <span className="text-[10px] text-muted-foreground line-through">
+                            {formatCurrency(offer.monthly_payment_before_discount || offer.adjustedMonthlyPayment)}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {formatCurrency(offer.is_purchase ? 0 : offer.adjustedMonthlyPayment)}
+                            <span className="text-blue-500 text-[9px]" title={`Remise ${offer.discount_type === 'percentage' ? offer.discount_value + '%' : formatCurrency(offer.discount_value)}`}>🏷️</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          {formatCurrency(offer.is_purchase ? 0 : offer.adjustedMonthlyPayment)}
+                          {offer.hasDownPayment && (
+                            <span className="text-amber-500 text-[9px]" title="Mensualité après acompte">●</span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </TableCell>
