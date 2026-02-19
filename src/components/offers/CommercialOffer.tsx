@@ -500,34 +500,64 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                           </div>
                         </>
                       ) : (
-                        /* Mode Leasing : afficher mensualité */
-                        <>
-                          <div style={{
-                            fontSize: styles.fontSize.xs,
-                            color: '#6B7280',
-                            fontWeight: '400',
-                          }}>
-                            {formatCurrency(item.monthlyPayment / Math.max(1, item.quantity || 1))} HTVA/mois
-                            <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
-                              • unitaire
-                            </span>
-                          </div>
-                          <div style={{
-                            fontSize: styles.fontSize.lg,
-                            fontWeight: '600',
-                            color: '#1E40AF',
-                          }}>
-                            {formatCurrency(item.monthlyPayment)}
-                            <span style={{
+                        /* Mode Leasing : afficher mensualité avec remise */
+                        (() => {
+                          const hasActiveDiscount = (discountAmount || 0) > 0 && (monthlyPaymentBeforeDiscount || 0) > 0;
+                          const discountRatio = hasActiveDiscount
+                            ? totalMonthly / monthlyPaymentBeforeDiscount!
+                            : 1;
+                          const originalUnitPrice = item.monthlyPayment / Math.max(1, item.quantity || 1);
+                          const discountedUnitPrice = originalUnitPrice * discountRatio;
+                          const originalTotal = item.monthlyPayment;
+                          const discountedTotal = item.monthlyPayment * discountRatio;
+                          
+                          return (
+                          <>
+                            <div style={{
                               fontSize: styles.fontSize.xs,
                               color: '#6B7280',
                               fontWeight: '400',
-                              marginLeft: styles.spacing.xs,
                             }}>
-                              HTVA/mois
-                            </span>
-                          </div>
-                        </>
+                              {hasActiveDiscount && (
+                                <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: '4px' }}>
+                                  {formatCurrency(originalUnitPrice)}
+                                </span>
+                              )}
+                              {formatCurrency(hasActiveDiscount ? discountedUnitPrice : originalUnitPrice)} HTVA/mois
+                              <span style={{ marginLeft: styles.spacing.xs, opacity: 0.9 }}>
+                                • unitaire
+                              </span>
+                            </div>
+                            <div style={{
+                              fontSize: styles.fontSize.lg,
+                              fontWeight: '600',
+                              color: '#1E40AF',
+                            }}>
+                              {hasActiveDiscount && (
+                                <span style={{ 
+                                  textDecoration: 'line-through', 
+                                  opacity: 0.5, 
+                                  fontSize: styles.fontSize.sm, 
+                                  fontWeight: '400',
+                                  marginRight: '6px',
+                                  color: '#6B7280',
+                                }}>
+                                  {formatCurrency(originalTotal)}
+                                </span>
+                              )}
+                              {formatCurrency(hasActiveDiscount ? discountedTotal : originalTotal)}
+                              <span style={{
+                                fontSize: styles.fontSize.xs,
+                                color: '#6B7280',
+                                fontWeight: '400',
+                                marginLeft: styles.spacing.xs,
+                              }}>
+                                HTVA/mois
+                              </span>
+                            </div>
+                          </>
+                          );
+                        })()
                       )}
                       
                       {/* Légende pour la clarté */}
@@ -547,14 +577,12 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
               {isLastProductPage && (() => {
                 const hasDownPayment = (downPayment || 0) > 0;
                 const hasDiscount = (discountAmount || 0) > 0;
-                // Apply discount to the monthly payment
+                // totalMonthly is ALREADY the discounted value from DB
                 let displayMonthlyPayment = hasDownPayment && adjustedMonthlyPayment 
                   ? adjustedMonthlyPayment 
                   : totalMonthly;
-                const monthlyBeforeDiscount = displayMonthlyPayment;
-                if (hasDiscount) {
-                  displayMonthlyPayment = displayMonthlyPayment - discountAmount;
-                }
+                const monthlyBeforeDiscount = monthlyPaymentBeforeDiscount || displayMonthlyPayment;
+                // Do NOT subtract discountAmount again - it's already applied
                 
                 return (
                 <div style={{
@@ -636,6 +664,18 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                           textDecoration: 'line-through',
                           opacity: 0.7,
                         }}>{formatCurrency(monthlyBeforeDiscount)}</span>
+                      </div>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        marginBottom: styles.spacing.xs,
+                        fontSize: styles.fontSize.sm,
+                      }}>
+                        <span style={{ color: '#991B1B' }}>Mensualité après remise :</span>
+                        <span style={{ 
+                          fontWeight: '600', 
+                          color: '#991B1B',
+                        }}>{formatCurrency(displayMonthlyPayment)}</span>
                       </div>
                       <div style={{ 
                         display: 'flex', 
