@@ -224,8 +224,11 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
     
     
    // MODE LEASING: Priorité 1 - Formule Grenke (source de vérité)
+   // Soustraire la remise de la mensualité pour le calcul du montant financé
    if (totals.totalMonthlyPayment > 0 && offer.coefficient > 0) {
-     return (totals.totalMonthlyPayment * 100) / offer.coefficient;
+     const discountAmount = offer.discount_amount || 0;
+     const effectiveMonthly = totals.totalMonthlyPayment - discountAmount;
+     return (effectiveMonthly * 100) / offer.coefficient;
    }
    
    // Priorité 2: Somme des prix de vente (fallback)
@@ -312,13 +315,13 @@ const FinancialSection: React.FC<FinancialSectionProps> = ({
             {offer.discount_amount && offer.discount_amount > 0 ? (
               <div className="space-y-1">
                 <div className="text-lg text-green-700 line-through opacity-60">
-                  {formatCurrency(offer.monthly_payment_before_discount || totals.totalMonthlyPayment)}
+                  {formatCurrency(offer.monthly_payment_before_discount || (totals.totalMonthlyPayment))}
                 </div>
                 <div className="text-xs text-red-600 font-medium">
                   🏷️ Remise {offer.discount_type === 'percentage' ? `(${offer.discount_value}%)` : ''} : -{formatCurrency(offer.discount_amount)}
                 </div>
                 <div className="text-2xl font-bold text-green-900">
-                  {formatCurrency(totals.totalMonthlyPayment)}
+                  {formatCurrency(totals.totalMonthlyPayment - offer.discount_amount)}
                 </div>
                 <div className="text-xs text-green-600">
                   Mensualité après remise

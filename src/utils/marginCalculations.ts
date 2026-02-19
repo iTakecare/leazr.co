@@ -11,6 +11,10 @@ export interface OfferFinancialData {
   equipment_description?: string | null;
   type?: string | null; // Added to identify client requests
   down_payment?: number | null; // Acompte
+  discount_amount?: number | null; // Remise commerciale
+  monthly_payment_before_discount?: number | null;
+  discount_type?: string | null;
+  discount_value?: number | null;
 }
 
 /**
@@ -76,7 +80,10 @@ export const getEffectiveFinancedAmount = (offer: OfferFinancialData, equipmentI
   // Priorité 1: Formule Grenke (source de vérité)
   // Montant financé = Mensualité × 100 / Coefficient
   if ((offer.coefficient || 0) > 0 && totals.totalMonthlyPayment > 0) {
-    const computed = (totals.totalMonthlyPayment * 100) / (offer.coefficient as number);
+    // Soustraire la remise de la mensualité pour le calcul du montant financé
+    const discountAmount = offer.discount_amount || 0;
+    const effectiveMonthly = totals.totalMonthlyPayment - discountAmount;
+    const computed = (effectiveMonthly * 100) / (offer.coefficient as number);
     return Math.round(computed * 100) / 100;
   }
   

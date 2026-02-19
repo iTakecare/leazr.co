@@ -280,8 +280,14 @@ const BrokerCalculator: React.FC = () => {
         leaser_id: selectedLeaser?.id,
         duration: selectedDuration,
         amount: productsToBeDetermined ? inputAmount : totalBudget,
-        monthly_payment: productsToBeDetermined ? 0 : selectedResult.monthlyPayment,
-        financed_amount: productsToBeDetermined ? inputAmount : totalBudget,
+        monthly_payment: productsToBeDetermined ? 0 
+          : globalDiscount.enabled && globalDiscount.discountAmount
+            ? selectedResult.monthlyPayment - globalDiscount.discountAmount
+            : selectedResult.monthlyPayment,
+        financed_amount: productsToBeDetermined ? inputAmount 
+          : globalDiscount.enabled && globalDiscount.discountAmount
+            ? ((selectedResult.monthlyPayment - globalDiscount.discountAmount) * 100) / selectedResult.coefficient
+            : totalBudget,
         coefficient: selectedResult.coefficient,
         commission: offerType === 'ambassador' ? commission.amount : 0,
         workflow_status: 'draft' as const,
