@@ -1,41 +1,51 @@
 
-# Correction visuelle du prix barré dans le PDF
+# Correction visuelle du trait barré sur les prix
 
-## Problème
+## Probleme
 
-La ligne de `text-decoration: line-through` apparaît trop haute visuellement. Cela se produit car le texte barré a une taille de police différente (`fontSize.sm`) à l'intérieur d'un conteneur plus grand (`fontSize.lg`), ce qui décale la ligne de barrage.
+Le `text-decoration: line-through` CSS positionne la ligne trop haut par rapport au texte. C'est un comportement connu des navigateurs : la position du trait depend des metriques du font et ne se centre pas visuellement sur les chiffres.
 
 ## Solution
 
-Remplacer `text-decoration: line-through` par une approche CSS manuelle avec un trait positionné via `background` + `linear-gradient` ou en séparant les prix barrés sur leur propre ligne au-dessus du prix remisé. La seconde approche est plus claire visuellement et évite les problèmes d'alignement.
+Remplacer `text-decoration: line-through` par un trait manuel : un `span` positionne en `absolute` avec un trait (`height: 1px, background: currentColor`) centre verticalement a `top: 50%` dans un conteneur `position: relative; display: inline-block`.
 
-### Fichier : `src/components/offers/CommercialOffer.tsx`
+Cela garantit que la ligne passe exactement au milieu du texte, independamment de la taille de police.
 
-#### Prix unitaire (lignes 516-530)
-Séparer le prix barré sur sa propre ligne au-dessus du prix remisé, au lieu de les mettre côte à côte :
+## Fichier modifie
 
-```text
-AVANT :  44,95 € 41,80 € HTVA/mois • unitaire (même ligne)
-APRES :  44,95 €  (barré, propre ligne, petite taille)
-         41,80 € HTVA/mois • unitaire (ligne suivante)
+`src/components/offers/CommercialOffer.tsx`
+
+### Changements
+
+#### 1. Creer un composant utilitaire inline `StrikePrice`
+
+Un petit composant reutilisable qui affiche un prix avec un trait positionne manuellement au centre vertical :
+
+```tsx
+const StrikePrice = ({ children, style }) => (
+  <span style={{ position: 'relative', display: 'inline-block', ...style }}>
+    {children}
+    <span style={{
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: '50%',
+      height: '1px',
+      background: 'currentColor',
+    }} />
+  </span>
+);
 ```
 
-#### Prix total (lignes 531-557)
-Même approche pour le total par équipement :
+#### 2. Remplacer les 4 occurrences de `textDecoration: 'line-through'`
 
-```text
-AVANT :  899,00 € 836,07 € HTVA/mois (même ligne, tailles mixtes)
-APRES :  899,00 €  (barré, propre ligne, taille uniforme)
-         836,07 € HTVA/mois (ligne suivante, gros et bleu)
-```
+- **Prix unitaire original** (ligne ~518-527) : remplacer le `div` avec `textDecoration: 'line-through'` par `StrikePrice`
+- **Prix total original par equipement** (ligne ~540-550) : idem
+- **"Mensualite avant remise" dans le bloc remise** (ligne ~637-641) : idem
+- **Bloc recapitulatif remise** (ligne ~671-675) : idem
 
-En mettant chaque prix barré sur sa propre ligne avec une taille de police cohérente, le `line-through` sera correctement centré sur le texte.
+Chaque occurrence suit le meme pattern : retirer `textDecoration: 'line-through'` du style et envelopper le contenu dans `StrikePrice`.
 
-## Détails techniques
+## Resultat attendu
 
-Restructurer le rendu JSX des deux blocs (unitaire et total) pour :
-1. Afficher le prix original barré dans un `div` dédié (pas un `span` inline)
-2. Utiliser la même `fontSize` pour le texte et sa décoration `line-through`
-3. Afficher le prix remisé dans un `div` séparé en dessous
-
-Seul le fichier `src/components/offers/CommercialOffer.tsx` est modifié (lignes 514-557).
+Le trait passe exactement au milieu des chiffres (a 50% de la hauteur du texte), donnant un rendu visuel propre et correct sur tous les navigateurs.
