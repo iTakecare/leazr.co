@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import DiscountInput, { DiscountData } from '@/components/offer/DiscountInput';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -64,6 +65,14 @@ const BrokerCalculator: React.FC = () => {
   const [editingEquipmentId, setEditingEquipmentId] = useState<string | null>(null);
   
   const [isSaving, setIsSaving] = useState(false);
+  const [globalDiscount, setGlobalDiscount] = useState<DiscountData>({
+    enabled: false,
+    type: 'percentage',
+    value: 0,
+    discountAmount: 0,
+    monthlyPaymentBeforeDiscount: 0,
+    monthlyPaymentAfterDiscount: 0,
+  });
 
   // Calculate results for all durations
   const { calculatedResults, durations } = useBrokerCalculator({
@@ -283,7 +292,11 @@ const BrokerCalculator: React.FC = () => {
         file_fee: fileFeeEnabled ? fileFeeAmount : 0,
         annual_insurance: annualInsurance,
         products_to_be_determined: productsToBeDetermined,
-        estimated_budget: productsToBeDetermined ? inputAmount : undefined
+        estimated_budget: productsToBeDetermined ? inputAmount : undefined,
+        discount_type: globalDiscount.enabled ? globalDiscount.type : null,
+        discount_value: globalDiscount.enabled ? globalDiscount.value : null,
+        discount_amount: globalDiscount.enabled ? globalDiscount.discountAmount : null,
+        monthly_payment_before_discount: globalDiscount.enabled ? globalDiscount.monthlyPaymentBeforeDiscount : null,
       };
     } catch (error) {
       console.error('Erreur dans prepareOfferData:', error);
@@ -499,6 +512,18 @@ const BrokerCalculator: React.FC = () => {
             onEditEquipment={handleEditEquipment}
             editingEquipmentId={editingEquipmentId}
           />
+
+          {/* Remise commerciale */}
+          {selectedResult && (
+            <DiscountInput
+              monthlyPayment={totalMonthlyPayment}
+              margin={totalMargin}
+              discountData={globalDiscount}
+              onDiscountChange={setGlobalDiscount}
+              showMarginImpact={false}
+              label="Remise commerciale"
+            />
+          )}
 
           {/* Actions */}
           <BrokerCalculatorActions

@@ -6,6 +6,7 @@ import { useRoleNavigation } from "@/hooks/useRoleNavigation";
 import ClientInfo from "@/components/offer/ClientInfo";
 import EquipmentForm from "@/components/offer/EquipmentForm";
 import EquipmentList from "@/components/offer/EquipmentList";
+import DiscountInput, { DiscountData } from "@/components/offer/DiscountInput";
 import PageTransition from "@/components/layout/PageTransition";
 import { Calculator as CalcIcon, AlertCircle } from "lucide-react";
 import ClientSelector from "@/components/ui/ClientSelector";
@@ -30,6 +31,14 @@ const AmbassadorCreateOffer = () => {
   const [estimatedBudget, setEstimatedBudget] = useState(0);
   const [isLoadingEditData, setIsLoadingEditData] = useState(false);
   const [editOfferData, setEditOfferData] = useState<any>(null);
+  const [globalDiscount, setGlobalDiscount] = useState<DiscountData>({
+    enabled: false,
+    type: 'percentage',
+    value: 0,
+    discountAmount: 0,
+    monthlyPaymentBeforeDiscount: 0,
+    monthlyPaymentAfterDiscount: 0,
+  });
   
   const isEditMode = !!editId;
   
@@ -235,7 +244,8 @@ const AmbassadorCreateOffer = () => {
       totalMargin,
       selectedLeaser,
       selectedDuration,
-      editId
+      editId,
+      discountData: globalDiscount
     });
   } catch (error) {
     console.error("❌ Error in useAmbassadorOfferSave:", error);
@@ -431,6 +441,18 @@ const AmbassadorCreateOffer = () => {
                       hidePriceColumn={true}
                       calculations={calculations}
                     />
+
+                    {/* Remise commerciale */}
+                    {equipmentList.length > 0 && (
+                      <DiscountInput
+                        monthlyPayment={totalMonthlyPayment}
+                        discountData={globalDiscount}
+                        onDiscountChange={setGlobalDiscount}
+                        showMarginImpact={false}
+                        label="Remise commerciale"
+                        compact={true}
+                      />
+                    )}
                     
                     <ClientInfo
                       clientId={clientInfoProps.clientId}

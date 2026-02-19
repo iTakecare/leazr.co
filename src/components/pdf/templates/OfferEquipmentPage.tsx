@@ -21,6 +21,11 @@ interface OfferEquipmentPageProps {
   financedAmountAfterDownPayment?: number;
   isPurchase?: boolean;
   totalSellingPrice?: number;
+  // Discount fields
+  discountType?: string;
+  discountValue?: number;
+  discountAmount?: number;
+  monthlyPaymentBeforeDiscount?: number;
   contentBlocks?: {
     title?: string;
     footer_note?: string;
@@ -44,6 +49,10 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
   financedAmountAfterDownPayment,
   isPurchase = false,
   totalSellingPrice = 0,
+  discountType,
+  discountValue,
+  discountAmount,
+  monthlyPaymentBeforeDiscount,
   contentBlocks,
   styles,
 }) => {
@@ -243,12 +252,44 @@ export const OfferEquipmentPage: React.FC<OfferEquipmentPageProps> = ({
               </View>
             )}
 
+            {/* Discount Section */}
+            {discountAmount && discountAmount > 0 && (
+              <View style={{ marginTop: 10, padding: 12, backgroundColor: '#FEF2F2', borderRadius: 4, borderLeftWidth: 4, borderLeftColor: '#EF4444' }}>
+                <Text style={{ ...styles.textBold, marginBottom: 6, color: '#991B1B' }}>
+                  Remise commerciale
+                </Text>
+                <View style={{ ...styles.row, marginBottom: 4 }}>
+                  <Text style={styles.text}>Mensualité d'origine :</Text>
+                  <Text style={{ 
+                    ...styles.text, 
+                    fontFamily: 'Helvetica',
+                    textDecoration: 'line-through',
+                    opacity: 0.7,
+                  }}>
+                    {formatCurrency(monthlyPaymentBeforeDiscount || totalMonthlyPayment)}
+                  </Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.text}>
+                    Remise {discountType === 'percentage' ? `(${discountValue}%)` : ''} :
+                  </Text>
+                  <Text style={{ ...styles.text, fontFamily: 'Helvetica-Bold', color: '#DC2626' }}>
+                    -{formatCurrency(discountAmount)}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>
-                {downPayment > 0 ? 'MENSUALITÉ HTVA (après acompte)' : 'MENSUALITÉ HTVA'}
+                {discountAmount && discountAmount > 0
+                  ? 'MENSUALITÉ HTVA (après remise)'
+                  : downPayment > 0 ? 'MENSUALITÉ HTVA (après acompte)' : 'MENSUALITÉ HTVA'}
               </Text>
               <Text style={styles.totalValue}>
-                {formatCurrency(downPayment > 0 && adjustedMonthlyPayment ? adjustedMonthlyPayment : totalMonthlyPayment)}
+                {discountAmount && discountAmount > 0
+                  ? formatCurrency((monthlyPaymentBeforeDiscount || totalMonthlyPayment) - discountAmount)
+                  : formatCurrency(downPayment > 0 && adjustedMonthlyPayment ? adjustedMonthlyPayment : totalMonthlyPayment)}
               </Text>
             </View>
             

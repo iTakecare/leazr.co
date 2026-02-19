@@ -29,6 +29,7 @@ import { OfferData } from "@/services/offers/types";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateAnnualInsurance } from "@/utils/insuranceCalculator";
 import EquipmentForm from "@/components/offer/EquipmentForm";
+import DiscountInput, { DiscountData } from "@/components/offer/DiscountInput";
 import EquipmentList from "@/components/offer/EquipmentList";
 import ClientInfo from "@/components/offer/ClientInfo";
 import OfferConfiguration from "@/components/offer/OfferConfiguration";
@@ -83,6 +84,14 @@ const CreateOffer = () => {
   const [estimatedBudget, setEstimatedBudget] = useState<number>(0);
   const [isPurchase, setIsPurchase] = useState(false); // Mode achat direct
   const [downPayment, setDownPayment] = useState(0); // Acompte
+  const [globalDiscount, setGlobalDiscount] = useState<DiscountData>({
+    enabled: false,
+    type: 'percentage',
+    value: 0,
+    discountAmount: 0,
+    monthlyPaymentBeforeDiscount: 0,
+    monthlyPaymentAfterDiscount: 0,
+  });
   const [selectedPacks, setSelectedPacks] = useState<Array<{
     pack_id: string;
     pack: ProductPack;
@@ -756,7 +765,12 @@ const CreateOffer = () => {
         duration: isPurchase ? null : selectedDuration,
         file_fee: isPurchase ? 0 : (fileFeeEnabled ? fileFeeAmount : 0),
         annual_insurance: isPurchase ? 0 : (productsToBeDetermined ? 0 : annualInsurance),
-        down_payment: isPurchase ? 0 : downPayment
+        down_payment: isPurchase ? 0 : downPayment,
+        // Remise commerciale
+        discount_type: globalDiscount.enabled ? globalDiscount.type : null,
+        discount_value: globalDiscount.enabled ? globalDiscount.value : null,
+        discount_amount: globalDiscount.enabled ? globalDiscount.discountAmount : null,
+        monthly_payment_before_discount: globalDiscount.enabled ? globalDiscount.monthlyPaymentBeforeDiscount : null,
       };
       console.log("💾 CRÉATION OFFRE - Données complètes:", offerData);
       console.log("💾 CRÉATION OFFRE - User ID:", user.id);
@@ -950,8 +964,20 @@ const CreateOffer = () => {
                       marginDifference: globalMarginAdjustment.marginDifference
                     }} toggleAdaptMonthlyPayment={toggleAdaptMonthlyPayment} calculations={calculations}
                     // Transmettre les infos commission pour l'affichage
-                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} isPurchase={isPurchase} />
+                    ambassadorId={selectedAmbassador?.id} commissionLevelId={commissionLevelId} hideFinancialDetails={false} fileFee={fileFeeEnabled ? fileFeeAmount : 0} annualInsurance={annualInsurance} isPurchase={isPurchase} discountData={globalDiscount} />
                         
+                        {/* Remise commerciale */}
+                        {equipmentList.length > 0 && !isPurchase && (
+                          <DiscountInput
+                            monthlyPayment={totalMonthlyPayment}
+                            margin={totalEquipmentMargin}
+                            discountData={globalDiscount}
+                            onDiscountChange={setGlobalDiscount}
+                            showMarginImpact={true}
+                            label="Remise commerciale"
+                          />
+                        )}
+
                         {/* Carte Acompte - entre équipements et client */}
                         {!isPurchase && equipmentList.length > 0 && (
                           <DownPaymentCard

@@ -46,6 +46,15 @@ interface EquipmentListProps {
   annualInsurance?: number;
   // Mode achat direct (pas de financement)
   isPurchase?: boolean;
+  // Remise commerciale
+  discountData?: {
+    enabled: boolean;
+    type: 'percentage' | 'amount';
+    value: number;
+    discountAmount: number;
+    monthlyPaymentBeforeDiscount: number;
+    monthlyPaymentAfterDiscount: number;
+  };
 }
 
 const EquipmentList = ({
@@ -65,7 +74,8 @@ const EquipmentList = ({
   offerData,
   fileFee,
   annualInsurance,
-  isPurchase = false
+  isPurchase = false,
+  discountData
 }: EquipmentListProps) => {
   const { user } = useAuth();
   const handleQuantityChange = (id: string, newQuantity: number) => {
@@ -397,6 +407,7 @@ const EquipmentList = ({
               fileFee={fileFee}
               annualInsurance={annualInsurance}
               isPurchase={isPurchase}
+              discountData={discountData}
             />
           ) : isAmbassadorMode ? (
             // Ambassador creating their own offer: show simplified summary
@@ -417,6 +428,7 @@ const EquipmentList = ({
               fileFee={fileFee}
               annualInsurance={annualInsurance}
               isPurchase={isPurchase}
+              discountData={discountData}
             />
           )}
         </>
