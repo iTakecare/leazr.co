@@ -229,8 +229,12 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
     } else {
       // En mode leasing, la formule Grenke est la source de vérité
       // Montant financé = Mensualité × 100 / Coefficient
-      if (coefficient > 0 && totalMonthlyPayment > 0) {
-        effectiveFinancedAmount = (totalMonthlyPayment * 100) / coefficient;
+      // Soustraire la remise commerciale de la mensualité avant calcul Grenke
+      const discountAmount = (offer as any).discount_amount || 0;
+      const effectiveMonthly = totalMonthlyPayment - discountAmount;
+      
+      if (coefficient > 0 && effectiveMonthly > 0) {
+        effectiveFinancedAmount = (effectiveMonthly * 100) / coefficient;
       } else if (totalSellingPrice > 0) {
         // Fallback: somme des prix de vente
         effectiveFinancedAmount = totalSellingPrice;
@@ -1070,8 +1074,21 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 justify-end">
-                        <div className="font-bold text-base text-purple-600">
-                          {formatPrice(totals.totalMonthlyPayment)}
+                        <div className="flex flex-col items-end">
+                          {(offer as any).discount_amount > 0 ? (
+                            <>
+                              <span className="text-sm line-through text-muted-foreground">
+                                {formatPrice(totals.totalMonthlyPayment)}
+                              </span>
+                              <span className="font-bold text-base text-purple-600">
+                                {formatPrice(totals.totalMonthlyPayment - ((offer as any).discount_amount || 0))}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-base text-purple-600">
+                              {formatPrice(totals.totalMonthlyPayment)}
+                            </span>
+                          )}
                         </div>
                         <Button
                           variant="ghost"
@@ -1092,6 +1109,37 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
           </Table>
         </div>
         
+        {/* Section Remise commerciale si présente */}
+        {!isPurchase && (offer as any).discount_amount > 0 && (
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-800 mb-3">Remise commerciale</h4>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-blue-700">Type : </span>
+                <span className="font-bold text-blue-600">
+                  {(offer as any).discount_type === 'percentage' 
+                    ? `${(offer as any).discount_value || 0}%` 
+                    : `${formatPrice((offer as any).discount_value || 0)} fixe`}
+                </span>
+              </div>
+              <div>
+                <span className="text-blue-700">Montant de la remise : </span>
+                <span className="font-bold text-blue-600">{formatPrice((offer as any).discount_amount)}</span>
+              </div>
+              <div>
+                <span className="text-blue-700">Mensualité après remise : </span>
+                <span className="font-bold text-blue-600">
+                  {formatPrice(totals.totalMonthlyPayment - ((offer as any).discount_amount || 0))}
+                </span>
+              </div>
+            </div>
+            <div className="mt-2 text-sm">
+              <span className="text-blue-700">Montant financé après remise : </span>
+              <span className="font-bold text-blue-600">{formatPrice(totals.effectiveFinancedAmount)}</span>
+            </div>
+          </div>
+        )}
+
         {/* Section Acompte si présent - seulement en mode leasing */}
         {!isPurchase && totals.downPayment > 0 && (
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
