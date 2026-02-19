@@ -263,6 +263,14 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       ? (financedAfterDownPayment * coefficient) / 100
       : totalMonthlyPayment;
 
+    // Valeurs AVANT remise (pour affichage barré)
+    const discountAmount = (offer as any).discount_amount || 0;
+    const originalFinancedAmount = coefficient > 0 && totalMonthlyPayment > 0
+      ? (totalMonthlyPayment * 100) / coefficient
+      : effectiveFinancedAmount;
+    const originalMargin = originalFinancedAmount - totalPrice;
+    const originalMarginPercentage = totalPrice > 0 ? (originalMargin / totalPrice) * 100 : 0;
+
     return { 
       totalPrice, 
       totalMonthlyPayment, 
@@ -273,7 +281,11 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
       globalCoefficient,
       downPayment,
       financedAfterDownPayment,
-      adjustedMonthlyPayment
+      adjustedMonthlyPayment,
+      discountAmount,
+      originalFinancedAmount,
+      originalMargin,
+      originalMarginPercentage
     };
   };
 
@@ -1009,20 +1021,59 @@ const NewEquipmentSection: React.FC<NewEquipmentSectionProps> = ({ offer, onOffe
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-bold text-base text-green-600">
-                    {formatPrice(totals.effectiveFinancedAmount)}
+                  <div className="flex flex-col items-end">
+                    {totals.discountAmount > 0 ? (
+                      <>
+                        <span className="text-sm line-through text-muted-foreground">
+                          {formatPrice(totals.originalFinancedAmount)}
+                        </span>
+                        <span className="font-bold text-base text-green-600">
+                          {formatPrice(totals.effectiveFinancedAmount)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-bold text-base text-green-600">
+                        {formatPrice(totals.effectiveFinancedAmount)}
+                      </span>
+                    )}
                   </div>
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-bold text-base text-foreground">
-                    {totals.marginPercentage.toFixed(1)}%
+                  <div className="flex flex-col items-end">
+                    {totals.discountAmount > 0 ? (
+                      <>
+                        <span className="text-sm line-through text-muted-foreground">
+                          {totals.originalMarginPercentage.toFixed(1)}%
+                        </span>
+                        <span className="font-bold text-base text-foreground">
+                          {totals.marginPercentage.toFixed(1)}%
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-bold text-base text-foreground">
+                        {totals.marginPercentage.toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                 </TableCell>
                 
                 <TableCell className="text-right py-4">
-                  <div className="font-bold text-base text-green-600">
-                    {formatPrice(totals.totalMargin)}
+                  <div className="flex flex-col items-end">
+                    {totals.discountAmount > 0 ? (
+                      <>
+                        <span className="text-sm line-through text-muted-foreground">
+                          {formatPrice(totals.originalMargin)}
+                        </span>
+                        <span className="font-bold text-base text-green-600">
+                          {formatPrice(totals.totalMargin)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-bold text-base text-green-600">
+                        {formatPrice(totals.totalMargin)}
+                      </span>
+                    )}
                   </div>
                 </TableCell>
                 
