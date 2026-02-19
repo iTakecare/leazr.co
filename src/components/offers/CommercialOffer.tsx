@@ -170,6 +170,20 @@ const getResponsiveStyle = (isPDFMode: boolean) => ({
     },
 });
 
+const StrikePrice = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <span style={{ position: 'relative' as const, display: 'inline-block', ...style }}>
+    {children}
+    <span style={{
+      position: 'absolute' as const,
+      left: 0,
+      right: 0,
+      top: '50%',
+      height: '1px',
+      background: 'currentColor',
+    }} />
+  </span>
+);
+
 const CommercialOffer: React.FC<CommercialOfferProps> = ({
   offerNumber = "N/A",
   offerDate = new Date().toLocaleDateString('fr-FR'),
@@ -516,15 +530,14 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                              {/* Prix unitaire */}
                              {hasActiveDiscount && (
                                <div style={{
-                                 fontSize: styles.fontSize.xs,
-                                 color: '#6B7280',
-                                 fontWeight: '400',
-                                 textDecoration: 'line-through',
-                                 opacity: 0.6,
-                                 lineHeight: '1.2',
-                               }}>
-                                 {formatCurrency(originalUnitPrice)}
-                               </div>
+                                  fontSize: styles.fontSize.xs,
+                                  color: '#6B7280',
+                                  fontWeight: '400',
+                                  opacity: 0.6,
+                                  lineHeight: '1.2',
+                                }}>
+                                  <StrikePrice>{formatCurrency(originalUnitPrice)}</StrikePrice>
+                                </div>
                              )}
                              <div style={{
                                fontSize: styles.fontSize.xs,
@@ -539,15 +552,14 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                              {/* Prix total par équipement */}
                              {hasActiveDiscount && (
                                <div style={{
-                                 fontSize: styles.fontSize.sm,
-                                 color: '#6B7280',
-                                 fontWeight: '400',
-                                 textDecoration: 'line-through',
-                                 opacity: 0.5,
-                                 lineHeight: '1.2',
-                               }}>
-                                 {formatCurrency(originalTotal)}
-                               </div>
+                                  fontSize: styles.fontSize.sm,
+                                  color: '#6B7280',
+                                  fontWeight: '400',
+                                  opacity: 0.5,
+                                  lineHeight: '1.2',
+                                }}>
+                                  <StrikePrice>{formatCurrency(originalTotal)}</StrikePrice>
+                                </div>
                              )}
                              <div style={{
                                fontSize: styles.fontSize.lg,
@@ -633,12 +645,11 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         fontSize: styles.fontSize.sm,
                       }}>
                         <span style={{ color: '#78350F' }}>Mensualité d'origine :</span>
-                        <span style={{ 
+                        <StrikePrice style={{ 
                           fontWeight: '400', 
                           color: '#78350F',
-                          textDecoration: 'line-through',
                           opacity: 0.7,
-                        }}>{formatCurrency(totalMonthly)}</span>
+                        }}>{formatCurrency(totalMonthly)}</StrikePrice>
                       </div>
                     </div>
                   )}
@@ -667,12 +678,11 @@ const CommercialOffer: React.FC<CommercialOfferProps> = ({
                         fontSize: styles.fontSize.sm,
                       }}>
                         <span style={{ color: '#991B1B' }}>Mensualité avant remise :</span>
-                        <span style={{ 
+                        <StrikePrice style={{ 
                           fontWeight: '400', 
                           color: '#991B1B',
-                          textDecoration: 'line-through',
                           opacity: 0.7,
-                        }}>{formatCurrency(monthlyBeforeDiscount)}</span>
+                        }}>{formatCurrency(monthlyBeforeDiscount)}</StrikePrice>
                       </div>
                       <div style={{ 
                         display: 'flex', 
