@@ -56,7 +56,7 @@ import { generateSignatureLink } from "@/services/offers/offerSignature";
 import { EmailOfferDialog } from "./EmailOfferDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount } from "@/utils/marginCalculations";
+import { calculateOfferMargin, formatMarginDisplay, getEffectiveFinancedAmount, calculateOfferMarginAmount, calculateEquipmentTotals } from "@/utils/marginCalculations";
 import { formatAllEquipmentWithQuantities, formatAllEquipmentForCell } from "@/utils/equipmentTooltipFormatter";
 import { useOffersReminders, ReminderStatus, AllReminders } from "@/hooks/useOfferReminders";
 import { OfferReminderRecord } from "@/hooks/useFetchOfferReminders";
@@ -237,12 +237,28 @@ const OffersTable: React.FC<OffersTableProps> = ({
         ? (effectiveFinancedAmount * coefficient) / 100
         : offer.monthly_payment;
 
+      // Calcul des valeurs originales (avant remise) pour affichage barré
+      const discountAmount = offer.discount_amount || 0;
+      const totalsData = calculateEquipmentTotals(offer, offer.offer_equipment);
+      const totalPurchasePrice = totalsData.totalPurchasePrice || offer.total_purchase_price || 0;
+      
+      // Montant financé ORIGINAL (sans remise) = mensualité totale * 100 / coefficient
+      const originalFinancedAmount = coefficient > 0 && totalsData.totalMonthlyPayment > 0
+        ? (totalsData.totalMonthlyPayment * 100) / coefficient
+        : effectiveFinancedAmount;
+      const originalMarginInEuros = totalPurchasePrice > 0 ? originalFinancedAmount - totalPurchasePrice : 0;
+      const originalMarginPercentage = totalPurchasePrice > 0 ? (originalMarginInEuros / totalPurchasePrice) * 100 : 0;
+
       return {
         ...offer,
         effectiveFinancedAmount,
         hasDownPayment: downPayment > 0,
         adjustedMonthlyPayment,
         marginInEuros: calculateOfferMarginAmount(offer, offer.offer_equipment),
+        discountAmount,
+        originalFinancedAmount,
+        originalMarginInEuros,
+        originalMarginPercentage,
         equipmentForCell: formatAllEquipmentForCell(offer.equipment_description, offer.offer_equipment),
         equipmentWithQuantities: formatAllEquipmentWithQuantities(offer.equipment_description, offer.offer_equipment),
         businessSectorLabel: offer.business_sector 
@@ -583,31 +599,73 @@ const OffersTable: React.FC<OffersTableProps> = ({
                   )}
                   
                   {/* Montant financé - masqué pour les ambassadeurs */}
-                  {!isAmbassador() && (
+                   {!isAmbassador() && (
                     <TableCell className="text-right text-[11px] py-2">
-                      <div className="font-medium text-blue-600 flex items-center justify-end gap-1">
-                        {formatCurrency(offer.effectiveFinancedAmount)}
-                        {offer.hasDownPayment && (
-                          <span className="text-amber-500 text-[9px]" title="Acompte déduit">●</span>
+                      <div className="flex flex-col items-end gap-0.5">
+                        {offer.discountAmount > 0 ? (
+                          <>
+                            <span className="text-[10px] text-muted-foreground line-through">
+                              {formatCurrency(offer.originalFinancedAmount)}
+                            </span>
+                            <div className="font-medium text-blue-600 flex items-center gap-1">
+                              {formatCurrency(offer.effectiveFinancedAmount)}
+                              {offer.hasDownPayment && (
+                                <span className="text-amber-500 text-[9px]" title="Acompte déduit">●</span>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="font-medium text-blue-600 flex items-center gap-1">
+                            {formatCurrency(offer.effectiveFinancedAmount)}
+                            {offer.hasDownPayment && (
+                              <span className="text-amber-500 text-[9px]" title="Acompte déduit">●</span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableCell>
                   )}
                   
-                  {/* Marge € - Display margin in euros */}
+                   {/* Marge € - Display margin in euros */}
                   {showMarginColumn && (
                     <TableCell className="text-right text-[11px] py-2 hidden lg:table-cell">
-                      <div className="font-medium text-green-600">
-                        {formatCurrency(offer.marginInEuros)}
+                      <div className="flex flex-col items-end gap-0.5">
+                        {offer.discountAmount > 0 ? (
+                          <>
+                            <span className="text-[10px] text-muted-foreground line-through">
+                              {formatCurrency(offer.originalMarginInEuros)}
+                            </span>
+                            <span className="font-medium text-green-600">
+                              {formatCurrency(offer.marginInEuros)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-medium text-green-600">
+                            {formatCurrency(offer.marginInEuros)}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                   )}
                   
-                  {/* Marge % - Display margin as percentage */}
+                   {/* Marge % - Display margin as percentage */}
                   {showMarginColumn && (
                     <TableCell className="text-right text-[11px] py-2 hidden xl:table-cell">
-                      <div className="font-medium text-green-600">
-                        {offer.margin_percentage ? `${offer.margin_percentage.toFixed(1)}%` : '-'}
+                      <div className="flex flex-col items-end gap-0.5">
+                        {offer.discountAmount > 0 ? (
+                          <>
+                            <span className="text-[10px] text-muted-foreground line-through">
+                              {offer.originalMarginPercentage ? `${offer.originalMarginPercentage.toFixed(1)}%` : '-'}
+                            </span>
+                            <span className="font-medium text-green-600">
+                              {offer.margin_percentage ? `${offer.margin_percentage.toFixed(1)}%` : '-'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-medium text-green-600">
+                            {offer.margin_percentage ? `${offer.margin_percentage.toFixed(1)}%` : '-'}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                   )}
